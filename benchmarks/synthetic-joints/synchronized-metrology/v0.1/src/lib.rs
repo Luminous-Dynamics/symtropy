@@ -206,11 +206,6 @@ fn validate_numeric_channel(channel: &ChannelMeasurement) -> Result<(), String> 
     {
         return Err("measured interval exceeds the declared sensor range".to_owned());
     }
-    if channel.calibrated_range.lower > channel.value.lower
-        || channel.calibrated_range.upper < channel.value.upper
-    {
-        return Err("measured interval is outside the calibration's covered range".to_owned());
-    }
     if !finite_interval(channel.calibrated_range) || !finite_interval(channel.sensor_range) {
         return Err("sensor and calibration ranges must be finite and ordered".to_owned());
     }
@@ -235,6 +230,11 @@ fn validate_channel_provenance(channel: &ChannelMeasurement) -> Option<String> {
         || channel.sensor_serial != channel.calibration_sensor_serial
     {
         return Some("calibration certificate sensor serial does not match the measured channel".to_owned());
+    }
+    if channel.calibrated_range.lower > channel.value.lower
+        || channel.calibrated_range.upper < channel.value.upper
+    {
+        return Some("measured interval lies outside the calibration-covered operating range".to_owned());
     }
     if !nonempty(&channel.calibration_certificate_reference)
         || !nonempty(&channel.reference_standard_reference)
@@ -295,7 +295,7 @@ fn power_sign(interval: NumericInterval) -> PowerSign {
     }
 }
 
-fn align_channel(channel: &ChannelMeasurement) -> Result<ChannelAlignment, String> {
+fn align_channel(channel: &ChannelMeasurement) -> Result<Option<ChannelAlignment>, String> {
     let residual_filter_delay =
         channel.filter_group_delay_s - channel.filter_delay_compensation_s;
     let maximum_time_skew_s = channel.sample_time_offset_s
@@ -325,10 +325,10 @@ fn align_channel(channel: &ChannelMeasurement) -> Result<ChannelAlignment, Strin
     if aligned_interval.lower < channel.calibrated_range.lower
         || aligned_interval.upper > channel.calibrated_range.upper
     {
-        return Err("time-aligned interval extends outside the calibration-covered range".to_owned());
+        return Ok(None);
     }
 
-    Ok(ChannelAlignment {
+    Ok(Some(ChannelAlignment {
         original_interval: channel.value,
         aligned_interval,
         maximum_time_skew_s,
@@ -340,7 +340,7 @@ fn align_channel(channel: &ChannelMeasurement) -> Result<ChannelAlignment, Strin
         clock_mapping_digest: channel.clock_mapping_digest.clone(),
         system_boundary_digest: channel.system_boundary_digest.clone(),
         operating_condition_digest: channel.operating_condition_digest.clone(),
-    })
+    }))
 }
 
 /// Computes a bounded mechanical-port power interval tau*omega.
@@ -388,8 +388,12 @@ pub fn evaluate_mechanical_port_power(
         return Ok(unknown("torque and angular velocity belong to different operating conditions"));
     }
 
-    let torque_alignment = align_channel(torque)?;
-    let velocity_alignment = align_channel(angular_velocity)?;
+    let Some(torque_alignment) = align_channel(torque)? else {
+        return Ok(unknown("time-expanded torque interval extends outside the calibration-covered operating range"));
+    };
+    let Some(velocity_alignment) = align_channel(angular_velocity)? else {
+        return Ok(unknown("time-expanded angular-velocity interval extends outside the calibration-covered operating range"));
+    };
 
     let pre_timing_power =
         product_interval(torque.value, angular_velocity.value)?;
@@ -663,12 +667,12 @@ mod tests {
     }
 
     #[test]
-    fn metrology_018_calibration_does_not_cover_sensor_range_is_unknown() {
+    fn metrology_018_measurement_outside_calibration_covered_range_is_unknown() {
         let (mut torque, speed) = pair();
-        torque.calibrated_range = NumericInterval { lower: -100.0, upper: 100.0 };
+        torque.calibrated_range = NumericInterval { lower: 10.0, upper: 10.5 };
         let report = evaluate_mechanical_port_power(&torque, &speed).unwrap();
         assert_eq!(report.disposition, MeasurementDisposition::Unknown);
-        assert!(report.reason.as_ref().unwrap().contains("does not cover"));
+        assert!(report.reason.as_ref().unwrap().contains("outside the calibration-covered operating range"));
     }
 
     #[test]
