@@ -26,13 +26,13 @@ Source: [China government / Xinhua, 19 Feb 2025](https://english.www.gov.cn/news
 
 ### Shanghai Lingang — 24 MW underwater/offshore-wind project
 
-Data Center Dynamics (20 May 2026) reports the Shanghai Lingang facility launched in June 2025, construction complete in October 2025, initial trials in February 2026 and full commercial operation the week before publication. It reports 24 MW total capacity, pressure-resistant modules around 35 metres below the surface, passive seawater cooling, a substantial share of offshore-wind power, and a PUE claim below 1.15 attributed to Chinese media reports. It also reports a possible larger 500 MW programme, which is a plan and not installed capacity.
+Shanghai's municipal government / Xinhua (11 June 2025) records the official project launch on 10 June 2025, a 2.3 MW first-phase demonstration then expected to operate in September, and a second-phase target of 24 MW, PUE below 1.15 and over 90% offshore-wind supply. Those are project/developer targets, not actual metered operating results. Data Center Dynamics (20 May 2026) subsequently reports construction complete in October 2025, initial trials in February 2026 and full commercial operation in May 2026, with 24 MW total capacity and module depth around 35 metres. It also reports a proposed larger 500 MW programme, not installed capacity.
 
 Offshore Wind (18 May 2026) reports a 2.3 MW first-phase demonstration scaled to 24 MW, with the modules approximately 10 metres underwater. It reports developer claims of PUE around 1.15, 22.8% lower electricity use, zero water use and more than 90% lower land use; these are not independently audited in the source.
 
 **Material source conflict:** DCD reports around 35 m depth; Offshore Wind reports 10 m. The difference could reflect phase, definition or reporting error, but it is unresolved. The benchmark fixture deliberately records CONFLICTED_UNKNOWN; do not use either depth in hydrostatic pressure, cable, bathymetry or installation calculations until primary as-built drawings and owner data resolve it.
 
-Sources: [DCD, 20 May 2026](https://www.datacenterdynamics.com/en/news/hiclouds-offshore-wind-powered-underwater-data-center-up-and-running-off-coast-of-shanghai-china/); [Offshore Wind, 18 May 2026](https://www.offshorewind.biz/2026/05/18/china-puts-worlds-first-offshore-wind-powered-underwater-data-centre-into-operation/).
+Sources: [Shanghai Municipal Government / Xinhua, 11 June 2025](https://english.shanghai.gov.cn/en-Strength-Scitechcenter/20250611/c60460fe62e440d08b62be991cade0c9.html); [DCD, 20 May 2026](https://www.datacenterdynamics.com/en/news/hiclouds-offshore-wind-powered-underwater-data-center-up-and-running-off-coast-of-shanghai-china/); [Offshore Wind, 18 May 2026](https://www.offshorewind.biz/2026/05/18/china-puts-worlds-first-offshore-wind-powered-underwater-data-centre-into-operation/); [Caixin, 26 June 2026](https://en.caixin.com/2026-06-26/102457910.html).
 
 ### Microsoft Project Natick — experimental reliability baseline
 
