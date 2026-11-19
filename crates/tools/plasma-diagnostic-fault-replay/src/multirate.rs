@@ -485,6 +485,19 @@ pub fn verify_alignment_receipt(receipt: &AlignmentReceipt) -> Result<(), Replay
             {
                 return Err(alignment_error("alignment receipt changes the selected sample's evidence disposition"));
             }
+            if state == EvidenceState::Measured {
+                let lineage = entry
+                    .lineage
+                    .as_ref()
+                    .ok_or_else(|| alignment_error("measured sample is missing source/calibration lineage"))?;
+                if !is_sha256(&lineage.source_sha256)
+                    || lineage.source_id.trim().is_empty()
+                    || lineage.calibration_id.as_deref().is_none_or(str::is_empty)
+                    || lineage.calibration_revision.as_deref().is_none_or(str::is_empty)
+                {
+                    return Err(alignment_error("measured sample has incomplete source/calibration lineage"));
+                }
+            }
         } else if entry.selected_sample_id.is_some() {
             return Err(alignment_error("selected sample is missing its evidence state"));
         }
