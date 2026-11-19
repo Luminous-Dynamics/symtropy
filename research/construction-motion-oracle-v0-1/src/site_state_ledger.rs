@@ -866,7 +866,7 @@ fn evaluate_referee_assessment(
                 design_entity_id: entity_id.to_owned(),
                 robot_claimed_state,
                 measurement_disposition: MeasurementDisposition::Measured,
-                measurement: Some(*measurement),
+                measurement: Some(measurement.clone()),
                 rework_event_id: None,
             };
             let score = score_field_layout_run(
@@ -1111,6 +1111,7 @@ mod tests {
             source_schema_release: "IFC4X3_ADD2".into(),
             ids_spec_sha256: digest('d'),
             ids_version: "1.0".into(),
+            ids_engine_build_sha256: digest('1'),
             design_revision_sha256: digest('b'),
             frame_id: "site-frame".into(),
             frame_sha256: digest('c'),
