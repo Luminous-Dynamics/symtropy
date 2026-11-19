@@ -594,6 +594,25 @@ mod tests {
     }
 
     #[test]
+    fn other_cooling_auxiliary_is_included_in_electricity() {
+        let mut case = balanced_case(CoolingMode::DirectSeawater);
+        case.other_cooling_auxiliary_electric_input_w = 1_000.0;
+        let report = verify_cooling_balance(&case).unwrap();
+        assert_eq!(report.cooling_electric_energy_kwh, 1.5);
+        assert!(report.passed);
+    }
+
+    #[test]
+    fn negative_auxiliary_electricity_is_invalid() {
+        let mut case = balanced_case(CoolingMode::DirectSeawater);
+        case.other_cooling_auxiliary_electric_input_w = -1.0;
+        assert!(matches!(
+            verify_cooling_balance(&case),
+            Err(VerificationError::InvalidQuantity { .. })
+        ));
+    }
+
+    #[test]
     fn identifiers_are_required_for_all_sensor_boundaries() {
         let mut case = balanced_case(CoolingMode::DirectSeawater);
         case.intake_observation_id.clear();
