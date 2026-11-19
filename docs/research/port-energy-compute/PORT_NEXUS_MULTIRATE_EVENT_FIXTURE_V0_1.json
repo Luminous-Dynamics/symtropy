@@ -163,6 +163,7 @@
       "case_id": "pcc-hard-breach-inside-cooldown",
       "sequence": 3,
       "state": {
+        "baseline_plan_id": "day-ahead-plan-v1",
         "last_trigger_time_ms": 999999
       },
       "overrides": {
@@ -267,6 +268,12 @@
       "case_id": "persistent-hard-event-not-reemitted",
       "sequence": 11,
       "state": {
+        "baseline_plan_id": "day-ahead-plan-v1",
+        "last_snapshot_id": "snapshot-10",
+        "last_snapshot_digest": "sha256:snapshot-10",
+        "last_snapshot_sequence": 10,
+        "last_decision_time_ms": 985000,
+        "last_trigger_time_ms": 970000,
         "soft_latched": true,
         "active_hard_reasons": [
           "HARD_BOUNDARY_BREACH:pcc_headroom_kw"
@@ -308,5 +315,11 @@
     "future_data_leakage": 0,
     "service_floor_regression": 0,
     "caveat": "Research targets only. Must be evaluated on identical trace, service and information budgets."
-  }
+  },
+  "snapshot_identity_fields": [
+    "snapshot_id",
+    "snapshot_sequence",
+    "baseline_plan_id",
+    "snapshot_digest"
+  ]
 }
