@@ -251,6 +251,10 @@ fn parse_receipt<'a>(
         return Err(format!("{label}: evidence class mismatch"));
     }
     required_str(report, "claim_ceiling", label)?;
+    let digest_field = if label == "delivery" { "campaign_sha256" } else { "fixture_sha256" };
+    if !is_sha256(required_str(&value, digest_field, label)?) {
+        return Err(format!("{label}: {digest_field} is not a SHA-256 digest"));
+    }
     Ok(value)
 }
 
@@ -802,12 +806,158 @@ mod tests {
         let data = fixture();
         let report = evaluate(&data).expect("fixture should evaluate");
         assert_eq!(report.result, "pass");
-        assert_eq!(report.summary.case_count, 19);
+        assert_eq!(report.summary.case_count, 20);
         assert_eq!(report.summary.accepted_for_synthetic_composition, 1);
-        assert_eq!(report.summary.rejected, 9);
+        assert_eq!(report.summary.rejected, 10);
         assert_eq!(report.summary.indeterminate, 9);
         assert_eq!(report.summary.expected_result_mismatches, 0);
         assert_eq!(report.summary.operational_authority_grants, 0);
+    }
+
+    fn receipt_bundle_inputs() -> (Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>) {
+        let data = fixture();
+        let source_commit = |component: Component| {
+            data.source_pins
+                .iter()
+                .find(|pin| pin.component == component)
+                .expect("source pin must exist")
+                .source_commit
+                .clone()
+        };
+        let delivery = serde_json::json!({
+            "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
+            "validator_version": "0.1.0",
+            "source_commit": source_commit(Component::EarthOrbitChain),
+            "campaign_sha256": "a".repeat(64),
+            "result": "pass",
+            "report": {
+                "evidence_class": "synthetic",
+                "claim_ceiling": "Synthetic Earth-orbit campaign only.",
+                "disposition": "ready",
+                "cargo_deliveries": [{
+                    "cargo_lot_id": "serviced-client-001",
+                    "cargo_mass_grams": 1_000_000,
+                    "target_orbit_id": "leo-550-km",
+                    "destination_node_id": "orbit",
+                    "terminal_node_id": "orbit",
+                    "arrival_epoch_seconds": 50,
+                    "status": "accepted"
+                }]
+            }
+        });
+        let capture = serde_json::json!({
+            "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
+            "validator_version": "0.1.0",
+            "source_commit": source_commit(Component::OrbitalCapture),
+            "fixture_sha256": "b".repeat(64),
+            "result": "pass",
+            "report": {
+                "evidence_class": "synthetic",
+                "claim_ceiling": "Synthetic capture contract only.",
+                "result": "pass",
+                "cases": [{
+                    "case_id": "NOMINAL_CAPTURE",
+                    "status": "accepted_for_handoff",
+                    "authority_granted": false,
+                    "client_id": "serviced-client-001",
+                    "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
+                    "interface_revision": 3,
+                    "frame_id": "TARGET-LVLH-001",
+                    "epoch_tick": 1000
+                }]
+            }
+        });
+        let fluid = serde_json::json!({
+            "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
+            "validator_version": "0.1.0",
+            "source_commit": source_commit(Component::OrbitalFluid),
+            "fixture_sha256": "c".repeat(64),
+            "result": "pass",
+            "report": {
+                "evidence_class": "synthetic",
+                "claim_ceiling": "Synthetic fluid accounting only.",
+                "result": "pass",
+                "scenarios": [{
+                    "scenario_id": "STORABLE_LIQUID_NOMINAL",
+                    "transfer_event_id": "transfer-storable-001",
+                    "status": "transfer_accepted",
+                    "fluid_class": "storable_liquid",
+                    "fluid_id": "synthetic-hydrazine-analogue",
+                    "receiver_id": "serviced-client-001",
+                    "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
+                    "interface_revision": 3,
+                    "phase": "liquid",
+                    "receiver_accepted_g": 390_000,
+                    "final_temperature_mk": 293_150,
+                    "final_pressure_pa": 250_000,
+                    "measurement_uncertainty_g": 1_000
+                }]
+            }
+        });
+        (
+            include_str!("../fixtures/v0.1/cases.json").as_bytes().to_vec(),
+            serde_json::to_vec(&delivery).expect("delivery receipt encodes"),
+            serde_json::to_vec(&capture).expect("capture receipt encodes"),
+            serde_json::to_vec(&fluid).expect("fluid receipt encodes"),
+        )
+    }
+
+    #[test]
+    fn generated_source_receipts_join_on_payload_client_receiver_and_interface() {
+        let (fixture, delivery, capture, fluid) = receipt_bundle_inputs();
+        let receipt = compose_receipt_bundle(&fixture, &delivery, &capture, &fluid)
+            .expect("source receipts should compose");
+        assert_eq!(receipt.result, "pass");
+        assert!(!receipt.authority_granted);
+        assert_eq!(receipt.joined_service.cargo_lot_id, "serviced-client-001");
+        assert_eq!(receipt.joined_service.cargo_mass_grams, 1_000_000);
+        assert_eq!(receipt.joined_service.target_orbit_id, "leo-550-km");
+        assert_eq!(receipt.joined_service.destination_node_id, "orbit");
+        assert_eq!(receipt.joined_service.client_id, "serviced-client-001");
+        assert_eq!(receipt.joined_service.receiver_id, "serviced-client-001");
+        assert_eq!(receipt.joined_service.capture_interface_revision, 3);
+        assert_eq!(receipt.joined_service.accepted_receiver_mass_g, 390_000);
+        assert_eq!(receipt.artifact_sha256.len(), 4);
+        assert!(receipt.artifact_sha256.values().all(|digest| is_sha256(digest)));
+    }
+
+    #[test]
+    fn mismatched_receiver_in_actual_source_receipt_is_rejected() {
+        let (fixture, delivery, capture, fluid) = receipt_bundle_inputs();
+        let mut value: serde_json::Value = serde_json::from_slice(&fluid).unwrap();
+        value["report"]["scenarios"][0]["receiver_id"] = serde_json::json!("unrelated-receiver");
+        let altered_fluid = serde_json::to_vec(&value).unwrap();
+        assert!(
+            compose_receipt_bundle(&fixture, &delivery, &capture, &altered_fluid)
+                .unwrap_err()
+                .contains("fluid receiver identity")
+        );
+    }
+
+    #[test]
+    fn source_receipt_commit_must_match_exact_frozen_pin() {
+        let (fixture, delivery, mut capture, fluid) = receipt_bundle_inputs();
+        let mut value: serde_json::Value = serde_json::from_slice(&capture).unwrap();
+        value["source_commit"] = serde_json::json!("0000000000000000000000000000000000000000");
+        capture = serde_json::to_vec(&value).unwrap();
+        assert!(
+            compose_receipt_bundle(&fixture, &delivery, &capture, &fluid)
+                .unwrap_err()
+                .contains("source commit does not match")
+        );
+    }
+
+    #[test]
+    fn missing_source_receipt_digest_is_not_accepted() {
+        let (fixture, mut delivery, capture, fluid) = receipt_bundle_inputs();
+        let mut value: serde_json::Value = serde_json::from_slice(&delivery).unwrap();
+        value["campaign_sha256"] = serde_json::json!("not-a-sha256");
+        delivery = serde_json::to_vec(&value).unwrap();
+        assert!(
+            compose_receipt_bundle(&fixture, &delivery, &capture, &fluid)
+                .unwrap_err()
+                .contains("campaign_sha256 is not a SHA-256 digest")
+        );
     }
 
     #[test]
