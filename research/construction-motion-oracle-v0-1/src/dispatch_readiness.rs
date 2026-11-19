@@ -175,6 +175,7 @@ pub enum DispatchReadinessFailure {
     ClockQualificationExpired,
     ClockUncertaintyStraddlesBoundary,
     ClockIntervalOverflow,
+    ClockSampleNotFresh,
     SiteSnapshotSequenceMismatch,
     SiteSnapshotHeadMismatch,
     OccupancyTimeWindowInvalid,
@@ -206,85 +207,90 @@ pub fn check_dispatch_readiness(
     }
     let envelope = &request.envelope;
     let occupancy = &request.occupancy;
+    let clock = &request.qualified_clock;
 
     for (label, digest) in [
         ("package", envelope.package_sha256.as_str()),
         ("design revision", envelope.design_revision_sha256.as_str()),
         ("frame", envelope.frame_sha256.as_str()),
         ("transform", envelope.transform_sha256.as_str()),
-        (
-            "robot configuration",
-            envelope.robot_configuration_sha256.as_str(),
-        ),
-        (
-            "tool configuration",
-            envelope.tool_configuration_sha256.as_str(),
-        ),
-        (
-            "payload configuration",
-            envelope.payload_configuration_sha256.as_str(),
-        ),
-        (
-            "primitive manifest",
-            envelope.primitive_manifest_sha256.as_str(),
-        ),
+        ("robot configuration", envelope.robot_configuration_sha256.as_str()),
+        ("tool configuration", envelope.tool_configuration_sha256.as_str()),
+        ("payload configuration", envelope.payload_configuration_sha256.as_str()),
+        ("primitive manifest", envelope.primitive_manifest_sha256.as_str()),
         ("trajectory", envelope.trajectory_sha256.as_str()),
         ("motion envelope", envelope.envelope_sha256.as_str()),
-        (
-            "occupancy envelope",
-            occupancy.assessed_envelope_sha256.as_str(),
-        ),
-        (
-            "occupancy primitive manifest",
-            occupancy.primitive_manifest_sha256.as_str(),
-        ),
+        ("envelope clock epoch", envelope.site_clock_epoch_sha256.as_str()),
+        ("envelope clock mapping", envelope.clock_mapping_sha256.as_str()),
+        ("occupancy envelope", occupancy.assessed_envelope_sha256.as_str()),
+        ("occupancy primitive manifest", occupancy.primitive_manifest_sha256.as_str()),
         ("site snapshot", occupancy.site_snapshot_sha256.as_str()),
-        (
-            "site ledger head",
-            occupancy.site_ledger_event_sha256.as_str(),
-        ),
-        (
-            "dynamic occupancy manifest",
-            occupancy.dynamic_occupancy_manifest_sha256.as_str(),
-        ),
+        ("site ledger head", occupancy.site_ledger_event_sha256.as_str()),
+        ("dynamic occupancy manifest", occupancy.dynamic_occupancy_manifest_sha256.as_str()),
         ("actor manifest", occupancy.actor_manifest_sha256.as_str()),
-        (
-            "occupancy engine build",
-            occupancy.occupancy_engine_build_sha256.as_str(),
-        ),
-        (
-            "clearance policy",
-            occupancy.clearance_policy_sha256.as_str(),
-        ),
-        (
-            "trusted occupancy engine build",
-            request.trusted_occupancy_engine_build_sha256.as_str(),
-        ),
-        (
-            "required clearance policy",
-            request.required_clearance_policy_sha256.as_str(),
-        ),
-        (
-            "assessment receipt",
-            occupancy.assessment_receipt_sha256.as_str(),
-        ),
+        ("occupancy engine build", occupancy.occupancy_engine_build_sha256.as_str()),
+        ("clearance policy", occupancy.clearance_policy_sha256.as_str()),
+        ("occupancy clock epoch", occupancy.site_clock_epoch_sha256.as_str()),
+        ("occupancy clock mapping", occupancy.clock_mapping_sha256.as_str()),
+        ("assessment receipt", occupancy.assessment_receipt_sha256.as_str()),
+        ("trusted occupancy engine build", request.trusted_occupancy_engine_build_sha256.as_str()),
+        ("required clearance policy", request.required_clearance_policy_sha256.as_str()),
+        ("clock epoch", clock.epoch_sha256.as_str()),
+        ("clock mapping", clock.mapping_sha256.as_str()),
+        ("clock qualification receipt", clock.receipt_sha256.as_str()),
     ] {
         if !is_sha256(digest) {
             return Err(DispatchReadinessFailure::InvalidDigest(label));
         }
     }
+
     if envelope.entity_id.trim().is_empty()
         || envelope.robot_id.trim().is_empty()
         || envelope.site_clock_domain_id.trim().is_empty()
         || occupancy.site_clock_domain_id.trim().is_empty()
+        || clock.site_clock_domain_id.trim().is_empty()
+        || clock.authority_id.trim().is_empty()
+        || clock.source_id.trim().is_empty()
+        || clock.sample_sequence == 0
     {
-        return Err(DispatchReadinessFailure::OccupancyClockDomainMismatch);
+        return Err(DispatchReadinessFailure::InvalidClockEvidence);
+    }
+    if !ledger.actor_registry().allows(&envelope.robot_id, SiteActorRole::Robot) {
+        return Err(DispatchReadinessFailure::RobotIdentityNotRegistered);
     }
     if !ledger
         .actor_registry()
-        .allows(&envelope.robot_id, SiteActorRole::Robot)
+        .allows(&clock.authority_id, SiteActorRole::ClockAuthority)
     {
-        return Err(DispatchReadinessFailure::RobotIdentityNotRegistered);
+        return Err(DispatchReadinessFailure::ClockAuthorityNotRegistered);
+    }
+    if clock.uncertainty_bound_ticks > request.trusted_max_clock_uncertainty_ticks
+        || envelope.generated_at_uncertainty_ticks > request.trusted_max_clock_uncertainty_ticks
+        || occupancy.checked_at_uncertainty_ticks > request.trusted_max_clock_uncertainty_ticks
+    {
+        return Err(DispatchReadinessFailure::ClockUncertaintyExceedsPolicy);
+    }
+
+    if envelope.site_clock_domain_id != clock.site_clock_domain_id
+        || occupancy.site_clock_domain_id != clock.site_clock_domain_id
+    {
+        return Err(DispatchReadinessFailure::OccupancyClockDomainMismatch);
+    }
+    if envelope.site_clock_epoch_sha256 != clock.epoch_sha256
+        || occupancy.site_clock_epoch_sha256 != clock.epoch_sha256
+    {
+        return Err(DispatchReadinessFailure::ClockEpochMismatch);
+    }
+    if envelope.clock_mapping_sha256 != clock.mapping_sha256
+        || occupancy.clock_mapping_sha256 != clock.mapping_sha256
+    {
+        return Err(DispatchReadinessFailure::ClockMappingMismatch);
+    }
+
+    let (now_lower_tick, now_upper_tick) =
+        uncertainty_interval(clock.current_tick, clock.uncertainty_bound_ticks)?;
+    if now_upper_tick >= clock.valid_until_tick {
+        return Err(DispatchReadinessFailure::ClockQualificationExpired);
     }
 
     if ledger.active_package_sha256() != Some(envelope.package_sha256.as_str())
@@ -319,13 +325,22 @@ pub fn check_dispatch_readiness(
         None => return Err(DispatchReadinessFailure::UnknownDesignEntity),
     }
 
-    if envelope.valid_until_tick <= envelope.generated_at_tick {
+    if envelope.valid_until_tick <= envelope.generated_at_tick
+        || envelope.generated_at_uncertainty_ticks >= envelope.valid_until_tick
+    {
         return Err(DispatchReadinessFailure::EnvelopeTimeWindowInvalid);
     }
-    if request.now_tick < envelope.generated_at_tick {
+    let (_, envelope_generated_upper) = uncertainty_interval(
+        envelope.generated_at_tick,
+        envelope.generated_at_uncertainty_ticks,
+    )?;
+    if now_upper_tick < envelope.generated_at_tick.saturating_sub(envelope.generated_at_uncertainty_ticks) {
         return Err(DispatchReadinessFailure::EnvelopeNotYetValid);
     }
-    if request.now_tick >= envelope.valid_until_tick {
+    if now_lower_tick < envelope_generated_upper {
+        return Err(DispatchReadinessFailure::ClockUncertaintyStraddlesBoundary);
+    }
+    if now_upper_tick >= envelope.valid_until_tick {
         return Err(DispatchReadinessFailure::EnvelopeExpired);
     }
 
@@ -334,9 +349,6 @@ pub fn check_dispatch_readiness(
     }
     if occupancy.primitive_manifest_sha256 != envelope.primitive_manifest_sha256 {
         return Err(DispatchReadinessFailure::OccupancyPrimitiveManifestMismatch);
-    }
-    if occupancy.site_clock_domain_id != envelope.site_clock_domain_id {
-        return Err(DispatchReadinessFailure::OccupancyClockDomainMismatch);
     }
     if occupancy.occupancy_engine_build_sha256 != request.trusted_occupancy_engine_build_sha256 {
         return Err(DispatchReadinessFailure::OccupancyEngineBuildMismatch);
@@ -350,16 +362,23 @@ pub fn check_dispatch_readiness(
     if ledger.last_event_sha256() != Some(occupancy.site_ledger_event_sha256.as_str()) {
         return Err(DispatchReadinessFailure::SiteSnapshotHeadMismatch);
     }
-    if occupancy.valid_until_tick <= occupancy.checked_at_tick {
+    if occupancy.valid_until_tick <= occupancy.checked_at_tick
+        || occupancy.checked_at_uncertainty_ticks >= occupancy.valid_until_tick
+    {
         return Err(DispatchReadinessFailure::OccupancyTimeWindowInvalid);
     }
-    if occupancy.checked_at_tick < envelope.generated_at_tick {
+    let (occupancy_checked_lower, occupancy_checked_upper) =
+        uncertainty_interval(occupancy.checked_at_tick, occupancy.checked_at_uncertainty_ticks)?;
+    if occupancy_checked_lower < envelope_generated_upper {
         return Err(DispatchReadinessFailure::OccupancyAssessmentPredatesEnvelope);
     }
-    if request.now_tick < occupancy.checked_at_tick {
+    if now_upper_tick < occupancy.checked_at_tick.saturating_sub(occupancy.checked_at_uncertainty_ticks) {
         return Err(DispatchReadinessFailure::OccupancyAssessmentFromFuture);
     }
-    if request.now_tick >= occupancy.valid_until_tick {
+    if now_lower_tick < occupancy_checked_upper {
+        return Err(DispatchReadinessFailure::ClockUncertaintyStraddlesBoundary);
+    }
+    if now_upper_tick >= occupancy.valid_until_tick {
         return Err(DispatchReadinessFailure::OccupancyAssessmentExpired);
     }
     if !occupancy.primitive_coverage_complete {
@@ -393,7 +412,10 @@ pub fn check_dispatch_readiness(
         });
     }
 
-    let valid_until_tick = envelope.valid_until_tick.min(occupancy.valid_until_tick);
+    let valid_until_tick = envelope
+        .valid_until_tick
+        .min(occupancy.valid_until_tick)
+        .min(clock.valid_until_tick);
     Ok(DispatchReadinessReceipt {
         schema_version: DISPATCH_READINESS_RECEIPT_SCHEMA_VERSION.to_owned(),
         package_sha256: envelope.package_sha256.clone(),
@@ -418,21 +440,32 @@ pub fn check_dispatch_readiness(
         narrowphase_evaluated_pair_count: occupancy.narrowphase_evaluated_pair_count,
         site_ledger_sequence: ledger.last_sequence(),
         site_ledger_event_sha256: ledger.last_event_sha256().unwrap_or_default().to_owned(),
-        site_clock_domain_id: occupancy.site_clock_domain_id.clone(),
-        checked_at_tick: request.now_tick,
+        site_clock_domain_id: clock.site_clock_domain_id.clone(),
+        site_clock_epoch_sha256: clock.epoch_sha256.clone(),
+        clock_mapping_sha256: clock.mapping_sha256.clone(),
+        clock_authority_id: clock.authority_id.clone(),
+        clock_source_id: clock.source_id.clone(),
+        clock_sample_sequence: clock.sample_sequence,
+        checked_at_tick: clock.current_tick,
+        checked_at_uncertainty_ticks: clock.uncertainty_bound_ticks,
+        clock_qualification_valid_until_tick: clock.valid_until_tick,
+        clock_receipt_sha256: clock.receipt_sha256.clone(),
         valid_until_tick,
     })
 }
 
-/// Revalidate a readiness receipt immediately before passing it to a
-/// separate authorization authority. Any ledger change, entity-state change
-/// or expiry between readiness calculation and consumption invalidates it.
+/// Revalidate a readiness receipt with a newer qualified clock sample
+/// immediately before passing it to a separate authorization authority.
+/// The new sample must use the same clock epoch/mapping and have a strictly
+/// greater source sequence. A reboot, remapping, stale sample or uncertainty
+/// interval crossing expiry invalidates the receipt.
 pub fn verify_dispatch_readiness_receipt_current(
     ledger: &SiteStateLedger,
     receipt: &DispatchReadinessReceipt,
     trusted_occupancy_engine_build_sha256: &str,
     required_clearance_policy_sha256: &str,
-    now_tick: u64,
+    qualified_clock: &QualifiedSiteClockSnapshot,
+    trusted_max_clock_uncertainty_ticks: u64,
 ) -> Result<(), DispatchReadinessFailure> {
     if receipt.schema_version != DISPATCH_READINESS_RECEIPT_SCHEMA_VERSION {
         return Err(DispatchReadinessFailure::UnsupportedSchemaVersion);
@@ -451,19 +484,13 @@ pub fn verify_dispatch_readiness_receipt_current(
         ("site snapshot", receipt.site_snapshot_sha256.as_str()),
         ("dynamic occupancy manifest", receipt.dynamic_occupancy_manifest_sha256.as_str()),
         ("actor manifest", receipt.actor_manifest_sha256.as_str()),
-        (
-            "occupancy assessment receipt",
-            receipt.occupancy_assessment_receipt_sha256.as_str(),
-        ),
-        (
-            "occupancy engine build",
-            receipt.occupancy_engine_build_sha256.as_str(),
-        ),
+        ("occupancy assessment receipt", receipt.occupancy_assessment_receipt_sha256.as_str()),
+        ("occupancy engine build", receipt.occupancy_engine_build_sha256.as_str()),
         ("clearance policy", receipt.clearance_policy_sha256.as_str()),
-        (
-            "site ledger head",
-            receipt.site_ledger_event_sha256.as_str(),
-        ),
+        ("site ledger head", receipt.site_ledger_event_sha256.as_str()),
+        ("clock epoch", receipt.site_clock_epoch_sha256.as_str()),
+        ("clock mapping", receipt.clock_mapping_sha256.as_str()),
+        ("clock receipt", receipt.clock_receipt_sha256.as_str()),
     ] {
         if !is_sha256(digest) {
             return Err(DispatchReadinessFailure::InvalidDigest(label));
@@ -472,39 +499,83 @@ pub fn verify_dispatch_readiness_receipt_current(
     if receipt.robot_id.trim().is_empty()
         || receipt.entity_id.trim().is_empty()
         || receipt.site_clock_domain_id.trim().is_empty()
+        || receipt.clock_authority_id.trim().is_empty()
+        || receipt.clock_source_id.trim().is_empty()
     {
-        return Err(DispatchReadinessFailure::OccupancyClockDomainMismatch);
+        return Err(DispatchReadinessFailure::InvalidClockEvidence);
+    }
+    if !ledger.actor_registry().allows(&receipt.robot_id, SiteActorRole::Robot) {
+        return Err(DispatchReadinessFailure::RobotIdentityNotRegistered);
     }
     if !ledger
         .actor_registry()
-        .allows(&receipt.robot_id, SiteActorRole::Robot)
+        .allows(&receipt.clock_authority_id, SiteActorRole::ClockAuthority)
     {
-        return Err(DispatchReadinessFailure::RobotIdentityNotRegistered);
+        return Err(DispatchReadinessFailure::ClockAuthorityNotRegistered);
+    }
+    if !ledger
+        .actor_registry()
+        .allows(&qualified_clock.authority_id, SiteActorRole::ClockAuthority)
+    {
+        return Err(DispatchReadinessFailure::ClockAuthorityNotRegistered);
     }
     if !is_sha256(trusted_occupancy_engine_build_sha256) {
-        return Err(DispatchReadinessFailure::InvalidDigest(
-            "trusted occupancy engine build",
-        ));
+        return Err(DispatchReadinessFailure::InvalidDigest("trusted occupancy engine build"));
     }
     if !is_sha256(required_clearance_policy_sha256) {
-        return Err(DispatchReadinessFailure::InvalidDigest(
-            "required clearance policy",
-        ));
+        return Err(DispatchReadinessFailure::InvalidDigest("required clearance policy"));
     }
+    if !is_sha256(&qualified_clock.epoch_sha256)
+        || !is_sha256(&qualified_clock.mapping_sha256)
+        || !is_sha256(&qualified_clock.receipt_sha256)
+        || qualified_clock.authority_id.trim().is_empty()
+        || qualified_clock.source_id.trim().is_empty()
+        || qualified_clock.sample_sequence == 0
+    {
+        return Err(DispatchReadinessFailure::InvalidClockEvidence);
+    }
+    if qualified_clock.uncertainty_bound_ticks > trusted_max_clock_uncertainty_ticks {
+        return Err(DispatchReadinessFailure::ClockUncertaintyExceedsPolicy);
+    }
+    if qualified_clock.site_clock_domain_id != receipt.site_clock_domain_id {
+        return Err(DispatchReadinessFailure::OccupancyClockDomainMismatch);
+    }
+    if qualified_clock.epoch_sha256 != receipt.site_clock_epoch_sha256 {
+        return Err(DispatchReadinessFailure::ClockEpochMismatch);
+    }
+    if qualified_clock.mapping_sha256 != receipt.clock_mapping_sha256 {
+        return Err(DispatchReadinessFailure::ClockMappingMismatch);
+    }
+    if qualified_clock.authority_id != receipt.clock_authority_id
+        || qualified_clock.source_id != receipt.clock_source_id
+    {
+        return Err(DispatchReadinessFailure::InvalidClockEvidence);
+    }
+    if qualified_clock.sample_sequence <= receipt.clock_sample_sequence {
+        return Err(DispatchReadinessFailure::ClockSampleNotFresh);
+    }
+
+    let (now_lower_tick, now_upper_tick) =
+        uncertainty_interval(qualified_clock.current_tick, qualified_clock.uncertainty_bound_ticks)?;
+    let (receipt_checked_lower, receipt_checked_upper) =
+        uncertainty_interval(receipt.checked_at_tick, receipt.checked_at_uncertainty_ticks)?;
+    if now_lower_tick <= receipt_checked_upper || now_lower_tick < receipt_checked_lower {
+        return Err(DispatchReadinessFailure::ClockUncertaintyStraddlesBoundary);
+    }
+    if now_upper_tick >= qualified_clock.valid_until_tick
+        || now_upper_tick >= receipt.clock_qualification_valid_until_tick
+    {
+        return Err(DispatchReadinessFailure::ClockQualificationExpired);
+    }
+    if now_upper_tick >= receipt.valid_until_tick {
+        return Err(DispatchReadinessFailure::ReadinessReceiptExpired);
+    }
+
     if receipt.occupancy_engine_build_sha256 != trusted_occupancy_engine_build_sha256 {
         return Err(DispatchReadinessFailure::OccupancyEngineBuildMismatch);
     }
     if receipt.clearance_policy_sha256 != required_clearance_policy_sha256 {
         return Err(DispatchReadinessFailure::ClearancePolicyMismatch);
-    }
-    if receipt.valid_until_tick <= receipt.checked_at_tick {
-        return Err(DispatchReadinessFailure::OccupancyTimeWindowInvalid);
-    }
-    if now_tick < receipt.checked_at_tick {
-        return Err(DispatchReadinessFailure::ReadinessReceiptNotYetValid);
-    }
-    if now_tick >= receipt.valid_until_tick {
-        return Err(DispatchReadinessFailure::ReadinessReceiptExpired);
     }
     if ledger.active_package_sha256() != Some(receipt.package_sha256.as_str())
         || ledger.package_is_current(&receipt.package_sha256) != Some(true)
@@ -535,6 +606,19 @@ pub fn verify_dispatch_readiness_receipt_current(
         Some(_) => Err(DispatchReadinessFailure::EntityNotDispatchable),
         None => Err(DispatchReadinessFailure::UnknownDesignEntity),
     }
+}
+
+fn uncertainty_interval(
+    tick: u64,
+    uncertainty_ticks: u64,
+) -> Result<(u64, u64), DispatchReadinessFailure> {
+    let lower = tick
+        .checked_sub(uncertainty_ticks)
+        .ok_or(DispatchReadinessFailure::ClockIntervalOverflow)?;
+    let upper = tick
+        .checked_add(uncertainty_ticks)
+        .ok_or(DispatchReadinessFailure::ClockIntervalOverflow)?;
+    Ok((lower, upper))
 }
 
 fn is_sha256(value: &str) -> bool {
