@@ -14,7 +14,7 @@
     "duration_ns",
     "carrier",
     "available_energy_mwh",
-    "average_electrical_power_mw",
+    "average_electric_power_mw",
     "evidence_class",
     "note"
   ],
@@ -50,10 +50,6 @@
       "type": "number",
       "minimum": 0
     },
-    "average_electrical_power_mw": {
-      "type": "number",
-      "minimum": 0
-    },
     "evidence_class": {
       "enum": [
         "synthetic",
@@ -68,6 +64,10 @@
     "note": {
       "type": "string",
       "minLength": 1
+    },
+    "average_electric_power_mw": {
+      "type": "number",
+      "minimum": 0
     }
   }
 }
