@@ -127,6 +127,7 @@ pub enum ValidationError {
     ServiceCarrierMismatch,
     EmptyEnergyBalance,
     NegativeEnergyTerm(&'static str),
+    ArithmeticOverflow,
 }
 
 impl fmt::Display for ValidationError {
@@ -324,7 +325,7 @@ fn sum_energy_terms(
         }
         let next = total + term.energy_mwh;
         if !next.is_finite() {
-            return Err(ValidationError::NonFiniteOrNonPositive(name));
+            return Err(ValidationError::ArithmeticOverflow);
         }
         Ok(next)
     })
@@ -337,7 +338,7 @@ impl EnergyBalance {
     /// both are energy quantities expressed in MWh. Their carrier labels remain
     /// attached to each term. This does not calculate exergy or conversion quality.
     pub fn evaluate(&self, relative_tolerance: f64) -> Result<BalanceResult, ValidationError> {
-        if !relative_tolerance.is_finite() || relative_tolerance < 0.0 {
+        if !relative_tolerance.is_finite() || !(0.0..1.0).contains(&relative_tolerance) {
             return Err(ValidationError::InvalidTolerance);
         }
         if self.inputs.is_empty()
@@ -355,12 +356,32 @@ impl EnergyBalance {
         let losses = sum_energy_terms(&self.conversion_losses, "conversion loss MWh", false)?;
         let storage_delta = sum_energy_terms(&self.storage_deltas, "storage delta MWh", true)?;
 
-        let residual = input - useful - rejected - losses - storage_delta;
-        let scale = input
-            .abs()
-            .max(useful.abs() + rejected.abs() + losses.abs() + storage_delta.abs())
+        // Normalize before adding cross-category terms. The direct sum in the
+        // denominator can overflow even when every category sum is finite; that
+        // can otherwise turn a large imbalance into NaN and falsely report closure.
+        let scale = [input.abs(), useful.abs(), rejected.abs(), losses.abs(), storage_delta.abs()]
+            .into_iter()
+            .fold(0.0_f64, f64::max)
             .max(f64::MIN_POSITIVE);
-        let normalized = residual.abs() / scale;
+        let scaled_residual = input / scale
+            - useful / scale
+            - rejected / scale
+            - losses / scale
+            - storage_delta / scale;
+        let normalized_denominator = input.abs() / scale
+            + useful.abs() / scale
+            + rejected.abs() / scale
+            + losses.abs() / scale
+            + storage_delta.abs() / scale;
+        let normalized = if normalized_denominator == 0.0 {
+            0.0
+        } else {
+            scaled_residual.abs() / normalized_denominator
+        };
+        let residual = scaled_residual * scale;
+        if !scaled_residual.is_finite() || !normalized.is_finite() || !residual.is_finite() {
+            return Err(ValidationError::ArithmeticOverflow);
+        }
         Ok(BalanceResult {
             residual_mwh: residual,
             normalized_absolute_residual: normalized,
@@ -676,6 +697,51 @@ mod tests {
         let result = balance.evaluate(0.001).unwrap();
         assert!(!result.within_tolerance);
         assert!((result.residual_mwh - 0.5).abs() < 1e-12);
+    }
+
+
+    #[test]
+    fn cross_category_scale_overflow_cannot_create_false_balance_closure() {
+        let balance = EnergyBalance {
+            inputs: vec![EnergyTerm {
+                carrier: EnergyCarrier::Electricity,
+                energy_mwh: f64::MAX,
+            }],
+            useful_outputs: vec![EnergyTerm {
+                carrier: EnergyCarrier::Electricity,
+                energy_mwh: f64::MAX,
+            }],
+            rejected_outputs: vec![EnergyTerm {
+                carrier: EnergyCarrier::Electricity,
+                energy_mwh: f64::MAX,
+            }],
+            conversion_losses: vec![],
+            storage_deltas: vec![],
+        };
+        let result = balance.evaluate(1e-9).unwrap();
+        assert!(!result.within_tolerance);
+        assert!((result.normalized_absolute_residual - (1.0 / 3.0)).abs() < 1e-12);
+    }
+
+    #[test]
+    fn unrepresentable_balance_residual_is_rejected() {
+        let balance = EnergyBalance {
+            inputs: vec![],
+            useful_outputs: vec![EnergyTerm {
+                carrier: EnergyCarrier::Heat,
+                energy_mwh: f64::MAX,
+            }],
+            rejected_outputs: vec![EnergyTerm {
+                carrier: EnergyCarrier::Heat,
+                energy_mwh: f64::MAX,
+            }],
+            conversion_losses: vec![],
+            storage_deltas: vec![],
+        };
+        assert_eq!(
+            balance.evaluate(1e-9),
+            Err(ValidationError::ArithmeticOverflow)
+        );
     }
 
     #[test]
