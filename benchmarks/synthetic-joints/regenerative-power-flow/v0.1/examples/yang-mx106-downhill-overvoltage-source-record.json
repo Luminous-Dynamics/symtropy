@@ -1,0 +1,628 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "yang-mx106-downhill-overvoltage-source-log-record-v0.1",
+  "system": {
+    "system_id": "mx106-paired-hiproll-14p8v-source-only-bench",
+    "topology": "Two MX-106 actuators on a common shaft through a 55:24 external spur gear; 14.8 V nominal bench supply.",
+    "source_sink_mode": "source_only",
+    "dc_link_capacitance": {
+      "status": "unknown",
+      "value": null,
+      "unit": "F",
+      "uncertainty": null,
+      "reason": "DC-link capacitance and ESR are not published in the available bench record."
+    },
+    "included_components": [
+      "bench switched-mode supply",
+      "two Dynamixel MX-106 actuator drives",
+      "common-shaft transmission",
+      "external gear pair",
+      "lever and gravity payload"
+    ],
+    "excluded_components": [
+      "battery charge acceptance path",
+      "supercapacitor",
+      "braking chopper/resistor",
+      "independent bidirectional power analyzer"
+    ],
+    "storage_type": null,
+    "braking_resistor": null
+  },
+  "conventions": {
+    "mechanical_power_sign": "Not reconstructable from the voltage-only overvoltage claim; source motion direction is reported as downhill but no fully documented signed mechanical power port is used in this record.",
+    "dc_current_sign": "Unknown; per-drive DC current is not present in these raw traces.",
+    "energy_positive_direction": "Unknown; no energy-flow integration is claimed.",
+    "reference_frame": "Common hip-roll shaft; actuator-local voltage registers.",
+    "sampling_time_basis": "Raw log timestamps are present. Sample-count threshold excursions are recorded; no continuous duration is asserted."
+  },
+  "test_conditions": {
+    "supply_voltage_v": 14.8,
+    "ambient_temperature_c": null,
+    "load_profile": "11.7275 N m gravity load, source run group B-A; 2.18 rad/s target, direction +1 in run configuration.",
+    "motion_profile": "Downhill/overhauling-load attempt marked by the source as regenerative overvoltage; operating quadrant remains unknown because signed electrical current/power is absent.",
+    "cooling_boundary": "Ambient/cooling not fully specified for these transient runs.",
+    "raw_trace_state": "available",
+    "notes": [
+      "The supply was source-only and unable to sink regenerated current.",
+      "The actuator supply-voltage stop criterion was 16.0 V."
+    ]
+  },
+  "runs": [
+    {
+      "run_id": "B-A-star-1a",
+      "operating_quadrant": "unknown",
+      "test_outcome": "overvoltage",
+      "duration_s": null,
+      "mechanical_ports": [
+        {
+          "port_id": "joint_load",
+          "domain": "mechanical",
+          "location": "external gravity load at hip-roll shaft",
+          "power_direction": "unknown",
+          "energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "The run ledger provides gravity load and joint velocity, but this profile does not declare a complete signed mechanical-port integration rule or its uncertainty."
+          },
+          "instrumentation": "The run ledger provides gravity load and joint velocity, but this profile does not declare a complete signed mechanical-port integration rule or its uncertainty.",
+          "current_sign_convention": null
+        }
+      ],
+      "electrical_ports": [
+        {
+          "port_id": "dc_source",
+          "domain": "electrical",
+          "location": "bench switched-mode supply output",
+          "power_direction": "into_control_volume",
+          "energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "The bench supply was a source-only supply; it could not sink returned energy. No independent calibrated DC current trace is included in the profile."
+          },
+          "instrumentation": "The bench supply was a source-only supply; it could not sink returned energy. No independent calibrated DC current trace is included in the profile.",
+          "current_sign_convention": null
+        },
+        {
+          "port_id": "drive_1_dc",
+          "domain": "electrical",
+          "location": "MX-106 ID 9 reported supply voltage",
+          "power_direction": "unknown",
+          "energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "Raw trace reports drive voltage register; no per-drive DC current or calibrated bidirectional power measurement."
+          },
+          "instrumentation": "Raw trace reports drive voltage register; no per-drive DC current or calibrated bidirectional power measurement.",
+          "current_sign_convention": null
+        },
+        {
+          "port_id": "drive_2_dc",
+          "domain": "electrical",
+          "location": "MX-106 ID 48 reported supply voltage",
+          "power_direction": "unknown",
+          "energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "Raw trace reports drive voltage register; no per-drive DC current or calibrated bidirectional power measurement."
+          },
+          "instrumentation": "Raw trace reports drive voltage register; no per-drive DC current or calibrated bidirectional power measurement.",
+          "current_sign_convention": null
+        }
+      ],
+      "storage_ports": [
+        {
+          "storage_id": "bench_dc_link",
+          "storage_type": "dc_link_capacitance",
+          "accepted_energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "DC-link capacitance and ESR not disclosed; bus energy change cannot be reconstructed from voltage alone."
+          },
+          "state_start": null,
+          "state_end": null,
+          "measurement_boundary": "Actuator-reported supply voltage; no measured capacitance or calibrated DC-link current."
+        },
+        {
+          "storage_id": "battery_or_sink",
+          "storage_type": "none",
+          "accepted_energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "No regenerative sink/battery acceptance path was present on the bench supply."
+          },
+          "state_start": null,
+          "state_end": null,
+          "measurement_boundary": "Bench power supply is documented as unable to sink current."
+        }
+      ],
+      "dissipation_ports": [
+        {
+          "sink_id": "drive_and_motor_losses",
+          "sink_type": "unknown",
+          "dissipated_energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "No synchronized current/power and thermal loss decomposition available."
+          },
+          "thermal_observation": "Internal actuator temperatures are logged but the three overvoltage logs do not identify total dissipation.",
+          "measurement_boundary": "Drive-local temperature readings only."
+        }
+      ],
+      "dc_bus_observations": [
+        {
+          "channel": "drive_1_voltage_register",
+          "status": "drive_reported",
+          "minimum_v": null,
+          "maximum_v": 21.8,
+          "threshold_v": 16,
+          "samples_above_threshold": 116,
+          "duration_above_threshold_s": null,
+          "reason": "800-row raw trace; voltage from actuator register, not an external calibrated bus probe. Duration not inferred from sample count."
+        },
+        {
+          "channel": "drive_2_voltage_register",
+          "status": "drive_reported",
+          "minimum_v": null,
+          "maximum_v": 21.6,
+          "threshold_v": 16,
+          "samples_above_threshold": 116,
+          "duration_above_threshold_s": null,
+          "reason": "800-row raw trace; voltage from actuator register, not an external calibrated bus probe. Duration not inferred from sample count."
+        }
+      ],
+      "energy_balance": {
+        "input_energy": {
+          "status": "unknown",
+          "value_j": null,
+          "uncertainty_j": null,
+          "reason": "Source-side DC energy not independently measured."
+        },
+        "output_energy": {
+          "status": "unknown",
+          "value_j": null,
+          "uncertainty_j": null,
+          "reason": "Returned electrical energy not independently measured at bus or storage port."
+        },
+        "stored_energy_change": {
+          "status": "unknown",
+          "value_j": null,
+          "uncertainty_j": null,
+          "reason": "DC-link capacitance/ESR and battery acceptance not measured."
+        },
+        "dissipated_energy": {
+          "status": "unknown",
+          "value_j": null,
+          "uncertainty_j": null,
+          "reason": "No measured braking resistor; winding/inverter/gear dissipation not separated."
+        },
+        "residual_energy": {
+          "status": "unknown",
+          "value_j": null,
+          "uncertainty_j": null,
+          "reason": "Cannot close balance without calibrated voltage/current and stored-energy boundaries."
+        },
+        "control_volume": "Drive plus common shaft and source supply; exact electrical and mechanical boundaries cannot be closed from these traces."
+      },
+      "protection_events": [
+        {
+          "event": "drive overvoltage threshold exceeded",
+          "status": "observed",
+          "time_s": null,
+          "threshold_v": 16,
+          "observed_value_v": 21.8,
+          "action": "Run classified invalid for the primary torque-speed metric; no sink/energy buffer on source supply.",
+          "reason": "The author run ledger records regenerative overvoltage beyond the actuator voltage limit."
+        }
+      ],
+      "raw_trace_refs": [
+        "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/data/exp2_B-A-star-1_20260920_191737.csv"
+      ],
+      "notes": [
+        "Git blob SHA ea6af5512c1de87f594cf8d3df6a4b9ac5240b1b.",
+        "800-row trace; independent scan found maximum drive-reported voltage 21.8 V on ID 9 and 21.6 V on ID 48.",
+        "Samples above the 16.0 V threshold: 116 on ID 9 and 116 on ID 48.",
+        "Source author describes downhill/regenerative overvoltage on a supply that could not sink current. These observations establish bus overvoltage, not recovered electrical energy.",
+        "Current, external DC bus probe, DC-link capacitance, sink current, battery acceptance and braking-resistor energy are unknown."
+      ]
+    },
+    {
+      "run_id": "B-A-star-1b",
+      "operating_quadrant": "unknown",
+      "test_outcome": "overvoltage",
+      "duration_s": null,
+      "mechanical_ports": [
+        {
+          "port_id": "joint_load",
+          "domain": "mechanical",
+          "location": "external gravity load at hip-roll shaft",
+          "power_direction": "unknown",
+          "energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "The run ledger provides gravity load and joint velocity, but this profile does not declare a complete signed mechanical-port integration rule or its uncertainty."
+          },
+          "instrumentation": "The run ledger provides gravity load and joint velocity, but this profile does not declare a complete signed mechanical-port integration rule or its uncertainty.",
+          "current_sign_convention": null
+        }
+      ],
+      "electrical_ports": [
+        {
+          "port_id": "dc_source",
+          "domain": "electrical",
+          "location": "bench switched-mode supply output",
+          "power_direction": "into_control_volume",
+          "energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "The bench supply was a source-only supply; it could not sink returned energy. No independent calibrated DC current trace is included in the profile."
+          },
+          "instrumentation": "The bench supply was a source-only supply; it could not sink returned energy. No independent calibrated DC current trace is included in the profile.",
+          "current_sign_convention": null
+        },
+        {
+          "port_id": "drive_1_dc",
+          "domain": "electrical",
+          "location": "MX-106 ID 9 reported supply voltage",
+          "power_direction": "unknown",
+          "energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "Raw trace reports drive voltage register; no per-drive DC current or calibrated bidirectional power measurement."
+          },
+          "instrumentation": "Raw trace reports drive voltage register; no per-drive DC current or calibrated bidirectional power measurement.",
+          "current_sign_convention": null
+        },
+        {
+          "port_id": "drive_2_dc",
+          "domain": "electrical",
+          "location": "MX-106 ID 48 reported supply voltage",
+          "power_direction": "unknown",
+          "energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "Raw trace reports drive voltage register; no per-drive DC current or calibrated bidirectional power measurement."
+          },
+          "instrumentation": "Raw trace reports drive voltage register; no per-drive DC current or calibrated bidirectional power measurement.",
+          "current_sign_convention": null
+        }
+      ],
+      "storage_ports": [
+        {
+          "storage_id": "bench_dc_link",
+          "storage_type": "dc_link_capacitance",
+          "accepted_energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "DC-link capacitance and ESR not disclosed; bus energy change cannot be reconstructed from voltage alone."
+          },
+          "state_start": null,
+          "state_end": null,
+          "measurement_boundary": "Actuator-reported supply voltage; no measured capacitance or calibrated DC-link current."
+        },
+        {
+          "storage_id": "battery_or_sink",
+          "storage_type": "none",
+          "accepted_energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "No regenerative sink/battery acceptance path was present on the bench supply."
+          },
+          "state_start": null,
+          "state_end": null,
+          "measurement_boundary": "Bench power supply is documented as unable to sink current."
+        }
+      ],
+      "dissipation_ports": [
+        {
+          "sink_id": "drive_and_motor_losses",
+          "sink_type": "unknown",
+          "dissipated_energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "No synchronized current/power and thermal loss decomposition available."
+          },
+          "thermal_observation": "Internal actuator temperatures are logged but the three overvoltage logs do not identify total dissipation.",
+          "measurement_boundary": "Drive-local temperature readings only."
+        }
+      ],
+      "dc_bus_observations": [
+        {
+          "channel": "drive_1_voltage_register",
+          "status": "drive_reported",
+          "minimum_v": null,
+          "maximum_v": 24.1,
+          "threshold_v": 16,
+          "samples_above_threshold": 58,
+          "duration_above_threshold_s": null,
+          "reason": "800-row raw trace; voltage from actuator register, not an external calibrated bus probe. Duration not inferred from sample count."
+        },
+        {
+          "channel": "drive_2_voltage_register",
+          "status": "drive_reported",
+          "minimum_v": null,
+          "maximum_v": 23.8,
+          "threshold_v": 16,
+          "samples_above_threshold": 58,
+          "duration_above_threshold_s": null,
+          "reason": "800-row raw trace; voltage from actuator register, not an external calibrated bus probe. Duration not inferred from sample count."
+        }
+      ],
+      "energy_balance": {
+        "input_energy": {
+          "status": "unknown",
+          "value_j": null,
+          "uncertainty_j": null,
+          "reason": "Source-side DC energy not independently measured."
+        },
+        "output_energy": {
+          "status": "unknown",
+          "value_j": null,
+          "uncertainty_j": null,
+          "reason": "Returned electrical energy not independently measured at bus or storage port."
+        },
+        "stored_energy_change": {
+          "status": "unknown",
+          "value_j": null,
+          "uncertainty_j": null,
+          "reason": "DC-link capacitance/ESR and battery acceptance not measured."
+        },
+        "dissipated_energy": {
+          "status": "unknown",
+          "value_j": null,
+          "uncertainty_j": null,
+          "reason": "No measured braking resistor; winding/inverter/gear dissipation not separated."
+        },
+        "residual_energy": {
+          "status": "unknown",
+          "value_j": null,
+          "uncertainty_j": null,
+          "reason": "Cannot close balance without calibrated voltage/current and stored-energy boundaries."
+        },
+        "control_volume": "Drive plus common shaft and source supply; exact electrical and mechanical boundaries cannot be closed from these traces."
+      },
+      "protection_events": [
+        {
+          "event": "drive overvoltage threshold exceeded",
+          "status": "observed",
+          "time_s": null,
+          "threshold_v": 16,
+          "observed_value_v": 24.1,
+          "action": "Run classified invalid for the primary torque-speed metric; no sink/energy buffer on source supply.",
+          "reason": "The author run ledger records regenerative overvoltage beyond the actuator voltage limit."
+        }
+      ],
+      "raw_trace_refs": [
+        "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/data/exp2_B-A-star-1_20260920_191811.csv"
+      ],
+      "notes": [
+        "Git blob SHA 67fde980d40fbb36ad92a8be1960ef9c48a8f81c.",
+        "800-row trace; independent scan found maximum drive-reported voltage 24.1 V on ID 9 and 23.8 V on ID 48.",
+        "Samples above the 16.0 V threshold: 58 on ID 9 and 58 on ID 48.",
+        "Source author describes downhill/regenerative overvoltage on a supply that could not sink current. These observations establish bus overvoltage, not recovered electrical energy.",
+        "Current, external DC bus probe, DC-link capacitance, sink current, battery acceptance and braking-resistor energy are unknown."
+      ]
+    },
+    {
+      "run_id": "B-A-star-1c",
+      "operating_quadrant": "unknown",
+      "test_outcome": "overvoltage",
+      "duration_s": null,
+      "mechanical_ports": [
+        {
+          "port_id": "joint_load",
+          "domain": "mechanical",
+          "location": "external gravity load at hip-roll shaft",
+          "power_direction": "unknown",
+          "energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "The run ledger provides gravity load and joint velocity, but this profile does not declare a complete signed mechanical-port integration rule or its uncertainty."
+          },
+          "instrumentation": "The run ledger provides gravity load and joint velocity, but this profile does not declare a complete signed mechanical-port integration rule or its uncertainty.",
+          "current_sign_convention": null
+        }
+      ],
+      "electrical_ports": [
+        {
+          "port_id": "dc_source",
+          "domain": "electrical",
+          "location": "bench switched-mode supply output",
+          "power_direction": "into_control_volume",
+          "energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "The bench supply was a source-only supply; it could not sink returned energy. No independent calibrated DC current trace is included in the profile."
+          },
+          "instrumentation": "The bench supply was a source-only supply; it could not sink returned energy. No independent calibrated DC current trace is included in the profile.",
+          "current_sign_convention": null
+        },
+        {
+          "port_id": "drive_1_dc",
+          "domain": "electrical",
+          "location": "MX-106 ID 9 reported supply voltage",
+          "power_direction": "unknown",
+          "energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "Raw trace reports drive voltage register; no per-drive DC current or calibrated bidirectional power measurement."
+          },
+          "instrumentation": "Raw trace reports drive voltage register; no per-drive DC current or calibrated bidirectional power measurement.",
+          "current_sign_convention": null
+        },
+        {
+          "port_id": "drive_2_dc",
+          "domain": "electrical",
+          "location": "MX-106 ID 48 reported supply voltage",
+          "power_direction": "unknown",
+          "energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "Raw trace reports drive voltage register; no per-drive DC current or calibrated bidirectional power measurement."
+          },
+          "instrumentation": "Raw trace reports drive voltage register; no per-drive DC current or calibrated bidirectional power measurement.",
+          "current_sign_convention": null
+        }
+      ],
+      "storage_ports": [
+        {
+          "storage_id": "bench_dc_link",
+          "storage_type": "dc_link_capacitance",
+          "accepted_energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "DC-link capacitance and ESR not disclosed; bus energy change cannot be reconstructed from voltage alone."
+          },
+          "state_start": null,
+          "state_end": null,
+          "measurement_boundary": "Actuator-reported supply voltage; no measured capacitance or calibrated DC-link current."
+        },
+        {
+          "storage_id": "battery_or_sink",
+          "storage_type": "none",
+          "accepted_energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "No regenerative sink/battery acceptance path was present on the bench supply."
+          },
+          "state_start": null,
+          "state_end": null,
+          "measurement_boundary": "Bench power supply is documented as unable to sink current."
+        }
+      ],
+      "dissipation_ports": [
+        {
+          "sink_id": "drive_and_motor_losses",
+          "sink_type": "unknown",
+          "dissipated_energy": {
+            "status": "unknown",
+            "value_j": null,
+            "uncertainty_j": null,
+            "reason": "No synchronized current/power and thermal loss decomposition available."
+          },
+          "thermal_observation": "Internal actuator temperatures are logged but the three overvoltage logs do not identify total dissipation.",
+          "measurement_boundary": "Drive-local temperature readings only."
+        }
+      ],
+      "dc_bus_observations": [
+        {
+          "channel": "drive_1_voltage_register",
+          "status": "drive_reported",
+          "minimum_v": null,
+          "maximum_v": 21.5,
+          "threshold_v": 16,
+          "samples_above_threshold": 117,
+          "duration_above_threshold_s": null,
+          "reason": "800-row raw trace; voltage from actuator register, not an external calibrated bus probe. Duration not inferred from sample count."
+        },
+        {
+          "channel": "drive_2_voltage_register",
+          "status": "drive_reported",
+          "minimum_v": null,
+          "maximum_v": 21.3,
+          "threshold_v": 16,
+          "samples_above_threshold": 116,
+          "duration_above_threshold_s": null,
+          "reason": "800-row raw trace; voltage from actuator register, not an external calibrated bus probe. Duration not inferred from sample count."
+        }
+      ],
+      "energy_balance": {
+        "input_energy": {
+          "status": "unknown",
+          "value_j": null,
+          "uncertainty_j": null,
+          "reason": "Source-side DC energy not independently measured."
+        },
+        "output_energy": {
+          "status": "unknown",
+          "value_j": null,
+          "uncertainty_j": null,
+          "reason": "Returned electrical energy not independently measured at bus or storage port."
+        },
+        "stored_energy_change": {
+          "status": "unknown",
+          "value_j": null,
+          "uncertainty_j": null,
+          "reason": "DC-link capacitance/ESR and battery acceptance not measured."
+        },
+        "dissipated_energy": {
+          "status": "unknown",
+          "value_j": null,
+          "uncertainty_j": null,
+          "reason": "No measured braking resistor; winding/inverter/gear dissipation not separated."
+        },
+        "residual_energy": {
+          "status": "unknown",
+          "value_j": null,
+          "uncertainty_j": null,
+          "reason": "Cannot close balance without calibrated voltage/current and stored-energy boundaries."
+        },
+        "control_volume": "Drive plus common shaft and source supply; exact electrical and mechanical boundaries cannot be closed from these traces."
+      },
+      "protection_events": [
+        {
+          "event": "drive overvoltage threshold exceeded",
+          "status": "observed",
+          "time_s": null,
+          "threshold_v": 16,
+          "observed_value_v": 21.5,
+          "action": "Run classified invalid for the primary torque-speed metric; no sink/energy buffer on source supply.",
+          "reason": "The author run ledger records regenerative overvoltage beyond the actuator voltage limit."
+        }
+      ],
+      "raw_trace_refs": [
+        "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/data/exp2_B-A-star-1_20260920_191837.csv"
+      ],
+      "notes": [
+        "Git blob SHA cde191147124a2b3fc09a975f24bc2f6757c6c9b.",
+        "800-row trace; independent scan found maximum drive-reported voltage 21.5 V on ID 9 and 21.3 V on ID 48.",
+        "Samples above the 16.0 V threshold: 117 on ID 9 and 116 on ID 48.",
+        "Source author describes downhill/regenerative overvoltage on a supply that could not sink current. These observations establish bus overvoltage, not recovered electrical energy.",
+        "Current, external DC bus probe, DC-link capacitance, sink current, battery acceptance and braking-resistor energy are unknown."
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "reference": "https://doi.org/10.3390/app162010145",
+      "source_class": "paper_reported_physical_measurement",
+      "method": "Source paper and its run ledger identify three downhill regenerative overvoltage attempts and the 16.0 V limit.",
+      "date": "2026-10-13",
+      "independence": "source_author"
+    },
+    {
+      "reference": "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/sheet_B_runlog.csv",
+      "source_class": "raw_source_trace",
+      "method": "Author run ledger; raw run IDs and invalidation reasons.",
+      "date": null,
+      "independence": "source_author"
+    },
+    {
+      "reference": "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/data/exp2_B-A-star-1_20260920_191811.csv",
+      "source_class": "raw_source_trace",
+      "method": "800-row raw actuator voltage log. Independent maximum-value/count scan reproduced 24.1 V and 58 samples above 16.0 V for drive 1; 23.8 V and 58 for drive 2.",
+      "date": null,
+      "independence": "source_author"
+    }
+  ],
+  "claim_ceiling": "Source-log audit confirms actuator-reported voltage exceeded the prespecified 16.0 V limit in three downhill attempts on a source-only bench supply. It does not quantify bus current, regenerative energy, energy accepted by storage, net efficiency, or an independent calibrated bus voltage."
+}
