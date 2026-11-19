@@ -577,6 +577,9 @@ mod tests {
     #[test]
     fn pareto_006_known_violation_precedes_other_unknowns() {
         let mut candidate = candidate("mixed", 1.0, 100.0, 0.9, EvidenceClass::Unknown);
+        // The violating hard margin is independently measured even though
+        // unrelated objective/evidence fields remain unknown.
+        candidate.hard_constraints[0].evidence_class = EvidenceClass::IndependentPhysical;
         candidate.hard_constraints[0].minimum_robust_margin = Some(-1.0);
         let report = robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).unwrap();
         assert_eq!(assessment(&report, "mixed").disposition, CandidateDisposition::Infeasible);
@@ -642,7 +645,21 @@ mod tests {
     }
 
     #[test]
-    fn pareto_014_all_candidates_are_retained_as_assessments() {
+    fn pareto_014_operating_condition_mismatch_rejects_evidence() {
+        let mut candidate = candidate("wrong-condition", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        candidate.objectives[0].operating_condition_digest = "different-cooling".to_owned();
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_015_metric_names_must_match_the_declared_objective_order() {
+        let mut candidate = candidate("wrong-name", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        candidate.objectives.swap(0, 1);
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_016_all_candidates_are_retained_as_assessments() {
         let good = candidate("good", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
         let mut bad = candidate("bad", 0.5, 50.0, 1.0, EvidenceClass::IndependentPhysical);
         bad.hard_constraints[0].minimum_robust_margin = Some(-0.5);
