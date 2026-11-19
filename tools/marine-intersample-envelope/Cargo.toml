@@ -1,0 +1,14 @@
+[workspace]
+
+[package]
+name = "marine-intersample-envelope"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Declared-rate inter-sample resource and service envelope auditor"
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["std"] }
+serde_json = "1.0"
+sha2 = "0.10"
