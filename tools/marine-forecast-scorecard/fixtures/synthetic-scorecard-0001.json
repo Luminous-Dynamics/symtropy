@@ -1,0 +1,721 @@
+{
+  "schema_version": "0.1.0",
+  "scorecard_id": "MARINE-SCORECARD-SYNTHETIC-0001",
+  "record_status": "synthetic",
+  "claim_ceiling": "descriptive_skill_and_paired_outcome_metrics_only",
+  "dataset": {
+    "dataset_id": "SYNTHETIC-MARINE-EPISODES-0001",
+    "dataset_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "split_manifest_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "transform_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "split_strategy": "forward_chaining_joint_grouped",
+    "grouping_unit": "joint_voyage_weather_event"
+  },
+  "calibration_bin_count": 5,
+  "forecast_cases": [
+    {
+      "case_id": "development-1",
+      "fold": "development",
+      "episode_id": "episode-development-1",
+      "voyage_id": "voyage-development-1",
+      "weather_event_id": "event-development-1",
+      "environment_strata": [
+        "moderate_wind",
+        "regime_1"
+      ],
+      "decision_cutoff": "2025-01-01T00:30:00Z",
+      "forecast_source_id": "synthetic-gfs-development-1",
+      "forecast_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "forecast_issue_time": "2025-01-01T00:00:00Z",
+      "first_available_at": "2025-01-01T00:20:00Z",
+      "availability_receipt_ref": "SYNTHETIC-AVAILABILITY-development-1",
+      "availability_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "lead_hours": 6,
+      "forecast_valid_time": "2025-01-01T06:00:00Z",
+      "variable": "wind_speed",
+      "unit": "m/s",
+      "deterministic_value": 7.4,
+      "ensemble_members": [
+        6.5,
+        7.5,
+        8.2,
+        9.1
+      ],
+      "verifying_source_id": "synthetic-buoy-development-1",
+      "verifying_source_class": "in_situ_validation",
+      "verifying_source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "verification_valid_time": "2025-01-01T06:00:00Z",
+      "observation_time": "2025-01-01T06:00:00Z",
+      "observed_value": 8,
+      "threshold_events": [
+        {
+          "event_id": "wind_gt_10m_s",
+          "threshold": 10,
+          "comparison": "gt",
+          "probability": 0.2,
+          "observed": false
+        }
+      ]
+    },
+    {
+      "case_id": "development-2",
+      "fold": "development",
+      "episode_id": "episode-development-2",
+      "voyage_id": "voyage-development-2",
+      "weather_event_id": "event-development-2",
+      "environment_strata": [
+        "coastal_shelf",
+        "regime_2"
+      ],
+      "decision_cutoff": "2025-01-02T00:30:00Z",
+      "forecast_source_id": "synthetic-gfs-development-2",
+      "forecast_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "forecast_issue_time": "2025-01-02T00:00:00Z",
+      "first_available_at": "2025-01-02T00:20:00Z",
+      "availability_receipt_ref": "SYNTHETIC-AVAILABILITY-development-2",
+      "availability_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "lead_hours": 6,
+      "forecast_valid_time": "2025-01-02T06:00:00Z",
+      "variable": "wind_speed",
+      "unit": "m/s",
+      "deterministic_value": 8.4,
+      "ensemble_members": [
+        7.5,
+        8.5,
+        9.2,
+        10.1
+      ],
+      "verifying_source_id": "synthetic-buoy-development-2",
+      "verifying_source_class": "in_situ_validation",
+      "verifying_source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "verification_valid_time": "2025-01-02T06:00:00Z",
+      "observation_time": "2025-01-02T06:00:00Z",
+      "observed_value": 9,
+      "threshold_events": [
+        {
+          "event_id": "wind_gt_10m_s",
+          "threshold": 10,
+          "comparison": "gt",
+          "probability": 0.2,
+          "observed": false
+        }
+      ]
+    },
+    {
+      "case_id": "development-3",
+      "fold": "development",
+      "episode_id": "episode-development-3",
+      "voyage_id": "voyage-development-3",
+      "weather_event_id": "event-development-3",
+      "environment_strata": [
+        "moderate_wind",
+        "regime_3"
+      ],
+      "decision_cutoff": "2025-01-03T00:30:00Z",
+      "forecast_source_id": "synthetic-gfs-development-3",
+      "forecast_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "forecast_issue_time": "2025-01-03T00:00:00Z",
+      "first_available_at": "2025-01-03T00:20:00Z",
+      "availability_receipt_ref": "SYNTHETIC-AVAILABILITY-development-3",
+      "availability_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "lead_hours": 6,
+      "forecast_valid_time": "2025-01-03T06:00:00Z",
+      "variable": "wind_speed",
+      "unit": "m/s",
+      "deterministic_value": 9.4,
+      "ensemble_members": [
+        8.5,
+        9.5,
+        10.2,
+        11.1
+      ],
+      "verifying_source_id": "synthetic-buoy-development-3",
+      "verifying_source_class": "in_situ_validation",
+      "verifying_source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "verification_valid_time": "2025-01-03T06:00:00Z",
+      "observation_time": "2025-01-03T06:00:00Z",
+      "observed_value": 10,
+      "threshold_events": [
+        {
+          "event_id": "wind_gt_10m_s",
+          "threshold": 10,
+          "comparison": "gt",
+          "probability": 0.2,
+          "observed": false
+        }
+      ]
+    },
+    {
+      "case_id": "validation-1",
+      "fold": "validation",
+      "episode_id": "episode-validation-1",
+      "voyage_id": "voyage-validation-1",
+      "weather_event_id": "event-validation-1",
+      "environment_strata": [
+        "moderate_wind",
+        "regime_1"
+      ],
+      "decision_cutoff": "2025-02-01T00:30:00Z",
+      "forecast_source_id": "synthetic-gfs-validation-1",
+      "forecast_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "forecast_issue_time": "2025-02-01T00:00:00Z",
+      "first_available_at": "2025-02-01T00:20:00Z",
+      "availability_receipt_ref": "SYNTHETIC-AVAILABILITY-validation-1",
+      "availability_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "lead_hours": 6,
+      "forecast_valid_time": "2025-02-01T06:00:00Z",
+      "variable": "wind_speed",
+      "unit": "m/s",
+      "deterministic_value": 7.4,
+      "ensemble_members": [
+        6.5,
+        7.5,
+        8.2,
+        9.1
+      ],
+      "verifying_source_id": "synthetic-buoy-validation-1",
+      "verifying_source_class": "in_situ_validation",
+      "verifying_source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "verification_valid_time": "2025-02-01T06:00:00Z",
+      "observation_time": "2025-02-01T06:00:00Z",
+      "observed_value": 8,
+      "threshold_events": [
+        {
+          "event_id": "wind_gt_10m_s",
+          "threshold": 10,
+          "comparison": "gt",
+          "probability": 0.2,
+          "observed": false
+        }
+      ]
+    },
+    {
+      "case_id": "validation-2",
+      "fold": "validation",
+      "episode_id": "episode-validation-2",
+      "voyage_id": "voyage-validation-2",
+      "weather_event_id": "event-validation-2",
+      "environment_strata": [
+        "coastal_shelf",
+        "regime_2"
+      ],
+      "decision_cutoff": "2025-02-02T00:30:00Z",
+      "forecast_source_id": "synthetic-gfs-validation-2",
+      "forecast_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "forecast_issue_time": "2025-02-02T00:00:00Z",
+      "first_available_at": "2025-02-02T00:20:00Z",
+      "availability_receipt_ref": "SYNTHETIC-AVAILABILITY-validation-2",
+      "availability_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "lead_hours": 6,
+      "forecast_valid_time": "2025-02-02T06:00:00Z",
+      "variable": "wind_speed",
+      "unit": "m/s",
+      "deterministic_value": 8.4,
+      "ensemble_members": [
+        7.5,
+        8.5,
+        9.2,
+        10.1
+      ],
+      "verifying_source_id": "synthetic-buoy-validation-2",
+      "verifying_source_class": "in_situ_validation",
+      "verifying_source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "verification_valid_time": "2025-02-02T06:00:00Z",
+      "observation_time": "2025-02-02T06:00:00Z",
+      "observed_value": 9,
+      "threshold_events": [
+        {
+          "event_id": "wind_gt_10m_s",
+          "threshold": 10,
+          "comparison": "gt",
+          "probability": 0.2,
+          "observed": false
+        }
+      ]
+    },
+    {
+      "case_id": "validation-3",
+      "fold": "validation",
+      "episode_id": "episode-validation-3",
+      "voyage_id": "voyage-validation-3",
+      "weather_event_id": "event-validation-3",
+      "environment_strata": [
+        "moderate_wind",
+        "regime_3"
+      ],
+      "decision_cutoff": "2025-02-03T00:30:00Z",
+      "forecast_source_id": "synthetic-gfs-validation-3",
+      "forecast_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "forecast_issue_time": "2025-02-03T00:00:00Z",
+      "first_available_at": "2025-02-03T00:20:00Z",
+      "availability_receipt_ref": "SYNTHETIC-AVAILABILITY-validation-3",
+      "availability_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "lead_hours": 6,
+      "forecast_valid_time": "2025-02-03T06:00:00Z",
+      "variable": "wind_speed",
+      "unit": "m/s",
+      "deterministic_value": 9.4,
+      "ensemble_members": [
+        8.5,
+        9.5,
+        10.2,
+        11.1
+      ],
+      "verifying_source_id": "synthetic-buoy-validation-3",
+      "verifying_source_class": "in_situ_validation",
+      "verifying_source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "verification_valid_time": "2025-02-03T06:00:00Z",
+      "observation_time": "2025-02-03T06:00:00Z",
+      "observed_value": 10,
+      "threshold_events": [
+        {
+          "event_id": "wind_gt_10m_s",
+          "threshold": 10,
+          "comparison": "gt",
+          "probability": 0.2,
+          "observed": false
+        }
+      ]
+    },
+    {
+      "case_id": "test-1",
+      "fold": "test",
+      "episode_id": "episode-test-1",
+      "voyage_id": "voyage-test-1",
+      "weather_event_id": "event-test-1",
+      "environment_strata": [
+        "moderate_wind",
+        "regime_1"
+      ],
+      "decision_cutoff": "2025-03-01T00:30:00Z",
+      "forecast_source_id": "synthetic-gfs-test-1",
+      "forecast_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "forecast_issue_time": "2025-03-01T00:00:00Z",
+      "first_available_at": "2025-03-01T00:20:00Z",
+      "availability_receipt_ref": "SYNTHETIC-AVAILABILITY-test-1",
+      "availability_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "lead_hours": 6,
+      "forecast_valid_time": "2025-03-01T06:00:00Z",
+      "variable": "wind_speed",
+      "unit": "m/s",
+      "deterministic_value": 8.4,
+      "ensemble_members": [
+        7.5,
+        8.5,
+        9.2,
+        10.1
+      ],
+      "verifying_source_id": "synthetic-buoy-test-1",
+      "verifying_source_class": "in_situ_validation",
+      "verifying_source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "verification_valid_time": "2025-03-01T06:00:00Z",
+      "observation_time": "2025-03-01T06:00:00Z",
+      "observed_value": 9,
+      "threshold_events": [
+        {
+          "event_id": "wind_gt_10m_s",
+          "threshold": 10,
+          "comparison": "gt",
+          "probability": 0.2,
+          "observed": false
+        }
+      ]
+    },
+    {
+      "case_id": "test-2",
+      "fold": "test",
+      "episode_id": "episode-test-2",
+      "voyage_id": "voyage-test-2",
+      "weather_event_id": "event-test-2",
+      "environment_strata": [
+        "coastal_shelf",
+        "regime_2"
+      ],
+      "decision_cutoff": "2025-03-02T00:30:00Z",
+      "forecast_source_id": "synthetic-gfs-test-2",
+      "forecast_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "forecast_issue_time": "2025-03-02T00:00:00Z",
+      "first_available_at": "2025-03-02T00:20:00Z",
+      "availability_receipt_ref": "SYNTHETIC-AVAILABILITY-test-2",
+      "availability_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "lead_hours": 6,
+      "forecast_valid_time": "2025-03-02T06:00:00Z",
+      "variable": "wind_speed",
+      "unit": "m/s",
+      "deterministic_value": 9.4,
+      "ensemble_members": [
+        8.5,
+        9.5,
+        10.2,
+        11.1
+      ],
+      "verifying_source_id": "synthetic-buoy-test-2",
+      "verifying_source_class": "in_situ_validation",
+      "verifying_source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "verification_valid_time": "2025-03-02T06:00:00Z",
+      "observation_time": "2025-03-02T06:00:00Z",
+      "observed_value": 10,
+      "threshold_events": [
+        {
+          "event_id": "wind_gt_10m_s",
+          "threshold": 10,
+          "comparison": "gt",
+          "probability": 0.2,
+          "observed": false
+        }
+      ]
+    },
+    {
+      "case_id": "test-3",
+      "fold": "test",
+      "episode_id": "episode-test-3",
+      "voyage_id": "voyage-test-3",
+      "weather_event_id": "event-test-3",
+      "environment_strata": [
+        "moderate_wind",
+        "regime_3"
+      ],
+      "decision_cutoff": "2025-03-03T00:30:00Z",
+      "forecast_source_id": "synthetic-gfs-test-3",
+      "forecast_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "forecast_issue_time": "2025-03-03T00:00:00Z",
+      "first_available_at": "2025-03-03T00:20:00Z",
+      "availability_receipt_ref": "SYNTHETIC-AVAILABILITY-test-3",
+      "availability_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "lead_hours": 6,
+      "forecast_valid_time": "2025-03-03T06:00:00Z",
+      "variable": "wind_speed",
+      "unit": "m/s",
+      "deterministic_value": 10.4,
+      "ensemble_members": [
+        9.5,
+        10.5,
+        11.2,
+        12.1
+      ],
+      "verifying_source_id": "synthetic-buoy-test-3",
+      "verifying_source_class": "in_situ_validation",
+      "verifying_source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "verification_valid_time": "2025-03-03T06:00:00Z",
+      "observation_time": "2025-03-03T06:00:00Z",
+      "observed_value": 11,
+      "threshold_events": [
+        {
+          "event_id": "wind_gt_10m_s",
+          "threshold": 10,
+          "comparison": "gt",
+          "probability": 0.7,
+          "observed": true
+        }
+      ]
+    }
+  ],
+  "mission_pairs": [
+    {
+      "pair_id": "pair-development-1",
+      "case_id": "development-1",
+      "fold": "development",
+      "episode_id": "episode-development-1",
+      "voyage_id": "voyage-development-1",
+      "weather_event_id": "event-development-1",
+      "matching_context_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "craft_configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "loading_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "occupancy_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "service_fingerprint_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "forecast_information_set_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "compute_budget_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "hard_gate_roster_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "candidate": {
+        "policy_id": "candidate-advisory",
+        "purchased_energy_kwh_per_berth_day": 4.5,
+        "mission_regret_kwh_equivalent": 0.45,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 1
+      },
+      "baseline": {
+        "policy_id": "matched-baseline",
+        "purchased_energy_kwh_per_berth_day": 5.1,
+        "mission_regret_kwh_equivalent": 0.7,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 2
+      }
+    },
+    {
+      "pair_id": "pair-development-2",
+      "case_id": "development-2",
+      "fold": "development",
+      "episode_id": "episode-development-2",
+      "voyage_id": "voyage-development-2",
+      "weather_event_id": "event-development-2",
+      "matching_context_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "craft_configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "loading_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "occupancy_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "service_fingerprint_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "forecast_information_set_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "compute_budget_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "hard_gate_roster_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "candidate": {
+        "policy_id": "candidate-advisory",
+        "purchased_energy_kwh_per_berth_day": 4.6,
+        "mission_regret_kwh_equivalent": 0.5,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 2
+      },
+      "baseline": {
+        "policy_id": "matched-baseline",
+        "purchased_energy_kwh_per_berth_day": 5.199999999999999,
+        "mission_regret_kwh_equivalent": 0.75,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 3
+      }
+    },
+    {
+      "pair_id": "pair-development-3",
+      "case_id": "development-3",
+      "fold": "development",
+      "episode_id": "episode-development-3",
+      "voyage_id": "voyage-development-3",
+      "weather_event_id": "event-development-3",
+      "matching_context_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "craft_configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "loading_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "occupancy_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "service_fingerprint_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "forecast_information_set_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "compute_budget_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "hard_gate_roster_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "candidate": {
+        "policy_id": "candidate-advisory",
+        "purchased_energy_kwh_per_berth_day": 4.7,
+        "mission_regret_kwh_equivalent": 0.55,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 1
+      },
+      "baseline": {
+        "policy_id": "matched-baseline",
+        "purchased_energy_kwh_per_berth_day": 5.3,
+        "mission_regret_kwh_equivalent": 0.7999999999999999,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 2
+      }
+    },
+    {
+      "pair_id": "pair-validation-1",
+      "case_id": "validation-1",
+      "fold": "validation",
+      "episode_id": "episode-validation-1",
+      "voyage_id": "voyage-validation-1",
+      "weather_event_id": "event-validation-1",
+      "matching_context_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "craft_configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "loading_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "occupancy_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "service_fingerprint_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "forecast_information_set_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "compute_budget_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "hard_gate_roster_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "candidate": {
+        "policy_id": "candidate-advisory",
+        "purchased_energy_kwh_per_berth_day": 4.5,
+        "mission_regret_kwh_equivalent": 0.45,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 2
+      },
+      "baseline": {
+        "policy_id": "matched-baseline",
+        "purchased_energy_kwh_per_berth_day": 5.1,
+        "mission_regret_kwh_equivalent": 0.7,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 3
+      }
+    },
+    {
+      "pair_id": "pair-validation-2",
+      "case_id": "validation-2",
+      "fold": "validation",
+      "episode_id": "episode-validation-2",
+      "voyage_id": "voyage-validation-2",
+      "weather_event_id": "event-validation-2",
+      "matching_context_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "craft_configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "loading_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "occupancy_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "service_fingerprint_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "forecast_information_set_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "compute_budget_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "hard_gate_roster_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "candidate": {
+        "policy_id": "candidate-advisory",
+        "purchased_energy_kwh_per_berth_day": 4.6,
+        "mission_regret_kwh_equivalent": 0.5,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 1
+      },
+      "baseline": {
+        "policy_id": "matched-baseline",
+        "purchased_energy_kwh_per_berth_day": 5.199999999999999,
+        "mission_regret_kwh_equivalent": 0.75,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 2
+      }
+    },
+    {
+      "pair_id": "pair-validation-3",
+      "case_id": "validation-3",
+      "fold": "validation",
+      "episode_id": "episode-validation-3",
+      "voyage_id": "voyage-validation-3",
+      "weather_event_id": "event-validation-3",
+      "matching_context_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "craft_configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "loading_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "occupancy_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "service_fingerprint_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "forecast_information_set_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "compute_budget_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "hard_gate_roster_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "candidate": {
+        "policy_id": "candidate-advisory",
+        "purchased_energy_kwh_per_berth_day": 4.7,
+        "mission_regret_kwh_equivalent": 0.55,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 2
+      },
+      "baseline": {
+        "policy_id": "matched-baseline",
+        "purchased_energy_kwh_per_berth_day": 5.3,
+        "mission_regret_kwh_equivalent": 0.7999999999999999,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 3
+      }
+    },
+    {
+      "pair_id": "pair-test-1",
+      "case_id": "test-1",
+      "fold": "test",
+      "episode_id": "episode-test-1",
+      "voyage_id": "voyage-test-1",
+      "weather_event_id": "event-test-1",
+      "matching_context_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "craft_configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "loading_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "occupancy_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "service_fingerprint_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "forecast_information_set_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "compute_budget_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "hard_gate_roster_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "candidate": {
+        "policy_id": "candidate-advisory",
+        "purchased_energy_kwh_per_berth_day": 4.5,
+        "mission_regret_kwh_equivalent": 0.45,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 1
+      },
+      "baseline": {
+        "policy_id": "matched-baseline",
+        "purchased_energy_kwh_per_berth_day": 5.1,
+        "mission_regret_kwh_equivalent": 0.7,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 2
+      }
+    },
+    {
+      "pair_id": "pair-test-2",
+      "case_id": "test-2",
+      "fold": "test",
+      "episode_id": "episode-test-2",
+      "voyage_id": "voyage-test-2",
+      "weather_event_id": "event-test-2",
+      "matching_context_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "craft_configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "loading_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "occupancy_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "service_fingerprint_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "forecast_information_set_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "compute_budget_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "hard_gate_roster_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "candidate": {
+        "policy_id": "candidate-advisory",
+        "purchased_energy_kwh_per_berth_day": 4.6,
+        "mission_regret_kwh_equivalent": 0.5,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 2
+      },
+      "baseline": {
+        "policy_id": "matched-baseline",
+        "purchased_energy_kwh_per_berth_day": 5.199999999999999,
+        "mission_regret_kwh_equivalent": 0.75,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 3
+      }
+    },
+    {
+      "pair_id": "pair-test-3",
+      "case_id": "test-3",
+      "fold": "test",
+      "episode_id": "episode-test-3",
+      "voyage_id": "voyage-test-3",
+      "weather_event_id": "event-test-3",
+      "matching_context_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "craft_configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "loading_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "occupancy_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "service_fingerprint_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "forecast_information_set_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "compute_budget_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "hard_gate_roster_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "candidate": {
+        "policy_id": "candidate-advisory",
+        "purchased_energy_kwh_per_berth_day": 4.7,
+        "mission_regret_kwh_equivalent": 0.55,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 1
+      },
+      "baseline": {
+        "policy_id": "matched-baseline",
+        "purchased_energy_kwh_per_berth_day": 5.3,
+        "mission_regret_kwh_equivalent": 0.7999999999999999,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 2
+      }
+    }
+  ]
+}
