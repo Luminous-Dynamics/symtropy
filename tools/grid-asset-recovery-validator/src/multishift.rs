@@ -2069,6 +2069,27 @@ mod tests {
     }
 
     #[test]
+    fn baseline_execution_event_cannot_be_rewritten_in_place() {
+        let mut case = fixture();
+        case.events[0].productive_effort_hours = 3.5;
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn baseline_execution_event_cannot_be_removed_from_replan() {
+        let mut case = fixture();
+        case.events.clear();
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn baseline_event_manifest_rejects_duplicate_ids() {
+        let mut case = fixture();
+        case.baseline_events.push(case.baseline_events[0].clone());
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
     fn input_order_does_not_change_canonical_report() {
         let original = validate(&fixture()).unwrap();
         let mut reordered = fixture();
