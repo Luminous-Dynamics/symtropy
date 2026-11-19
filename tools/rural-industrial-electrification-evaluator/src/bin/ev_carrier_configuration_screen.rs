@@ -36,6 +36,7 @@ struct BaseDesignResult {
     site_power_budget_kw: f64,
     simultaneous_vehicles: u32,
     charging_efficiency_fraction: f64,
+    /// Conservative upper bound from simultaneous vehicles × effective per-vehicle charger cap.
     base_peak_site_input_power_kw_upper_bound: f64,
     effective_charger_power_kw: f64,
     estimated_recharge_hours: f64,
@@ -813,7 +814,7 @@ mod tests {
         config.incremental_external_site_charging_window_hours = Some(2.0);
         config.external_site_peak_coincident_with_vehicle_charging = Some(false);
         let result = evaluate_configuration(&config, &base_design("urban-distribution-truck"));
-        assert_eq!(result.site_peak_power_margin_kw, Some(0.0));
+        assert_eq!(result.site_peak_power_margin_kw_upper_bound, Some(0.0));
         assert_ne!(result.status, Status::Blocked);
     }
 
