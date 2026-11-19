@@ -17,6 +17,7 @@ const PROBABILITY_MASS_TOLERANCE: f64 = 1.0e-9;
 
 pub mod service_availability;
 pub mod rotation_capacity;
+pub mod semi_markov;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReliabilityError(String);
