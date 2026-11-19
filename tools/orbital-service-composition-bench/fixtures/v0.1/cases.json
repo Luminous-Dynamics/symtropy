@@ -264,7 +264,7 @@
       ]
     },
     {
-      "case_id": "CRYOGENIC_STORAGE_ONLY",
+      "case_id": "STORAGE_ONLY_NOT_TRANSFER_EVIDENCE",
       "expected_status": "indeterminate",
       "profile": {
         "subject_id": "client-001",
