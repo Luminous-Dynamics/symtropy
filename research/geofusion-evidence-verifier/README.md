@@ -45,9 +45,15 @@ Exit codes:
 
 The 17 current unit tests cover exact fixture success, byte tampering, declared byte-length mismatch, interval-ID mismatch, boundary mismatch, synthetic-to-measured evidence-class promotion, duplicate allocation IDs, service/carrier mismatch, over-allocation and negative residual, forged reported balance, allocation digest mismatch, rejected integrity state, zero tolerance, stale/unknown validity, mismatched time windows, unsupported digest algorithms and malformed digests.
 
+## Batch uniqueness
+
+`verify_source_interval_batch` verifies a set of source-interval bundles and enforces one receipt per physical source interval in that batch. Its duplicate key is source asset + measurement boundary + carrier + exact UTC start representation + duration. It also rejects duplicate evidence IDs and allocation receipt IDs. Renaming an interval/evidence/receipt ID cannot make the same source interval allocatable twice in one batch.
+
+The check is **batch-scoped**. It is not a persistent cross-campaign registry, and the current v0.1 key compares the declared UTC start string exactly rather than normalizing equivalent RFC 3339 spellings. A future archive-level ledger should canonicalize instants and retain committed source intervals across independent batches.
+
 ## Explicit limitations
 
-- Only `source_interval` envelopes and one allocation receipt are currently supported.
+- Only `source_interval` envelopes and source-allocation receipts are currently supported; the batch API prevents duplicate interval reuse within one supplied batch.
 - The verifier performs runtime semantic checks on the fields it consumes; it does not execute the complete JSON Schema Draft 2020-12 specification.
 - It cannot detect reuse of the same source interval across separate receipts without a batch-level registry / ledger input.
 - For measured/audited classes it requires the declared measurement and calibration fields; it does not authenticate certificates or prove that a calibration covers the observation interval.
