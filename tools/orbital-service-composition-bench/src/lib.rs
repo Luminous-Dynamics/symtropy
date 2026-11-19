@@ -163,7 +163,7 @@ fn expected_component(kind: EventKind) -> Option<(Component, &'static str, &'sta
     match kind {
         EventKind::PayloadDeliveryAccepted => Some((
             Component::EarthOrbitChain,
-            "symtropy.earth-orbit-chain.v1",
+            "luminous.earth-orbit-chain.receipt.v1",
             "ready",
         )),
         EventKind::CaptureHandoffAccepted => Some((
