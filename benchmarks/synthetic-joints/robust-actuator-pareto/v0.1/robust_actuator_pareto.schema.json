@@ -188,7 +188,55 @@
             }
           ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "evidence_class": {
+                "const": "calibrated_model_prediction"
+              }
+            },
+            "required": [
+              "evidence_class"
+            ]
+          },
+          "then": {
+            "properties": {
+              "unit": {
+                "enum": [
+                  "Nm",
+                  "N m"
+                ]
+              },
+              "calibration_receipt": {
+                "$ref": "#/$defs/calibration_receipt"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "not": {
+              "properties": {
+                "evidence_class": {
+                  "const": "calibrated_model_prediction"
+                }
+              },
+              "required": [
+                "evidence_class"
+              ]
+            }
+          },
+          "then": {
+            "properties": {
+              "calibration_receipt": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
     },
     "constraint_evidence": {
       "type": "object",
@@ -267,7 +315,55 @@
             }
           ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "evidence_class": {
+                "const": "calibrated_model_prediction"
+              }
+            },
+            "required": [
+              "evidence_class"
+            ]
+          },
+          "then": {
+            "properties": {
+              "unit": {
+                "enum": [
+                  "Nm",
+                  "N m"
+                ]
+              },
+              "calibration_receipt": {
+                "$ref": "#/$defs/calibration_receipt"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "not": {
+              "properties": {
+                "evidence_class": {
+                  "const": "calibrated_model_prediction"
+                }
+              },
+              "required": [
+                "evidence_class"
+              ]
+            }
+          },
+          "then": {
+            "properties": {
+              "calibration_receipt": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
     },
     "candidate": {
       "type": "object",
