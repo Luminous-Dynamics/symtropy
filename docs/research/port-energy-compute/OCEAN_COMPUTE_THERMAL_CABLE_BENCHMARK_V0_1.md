@@ -104,20 +104,28 @@ Measure:
 
 A model-generated route diversity label does not establish independence. Unknown common failure domains remain unknown.
 
-## First executable slice — 0D thermal balance verifier
+## First executable slice — 0D cooling and direct heat-recovery verifier
 
-A standalone, std-only Rust package is included in this research PR at `tools/ocean-thermal-balance-verifier/`. Its frozen known-answer inputs/expected outputs are in `docs/research/port-energy-compute/OCEAN_THERMAL_BALANCE_GOLDEN_FIXTURE_V0_1.json` (three valid modes and four hostile mutations).
+A standalone, std-only Rust package is included at `tools/ocean-thermal-balance-verifier/`. It supports three cooling modes (direct seawater, partial economiser + chiller, chiller-only) plus an explicitly metered **direct heat-exchanger recovery-to-sink** path.
 
-It checks one declared steady-state interval:
-- IT heat load = direct heat transferred to seawater + chiller evaporator heat;
-- seawater heat pickup = mass flow × specific heat × intake/discharge temperature difference;
-- expected seawater heat rejection = direct heat + chiller evaporator heat + chiller electric input + declared pump-heat fraction + other declared heat;
-- cooling electric energy includes chiller, water-loop pump and explicitly supplied other cooling auxiliaries;
-- optional site-supplied discharge-temperature and temperature-rise limits are tested without hardcoding a universal marine limit.
+The one-interval contract closes three distinct balances:
 
-The package contains three synthetic reference modes (direct seawater, partial economiser + chiller, and chiller-only) and 17 authored unit tests. The synthetic examples were independently recalculated in Python; the three reference heat-balance residuals are zero. Rust tests have not been executed here because Cargo/rustc are unavailable.
+1. IT heat: `IT heat = direct seawater heat + chiller evaporator heat + recovered heat source`.
+2. Recovery: `recovered heat source = useful heat delivered to a named sink + loss to seawater + loss to ambient`.
+3. Seawater: `m_dot × cp × ΔT = direct heat + recovery loss to seawater + chiller heat + chiller electric input + pump heat + other declared heat`.
 
-The verifier assumes no thermal-storage change over the interval, no unlisted heat path, and synchronized input boundaries. It is strictly a 0D arithmetic sanity check; it does not model heat-exchanger performance, intake/discharge hydraulics, temperature stratification, current-driven recirculation, plume dispersion, entrainment, ecological impacts or legal limits.
+The recovery path requires both a sink identity and a delivery-observation reference. The monitor carries these references but does not authenticate the sensor or prove that the sink is a qualified water process. Recovery is direct heat exchange only; heat pumps and ORCs need separate models for electrical input, conversion efficiency, parasitics and sink/source constraints.
+
+The v0.2 known-answer fixture is `docs/research/port-energy-compute/OCEAN_THERMAL_BALANCE_GOLDEN_FIXTURE_V0_2.json` (four valid cases and eight hostile mutations). Its synthetic 10 MW case partitions:
+- 6.270 MW useful heat delivered to a named synthetic RO feed sink;
+- 1.5675 MW recovery loss entering the seawater boundary;
+- 2.1625 MW remaining IT heat rejected directly to seawater.
+
+The source/recovery and ocean heat balances close to floating-point rounding. This is a heat-interface accounting result only: RO SEC change and qualified product-water output remain null. No water-quality or environmental claim is inferred.
+
+The package contains 22 authored unit tests covering the three cooling modes, the recovered-heat path, sink evidence identity, loss allocation, double-count controls, auxiliaries, site-specific temperature limits and invalid quantities. Rust tests have not been executed here because Cargo/rustc are unavailable.
+
+The verifier assumes no thermal-storage change, no unlisted heat path, one synchronous interval and compatible measurement boundaries. It is not heat-exchanger design, intake/outfall engineering, heat-pump/ORC performance, hydrodynamics, plume dispersion, ecology or environmental approval.
 
 ## Acceptance gates
 
