@@ -339,7 +339,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             "damped_information_error":damped_metrics.ie,
             "raw_noise_error":raw_metrics.ne,
             "damped_noise_error":damped_metrics.ne,
-            "rmse_improves_while_information_degrades":damped_metrics.rmse < raw_metrics.rmse && damped_metrics.fi.abs() < raw_metrics.fi.abs() && damped_metrics.ie > raw_metrics.ie
+            "rmse_improves_while_information_degrades":damped_metrics.rmse < raw_metrics.rmse && damped_metrics.ie > raw_metrics.ie
         }));
     }
 
@@ -468,6 +468,7 @@ mod tests {
         let mut value = fixture();
         value["field_cases"][0]["cells"][0]["weight"] = json!(0.4);
         value["field_cases"][0]["cells"][1]["weight"] = json!(0.3);
+        value["field_cases"][0]["cells"][2]["weight"] = json!(0.3);
         assert_eq!(audit(&value)["disposition"], "INVALID");
     }
 
