@@ -138,7 +138,7 @@
     {
       "gateId": "GATE-JURISDICTION",
       "gateType": "jurisdiction_and_authority",
-      "status": "complete",
+      "status": "in_progress",
       "accountableRole": "synthetic_research_fixture",
       "evidenceIds": [
         "EV-JURISDICTION"
