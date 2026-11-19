@@ -44,6 +44,12 @@ pub struct EvidenceRef {
     pub receipt_schema: String,
     pub source_commit: String,
     pub reference: String,
+    /// SHA-256 claim for the referenced source artifact; bytes are not fetched here.
+    pub artifact_sha256: String,
+    pub producer_id: String,
+    pub authority_scope: String,
+    pub context_of_use: String,
+    pub claim_ceiling: String,
     pub decision: String,
     pub evidence_class: String,
 }
@@ -144,6 +150,13 @@ fn is_source_commit(value: &str) -> bool {
     value.len() == 40 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
+fn is_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
 fn expected_component(kind: EventKind) -> Option<(Component, &'static str, &'static str)> {
     match kind {
         EventKind::PayloadDeliveryAccepted => Some((
@@ -196,6 +209,23 @@ fn validate_evidence(
     }
     if !non_empty(&evidence.reference) {
         push_missing(reasons, "receipt_reference");
+    }
+    if !non_empty(&evidence.artifact_sha256) {
+        push_missing(reasons, "artifact_digest");
+    } else if !is_sha256(&evidence.artifact_sha256) {
+        push_violation(reasons, "artifact_digest_malformed");
+    }
+    if !non_empty(&evidence.producer_id) {
+        push_missing(reasons, "producer_identity");
+    }
+    if !non_empty(&evidence.authority_scope) {
+        push_missing(reasons, "authority_scope");
+    }
+    if !non_empty(&evidence.context_of_use) {
+        push_missing(reasons, "context_of_use");
+    }
+    if !non_empty(&evidence.claim_ceiling) {
+        push_missing(reasons, "claim_ceiling");
     }
     if evidence.evidence_class != "synthetic" {
         push_violation(reasons, "non_synthetic_evidence_in_v0_1");
@@ -569,6 +599,32 @@ mod tests {
     fn source_commit_digest_shape_is_checked() {
         assert!(is_valid_source_commit("0123456789abcdef0123456789abcdef01234567"));
         assert!(!is_valid_source_commit("main"));
+    }
+
+    #[test]
+    fn missing_artifact_digest_is_indeterminate() {
+        let data = fixture();
+        let mut case = data.cases[0].clone();
+        case.events[0].evidence.as_mut().unwrap().artifact_sha256.clear();
+        assert_eq!(evaluate_case(&case, &pins(&data)).actual_status, GateStatus::Indeterminate);
+    }
+
+    #[test]
+    fn missing_producer_or_authority_scope_is_indeterminate() {
+        let data = fixture();
+        let mut case = data.cases[0].clone();
+        let evidence = case.events[1].evidence.as_mut().unwrap();
+        evidence.producer_id.clear();
+        evidence.authority_scope.clear();
+        assert_eq!(evaluate_case(&case, &pins(&data)).actual_status, GateStatus::Indeterminate);
+    }
+
+    #[test]
+    fn malformed_artifact_digest_is_rejected() {
+        let data = fixture();
+        let mut case = data.cases[0].clone();
+        case.events[2].evidence.as_mut().unwrap().artifact_sha256 = "not-a-sha256".to_owned();
+        assert_eq!(evaluate_case(&case, &pins(&data)).actual_status, GateStatus::Rejected);
     }
 
     #[test]
