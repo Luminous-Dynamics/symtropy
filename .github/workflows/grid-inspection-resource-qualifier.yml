@@ -1,0 +1,74 @@
+name: Grid inspection resource certificate qualifier
+
+on:
+  pull_request:
+    paths:
+      - "tools/grid-inspection-resource-qualifier/**"
+      - ".github/workflows/grid-inspection-resource-qualifier.yml"
+  push:
+    paths:
+      - "tools/grid-inspection-resource-qualifier/**"
+      - ".github/workflows/grid-inspection-resource-qualifier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    name: Verify resource-time consequences of adaptive inspection policy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate case schema and fixture shape
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("tools/grid-inspection-resource-qualifier")
+          schema = json.loads((root / "fixtures/grid-inspection-resource-case-v0.1.schema.json").read_text())
+          case = json.loads((root / "fixtures/synthetic-grid-inspection-resource-case-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER).iter_errors(case), key=lambda error: list(error.path))
+          assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
+          assert sum(branch["probabilityBasisPoints"] for branch in case["policyCertificate"]["firstOutcomeBranches"]) == 10_000
+          nested = next(branch for branch in case["policyCertificate"]["firstOutcomeBranches"] if branch["secondOutcomeBranches"])
+          assert sum(leaf["probabilityBasisPoints"] for leaf in nested["secondOutcomeBranches"]) == 10_000
+          assert len({resource["resourceRef"] for resource in case["resourceManifest"]["resources"]}) == len(case["resourceManifest"]["resources"])
+          print("PASS: schema, upstream basis-point branches and unique resource identities")
+          PY
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/grid-inspection-resource-qualifier/Cargo.toml --all -- --check
+      - name: Resolve pinned dependency graph for this run
+        run: cargo generate-lockfile --manifest-path tools/grid-inspection-resource-qualifier/Cargo.toml
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/grid-inspection-resource-qualifier/Cargo.toml --all-targets -- -D warnings
+      - name: Run Rust unit tests
+        run: cargo test --locked --manifest-path tools/grid-inspection-resource-qualifier/Cargo.toml --all-targets
+      - name: Replay synthetic resource certificate
+        run: |
+          set -euo pipefail
+          cargo run --locked --manifest-path tools/grid-inspection-resource-qualifier/Cargo.toml --bin grid-inspection-resource-qualifier -- tools/grid-inspection-resource-qualifier/fixtures/synthetic-grid-inspection-resource-case-v0.1.json > /tmp/grid-inspection-resource-report.json
+          jq -e '
+            .resultStatus == "resource_time_certificate_consistent"
+            and (.branches | length == 3)
+            and (.branches | map(.probabilityBasisPoints) | add == 10000)
+            and .firstInspection.startHour == 8.0
+            and .firstInspection.endHour == 10.0
+            and .firstInspection.resultAvailableHour == 10.5
+            and .expectedCandidateActionCompletionHour > 18.0
+            and .worstCaseCandidateActionCompletionHour == 18.25
+            and (.expectedResourceHours | length == 4)
+            and (.claimBoundary | contains("not service restoration"))
+          ' /tmp/grid-inspection-resource-report.json
