@@ -129,7 +129,7 @@
       "properties": {
         "relative_tolerance": {
           "type": "number",
-          "minimum": 0,
+          "exclusiveMinimum": 0,
           "exclusiveMaximum": 1
         },
         "allocated_energy_mwh": {
