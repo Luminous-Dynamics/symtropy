@@ -37,7 +37,7 @@ jobs:
 
       - name: Validate strict schema and synthetic fixture roster
         run: |
-          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.service_floor_contract.minItems == 10 and .properties.service_floor_contract.maxItems == 10 and .properties.policies.minItems >= 3 and .properties.policies.items.properties.role.enum | index("authorized_soft_relaxation") != null' tools/marine-liveaboard-service-vector/schema/marine-liveaboard-service-vector.schema.json
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.service_floor_contract.minItems == 10 and .properties.service_floor_contract.maxItems == 10 and .properties.policies.minItems >= 3 and (.properties.policies.items.properties.role.enum | index("authorized_soft_relaxation") != null)' tools/marine-liveaboard-service-vector/schema/marine-liveaboard-service-vector.schema.json
           jq -e '.record_status == "synthetic" and .claim_ceiling == "non_compensatory_service_vector_comparison_only" and (.service_floor_contract | length == 10) and (.policies | length == 3) and ([.policies[].role] | sort) == ["integrated_candidate","weather_blind_reference","weather_informed_resource_blind"] and (.policies[0].resource_metrics | length == 10)' tools/marine-liveaboard-service-vector/fixtures/synthetic-liveaboard-service-vector-0001.json
 
       - name: Audit vector and require Pareto rather than scalar output
