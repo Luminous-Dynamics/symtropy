@@ -119,6 +119,12 @@ struct MetricValue {
     lower_bound: f64,
     upper_bound: f64,
     unit: String,
+    coverage_fraction: f64,
+    evidence_sha256: String,
+    measurement_window_start: String,
+    measurement_window_end: String,
+    measurement_method: String,
+    measurement_class: String,
 }
 
 #[derive(Clone)]
@@ -269,6 +275,12 @@ fn policy_report(
                 lower_bound: lower_bound.unwrap(),
                 upper_bound: upper_bound.unwrap(),
                 unit: unit.to_owned(),
+                coverage_fraction: coverage.unwrap(),
+                evidence_sha256: string_at(item, "evidence_sha256").unwrap_or("").to_owned(),
+                measurement_window_start: window_start.unwrap_or("").to_owned(),
+                measurement_window_end: window_end.unwrap_or("").to_owned(),
+                measurement_method: measurement_method.to_owned(),
+                measurement_class: measurement_class.to_owned(),
             }).is_some() {
                 errors.push(format!("policy '{policy_id}' duplicates resource axis '{metric}'"));
             }
@@ -511,7 +523,20 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             "role":policy.role,
             "operating_envelope_sha256":policy.operating_envelope,
             "feasible":policy.feasible,
-            "relaxation_count":policy.relaxation_count
+            "relaxation_count":policy.relaxation_count,
+            "resource_metrics":policy.metrics.iter().map(|(metric, value)| json!({
+                "metric":metric,
+                "unit":value.unit,
+                "value":value.value,
+                "lower_bound":value.lower_bound,
+                "upper_bound":value.upper_bound,
+                "coverage_fraction":value.coverage_fraction,
+                "evidence_sha256":value.evidence_sha256,
+                "measurement_window_start":value.measurement_window_start,
+                "measurement_window_end":value.measurement_window_end,
+                "measurement_method":value.measurement_method,
+                "measurement_class":value.measurement_class
+            })).collect::<Vec<_>>()
         })).collect::<Vec<_>>(),
         "pareto_comparison":pareto,
         "findings":{"errors":errors,"blockers":blockers},
@@ -610,6 +635,28 @@ mod tests {
         value["policies"][2]["hard_gate_disposition"] = json!("fail");
         value["policies"][2]["hard_gate_violations"] = json!(1);
         assert_eq!(audit(&value)["disposition"], "BLOCKED");
+    }
+
+    #[test]
+    fn service_floor_contract_is_digest_bound() {
+        let mut value = fixture();
+        value["service_floor_contract"][0]["floor_value"] = json!(4.0);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn metric_unit_must_match_the_declared_physical_axis() {
+        let mut value = fixture();
+        value["policies"][2]["resource_metrics"][0]["unit"] = json!("minutes");
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn uncertainty_interval_must_contain_the_reported_estimate() {
+        let mut value = fixture();
+        value["policies"][2]["resource_metrics"][0]["lower_bound"] = json!(3.0);
+        value["policies"][2]["resource_metrics"][0]["upper_bound"] = json!(2.0);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
     }
 
     #[test]
