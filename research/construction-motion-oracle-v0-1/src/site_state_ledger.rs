@@ -20,6 +20,14 @@ use crate::field_layout_acceptance::{
     RefereeMeasurement, RobotClaimedEntityState, score_field_layout_run,
 };
 
+use crate::cumulative_resource_capacity::{
+    CapacityReservation, CapacityResourceDefinition, CumulativeCapacityScenario,
+};
+use crate::robust_capacity_profile::{
+    CapacityAvailabilityWindow, RobustCapacityError, RobustCumulativeCapacityScenario,
+    RobustCumulativeCapacityReport, evaluate_robust_cumulative_resource_capacity,
+};
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SiteActorRole {
     DesignAuthority,
@@ -165,6 +173,49 @@ impl SpaceTimeReservationRecord {
     }
 }
 
+/// An aggregate capacity-N admission. The wrapped reservation contains
+/// weighted half-open claims; this context binds it to the exact readiness,
+/// occupancy, resource catalog, capacity snapshot and pre-append ledger head.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CapacityReservationCommit {
+    pub reservation: CapacityReservation,
+    pub package_sha256: String,
+    pub design_revision_sha256: String,
+    pub entity_id: String,
+    pub robot_id: String,
+    pub readiness_receipt_sha256: String,
+    pub occupancy_assessment_receipt_sha256: String,
+    pub occupancy_engine_build_sha256: String,
+    pub clearance_policy_sha256: String,
+    pub resource_catalog_sha256: String,
+    pub availability_snapshot_sha256: String,
+    pub site_snapshot_sha256: String,
+    pub site_ledger_sequence: u64,
+    pub site_ledger_event_sha256: String,
+    pub checked_at_tick: u64,
+    pub valid_until_tick: u64,
+    pub committed_at_tick: u64,
+    /// Lease expiry prevents reuse of a stale commit receipt. It never frees
+    /// physical capacity without a separate referee-authored release event.
+    pub lease_valid_until_tick: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CapacityReservationRecord {
+    pub commit: CapacityReservationCommit,
+    pub committed_event_id: String,
+    pub committed_sequence: u64,
+    pub released_event_id: Option<String>,
+    pub released_at_tick: Option<u64>,
+    pub release_receipt_sha256: Option<String>,
+}
+
+impl CapacityReservationRecord {
+    pub fn is_active(&self) -> bool {
+        self.released_event_id.is_none()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum SiteEventPayload {
     WorkPackagePublished {
@@ -173,6 +224,34 @@ pub enum SiteEventPayload {
     ResourceCatalogPublished {
         catalog_sha256: String,
         resources: Vec<SiteResourceDefinition>,
+    },
+    /// Separate namespace from exclusive capacity-one resources. A resource
+    /// must exist in exactly one catalog so the two admission models cannot
+    /// double-book or silently share different capacity semantics.
+    CapacityResourceCatalogPublished {
+        catalog_sha256: String,
+        resources: Vec<CapacityResourceDefinition>,
+    },
+    /// One coherent owner-attested capacity snapshot. An adverse derating
+    /// update is recorded even when existing reservations become non-robust;
+    /// it blocks future admissions but never releases active physical claims.
+    CapacityAvailabilitySnapshotPublished {
+        availability_snapshot_sha256: String,
+        site_snapshot_sha256: String,
+        site_clock_domain_id: String,
+        windows: Vec<CapacityAvailabilityWindow>,
+    },
+    CapacityReservationCommitted {
+        commit: CapacityReservationCommit,
+    },
+    CapacityReservationReleased {
+        reservation_id: String,
+        site_clock_domain_id: String,
+        cleared_at_tick: u64,
+        site_snapshot_sha256: String,
+        site_ledger_sequence: u64,
+        site_ledger_event_sha256: String,
+        release_receipt_sha256: String,
     },
     SpaceTimeReservationCommitted {
         reservation: SpaceTimeReservation,
@@ -341,6 +420,28 @@ pub enum SiteLedgerError {
         conflicting_reservation_id: String,
     },
     ReservationReleaseContextMismatch(String),
+    InvalidCapacityResourceCatalogDigest,
+    EmptyCapacityResourceCatalog,
+    InvalidCapacityResourceDefinition(String),
+    DuplicateCapacityResourceId(String),
+    CapacityResourceCatalogDigestContentMismatch,
+    CapacityResourceCatalogWouldOrphanReservation(String),
+    CapacityCatalogNamespaceCollision(String),
+    InvalidCapacityAvailabilitySnapshot,
+    InvalidCapacityWindow(String),
+    CapacityAvailabilitySnapshotWouldOrphanReservation(String),
+    CapacityResourceCatalogMismatch,
+    CapacityAvailabilitySnapshotMismatch,
+    DuplicateCapacityReservation(String),
+    UnknownCapacityReservation(String),
+    CapacityReservationAlreadyReleased(String),
+    InvalidCapacityReservation(String),
+    CapacityReservationSnapshotMismatch,
+    CapacityAdmissionUnqualified(Vec<RobustCapacityError>),
+    CapacityAdmissionNotRobust {
+        impacted_reservation_ids: Vec<String>,
+    },
+    CapacityReservationReleaseContextMismatch(String),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
