@@ -49,7 +49,9 @@ The system is a typed graph with five physical layers and one evidence layer.
 5. **Useful-service layer**
    - Fusion research / plant auxiliary loads: plasma heating and current drive, magnets, cryogenics, vacuum, tritium systems, cooling, controls and buildings.
    - Industrial process heat by required temperature and delivery schedule.
-   - Water treatment, desalination, district heat and other site-specific services.
+   - Water services: reverse osmosis powered by qualified electricity; thermal desalination only where source temperature, heat-transfer boundary, product quality and brine handling are qualified.
+   - Cooling services: heat-driven absorption cooling or heat-pump integration where temperature grade and complete parasitics justify it. This is building/process cooling, not a replacement for fusion magnet cryogenics or cryoplant refrigeration.
+   - District heat and other site-specific services.
    - Grid export/import at an explicitly metered point of common coupling (PCC).
 
 6. **Evidence and decision layer**
