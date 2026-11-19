@@ -567,19 +567,253 @@ fn source_class_map(bundle: &Value, findings: &mut Vec<Finding>) -> BTreeMap<Str
     classes
 }
 
+
+fn validate_split_manifest(raw: &[u8], manifest: &Value) -> Value {
+    let mut findings = Vec::<Finding>::new();
+    let manifest_id = string_at(manifest, &["manifest_id"]).unwrap_or("<missing>").to_owned();
+    let record_status = string_at(manifest, &["record_status"]).unwrap_or("unknown");
+    let synthetic = record_status == "synthetic";
+
+    if string_at(manifest, &["schema_version"]) != Some("0.1.0") {
+        add(&mut findings, "SPLIT_SCHEMA_VERSION_INVALID", "ERROR",
+            "Split manifest schema_version must be 0.1.0.");
+    }
+    if !VALID_RECORD_STATUSES.contains(&record_status) {
+        add(&mut findings, "SPLIT_RECORD_STATUS_INVALID", "ERROR",
+            "Split manifest record_status is not recognized.");
+    }
+    if string_at(manifest, &["claim_ceiling"]) != Some("holdout_partition_integrity_only") {
+        add(&mut findings, "SPLIT_CLAIM_CEILING_INVALID", "ERROR",
+            "Split validation only establishes partition integrity, not statistical power or model quality.");
+    }
+    let grouping_unit = string_at(manifest, &["grouping_unit"]).unwrap_or("unknown");
+    if !["whole_voyage", "weather_event"].contains(&grouping_unit) {
+        add(&mut findings, "SPLIT_GROUPING_UNIT_INVALID", "ERROR",
+            "grouping_unit must be whole_voyage or weather_event.");
+    }
+    if string_at(manifest, &["split_algorithm"]).is_none_or(str::is_empty)
+        || string_at(manifest, &["split_seed"]).is_none_or(str::is_empty)
+    {
+        add(&mut findings, "SPLIT_ALGORITHM_UNPINNED", "INCOMPLETE",
+            "Split algorithm and seed must be pinned before evaluating model results.");
+    }
+
+    let expected_folds = ["development", "validation", "test"];
+    let declared_folds: BTreeSet<String> = manifest.get("folds").and_then(Value::as_array)
+        .into_iter().flatten().filter_map(Value::as_str).map(str::to_owned).collect();
+    if expected_folds.iter().any(|fold| !declared_folds.contains(*fold))
+        || declared_folds.len() != 3
+    {
+        add(&mut findings, "SPLIT_FOLD_ROSTER_INVALID", "ERROR",
+            "Exactly the development, validation and test folds must be declared.");
+    }
+
+    let episodes = match manifest.get("episodes").and_then(Value::as_array) {
+        Some(items) if !items.is_empty() => items,
+        _ => {
+            add(&mut findings, "SPLIT_EPISODES_MISSING", "ERROR",
+                "At least one grouped episode is required.");
+            &[]
+        }
+    };
+
+    let mut episode_ids = BTreeSet::new();
+    let mut decision_ids = BTreeSet::new();
+    let mut sample_counts = BTreeMap::<String, usize>::new();
+    let mut event_fold = BTreeMap::<String, String>::new();
+    let mut voyage_fold = BTreeMap::<String, String>::new();
+    let mut bundle_fold = BTreeMap::<String, String>::new();
+    let mut voyage_windows = BTreeMap::<String, Vec<(DateTime<FixedOffset>, DateTime<FixedOffset>, String)>>();
+    let mut test_strata = BTreeSet::new();
+
+    for (index, episode) in episodes.iter().enumerate() {
+        let episode_id = string_at(episode, &["episode_id"]).unwrap_or("");
+        let fold = string_at(episode, &["fold"]).unwrap_or("");
+        let voyage_id = string_at(episode, &["voyage_id"]).unwrap_or("");
+        let weather_event_id = string_at(episode, &["weather_event_id"]).unwrap_or("");
+        let bundle_digest = string_at(episode, &["replay_bundle_sha256"]).unwrap_or("");
+
+        if episode_id.is_empty() || !episode_ids.insert(episode_id.to_owned()) {
+            add(&mut findings, "SPLIT_EPISODE_ID_INVALID", "ERROR",
+                &format!("episode[{index}] must have a unique non-empty episode_id."));
+        }
+        if !expected_folds.contains(&fold) {
+            add(&mut findings, "SPLIT_EPISODE_FOLD_INVALID", "ERROR",
+                &format!("episode '{episode_id}' uses an undeclared fold."));
+        } else {
+            *sample_counts.entry(fold.to_owned()).or_default() += 1;
+        }
+        if voyage_id.is_empty() || weather_event_id.is_empty() {
+            add(&mut findings, "SPLIT_GROUP_ID_MISSING", "ERROR",
+                &format!("episode '{episode_id}' requires both voyage_id and weather_event_id."));
+        } else {
+            for (label, key, map) in [
+                ("voyage", voyage_id, &mut voyage_fold),
+                ("weather event", weather_event_id, &mut event_fold),
+            ] {
+                if let Some(existing_fold) = map.get(key) {
+                    if existing_fold != fold {
+                        add(&mut findings, "CROSS_FOLD_GROUP_LEAKAGE", "BLOCKER",
+                            &format!("{label} '{key}' appears in both '{existing_fold}' and '{fold}' folds."));
+                    }
+                } else {
+                    map.insert(key.to_owned(), fold.to_owned());
+                }
+            }
+        }
+
+        if !valid_sha256(bundle_digest) {
+            add(&mut findings, "SPLIT_REPLAY_BUNDLE_DIGEST_INVALID", "ERROR",
+                &format!("episode '{episode_id}' requires a SHA-256 replay bundle digest."));
+        } else if let Some(existing_fold) = bundle_fold.get(bundle_digest) {
+            if existing_fold != fold {
+                add(&mut findings, "CROSS_FOLD_BUNDLE_REUSE", "BLOCKER",
+                    &format!("replay bundle '{bundle_digest}' is reused across folds."));
+            }
+        } else {
+            bundle_fold.insert(bundle_digest.to_owned(), fold.to_owned());
+        }
+
+        let start = time_at(episode, &["start_time"], "episode start_time",
+            &mut findings, "ERROR");
+        let end = time_at(episode, &["end_time"], "episode end_time",
+            &mut findings, "ERROR");
+        if let (Some(start), Some(end)) = (start.as_ref(), end.as_ref()) {
+            if start >= end {
+                add(&mut findings, "SPLIT_EPISODE_WINDOW_INVALID", "ERROR",
+                    &format!("episode '{episode_id}' start_time must precede end_time."));
+            } else if !voyage_id.is_empty() {
+                voyage_windows.entry(voyage_id.to_owned()).or_default()
+                    .push((start.clone(), end.clone(), episode_id.to_owned()));
+            }
+        }
+
+        let strata = episode.get("environment_strata").and_then(Value::as_array);
+        match strata {
+            Some(items) if !items.is_empty() => {
+                for stratum in items.iter().filter_map(Value::as_str) {
+                    if fold == "test" {
+                        test_strata.insert(stratum.to_owned());
+                    }
+                }
+            }
+            _ => add(&mut findings, "SPLIT_ENVIRONMENT_STRATA_MISSING", "INCOMPLETE",
+                &format!("episode '{episode_id}' requires at least one declared environment stratum.")),
+        }
+
+        let samples = match episode.get("decision_samples").and_then(Value::as_array) {
+            Some(items) if !items.is_empty() => items,
+            _ => {
+                add(&mut findings, "SPLIT_DECISION_SAMPLES_MISSING", "INCOMPLETE",
+                    &format!("episode '{episode_id}' requires decision sample references."));
+                continue;
+            }
+        };
+        let mut previous_cutoff: Option<DateTime<FixedOffset>> = None;
+        for (sample_index, sample) in samples.iter().enumerate() {
+            let decision_id = string_at(sample, &["decision_id"]).unwrap_or("");
+            if decision_id.is_empty() || !decision_ids.insert(decision_id.to_owned()) {
+                add(&mut findings, "SPLIT_DECISION_ID_DUPLICATED", "ERROR",
+                    &format!("episode '{episode_id}' sample[{sample_index}] has a missing or reused decision_id."));
+            }
+            let cutoff = time_at(sample, &["decision_cutoff"], "sample decision_cutoff",
+                &mut findings, "ERROR");
+            let target = time_at(sample, &["target_valid_time"], "sample target_valid_time",
+                &mut findings, "ERROR");
+            if let (Some(start), Some(end), Some(cutoff), Some(target)) =
+                (start.as_ref(), end.as_ref(), cutoff.as_ref(), target.as_ref())
+            {
+                if cutoff < start || cutoff > end || target < cutoff || target > end {
+                    add(&mut findings, "SPLIT_SAMPLE_OUTSIDE_EPISODE", "ERROR",
+                        &format!("decision '{decision_id}' cutoff/target falls outside episode '{episode_id}'."));
+                }
+            }
+            if let Some(cutoff) = cutoff {
+                if previous_cutoff.as_ref().is_some_and(|prior| cutoff < *prior) {
+                    add(&mut findings, "SPLIT_DECISION_ORDER_NONMONOTONIC", "ERROR",
+                        &format!("decision cutoffs in episode '{episode_id}' must be nondecreasing."));
+                }
+                previous_cutoff = Some(cutoff);
+            }
+        }
+    }
+
+    for voyage in voyage_windows.keys() {
+        if let Some(windows) = voyage_windows.get_mut(voyage) {
+            windows.sort_by(|left, right| left.0.cmp(&right.0));
+            for pair in windows.windows(2) {
+                if pair[1].0 < pair[0].1 {
+                    add(&mut findings, "OVERLAPPING_VOYAGE_EPISODES", "BLOCKER",
+                        &format!("episodes '{}' and '{}' overlap within voyage '{}'.",
+                            pair[0].2, pair[1].2, voyage));
+                }
+            }
+        }
+    }
+
+    for fold in expected_folds {
+        if sample_counts.get(fold).copied().unwrap_or(0) == 0 {
+            add(&mut findings, "SPLIT_FOLD_EMPTY", "INCOMPLETE",
+                &format!("fold '{fold}' contains no episodes."));
+        }
+    }
+    if test_strata.len() < 3 {
+        add(&mut findings, "TEST_STRATA_COVERAGE_INSUFFICIENT", "INCOMPLETE",
+            "The held-out test fold must cover at least three declared environment strata.");
+    }
+
+    let has_error = findings.iter().any(|finding| finding.severity == "ERROR");
+    let has_blocker = findings.iter().any(|finding| finding.severity == "BLOCKER");
+    let has_incomplete = findings.iter().any(|finding| finding.severity == "INCOMPLETE");
+    let disposition = if has_error {
+        "INVALID"
+    } else if has_blocker {
+        "BLOCKED"
+    } else if has_incomplete {
+        "INCOMPLETE"
+    } else if synthetic {
+        "SYNTHETIC_ONLY"
+    } else {
+        "SPLIT_VALID_READ_ONLY"
+    };
+    let digest = Sha256::digest(raw);
+    let digest_hex = digest.iter().map(|byte| format!("{byte:02x}")).collect::<String>();
+    json!({
+        "audit_version": ENGINE_VERSION,
+        "manifest_id": manifest_id,
+        "disposition": disposition,
+        "input_manifest_sha256": digest_hex,
+        "episode_count": episodes.len(),
+        "decision_sample_count": decision_ids.len(),
+        "episodes_by_fold": sample_counts,
+        "held_out_test_strata": test_strata,
+        "claim_ceiling": "episode_and_fold_partition_integrity_only",
+        "findings": findings.iter().map(|finding| json!({
+            "code": finding.code,
+            "severity": finding.severity,
+            "message": finding.message
+        })).collect::<Vec<_>>(),
+        "note": "A valid split manifest does not establish statistical power, independence of real weather events, forecast skill, or benchmark superiority."
+    })
+}
+
 fn run() -> Result<(), String> {
     let arguments: Vec<String> = env::args().collect();
-    if arguments.len() != 2 {
-        return Err("Usage: marine-forecast-replay-audit <bundle.json>".to_owned());
+    if arguments.len() != 3 {
+        return Err("Usage: marine-forecast-replay-audit audit-bundle <bundle.json> | validate-splits <split.json>".to_owned());
     }
-    let raw = fs::read(&arguments[1]).map_err(|error| format!("{}: {error}", arguments[1]))?;
-    let bundle: Value = serde_json::from_slice(&raw)
-        .map_err(|error| format!("{}: invalid JSON: {error}", arguments[1]))?;
-    let report = audit_bundle(&raw, &bundle);
+    let raw = fs::read(&arguments[2]).map_err(|error| format!("{}: {error}", arguments[2]))?;
+    let value: Value = serde_json::from_slice(&raw)
+        .map_err(|error| format!("{}: invalid JSON: {error}", arguments[2]))?;
+    let report = match arguments[1].as_str() {
+        "audit-bundle" => audit_bundle(&raw, &value),
+        "validate-splits" => validate_split_manifest(&raw, &value),
+        _ => return Err("unknown subcommand".to_owned()),
+    };
     println!("{}", serde_json::to_string_pretty(&report).map_err(|error| error.to_string())?);
     match string_at(&report, &["disposition"]) {
-        Some("REPLAY_ADMISSIBLE_READ_ONLY" | "SYNTHETIC_ONLY") => Ok(()),
-        Some(disposition) => Err(format!("replay admission disposition: {disposition}")),
+        Some("REPLAY_ADMISSIBLE_READ_ONLY" | "SYNTHETIC_ONLY" | "SPLIT_VALID_READ_ONLY") => Ok(()),
+        Some(disposition) => Err(format!("replay audit disposition: {disposition}")),
         None => Err("audit report has no disposition".to_owned()),
     }
 }
