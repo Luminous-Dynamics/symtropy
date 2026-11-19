@@ -335,10 +335,16 @@ pub fn evaluate_case(case: &Case, pins: &BTreeMap<Component, &SourcePin>) -> Cas
             Some(_) => push_violation(&mut reasons, "fluid_identity_mismatch"),
             None => push_missing(&mut reasons, "fluid_identity"),
         }
-        match event.accepted_mass_g {
-            Some(value) if value >= profile.minimum_accepted_mass_g => {}
-            Some(_) => push_violation(&mut reasons, "accepted_mass_below_requirement"),
-            None => push_missing(&mut reasons, "receiver_accepted_mass"),
+        let storage_only = event
+            .evidence
+            .as_ref()
+            .is_some_and(|evidence| evidence.decision == "storage_only_not_transfer_evidence");
+        if !storage_only {
+            match event.accepted_mass_g {
+                Some(value) if value >= profile.minimum_accepted_mass_g => {}
+                Some(_) => push_violation(&mut reasons, "accepted_mass_below_requirement"),
+                None => push_missing(&mut reasons, "receiver_accepted_mass"),
+            }
         }
     }
 
