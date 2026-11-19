@@ -35,3 +35,8 @@ The validator rejects future-available forecasts, issue/lead/valid-time inconsis
 ## Research boundary
 
 The next paradigm is to connect forecast *information* to decisions without collapsing them. Score forecasts by variable, lead and threshold; separately evaluate mission decisions under an information-matched baseline. Keep hard constraints non-compensatory. Treat reanalysis as evaluator context, in-situ sources as spatially limited checks, and perfect foresight as a non-deployable lower-bound reference. A better aggregate weather score does not automatically imply better sailing or liveaboard outcomes.
+
+
+## Member-coherent risk control
+
+A second executable is provided as `--bin member-coherent-risk`. It checks exact forecast member-set receipts and route-edge identity, calculates loss across each whole member route, then contrasts the coherent CVaR with an intentionally invalid independent-edge resampling comparator. The dedicated synthetic fixture and expected ranking reversal are documented in [MEMBER_COHERENT_RISK.md](MEMBER_COHERENT_RISK.md). The control is synthetic-only and is not an operational risk model.
