@@ -102,6 +102,10 @@
             "null"
           ],
           "minLength": 1
+        },
+        "interval_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -816,6 +820,27 @@
                 "const": "applicable"
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence_kind": {
+            "const": "source_interval"
+          }
+        },
+        "required": [
+          "evidence_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "subject": {
+            "required": [
+              "interval_id"
+            ]
           }
         }
       }
