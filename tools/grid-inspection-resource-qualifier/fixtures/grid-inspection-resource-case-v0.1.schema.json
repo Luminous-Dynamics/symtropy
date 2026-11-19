@@ -1,0 +1,389 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:grid-inspection-resource-qualifier:case:0.1.0",
+  "title": "Grid Inspection Resource Certificate Case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "caseId",
+    "asOfHour",
+    "resourceManifestRef",
+    "resourceManifestSha256",
+    "resourceManifest",
+    "inspectionCatalog",
+    "recoveryActionCatalog",
+    "policyCertificate"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "caseId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "asOfHour": {
+      "type": "number",
+      "minimum": 0
+    },
+    "resourceManifestRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resourceManifestSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "resourceManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "manifestId",
+        "asOfHour",
+        "horizonEndHour",
+        "resources"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "0.1.0"
+        },
+        "manifestId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asOfHour": {
+          "type": "number",
+          "minimum": 0
+        },
+        "horizonEndHour": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "resourceRef",
+              "status",
+              "validUntilHour",
+              "evidenceRef",
+              "capacityWindows",
+              "reservations"
+            ],
+            "properties": {
+              "resourceRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "enum": [
+                  "available",
+                  "degraded",
+                  "unavailable",
+                  "unknown",
+                  "proposed_only"
+                ]
+              },
+              "validUntilHour": {
+                "type": "number",
+                "minimum": 0
+              },
+              "evidenceRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "capacityWindows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "startHour",
+                    "endHour",
+                    "capacityUnits"
+                  ],
+                  "properties": {
+                    "startHour": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "endHour": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "capacityUnits": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                }
+              },
+              "reservations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reservationRef",
+                    "startHour",
+                    "endHour",
+                    "units",
+                    "state"
+                  ],
+                  "properties": {
+                    "reservationRef": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "startHour": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "endHour": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "units": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "state": {
+                      "enum": [
+                        "confirmed",
+                        "unknown",
+                        "proposed_only",
+                        "revoked"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "inspectionCatalog": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/activity"
+      }
+    },
+    "recoveryActionCatalog": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/activity"
+      }
+    },
+    "policyCertificate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourcePolicyRef",
+        "sourceModelRef",
+        "sourceAssumptionsRef",
+        "firstInspectionId",
+        "firstOutcomeBranches"
+      ],
+      "properties": {
+        "sourcePolicyRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceModelRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceAssumptionsRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "firstInspectionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "firstOutcomeBranches": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "outcome",
+              "probabilityBasisPoints",
+              "secondInspectionId",
+              "recoveryActionId",
+              "serviceTrajectoryRef",
+              "secondOutcomeBranches"
+            ],
+            "properties": {
+              "outcome": {
+                "enum": [
+                  "positive",
+                  "negative"
+                ]
+              },
+              "probabilityBasisPoints": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9999
+              },
+              "secondInspectionId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "recoveryActionId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "serviceTrajectoryRef": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "secondOutcomeBranches": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "outcome",
+                    "probabilityBasisPoints",
+                    "recoveryActionId",
+                    "serviceTrajectoryRef"
+                  ],
+                  "properties": {
+                    "outcome": {
+                      "enum": [
+                        "positive",
+                        "negative"
+                      ]
+                    },
+                    "probabilityBasisPoints": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9999
+                    },
+                    "recoveryActionId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "serviceTrajectoryRef": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "activity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "activityId",
+        "activityType",
+        "earliestStartHour",
+        "durationHours",
+        "resultLatencyHours",
+        "evidenceOriginRef",
+        "preconditionStatus",
+        "applicabilityRef",
+        "authorityRequirementRef",
+        "resourceRequirements",
+        "serviceModelRef"
+      ],
+      "properties": {
+        "activityId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "activityType": {
+          "enum": [
+            "inspection",
+            "recovery_action"
+          ]
+        },
+        "earliestStartHour": {
+          "type": "number",
+          "minimum": 0
+        },
+        "durationHours": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "resultLatencyHours": {
+          "type": "number",
+          "minimum": 0
+        },
+        "evidenceOriginRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preconditionStatus": {
+          "enum": [
+            "current",
+            "unknown",
+            "stale",
+            "conflicted"
+          ]
+        },
+        "applicabilityRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authorityRequirementRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resourceRequirements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "resourceRef",
+              "units"
+            ],
+            "properties": {
+              "resourceRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "units": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        "serviceModelRef": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}
