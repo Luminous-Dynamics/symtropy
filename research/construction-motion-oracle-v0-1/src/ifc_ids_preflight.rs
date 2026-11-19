@@ -130,6 +130,8 @@ pub struct IfcIdsWorkPackageInput {
     pub frame_id: String,
     pub frame_sha256: String,
     pub transform_sha256: String,
+    /// Digest binding CRS, vertical datum, source units, map scale and transform.
+    pub coordinate_context_sha256: String,
     pub coordinate_context: IfcCoordinateContext,
     /// Digest of the complete sorted source entity binding manifest, including
     /// GlobalIds, geometry digests, semantic types, IDS property bindings and
@@ -177,6 +179,7 @@ pub enum IfcIdsPreflightError {
     InvalidFrameIdentity,
     InvalidFrameDigest,
     InvalidTransformDigest,
+    InvalidCoordinateContextDigest,
     CoordinateFrameIdentityMismatch,
     CoordinateFrameDigestMismatch,
     MissingProjectCrsIdentifier,
@@ -259,6 +262,9 @@ pub fn preflight_ifc_ids_work_package(
     }
     if !is_sha256(&input.transform_sha256) {
         errors.push(IfcIdsPreflightError::InvalidTransformDigest);
+    }
+    if !is_sha256(&input.coordinate_context_sha256) {
+        errors.push(IfcIdsPreflightError::InvalidCoordinateContextDigest);
     }
     if input.coordinate_context.model_frame_id != input.frame_id {
         errors.push(IfcIdsPreflightError::CoordinateFrameIdentityMismatch);
@@ -542,6 +548,7 @@ pub fn preflight_ifc_ids_work_package(
             ids_spec_sha256: input.ids_spec_sha256,
             ids_version: input.ids_version.clone(),
             ids_engine_build_sha256: input.ids_engine_build_sha256,
+            coordinate_context_sha256: input.coordinate_context_sha256,
             design_revision_sha256: input.design_revision_sha256,
             frame_id: input.frame_id,
             frame_sha256: input.frame_sha256,
@@ -648,6 +655,7 @@ mod tests {
             frame_id: "site-level-02".into(),
             frame_sha256: digest('5'),
             transform_sha256: digest('6'),
+            coordinate_context_sha256: digest('9'),
             coordinate_context: IfcCoordinateContext {
                 model_frame_id: "site-level-02".into(),
                 project_crs_identifier: "EPSG:32735".into(),
@@ -1459,6 +1467,18 @@ mod tests {
             global_id: global_id('0'),
             count: 1,
         }));
+    }
+
+
+    #[test]
+    fn malformed_coordinate_context_digest_blocks_preflight() {
+        let mut invalid = valid_input();
+        invalid.coordinate_context_sha256 = "not-a-sha256".into();
+        assert!(
+            preflight_ifc_ids_work_package(invalid)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::InvalidCoordinateContextDigest)
+        );
     }
 
 }
