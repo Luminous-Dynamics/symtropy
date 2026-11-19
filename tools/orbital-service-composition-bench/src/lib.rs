@@ -158,6 +158,301 @@ fn is_sha256(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+pub struct JoinedServiceV1 {
+    pub cargo_lot_id: String,
+    pub cargo_mass_grams: u64,
+    pub target_orbit_id: String,
+    pub destination_node_id: String,
+    pub delivery_epoch: u64,
+    pub client_id: String,
+    pub capture_interface_id: String,
+    pub capture_interface_revision: u64,
+    pub capture_frame_id: String,
+    pub capture_epoch_tick: u64,
+    pub fluid_transfer_event_id: String,
+    pub receiver_id: String,
+    pub fluid_id: String,
+    pub fluid_class: String,
+    pub phase: String,
+    pub accepted_receiver_mass_g: u64,
+    pub final_temperature_mk: u64,
+    pub final_pressure_pa: u64,
+    pub measurement_uncertainty_g: u64,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+pub struct ReceiptBundleV1 {
+    pub receipt_schema: &'static str,
+    pub result: String,
+    pub evidence_class: String,
+    pub claim_ceiling: String,
+    pub source_commits: BTreeMap<String, String>,
+    pub artifact_sha256: BTreeMap<String, String>,
+    pub authority_granted: bool,
+    pub joined_service: JoinedServiceV1,
+}
+
+fn required_str<'a>(value: &'a serde_json::Value, key: &str, label: &str) -> Result<&'a str, String> {
+    value
+        .get(key)
+        .and_then(serde_json::Value::as_str)
+        .filter(|item| !item.trim().is_empty())
+        .ok_or_else(|| format!("{label}: missing or empty {key}"))
+}
+
+fn required_u64(value: &serde_json::Value, key: &str, label: &str) -> Result<u64, String> {
+    value
+        .get(key)
+        .and_then(serde_json::Value::as_u64)
+        .ok_or_else(|| format!("{label}: missing or invalid {key}"))
+}
+
+fn named_record<'a>(
+    report: &'a serde_json::Value,
+    collection: &str,
+    id_field: &str,
+    id_value: &str,
+    label: &str,
+) -> Result<&'a serde_json::Value, String> {
+    report
+        .get(collection)
+        .and_then(serde_json::Value::as_array)
+        .and_then(|items| {
+            items.iter().find(|item| {
+                item.get(id_field).and_then(serde_json::Value::as_str) == Some(id_value)
+            })
+        })
+        .ok_or_else(|| format!("{label}: missing {collection} record {id_value}"))
+}
+
+fn parse_receipt<'a>(
+    bytes: &'a [u8],
+    label: &str,
+    expected_schema: &str,
+    pin: &SourcePin,
+    fixture_class: &str,
+) -> Result<serde_json::Value, String> {
+    let value: serde_json::Value = serde_json::from_slice(bytes)
+        .map_err(|error| format!("{label}: invalid receipt JSON: {error}"))?;
+    if required_str(&value, "receipt_schema", label)? != expected_schema {
+        return Err(format!("{label}: receipt schema mismatch"));
+    }
+    if required_str(&value, "source_commit", label)? != pin.source_commit {
+        return Err(format!("{label}: source commit does not match frozen pin"));
+    }
+    if required_str(&value, "result", label)? != "pass" {
+        return Err(format!("{label}: source receipt is not a pass"));
+    }
+    let report = value
+        .get("report")
+        .ok_or_else(|| format!("{label}: report missing"))?;
+    if required_str(report, "evidence_class", label)? != fixture_class {
+        return Err(format!("{label}: evidence class mismatch"));
+    }
+    required_str(report, "claim_ceiling", label)?;
+    Ok(value)
+}
+
+/// Joins three independently generated source receipts. The exact input bytes are
+/// hashed locally; source commits and report identities are compared to frozen pins.
+/// No signature verification or physical validation is performed here.
+pub fn compose_receipt_bundle(
+    composition_fixture_bytes: &[u8],
+    delivery_receipt_bytes: &[u8],
+    capture_receipt_bytes: &[u8],
+    fluid_receipt_bytes: &[u8],
+) -> Result<ReceiptBundleV1, String> {
+    let fixture: Fixture = serde_json::from_slice(composition_fixture_bytes)
+        .map_err(|error| format!("invalid composition fixture: {error}"))?;
+    if fixture.suite_id != "orbital-service-composition"
+        || fixture.suite_version != "0.1.0"
+        || fixture.evidence_class != "synthetic"
+        || !non_empty(&fixture.claim_ceiling)
+    {
+        return Err("unsupported composition fixture identity or claim ceiling".to_owned());
+    }
+    let pins: BTreeMap<Component, &SourcePin> = fixture
+        .source_pins
+        .iter()
+        .map(|pin| (pin.component, pin))
+        .collect();
+    if pins.len() != 3 {
+        return Err("composition fixture must pin all three source components".to_owned());
+    }
+    let service_case = fixture
+        .cases
+        .iter()
+        .find(|case| case.case_id == "NOMINAL_SYNTHETIC_COMPOSITION")
+        .ok_or_else(|| "nominal service profile missing from composition fixture".to_owned())?;
+    if service_case.expected_status != GateStatus::AcceptedForSyntheticComposition {
+        return Err("nominal composition profile is not an accepted positive control".to_owned());
+    }
+    let profile = &service_case.profile;
+
+    let delivery_pin = pins.get(&Component::EarthOrbitChain).expect("validated source pin");
+    let capture_pin = pins.get(&Component::OrbitalCapture).expect("validated source pin");
+    let fluid_pin = pins.get(&Component::OrbitalFluid).expect("validated source pin");
+
+    let delivery = parse_receipt(
+        delivery_receipt_bytes,
+        "delivery",
+        "luminous.earth-orbit-chain.receipt.v1",
+        delivery_pin,
+        &fixture.evidence_class,
+    )?;
+    let capture = parse_receipt(
+        capture_receipt_bytes,
+        "capture",
+        "luminous.orbital-capture-handoff.receipt.v0.1",
+        capture_pin,
+        &fixture.evidence_class,
+    )?;
+    let fluid = parse_receipt(
+        fluid_receipt_bytes,
+        "fluid",
+        "luminous.orbital-fluid-transfer.receipt.v0.1",
+        fluid_pin,
+        &fixture.evidence_class,
+    )?;
+
+    let delivery_report = delivery.get("report").expect("delivery report checked above");
+    if required_str(delivery_report, "disposition", "delivery")? != "ready" {
+        return Err("delivery report is not Ready".to_owned());
+    }
+    let cargo = named_record(
+        delivery_report,
+        "cargo_deliveries",
+        "cargo_lot_id",
+        &profile.subject_id,
+        "delivery",
+    )?;
+    if required_str(cargo, "status", "delivery cargo")? != "accepted" {
+        return Err("payload delivery was not accepted".to_owned());
+    }
+    if required_str(cargo, "target_orbit_id", "delivery cargo")? != profile.target_orbit_id {
+        return Err("target orbit does not match service profile".to_owned());
+    }
+    let destination_node_id = required_str(cargo, "destination_node_id", "delivery cargo")?;
+    if required_str(cargo, "terminal_node_id", "delivery cargo")? != destination_node_id {
+        return Err("cargo terminal node does not match declared destination".to_owned());
+    }
+    if required_u64(cargo, "cargo_mass_grams", "delivery cargo")? == 0 {
+        return Err("accepted cargo mass must be positive".to_owned());
+    }
+    let delivery_epoch = required_u64(cargo, "arrival_epoch_seconds", "delivery cargo")?;
+
+    let capture_report = capture.get("report").expect("capture report checked above");
+    if required_str(capture_report, "result", "capture")? != "pass" {
+        return Err("capture report is not a pass".to_owned());
+    }
+    let captured = named_record(
+        capture_report,
+        "cases",
+        "case_id",
+        "NOMINAL_CAPTURE",
+        "capture",
+    )?;
+    if required_str(captured, "status", "capture case")? != "accepted_for_handoff" {
+        return Err("capture handoff was not accepted".to_owned());
+    }
+    if captured.get("authority_granted").and_then(serde_json::Value::as_bool) != Some(false) {
+        return Err("capture case authority flag missing or unexpectedly granted".to_owned());
+    }
+    let client_id = required_str(captured, "client_id", "capture case")?;
+    if client_id != profile.subject_id {
+        return Err("capture client identity does not match delivered payload".to_owned());
+    }
+    let capture_interface_id = required_str(captured, "interface_id", "capture case")?;
+    let capture_interface_revision = required_u64(captured, "interface_revision", "capture case")?;
+    if capture_interface_id != profile.interface_id
+        || capture_interface_revision != profile.interface_revision
+    {
+        return Err("capture interface identity/revision does not match service profile".to_owned());
+    }
+    let capture_frame_id = required_str(captured, "frame_id", "capture case")?.to_owned();
+    let capture_epoch_tick = required_u64(captured, "epoch_tick", "capture case")?;
+
+    let fluid_report = fluid.get("report").expect("fluid report checked above");
+    if required_str(fluid_report, "result", "fluid")? != "pass" {
+        return Err("fluid report is not a pass".to_owned());
+    }
+    let transfer = named_record(
+        fluid_report,
+        "scenarios",
+        "scenario_id",
+        "STORABLE_LIQUID_NOMINAL",
+        "fluid",
+    )?;
+    if required_str(transfer, "status", "fluid scenario")? != "transfer_accepted" {
+        return Err("fluid receiver acceptance was not accepted".to_owned());
+    }
+    let receiver_id = required_str(transfer, "receiver_id", "fluid scenario")?;
+    if receiver_id != client_id {
+        return Err("fluid receiver identity does not match captured client".to_owned());
+    }
+    let interface_id = required_str(transfer, "interface_id", "fluid scenario")?;
+    let interface_revision = required_u64(transfer, "interface_revision", "fluid scenario")?;
+    if interface_id != capture_interface_id || interface_revision != capture_interface_revision {
+        return Err("fluid interface identity/revision does not match capture handoff".to_owned());
+    }
+    let fluid_id = required_str(transfer, "fluid_id", "fluid scenario")?;
+    if fluid_id != profile.fluid_id {
+        return Err("fluid identity does not match service profile".to_owned());
+    }
+    let fluid_class = required_str(transfer, "fluid_class", "fluid scenario")?.to_owned();
+    let phase = required_str(transfer, "phase", "fluid scenario")?.to_owned();
+    if phase != "liquid" {
+        return Err("nominal storable-fluid profile requires liquid phase".to_owned());
+    }
+    let accepted_receiver_mass_g = required_u64(transfer, "receiver_accepted_g", "fluid scenario")?;
+    if accepted_receiver_mass_g < profile.minimum_accepted_mass_g {
+        return Err("receiver-accepted mass is below service requirement".to_owned());
+    }
+
+    let source_commits = BTreeMap::from([
+        ("earth_orbit_chain".to_owned(), delivery_pin.source_commit.clone()),
+        ("orbital_capture".to_owned(), capture_pin.source_commit.clone()),
+        ("orbital_fluid".to_owned(), fluid_pin.source_commit.clone()),
+    ]);
+    let artifact_sha256 = BTreeMap::from([
+        ("composition_fixture".to_owned(), sha256_hex(composition_fixture_bytes)),
+        ("delivery_receipt".to_owned(), sha256_hex(delivery_receipt_bytes)),
+        ("capture_receipt".to_owned(), sha256_hex(capture_receipt_bytes)),
+        ("fluid_receipt".to_owned(), sha256_hex(fluid_receipt_bytes)),
+    ]);
+    Ok(ReceiptBundleV1 {
+        receipt_schema: "luminous.orbital-service-composition.bundle-receipt.v0.1",
+        result: "pass".to_owned(),
+        evidence_class: fixture.evidence_class,
+        claim_ceiling: "Synthetic composition of independently generated source software receipts only; no physical launch, capture, seal, fluid transfer, mission service or flight qualification claim.".to_owned(),
+        source_commits,
+        artifact_sha256,
+        authority_granted: false,
+        joined_service: JoinedServiceV1 {
+            cargo_lot_id: profile.subject_id.clone(),
+            cargo_mass_grams: required_u64(cargo, "cargo_mass_grams", "delivery cargo")?,
+            target_orbit_id: profile.target_orbit_id.clone(),
+            destination_node_id: destination_node_id.to_owned(),
+            delivery_epoch,
+            client_id: client_id.to_owned(),
+            capture_interface_id: capture_interface_id.to_owned(),
+            capture_interface_revision,
+            capture_frame_id,
+            capture_epoch_tick,
+            fluid_transfer_event_id: required_str(transfer, "transfer_event_id", "fluid scenario")?.to_owned(),
+            receiver_id: receiver_id.to_owned(),
+            fluid_id: fluid_id.to_owned(),
+            fluid_class,
+            phase,
+            accepted_receiver_mass_g,
+            final_temperature_mk: required_u64(transfer, "final_temperature_mk", "fluid scenario")?,
+            final_pressure_pa: required_u64(transfer, "final_pressure_pa", "fluid scenario")?,
+            measurement_uncertainty_g: required_u64(transfer, "measurement_uncertainty_g", "fluid scenario")?,
+        },
+    })
+}
+
 fn expected_component(kind: EventKind) -> Option<(Component, &'static str, &'static str)> {
     match kind {
         EventKind::PayloadDeliveryAccepted => Some((
