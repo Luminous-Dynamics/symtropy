@@ -853,7 +853,7 @@ mod tests {
                 "cargo_deliveries": [{
                     "cargo_lot_id": "serviced-client-001",
                     "cargo_mass_grams": 1_000_000,
-                    "target_orbit_id": "leo-550-km",
+                    "target_orbit_id": "leo-550km",
                     "destination_node_id": "orbit",
                     "terminal_node_id": "orbit",
                     "arrival_epoch_seconds": 50,
@@ -927,7 +927,7 @@ mod tests {
         assert!(!receipt.authority_granted);
         assert_eq!(receipt.joined_service.cargo_lot_id, "serviced-client-001");
         assert_eq!(receipt.joined_service.cargo_mass_grams, 1_000_000);
-        assert_eq!(receipt.joined_service.target_orbit_id, "leo-550-km");
+        assert_eq!(receipt.joined_service.target_orbit_id, "leo-550km");
         assert_eq!(receipt.joined_service.destination_node_id, "orbit");
         assert_eq!(receipt.joined_service.client_id, "serviced-client-001");
         assert_eq!(receipt.joined_service.receiver_id, "serviced-client-001");
