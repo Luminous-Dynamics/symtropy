@@ -1,0 +1,112 @@
+schema_version = "living-systems-lineage-benchmark-v0.1"
+benchmark_id = "BIO-FORAM-RETICULOPODIAL-NETWORK-001"
+status = "SOURCE_ANCHORED_BENCHMARK_DATA_ADMISSION_REVIEW_PENDING"
+created_utc_date = "2026-11-18"
+issue = "https://github.com/Luminous-Dynamics/symtropy/issues/6102"
+parent_issue = "https://github.com/Luminous-Dynamics/symtropy/issues/5981"
+identity_contract_pr = "https://github.com/Luminous-Dynamics/symtropy/pull/6076"
+crosswalk_contract_pr = "https://github.com/Luminous-Dynamics/symtropy/pull/6088"
+organism_group = "RHIZARIA_RETARIA_FORAMINIFERA"
+candidate_species = ["Amphistegina lobifera", "Sorites orbiculus"]
+movement_mechanism = ["RETICULOPODIAL_NETWORK_EXTENSION", "BRANCHING_AND_ANASTOMOSIS", "BIDIRECTIONAL_CYTOPLASMIC_STREAMING", "SUBSTRATE_ATTACHMENT", "WHOLE_ORGANISM_MOTILITY"]
+fungal_hypha_model = false
+physarum_plasmodium_model = false
+static_graph_is_flux_ground_truth = false
+
+[benchmark_policy]
+split_unit = "COMPLETE_EXPERIMENT_SPECIMEN_OR_CULTURE_RUN"
+track_and_frame_leakage_prohibited = true
+pseudopod_pixels_are_not_independent_samples = true
+topology_does_not_prove_flux = true
+direct_flow_evidence_required_for_flux_metrics = true
+ambiguous_2d_crossings_remain_unresolved = true
+treatment_species_symbiont_and_time_covariates_preserved = true
+source_rights_and_attribution_required = true
+
+[primary_video_record]
+doi = "10.1594/PANGAEA.974619"
+record_title = "File names of the images and videos recorded at the microscope from the BEA experiment at final observations"
+publisher = "PANGAEA"
+publication_date = "2025-03-18"
+doi_registered = "2025-04-14"
+license = "CC-BY-4.0"
+data_points = 450
+species = ["Amphistegina lobifera", "Sorites orbiculus"]
+date_time_start = "2019-11-18"
+date_time_end = "2019-12-17"
+modalities = ["EPIFLUORESCENCE_IMAGES", "MICROSCOPE_VIDEOS", "PSEUDOPODIA_PRESENCE", "SPECIES_UID", "TREATMENT", "DATE_TIME"]
+video_scope = "FINAL_TIMEPOINTS_OF_BLEACHING_ECOPHYSIOLOGY_ASSESSMENT"
+admission_status = "METADATA_IDENTIFIED_FILE_INVENTORY_AND_CHECKSUM_RECEIPT_REQUIRED"
+limitations = ["FINAL_TIMEPOINT_VIDEO_ONLY_NOT_FULL_CONTINUOUS_TRAJECTORY", "TREATMENT_AND_SYMBIONT_STATUS_ARE_CONFOUNDING_COVARIATES"]
+
+[longitudinal_motility_bea]
+doi = "10.1594/PANGAEA.974621"
+record_title = "Motility of Amphistegina lobifera throughout the 4-week BEA experiment"
+publisher = "PANGAEA"
+publication_date = "2025-03-18"
+license = "CC-BY-4.0"
+data_points = 1794
+species = "Amphistegina lobifera"
+temporal_coverage_start = "2019-11-19"
+temporal_coverage_end = "2019-12-16"
+observables = ["INDIVIDUALS_ATTACHED_TO_CULTURE_JAR_WALLS", "TOTAL_SPECIMENS", "MOTILE_FRACTION", "COMMENTS", "STUDY_TYPE"]
+admission_status = "METADATA_IDENTIFIED_FILE_INVENTORY_AND_CHECKSUM_RECEIPT_REQUIRED"
+limitations = ["COARSE_LONGITUDINAL_ATTACHMENT_AND_MOTILITY_NOT_FRAME_LEVEL_NETWORK_DYNAMICS"]
+
+[longitudinal_motility_mcc]
+doi = "10.1594/PANGAEA.974622"
+record_title = "Motility of Amphistegina lobifera throughout the 6-week BEA experiment"
+publisher = "PANGAEA"
+publication_date = "2025-03-18"
+license = "CC-BY-4.0"
+data_points = 1064
+species = "Amphistegina lobifera"
+temporal_coverage_start = "2019-10-29"
+temporal_coverage_end = "2019-12-13"
+observables = ["INDIVIDUALS_ATTACHED", "TOTAL_SPECIMENS", "MOTILE_FRACTION", "MENTHOL_TREATMENT", "DAY_OF_EXPERIMENT"]
+admission_status = "METADATA_IDENTIFIED_FILE_INVENTORY_AND_CHECKSUM_RECEIPT_REQUIRED"
+
+[longitudinal_motility_hct]
+doi = "10.1594/PANGAEA.974623"
+record_title = "Motility of Amphistegina lobifera throughout the High Concentration Trial HCT experiment"
+publisher = "PANGAEA"
+publication_date = "2025-03-18"
+license = "CC-BY-4.0"
+data_points = 925
+species = "Amphistegina lobifera"
+temporal_coverage_start = "2019-11-14"
+temporal_coverage_end = "2019-12-16"
+observables = ["INDIVIDUALS_ATTACHED", "TOTAL_SPECIMENS", "MOTILE_FRACTION", "MENTHOL_CONCENTRATION", "DAY_OF_EXPERIMENT"]
+admission_status = "METADATA_IDENTIFIED_FILE_INVENTORY_AND_CHECKSUM_RECEIPT_REQUIRED"
+
+[mechanistic_reference_1981]
+doi = "10.1083/jcb.90.1.211"
+taxon = "Allogromia laticollaris"
+claim = "BRANCHING_ANASTOMOSING_RETICULOPODIAL_NETWORK_WITH_CONTINUOUS_CYTOPLASMIC_PARTICLE_STREAMING"
+evidence_class = "ULTRASTRUCTURAL_MECHANISTIC_REFERENCE_NOT_A_CURRENT_VIDEO_BENCHMARK"
+
+[mechanistic_reference_2023]
+doi = "10.1093/plankt/fbad031"
+taxa = ["Globigerina bulloides", "Neogloboquadrina incompta", "Neogloboquadrina pachyderma"]
+claim = "RETICULOPODIA_ARE_PRIMARY_LOCOMOTORY_PROJECTIONS_AND_CAN_FORM_BIDIRECTIONAL_FLOW_NETWORKS; OTHER_PROTRUSION_TYPES_MUST_REMAIN_DISTINCT"
+article_license = "CC-BY"
+evidence_class = "OPEN_ACCESS_MORPHOLOGY_AND_LIFE_HISTORY_REFERENCE_NOT_A_STANDARDIZED_MOTILITY_DATASET"
+
+[retaria_framework_2026]
+doi = "10.1002/bies.70148"
+first_published = "2026-05-29"
+claim = "INTEGRATED_RESEARCH_FRAMEWORK_FOR_FORAMINIFERA_AND_RADIOLARIA_WITHOUT_COLLAPSING_LINEAGE_DIFFERENCES"
+evidence_class = "OPEN_ACCESS_RESEARCH_SYNTHESIS_NOT_A_MOTILITY_MODEL"
+
+[benchmark_tracks]
+track_a = ["BODY_TEST_SEGMENTATION", "RETICULOPODIAL_BRANCH_EXTENSION", "ANASTOMOSIS", "FUSION", "RETRACTION", "ATTACHMENT"]
+track_b = ["CYTOPLASMIC_PARTICLE_TRACKING", "BIDIRECTIONAL_FLOW_WHERE_VISIBLE", "FLOW_REVERSAL", "BRANCH_FLOW_RELATION"]
+track_c = ["WHOLE_BODY_DISPLACEMENT", "ATTACHMENT_FRACTION", "LONGITUDINAL_MOTILITY_RESPONSE", "SPECIES_TREATMENT_AND_SYMBIONT_COVARIATES"]
+
+[limitations]
+not_a_universal_rhizaria_model = true
+not_a_physarum_or_fungal_hypha_model = true
+not_a_flux_solver_from_topology = true
+not_a_biogeochemical_export_model = true
+not_a_sota_claim = true
+no_raw_data_ingested_by_manifest = true
