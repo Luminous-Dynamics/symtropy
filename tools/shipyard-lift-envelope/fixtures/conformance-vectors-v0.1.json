@@ -1,0 +1,449 @@
+{
+  "contract_version": "shipyard-lift-envelope-v0.1",
+  "vector_set_id": "SHIPYARD-LIFT-PREFLIGHT-CONFORMANCE-V0.1",
+  "status": "FROZEN_SYNTHETIC_TEST_CONTRACT_NOT_PHYSICAL_QUALIFICATION",
+  "description": "Machine-readable mapping from deterministic Rust tests to expected preflight dispositions, diagnostic codes, bounded arithmetic and canonical serialization invariants.",
+  "claim_ceiling": "No vector is a real lift plan, physical safety result, lift authorization, crane certification or standards-conformance result.",
+  "vectors": [
+    {
+      "id": "LEV-BASE-001",
+      "mode": "evaluation",
+      "test_name": "bounded_valid_input_is_ready_for_human_review_only",
+      "expected_disposition": "ready_for_human_review",
+      "required_diagnostic_codes": [],
+      "assertion": "Baseline synthetic input yields human-review-only disposition and no diagnostics.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-CRANE-001",
+      "mode": "evaluation",
+      "test_name": "exact_chart_cell_capacity_is_a_hard_gate",
+      "expected_disposition": "rejected",
+      "required_diagnostic_codes": [
+        "CRANE_CHART_CAPACITY_EXCEEDED"
+      ],
+      "assertion": "Conservative demand above the exact matching chart-cell net capacity is rejected.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-CRANE-002",
+      "mode": "evaluation",
+      "test_name": "no_chart_interpolation_or_configuration_substitution_is_permitted",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "CRANE_CHART_CELL_MISMATCH"
+      ],
+      "assertion": "A different radius band cannot borrow a neighbouring chart cell.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-RIG-001",
+      "mode": "evaluation",
+      "test_name": "rigging_leg_tension_is_checked_with_conservative_rounding",
+      "expected_disposition": "rejected",
+      "required_diagnostic_codes": [
+        "RIGGING_WLL_EXCEEDED"
+      ],
+      "assertion": "Conservative axial leg tension above WLL is rejected.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-RIG-002",
+      "mode": "evaluation",
+      "test_name": "missing_load_share_is_not_replaced_with_equal_sharing",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "RIGGING_LEG_BOUNDS_INVALID",
+        "RIGGING_SHARE_BOUNDS_DO_NOT_COVER_LOAD"
+      ],
+      "assertion": "A zero or missing upper load-share bound is not replaced by equal sharing.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-RIG-003",
+      "mode": "evaluation",
+      "test_name": "conservative_maximum_share_bounds_may_sum_above_one",
+      "expected_disposition": "ready_for_human_review",
+      "required_diagnostic_codes": [],
+      "assertion": "Independent worst-case upper bounds may conservatively sum above 100%.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-RIG-004",
+      "mode": "evaluation",
+      "test_name": "share_upper_bounds_below_total_load_are_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "RIGGING_SHARE_BOUNDS_DO_NOT_COVER_LOAD"
+      ],
+      "assertion": "Maximum load-share bounds must collectively cover the complete vertical load.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-EVID-001",
+      "mode": "evaluation",
+      "test_name": "stale_evidence_abstains_instead_of_becoming_a_pass",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_NOT_VALID_FOR_LIFT_INTERVAL"
+      ],
+      "assertion": "A mass record that expires before lift completion is inadmissible.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-EVID-002",
+      "mode": "evaluation",
+      "test_name": "revoked_source_record_is_not_admissible",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_REVOKED"
+      ],
+      "assertion": "Revoked chart evidence cannot support the declared crane cell.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-WEATHER-001",
+      "mode": "multi_case",
+      "test_name": "weather_limit_exceeded_and_stale_envelope_are_distinct_failures",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [
+        "WIND_GUST_LIMIT_EXCEEDED",
+        "EVIDENCE_NOT_VALID_FOR_LIFT_INTERVAL"
+      ],
+      "assertion": "The same test checks a gust-limit rejection and a separate stale-weather-evidence abstention.",
+      "synthetic_only": true,
+      "expected_dispositions": [
+        "rejected",
+        "indeterminate"
+      ]
+    },
+    {
+      "id": "LEV-WEATHER-002",
+      "mode": "evaluation",
+      "test_name": "weather_observation_cannot_substitute_for_limit_profile",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_SUBJECT_MISMATCH"
+      ],
+      "assertion": "The observation station and crane operating-limit profile are distinct evidence subjects.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-MOTION-001",
+      "mode": "evaluation",
+      "test_name": "wrong_block_revision_in_motion_binding_abstains",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "MOTION_CONTEXT_MISMATCH"
+      ],
+      "assertion": "A motion envelope for another block revision is not reusable.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-MOTION-002",
+      "mode": "evaluation",
+      "test_name": "occupancy_projection_must_cover_the_entire_lift",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "OCCUPANCY_INTERVAL_DOES_NOT_COVER_LIFT"
+      ],
+      "assertion": "The occupancy projection must cover the full half-open lift interval.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-EVID-003",
+      "mode": "evaluation",
+      "test_name": "identical_source_evidence_may_support_multiple_claims",
+      "expected_disposition": "ready_for_human_review",
+      "required_diagnostic_codes": [],
+      "assertion": "The exact same source record and identical metadata may support compatible claims.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-EVID-004",
+      "mode": "evaluation",
+      "test_name": "conflicting_metadata_for_one_source_record_id_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_ID_CONFLICT"
+      ],
+      "assertion": "Reusing one evidence ID with conflicting metadata is indeterminate.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-EVID-005",
+      "mode": "evaluation",
+      "test_name": "evidence_validity_in_a_different_clock_domain_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_CLOCK_DOMAIN_MISMATCH"
+      ],
+      "assertion": "Evidence ticks cannot be compared across unbound clock domains.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-EVID-006",
+      "mode": "evaluation",
+      "test_name": "evidence_for_another_block_revision_cannot_be_reused",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_SUBJECT_MISMATCH"
+      ],
+      "assertion": "Evidence for a different physical block cannot support this block.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-RIG-005",
+      "mode": "evaluation",
+      "test_name": "wll_must_bind_to_the_exact_rigging_component_revision",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_SUBJECT_MISMATCH"
+      ],
+      "assertion": "WLL evidence must identify the exact rigging component revision.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-EVID-007",
+      "mode": "evaluation",
+      "test_name": "malformed_digest_cannot_support_human_review",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_DIGEST_INVALID"
+      ],
+      "assertion": "Malformed SHA-256 lexical shape cannot support a preflight.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-META-001",
+      "mode": "metamorphic",
+      "test_name": "input_permutation_preserves_canonical_report",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Leg input order cannot change the evaluated report.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-ORACLE-001",
+      "mode": "arithmetic_oracle",
+      "test_name": "checked_ceil_mul_div_matches_independent_bounded_integer_oracle",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Exhaustive small-domain ceiling division matches separately written integer arithmetic.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-META-002",
+      "mode": "metamorphic",
+      "test_name": "canonical_input_json_is_identical_under_leg_input_permutation",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Canonical input order is invariant under rigging-leg permutation.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-META-003",
+      "mode": "metamorphic",
+      "test_name": "canonical_input_json_binds_source_digests_and_crane_configuration",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Changing source digest or crane configuration changes canonical input bytes.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-META-004",
+      "mode": "metamorphic",
+      "test_name": "canonical_json_is_identical_under_input_permutation",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Canonical report bytes are invariant under rigging-leg permutation.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-SERIAL-001",
+      "mode": "serialization",
+      "test_name": "canonical_json_escapes_diagnostic_text",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Control characters in diagnostic text are JSON-escaped.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-ORACLE-002",
+      "mode": "arithmetic_oracle",
+      "test_name": "fixed_point_ceiling_rounds_demand_up",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Ceiling division never rounds calculated demand downward.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-OVERFLOW-001",
+      "mode": "evaluation",
+      "test_name": "checked_load_arithmetic_abstains_on_overflow",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "DESIGN_LOAD_ARITHMETIC_OVERFLOW"
+      ],
+      "assertion": "Overflow is indeterminate, never wrapped or rounded down.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-TIME-001",
+      "mode": "evaluation",
+      "test_name": "invalid_empty_lift_window_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "LIFT_INTERVAL_INVALID"
+      ],
+      "assertion": "An empty half-open operation interval is indeterminate.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-RIG-006",
+      "mode": "evaluation",
+      "test_name": "duplicate_rigging_leg_identity_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "RIGGING_LEG_ID_DUPLICATE"
+      ],
+      "assertion": "Rigging leg identity must be unique within one lift plan.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-CRANE-003",
+      "mode": "evaluation",
+      "test_name": "crane_capacity_equal_to_conservative_demand_is_accepted_for_human_review",
+      "expected_disposition": "ready_for_human_review",
+      "required_diagnostic_codes": [],
+      "assertion": "Exact equality at the declared crane limit does not trigger an exceedance.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-CRANE-004",
+      "mode": "evaluation",
+      "test_name": "crane_capacity_one_millinewton_below_demand_is_rejected",
+      "expected_disposition": "rejected",
+      "required_diagnostic_codes": [
+        "CRANE_CHART_CAPACITY_EXCEEDED"
+      ],
+      "assertion": "A one-mN shortfall below conservative demand is rejected.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-RIG-007",
+      "mode": "evaluation",
+      "test_name": "rigging_wll_equal_to_conservative_tension_is_accepted_for_human_review",
+      "expected_disposition": "ready_for_human_review",
+      "required_diagnostic_codes": [],
+      "assertion": "Exact equality at the supplied axial WLL does not trigger an exceedance.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-RIG-008",
+      "mode": "evaluation",
+      "test_name": "rigging_wll_one_millinewton_below_conservative_tension_is_rejected",
+      "expected_disposition": "rejected",
+      "required_diagnostic_codes": [
+        "RIGGING_WLL_EXCEEDED"
+      ],
+      "assertion": "A one-mN shortfall below conservative leg tension is rejected.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-META-005",
+      "mode": "metamorphic",
+      "test_name": "duplicate_leg_id_permutations_preserve_canonical_input_and_result_bytes",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Input and report canonical bytes remain stable when invalid duplicate rigging leg identities with different metadata are permuted.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-ORACLE-003",
+      "mode": "arithmetic_oracle",
+      "test_name": "end_to_end_load_and_leg_tension_match_independent_rational_oracle",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Across 700 bounded combinations of mass, dynamic factor, per-leg upper share and lower sling-angle sine, the complete verifier outputs match separately calculated rational ceiling bounds.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-RIG-009",
+      "mode": "evaluation",
+      "test_name": "load_share_and_sling_angle_require_exact_rigging_assembly_evidence",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_SUBJECT_MISMATCH"
+      ],
+      "assertion": "Per-leg load-share and sling-angle values must bind to the exact rigging assembly ID and revision.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-RIG-010",
+      "mode": "evaluation",
+      "test_name": "lifting_point_must_be_identified_and_bound_to_block_revision",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "LIFTING_POINT_ID_EMPTY",
+        "EVIDENCE_SUBJECT_MISMATCH"
+      ],
+      "assertion": "Each rigging leg must identify its lifting point and bind lifting-point evidence to the exact block revision.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-REC-001",
+      "mode": "metamorphic",
+      "test_name": "preflight_receipt_reuses_only_exact_input_digest_inside_operation_window",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Receipt reuse requires the same canonical input digest, an issuance tick not in the future, and a time strictly before the operation end.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-REC-002",
+      "mode": "metamorphic",
+      "test_name": "referenced_evidence_change_invalidates_receipt_but_unrelated_change_does_not",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "A revocation or digest replacement for a referenced source invalidates the receipt; an unrelated source event does not.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-REC-003",
+      "mode": "metamorphic",
+      "test_name": "configuration_revision_and_operating_clock_changes_invalidate_receipt",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "A crane/rigging subject revision, operating-window change or timebase change invalidates the exact receipt.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-REC-004",
+      "mode": "metamorphic",
+      "test_name": "receipt_constructor_rejects_invalid_hashes_and_mismatched_report",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Receipt construction rejects malformed caller digests and a report not reproduced from the supplied plan.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-REC-005",
+      "mode": "metamorphic",
+      "test_name": "receipt_canonical_json_contains_sorted_evidence_and_subject_dependencies",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Receipt bytes include canonical sorted source-record and versioned-subject dependency lists.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-META-006",
+      "mode": "metamorphic",
+      "test_name": "no_op_dependency_events_do_not_invalidate_receipts",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Evidence-state, evidence-digest, subject-revision, operation-window and clock-domain events that repeat the exact current dependency value do not invalidate the preflight receipt.",
+      "synthetic_only": true
+    }
+  ]
+}

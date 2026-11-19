@@ -55,8 +55,7 @@
           },
           "working_load_limit_mn": {
             "type": "integer",
-            "minimum": 1,
-            "maximum": 18446744073709552000
+            "minimum": 1
           },
           "within_working_load_limit": {
             "type": [
