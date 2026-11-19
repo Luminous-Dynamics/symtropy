@@ -17,14 +17,16 @@
       "configuration_revision": "r3",
       "component_refs": [
         "component-hinge-synth-01"
-      ]
+      ],
+      "initial_state": "ready_for_dispatch"
     },
     {
       "asset_ref": "haps-02",
       "lift_class": "buoyant_airship",
       "configuration_ref": "cfg-haps-02-r1",
       "configuration_revision": "r1",
-      "component_refs": []
+      "component_refs": [],
+      "initial_state": "in_service"
     }
   ],
   "events": [
