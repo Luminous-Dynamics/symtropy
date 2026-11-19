@@ -144,7 +144,21 @@ pub struct ActuatorAssessment {
     pub thermal_margin_c: Option<f64>,
     pub capability_disposition: UnitCapabilityDisposition,
     pub torque_evidence_class: EvidenceClass,
+    pub torque_source_reference: Option<String>,
+    pub torque_method: Option<String>,
+    pub torque_calibration_digest: Option<String>,
+    pub capability_evidence_class: EvidenceClass,
+    pub capability_source_reference: Option<String>,
+    pub capability_method: Option<String>,
+    pub capability_digest: Option<String>,
+    pub current_evidence_class: EvidenceClass,
+    pub current_source_reference: Option<String>,
+    pub current_method: Option<String>,
+    pub current_calibration_digest: Option<String>,
     pub thermal_evidence_class: EvidenceClass,
+    pub thermal_source_reference: Option<String>,
+    pub thermal_method: Option<String>,
+    pub thermal_calibration_digest: Option<String>,
     pub reasons: Vec<String>,
 }
 
@@ -159,6 +173,7 @@ pub struct JointEvaluation {
     pub aggregate_unit_torque_nm: Option<Interval>,
     pub aggregate_current_magnitude_a: Option<Interval>,
     pub independently_measured_joint_torque_nm: Option<Interval>,
+    pub joint_torque_cross_check_evidence: Option<JointTorqueCrossCheck>,
     /// Aggregate unit torque interval minus independent joint torque interval.
     pub torque_sum_residual_nm: Option<Interval>,
     pub torque_sum_consistency: TorqueSumConsistency,
@@ -456,7 +471,21 @@ fn assess_unit(
         thermal_margin_c: thermal_margin,
         capability_disposition: unit_disposition,
         torque_evidence_class: unit.torque_evidence_class,
+        torque_source_reference: unit.torque_source_reference.clone(),
+        torque_method: unit.torque_method.clone(),
+        torque_calibration_digest: unit.torque_calibration_digest.clone(),
+        capability_evidence_class: unit.capability_evidence_class,
+        capability_source_reference: unit.capability_source_reference.clone(),
+        capability_method: unit.capability_method.clone(),
+        capability_digest: unit.capability_digest.clone(),
+        current_evidence_class: unit.current_evidence_class,
+        current_source_reference: unit.current_source_reference.clone(),
+        current_method: unit.current_method.clone(),
+        current_calibration_digest: unit.current_calibration_digest.clone(),
         thermal_evidence_class: unit.thermal_evidence_class,
+        thermal_source_reference: unit.thermal_source_reference.clone(),
+        thermal_method: unit.thermal_method.clone(),
+        thermal_calibration_digest: unit.thermal_calibration_digest.clone(),
         reasons,
     }
 }
@@ -555,6 +584,7 @@ pub fn evaluate_joint(input: &JointEvaluationInput) -> Result<JointEvaluation, S
         aggregate_unit_torque_nm: aggregate,
         aggregate_current_magnitude_a: aggregate_current,
         independently_measured_joint_torque_nm: joint_measured,
+        joint_torque_cross_check_evidence: input.joint_torque_cross_check.clone(),
         torque_sum_residual_nm: residual,
         torque_sum_consistency: consistency,
         hottest_unit_id,
@@ -853,7 +883,26 @@ mod tests {
     }
 
     #[test]
-    fn sharing_017_unknown_capability_provenance_cannot_be_feasible() {
+    fn sharing_017_unit_evidence_receipts_survive_evaluation() {
+        let mut a = unit("A", interval(4.0, 5.0), interval(40.0, 42.0));
+        a.current_magnitude_a = Some(interval(4.0, 5.0));
+        a.current_evidence_class = EvidenceClass::IndependentPhysical;
+        a.current_source_reference = Some("https://example.invalid/current/A".to_owned());
+        a.current_method = Some("fixture current method".to_owned());
+        a.current_calibration_digest = Some("current-cal-A".to_owned());
+        let report = evaluate_joint(&input(vec![
+            a,
+            unit("B", interval(5.0, 6.0), interval(41.0, 43.0)),
+        ])).unwrap();
+        let assessment = &report.unit_assessments[0];
+        assert_eq!(assessment.torque_source_reference.as_deref(), Some("https://example.invalid/torque/A"));
+        assert_eq!(assessment.capability_digest.as_deref(), Some("capability-A-v1"));
+        assert_eq!(assessment.current_calibration_digest.as_deref(), Some("current-cal-A"));
+        assert_eq!(assessment.thermal_calibration_digest.as_deref(), Some("cal-temperature-A"));
+    }
+
+    #[test]
+    fn sharing_020_unknown_capability_provenance_cannot_be_feasible() {
         let mut a = unit("A", interval(4.0, 5.0), interval(40.0, 42.0));
         a.capability_evidence_class = EvidenceClass::Unknown;
         a.capability_source_reference = None;
@@ -867,7 +916,7 @@ mod tests {
     }
 
     #[test]
-    fn sharing_018_duplicate_ids_and_invalid_capability_reject() {
+    fn sharing_020_duplicate_ids_and_invalid_capability_reject() {
         let a = unit("same", interval(4.0, 5.0), interval(40.0, 42.0));
         let b = unit("same", interval(5.0, 6.0), interval(41.0, 43.0));
         assert!(evaluate_joint(&input(vec![a, b])).is_err());
@@ -881,7 +930,7 @@ mod tests {
     }
 
     #[test]
-    fn sharing_019_aggregate_temperature_is_not_used_as_unit_temperature() {
+    fn sharing_020_aggregate_temperature_is_not_used_as_unit_temperature() {
         let report = evaluate_joint(&input(vec![
             unit("A", interval(4.0, 5.0), interval(30.0, 32.0)),
             unit("B", interval(5.0, 6.0), interval(60.0, 65.0)),
