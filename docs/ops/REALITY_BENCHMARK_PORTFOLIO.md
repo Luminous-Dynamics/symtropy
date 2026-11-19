@@ -40,6 +40,29 @@ Do not create a parallel engine, validator, reference runner, scenario identity 
 
 This document owns only the cross-domain index, comparison rules and recommended benchmark families. Domain issues own domain-specific equations, datasets, runners and acceptance criteria.
 
+## 2A. Existing executable foundations and integration posture
+
+The platform already has implementation slices for the three hardest prerequisites. Reuse and integrate these; do not author a second policy, semantic comparator or throughput evaluator.
+
+| Foundation | Existing implementation | What it owns | Snapshot status (19 Nov 2026) |
+|---|---|---|---|
+| Semantic equivalence | [PR #4369](https://github.com/Luminous-Dynamics/symtropy/pull/4369), [#4366](https://github.com/Luminous-Dynamics/symtropy/issues/4366) | Pairwise mapping of contact/friction laws, integrator/damping, inertia, constraints, CCD, actuation and observables; Unknown/NotProvided/NonEquivalent are excluded from matched scores | Open and unmerged; dedicated validator workflow passed at its recorded head, but branch was 93 commits behind current main in this snapshot |
+| Model admission and escalation | [PR #4492](https://github.com/Luminous-Dynamics/symtropy/pull/4492), [#4487](https://github.com/Luminous-Dynamics/symtropy/issues/4487) | Risk/evidence floors, semantic and validity-envelope gates, decision-margin analysis, lowest-cost admissible model, escalation and abstention | Open and unmerged; generic CI passed but dedicated workflow failed at formatting on its recorded head; branch was 92 commits behind main |
+| Quality-qualified throughput | [PR #4564](https://github.com/Luminous-Dynamics/symtropy/pull/4564), [#4559](https://github.com/Luminous-Dynamics/symtropy/issues/4559) | One explicit outcome per requested case, full-denominator preservation, quality-qualified simulated ticks/s, failure/abstention visibility and Pareto reporting | Open and unmerged; generic CI passed but dedicated workflow failed at formatting on its recorded head; branch was 92 commits behind main |
+| FMI clock/step trace contract | [PR #6198](https://github.com/Luminous-Dynamics/symtropy/pull/6198), [#6156](https://github.com/Luminous-Dynamics/symtropy/issues/6156) | Exact clock mapping, step return semantics, bounded discard/retry and common commit barriers | New narrow profile; current main base, standalone workflow queued at its latest recorded head |
+
+This snapshot distinguishes **implementation exists** from **implementation is merged, current, and qualified**. A green generic workspace CI does not erase a failing dedicated workflow. An open PR that is tens of commits behind main is not an integrated foundation, even if the GitHub mergeability field says true.
+
+### Required integration order
+
+1. Bring [#4369](https://github.com/Luminous-Dynamics/symtropy/pull/4369) forward to current main without force-pushing; preserve the semantic-equivalence fail-closed contract and re-run its dedicated validator.
+2. Bring [#4492](https://github.com/Luminous-Dynamics/symtropy/pull/4492) forward; fix its dedicated formatting failure, then re-qualify the candidate passport/evidence-floor and decision-margin behavior against current owners.
+3. Bring [#4564](https://github.com/Luminous-Dynamics/symtropy/pull/4564) forward; fix its dedicated formatting failure and validate it consumes the current #4369 and #4492 receipt shapes without duplicating scenario IDs or qualification corpus.
+4. Integrate the FMI trace verifier (#6198) as an additional time/step qualification input to the existing system-level benchmark. Keep carrier/source allocation in PR #6154 and the energy/property physics in their specialist owners.
+5. Run the combined held-out benchmark only after all input receipts are current and semantic equivalence is admitted. Never infer end-to-end validity from separate component passes.
+
+Do not collapse these components into one weighted score. A case with a semantic mismatch or no qualified model must remain excluded from the admitted numerator and visible in the requested-case denominator. A faster run that covers fewer valid cases is not an improvement.
+
 ## 3. Benchmark families
 
 | Family | First reference cases | Candidate comparison paths | Core observables |
