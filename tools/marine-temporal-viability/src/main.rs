@@ -301,8 +301,8 @@ fn validate_path(
     policy_id: &str,
     member_digests: &BTreeMap<String, String>,
     floors: &BTreeMap<String, Floor>,
-    mission_start: DateTime<FixedOffset>,
-    mission_end: DateTime<FixedOffset>,
+    mission_start: &DateTime<FixedOffset>,
+    mission_end: &DateTime<FixedOffset>,
     max_gap_hours: f64,
     record_status: &str,
     expected_time_grid: &mut Option<Vec<String>>,
@@ -361,7 +361,7 @@ fn validate_path(
         if (event_is_positive && delta_value <= 0.0) || (event_is_negative && delta_value >= 0.0) {
             errors.push(format!("{context} resource event '{event_id}' has a delta sign inconsistent with its event type"));
         }
-        if time <= mission_start || time > mission_end {
+        if time <= mission_start.clone() || time > mission_end.clone() {
             errors.push(format!("{context} resource event '{event_id}' lies outside the mission interval"));
         } else {
             parsed_events.push((time, metric, delta_value, unit));
@@ -393,25 +393,25 @@ fn validate_path(
             continue;
         }
         let time = time.unwrap();
-        point_times.push(time);
+        point_times.push(time.clone());
         point_time_strings.push(string_at(point, "at").unwrap_or("").to_owned());
-        if index == 0 && time != mission_start {
+        if index == 0 && time != mission_start.clone() {
             errors.push(format!("{point_context} does not start at mission_window.start"));
         }
-        if index + 1 == timepoints.len() && time != mission_end {
+        if index + 1 == timepoints.len() && time != mission_end.clone() {
             errors.push(format!("{point_context} does not end at mission_window.end"));
         }
         if let Some(previous) = point_times.get(index.wrapping_sub(1)) {
             if time <= *previous {
                 errors.push(format!("{point_context} timestamp is not strictly increasing"));
             }
-            let gap = time.signed_duration_since(*previous).num_milliseconds() as f64 / 3_600_000.0;
+            let gap = time.signed_duration_since(previous.clone()).num_milliseconds() as f64 / 3_600_000.0;
             if gap > max_gap_hours {
                 errors.push(format!("{point_context} sample gap {gap:.3}h exceeds maximum {max_gap_hours:.3}h"));
             }
         }
         let elapsed = number_at(point, "elapsed_hours");
-        let expected_elapsed = time.signed_duration_since(mission_start).num_milliseconds() as f64 / 3_600_000.0;
+        let expected_elapsed = time.signed_duration_since(mission_start.clone()).num_milliseconds() as f64 / 3_600_000.0;
         if elapsed.is_none_or(|value| (value - expected_elapsed).abs() > 1e-6) {
             errors.push(format!("{point_context} elapsed_hours disagrees with UTC timestamp"));
         }
@@ -491,8 +491,8 @@ fn validate_path(
             let event_delta = parsed_events.iter()
                 .filter(|(event_time, metric, _, _)| {
                     metric.as_str() == inventory_metric
-                        && *event_time > point_times[index]
-                        && *event_time <= point_times[index + 1]
+                        && event_time.timestamp_millis() > point_times[index].timestamp_millis()
+                        && event_time.timestamp_millis() <= point_times[index + 1].timestamp_millis()
                 })
                 .map(|(_, _, value, _)| value)
                 .sum::<f64>();
@@ -621,7 +621,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                 }
                 let path_viable = validate_path(
                     path, &policy_id, &member_digests, &floors,
-                    mission_start, mission_end, max_gap_hours, status,
+                    &mission_start, &mission_end, max_gap_hours, status,
                     &mut mission_time_grid, &mut errors, &mut blockers,
                 );
                 policy_viable &= path_viable;
