@@ -2624,6 +2624,16 @@
           "path_result_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
           "events": [
             {
+              "event_id": "integrated-mission-candidate-member-01-freshwater-use",
+              "event_time": "2025-03-01T05:00:00Z",
+              "event_type": "freshwater_consumption",
+              "resource_metric": "freshwater_reserve_days",
+              "delta": -3,
+              "unit": "day",
+              "evidence_ref": "SYNTHETIC-WATER-CONSUMPTION",
+              "evidence_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+            },
+            {
               "event_id": "integrated-mission-candidate-member-01-freshwater-restock",
               "event_time": "2025-03-01T08:00:00Z",
               "event_type": "freshwater_replenishment",
