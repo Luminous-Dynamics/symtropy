@@ -1,0 +1,99 @@
+{
+  "schema": "luminous.port_nexus.compute_cooling_desalination_heat_interface",
+  "schema_version": "0.1.0",
+  "fixture_id": "port-nexus-water-heat-0d-synthetic-v0-1",
+  "evidence_class": "synthetic_known_answer_fixture",
+  "snapshot_date": "2026-11-19",
+  "claim_ceiling": "0D heat-interface accounting only. Does not establish RO SEC improvement, qualified water, equipment performance, commercial benefit or environmental permission.",
+  "formulas": {
+    "useful_feedwater_heat_kw": "mass_flow_kg_s * cp_kj_kg_k * (outlet_c - inlet_c)",
+    "recovery_source_heat_kw": "useful_feedwater_heat_kw / recovery_efficiency",
+    "recovery_loss_kw": "recovery_source_heat_kw - useful_feedwater_heat_kw",
+    "residual_it_heat_kw": "it_heat_generation_kw - recovery_source_heat_kw",
+    "closure_kw": "useful_feedwater_heat_kw + recovery_loss_kw + residual_it_heat_kw"
+  },
+  "valid_case": {
+    "case_id": "direct-ro-feed-preheat",
+    "assumptions": {
+      "it_heat_generation_kw": 10000,
+      "source_loop_temperature_c": 50,
+      "feedwater_mass_flow_kg_s": 300,
+      "water_specific_heat_kj_kg_k": 4.18,
+      "feedwater_inlet_temperature_c": 20,
+      "feedwater_target_temperature_c": 25,
+      "recovery_efficiency": 0.8,
+      "feedwater_quality_evidence": "synthetic_only",
+      "ro_temperature_performance_model": "not_supplied",
+      "ro_sec_before_kwh_m3": null,
+      "ro_sec_after_kwh_m3": null,
+      "qualified_product_water_m3": null
+    },
+    "expected": {
+      "useful_feedwater_heat_kw": 6270,
+      "recovery_source_heat_kw": 7837.5,
+      "recovery_transfer_loss_kw": 1567.5,
+      "residual_it_heat_for_cooling_kw": 2162.5,
+      "total_heat_partition_kw": 10000,
+      "heat_balance_residual_kw": 0,
+      "ro_sec_change": null,
+      "qualified_water_credit": false,
+      "claim": "Synthetic feedwater preheat heat-transfer balance only."
+    }
+  },
+  "hostile_cases": [
+    {
+      "case_id": "no-time-matched-sink",
+      "mutation": "Set available RO feedwater demand or accepted heat-use window to zero.",
+      "expected": "Recovered useful-service credit is zero; heat follows the declared cooling/rejection path."
+    },
+    {
+      "case_id": "source-heat-overdraw",
+      "mutation": "Set recovery source heat below required source heat for the declared useful feedwater duty and exchanger efficiency.",
+      "expected": "Reject by heat-interface energy balance."
+    },
+    {
+      "case_id": "heat-double-count",
+      "mutation": "Count the same source heat as both useful RO feed preheat and seawater rejection.",
+      "expected": "Reject by thermal boundary closure."
+    },
+    {
+      "case_id": "unknown-feed-quality",
+      "mutation": "Remove current feedwater quality evidence.",
+      "expected": "Physical heat balance may remain calculable but product-water service credit remains unavailable/incomplete."
+    },
+    {
+      "case_id": "ro-model-out-of-domain",
+      "mutation": "Attempt to apply a temperature-dependent RO SEC curve outside its admitted salinity/temperature/pressure envelope.",
+      "expected": "RO process improvement is not evaluable; no extrapolated saving."
+    },
+    {
+      "case_id": "heat-pump-parasitic-omitted",
+      "mutation": "Compare upgraded heat output while omitting heat-pump electricity and source/sink pumping.",
+      "expected": "Reject economic/energy comparison as incomplete."
+    },
+    {
+      "case_id": "stale-feed-demand",
+      "mutation": "Use stale RO flow/demand telemetry to allocate cooling heat.",
+      "expected": "Evidence incomplete; do not treat heat as delivered service."
+    }
+  ],
+  "comparison_architectures": [
+    "no_heat_reuse_independent_swro",
+    "direct_feedwater_preheat",
+    "heat_pump_upgraded_process_heat",
+    "thermal_storage_decoupled_heat",
+    "orc_power_recovery",
+    "three_mode_seawater_cooling",
+    "dual_purpose_seawater_evaporation_research",
+    "hybrid_heat_cascade"
+  ],
+  "prohibited_inferences": [
+    "Do not attribute the cited 86.5% total annualized cost result solely to waste heat; the study reports 17% waste-heat synergy in its case.",
+    "Do not assume direct feedwater preheat reduces RO SEC without a validated temperature/salinity/pressure process model.",
+    "Do not count waste heat as free or saleable without a real time-matched sink and all parasitic electrical/thermal burdens.",
+    "Do not award potable-water credit without independent quality and intended-use evidence.",
+    "Do not double count heat as both recovered service and seawater discharge.",
+    "Do not transfer the dual-purpose seawater evaporation paper's modeled freshwater rates as guaranteed commercial output.",
+    "Do not infer local water demand or desalination need from national water-stress context without site demand evidence."
+  ]
+}
