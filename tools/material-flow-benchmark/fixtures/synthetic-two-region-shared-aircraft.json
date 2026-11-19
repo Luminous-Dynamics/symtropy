@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "scenario_set_id": "two-region-shared-aircraft-v1",
+  "period_count": 3,
+  "initial_aircraft_region_id": "urban",
+  "maximum_aircraft_energy_units": 20,
+  "initial_aircraft_energy_units": 16,
+  "protected_energy_reserve_units": 4,
+  "energy_units_per_aerial_delivery": 2,
+  "recharge_energy_units_per_idle_period": 8,
+  "aircraft_idle_cost_per_period": 0,
+  "regions": [
+    {
+      "region_id": "urban",
+      "road_capacity_units": 2,
+      "aerial_service_capacity_units": 3,
+      "road_cost_per_unit": 5,
+      "aerial_cost_per_unit": 1,
+      "unserved_penalty_per_unit": 100
+    },
+    {
+      "region_id": "rural",
+      "road_capacity_units": 1,
+      "aerial_service_capacity_units": 4,
+      "road_cost_per_unit": 10,
+      "aerial_cost_per_unit": 2,
+      "unserved_penalty_per_unit": 120
+    }
+  ],
+  "reposition_links": [
+    {
+      "from_region_id": "urban",
+      "to_region_id": "rural",
+      "travel_periods": 1,
+      "energy_units": 4,
+      "cost_units": 3,
+      "evidence_status": "fresh_in_domain"
+    },
+    {
+      "from_region_id": "rural",
+      "to_region_id": "urban",
+      "travel_periods": 1,
+      "energy_units": 4,
+      "cost_units": 3,
+      "evidence_status": "fresh_in_domain"
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "normal",
+      "probability_bps": 6000,
+      "periods": [
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 4,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 2,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            }
+          ]
+        },
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 4,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 6,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            }
+          ]
+        },
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 4,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 6,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "rural-weather-block",
+      "probability_bps": 4000,
+      "periods": [
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 4,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 2,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            }
+          ]
+        },
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 4,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 6,
+              "weather": "blocked_fresh",
+              "permission": "approved_fresh"
+            }
+          ]
+        },
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 4,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 6,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
