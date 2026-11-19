@@ -925,6 +925,8 @@ mod tests {
 
     const FIXTURE: &str =
         include_str!("../../../docs/research/grid-asset-recovery/data/synthetic-asset-recovery-v0.1.json");
+    const CABLE_FIXTURE: &str =
+        include_str!("../../../docs/research/grid-asset-recovery/data/synthetic-cable-recovery-v0.1.json");
 
     fn fixture() -> Value {
         serde_json::from_str(FIXTURE).expect("fixture JSON")
@@ -938,6 +940,11 @@ mod tests {
     #[test]
     fn accepts_three_event_dag_recovery_fixture() {
         run(FIXTURE).expect("fixture should pass");
+    }
+
+    #[test]
+    fn accepts_subsea_hvdc_cable_recovery_fixture() {
+        run(CABLE_FIXTURE).expect("cable recovery fixture should pass");
     }
 
     #[test]
