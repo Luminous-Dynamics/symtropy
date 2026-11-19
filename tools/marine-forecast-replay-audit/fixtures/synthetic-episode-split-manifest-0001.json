@@ -251,5 +251,6 @@
         }
       ]
     }
-  ]
+  ],
+  "split_strategy": "forward_chaining_joint_grouped"
 }
