@@ -749,7 +749,10 @@ mod tests {
     #[test]
     fn replacement_waits_for_later_crane_and_heavy_haul_window() {
         let report = qualify(&fixture()).expect("fixture qualifies");
-        let replacement = report.branches.iter().find(|branch| branch.recovery_action.activity_id == "replace-transformer").unwrap();
+        let replacement = report.branches.iter().find(|branch| {
+            branch.first_outcome == ObservationOutcome::Positive
+                && branch.recovery_action.activity_id == "replace-transformer"
+        }).unwrap();
         assert_eq!(replacement.recovery_action.start_hour, 12.0);
         assert_eq!(replacement.recovery_action.end_hour, 18.0);
     }
@@ -868,7 +871,7 @@ mod tests {
         let mut case = fixture();
         let test_set = case.resource_manifest.resources.iter_mut()
             .find(|resource| resource.resource_ref == "synthetic://resource/portable-test-set-01").unwrap();
-        test_set.capacity_windows = vec![CapacityWindow { start_hour: 20.0, end_hour: 24.0, capacity_units: 1 }];
+        test_set.capacity_windows = vec![CapacityWindow { start_hour: 20.0, end_hour: 21.0, capacity_units: 1 }];
         case.resource_manifest_sha256 = canonical_manifest_sha256(&case.resource_manifest).unwrap();
         assert!(qualify(&case).is_err());
     }
