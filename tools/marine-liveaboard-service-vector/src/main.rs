@@ -52,7 +52,10 @@ fn sha256_hex(value: &str) -> String {
 }
 
 fn contract_canonical(value: &Value, errors: &mut Vec<String>) -> Option<String> {
-    let items = value.as_array()?;
+    let Some(items) = value.as_array() else {
+        errors.push("service_floor_contract must be an array".to_owned());
+        return None;
+    };
     let mut rows = Vec::<(String, String)>::new();
     let mut seen = BTreeSet::<String>::new();
     for item in items {
