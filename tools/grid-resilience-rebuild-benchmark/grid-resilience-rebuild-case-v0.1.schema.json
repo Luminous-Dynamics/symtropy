@@ -1,0 +1,453 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:grid-resilience-rebuild:decision-case:0.1.0",
+  "title": "Grid Repair, Upgrade and Resilient Rebuild Decision Case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "caseId",
+    "caseMaturity",
+    "timeOriginUtc",
+    "asOfHour",
+    "asset",
+    "hazardScenarioManifest",
+    "emergencyHorizon",
+    "capitalHorizon",
+    "separationRules",
+    "resourceState",
+    "references",
+    "benchmarkArms"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "caseId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "caseMaturity": {
+      "enum": [
+        "synthetic_fixture",
+        "historical_replay"
+      ]
+    },
+    "timeOriginUtc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "asOfHour": {
+      "type": "number",
+      "minimum": 0
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assetRef",
+        "assetFamily",
+        "jurisdictionRef",
+        "networkModelRef",
+        "conditionEvidenceRef"
+      ],
+      "properties": {
+        "assetRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assetFamily": {
+          "type": "string",
+          "minLength": 1
+        },
+        "jurisdictionRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "networkModelRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "conditionEvidenceRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preEventConfigurationRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "hazardScenarioManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifestRef",
+        "manifestSha256",
+        "scenarioRefs",
+        "probabilityStatus"
+      ],
+      "properties": {
+        "manifestRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manifestSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "scenarioRefs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "probabilityStatus": {
+          "enum": [
+            "not_assigned",
+            "calibrated_source"
+          ]
+        }
+      }
+    },
+    "emergencyHorizon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decisionCutoffHour",
+        "minimumServiceFloorRef",
+        "currentOrAcceptedPlanRef",
+        "candidateOptions"
+      ],
+      "properties": {
+        "decisionCutoffHour": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimumServiceFloorRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "currentOrAcceptedPlanRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidateOptions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "optionId",
+              "optionType",
+              "executionState",
+              "targetAssetRef",
+              "earliestStartHour",
+              "estimatedEffortHours",
+              "firstServiceHourRef",
+              "serviceTrajectoryRef",
+              "requiredEvidenceRefs",
+              "requiredResourceRefs",
+              "authorityRequirementRef",
+              "independentAcceptanceRef"
+            ],
+            "properties": {
+              "optionId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "optionType": {
+                "enum": [
+                  "like_for_like_repair",
+                  "temporary_bypass",
+                  "mobile_supply",
+                  "reconfigure_proposal",
+                  "defer",
+                  "abstain"
+                ]
+              },
+              "executionState": {
+                "const": "candidate_only"
+              },
+              "targetAssetRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "earliestStartHour": {
+                "type": "number",
+                "minimum": 0
+              },
+              "estimatedEffortHours": {
+                "type": "number",
+                "minimum": 0
+              },
+              "firstServiceHourRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "serviceTrajectoryRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "requiredEvidenceRefs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              },
+              "requiredResourceRefs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              },
+              "authorityRequirementRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "independentAcceptanceRef": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "capitalHorizon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lifecycleYears",
+        "priceBaseYear",
+        "currency",
+        "discountConventionRef",
+        "capitalOptions"
+      ],
+      "properties": {
+        "lifecycleYears": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "priceBaseYear": {
+          "type": "integer",
+          "minimum": 2000,
+          "maximum": 2100
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "discountConventionRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capitalOptions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "optionId",
+              "strategyType",
+              "executionState",
+              "targetAssetRef",
+              "dependsOnEmergencyAcceptance",
+              "incrementalCostRef",
+              "hazardScenarioRefs",
+              "lifecycleServiceTrajectoryRef",
+              "engineeringQualificationRef",
+              "rightsReviewRef",
+              "environmentalReviewRef",
+              "supplyChainPortfolioRef",
+              "installationWindowRef",
+              "authorityRequirementRef"
+            ],
+            "properties": {
+              "optionId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "strategyType": {
+                "enum": [
+                  "like_for_like",
+                  "hardening_retrofit",
+                  "replacement",
+                  "redundancy",
+                  "relocation",
+                  "modularization",
+                  "distributed_alternative",
+                  "staged_adaptive"
+                ]
+              },
+              "executionState": {
+                "const": "candidate_only"
+              },
+              "targetAssetRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "dependsOnEmergencyAcceptance": {
+                "const": true
+              },
+              "incrementalCostRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "hazardScenarioRefs": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              },
+              "lifecycleServiceTrajectoryRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "engineeringQualificationRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "rightsReviewRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "environmentalReviewRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "supplyChainPortfolioRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "installationWindowRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "authorityRequirementRef": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "separationRules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "emergencyPlanMustNotWaitForCapitalReview",
+        "capitalExecutionRequiresEmergencyAcceptance",
+        "capitalExecutionRequiresSeparateApproval",
+        "serviceFloorIsHardConstraint"
+      ],
+      "properties": {
+        "emergencyPlanMustNotWaitForCapitalReview": {
+          "const": true
+        },
+        "capitalExecutionRequiresEmergencyAcceptance": {
+          "const": true
+        },
+        "capitalExecutionRequiresSeparateApproval": {
+          "const": true
+        },
+        "serviceFloorIsHardConstraint": {
+          "const": true
+        }
+      }
+    },
+    "resourceState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "portfolioRef",
+        "asOfManifestRef",
+        "asOfManifestSha256"
+      ],
+      "properties": {
+        "portfolioRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asOfManifestRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asOfManifestSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "references": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "executionLedgerRef",
+        "inspectionEvidenceRef",
+        "serviceOutcomeRef",
+        "resourcePortfolioRef",
+        "authorityPolicyRef",
+        "communityRightsFrameworkRef"
+      ],
+      "properties": {
+        "executionLedgerRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inspectionEvidenceRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serviceOutcomeRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resourcePortfolioRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authorityPolicyRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "communityRightsFrameworkRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "benchmarkArms": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "like_for_like_baseline",
+          "emergency_only",
+          "hardening_first",
+          "post_event_retrofit",
+          "replacement_redundancy",
+          "relocation",
+          "staged_adaptive",
+          "robust_interval",
+          "bounded_exact_oracle"
+        ]
+      }
+    }
+  }
+}
