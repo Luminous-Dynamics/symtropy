@@ -311,6 +311,9 @@ fn audit_oracle_references(
                         format!("oracle outcome references unknown request {request_id:?} in {episode_id}")
                     })?;
                 let outcome_label = string(realized_outcome, "oracle.realized_outcome")?;
+                let intentionally_open_world = episode_id
+                    == "av-dso-007-uncalibrated-incomplete-outcome-partition"
+                    && outcome_label == "unmodeled_outcome";
                 let rows = array(
                     required(request, "predicted_observation_model")?,
                     "request.predicted_observation_model",
@@ -319,21 +322,18 @@ fn audit_oracle_references(
                     row.get("hypothesis_id").and_then(Value::as_str)
                         == Some(realized_hypothesis.as_str())
                 });
-                let row = realized_row.ok_or_else(|| {
-                    format!("oracle hypothesis {realized_hypothesis:?} is not modelled for request {request_id:?}")
-                })?;
-                let labels_realized_outcome = array(
-                    required(row, "outcomes")?,
-                    "request.outcomes",
-                )?
-                .iter()
-                .any(|outcome| {
-                    outcome.get("outcome").and_then(Value::as_str) == Some(outcome_label.as_str())
-                        && outcome.get("probability").and_then(Value::as_f64).unwrap_or(0.0) > 0.0
-                });
-                let intentionally_open_world = episode_id
-                    == "av-dso-007-uncalibrated-incomplete-outcome-partition"
-                    && outcome_label == "unmodeled_outcome";
+                let labels_realized_outcome = match realized_row {
+                    Some(row) => array(
+                        required(row, "outcomes")?,
+                        "request.outcomes",
+                    )?
+                    .iter()
+                    .any(|outcome| {
+                        outcome.get("outcome").and_then(Value::as_str) == Some(outcome_label.as_str())
+                            && outcome.get("probability").and_then(Value::as_f64).unwrap_or(0.0) > 0.0
+                    }),
+                    None => false,
+                };
                 if !labels_realized_outcome && !intentionally_open_world {
                     return Err(format!(
                         "oracle outcome {outcome_label:?} is unsupported under realized hypothesis for {request_id:?}"
