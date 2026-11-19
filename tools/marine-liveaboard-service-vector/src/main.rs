@@ -406,10 +406,12 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                 axis_deltas.push(json!({
                     "metric":spec.metric,
                     "unit":spec.unit,
+                    "baseline_unit":base.unit,
+                    "candidate_unit":cand.unit,
+                    "units_match":base.unit == cand.unit && base.unit == spec.unit,
                     "baseline_value":base.value,
                     "candidate_value":cand.value,
                     "candidate_minus_baseline":delta,
-                    "candidate_direction":"candidate_better_if_delta_has_operator_direction",
                     "candidate_better_on_axis":candidate_better
                 }));
             }
