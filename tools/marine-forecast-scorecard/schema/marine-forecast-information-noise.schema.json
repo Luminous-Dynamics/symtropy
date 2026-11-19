@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:marine-forecast-information-noise:0.1.0",
+  "title": "Marine Forecast Information and Noise Field Verification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scorecard_id",
+    "record_status",
+    "claim_ceiling",
+    "dataset",
+    "field_cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "scorecard_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "record_status": {
+      "enum": [
+        "synthetic",
+        "shadow_replay",
+        "measured_campaign",
+        "published_reproduction"
+      ]
+    },
+    "claim_ceiling": {
+      "const": "field_information_noise_diagnostics_only"
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id",
+        "dataset_sha256",
+        "split_manifest_sha256",
+        "split_strategy",
+        "grouping_unit"
+      ],
+      "properties": {
+        "dataset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dataset_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "split_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "split_strategy": {
+          "const": "forward_chaining_joint_grouped"
+        },
+        "grouping_unit": {
+          "const": "joint_voyage_weather_event"
+        }
+      }
+    },
+    "field_cases": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "field_case_id",
+          "pair_id",
+          "variant",
+          "fold",
+          "episode_id",
+          "voyage_id",
+          "weather_event_id",
+          "variable",
+          "lead_hours",
+          "forecast_source_id",
+          "cycle_id",
+          "forecast_artifact_sha256",
+          "forecast_issue_time",
+          "first_available_at",
+          "decision_cutoff",
+          "availability_receipt_ref",
+          "availability_receipt_sha256",
+          "valid_time",
+          "verification_valid_time",
+          "verifying_source_id",
+          "verifying_source_class",
+          "verifying_source_sha256",
+          "grid_id",
+          "weighting_method",
+          "support_sha256",
+          "climatology_sha256",
+          "cells"
+        ],
+        "properties": {
+          "field_case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "pair_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "variant": {
+            "enum": [
+              "raw",
+              "damped"
+            ]
+          },
+          "fold": {
+            "enum": [
+              "development",
+              "validation",
+              "test"
+            ]
+          },
+          "episode_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "voyage_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "weather_event_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "variable": {
+            "enum": [
+              "wind_u_10m",
+              "wind_v_10m",
+              "wind_speed",
+              "significant_wave_height",
+              "mean_sea_level_pressure"
+            ]
+          },
+          "lead_hours": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "forecast_source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cycle_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "forecast_artifact_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "forecast_issue_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "first_available_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decision_cutoff": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "availability_receipt_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "availability_receipt_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "valid_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "verification_valid_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "verifying_source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "verifying_source_class": {
+            "enum": [
+              "in_situ_validation",
+              "realized_reanalysis"
+            ]
+          },
+          "verifying_source_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "grid_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "weighting_method": {
+            "const": "normalized_cell_area"
+          },
+          "support_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "climatology_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "cells": {
+            "type": "array",
+            "minItems": 3,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "cell_id",
+                "weight",
+                "forecast_value",
+                "observed_value",
+                "climatology_value"
+              ],
+              "properties": {
+                "cell_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "weight": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "forecast_value": {
+                  "type": "number"
+                },
+                "observed_value": {
+                  "type": "number"
+                },
+                "climatology_value": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
