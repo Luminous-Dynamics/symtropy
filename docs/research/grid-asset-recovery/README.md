@@ -406,3 +406,18 @@ A credible robust-recovery solver should compare:
 A policy should be evaluated on both **solution quality** and **stability**: how much schedule churn it creates when a supplier estimate or weather forecast changes, how many already-started tasks it invalidates, and whether a small input change causes a large and avoidable resource reassignment.
 
 The scenario engine currently uses deterministic scenario overlays and fixed task durations per scenario. It is not yet a stochastic simulator or a dispatch/operational decision system.
+
+
+### Current fixture replay (direct deterministic calculation)
+
+With the declared task graph, resource calendars and four scenario overlays:
+- BASELINE: **65,680 MWh** weighted unserved-energy proxy.
+- REGIONAL-STORM: **69,770 MWh**.
+- SUPPLIER-SHOCK: **95,680 MWh**.
+- COMPOUND-STORM-SUPPLIER: **102,290 MWh**.
+- Synthetic expected weighted unserved energy: **73,033 MWh**.
+- Discrete weighted p50: **65,680 MWh**.
+- Discrete weighted p95: **95,680 MWh**.
+- Worst case in this scenario set: **102,290 MWh**.
+
+These results were reproduced from the checked-in input JSON using the dependency graph, 14-hour recurring resource windows, explicit capacity-outage intervals and task-duration overlays. They are deterministic calculations on synthetic assumptions—not measured outage energy, predicted customer interruptions or validated field performance. The probability weights are illustrative and dominate expected/tail values; changing them changes the reported expectation and quantiles. The machine-readable report preserves affected resource IDs, cause IDs and correlation-group IDs for each scenario.
