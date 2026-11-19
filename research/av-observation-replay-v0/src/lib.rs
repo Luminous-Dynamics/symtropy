@@ -984,6 +984,16 @@ mod tests {
             chunk.source_sequence = 3;
             chunk.source_start_sample = 100;
             chunk.source_end_sample = 104;
+            chunk.capture_interval = CaptureIntervalV1 {
+                start: BoundedTimeV1 {
+                    lower_ns: 6_250_000,
+                    upper_ns: 6_251_000,
+                },
+                end: BoundedTimeV1 {
+                    lower_ns: 6_500_000,
+                    upper_ns: 6_501_000,
+                },
+            };
         }
         bundle.observations.push(after_gap);
         bundle.transport_events.push(TransportEventV1 {
