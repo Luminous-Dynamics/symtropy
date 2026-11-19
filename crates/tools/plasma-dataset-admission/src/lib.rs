@@ -249,8 +249,9 @@ pub fn audit_manifest(manifest: &SourceManifest) -> Result<AuditReport, String> 
                     findings.push(finding(
                         "upstream_sha256_unavailable",
                         vec![artifact.artifact_id.clone()],
-                        "Local SHA-256 identifies staged bytes but cannot authenticate them against an upstream SHA-256.",
+                        "Local SHA-256 identifies staged bytes but cannot authenticate them against a source-published SHA-256; MD5-only source metadata is not admitted by this version.",
                     ));
+                    blocked = true;
                 }
             }
         }
@@ -357,7 +358,7 @@ mod tests {
             reported_size: Some("3 bytes".to_owned()),
             expected_size_bytes: Some(3),
             remote_md5: None,
-            remote_sha256: None,
+            remote_sha256: Some("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad".to_owned()),
             observed_size_bytes: None,
             observed_sha256: None,
         };
@@ -475,8 +476,11 @@ mod tests {
 
     #[test]
     fn missing_upstream_sha_is_reported_as_local_integrity_only() {
-        let report = audit_manifest(&base_manifest(LicenseDecision::EvaluationOnly)).expect("audit runs");
-        assert_eq!(report.body.disposition, AdmissionDisposition::ReadyForLocalEvaluation);
+        let mut manifest = base_manifest(LicenseDecision::EvaluationOnly);
+        manifest.artifacts[0].remote_sha256 = None;
+        let report = audit_manifest(&manifest).expect("audit runs");
+        assert_eq!(report.body.disposition, AdmissionDisposition::BlockedPendingEvidence);
+        assert!(!report.body.local_evaluation_allowed);
         assert!(report.body.findings.iter().any(|item| item.code == "upstream_sha256_unavailable"));
     }
 
