@@ -1,0 +1,259 @@
+{
+  "record_version": "0.1.0",
+  "record_id": "bidirectional-antagonistic-hand-vs-pact-n1-source-register-v0.1",
+  "purpose": "Source-transcribed comparator record for designing a matched unilateral-versus-bidirectional hand benchmark. It is not a matched experiment or independent reproduction.",
+  "comparators": [
+    {
+      "id": "B1-PACT-2026",
+      "name": "PACT pose-robust tendon-driven four-DoF finger",
+      "architecture": "Four pull-only N+1 flexion/extension tendons plus separate bidirectional MCP abduction/adduction actuator",
+      "evidence_class": "paper_reported_model_and_physical_measurement",
+      "source": {
+        "title": "PACT: Pose-Robust Actuation Co-Design for Tendon-Driven Robotic Hands",
+        "authors": "Kumar et al.",
+        "date": "2026-11-03",
+        "url": "https://arxiv.org/abs/2611.05302"
+      },
+      "reported_metrics": [
+        {
+          "metric": "nominal_minimum_pose_force_region_coverage",
+          "value": 0.88,
+          "unit": "fraction",
+          "type": "paper_reported_model",
+          "boundary": "eight-pose task set; frictionless model"
+        },
+        {
+          "metric": "reported_pose_force_region_coverage_range_max",
+          "value": 1,
+          "unit": "fraction",
+          "type": "paper_reported_model",
+          "boundary": "eight-pose task set; frictionless model"
+        },
+        {
+          "metric": "minimum_isolated_flexion_extension_bandwidth",
+          "value": 5,
+          "unit": "Hz",
+          "type": "paper_reported_model",
+          "boundary": "isolated-joint drivetrain calculation"
+        },
+        {
+          "metric": "maximum_prediction_force_discrepancy",
+          "value": 24.5,
+          "unit": "percent",
+          "type": "paper_reported_model_vs_measurement",
+          "boundary": "prototype discrepancy attributed primarily to unmodelled transmission losses"
+        }
+      ],
+      "physical_validation_boundary": {
+        "force_set_pose_count": 1,
+        "force_set_method": "selected feasible force-set vertices",
+        "independent_fingertip_wrench_sensor": "six-axis sensor",
+        "complete_eight_pose_physical_coverage": "not demonstrated in the cited source",
+        "notes": "Source reports prototype force validation at one pose, not physical validation of the complete eight-pose coverage metric."
+      },
+      "unknowns": [
+        "Matched bidirectional palmar/dorsal task-time benefit",
+        "Common installed-system boundary against B2",
+        "Cross-architecture measured energy and durability under matched mission profiles"
+      ]
+    },
+    {
+      "id": "B2-BATM-2026",
+      "name": "Antagonistic tendon-driven bidirectional dexterous hand",
+      "architecture": "Bidirectional Antagonistic Tendon-routing Mechanism (BATM); antagonistic flexor/extensor paths; symmetric neutral-crossing finger structure",
+      "evidence_class": "preprint_reported_physical_measurements",
+      "source": {
+        "title": "Design and Validation of an Antagonistic Tendon-Driven Dexterous Robotic Hand with Bidirectional Operation",
+        "authors": "Lee et al.",
+        "date": "2026-09-28",
+        "url": "https://arxiv.org/abs/2609.36241"
+      },
+      "system": {
+        "hand_length_mm": 200,
+        "distal_hand_mass_g": 220,
+        "reported_independently_actuated_dofs": 17,
+        "motor_count": 17,
+        "finger_tendon_count": 32,
+        "actuator_module_dimensions_mm": [
+          98.4,
+          93.8,
+          155
+        ],
+        "wrist_range_deg": [
+          -60,
+          60
+        ],
+        "control_sampling_hz": 200,
+        "motor_model": "ROBOTIS XL330-M288-T",
+        "tendon": "8-strand braided Dyneema No.10 TAJC Xcaribur",
+        "tendon_diameter_mm": 0.6,
+        "tendon_reported_tensile_strength_kgf": 42,
+        "finger_springs": "none inside the finger; antagonistic active extension"
+      },
+      "mechanism": {
+        "non_thumb_finger_dofs": 4,
+        "non_thumb_active_dofs": 3,
+        "non_thumb_passively_coupled_dofs": 1,
+        "thumb_active_dofs": 4,
+        "pip_dip_target_coupling_ratio": "3:2",
+        "pip_dip_measured_coupling_ratio": "1:0.69",
+        "antagonistic_pair_length_law": "|ΔX_flex| = |ΔX_ext| = r|θ|",
+        "routing_notes": "Two tendons wind around a rotary joint in opposite directions. Each tendon pulls; agonist/antagonist role changes with direction around the neutral configuration. 32 finger tendons are routed past the wrist rotation axis."
+      },
+      "reported_joint_ranges_deg": {
+        "non_thumb_mcp_flexion_extension": [
+          -90,
+          90
+        ],
+        "pip_flexion_extension": [
+          -90,
+          90
+        ],
+        "dip_flexion_extension": [
+          -60,
+          60
+        ],
+        "mcp_abduction_adduction": [
+          -35,
+          35
+        ],
+        "thumb_cmc_flexion_extension": [
+          -135,
+          135
+        ],
+        "thumb_cmc_abduction_adduction": [
+          -90,
+          90
+        ],
+        "thumb_mcp_flexion_extension": [
+          -90,
+          90
+        ],
+        "thumb_ip_flexion_extension": [
+          -90,
+          90
+        ]
+      },
+      "reported_metrics": [
+        {
+          "metric": "overall_mean_motor_to_joint_transmission_error",
+          "value": 3,
+          "unit": "percent",
+          "type": "preprint_reported"
+        },
+        {
+          "metric": "overall_average_joint_transmission_bandwidth",
+          "value": 13.2,
+          "unit": "Hz",
+          "type": "preprint_reported"
+        },
+        {
+          "metric": "mcp_flexion_extension_bandwidth",
+          "value": 15.2,
+          "unit": "Hz",
+          "type": "preprint_reported",
+          "condition": "averaged across three motion amplitudes"
+        },
+        {
+          "metric": "pip_flexion_extension_bandwidth",
+          "value": 12.3,
+          "unit": "Hz",
+          "type": "preprint_reported",
+          "condition": "averaged across three motion amplitudes"
+        },
+        {
+          "metric": "mcp_abduction_adduction_bandwidth",
+          "value": 12.2,
+          "unit": "Hz",
+          "type": "preprint_reported",
+          "condition": "averaged across three motion amplitudes"
+        },
+        {
+          "metric": "maximum_fingertip_force",
+          "value": 29,
+          "unit": "N",
+          "type": "preprint_reported_physical_measurement",
+          "instrument": "ATI Nano17 six-axis force/torque sensor"
+        },
+        {
+          "metric": "flexion_extension_repeatability_after_prestretch",
+          "value": 0.15,
+          "unit": "mm",
+          "type": "preprint_reported_physical_measurement",
+          "cycles": 100,
+          "comparison_without_prestretch_mm": 0.58
+        },
+        {
+          "metric": "abduction_adduction_repeatability_after_prestretch",
+          "value": 0.02,
+          "unit": "mm",
+          "type": "preprint_reported_physical_measurement",
+          "cycles": 100,
+          "comparison_without_prestretch_mm": 0.19
+        },
+        {
+          "metric": "kapandji_score",
+          "value": 8,
+          "unit": "out_of_10",
+          "type": "preprint_reported_task_result",
+          "side": "palmar_and_dorsal"
+        },
+        {
+          "metric": "grasp_taxonomy_types_completed",
+          "value": 33,
+          "unit": "of_33",
+          "type": "preprint_reported_task_result",
+          "side": "palmar_and_dorsal"
+        },
+        {
+          "metric": "cyclic_actuation_without_observed_failure",
+          "value": 5400,
+          "unit": "cycles",
+          "type": "preprint_reported_physical_observation",
+          "duration_hours": 3
+        }
+      ],
+      "physical_validation_boundary": {
+        "kinematic_encoder": "AS5048A magnetic joint encoders",
+        "force_sensor": "ATI Nano17 six-axis fingertip F/T sensor",
+        "repeatability_method": "digital indicator; 100 cycles; with/without tendon pre-stretching",
+        "impact_evidence": "qualitative hammer-impact demonstration; no quantitative impulse/force-response curve in the cited text",
+        "long_duration_reliability": "5,400 cycles over three hours without observed failure; not a long-duration fleet reliability estimate"
+      },
+      "explicit_source_limitations": [
+        "The authors state that quantitative evaluation of travel-distance and task-time benefits versus a unidirectional baseline is future work.",
+        "The authors identify the current motor gear ratio as a bandwidth/backdrivability limitation and propose lower-ratio QDD motors.",
+        "The authors identify future tendon tension/slack sensing and passive slack compensation as improvements."
+      ],
+      "unknowns": [
+        "Matched task-time reduction versus a unidirectional hand",
+        "Matched wrist/arm travel-distance reduction",
+        "Complete installed mass including remote actuator module, cables and power electronics boundary relative to B1",
+        "Measured electrical energy by task and direction",
+        "Full force-region coverage across all poses and both sides",
+        "Long-duration failure distribution across multiple units",
+        "Quantitative impact impulse and transmitted torque response"
+      ]
+    }
+  ],
+  "comparison_policy": {
+    "directly_comparable_now": [],
+    "must_remain_separate": [
+      "PACT eight-pose model force-region coverage vs BATM maximum fingertip force",
+      "PACT predicted isolated-joint 5 Hz vs BATM measured joint bandwidth",
+      "PACT one-pose selected force-set measurement vs BATM fingertip-force maximum",
+      "PACT finger mass boundary vs BATM distal-hand mass and separate actuator-module dimensions"
+    ],
+    "matched_future_tasks": [
+      "same object, contact geometry, payload, force direction and acceptance condition",
+      "palmar-only versus palmar-and-dorsal access with fixed wrist orientation",
+      "paired task travel distance and elapsed task time, including any wrist/arm reorientation",
+      "force-region coverage and directional margin in both palmar and dorsal workspaces",
+      "transmission bandwidth and error under identical amplitude, load and controller bandwidth",
+      "energy at the battery/DC bus per successful task, including actuator module and cooling",
+      "mass, volume, distal inertia and service boundaries for the complete installed system",
+      "tendon pretension, slack, friction, hysteresis, sensing and lifecycle behavior"
+    ]
+  },
+  "claim_ceiling": "Source extraction only. B1/B2 figures are heterogeneous source-reported results. This file establishes neither a matched comparison nor independent reproduction, and does not qualify hardware or safety."
+}
