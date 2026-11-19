@@ -40,7 +40,7 @@ The `provider_units` module is an adapter contract, not an IF97 implementation:
 - Rejects saline brine, non-condensable-gas mixtures and unknown compositions before any water/steam provider call.
 - Preserves fluid-composition and state-boundary identity.
 
-The first candidate `vle-steam` v0.20.1 uses K and kPa absolute; no third-party property crate is a production dependency in this PR. See [property-provider reconnaissance #6172](https://github.com/Luminous-Dynamics/symtropy/issues/6172) and the machine-readable comparison record in the benchmark documentation PR.
+The provider-specific `VleSteamProviderInput` uses K and kPa absolute for `vle-steam` v0.20.1; `seuif97` requires a distinct MPa/°C adapter. No third-party property crate is a production dependency in this PR. See [property-provider reconnaissance #6172](https://github.com/Luminous-Dynamics/symtropy/issues/6172) and the machine-readable comparison record in the benchmark documentation PR.
 
 ## Superhot wellhead state boundary
 
