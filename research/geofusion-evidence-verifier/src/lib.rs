@@ -1096,11 +1096,12 @@ mod tests {
 
     #[test]
     fn oversized_batch_is_rejected_before_processing() {
+        let null_value = Value::Null;
         let inputs = vec![
             SourceIntervalInput {
                 payload_bytes: PAYLOAD,
-                evidence: &Value::Null,
-                allocation: &Value::Null,
+                evidence: &null_value,
+                allocation: &null_value,
             };
             257
         ];
