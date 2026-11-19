@@ -5,12 +5,12 @@
     {
       "episode_id": "elig-001-reordered-fresh",
       "now": {
-        "tick": 300,
         "clock_domain": {
           "domain_id": "camera-clock",
           "generation": 0,
           "time_scale_id": "monotonic-us"
-        }
+        },
+        "timestamp_us": 300
       },
       "freshness_policy": {
         "policy_id": "camera-max-age-v1",
@@ -52,12 +52,12 @@
     {
       "episode_id": "elig-002-in-order-stale",
       "now": {
-        "tick": 900,
         "clock_domain": {
           "domain_id": "camera-clock",
           "generation": 0,
           "time_scale_id": "monotonic-us"
-        }
+        },
+        "timestamp_us": 900
       },
       "freshness_policy": {
         "policy_id": "camera-max-age-v1",
@@ -99,12 +99,12 @@
     {
       "episode_id": "elig-003-duplicate-no-refresh",
       "now": {
-        "tick": 900,
         "clock_domain": {
           "domain_id": "mic-clock",
           "generation": 0,
           "time_scale_id": "monotonic-us"
-        }
+        },
+        "timestamp_us": 900
       },
       "freshness_policy": {
         "policy_id": "microphone-max-age-v1",
@@ -150,12 +150,12 @@
     {
       "episode_id": "elig-004-stale-replay",
       "now": {
-        "tick": 1200,
         "clock_domain": {
           "domain_id": "mic-clock",
           "generation": 0,
           "time_scale_id": "monotonic-us"
-        }
+        },
+        "timestamp_us": 1200
       },
       "freshness_policy": {
         "policy_id": "microphone-max-age-v1",
@@ -201,12 +201,12 @@
     {
       "episode_id": "elig-005-late-live-historical-valid",
       "now": {
-        "tick": 300,
         "clock_domain": {
           "domain_id": "camera-clock",
           "generation": 0,
           "time_scale_id": "monotonic-us"
-        }
+        },
+        "timestamp_us": 300
       },
       "freshness_policy": {
         "policy_id": "camera-max-age-v1",
@@ -235,12 +235,12 @@
     {
       "episode_id": "elig-006-clock-reset-incomparable",
       "now": {
-        "tick": 900,
         "clock_domain": {
           "domain_id": "camera-clock",
           "generation": 1,
           "time_scale_id": "monotonic-us"
-        }
+        },
+        "timestamp_us": 900
       },
       "freshness_policy": {
         "policy_id": "camera-max-age-v1",
@@ -283,12 +283,12 @@
     {
       "episode_id": "elig-007-dropped-audio-gap",
       "now": {
-        "tick": 500,
         "clock_domain": {
           "domain_id": "mic-clock",
           "generation": 0,
           "time_scale_id": "monotonic-us"
-        }
+        },
+        "timestamp_us": 500
       },
       "freshness_policy": {
         "policy_id": "microphone-max-age-v1",
@@ -334,12 +334,12 @@
     {
       "episode_id": "elig-008-superseded-request",
       "now": {
-        "tick": 800,
         "clock_domain": {
           "domain_id": "camera-clock",
           "generation": 0,
           "time_scale_id": "monotonic-us"
-        }
+        },
+        "timestamp_us": 800
       },
       "freshness_policy": {
         "policy_id": "camera-max-age-v1",
