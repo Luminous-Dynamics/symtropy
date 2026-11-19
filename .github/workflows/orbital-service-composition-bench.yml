@@ -23,9 +23,14 @@ concurrency:
 jobs:
   composition-contract:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
+    env:
+      EARTH_ORBIT_COMMIT: "4cd244805ecf3de344583b79f042afbf3312d40f"
+      CAPTURE_COMMIT: "df2d878519acdbed6df3b15c1ff637ad3bc295c5"
+      FLUID_COMMIT: "a8e611dc3b86370d1f684f0da7e97507f7333999"
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout composition PR head
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
@@ -36,19 +41,16 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt, clippy
 
-      - name: Resolve standalone dependency graph
-        run: cargo generate-lockfile --manifest-path tools/orbital-service-composition-bench/Cargo.toml
-
-      - name: Check formatting
+      - name: Check composition formatting
         run: cargo fmt --manifest-path tools/orbital-service-composition-bench/Cargo.toml -- --check
 
-      - name: Run composition contract tests
+      - name: Run composition and receipt-bundle unit tests
         run: cargo test --locked --manifest-path tools/orbital-service-composition-bench/Cargo.toml --all-targets
 
-      - name: Run Clippy with warnings denied
+      - name: Run composition Clippy with warnings denied
         run: cargo clippy --locked --manifest-path tools/orbital-service-composition-bench/Cargo.toml --all-targets -- -D warnings
 
-      - name: Generate exact-input receipt
+      - name: Replay frozen synthetic event corpus
         shell: bash
         run: |
           set -euo pipefail
@@ -59,7 +61,7 @@ jobs:
             --source-commit "$source_commit" > orbital-service-composition-receipt.json
           jq -e '
             .result == "pass"
-            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and .source_commit == env.GITHUB_SHA
             and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
             and .report.result == "pass"
             and .report.evidence_class == "synthetic"
@@ -71,9 +73,125 @@ jobs:
             and .report.summary.operational_authority_grants == 0
           ' orbital-service-composition-receipt.json
 
-      - name: Retain exact-input receipt
+      - name: Checkout exact Earth-to-orbit source commit
+        uses: actions/checkout@v4
+        with:
+          repository: Luminous-Dynamics/symtropy
+          ref: ${{ env.EARTH_ORBIT_COMMIT }}
+          path: upstream/earth-orbit
+          persist-credentials: false
+          sparse-checkout: |
+            Cargo.lock
+            crates/domains/symtropy-earth-orbit-chain
+          sparse-checkout-cone-mode: true
+
+      - name: Checkout exact capture source commit
+        uses: actions/checkout@v4
+        with:
+          repository: Luminous-Dynamics/symthaea
+          ref: ${{ env.CAPTURE_COMMIT }}
+          path: upstream/capture
+          persist-credentials: false
+          sparse-checkout: |
+            tools/orbital-capture-handoff-bench
+          sparse-checkout-cone-mode: true
+
+      - name: Checkout exact fluid source commit
+        uses: actions/checkout@v4
+        with:
+          repository: Luminous-Dynamics/symtropy
+          ref: ${{ env.FLUID_COMMIT }}
+          path: upstream/fluid
+          persist-credentials: false
+          sparse-checkout: |
+            tools/orbital-fluid-transfer-bench
+          sparse-checkout-cone-mode: true
+
+      - name: Build isolated Earth-to-orbit package checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C upstream/earth-orbit rev-parse HEAD)" = "$EARTH_ORBIT_COMMIT"
+          mkdir -p .integration/earth-orbit
+          cp -R upstream/earth-orbit/crates/domains/symtropy-earth-orbit-chain .integration/earth-orbit/
+          cp upstream/earth-orbit/Cargo.lock .integration/earth-orbit/Cargo.lock
+          printf '\n[workspace]\n' >> .integration/earth-orbit/symtropy-earth-orbit-chain/Cargo.toml
+          cargo fmt --manifest-path .integration/earth-orbit/symtropy-earth-orbit-chain/Cargo.toml -- --check
+          cargo test --locked --manifest-path .integration/earth-orbit/symtropy-earth-orbit-chain/Cargo.toml --all-targets
+          cargo clippy --locked --manifest-path .integration/earth-orbit/symtropy-earth-orbit-chain/Cargo.toml --all-targets -- -D warnings
+          cargo run --locked --quiet \
+            --manifest-path .integration/earth-orbit/symtropy-earth-orbit-chain/Cargo.toml \
+            --bin earth-orbit-chain-reference -- \
+            .integration/earth-orbit/symtropy-earth-orbit-chain/fixtures/v1/nominal.json \
+            --source-commit "$EARTH_ORBIT_COMMIT" > delivery-receipt.json
+
+      - name: Build capture and generate capture receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C upstream/capture rev-parse HEAD)" = "$CAPTURE_COMMIT"
+          cargo generate-lockfile --manifest-path upstream/capture/tools/orbital-capture-handoff-bench/Cargo.toml
+          cargo fmt --manifest-path upstream/capture/tools/orbital-capture-handoff-bench/Cargo.toml -- --check
+          cargo test --locked --manifest-path upstream/capture/tools/orbital-capture-handoff-bench/Cargo.toml --all-targets
+          cargo clippy --locked --manifest-path upstream/capture/tools/orbital-capture-handoff-bench/Cargo.toml --all-targets -- -D warnings
+          cargo run --locked --quiet \
+            --manifest-path upstream/capture/tools/orbital-capture-handoff-bench/Cargo.toml -- \
+            upstream/capture/tools/orbital-capture-handoff-bench/fixtures/v0.1/cases.json \
+            --source-commit "$CAPTURE_COMMIT" > capture-receipt.json
+
+      - name: Build fluid transfer and generate fluid receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C upstream/fluid rev-parse HEAD)" = "$FLUID_COMMIT"
+          cargo generate-lockfile --manifest-path upstream/fluid/tools/orbital-fluid-transfer-bench/Cargo.toml
+          cargo fmt --manifest-path upstream/fluid/tools/orbital-fluid-transfer-bench/Cargo.toml -- --check
+          cargo test --locked --manifest-path upstream/fluid/tools/orbital-fluid-transfer-bench/Cargo.toml --all-targets
+          cargo clippy --locked --manifest-path upstream/fluid/tools/orbital-fluid-transfer-bench/Cargo.toml --all-targets -- -D warnings
+          cargo run --locked --quiet \
+            --manifest-path upstream/fluid/tools/orbital-fluid-transfer-bench/Cargo.toml -- \
+            upstream/fluid/tools/orbital-fluid-transfer-bench/fixtures/v0.1/reference.json \
+            --source-commit "$FLUID_COMMIT" > fluid-receipt.json
+
+      - name: Compose the three exact-head source receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          cargo run --locked --quiet --manifest-path tools/orbital-service-composition-bench/Cargo.toml -- \
+            compose \
+            tools/orbital-service-composition-bench/fixtures/v0.1/cases.json \
+            delivery-receipt.json capture-receipt.json fluid-receipt.json \
+            --source-commit "$source_commit" > orbital-service-integrated-bundle.json
+          jq -e '
+            .result == "pass"
+            and .bundle.result == "pass"
+            and .bundle.evidence_class == "synthetic"
+            and .bundle.authority_granted == false
+            and .bundle.joined_service.cargo_lot_id == "serviced-client-001"
+            and .bundle.joined_service.cargo_mass_grams == 1000000
+            and .bundle.joined_service.target_orbit_id == "leo-550km"
+            and .bundle.joined_service.destination_node_id == "orbit"
+            and .bundle.joined_service.client_id == "serviced-client-001"
+            and .bundle.joined_service.receiver_id == "serviced-client-001"
+            and .bundle.joined_service.capture_interface_id == "COOPERATIVE-CAPTURE-PORT-A"
+            and .bundle.joined_service.capture_interface_revision == 3
+            and .bundle.joined_service.fluid_id == "synthetic-hydrazine-analogue"
+            and .bundle.joined_service.fluid_class == "storable_liquid"
+            and .bundle.joined_service.phase == "liquid"
+            and .bundle.joined_service.accepted_receiver_mass_g == 390000
+            and (.bundle.artifact_sha256 | length == 4)
+            and (.bundle.artifact_sha256 | to_entries | all(.value | test("^[0-9a-f]{64}$")))
+          ' orbital-service-integrated-bundle.json
+
+      - name: Retain source receipts and integrated bundle
         uses: actions/upload-artifact@v4
         with:
-          name: orbital-service-composition-receipt-${{ github.sha }}
-          path: orbital-service-composition-receipt.json
+          name: orbital-service-integrated-receipts-${{ github.sha }}
+          path: |
+            orbital-service-composition-receipt.json
+            delivery-receipt.json
+            capture-receipt.json
+            fluid-receipt.json
+            orbital-service-integrated-bundle.json
           if-no-files-found: error
