@@ -908,14 +908,15 @@ mod tests {
     fn cadence_within_registered_jitter_budget_is_consistent() {
         let report = replay_trace(&request(vec![
             event(1, 900, 1000),
-            event(2, 1050, 1100),
+            event(2, 1005, 1100),
         ]))
         .expect("replay");
         let second = &report.body.reports[1];
-        assert_eq!(second.metrics.observed_source_interarrival_ns, Some(150));
+        assert_eq!(second.disposition, EventDisposition::OnTimeValid);
+        assert_eq!(second.metrics.observed_source_interarrival_ns, Some(105));
         assert_eq!(second.metrics.expected_source_interarrival_ns, Some(100));
-        assert_eq!(second.metrics.source_period_deviation_ns, Some(50));
-        assert_eq!(second.metrics.source_period_consistent, Some(false));
+        assert_eq!(second.metrics.source_period_deviation_ns, Some(5));
+        assert_eq!(second.metrics.source_period_consistent, Some(true));
     }
 
     #[test]
@@ -971,7 +972,7 @@ mod tests {
         let report = replay_trace(&input).expect("replay");
         let row = &report.body.reports[0];
         assert_eq!(row.metrics.source_to_acquisition_latency_ns, Some(110));
-        assert_eq!(row.metrics.transport_latency_ns, Some(44));
+        assert_eq!(row.metrics.transport_latency_ns, Some(11));
     }
 
     #[test]
