@@ -28,6 +28,12 @@ fn parse_time(value: Option<&str>) -> Option<DateTime<FixedOffset>> {
     value.and_then(|raw| DateTime::parse_from_rfc3339(raw).ok())
 }
 
+fn sha256_hex(value: &str) -> String {
+    Sha256::digest(value.as_bytes()).iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>()
+}
+
 #[derive(Clone)]
 struct Cell {
     id: String,
@@ -86,6 +92,23 @@ fn compute_metrics(case: &Value, errors: &mut Vec<String>) -> Option<Metrics> {
         errors.push(format!("field case '{case_id}' area weights must sum to one"));
         return None;
     }
+    let grid_id = string_at(case, "grid_id").unwrap_or("");
+    let support_cells = cells.iter()
+        .map(|cell| format!("{}:{:.17}", cell.id, cell.weight))
+        .collect::<Vec<_>>().join("\n");
+    let support_payload = format!("grid={grid_id}\n{support_cells}");
+    if string_at(case, "support_sha256") != Some(sha256_hex(&support_payload).as_str()) {
+        errors.push(format!("field case '{case_id}' support digest does not bind ordered cell IDs and area weights"));
+        return None;
+    }
+    let climatology_cells = cells.iter()
+        .map(|cell| format!("{}:{:.17}", cell.id, cell.climatology))
+        .collect::<Vec<_>>().join("\n");
+    let climatology_payload = format!("grid={grid_id}\n{climatology_cells}");
+    if string_at(case, "climatology_sha256") != Some(sha256_hex(&climatology_payload).as_str()) {
+        errors.push(format!("field case '{case_id}' climatology digest does not bind cell-wise climatology values"));
+        return None;
+    }
 
     let forecast_anomalies = cells.iter().map(|cell| cell.forecast - cell.climatology).collect::<Vec<_>>();
     let truth_anomalies = cells.iter().map(|cell| cell.observed - cell.climatology).collect::<Vec<_>>();
@@ -124,7 +147,6 @@ fn compute_metrics(case: &Value, errors: &mut Vec<String>) -> Option<Metrics> {
         errors.push(format!("field case '{case_id}' violates the information/noise orthogonal decomposition"));
     }
     let acc = if sdaf > 1e-12 { Some(dot / (sdaf * sdav)) } else { None };
-    let _cell_identity_digest_input = cells.iter().map(|cell| cell.id.as_str()).collect::<Vec<_>>();
 
     Some(Metrics {
         case_id, pair_id, variant, rmse, sdaf, sdav, acc, fi, ie, ne, decomposition_residual,
@@ -134,9 +156,11 @@ fn compute_metrics(case: &Value, errors: &mut Vec<String>) -> Option<Metrics> {
 fn same_verification_support(left: &Value, right: &Value) -> bool {
     for field in [
         "fold", "episode_id", "voyage_id", "weather_event_id", "variable",
-        "lead_hours", "valid_time", "verification_valid_time", "verifying_source_id",
-        "verifying_source_class", "verifying_source_sha256", "grid_id", "weighting_method",
-        "support_sha256", "climatology_sha256",
+        "lead_hours", "forecast_source_id", "cycle_id", "forecast_issue_time",
+        "first_available_at", "decision_cutoff", "availability_receipt_ref",
+        "availability_receipt_sha256", "valid_time", "verification_valid_time",
+        "verifying_source_id", "verifying_source_class", "verifying_source_sha256",
+        "grid_id", "weighting_method", "support_sha256", "climatology_sha256",
     ] {
         if left.get(field) != right.get(field) {
             return false;
