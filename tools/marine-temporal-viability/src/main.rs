@@ -480,6 +480,19 @@ fn validate_path(
         apply_floors(&metrics, floors, &segment_context, blockers);
         let start_values = point_metric_values.get(index);
         let end_values = point_metric_values.get(index + 1);
+        for (metric, (_, segment_lower, segment_upper)) in &metrics {
+            let start_interval = start_values.and_then(|values| values.get(metric));
+            let end_interval = end_values.and_then(|values| values.get(metric));
+            if let (Some((_, start_lower, start_upper)), Some((_, end_lower, end_upper))) =
+                (start_interval, end_interval)
+            {
+                if *segment_lower > *start_lower.min(end_lower)
+                    || *segment_upper < *start_upper.max(end_upper)
+                {
+                    errors.push(format!("{segment_context} envelope for '{metric}' does not contain both endpoint uncertainty intervals"));
+                }
+            }
+        }
         for inventory_metric in INVENTORY_METRICS {
             let Some((start, _, _)) = start_values.and_then(|values| values.get(inventory_metric)) else {
                 continue;
@@ -494,7 +507,7 @@ fn validate_path(
                         && event_time.timestamp_millis() > point_times[index].timestamp_millis()
                         && event_time.timestamp_millis() <= point_times[index + 1].timestamp_millis()
                 })
-                .map(|(_, _, value, _)| value)
+                .map(|(_, _, value, _)| *value)
                 .sum::<f64>();
             if (delta - event_delta).abs() > 1e-6 {
                 errors.push(format!("{segment_context} inventory change for '{inventory_metric}' is {delta:.6} but evidence events sum to {event_delta:.6}"));
@@ -770,6 +783,14 @@ mod tests {
         freshwater["lower_bound"] = json!(2.9);
         freshwater["upper_bound"] = json!(3.3);
         assert_eq!(audit(&value)["disposition"], "BLOCKED");
+    }
+
+    #[test]
+    fn segment_envelope_must_contain_adjacent_point_uncertainty() {
+        let mut value = fixture();
+        value["policies"][2]["paths"][0]["segments"][0]["metrics"][2]["lower_bound"] = json!(5.0);
+        value["policies"][2]["paths"][0]["segments"][0]["metrics"][2]["upper_bound"] = json!(5.1);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
     }
 
     #[test]
