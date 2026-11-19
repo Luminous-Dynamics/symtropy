@@ -359,13 +359,14 @@ mod tests {
     }
 
     #[test]
-    fn cryogenic_storage_only_cannot_be_relabelled_as_transfer() {
+    fn cryogenic_storage_only_label_alone_cannot_create_transfer() {
         let mut data = fixture();
-        let scenario = &mut data.scenarios[1];
-        scenario.evidence_state = EvidenceState::TransferDemonstration;
-        scenario.receiver_accepted_g = 100;
-        scenario.source_remaining_g -= 100;
-        assert!(evaluate(&data).unwrap_err().contains("mass balance mismatch"));
+        data.scenarios[1].evidence_state = EvidenceState::TransferDemonstration;
+        assert!(
+            evaluate(&data)
+                .unwrap_err()
+                .contains("transfer demonstration requires positive gross")
+        );
     }
 
     #[test]
