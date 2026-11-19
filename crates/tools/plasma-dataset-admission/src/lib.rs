@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
+use std::fs::{self, File};
+use std::io::{self, Read};
 use std::path::{Component, Path};
 
 pub const SCHEMA_VERSION: &str = "luminous.plasma-dataset-admission.v0.1";
@@ -95,12 +97,40 @@ pub struct AuditReport {
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
-    let digest = Sha256::digest(bytes);
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    let digest = hasher.finalize();
     let mut output = String::with_capacity(64);
     for byte in digest {
         output.push_str(&format!("{byte:02x}"));
     }
     output
+}
+
+fn hash_reader(mut reader: impl Read) -> io::Result<(u64, String)> {
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    let mut total_bytes = 0_u64;
+
+    loop {
+        let count = reader.read(&mut buffer)?;
+        if count == 0 {
+            break;
+        }
+        let count = u64::try_from(count)
+            .map_err(|_| io::Error::other("read length does not fit in u64"))?;
+        total_bytes = total_bytes
+            .checked_add(count)
+            .ok_or_else(|| io::Error::other("artifact size overflow"))?;
+        hasher.update(&buffer[..count as usize]);
+    }
+
+    let digest = hasher.finalize();
+    let mut output = String::with_capacity(64);
+    for byte in digest {
+        output.push_str(&format!("{byte:02x}"));
+    }
+    Ok((total_bytes, output))
 }
 
 fn is_hex(value: &str, expected_len: usize) -> bool {
@@ -136,11 +166,91 @@ pub fn audit_manifest(
     manifest: &SourceManifest,
     local_artifacts: &BTreeMap<String, Vec<u8>>,
 ) -> Result<AuditReport, String> {
+pub fn audit_manifest(
+    manifest: &SourceManifest,
+    local_artifacts: &BTreeMap<String, Vec<u8>>,
+) -> Result<AuditReport, String> {
+    let mut observations = BTreeMap::new();
+    for (artifact_id, bytes) in local_artifacts {
+        let observed_size_bytes = u64::try_from(bytes.len())
+            .map_err(|_| "local artifact size does not fit in u64".to_owned())?;
+        observations.insert(
+            artifact_id.clone(),
+            ArtifactObservation {
+                artifact_id: artifact_id.clone(),
+                observed_size_bytes,
+                observed_sha256: sha256_hex(bytes),
+            },
+        );
+    }
+    audit_manifest_with_observations(manifest, &observations)
+}
+
+pub fn audit_manifest_from_directory(
+    manifest: &SourceManifest,
+    directory: &Path,
+) -> Result<AuditReport, String> {
+    let root = fs::canonicalize(directory)
+        .map_err(|error| format!("could not resolve artifact directory: {error}"))?;
+    if !root.is_dir() {
+        return Err("artifact directory is not a directory".to_owned());
+    }
+
+    let mut observations = BTreeMap::new();
+    for artifact in &manifest.artifacts {
+        if !safe_file_name(&artifact.file_name) {
+            continue;
+        }
+        let candidate = root.join(&artifact.file_name);
+        let metadata = match fs::symlink_metadata(&candidate) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
+            Err(error) => {
+                return Err(format!("could not inspect {}: {error}", artifact.file_name));
+            }
+        };
+        if metadata.file_type().is_symlink() || !metadata.is_file() {
+            return Err(format!(
+                "refusing non-regular or symlink artifact: {}",
+                artifact.file_name
+            ));
+        }
+
+        let resolved = fs::canonicalize(&candidate)
+            .map_err(|error| format!("could not resolve {}: {error}", artifact.file_name))?;
+        if !resolved.starts_with(&root) {
+            return Err(format!(
+                "artifact path escapes the supplied directory: {}",
+                artifact.file_name
+            ));
+        }
+
+        let file = File::open(&resolved)
+            .map_err(|error| format!("could not open {}: {error}", artifact.file_name))?;
+        let (observed_size_bytes, observed_sha256) = hash_reader(file)
+            .map_err(|error| format!("could not hash {}: {error}", artifact.file_name))?;
+        observations.insert(
+            artifact.artifact_id.clone(),
+            ArtifactObservation {
+                artifact_id: artifact.artifact_id.clone(),
+                observed_size_bytes,
+                observed_sha256,
+            },
+        );
+    }
+
+    audit_manifest_with_observations(manifest, &observations)
+}
+
+fn audit_manifest_with_observations(
+    manifest: &SourceManifest,
+    local_observations: &BTreeMap<String, ArtifactObservation>,
+) -> Result<AuditReport, String> {
     let manifest_bytes = serde_json::to_vec(manifest)
         .map_err(|error| format!("manifest serialization failed: {error}"))?;
     let manifest_sha256 = sha256_hex(&manifest_bytes);
     let mut findings = Vec::new();
-    let mut observations = Vec::new();
+    let mut artifact_observations = Vec::new();
     let mut rejected = false;
     let mut blocked = false;
 
@@ -227,7 +337,7 @@ pub fn audit_manifest(
             rejected = true;
         }
 
-        match local_artifacts.get(&artifact.artifact_id) {
+        match local_observations.get(&artifact.artifact_id) {
             None => {
                 findings.push(finding(
                     "artifact_not_locally_acquired",
@@ -236,17 +346,11 @@ pub fn audit_manifest(
                 ));
                 blocked = true;
             }
-            Some(bytes) => {
-                let observed_size = bytes.len() as u64;
-                let observed_sha256 = sha256_hex(bytes);
-                observations.push(ArtifactObservation {
-                    artifact_id: artifact.artifact_id.clone(),
-                    observed_size_bytes: observed_size,
-                    observed_sha256: observed_sha256.clone(),
-                });
+            Some(observation) => {
+                artifact_observations.push(observation.clone());
 
                 if let Some(expected_size) = artifact.expected_size_bytes
-                    && observed_size != expected_size
+                    && observation.observed_size_bytes != expected_size
                 {
                     findings.push(finding(
                         "local_size_mismatch",
@@ -258,7 +362,7 @@ pub fn audit_manifest(
 
                 match &artifact.remote_sha256 {
                     Some(expected_sha256) if is_hex(expected_sha256, 64) => {
-                        if !observed_sha256.eq_ignore_ascii_case(expected_sha256) {
+                        if !observation.observed_sha256.eq_ignore_ascii_case(expected_sha256) {
                             findings.push(finding(
                                 "upstream_sha256_mismatch",
                                 vec![artifact.artifact_id.clone()],
@@ -281,7 +385,7 @@ pub fn audit_manifest(
         }
     }
 
-    for local_id in local_artifacts.keys() {
+    for local_id in local_observations.keys() {
         if !artifact_ids.contains(local_id) {
             findings.push(finding(
                 "unlisted_local_artifact",
@@ -358,7 +462,7 @@ pub fn audit_manifest(
     let all_artifacts_observed = manifest
         .artifacts
         .iter()
-        .all(|artifact| observations.iter().any(|item| item.artifact_id == artifact.artifact_id));
+        .all(|artifact| artifact_observations.iter().any(|item| item.artifact_id == artifact.artifact_id));
     let local_evaluation_allowed = license_allows_evaluation
         && all_artifacts_observed
         && !blocked
@@ -387,7 +491,7 @@ pub fn audit_manifest(
         local_evaluation_allowed,
         redistribution_allowed,
         manifest_sha256,
-        artifact_observations: observations,
+        artifact_observations,
         findings,
     };
     let receipt_bytes = serde_json::to_vec(&body)
@@ -585,6 +689,16 @@ mod tests {
         let second = audit_manifest(&manifest, &bytes).expect("second audit");
         assert_eq!(first.receipt_sha256, second.receipt_sha256);
         assert_eq!(first, second);
+    }
+
+    #[test]
+    fn hash_reader_streams_and_counts_bytes() {
+        let (size, digest) = hash_reader(std::io::Cursor::new(b"abc")).expect("hash succeeds");
+        assert_eq!(size, 3);
+        assert_eq!(
+            digest,
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
     }
 
     #[test]
