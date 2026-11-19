@@ -12,19 +12,27 @@ This is a deliberately bounded Rust runtime slice. It is not a full Draft 2020-1
 
 ## What it verifies
 
-1. Parses the raw payload, evidence envelope and allocation receipt.
-2. Recomputes SHA-256 over the **exact raw payload bytes**; it never hashes a parsed-and-reserialized JSON object.
-3. Recomputes and checks payload byte length.\n4. For the thermal profile, recomputes `average_thermal_power_mw × duration_ns / 3.6e12` and rejects a source payload whose energy value does not agree with its power and interval duration.
-5. Joins evidence class, source asset, measurement boundary, explicit source interval ID, carrier and bounded time window across all three records.
-6. Joins the allocation receipt to the exact evidence ID and recomputed payload digest.
-7. Rejects duplicate allocation edge IDs, invalid energy terms and service/carrier mismatches.
-8. Recomputes allocated energy, curtailment, residual and normalized absolute residual using the same scale-normalized formula as the GeoFusion Rust source-allocation ledger.
-9. Compares the recomputed result to the declared evaluation instead of trusting a prefilled `within_tolerance: true`.
-10. Reports byte integrity and allocation closure as separate outputs. A byte-integrity pass with an unbalanced allocation is not a qualified receipt.
+1. Validates the evidence and allocation-receipt schema versions and required envelope fields.
+2. Recomputes SHA-256 over the **exact raw payload bytes before parsing the raw payload**; it never hashes a parsed-and-reserialized JSON object.
+3. Recomputes and checks payload byte length, then parses the payload and checks its version.
+4. For the thermal profile, recomputes `average_thermal_power_mw × duration_ns / 3.6e12` and rejects a source payload whose energy value does not agree with its power and interval duration.
+5. Joins evidence class, source asset, measurement boundary, explicit source interval ID, carrier and bounded time window across the raw payload, evidence envelope and allocation receipt.
+6. Parses strict UTC `Z` timestamps into integer nanoseconds and enforces the declared clock-quality profile.
+7. Joins the allocation receipt to the exact evidence ID and recomputed payload digest.
+8. Rejects duplicate allocation edge IDs, invalid energy terms and service/carrier mismatches.
+9. Recomputes allocated energy, curtailment, residual and normalized absolute residual using the same scale-normalized formula as the GeoFusion Rust source-allocation ledger.
+10. Compares the recomputed result to the declared evaluation instead of trusting a prefilled `within_tolerance: true`.
+11. Reports byte integrity and allocation closure as separate outputs. A byte-integrity pass with an unbalanced allocation is not a qualified receipt.
+12. Batch verification rejects duplicate and overlapping source windows from the same physical source asset, boundary and carrier, including duplicate intervals whose caller-assigned IDs have been renamed.
+
 
 ## Schema validation
 
 The CI workflow uses `check-jsonschema==0.39.0` **as a CI-only tool** to validate the four Draft 2020-12 schemas against their declared metaschemas, check positive source/evidence/allocation and batch-manifest fixtures, and assert that the null-asset negative control is rejected. The runtime library and CLI remain Rust-only; the external CLI is not a production dependency. The raw payload schema is currently the first heat-only profile; it is not yet an electrical source-payload schema.
+
+## Standards composition
+
+The companion [GeoFusion standards interoperability crosswalk](../../docs/research/geothermal-fusion/evidence/STANDARDS_INTEROPERABILITY.md) composes SSP 2.0.1, SSP-LS-Traceability 1.0.0, FMI 3.0.2, BagIt 1.0, RO-Crate 1.3 and PROV-O, with attestations delegated to existing DSSE/in-toto owner #5560. SSP-LS carries simulation-task/resource metadata and derivation-chain GUIDs; it is not a meter-calibration authority. The [machine-readable interoperability matrix](../../docs/research/geothermal-fusion/evidence/STANDARDS_INTEROPERABILITY_MATRIX.v0.1.json) keeps resource GUIDs, cryptographic content digests and provenance relationships distinct.
 
 ## Run
 
