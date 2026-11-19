@@ -69,6 +69,7 @@ struct ModuleFactoryResult {
     site_id: String,
     template_id: String,
     config_id: String,
+    target_good_vehicles_per_year: u64,
     architecture: String,
     evidence_class: String,
     status: String,
@@ -249,7 +250,8 @@ fn validate_inputs(
         if row.config_id.trim().is_empty()
             || row.site_id.trim().is_empty()
             || row.template_id.trim().is_empty()
-            || !factory_keys.insert((row.config_id.as_str(), row.site_id.as_str(), row.template_id.as_str()))
+            || row.target_good_vehicles_per_year == 0
+            || !factory_keys.insert((row.config_id.as_str(), row.site_id.as_str(), row.template_id.as_str(), row.target_good_vehicles_per_year))
         {
             errors.push("module factory report has invalid or duplicate scenario identity".into());
         }
@@ -616,6 +618,7 @@ mod tests {
                 site_id: "test-site".into(),
                 template_id: "test-template".into(),
                 config_id: "pod-process".into(),
+                target_good_vehicles_per_year: 1_000,
                 architecture: "detachable_drone_pod".into(),
                 evidence_class: evidence.into(),
                 status: status.into(),
