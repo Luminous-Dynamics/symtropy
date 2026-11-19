@@ -140,6 +140,7 @@ pub struct ExpectedMetrics {
     pub corrective_repair_platform_hours: f64,
     pub common_cause_grounded_platform_hours: f64,
     pub reserve_platform_hours: f64,
+    pub launch_recovery_platform_hours: f64,
     pub handover_count: usize,
     pub alternate_layer_service_zone_hours: f64,
 }
@@ -171,6 +172,7 @@ pub struct FleetMetrics {
     pub corrective_repair_platform_hours: f64,
     pub common_cause_grounded_platform_hours: f64,
     pub reserve_platform_hours: f64,
+    pub launch_recovery_platform_hours: f64,
     pub handover_count: usize,
     pub alternate_layer_service_zone_hours: f64,
 }
@@ -561,6 +563,7 @@ fn compare_expected(policy: &FleetPolicy, actual: &FleetMetrics) -> Result<(), F
         ("corrective_repair_platform_hours", actual.corrective_repair_platform_hours, expected.corrective_repair_platform_hours),
         ("common_cause_grounded_platform_hours", actual.common_cause_grounded_platform_hours, expected.common_cause_grounded_platform_hours),
         ("reserve_platform_hours", actual.reserve_platform_hours, expected.reserve_platform_hours),
+        ("launch_recovery_platform_hours", actual.launch_recovery_platform_hours, expected.launch_recovery_platform_hours),
         ("alternate_layer_service_zone_hours", actual.alternate_layer_service_zone_hours, expected.alternate_layer_service_zone_hours),
     ] {
         if !got.is_finite() || (got - want).abs() > 1.0e-8 {
@@ -595,6 +598,7 @@ pub fn evaluate_case(case: &FleetServiceCase) -> Result<FleetReport, FleetError>
         let mut repair = 0.0;
         let mut weather = 0.0;
         let mut reserve = 0.0;
+        let mut launch_recovery = 0.0;
         let mut handovers = 0_usize;
         let mut alt_hours = 0.0;
         let mut prior = HashMap::<String, String>::new();
@@ -639,6 +643,7 @@ pub fn evaluate_case(case: &FleetServiceCase) -> Result<FleetReport, FleetError>
                     "corrective_maintenance" => repair += interval_hours,
                     "grounded_weather" => weather += interval_hours,
                     "ready_reserve" => reserve += interval_hours,
+                    "launch_recovery" => launch_recovery += interval_hours,
                     _ => {}
                 }
             }
@@ -663,6 +668,7 @@ pub fn evaluate_case(case: &FleetServiceCase) -> Result<FleetReport, FleetError>
             corrective_repair_platform_hours: repair,
             common_cause_grounded_platform_hours: weather,
             reserve_platform_hours: reserve,
+            launch_recovery_platform_hours: launch_recovery,
             handover_count: handovers,
             alternate_layer_service_zone_hours: alt_hours,
         };
@@ -719,6 +725,12 @@ mod tests {
         assert_eq!(layered.service_availability_fraction, 1.0);
         assert!((layered.time_weighted_demand_satisfaction_fraction - (71.7 / 72.0)).abs() < 1.0e-10);
         assert_eq!(layered.maximum_contiguous_service_gap_hours, 0.0);
+
+        let delayed = &report.policy_reports[3].metrics;
+        assert!((delayed.service_availability_fraction - (61.0 / 72.0)).abs() < 1.0e-10);
+        assert!((delayed.time_weighted_demand_satisfaction_fraction - (63.5 / 72.0)).abs() < 1.0e-10);
+        assert!((delayed.launch_recovery_platform_hours - 5.0).abs() < 1.0e-10);
+        assert_eq!(delayed.handover_count, 2);
     }
 
     #[test]
