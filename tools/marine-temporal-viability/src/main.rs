@@ -183,6 +183,7 @@ fn metric_values(
     floors: &BTreeMap<String, Floor>,
     expected_class: &str,
     context: &str,
+    require_estimate: bool,
     errors: &mut Vec<String>,
 ) -> BTreeMap<String, (f64, f64, f64)> {
     let mut result = BTreeMap::<String, (f64, f64, f64)>::new();
@@ -224,15 +225,31 @@ fn metric_values(
         let lower = number_at(item, "lower_bound");
         let upper = number_at(item, "upper_bound");
         let estimate = number_at(item, "value");
-        let Some((lower, upper, estimate)) = lower.zip(upper).zip(estimate).map(|((l, u), v)| (l, u, v)) else {
-            errors.push(format!("{context} metric '{metric}' has non-finite value/bounds"));
+        let Some((lower, upper)) = lower.zip(upper) else {
+            errors.push(format!("{context} metric '{metric}' has non-finite bounds"));
             continue;
         };
-        if lower < 0.0 || lower > estimate || estimate > upper {
+        if lower < 0.0 || lower > upper {
             errors.push(format!("{context} metric '{metric}' has invalid conservative bounds"));
             continue;
         }
-        result.insert(metric, (estimate, lower, upper));
+        if require_estimate {
+            let Some(estimate) = estimate else {
+                errors.push(format!("{context} point metric '{metric}' has no finite value"));
+                continue;
+            };
+            if lower > estimate || estimate > upper {
+                errors.push(format!("{context} metric '{metric}' interval does not contain its point estimate"));
+                continue;
+            }
+            result.insert(metric, (estimate, lower, upper));
+        } else {
+            if estimate.is_some() {
+                errors.push(format!("{context} segment metric '{metric}' must express an interval envelope, not a point estimate"));
+                continue;
+            }
+            result.insert(metric, (f64::NAN, lower, upper));
+        }
     }
     for metric in floors.keys() {
         if !result.contains_key(metric) {
@@ -375,9 +392,6 @@ fn validate_path(
         let time = time.unwrap();
         point_times.push(time);
         point_time_strings.push(string_at(point, "at").unwrap_or("").to_owned());
-        if parse_time(string_at(point, "metrics").and_then(|_| string_at(point, "at"))).is_none() {
-            errors.push(format!("{point_context} has invalid timestamp data"));
-        }
         if index == 0 && time != mission_start {
             errors.push(format!("{point_context} does not start at mission_window.start"));
         }
@@ -406,10 +420,7 @@ fn validate_path(
             route_progress.push(progress.unwrap());
         }
         let class = if record_status == "synthetic" { "synthetic" } else { "measured" };
-        if parse_time(string_at(point, "at")) != parse_time(string_at(point, "at")) {
-            errors.push(format!("{point_context} timestamp is inconsistent"));
-        }
-        let metrics = metric_values(point, floors, class, &point_context, errors);
+        let metrics = metric_values(point, floors, class, &point_context, true, errors);
         if let Some(items) = point.get("metrics").and_then(Value::as_array) {
             for item in items {
                 if parse_time(string_at(item, "measured_at")) != Some(time) {
@@ -464,7 +475,7 @@ fn validate_path(
             errors.push(format!("{segment_context} does not span its exact adjacent timepoints"));
         }
         let class = if record_status == "synthetic" { "synthetic" } else { "measured" };
-        let metrics = metric_values(segment, floors, class, &segment_context, errors);
+        let metrics = metric_values(segment, floors, class, &segment_context, false, errors);
         apply_floors(&metrics, floors, &segment_context, blockers);
         let start_values = point_metric_values.get(index);
         let end_values = point_metric_values.get(index + 1);
@@ -618,7 +629,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                     let metrics = metric_values(
                         point, &floors,
                         if status == "synthetic" { "synthetic" } else { "measured" },
-                        "arrival-only diagnostic", &mut Vec::new(),
+                        "arrival-only diagnostic", true, &mut Vec::new(),
                     );
                     floors.iter().all(|(metric, floor)| {
                         metrics.get(metric).is_some_and(|(_, lower, upper)| {
