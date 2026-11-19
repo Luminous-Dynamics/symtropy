@@ -1,0 +1,203 @@
+{
+  "schema": "luminous.tendon_length_sensor_fixtures",
+  "version": "0.1.1",
+  "status": "synthetic_analytic_oracles_plus_paper_reference_only",
+  "created_utc": "2026-11-18",
+  "owner": "https://github.com/Luminous-Dynamics/symtropy/issues/6078",
+  "source": {
+    "title": "Worm-inspired proprioceptive continuum robot with retractile motion and sensorized tendons",
+    "journal": "Mechatronics",
+    "volume": 118,
+    "article_number": "103524",
+    "date": "2026-09",
+    "doi": "https://doi.org/10.1016/j.mechatronics.2026.103524"
+  },
+  "paper_reported": {
+    "construction": {
+      "sections": 2,
+      "tendons_per_section": 3,
+      "nylon_filaments_per_tendon": 4,
+      "nylon_filament_diameter_mm": 0.1,
+      "nichrome_wires_per_tendon": 1,
+      "nichrome_wire_diameter_mm": 0.08,
+      "braided_outer_diameter_mm": 0.55,
+      "section_length_extended_mm": 80,
+      "section_length_retracted_mm": 40,
+      "total_length_extended_mm": 160,
+      "total_length_retracted_mm": 80
+    },
+    "sensor": {
+      "model": "R(L)=R0+kL*(L-L0), kL>0",
+      "calibrated_length_interval_mm": [
+        40,
+        80
+      ],
+      "calibration_rmse_mm": 1.19,
+      "excitation": "short voltage pulses, non-overlapping channels",
+      "average_joule_power": "P_avg=delta*V^2/R(L)",
+      "temperature_equivalent_length_drift": "Delta_L_eq=R0*alpha*Delta_T/kL",
+      "reported_temperature_drift_bound_mm": "<0.1 for |Delta_T|<=10 C under paper's readout regime"
+    },
+    "auxiliary_sensors": [
+      "tendon tension transducers",
+      "motor rotary encoders",
+      "base IMU",
+      "tip IMU"
+    ],
+    "performance": {
+      "nominal_cartesian_rmse_mm": {
+        "x": 2.5,
+        "y": 3,
+        "z": 1.8
+      },
+      "nominal_max_absolute_error_mm": {
+        "x": 7,
+        "y": 11,
+        "z": 7
+      },
+      "loaded_payload_g": 150,
+      "loaded_cartesian_rmse_mm": {
+        "x": 0.902,
+        "y": 0.913,
+        "z": 1.172
+      },
+      "loaded_max_absolute_error_mm": {
+        "x": 7.91,
+        "y": 4.26,
+        "z": 4.94
+      },
+      "voltage_perturbation_max_deviation_mm": [
+        47.6,
+        30.01,
+        33.89
+      ],
+      "endurance_note": "approximately 20 h continuous-operation observations; further fatigue/wear characterization above 50 g identified as future work"
+    },
+    "evidence_boundary": {
+      "tendon_signal_observes": "tendon arc length",
+      "direct_tension_measurement": "separate tension transducer",
+      "direct_joint_torque_measurement": "not established by resistive length channel alone",
+      "dynamic_compensation": "not included in the reported kinematic controller",
+      "full_load_bearing_joint_qualification": false
+    }
+  },
+  "synthetic_fixtures": [
+    {
+      "id": "TENDON-SENSE-001",
+      "name": "linear_resistance_from_known_tendon_length",
+      "inputs": {
+        "reference_length_mm": 40,
+        "reference_resistance_ohm": 4,
+        "slope_ohm_per_mm": 0.2,
+        "length_mm": 60
+      },
+      "equation": "R=R0+kL*(L-L0)",
+      "expected": {
+        "resistance_ohm": 8
+      },
+      "evidence_class": "synthetic_known_answer"
+    },
+    {
+      "id": "TENDON-SENSE-002",
+      "name": "inverse_length_and_domain_rejection",
+      "inputs": {
+        "reference_length_mm": 40,
+        "reference_resistance_ohm": 4,
+        "slope_ohm_per_mm": 0.2,
+        "calibrated_min_mm": 40,
+        "calibrated_max_mm": 80,
+        "resistance_ohm": 8
+      },
+      "equation": "L=L0+(R-R0)/kL; reject outside [Lmin,Lmax]",
+      "expected": {
+        "length_mm": 60,
+        "below_domain_rejected": true,
+        "above_domain_rejected": true
+      },
+      "evidence_class": "synthetic_known_answer"
+    },
+    {
+      "id": "TENDON-SENSE-003",
+      "name": "duty_cycled_average_excitation_power",
+      "inputs": {
+        "voltage_v": 5,
+        "duty_factor": 0.01,
+        "resistance_ohm": 8
+      },
+      "equation": "Pavg=delta*V^2/R",
+      "expected": {
+        "average_power_w": 0.03125
+      },
+      "evidence_class": "synthetic_known_answer"
+    },
+    {
+      "id": "TENDON-SENSE-004",
+      "name": "temperature_equivalent_length_drift",
+      "inputs": {
+        "reference_resistance_ohm": 4,
+        "temperature_coefficient_per_c": 0.0004,
+        "temperature_change_c": 10,
+        "slope_ohm_per_mm": 0.2
+      },
+      "equation": "DeltaL_eq=R0*alpha*DeltaT/kL",
+      "expected": {
+        "equivalent_length_drift_mm": 0.08
+      },
+      "evidence_class": "synthetic_known_answer"
+    },
+    {
+      "id": "TENDON-SENSE-005",
+      "name": "first_order_inverse_calibration_uncertainty",
+      "inputs": {
+        "resistance_delta_ohm": 4,
+        "resistance_standard_uncertainty_ohm": 0.1,
+        "slope_ohm_per_mm": 0.2,
+        "slope_standard_uncertainty_ohm_per_mm": 0.002
+      },
+      "equation": "sigmaL=sqrt((sigmaR/kL)^2+(((R-R0)*sigma_kL)/(kL^2))^2); reference length exact",
+      "expected": {
+        "length_standard_uncertainty_mm": 0.5385164807134505
+      },
+      "evidence_class": "synthetic_known_answer"
+    },
+    {
+      "id": "TENDON-SENSE-006",
+      "name": "same_length_signal_does_not_identify_force_without_constitutive_calibration",
+      "inputs": {
+        "reference_length_mm": 40,
+        "reference_resistance_ohm": 4,
+        "resistance_slope_ohm_per_mm": 0.2,
+        "measured_length_mm": 45,
+        "candidate_axial_stiffness_a_n_per_mm": 10,
+        "candidate_axial_stiffness_b_n_per_mm": 20
+      },
+      "equations": {
+        "resistance": "R=R0+kL*(L-L0)",
+        "candidate_force_a": "F_A=k_A*(L-L0)",
+        "candidate_force_b": "F_B=k_B*(L-L0)"
+      },
+      "expected": {
+        "resistance_ohm": 5,
+        "candidate_force_a_n": 50,
+        "candidate_force_b_n": 100,
+        "force_identifiable_from_resistance_only": false
+      },
+      "assumptions": [
+        "The two candidate axial stiffnesses are synthetic and intentionally differ.",
+        "Each candidate uses a simple linear axial spring only as a counterexample.",
+        "The resistance channel observes length; stiffness/constitutive law is not an input to the electrical calibration."
+      ],
+      "evidence_class": "synthetic_non_identifiability_negative_control",
+      "claim_ceiling": "Shows that tendon length resistance alone does not identify force when axial stiffness is unknown; does not model a real tendon constitutive law."
+    }
+  ],
+  "validation_rules": [
+    "Require finite values and strictly positive resistance-length slope.",
+    "Reject resistance-to-length inversion outside the calibrated 40-80 mm domain.",
+    "Duty factor must lie in [0,1], excitation voltage must be nonnegative, resistance strictly positive.",
+    "Do not infer tension or joint torque from tendon length without an independently qualified mechanical/load model.",
+    "Do not treat source paper calibration RMSE as a Luminous result or universal sensor accuracy.",
+    "Identical tendon resistance/length observations may correspond to different forces when axial stiffness or constitutive state is unknown; do not report force from length alone."
+  ],
+  "claim_ceiling": "The source demonstrates tendon arc-length sensing within a calibrated range in one continuum robot, with separate tension transducers, encoders and IMUs. This crate tests only synthetic equations."
+}
