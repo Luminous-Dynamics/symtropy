@@ -2267,6 +2267,9 @@ mod tests {
             .grant("resource-authority", SiteActorRole::SiteResourceAuthority)
             .unwrap();
         registry
+            .grant("capacity-owner-1", SiteActorRole::SiteResourceAuthority)
+            .unwrap();
+        registry
             .grant("dispatch-coordinator", SiteActorRole::DispatchCoordinator)
             .unwrap();
         registry
@@ -3345,7 +3348,7 @@ mod tests {
         let first = ledger.event_history()[0].clone();
         let duplicate_history = vec![first.clone(), first];
         assert_eq!(
-            SiteStateLedger::replay(&duplicate_history),
+            SiteStateLedger::replay(&duplicate_history, test_actor_registry()),
             Err(SiteLedgerError::EventHistoryContainsDuplicate(
                 "event-publish".into()
             ))
@@ -3357,7 +3360,7 @@ mod tests {
         next.event_sha256 = digest('2');
         broken.push(next);
         assert_eq!(
-            SiteStateLedger::replay(&broken),
+            SiteStateLedger::replay(&broken, test_actor_registry()),
             Err(SiteLedgerError::PreviousEventDigestMismatch)
         );
     }
