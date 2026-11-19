@@ -132,8 +132,11 @@ The planner reports:
 - unrelated nodes that remain current;
 - an explicit historical-evidence-preserved claim.
 
-Evidence snapshots include the subject node plus all transitive prerequisite versions. A snapshot becomes stale when any ancestor changes, even when an intermediate artifact's own content digest has not yet been regenerated. The stale receipt remains a historical record. After an affected artifact is actually regenerated, the caller records its new node version; only a newly captured snapshot over the current dependency versions is current.
+Evidence snapshots include the subject node, all transitive prerequisite versions and the exact dependency-edge topology of that transitive subgraph. A snapshot becomes stale when any ancestor version or dependency edge changes, even when an intermediate artifact's own content digest has not yet been regenerated or the transitive node set remains identical. The stale receipt remains a historical record. After an affected artifact is actually regenerated, the caller records its new node version; only a newly captured snapshot over the current dependency versions is current.
 
-The graph constructor rejects duplicate nodes/edges, unknown references, self-dependencies and cycles. Revision planning rejects empty/no-op/duplicate/unknown/malformed changes. The implementation uses deterministic BTree collections and has no new dependencies.
+The graph constructor rejects duplicate nodes/edges, unknown references, self-dependencies and cycles. Revision planning rejects empty/no-op/duplicate/unknown/malformed changes and blank reasons. Material-batch changes receive a distinct traceability action. The implementation uses deterministic BTree collections and has no new dependencies.
 
 This is a planning and evidence-currentness primitive. It does not itself revoke a robot permit, issue a stop command, mutate an accepted construction record, recompute the source model, prove a physical change occurred, or perform cryptographic digest verification. Integration into the site ledger must make dispatch/actuation gates consume the returned stale/current state and preserve independent authority boundaries.
+
+
+The differential benchmark also measures invalidation planning on synthetic forests of 128, 512, 2,048 and 8,192 evidence nodes, split into eight independent work-package chains. It reports graph-build p50, planning p50/p95/p99, affected dependents and unaffected nodes, and compares the scoped closure with a naive whole-graph invalidation baseline. This is a synthetic algorithm benchmark, not measured site throughput or a claim against commercial BIM/CDE products.
