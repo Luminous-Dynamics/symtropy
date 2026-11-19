@@ -62,6 +62,59 @@ The result is narrow and important: **a long-interval energy schedule cannot est
 4. **Inverter/grid support:** voltage/frequency, reactive power, export, ride-through or other services from qualified electrical resources. Demand response does not prove these capabilities.
 5. **Island / black start / reconnection:** separately qualified control/protection and local authority; no cloud scheduler or Symthaea action can substitute for those functions.
 
+## South African demand-response product references
+
+The paired-site work should benchmark actual local programme profiles, not import generic demand-response times from another market. Public programme descriptions currently distinguish at least three products:
+
+### Eskom Distribution Instantaneous Demand Response
+
+The public Eskom programme page states:
+- 10 MW minimum entry;
+- full reduction within 6 seconds after notification;
+- sustain for 10 minutes;
+- up to three 10-minute events per day;
+- day-ahead scheduling and event dispatch when frequency reaches a preset level;
+- special metering requirements;
+- standby payment and no energy payment.
+
+Source: [Eskom Instantaneous Demand Response Programme](https://www.eskom.co.za/distribution/instantaneous-demand-response-programme/).
+
+These are programme-page terms, not proof of eligibility or a current offer to a specific port. Confirm aggregation, participant qualification, baseline, telemetry, site connection, current contractual terms and settlement directly with Eskom.
+
+### SAWEM instantaneous reserve definition
+
+The NTCSA SAWEM Market Code Rev 2.3 (February 2026) defines Instantaneous Reserve as generation or demand-side managed load available to respond fully within 10 seconds to a frequency drop and sustain the response for at least 10 minutes. It includes day-ahead reserve and real-time dispatch/settlement provisions.
+
+Sources: [NTCSA Market Code Rev 2.3 (February 2026)](https://www.ntcsa.co.za/wp-content/uploads/2026/02/Market-Code-v2.3.pdf), especially the definition of Instantaneous Reserve and reserve capacity/dispatch sections.
+
+This is a different profile from Eskom Distribution's six-second IDR programme. Do not combine them into a single product or silently substitute one response deadline for the other. Market Code publication and reserve definitions do not establish that an individual port or data centre is registered, qualified or eligible to participate.
+
+NERSA's September 2026 regulatory tracker (last updated 15 September) listed approval of the Market Code as in finalisation, with an end-October target. That dated tracker does not establish the subsequent final regulatory decision; confirm current approval and implementation status before making a participation or settlement claim. [NERSA Electricity Regulation Projects Dashboard, September 2026](https://www.nersa.org.za/files/files/2026/09/ELRStakeholderDashboard-September2026-Rev1-HighRes.pdf).
+
+### NTCSA Supplemental Demand Response
+
+The NTCSA public programme page describes:
+- notice period from 30 minutes to 6 hours;
+- minimum entry equal to the greater of 500 kW or 15% of average plant demand;
+- minimum two-hour response duration, once per day under the published description;
+- 30-minute interval remote metering as a prerequisite;
+- standby and energy payments.
+
+Source: [NTCSA Supplemental Demand Response Programme](https://www.ntcsa.co.za/supplemental-demand-response-programme-2/).
+
+This slower product is materially different from instantaneous reserve. A 30-minute meter can support the published programme's metering requirement, but cannot alone prove a six-second IDR response. Use the exact programme's required telemetry, baseline and verification rules.
+
+### Emergency load reduction is a separate category
+
+NERSA-approved NRS 048-9 addresses emergency load reduction, including load shedding/curtailment and restoration. Mandatory emergency reduction under System Operator/utility authority must not be represented as voluntary contracted demand response or an optimizer's discretionary dispatch right. [NRS 048-9 Edition 3](https://www.kaya959.co.za/wp-content/uploads/2024/04/NERSA-Approved-Version-of-NRS-048-9-2023-Edition-3.pdf).
+
+### Implications for Ngqura and Durban
+
+- The published 10 MW Eskom IDR minimum is large relative to a single 2.3 MW demonstration module and cannot be assumed to be met by the site. Portfolio aggregation may be possible only if the programme/aggregator rules and electrical boundaries permit it.
+- Ngqura's published 17.1 MW estimated spare substation capacity and Durban's 3.6 MW estimate are pre-feasibility grid-capacity figures, **not** available flexible load or contracted response. Do not subtract or equate them to IDR qualification.
+- The supplemental 500 kW / 15% threshold may be a more accessible starting product for a campus or aggregated port load, but average demand, baseline rules, 30-minute metering, curtailment rights, response duration and actual eligible load must be evidenced.
+- The six-second programme makes local control and telemetry requirements materially different from 15-minute scheduling. Symtropy can evaluate the cross-timescale contract and audit evidence, but the grid operator and electrical/protection owners qualify the response.
+
 ## Ownership and non-duplication
 
 - Symtropy #4582 remains canonical for port/PCC simultaneous W, cumulative Wh, connection readiness and schedule verification.
