@@ -151,5 +151,37 @@
         "ids_engine_build_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }
     }
+  },
+  {
+    "event_id": "vda5050-late-state-v1",
+    "sequence": 7,
+    "previous_event_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "event_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "actor_id": "robot-01",
+    "actor_role": "robot",
+    "payload": {
+      "kind": "robot_protocol_observation_recorded",
+      "package_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "entity_id": "ifc:2XQ$n5SLP5MBCLz4P3d4W",
+      "attempt_id": "robot-01-attempt-0042",
+      "observation": {
+        "protocol_id": "VDA5050",
+        "protocol_version": "3.0.0",
+        "message_kind": "state",
+        "external_order_id": "transport-1",
+        "external_order_update_id": 2,
+        "source_header_id": 18,
+        "last_node_id": "n0",
+        "last_node_sequence_id": 0,
+        "action_id": "a1",
+        "action_status": "FINISHED",
+        "source_timestamp": "2026-11-19T08:05:00.000Z",
+        "reported_manufacturer": "ACME",
+        "reported_serial_number": "R-01",
+        "topic_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+        "raw_payload_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "adapter_build_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+      }
+    }
   }
 ]
