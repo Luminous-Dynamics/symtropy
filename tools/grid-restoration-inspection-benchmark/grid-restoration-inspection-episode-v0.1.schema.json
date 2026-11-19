@@ -1,0 +1,478 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:grid-restoration-inspection:episode:0.1.0",
+  "title": "Grid Restoration Inspection Decision Episode",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "episodeId",
+    "caseMaturity",
+    "timeOriginUtc",
+    "asOfHour",
+    "decisionEpoch",
+    "observableState",
+    "inspectionCandidates",
+    "recoveryActions",
+    "resourceState",
+    "references",
+    "policyArms"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "episodeId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "caseMaturity": {
+      "enum": [
+        "synthetic_fixture",
+        "historical_replay"
+      ]
+    },
+    "timeOriginUtc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "asOfHour": {
+      "type": "number",
+      "minimum": 0
+    },
+    "decisionEpoch": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "observableState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unknowns",
+        "conflicts",
+        "observations"
+      ],
+      "properties": {
+        "unknowns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "subjectRef",
+              "claim",
+              "status"
+            ],
+            "properties": {
+              "subjectRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "claim": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "const": "unknown"
+              }
+            }
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "claim",
+              "observationRefs",
+              "status"
+            ],
+            "properties": {
+              "claim": {
+                "type": "string",
+                "minLength": 1
+              },
+              "observationRefs": {
+                "type": "array",
+                "minItems": 2,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              },
+              "status": {
+                "const": "unresolved"
+              }
+            }
+          }
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "observationId",
+              "assetRef",
+              "claimType",
+              "sourceRef",
+              "sourceFamily",
+              "independenceGroupRef",
+              "effectiveHour",
+              "observedHour",
+              "evidenceStatus",
+              "evidenceClass",
+              "payloadRef"
+            ],
+            "properties": {
+              "observationId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "assetRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "claimType": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sourceRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sourceFamily": {
+                "type": "string",
+                "minLength": 1
+              },
+              "independenceGroupRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "calibrationRef": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "effectiveHour": {
+                "type": "number",
+                "minimum": 0
+              },
+              "observedHour": {
+                "type": "number",
+                "minimum": 0
+              },
+              "validUntilHour": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "evidenceStatus": {
+                "enum": [
+                  "current",
+                  "superseded",
+                  "stale",
+                  "conflicted",
+                  "unknown"
+                ]
+              },
+              "evidenceClass": {
+                "enum": [
+                  "synthetic_fixture",
+                  "historical_replay"
+                ]
+              },
+              "payloadRef": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "inspectionCandidates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "inspectionId",
+          "assetRef",
+          "methodRef",
+          "applicabilityRef",
+          "observationModelRef",
+          "decisionModelInputRef",
+          "earliestStartHour",
+          "durationHours",
+          "resultLatencyHours",
+          "resourceRequirements",
+          "accessPrerequisiteRefs",
+          "authorityRequirementRef",
+          "independenceGroupRef"
+        ],
+        "properties": {
+          "inspectionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "assetRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "applicabilityRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "observationModelRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "decisionModelInputRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "earliestStartHour": {
+            "type": "number",
+            "minimum": 0
+          },
+          "durationHours": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "resultLatencyHours": {
+            "type": "number",
+            "minimum": 0
+          },
+          "costRef": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resourceRequirements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "resourceRef",
+                "units"
+              ],
+              "properties": {
+                "resourceRef": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "units": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          },
+          "accessPrerequisiteRefs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "authorityRequirementRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "independenceGroupRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "failureOutcomeRef": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "recoveryActions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "actionId",
+          "actionType",
+          "assetRef",
+          "requiredEvidenceRefs",
+          "resourceRequirements",
+          "estimatedEffortHours",
+          "earliestStartHour",
+          "authorityRequirementRef",
+          "serviceModelInputRef"
+        ],
+        "properties": {
+          "actionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "actionType": {
+            "enum": [
+              "preserve",
+              "repair_proposal",
+              "replace_proposal",
+              "reconfigure_proposal",
+              "defer",
+              "abstain"
+            ]
+          },
+          "assetRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "requiredEvidenceRefs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "resourceRequirements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "resourceRef",
+                "units"
+              ],
+              "properties": {
+                "resourceRef": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "units": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          },
+          "estimatedEffortHours": {
+            "type": "number",
+            "minimum": 0
+          },
+          "earliestStartHour": {
+            "type": "number",
+            "minimum": 0
+          },
+          "authorityRequirementRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "serviceModelInputRef": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "resourceState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "portfolioRef",
+        "asOfManifestRef",
+        "asOfManifestSha256"
+      ],
+      "properties": {
+        "portfolioRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asOfManifestRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asOfManifestSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "references": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "diagnosisModelRef",
+        "valueOfInformationRequestRef",
+        "executionLedgerRef",
+        "resourcePortfolioRef",
+        "serviceOutcomeRef",
+        "impactClosureRef",
+        "authorityPolicyRef"
+      ],
+      "properties": {
+        "diagnosisModelRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "valueOfInformationRequestRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executionLedgerRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resourcePortfolioRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serviceOutcomeRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "impactClosureRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authorityPolicyRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "policyArms": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "no_new_inspection",
+          "fixed_sequence",
+          "information_gain_greedy",
+          "one_step_net_voi",
+          "resource_aware_voi",
+          "voi_selective_repair",
+          "robust_interval",
+          "bounded_exact_oracle"
+        ]
+      }
+    }
+  }
+}
