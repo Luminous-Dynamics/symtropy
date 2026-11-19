@@ -60,6 +60,9 @@ pub fn next_down(value: f64) -> f64 {
     if value.is_nan() || value == f64::NEG_INFINITY {
         return value;
     }
+    if value == f64::INFINITY {
+        return f64::MAX;
+    }
     if value == 0.0 {
         return -f64::from_bits(1);
     }
@@ -72,6 +75,9 @@ pub fn next_down(value: f64) -> f64 {
 pub fn next_up(value: f64) -> f64 {
     if value.is_nan() || value == f64::INFINITY {
         return value;
+    }
+    if value == f64::NEG_INFINITY {
+        return -f64::MAX;
     }
     if value == 0.0 {
         return f64::from_bits(1);
@@ -289,6 +295,16 @@ mod tests {
         assert!(product.contains(0.02));
         let quotient = product.div(a).unwrap();
         assert!(quotient.contains(0.2));
+    }
+
+    #[test]
+    fn adjacent_float_helpers_handle_signed_zero_and_infinities() {
+        assert!(next_down(0.0).is_sign_negative());
+        assert!(next_up(0.0).is_sign_positive());
+        assert_eq!(next_down(f64::INFINITY), f64::MAX);
+        assert_eq!(next_up(f64::NEG_INFINITY), -f64::MAX);
+        assert_eq!(next_up(f64::INFINITY), f64::INFINITY);
+        assert_eq!(next_down(f64::NEG_INFINITY), f64::NEG_INFINITY);
     }
 
     #[test]
