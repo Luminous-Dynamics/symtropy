@@ -592,4 +592,94 @@ mod tests {
             Err(BlendError::EmptyIdentity("operator_id"))
         );
     }
+
+    #[test]
+    fn four_cell_periodic_assembly_matches_independent_face_oracle() {
+        // Four periodic cells, each face oriented from cell i to cell (i+1)%4.
+        // Expert weights vary by face so this exercises a spatially varying
+        // composition field rather than one global constant blend.
+        let expert_a = [
+            [1.0, -2.0],
+            [3.0, 0.5],
+            [-1.0, 4.0],
+            [2.0, 1.5],
+        ];
+        let expert_b = [
+            [5.0, 2.0],
+            [-2.0, 3.0],
+            [4.0, -1.0],
+            [0.0, 2.5],
+        ];
+        let weights_a = [0.2, 0.4, 0.7, 0.1];
+        let face_measure = 1.5_f64;
+        let mut reports = Vec::new();
+
+        for face in 0..4 {
+            let mut req = request(vec![
+                candidate("expert-b", 1.0 - weights_a[face], expert_b[face].to_vec()),
+                candidate("expert-a", weights_a[face], expert_a[face].to_vec()),
+            ]);
+            req.face_id = format!("periodic-face-{face}");
+            req.left_cell_id = format!("cell-{face}");
+            req.right_cell_id = format!("cell-{}", (face + 1) % 4);
+            req.face_measure = face_measure;
+            reports.push(compose_shared_face_flux(&req).expect("face composition"));
+        }
+
+        // Production-path assembly uses the per-face receipt transfers.
+        let mut assembled = [[0.0_f64; 2]; 4];
+        for report in &reports {
+            let left: usize = report.left_cell_id.trim_start_matches("cell-").parse().unwrap();
+            let right: usize = report.right_cell_id.trim_start_matches("cell-").parse().unwrap();
+            for component in 0..2 {
+                assembled[left][component] += report.left_integrated_update[component];
+                assembled[right][component] += report.right_integrated_update[component];
+            }
+        }
+
+        // Independent reference: compute weighted face values directly from
+        // fixture data, then use the periodic incoming-minus-outgoing stencil.
+        // This deliberately does not call the production sum/assembly helpers.
+        let mut expected_face_flux = [[0.0_f64; 2]; 4];
+        for face in 0..4 {
+            for component in 0..2 {
+                expected_face_flux[face][component] =
+                    weights_a[face] * expert_a[face][component]
+                    + (1.0 - weights_a[face]) * expert_b[face][component];
+            }
+        }
+
+        let mut expected_cell_update = [[0.0_f64; 2]; 4];
+        for cell in 0..4 {
+            let incoming_face = (cell + 3) % 4;
+            let outgoing_face = cell;
+            for component in 0..2 {
+                expected_cell_update[cell][component] = face_measure
+                    * (expected_face_flux[incoming_face][component]
+                        - expected_face_flux[outgoing_face][component]);
+            }
+        }
+
+        for cell in 0..4 {
+            for component in 0..2 {
+                assert!(
+                    (assembled[cell][component] - expected_cell_update[cell][component]).abs()
+                        < 1.0e-12
+                );
+            }
+        }
+
+        // Periodicity makes every face internal: total integrated transfer
+        // across all cells must cancel component by component.
+        for component in 0..2 {
+            let actual_total: f64 = assembled.iter().map(|cell| cell[component]).sum();
+            let expected_total: f64 = expected_cell_update
+                .iter()
+                .map(|cell| cell[component])
+                .sum();
+            assert!(actual_total.abs() < 1.0e-12);
+            assert!(expected_total.abs() < 1.0e-12);
+        }
+    }
+
 }
