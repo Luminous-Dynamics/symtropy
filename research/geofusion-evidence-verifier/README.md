@@ -22,6 +22,10 @@ This is a deliberately bounded Rust runtime slice. It is not a full Draft 2020-1
 8. Compares the recomputed result to the declared evaluation instead of trusting a prefilled `within_tolerance: true`.
 9. Reports byte integrity and allocation closure as separate outputs. A byte-integrity pass with an unbalanced allocation is not a qualified receipt.
 
+## Schema validation
+
+The CI workflow uses `check-jsonschema==0.39.0` **as a CI-only tool** to validate the three Draft 2020-12 schemas against their declared metaschemas, check the positive source/evidence/allocation fixtures, and assert that the null-asset negative control is rejected. The runtime library and CLI remain Rust-only; the external CLI is not a production dependency.
+
 ## Run
 
 From the repository root:
@@ -53,7 +57,8 @@ The check is **batch-scoped**. It is not a persistent cross-campaign registry, a
 
 ## Explicit limitations
 
-- Only `source_interval` envelopes and source-allocation receipts are currently supported; the batch API prevents duplicate interval reuse within one supplied batch.
+- The runtime API currently supports source-interval envelopes and source-allocation receipts; the checked raw payload JSON Schema is the first heat-only profile. Electrical raw-payload profiles are not yet defined.
+- The batch API prevents duplicate interval reuse within one supplied batch.
 - The verifier performs runtime semantic checks on the fields it consumes; it does not execute the complete JSON Schema Draft 2020-12 specification.
 - It cannot detect reuse of the same source interval across separately verified batches; a persistent cross-campaign ledger is not implemented.
 - For measured/audited classes it requires the declared measurement and calibration fields; it does not authenticate certificates or prove that a calibration covers the observation interval.
