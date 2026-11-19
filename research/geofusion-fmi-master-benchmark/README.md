@@ -38,7 +38,8 @@ Sources:
 | OMSimulator `oms_mav2` | Variable-step v2 master with enhanced error estimation | Direct master baseline |
 | FMPy | FMI 3.0 Co-Simulation / Model Exchange importer and simulation harness | Importer interoperability reference, not a like-for-like master algorithm |
 | FMI Reference FMUs / `fmusim` | Standard reference models and basic import validation | Conformance/smoke layer |
-| FMU-Check | Static FMU structural validation | Static preflight only; not dynamic qualification |\n| SSP 2.0.1 | System topology / parameterization package | System-structure portability reference; not a master algorithm |
+| FMU-Check | Static FMU structural validation | Static preflight only; not dynamic qualification |
+| SSP 2.0.1 | System topology / parameterization package | System-structure portability reference; not a master algorithm |
 | VDMCheck | Formal-model-based FMI behavior checks | Complementary semantic validation where compatible |
 
 OpenModelica documentation lists the three OMSimulator CS master methods above. The current OpenModelica User Guide reports FMI 3.0.2 support as experimental. Therefore:
@@ -68,7 +69,8 @@ Passing one layer does not imply the next. In particular, FMI protocol complianc
 Every campaign must freeze and publish:
 - exact FMU binaries, source revision and cryptographic digest;
 - FMU licenses and redistribution status;
-- FMI version, interface type and every relevant capability flag;\n- exact SSP 2.0.1 package, schema version, component topology, connections, unit definitions and parameter sets;
+- FMI version, interface type and every relevant capability flag;
+- exact SSP 2.0.1 package, schema version, component topology, connections, unit definitions and parameter sets;
 - importer/master executable, source commit, build flags and platform;
 - component model revisions, parameter sets, initial conditions and units;
 - graph topology, port mapping, carrier and physical boundary IDs;
@@ -93,7 +95,8 @@ A result is not comparable when FMU features, sampling schedules, accuracy targe
 | Normal successful-step time deviation | Correct actual-time chaining | Next step incorrectly starts at requested time |
 | Reject, retry, rollback, restart | State restoration and exactly-once commit | Changed retry state / duplicate energy |
 | Multi-rate components | Heterogeneous clock maps and synchronization | Non-integral conversion, drift, stale clock |
-| Evidence corruption | Provenance and fail-closed behavior | Wrong model digest, stale boundary, bad unit |\n| System-structure round trip | SSP cross-tool exchange | Missing component, rewired connector, changed unit or parameter |
+| Evidence corruption | Provenance and fail-closed behavior | Wrong model digest, stale boundary, bad unit |
+| System-structure round trip | SSP cross-tool exchange | Missing component, rewired connector, changed unit or parameter |
 | Unsupported feature | Honest capability handling | Silent fallback or unreported emulation |
 
 Initial v0.1 trace tests are synthetic and bounded. Event Mode, Intermediate Update, Scheduled Execution and full FMU rollback remain explicit expansion tracks.
@@ -139,7 +142,8 @@ Hard gates:
 - 100% of injected wrong-unit, wrong-boundary, stale-revision, duplicate-allocation, clock and step-order faults are detected or explicitly marked not evaluable;
 - every accepted term binds to its exact carrier, physical boundary, source interval and model revision;
 - no silent fallback, extrapolation, status downgrade or capability emulation;
-- deterministic receipts for deterministic fixed inputs/builds;\n- SSP structural round-trip preserves 100% of declared components, connections, parameter values and unit semantics across the tested tools;
+- deterministic receipts for deterministic fixed inputs/builds;
+- SSP structural round-trip preserves 100% of declared components, connections, parameter values and unit semantics across the tested tools;
 - failures, timeouts and unsupported cases remain in the published denominator.
 
 Stretch objectives (not achieved results):
@@ -156,7 +160,8 @@ A faster result that is less accurate, less conservative, less repeatable or les
 - [#6198 — FMI trace verifier](https://github.com/Luminous-Dynamics/symtropy/pull/6198): rational clock mapping, step outcomes, retry lineage and common barriers.
 - [#6154 — typed GeoFusion energy contracts](https://github.com/Luminous-Dynamics/symtropy/pull/6154): typed carriers, source allocation and first-law arithmetic.
 - [#6143 — GeoFusion architecture and fixtures](https://github.com/Luminous-Dynamics/symtropy/pull/6143): system boundaries and analytic benchmark framing.
-- [#5871 — generic multirate co-simulation algorithm tournament](https://github.com/Luminous-Dynamics/symtropy/issues/5871): reuse algorithm taxonomy; do not create a parallel generic framework.\n- [#1467 — federated co-simulation boundary](https://github.com/Luminous-Dynamics/symtropy/issues/1467): existing FMI 3.0.2 + SSP 2.0.1 architecture owner; this benchmark consumes its composition boundary.
+- [#5871 — generic multirate co-simulation algorithm tournament](https://github.com/Luminous-Dynamics/symtropy/issues/5871): reuse algorithm taxonomy; do not create a parallel generic framework.
+- [#1467 — federated co-simulation boundary](https://github.com/Luminous-Dynamics/symtropy/issues/1467): existing FMI 3.0.2 + SSP 2.0.1 architecture owner; this benchmark consumes its composition boundary.
 - [#3173 — conservative shared-flux coupling reference](https://github.com/Luminous-Dynamics/symtropy/pull/3173): reuse its conservation and stale-port negative-control lessons.
 
 ## 10. Claim ceiling
