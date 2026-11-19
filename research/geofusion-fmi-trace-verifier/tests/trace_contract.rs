@@ -24,6 +24,7 @@ fn profile(
             nanoseconds_per_tick_denominator: ns_den,
         },
         initial_local_tick: 0,
+        initial_state_digest: format!("state:{id}:0"),
         early_return_allowed: true,
         event_mode_enabled: false,
     }
@@ -427,6 +428,15 @@ fn frozen_adversarial_corpus() {
             "rejected_state_changed" => {
                 trace.attempts[4].state_after_digest = "state:mutated".to_owned();
             }
+            "retry_state_substitution" => {
+                trace.attempts[5].state_before_digest = "state:substituted".to_owned();
+            }
+            "committed_state_discontinuity" => {
+                trace.attempts[2].state_before_digest = "state:unrelated".to_owned();
+            }
+            "initial_state_mismatch" => {
+                trace.attempts[0].state_before_digest = "state:unrelated".to_owned();
+            }
             "early_return_without_permission" => {
                 trace.federates[0].early_return_allowed = false;
             }
@@ -488,5 +498,5 @@ fn frozen_adversarial_corpus() {
         assert_code(&trace, expected);
     }
 
-    assert_eq!(seen.len(), 26);
+    assert_eq!(seen.len(), 29);
 }
