@@ -6,3 +6,6 @@ publish = false
 
 [lib]
 path = "src/lib.rs"
+
+# Keep this dependency-free research crate independent of the root workspace.
+[workspace]
