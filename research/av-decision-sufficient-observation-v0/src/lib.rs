@@ -319,7 +319,7 @@ fn audit_oracle_references(
     agent_episodes: &[Value],
     oracle_episodes: &[Value],
 ) -> Result<(), String> {
-    for (agent_episode, oracle_episode) in agent_episodes.iter().zip(oracle_episodes.iter()) {
+    for (agent_episode, oracle_episode) in agent_episodes.iter().zip(oracle_episodes) {
         let episode_id = string(required(agent_episode, "episode_id")?, "agent.episode_id")?;
         let realized_hypothesis = string(
             required(oracle_episode, "realized_hypothesis_id")?,
@@ -487,21 +487,16 @@ fn check_episode_ids(
     {
         return Err("agent/oracle/expected episode counts differ".to_owned());
     }
-    for index in 0..agent_episodes.len() {
-        let agent_id = string(
-            required(&agent_episodes[index], "episode_id")?,
-            "agent.episode_id",
-        )?;
-        let oracle_id = string(
-            required(&oracle_episodes[index], "episode_id")?,
-            "oracle.episode_id",
-        )?;
-        let expected_id = string(
-            required(&expected_episodes[index], "episode_id")?,
-            "expected.episode_id",
-        )?;
+    for ((agent_episode, oracle_episode), expected_episode) in agent_episodes
+        .iter()
+        .zip(oracle_episodes)
+        .zip(expected_episodes)
+    {
+        let agent_id = string(required(agent_episode, "episode_id")?, "agent.episode_id")?;
+        let oracle_id = string(required(oracle_episode, "episode_id")?, "oracle.episode_id")?;
+        let expected_id = string(required(expected_episode, "episode_id")?, "expected.episode_id")?;
         if agent_id != oracle_id || agent_id != expected_id {
-            return Err(format!("episode ID mismatch at row {index}: {agent_id:?}"));
+            return Err(format!("episode ID mismatch: {agent_id:?}"));
         }
     }
     Ok(())
@@ -638,7 +633,7 @@ pub fn audit_fixtures(agent: &Value, oracle: &Value, expected: &Value) -> Result
     let robust_stop = &agent_episodes[1];
     let (ids, priors, decisions, losses) = parse_decision_problem(robust_stop)?;
     let mut per_hypothesis_actions = Vec::with_capacity(ids.len());
-    for index in 0..ids.len() {
+    for (index, _) in ids.iter().enumerate() {
         let mut point_prior = vec![0.0; ids.len()];
         point_prior[index] = 1.0;
         per_hypothesis_actions.push(best_decision(&point_prior, &losses, &decisions)?.0);
@@ -859,9 +854,10 @@ mod tests {
     fn incomplete_outcome_partition_must_remain_out_of_quantified_lane() {
         let (agent, oracle, expected) = fixtures();
         let report = audit_fixtures(&agent, &oracle, &expected).unwrap();
-        assert_eq!(
-            report["verified"]["uncalibrated_open_world_incompleteness"],
-            true
+        assert!(
+            report["verified"]["uncalibrated_open_world_incompleteness"]
+                .as_bool()
+                .unwrap()
         );
         assert_eq!(
             agent["episodes"][6]["public_belief"]["status"].as_str(),
@@ -873,8 +869,8 @@ mod tests {
     fn permission_and_budget_controls_are_separate_gates() {
         let (agent, oracle, expected) = fixtures();
         let report = audit_fixtures(&agent, &oracle, &expected).unwrap();
-        assert_eq!(report["verified"]["permission_denial"], true);
-        assert_eq!(report["verified"]["hard_budget_exclusion"], true);
+        assert!(report["verified"]["permission_denial"].as_bool().unwrap());
+        assert!(report["verified"]["hard_budget_exclusion"].as_bool().unwrap());
         assert_eq!(
             agent["episodes"][4]["candidate_requests"][0]["permission"].as_str(),
             Some("denied")
