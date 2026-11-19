@@ -547,7 +547,7 @@
           ]
         }
       ],
-      "scenario_sha256": "62bb24a497a8143fb0876a428c18c641767e86179e7d486c8db66d4c29a26a4e"
+      "scenario_sha256": "0509e290edf0f662f50c69f353a5ca06dc16daeed8f9fe6249fba3500d317588"
     },
     {
       "scenario_id": "scenario-common-cause-generation-watermaker-outage",
@@ -951,7 +951,7 @@
           ]
         }
       ],
-      "scenario_sha256": "ddb665debeb4909ca0b66fa08efd6afc3565815cbcd601a4c4ce7220d5a29c2c"
+      "scenario_sha256": "32bbef790b3aa0e85f2b93ec073cf09f167af46b768d31aff825f397c03e89ac"
     },
     {
       "scenario_id": "scenario-main-generation-outage",
@@ -1349,7 +1349,7 @@
           ]
         }
       ],
-      "scenario_sha256": "e09d47c2538173bd68030583f08303b63b8d87288277f26b1a90d6ce2bad9399"
+      "scenario_sha256": "f74dc0af08be274b405753349cbf499258d4841c18e953bd076078171af2331d"
     },
     {
       "scenario_id": "scenario-nominal",
@@ -1740,7 +1740,7 @@
           ]
         }
       ],
-      "scenario_sha256": "65efa53d5b17c11d306a8d1bae582096cbc1af0c8da788413e1658379b43ae1d"
+      "scenario_sha256": "302bc7a072d4c8baad5c23a6a237696ff506c615c559b932b51bcd045b302ccc"
     },
     {
       "scenario_id": "scenario-watermaker-outage",
@@ -2138,7 +2138,7 @@
           ]
         }
       ],
-      "scenario_sha256": "86974bbeefc21594097e4be537a06bf500994c3f9d6762bc55c0058c2c94e169"
+      "scenario_sha256": "08e96b93d65b37c2797ead25cad0bf4e83afa14d7cff71b0f95a69346646987d"
     }
   ]
 }
