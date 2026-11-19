@@ -1620,9 +1620,10 @@ mod tests {
         });
         case.baseline_commitments[0].state = CommitmentState::InProgress;
         case.proposed_commitments[0].state = CommitmentState::InProgress;
+        case.baseline_commitments[0].version = 1;
+        case.proposed_commitments[0].version = 2;
         case.baseline_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
         case.proposed_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
-        case.baseline_commitments[0].frozen_event_ids.push("repair-progress".to_string());
         case.proposed_commitments[0].frozen_event_ids.push("repair-progress".to_string());
         case.planned_segments.clear();
         assert!(validate(&case).is_err());
