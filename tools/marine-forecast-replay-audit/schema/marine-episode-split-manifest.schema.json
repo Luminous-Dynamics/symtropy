@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:marine-episode-split-manifest:0.1.0",
+  "title": "Marine Forecast Replay Grouped Episode Split Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "manifest_id",
+    "record_status",
+    "claim_ceiling",
+    "dataset_id",
+    "dataset_manifest_sha256",
+    "grouping_unit",
+    "split_algorithm",
+    "split_seed",
+    "folds",
+    "episodes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "manifest_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "record_status": {
+      "enum": [
+        "synthetic",
+        "shadow_replay",
+        "measured_campaign",
+        "published_reproduction"
+      ]
+    },
+    "claim_ceiling": {
+      "const": "holdout_partition_integrity_only"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dataset_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "grouping_unit": {
+      "enum": [
+        "whole_voyage",
+        "weather_event"
+      ]
+    },
+    "split_algorithm": {
+      "type": "string",
+      "minLength": 1
+    },
+    "split_seed": {
+      "type": "string",
+      "minLength": 1
+    },
+    "folds": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "development",
+          "validation",
+          "test"
+        ]
+      }
+    },
+    "episodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "episode_id",
+          "fold",
+          "voyage_id",
+          "weather_event_id",
+          "replay_bundle_sha256",
+          "craft_configuration_sha256",
+          "start_time",
+          "end_time",
+          "environment_strata",
+          "decision_samples"
+        ],
+        "properties": {
+          "episode_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fold": {
+            "enum": [
+              "development",
+              "validation",
+              "test"
+            ]
+          },
+          "voyage_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "weather_event_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "replay_bundle_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "craft_configuration_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "environment_strata": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "decision_samples": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "decision_id",
+                "decision_cutoff",
+                "target_valid_time"
+              ],
+              "properties": {
+                "decision_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "decision_cutoff": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "target_valid_time": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "record_status": {
+            "const": "synthetic"
+          }
+        },
+        "required": [
+          "record_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "episodes": {
+            "items": {
+              "properties": {
+                "replay_bundle_sha256": {
+                  "pattern": "^[a-fA-F0-9]{64}$"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
