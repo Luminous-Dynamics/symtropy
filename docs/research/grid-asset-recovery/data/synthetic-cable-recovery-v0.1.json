@@ -1,0 +1,272 @@
+{
+  "schemaVersion": "0.1.0",
+  "caseId": "SYNTHETIC-HVDC-SUBSEA-CABLE-REPAIR-01",
+  "caseMaturity": "synthetic_fixture",
+  "serviceBoundary": {
+    "serviceId": "subsea-hvdc-export-transfer",
+    "serviceUnit": "MW",
+    "energyUnit": "MWh"
+  },
+  "assets": [
+    {
+      "assetId": "CABLE-HVDC-01",
+      "assetClass": "submarine_hvdc_cable",
+      "variantId": "HVDC-CABLE-525KV-A",
+      "interfaceProfileId": "CABLE-IFACE-A",
+      "locationId": "SUBSEA-FAULT-ZONE"
+    }
+  ],
+  "parts": [
+    {
+      "partId": "CABLE-REPAIR-KIT-A",
+      "partClass": "submarine_hvdc_cable",
+      "variantId": "HVDC-CABLE-525KV-A",
+      "approvedInterfaceProfiles": [
+        "CABLE-IFACE-A"
+      ],
+      "evidenceRecordId": "EV-CABLE-SYNTH"
+    }
+  ],
+  "depots": [
+    {
+      "depotId": "PORT-DEPOT",
+      "locationId": "COASTAL-PORT",
+      "inventory": [
+        {
+          "partId": "CABLE-REPAIR-KIT-A",
+          "quantityOnHand": 1,
+          "quantityReserved": 0,
+          "quantityServiceable": 1
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "resourceId": "HEAVY-HAULER",
+      "resourceType": "cable-spool-heavy-transport",
+      "availableUnits": 1,
+      "calendarPeriodHours": 24,
+      "availabilityWindows": [
+        {
+          "startHour": 0,
+          "endHour": 24
+        }
+      ]
+    },
+    {
+      "resourceId": "MARINE-OPS-CREW",
+      "resourceType": "marine-operations-mobilisation-crew",
+      "availableUnits": 1,
+      "calendarPeriodHours": 24,
+      "availabilityWindows": [
+        {
+          "startHour": 8,
+          "endHour": 20
+        }
+      ]
+    },
+    {
+      "resourceId": "CABLE-JOINTING-TEAM",
+      "resourceType": "qualified-hvdc-cable-jointing-team",
+      "availableUnits": 1,
+      "calendarPeriodHours": 24,
+      "availabilityWindows": [
+        {
+          "startHour": 8,
+          "endHour": 20
+        }
+      ]
+    },
+    {
+      "resourceId": "CABLE-LAY-VESSEL",
+      "resourceType": "cable-laying-repair-vessel",
+      "availableUnits": 1,
+      "calendarPeriodHours": 24,
+      "availabilityWindows": [
+        {
+          "startHour": 8,
+          "endHour": 20
+        }
+      ]
+    },
+    {
+      "resourceId": "HEAVY-CRANE",
+      "resourceType": "heavy-lift-crane",
+      "availableUnits": 1,
+      "calendarPeriodHours": 24,
+      "availabilityWindows": [
+        {
+          "startHour": 8,
+          "endHour": 20
+        }
+      ]
+    },
+    {
+      "resourceId": "HVDC-TEST-RIG",
+      "resourceType": "hvdc-cable-commissioning-test-equipment",
+      "availableUnits": 1,
+      "calendarPeriodHours": 24,
+      "availabilityWindows": [
+        {
+          "startHour": 8,
+          "endHour": 20
+        }
+      ]
+    }
+  ],
+  "logisticsRoutes": [
+    {
+      "routeId": "PORT-TO-SUBSEA-FAULT",
+      "fromLocationId": "COASTAL-PORT",
+      "toLocationId": "SUBSEA-FAULT-ZONE",
+      "transitHours": 18,
+      "maxCargoKg": 250000
+    }
+  ],
+  "evidenceRecords": [
+    {
+      "evidenceRecordId": "EV-CABLE-SYNTH",
+      "evidenceClass": "synthetic_fixture",
+      "description": "Synthetic cable repair-kit compatibility profile; no real HVDC cable accessory or vessel qualification.",
+      "sourceUri": null
+    }
+  ],
+  "events": [
+    {
+      "eventId": "CABLE-OUTAGE-001",
+      "assetId": "CABLE-HVDC-01",
+      "startHour": 24,
+      "failureMode": "synthetic_subsea_cable_fault",
+      "firmCapacityLostMw": 350,
+      "selectedPlan": {
+        "planId": "CABLE-RECOVERY-001",
+        "partSource": {
+          "kind": "depot_stock",
+          "depotId": "PORT-DEPOT",
+          "partId": "CABLE-REPAIR-KIT-A",
+          "quantity": 1
+        },
+        "logisticsRouteId": "PORT-TO-SUBSEA-FAULT",
+        "transportMassKg": 220000,
+        "alternativeFirmCapacityMw": 50,
+        "claimedRestorationHours": 78,
+        "expectedUnservedEnergyMwh": 23400,
+        "tasks": [
+          {
+            "taskId": "detect",
+            "stage": "detect_and_isolate",
+            "dependsOn": [],
+            "durationHours": 2,
+            "resourceRequirements": []
+          },
+          {
+            "taskId": "fault-locate",
+            "stage": "diagnose",
+            "dependsOn": [
+              "detect"
+            ],
+            "durationHours": 8,
+            "resourceRequirements": []
+          },
+          {
+            "taskId": "source-kit",
+            "stage": "source_part",
+            "dependsOn": [
+              "fault-locate"
+            ],
+            "durationHours": 2,
+            "resourceRequirements": []
+          },
+          {
+            "taskId": "haul-to-port",
+            "stage": "transport",
+            "dependsOn": [
+              "source-kit"
+            ],
+            "durationHours": 18,
+            "resourceRequirements": [
+              {
+                "resourceId": "HEAVY-HAULER",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "taskId": "marine-mobilise",
+            "stage": "crew_mobilise",
+            "dependsOn": [
+              "fault-locate"
+            ],
+            "durationHours": 4,
+            "resourceRequirements": [
+              {
+                "resourceId": "MARINE-OPS-CREW",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "taskId": "repair-shift-1",
+            "stage": "repair_or_replace",
+            "dependsOn": [
+              "haul-to-port",
+              "marine-mobilise"
+            ],
+            "durationHours": 12,
+            "resourceRequirements": [
+              {
+                "resourceId": "CABLE-JOINTING-TEAM",
+                "units": 1
+              },
+              {
+                "resourceId": "CABLE-LAY-VESSEL",
+                "units": 1
+              },
+              {
+                "resourceId": "HEAVY-CRANE",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "taskId": "repair-shift-2",
+            "stage": "repair_or_replace",
+            "dependsOn": [
+              "repair-shift-1"
+            ],
+            "durationHours": 12,
+            "resourceRequirements": [
+              {
+                "resourceId": "CABLE-JOINTING-TEAM",
+                "units": 1
+              },
+              {
+                "resourceId": "CABLE-LAY-VESSEL",
+                "units": 1
+              },
+              {
+                "resourceId": "HEAVY-CRANE",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "taskId": "test-and-return",
+            "stage": "test_and_commission",
+            "dependsOn": [
+              "repair-shift-2"
+            ],
+            "durationHours": 6,
+            "resourceRequirements": [
+              {
+                "resourceId": "HVDC-TEST-RIG",
+                "units": 1
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
