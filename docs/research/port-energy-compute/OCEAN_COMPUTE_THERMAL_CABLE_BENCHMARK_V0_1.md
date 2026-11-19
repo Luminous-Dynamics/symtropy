@@ -104,6 +104,21 @@ Measure:
 
 A model-generated route diversity label does not establish independence. Unknown common failure domains remain unknown.
 
+## First executable slice — 0D thermal balance verifier
+
+A standalone, std-only Rust package is included in this research PR at `tools/ocean-thermal-balance-verifier/`.
+
+It checks one declared steady-state interval:
+- IT heat load = direct heat transferred to seawater + chiller evaporator heat;
+- seawater heat pickup = mass flow × specific heat × intake/discharge temperature difference;
+- expected seawater heat rejection = direct heat + chiller evaporator heat + chiller electric input + declared pump-heat fraction + other declared heat;
+- cooling electric energy includes chiller, water-loop pump and explicitly supplied other cooling auxiliaries;
+- optional site-supplied discharge-temperature and temperature-rise limits are tested without hardcoding a universal marine limit.
+
+The package contains three synthetic reference modes (direct seawater, partial economiser + chiller, and chiller-only) and 17 authored unit tests. The synthetic examples were independently recalculated in Python; the three reference heat-balance residuals are zero. Rust tests have not been executed here because Cargo/rustc are unavailable.
+
+The verifier assumes no thermal-storage change over the interval, no unlisted heat path, and synchronized input boundaries. It is strictly a 0D arithmetic sanity check; it does not model heat-exchanger performance, intake/discharge hydraulics, temperature stratification, current-driven recirculation, plume dispersion, entrainment, ecological impacts or legal limits.
+
 ## Acceptance gates
 
 - Every site-specific temperature, depth, flow, bathymetry, cable, seabed, habitat, repair and environmental claim has source, date, units, evidence class, uncertainty, rights and applicability.
