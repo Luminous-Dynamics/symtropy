@@ -302,7 +302,14 @@ pub fn schedule_with_policy(
                 || !exception.end_hour.is_finite()
                 || exception.start_hour < 0.0
                 || exception.end_hour <= exception.start_hour
-                || exception.exception_type.trim().is_empty()
+                || !matches!(
+                    exception.exception_type.as_str(),
+                    "public_holiday"
+                        | "site_access_closed"
+                        | "planned_maintenance"
+                        | "workforce_training"
+                        | "other"
+                )
                 || exception.reason.trim().is_empty()
             {
                 errors.push(format!("resource {resource_id} has invalid calendar exception"));
@@ -1263,6 +1270,23 @@ mod tests {
         let result = schedule(&[task], &profiles).expect("next eligible workday should exist");
         assert_eq!(result[0].start_hour, 200.0);
         assert_eq!(result[0].end_hour, 202.0);
+    }
+
+    #[test]
+    fn rejects_unknown_calendar_exception_type() {
+        let task = spec("E1", "repair", &[], 0.0, 2.0, Some("crew"), 1);
+        let mut crew = profile(1, 24.0, &[(8.0, 17.0)]);
+        crew.calendar_exceptions.push(ResourceCalendarException {
+            exception_id: "UNKNOWN-EXCEPTION".to_string(),
+            start_hour: 24.0,
+            end_hour: 48.0,
+            exception_type: "some_other_unknown_type".to_string(),
+            reason: "test".to_string(),
+        });
+        let profiles = BTreeMap::from([("crew".to_string(), crew)]);
+        assert!(schedule(&[task], &profiles)
+            .unwrap_err()[0]
+            .contains("invalid calendar exception"));
     }
 
     #[test]
