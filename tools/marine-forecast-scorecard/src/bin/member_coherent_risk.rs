@@ -97,12 +97,18 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         errors.push("forecast source, cycle and availability receipt identity are required".to_owned());
     }
     match (
+        parse_time(string_at(forecast, "forecast_issue_time")),
         parse_time(string_at(forecast, "first_available_at")),
         parse_time(string_at(forecast, "decision_cutoff")),
     ) {
-        (Some(available), Some(cutoff)) if available <= cutoff => {}
-        (Some(_), Some(_)) => blockers.push("forecast ensemble was first available after the decision cutoff".to_owned()),
-        _ => errors.push("forecast first_available_at and decision_cutoff must be RFC3339 timestamps".to_owned()),
+        (Some(issue), Some(available), Some(cutoff)) if issue <= available && available <= cutoff => {}
+        (Some(issue), Some(available), Some(_)) if available < issue => {
+            errors.push("forecast first availability precedes its issue time".to_owned());
+        }
+        (Some(_), Some(_), Some(_)) => {
+            blockers.push("forecast ensemble was first available after the decision cutoff".to_owned());
+        }
+        _ => errors.push("forecast issue, first_available_at and decision_cutoff must be RFC3339 timestamps".to_owned()),
     }
 
     let declared_members = forecast.get("members").and_then(Value::as_array);
