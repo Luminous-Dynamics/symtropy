@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/shipyard-crane-readiness-conformance-v0.1.schema.json",
+  "title": "Shipyard Crane Readiness Conformance V0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "vector_set_id",
+    "status",
+    "description",
+    "claim_ceiling",
+    "vectors"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "shipyard-crane-readiness-v0.1"
+    },
+    "vector_set_id": {
+      "const": "SHIPYARD-CRANE-READINESS-CONFORMANCE-V0.1"
+    },
+    "status": {
+      "const": "FROZEN_SYNTHETIC_TEST_CONTRACT_NOT_OPERATIONAL_QUALIFICATION"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "vectors": {
+      "type": "array",
+      "minItems": 15,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "mode",
+          "test_name",
+          "expected_disposition",
+          "required_diagnostic_codes",
+          "assertion",
+          "synthetic_only"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^CRR-[A-Z]+-[0-9]{3}$"
+          },
+          "mode": {
+            "enum": [
+              "evaluation",
+              "multi_case",
+              "metamorphic"
+            ]
+          },
+          "test_name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]+$"
+          },
+          "expected_disposition": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "ready_for_human_review",
+              "rejected",
+              "indeterminate",
+              null
+            ]
+          },
+          "expected_dispositions": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "ready_for_human_review",
+                "rejected",
+                "indeterminate"
+              ]
+            },
+            "minItems": 2,
+            "uniqueItems": true
+          },
+          "required_diagnostic_codes": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]+$"
+            }
+          },
+          "assertion": {
+            "type": "string",
+            "minLength": 1
+          },
+          "synthetic_only": {
+            "const": true
+          }
+        }
+      }
+    }
+  }
+}
