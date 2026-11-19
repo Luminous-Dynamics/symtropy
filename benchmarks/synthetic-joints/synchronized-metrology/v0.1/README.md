@@ -61,7 +61,7 @@ A channel record must include:
 - bound representation (ValidatedBound, not standard/expanded uncertainty);
 - calibration status, sensor serial, certificate, reference standard and chain digest;
 - traceability status and evidence class;
-- measurement source, method, system-boundary and operating-condition digests;
+- measurement source, method, raw-trace digest, system-boundary and operating-condition digests;
 - common reference-clock identity and clock-mapping digest;
 - reference instant, estimated sample time offset and clock-offset uncertainty;
 - timestamp-jitter bound;
@@ -105,14 +105,14 @@ tau_upper * omega_lower
 tau_upper * omega_upper
 \`\`\`
 
-The minimum and maximum of those four values give the conservative product interval under the declared independent component-wise bounds. This handles negative values and sign crossings without relying on nominal centres.
+The minimum and maximum of those four values give the conservative product interval over the Cartesian product of the two declared component intervals. This is deterministic interval arithmetic, not a probabilistic independence assumption. Known dependence could support a tighter joint set, but the rectangular interval remains an enclosure when only marginal hard bounds are available. It handles negative values and sign crossings without relying on nominal centres.
 
 The result reports:
 - pre-time-alignment power interval;
 - time-aligned power interval;
 - maximum additional outward power bound contributed by timing;
 - per-channel time-skew and value expansion;
-- calibration, clock, system-boundary and evidence provenance.
+- calibration certificate/reference standard/chain, clock mapping, raw-trace, source/method, slew-bound, system-boundary and evidence provenance.
 
 This is a deterministic bounded calculation. It does not claim a Gaussian distribution, a 95% confidence interval, or a GUM Monte Carlo result. Unknown dependence/common-mode timing error is not automatically handled; it must be represented in the supplied bounds or a later covariance model.
 
@@ -158,7 +158,7 @@ cargo clippy --manifest-path benchmarks/synthetic-joints/synchronized-metrology/
 
 Dedicated workflow: .github/workflows/actuator-synchronized-metrology.yml. The local authoring environment has no Cargo/rustc/rustfmt; exact-head CI is the compilation/format/Clippy gate.
 
-Twenty Rust tests cover rectangular interval multiplication, negative and zero-crossing power, clock/slew expansion, filter-delay compensation, expired calibration, serial mismatch, incomplete traceability, different clocks/instants, uncertainty-vs-bound semantics, boundary/condition mismatch, missing slew provenance, calibration range limits, preserved vendor evidence, wrong channel kinds, invalid intervals and timing overflow.
+Twenty-three Rust tests cover rectangular interval multiplication, negative and zero-crossing power, clock/slew expansion, filter-delay compensation, expired calibration, serial mismatch, incomplete traceability, different clocks/instants, uncertainty-vs-bound semantics, boundary/condition mismatch, missing slew provenance, calibration range limits, preserved vendor evidence, wrong channel kinds, invalid intervals, traceability/clock-map abstention, raw-trace receipt preservation and timing overflow.
 
 ## 8. M0–M5 promotion
 
