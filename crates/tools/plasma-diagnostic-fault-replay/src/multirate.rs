@@ -473,8 +473,28 @@ pub fn verify_alignment_receipt(receipt: &AlignmentReceipt) -> Result<(), Replay
             _ => return Err(alignment_error("alignment receipt has incomplete timestamp metadata")),
         }
 
-        if entry.disposition == AlignmentDisposition::Stale && entry.value.is_some() {
-            return Err(alignment_error("stale sample must not expose a value to the consumer"));
+        if entry.disposition == AlignmentDisposition::Stale {
+            if entry.value.is_some() || entry.evidence_state.is_none() {
+                return Err(alignment_error("stale sample must withhold its value and retain its evidence state"));
+            }
+        }
+
+        if let Some(state) = entry.evidence_state {
+            if entry.disposition != AlignmentDisposition::Stale
+                && entry.disposition != disposition_for(state)
+            {
+                return Err(alignment_error("alignment receipt changes the selected sample's evidence disposition"));
+            }
+        } else if entry.selected_sample_id.is_some() {
+            return Err(alignment_error("selected sample is missing its evidence state"));
+        }
+
+        if matches!(
+            entry.evidence_state,
+            Some(EvidenceState::Unavailable | EvidenceState::Invalid)
+        ) && entry.value.is_some()
+        {
+            return Err(alignment_error("unavailable or invalid evidence must not expose a value"));
         }
         if matches!(
             entry.disposition,
@@ -741,6 +761,58 @@ mod tests {
         let receipt = align_as_of(&req).expect("alignment");
         assert_eq!(receipt.body.entries[0].disposition, AlignmentDisposition::SyntheticOnly);
         assert_eq!(receipt.body.entries[1].disposition, AlignmentDisposition::ReconstructedOnly);
+    }
+
+    #[test]
+    fn unavailable_invalid_delayed_and_degraded_states_remain_distinct() {
+        let samples = vec![
+            ObservationSample {
+                sample_id: "unavailable".to_owned(),
+                timestamp_ns: 10,
+                value: None,
+                evidence_state: EvidenceState::Unavailable,
+                lineage: None,
+            },
+            ObservationSample {
+                sample_id: "invalid".to_owned(),
+                timestamp_ns: 20,
+                value: None,
+                evidence_state: EvidenceState::Invalid,
+                lineage: None,
+            },
+            ObservationSample {
+                sample_id: "delayed".to_owned(),
+                timestamp_ns: 30,
+                value: Some(3.0),
+                evidence_state: EvidenceState::Delayed,
+                lineage: None,
+            },
+            ObservationSample {
+                sample_id: "degraded".to_owned(),
+                timestamp_ns: 40,
+                value: Some(4.0),
+                evidence_state: EvidenceState::Degraded,
+                lineage: None,
+            },
+        ];
+        let mut req = request(
+            vec![
+                stream("density-stream", "density", Some(10), samples),
+                stream("mag-stream", "magnetics", Some(10), vec![measured("m", 40, 2.0)]),
+            ],
+            40,
+        );
+        req.required_channels = vec!["density".to_owned(), "magnetics".to_owned()];
+        req.max_age_ns_by_channel.insert("density".to_owned(), 0);
+        let receipt = align_as_of(&req).expect("alignment");
+        assert_eq!(receipt.body.entries[0].disposition, AlignmentDisposition::Degraded);
+        assert_eq!(receipt.body.entries[0].evidence_state, Some(EvidenceState::Degraded));
+        assert_eq!(receipt.body.entries[0].value, Some(4.0));
+
+        let mut tampered = receipt.clone();
+        tampered.body.entries[0].disposition = AlignmentDisposition::MeasuredAvailable;
+        tampered.receipt_sha256 = digest_serialized(&tampered.body).expect("receipt digest");
+        assert!(verify_alignment_receipt(&tampered).is_err());
     }
 
     #[test]
