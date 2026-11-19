@@ -1,0 +1,614 @@
+{
+  "schema_version": "luminous.plasma-symmetry-transform-benchmark.v0.1",
+  "benchmark_id": "PLASMA-SYMMETRY-TRANSFORM-001",
+  "evidence_class": "SYNTHETIC_ANALYTIC_TRANSFORM",
+  "physical_measurements": false,
+  "claim_ceiling": "SO3_GEOMETRIC_TRANSFORM_SOFTWARE_ONLY_NO_PLASMA_REGIME_OR_PHYSICAL_VALIDITY_CLAIM",
+  "cases": [
+    {
+      "case_id": "identity-preserves-scalar-vector-tensor-state",
+      "request": {
+        "schema_version": "luminous.plasma-symmetry-transform.v0.1",
+        "scenario_id": "so3-identity",
+        "profile_id": "synthetic-so3-scalar-vector-tensor-v0.1",
+        "rotation_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "input": {
+          "scalars": [
+            {
+              "field_id": "electron_density",
+              "units": "m^-3",
+              "value": 2
+            },
+            {
+              "field_id": "electron_temperature",
+              "units": "eV",
+              "value": 4
+            }
+          ],
+          "vectors": [
+            {
+              "field_id": "fluid_velocity",
+              "units": "m/s",
+              "kind": "polar",
+              "value": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "field_id": "magnetic_field",
+              "units": "T",
+              "kind": "axial",
+              "value": [
+                0.1,
+                0.2,
+                0.3
+              ]
+            }
+          ],
+          "tensors": [
+            {
+              "field_id": "pressure_tensor",
+              "units": "Pa",
+              "value": [
+                [
+                  3,
+                  0.25,
+                  0
+                ],
+                [
+                  0.25,
+                  2,
+                  0.5
+                ],
+                [
+                  0,
+                  0.5,
+                  1
+                ]
+              ]
+            }
+          ]
+        }
+      },
+      "expected_disposition": "COMPLETED"
+    },
+    {
+      "case_id": "quarter-turn-rotates-vectors-and-pressure-tensor",
+      "request": {
+        "schema_version": "luminous.plasma-symmetry-transform.v0.1",
+        "scenario_id": "so3-z-quarter-turn",
+        "profile_id": "synthetic-so3-scalar-vector-tensor-v0.1",
+        "rotation_matrix": [
+          [
+            0,
+            -1,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "input": {
+          "scalars": [
+            {
+              "field_id": "electron_density",
+              "units": "m^-3",
+              "value": 2
+            },
+            {
+              "field_id": "electron_temperature",
+              "units": "eV",
+              "value": 4
+            }
+          ],
+          "vectors": [
+            {
+              "field_id": "fluid_velocity",
+              "units": "m/s",
+              "kind": "polar",
+              "value": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "field_id": "magnetic_field",
+              "units": "T",
+              "kind": "axial",
+              "value": [
+                0.1,
+                0.2,
+                0.3
+              ]
+            }
+          ],
+          "tensors": [
+            {
+              "field_id": "pressure_tensor",
+              "units": "Pa",
+              "value": [
+                [
+                  3,
+                  0.25,
+                  0
+                ],
+                [
+                  0.25,
+                  2,
+                  0.5
+                ],
+                [
+                  0,
+                  0.5,
+                  1
+                ]
+              ]
+            }
+          ]
+        }
+      },
+      "expected_disposition": "COMPLETED"
+    },
+    {
+      "case_id": "arbitrary-axis-angle-rotation",
+      "request": {
+        "schema_version": "luminous.plasma-symmetry-transform.v0.1",
+        "scenario_id": "so3-z-sixty-degree",
+        "profile_id": "synthetic-so3-scalar-vector-tensor-v0.1",
+        "rotation_matrix": [
+          [
+            0.5,
+            -0.8660254037844386,
+            0
+          ],
+          [
+            0.8660254037844386,
+            0.5,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "input": {
+          "scalars": [
+            {
+              "field_id": "electron_density",
+              "units": "m^-3",
+              "value": 2
+            },
+            {
+              "field_id": "electron_temperature",
+              "units": "eV",
+              "value": 4
+            }
+          ],
+          "vectors": [
+            {
+              "field_id": "fluid_velocity",
+              "units": "m/s",
+              "kind": "polar",
+              "value": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "field_id": "magnetic_field",
+              "units": "T",
+              "kind": "axial",
+              "value": [
+                0.1,
+                0.2,
+                0.3
+              ]
+            }
+          ],
+          "tensors": [
+            {
+              "field_id": "pressure_tensor",
+              "units": "Pa",
+              "value": [
+                [
+                  3,
+                  0.25,
+                  0
+                ],
+                [
+                  0.25,
+                  2,
+                  0.5
+                ],
+                [
+                  0,
+                  0.5,
+                  1
+                ]
+              ]
+            }
+          ]
+        }
+      },
+      "expected_disposition": "COMPLETED"
+    },
+    {
+      "case_id": "x-axis-quarter-turn",
+      "request": {
+        "schema_version": "luminous.plasma-symmetry-transform.v0.1",
+        "scenario_id": "so3-x-quarter-turn",
+        "profile_id": "synthetic-so3-scalar-vector-tensor-v0.1",
+        "rotation_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            -1
+          ],
+          [
+            0,
+            1,
+            0
+          ]
+        ],
+        "input": {
+          "scalars": [
+            {
+              "field_id": "electron_density",
+              "units": "m^-3",
+              "value": 2
+            },
+            {
+              "field_id": "electron_temperature",
+              "units": "eV",
+              "value": 4
+            }
+          ],
+          "vectors": [
+            {
+              "field_id": "fluid_velocity",
+              "units": "m/s",
+              "kind": "polar",
+              "value": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "field_id": "magnetic_field",
+              "units": "T",
+              "kind": "axial",
+              "value": [
+                0.1,
+                0.2,
+                0.3
+              ]
+            }
+          ],
+          "tensors": [
+            {
+              "field_id": "pressure_tensor",
+              "units": "Pa",
+              "value": [
+                [
+                  3,
+                  0.25,
+                  0
+                ],
+                [
+                  0.25,
+                  2,
+                  0.5
+                ],
+                [
+                  0,
+                  0.5,
+                  1
+                ]
+              ]
+            }
+          ]
+        }
+      },
+      "expected_disposition": "COMPLETED"
+    },
+    {
+      "case_id": "reflection-is-rejected",
+      "request": {
+        "schema_version": "luminous.plasma-symmetry-transform.v0.1",
+        "scenario_id": "reflection-not-so3",
+        "profile_id": "synthetic-so3-scalar-vector-tensor-v0.1",
+        "rotation_matrix": [
+          [
+            -1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "input": {
+          "scalars": [
+            {
+              "field_id": "electron_density",
+              "units": "m^-3",
+              "value": 2
+            },
+            {
+              "field_id": "electron_temperature",
+              "units": "eV",
+              "value": 4
+            }
+          ],
+          "vectors": [
+            {
+              "field_id": "fluid_velocity",
+              "units": "m/s",
+              "kind": "polar",
+              "value": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "field_id": "magnetic_field",
+              "units": "T",
+              "kind": "axial",
+              "value": [
+                0.1,
+                0.2,
+                0.3
+              ]
+            }
+          ],
+          "tensors": [
+            {
+              "field_id": "pressure_tensor",
+              "units": "Pa",
+              "value": [
+                [
+                  3,
+                  0.25,
+                  0
+                ],
+                [
+                  0.25,
+                  2,
+                  0.5
+                ],
+                [
+                  0,
+                  0.5,
+                  1
+                ]
+              ]
+            }
+          ]
+        }
+      },
+      "expected_disposition": "REJECTED"
+    },
+    {
+      "case_id": "shear-is-rejected",
+      "request": {
+        "schema_version": "luminous.plasma-symmetry-transform.v0.1",
+        "scenario_id": "shear-not-so3",
+        "profile_id": "synthetic-so3-scalar-vector-tensor-v0.1",
+        "rotation_matrix": [
+          [
+            1,
+            0.1,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "input": {
+          "scalars": [
+            {
+              "field_id": "electron_density",
+              "units": "m^-3",
+              "value": 2
+            },
+            {
+              "field_id": "electron_temperature",
+              "units": "eV",
+              "value": 4
+            }
+          ],
+          "vectors": [
+            {
+              "field_id": "fluid_velocity",
+              "units": "m/s",
+              "kind": "polar",
+              "value": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "field_id": "magnetic_field",
+              "units": "T",
+              "kind": "axial",
+              "value": [
+                0.1,
+                0.2,
+                0.3
+              ]
+            }
+          ],
+          "tensors": [
+            {
+              "field_id": "pressure_tensor",
+              "units": "Pa",
+              "value": [
+                [
+                  3,
+                  0.25,
+                  0
+                ],
+                [
+                  0.25,
+                  2,
+                  0.5
+                ],
+                [
+                  0,
+                  0.5,
+                  1
+                ]
+              ]
+            }
+          ]
+        }
+      },
+      "expected_disposition": "REJECTED"
+    },
+    {
+      "case_id": "duplicate-vector-identity-is-rejected",
+      "request": {
+        "schema_version": "luminous.plasma-symmetry-transform.v0.1",
+        "scenario_id": "duplicate-vector-id",
+        "profile_id": "synthetic-so3-scalar-vector-tensor-v0.1",
+        "rotation_matrix": [
+          [
+            0,
+            -1,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "input": {
+          "scalars": [
+            {
+              "field_id": "electron_density",
+              "units": "m^-3",
+              "value": 2
+            },
+            {
+              "field_id": "electron_temperature",
+              "units": "eV",
+              "value": 4
+            }
+          ],
+          "vectors": [
+            {
+              "field_id": "fluid_velocity",
+              "units": "m/s",
+              "kind": "polar",
+              "value": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "field_id": "magnetic_field",
+              "units": "T",
+              "kind": "axial",
+              "value": [
+                0.1,
+                0.2,
+                0.3
+              ]
+            },
+            {
+              "field_id": "fluid_velocity",
+              "units": "m/s",
+              "kind": "polar",
+              "value": [
+                1,
+                2,
+                3
+              ]
+            }
+          ],
+          "tensors": [
+            {
+              "field_id": "pressure_tensor",
+              "units": "Pa",
+              "value": [
+                [
+                  3,
+                  0.25,
+                  0
+                ],
+                [
+                  0.25,
+                  2,
+                  0.5
+                ],
+                [
+                  0,
+                  0.5,
+                  1
+                ]
+              ]
+            }
+          ]
+        }
+      },
+      "expected_disposition": "REJECTED"
+    }
+  ]
+}
