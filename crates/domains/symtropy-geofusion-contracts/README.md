@@ -37,6 +37,7 @@ The `superhot_well` module adds a source-bounded reservoir-to-wellhead case cont
 - Reservoir pressure, absolute temperature and permeability-thickness (mD·m) are distinct from hydraulic transmissivity (m²/s).
 - Wellhead pressure, temperature, mass flow and casing inner diameter are retained at an explicit boundary.
 - Fluid density and enthalpy must be linked to a named property formulation/database, version, composition, reference state, output digest and the exact pressure / temperature / phase state.
+- Reservoir and wellhead observation/model artifacts carry separate required digests, distinct from the property-output digest.
 - Single-phase bulk volumetric flow and average casing velocity are computed from the declared density, mass flow and casing ID.
 - Two-phase and unknown-phase flows are refused; they require a qualified multiphase hydraulics model.
 - An optional velocity comparison requires a named external threshold basis. The comparison is a screening flag, not a universal erosion or safety limit.
