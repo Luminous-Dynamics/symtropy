@@ -47,6 +47,9 @@ Those are runtime verifier / independent arithmetic duties. Do not treat `format
 
 ## Validation performed
 
-The raw payload fixture is 523 bytes and its SHA-256 is `0cdcab2b9625b3669918761b7a4da378e9d344321301f2dd0bb48feb67b788c8`. The schema and fixtures are intended for Draft 2020-12 validation. A PASS in this fixture means only that the synthetic artifact can be bound to a receipt.
+- Both schema files and all three fixtures were fetched back from the exact branch and parsed as JSON.
+- The raw payload fixture is 523 bytes. SHA-256 was recomputed over the exact fetched payload bytes and matched the evidence envelope and allocation receipt: `0cdcab2b9625b3669918761b7a4da378e9d344321301f2dd0bb48feb67b788c8`.
+- Manually checked required time-window, artifact, uncertainty, lineage and claim-ceiling fields, plus source digest linkage and the 10 MWh allocation total.
+- A full Draft 2020-12 JSON Schema validator and a runtime receipt verifier have **not** yet been run or implemented. The schemas are v0.1 drafts and must receive validator-backed tests before production use.
 
-No source values represent a real geothermal site or fusion plant.
+A PASS in this fixture means only that the synthetic artifact can be bound to the declared bytes and arithmetic. No source values represent a real geothermal site or fusion plant.
