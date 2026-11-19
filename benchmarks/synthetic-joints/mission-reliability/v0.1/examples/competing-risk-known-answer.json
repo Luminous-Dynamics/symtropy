@@ -1,0 +1,486 @@
+{
+  "schema_version": "0.1.0",
+  "campaign": {
+    "campaign_id": "synthetic-competing-risk-known-answer-v0.1",
+    "test_purpose": "Known-answer validation of first-event survival, right censoring and competing-risk arithmetic.",
+    "functional_or_survival": "survival",
+    "preregistration": {
+      "frozen_before_test": true,
+      "timestamp": "2026-11-19T00:00:00Z",
+      "protocol_digest": "synthetic-known-answer-v0.1",
+      "analysis_plan_digest": "synthetic-km-aj-rmst-v0.1"
+    },
+    "matched_conditions": {
+      "load": "Synthetic fixture; no physical load.",
+      "speed": "Not applicable.",
+      "path_or_task": "Not applicable.",
+      "cycle_definition": "One exposure unit is one synthetic cycle.",
+      "environment": "Synthetic data only.",
+      "specimen_configuration": "Five independent synthetic specimen IDs; one first-event or censoring record each."
+    },
+    "fixture_boundary": "Purely synthetic data fixture for validating arithmetic and event semantics; not a physical test.",
+    "mission_profile": "Synthetic exposure times [1,2,2,3,4] cycles.",
+    "environmental_profile": [],
+    "stop_and_abort_rules": [
+      "Synthetic event/censor status is fixed in the fixture."
+    ],
+    "independent_sample_unit": "component",
+    "reference_standards": [],
+    "confidence_level": 0.95,
+    "notes": [
+      "Five specimens are five independent synthetic units; no repeated cycles are counted as additional specimens."
+    ]
+  },
+  "specimens": [
+    {
+      "specimen_id": "S1",
+      "assembly_id": "actuator-A",
+      "component_ids": [
+        "actuator-A"
+      ],
+      "manufacturer_or_origin": "Synthetic fixture",
+      "model": "synthetic-component",
+      "revision": "v0.1",
+      "lot": null,
+      "configuration_digest": null,
+      "prior_service_history": [],
+      "parent_specimen_id": null,
+      "independent_unit": true,
+      "notes": [
+        "Synthetic known-answer specimen only."
+      ]
+    },
+    {
+      "specimen_id": "S2",
+      "assembly_id": "actuator-B",
+      "component_ids": [
+        "actuator-B"
+      ],
+      "manufacturer_or_origin": "Synthetic fixture",
+      "model": "synthetic-component",
+      "revision": "v0.1",
+      "lot": null,
+      "configuration_digest": null,
+      "prior_service_history": [],
+      "parent_specimen_id": null,
+      "independent_unit": true,
+      "notes": [
+        "Synthetic known-answer specimen only."
+      ]
+    },
+    {
+      "specimen_id": "S3",
+      "assembly_id": "actuator-C",
+      "component_ids": [
+        "actuator-C"
+      ],
+      "manufacturer_or_origin": "Synthetic fixture",
+      "model": "synthetic-component",
+      "revision": "v0.1",
+      "lot": null,
+      "configuration_digest": null,
+      "prior_service_history": [],
+      "parent_specimen_id": null,
+      "independent_unit": true,
+      "notes": [
+        "Synthetic known-answer specimen only."
+      ]
+    },
+    {
+      "specimen_id": "S4",
+      "assembly_id": "actuator-D",
+      "component_ids": [
+        "actuator-D"
+      ],
+      "manufacturer_or_origin": "Synthetic fixture",
+      "model": "synthetic-component",
+      "revision": "v0.1",
+      "lot": null,
+      "configuration_digest": null,
+      "prior_service_history": [],
+      "parent_specimen_id": null,
+      "independent_unit": true,
+      "notes": [
+        "Synthetic known-answer specimen only."
+      ]
+    },
+    {
+      "specimen_id": "S5",
+      "assembly_id": "actuator-E",
+      "component_ids": [
+        "actuator-E"
+      ],
+      "manufacturer_or_origin": "Synthetic fixture",
+      "model": "synthetic-component",
+      "revision": "v0.1",
+      "lot": null,
+      "configuration_digest": null,
+      "prior_service_history": [],
+      "parent_specimen_id": null,
+      "independent_unit": true,
+      "notes": [
+        "Synthetic known-answer specimen only."
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "observation_id": "O1",
+      "specimen_id": "S1",
+      "event_index": 1,
+      "observation_state": "observed_event",
+      "outcome_type": "functional_failure",
+      "failure_mode": "thermal",
+      "time_value": 1,
+      "time_unit": "cycles",
+      "time_interval": null,
+      "exposure": {
+        "elapsed_time": {
+          "metric": "elapsed_time",
+          "status": "not_applicable",
+          "value": null,
+          "unit": "s",
+          "uncertainty": null,
+          "method": "Synthetic fixture",
+          "reason": "Exposure is expressed in cycles."
+        },
+        "cycles": {
+          "metric": "cycles",
+          "status": "derived",
+          "value": 1,
+          "unit": "cycles",
+          "uncertainty": 0,
+          "method": "Synthetic fixture input",
+          "reason": null
+        },
+        "distance": {
+          "metric": "distance",
+          "status": "not_applicable",
+          "value": null,
+          "unit": "m",
+          "uncertainty": null,
+          "method": "Not applicable",
+          "reason": "No physical distance."
+        },
+        "mechanical_work": {
+          "metric": "mechanical_work",
+          "status": "not_applicable",
+          "value": null,
+          "unit": "J",
+          "uncertainty": null,
+          "method": "Not applicable",
+          "reason": "No physical mechanical work."
+        },
+        "thermal_exposure": [],
+        "environmental_exposure": [],
+        "notes": [
+          "Synthetic exposure record."
+        ]
+      },
+      "event_definition": "Synthetic first event only; no physical failure criterion.",
+      "detection_method": "Synthetic record fixture.",
+      "raw_trace_refs": [],
+      "repair_reentry_policy": null,
+      "reason": null,
+      "notes": [
+        "Synthetic known-answer fixture; not physical reliability data."
+      ]
+    },
+    {
+      "observation_id": "O2",
+      "specimen_id": "S2",
+      "event_index": 1,
+      "observation_state": "observed_event",
+      "outcome_type": "functional_failure",
+      "failure_mode": "mechanical_fatigue",
+      "time_value": 2,
+      "time_unit": "cycles",
+      "time_interval": null,
+      "exposure": {
+        "elapsed_time": {
+          "metric": "elapsed_time",
+          "status": "not_applicable",
+          "value": null,
+          "unit": "s",
+          "uncertainty": null,
+          "method": "Synthetic fixture",
+          "reason": "Exposure is expressed in cycles."
+        },
+        "cycles": {
+          "metric": "cycles",
+          "status": "derived",
+          "value": 2,
+          "unit": "cycles",
+          "uncertainty": 0,
+          "method": "Synthetic fixture input",
+          "reason": null
+        },
+        "distance": {
+          "metric": "distance",
+          "status": "not_applicable",
+          "value": null,
+          "unit": "m",
+          "uncertainty": null,
+          "method": "Not applicable",
+          "reason": "No physical distance."
+        },
+        "mechanical_work": {
+          "metric": "mechanical_work",
+          "status": "not_applicable",
+          "value": null,
+          "unit": "J",
+          "uncertainty": null,
+          "method": "Not applicable",
+          "reason": "No physical mechanical work."
+        },
+        "thermal_exposure": [],
+        "environmental_exposure": [],
+        "notes": [
+          "Synthetic exposure record."
+        ]
+      },
+      "event_definition": "Synthetic first event only; no physical failure criterion.",
+      "detection_method": "Synthetic record fixture.",
+      "raw_trace_refs": [],
+      "repair_reentry_policy": null,
+      "reason": null,
+      "notes": [
+        "Synthetic known-answer fixture; not physical reliability data."
+      ]
+    },
+    {
+      "observation_id": "O3",
+      "specimen_id": "S3",
+      "event_index": 1,
+      "observation_state": "right_censored",
+      "outcome_type": "planned_termination",
+      "failure_mode": "not_applicable",
+      "time_value": 2,
+      "time_unit": "cycles",
+      "time_interval": null,
+      "exposure": {
+        "elapsed_time": {
+          "metric": "elapsed_time",
+          "status": "not_applicable",
+          "value": null,
+          "unit": "s",
+          "uncertainty": null,
+          "method": "Synthetic fixture",
+          "reason": "Exposure is expressed in cycles."
+        },
+        "cycles": {
+          "metric": "cycles",
+          "status": "derived",
+          "value": 2,
+          "unit": "cycles",
+          "uncertainty": 0,
+          "method": "Synthetic fixture input",
+          "reason": null
+        },
+        "distance": {
+          "metric": "distance",
+          "status": "not_applicable",
+          "value": null,
+          "unit": "m",
+          "uncertainty": null,
+          "method": "Not applicable",
+          "reason": "No physical distance."
+        },
+        "mechanical_work": {
+          "metric": "mechanical_work",
+          "status": "not_applicable",
+          "value": null,
+          "unit": "J",
+          "uncertainty": null,
+          "method": "Not applicable",
+          "reason": "No physical mechanical work."
+        },
+        "thermal_exposure": [],
+        "environmental_exposure": [],
+        "notes": [
+          "Synthetic exposure record."
+        ]
+      },
+      "event_definition": "Synthetic first event only; no physical failure criterion.",
+      "detection_method": "Synthetic record fixture.",
+      "raw_trace_refs": [],
+      "repair_reentry_policy": null,
+      "reason": "Synthetic right-censor record.",
+      "notes": [
+        "Synthetic known-answer fixture; not physical reliability data."
+      ]
+    },
+    {
+      "observation_id": "O4",
+      "specimen_id": "S4",
+      "event_index": 1,
+      "observation_state": "observed_event",
+      "outcome_type": "functional_failure",
+      "failure_mode": "thermal",
+      "time_value": 3,
+      "time_unit": "cycles",
+      "time_interval": null,
+      "exposure": {
+        "elapsed_time": {
+          "metric": "elapsed_time",
+          "status": "not_applicable",
+          "value": null,
+          "unit": "s",
+          "uncertainty": null,
+          "method": "Synthetic fixture",
+          "reason": "Exposure is expressed in cycles."
+        },
+        "cycles": {
+          "metric": "cycles",
+          "status": "derived",
+          "value": 3,
+          "unit": "cycles",
+          "uncertainty": 0,
+          "method": "Synthetic fixture input",
+          "reason": null
+        },
+        "distance": {
+          "metric": "distance",
+          "status": "not_applicable",
+          "value": null,
+          "unit": "m",
+          "uncertainty": null,
+          "method": "Not applicable",
+          "reason": "No physical distance."
+        },
+        "mechanical_work": {
+          "metric": "mechanical_work",
+          "status": "not_applicable",
+          "value": null,
+          "unit": "J",
+          "uncertainty": null,
+          "method": "Not applicable",
+          "reason": "No physical mechanical work."
+        },
+        "thermal_exposure": [],
+        "environmental_exposure": [],
+        "notes": [
+          "Synthetic exposure record."
+        ]
+      },
+      "event_definition": "Synthetic first event only; no physical failure criterion.",
+      "detection_method": "Synthetic record fixture.",
+      "raw_trace_refs": [],
+      "repair_reentry_policy": null,
+      "reason": null,
+      "notes": [
+        "Synthetic known-answer fixture; not physical reliability data."
+      ]
+    },
+    {
+      "observation_id": "O5",
+      "specimen_id": "S5",
+      "event_index": 1,
+      "observation_state": "right_censored",
+      "outcome_type": "administrative_end",
+      "failure_mode": "not_applicable",
+      "time_value": 4,
+      "time_unit": "cycles",
+      "time_interval": null,
+      "exposure": {
+        "elapsed_time": {
+          "metric": "elapsed_time",
+          "status": "not_applicable",
+          "value": null,
+          "unit": "s",
+          "uncertainty": null,
+          "method": "Synthetic fixture",
+          "reason": "Exposure is expressed in cycles."
+        },
+        "cycles": {
+          "metric": "cycles",
+          "status": "derived",
+          "value": 4,
+          "unit": "cycles",
+          "uncertainty": 0,
+          "method": "Synthetic fixture input",
+          "reason": null
+        },
+        "distance": {
+          "metric": "distance",
+          "status": "not_applicable",
+          "value": null,
+          "unit": "m",
+          "uncertainty": null,
+          "method": "Not applicable",
+          "reason": "No physical distance."
+        },
+        "mechanical_work": {
+          "metric": "mechanical_work",
+          "status": "not_applicable",
+          "value": null,
+          "unit": "J",
+          "uncertainty": null,
+          "method": "Not applicable",
+          "reason": "No physical mechanical work."
+        },
+        "thermal_exposure": [],
+        "environmental_exposure": [],
+        "notes": [
+          "Synthetic exposure record."
+        ]
+      },
+      "event_definition": "Synthetic first event only; no physical failure criterion.",
+      "detection_method": "Synthetic record fixture.",
+      "raw_trace_refs": [],
+      "repair_reentry_policy": null,
+      "reason": "Synthetic right-censor record.",
+      "notes": [
+        "Synthetic known-answer fixture; not physical reliability data."
+      ]
+    }
+  ],
+  "pre_post_measurements": [
+    {
+      "specimen_id": "S1",
+      "block_id": "baseline",
+      "stage": "initial",
+      "condition_digest": "synthetic-v0.1",
+      "measurements": [
+        {
+          "metric": "backlash",
+          "status": "measured",
+          "value": 0,
+          "unit": "deg",
+          "uncertainty": 0,
+          "method": "Synthetic known answer",
+          "reason": null
+        }
+      ],
+      "calibration_refs": [],
+      "raw_trace_refs": [],
+      "missingness_reason": null
+    }
+  ],
+  "analysis_plan": {
+    "time_to_first_event": "kaplan_meier_product_limit",
+    "competing_risks": "aalen_johansen_cumulative_incidence",
+    "recurrent_events": "not_estimated",
+    "degradation": "paired_pre_post",
+    "independent_unit_rule": "One row per unique independent specimen; repeated cycles are exposure, never additional specimens.",
+    "censoring_assumptions": [
+      "Right censoring is treated as independent for this synthetic arithmetic fixture only."
+    ],
+    "exclusion_rule": "No synthetic fixture rows are excluded.",
+    "restricted_mean_horizon": 4,
+    "confidence_level": 0.95,
+    "notes": [
+      "No CI or lifetime extrapolation is part of the fixture."
+    ]
+  },
+  "evidence": [
+    {
+      "reference": "https://github.com/Luminous-Dynamics/symtropy",
+      "source_class": "other",
+      "method": "Synthetic known-answer data created solely for testing estimator arithmetic and record structure.",
+      "date": "2026-11-19",
+      "independence": "not_assessed"
+    }
+  ],
+  "claim_ceiling": "Synthetic schema/statistical known-answer fixture only. No physical lifetime, reliability, failure-rate, accelerated-life or fleet claim."
+}
