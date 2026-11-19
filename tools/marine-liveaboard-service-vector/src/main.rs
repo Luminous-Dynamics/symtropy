@@ -116,6 +116,8 @@ fn snapshot_digest(snapshot: &Value) -> Option<String> {
 #[derive(Clone)]
 struct MetricValue {
     value: f64,
+    lower_bound: f64,
+    upper_bound: f64,
     unit: String,
 }
 
@@ -162,6 +164,9 @@ fn policy_report(
     let gate_violations = policy.get("hard_gate_violations").and_then(Value::as_u64);
     if gate_violations.is_none() {
         errors.push(format!("policy '{policy_id}' requires a non-negative integer hard_gate_violations count"));
+    }
+    if !["pass", "fail", "infeasible", "abstain"].contains(&gate_disposition) {
+        errors.push(format!("policy '{policy_id}' has unknown hard-gate disposition"));
     }
     if gate_disposition == "pass" && gate_violations != Some(0) {
         errors.push(format!("policy '{policy_id}' says hard gates pass but reports violations"));
@@ -218,15 +223,50 @@ fn policy_report(
                 continue;
             };
             let value = number_at(item, "value");
+            let lower_bound = number_at(item, "lower_bound");
+            let upper_bound = number_at(item, "upper_bound");
             let coverage = number_at(item, "coverage_fraction");
+            let window_start = string_at(item, "measurement_window_start");
+            let window_end = string_at(item, "measurement_window_end");
+            let measurement_method = string_at(item, "measurement_method").unwrap_or("");
+            let measurement_class = string_at(item, "measurement_class").unwrap_or("");
+            let valid_window = match (window_start, window_end) {
+                (Some(start), Some(end)) => match (
+                    chrono::DateTime::parse_from_rfc3339(start),
+                    chrono::DateTime::parse_from_rfc3339(end),
+                ) {
+                    (Ok(start), Ok(end)) => start <= end,
+                    _ => false,
+                },
+                _ => false,
+            };
             if unit != spec.unit || !digest_valid(string_at(item, "evidence_sha256")) {
                 errors.push(format!("policy '{policy_id}' axis '{metric}' has an incorrect unit or missing evidence digest"));
             }
-            if value.is_none() || coverage.is_none_or(|coverage| !(0.0..=1.0).contains(&coverage)) {
-                errors.push(format!("policy '{policy_id}' axis '{metric}' has invalid value or measurement coverage"));
+            if value.is_none()
+                || lower_bound.is_none()
+                || upper_bound.is_none()
+                || coverage.is_none_or(|coverage| !(0.0..=1.0).contains(&coverage))
+                || measurement_method.is_empty()
+                || !["measured", "modeled", "derived", "synthetic"].contains(&measurement_class)
+                || !valid_window
+            {
+                errors.push(format!("policy '{policy_id}' axis '{metric}' has invalid value, uncertainty, measurement coverage, class, method or time window"));
                 continue;
             }
-            if values.insert(metric.to_owned(), MetricValue { value: value.unwrap(), unit: unit.to_owned() }).is_some() {
+            if lower_bound.unwrap() > value.unwrap()
+                || value.unwrap() > upper_bound.unwrap()
+                || lower_bound.unwrap() < 0.0
+            {
+                errors.push(format!("policy '{policy_id}' axis '{metric}' has an invalid uncertainty interval"));
+                continue;
+            }
+            if values.insert(metric.to_owned(), MetricValue {
+                value: value.unwrap(),
+                lower_bound: lower_bound.unwrap(),
+                upper_bound: upper_bound.unwrap(),
+                unit: unit.to_owned(),
+            }).is_some() {
                 errors.push(format!("policy '{policy_id}' duplicates resource axis '{metric}'"));
             }
             let contract_item = contract.as_array().and_then(|items| items.iter().find(|item| string_at(item, "metric") == Some(metric)));
@@ -241,8 +281,8 @@ fn policy_report(
                 let floor = number_at(contract_item, "floor_value").unwrap_or(f64::NAN);
                 let operator = string_at(contract_item, "operator").unwrap_or("");
                 let passes = match operator {
-                    "gte" => value.unwrap() >= floor,
-                    "lte" => value.unwrap() <= floor,
+                    "gte" => lower_bound.unwrap() >= floor,
+                    "lte" => upper_bound.unwrap() <= floor,
                     _ => false,
                 };
                 if !passes {
@@ -292,14 +332,16 @@ fn dominates(left: &PolicyReport, right: &PolicyReport) -> bool {
         let (Some(a), Some(b)) = (left.metrics.get(spec.metric), right.metrics.get(spec.metric)) else {
             return false;
         };
+        // Conservative interval dominance: the candidate's worst bound must
+        // be no worse than the baseline's best bound on every resource axis.
         let no_worse = match spec.operator {
-            "gte" => a.value >= b.value,
-            "lte" => a.value <= b.value,
+            "gte" => a.lower_bound >= b.upper_bound,
+            "lte" => a.upper_bound <= b.lower_bound,
             _ => false,
         };
         let better = match spec.operator {
-            "gte" => a.value > b.value,
-            "lte" => a.value < b.value,
+            "gte" => a.lower_bound > b.upper_bound,
+            "lte" => a.upper_bound < b.lower_bound,
             _ => false,
         };
         if !no_worse {
@@ -415,9 +457,18 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                     "candidate_unit":cand.unit,
                     "units_match":base.unit == cand.unit && base.unit == spec.unit,
                     "baseline_value":base.value,
+                    "baseline_lower_bound":base.lower_bound,
+                    "baseline_upper_bound":base.upper_bound,
                     "candidate_value":cand.value,
+                    "candidate_lower_bound":cand.lower_bound,
+                    "candidate_upper_bound":cand.upper_bound,
                     "candidate_minus_baseline":delta,
-                    "candidate_better_on_axis":candidate_better
+                    "candidate_better_on_axis":candidate_better,
+                    "candidate_conservative_floor_margin":match spec.operator {
+                        "gte" => cand.lower_bound - spec.floor,
+                        "lte" => spec.floor - cand.upper_bound,
+                        _ => f64::NAN
+                    }
                 }));
             }
         }
