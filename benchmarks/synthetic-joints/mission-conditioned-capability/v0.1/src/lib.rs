@@ -71,6 +71,10 @@ pub struct RegimeEnvelope {
     pub points: Vec<TorqueSpeedPoint>,
     /// Interpolation is rejected when adjacent knots are farther apart.
     pub maximum_interpolation_gap_rad_s: f64,
+    /// Independently bounded maximum error of the piecewise-linear
+    /// interpolation between knots, in N m. None means off-knot values are
+    /// unknown; exact knot values remain usable.
+    pub interpolation_error_bound_nm: Option<f64>,
     /// None means that peak-duration capability has not been qualified.
     pub maximum_contiguous_peak_duration_s: Option<f64>,
     pub evidence: EvidenceRecord,
@@ -206,6 +210,7 @@ fn validate_candidate(candidate: &CandidateEnvelope) -> Result<(), String> {
         if !finite(envelope.maximum_interpolation_gap_rad_s)
             || envelope.maximum_interpolation_gap_rad_s <= 0.0
             || envelope.points.len() < 2
+            || envelope.interpolation_error_bound_nm.is_some_and(|bound| !finite(bound) || bound < 0.0)
         {
             return Err(format!("regime {:?} has invalid interpolation settings or fewer than two knots", envelope.regime));
         }
@@ -302,7 +307,11 @@ fn interpolate_lower_bound(
         upper.continuous_torque_nm - upper.continuous_uncertainty_nm
     };
     let fraction = (speed_abs_rad_s - lower.speed_abs_rad_s) / gap;
-    let value = lower_value + fraction * (upper_value - lower_value);
+    // Knot uncertainty alone does not bound curvature between knots.
+    // Require a separate validation/certification error bound and subtract it
+    // from the interpolated lower capability before comparing demand.
+    let interpolation_error = envelope.interpolation_error_bound_nm?;
+    let value = lower_value + fraction * (upper_value - lower_value) - interpolation_error;
     finite(value).then_some(value)
 }
 
@@ -691,6 +700,7 @@ mod tests {
                 },
             ],
             maximum_interpolation_gap_rad_s: 10.0,
+            interpolation_error_bound_nm: Some(0.0),
             maximum_contiguous_peak_duration_s: peak_duration,
             evidence: evidence(EvidenceClass::IndependentRawTrace),
         }
@@ -835,7 +845,37 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_009_configuration_or_condition_mismatch_fails_closed() {
+    fn mcjce_009_off_knot_interpolation_requires_an_error_bound() {
+        let mut envelope = candidate();
+        let b = envelope.regimes.iter_mut()
+            .find(|b| b.regime == OperatingRegime::ForwardMotoring).unwrap();
+        b.interpolation_error_bound_nm = None;
+        let result = evaluate_mission(
+            &envelope,
+            &mission(vec![sample(0.0, 2.0, 0.0, 5.0), sample(0.1, 2.0, 0.0, 5.0)]),
+        ).unwrap();
+        assert_eq!(result.decision, MechanicalEnvelopeDecision::Unknown);
+        assert_eq!(result.metrics.unknown_sample_count, 2);
+    }
+
+    #[test]
+    fn mcjce_010_interpolation_error_bound_is_subtracted_from_available_torque() {
+        let mut envelope = candidate();
+        let b = envelope.regimes.iter_mut()
+            .find(|b| b.regime == OperatingRegime::ForwardMotoring).unwrap();
+        b.interpolation_error_bound_nm = Some(0.75);
+        let result = evaluate_mission(
+            &envelope,
+            &mission(vec![sample(0.0, 5.0, 0.0, 5.0), sample(0.1, 5.0, 0.0, 5.0)]),
+        ).unwrap();
+        // Raw linear lower bound is 8 N m; the validated interpolation
+        // error bound reduces the usable lower bound to 7.25 N m.
+        assert!((result.samples[0].continuous_torque_lower_nm.unwrap() - 7.25).abs() < 1.0e-12);
+        assert!((result.samples[0].continuous_margin_nm.unwrap() - 2.25).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn mcjce_021_configuration_or_condition_mismatch_fails_closed() {
         let mut wrong_config = mission(vec![sample(0.0, 1.0, 0.0, 1.0), sample(0.1, 1.0, 0.0, 1.0)]);
         wrong_config.candidate_configuration_digest = "different".to_owned();
         assert!(evaluate_mission(&candidate(), &wrong_config).is_err());
@@ -859,7 +899,7 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_011_rms_torque_uses_time_weighted_linear_interpolation() {
+    fn mcjce_021_rms_torque_uses_time_weighted_linear_interpolation() {
         let result = evaluate_mission(
             &candidate(),
             &mission(vec![sample(0.0, 2.0, 0.0, 1.0), sample(1.0, 2.0, 0.0, 1.0)]),
@@ -868,7 +908,7 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_012_coast_and_zero_speed_hold_are_not_confused() {
+    fn mcjce_020_coast_and_zero_speed_hold_are_not_confused() {
         let result = evaluate_mission(
             &candidate(),
             &mission(vec![sample(0.0, 2.0, 0.0, 0.0), sample(1.0, 0.0, 0.0, 3.0)]),
@@ -880,7 +920,7 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_013_uncertainty_crossing_zero_makes_power_direction_unknown() {
+    fn mcjce_021_uncertainty_crossing_zero_makes_power_direction_unknown() {
         let result = evaluate_mission(
             &candidate(),
             &mission(vec![sample(0.0, 0.1, 0.2, 3.0), sample(0.1, 0.1, 0.2, 3.0)]),
@@ -891,7 +931,7 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_014_invalid_knots_timestamp_and_uncertainty_reject() {
+    fn mcjce_020_invalid_knots_timestamp_and_uncertainty_reject() {
         let mut bad_candidate = candidate();
         bad_candidate.regimes[0].points[1].speed_abs_rad_s = 0.0;
         assert!(evaluate_mission(
@@ -907,7 +947,7 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_015_unknown_evidence_cannot_produce_a_feasible_decision() {
+    fn mcjce_021_unknown_evidence_cannot_produce_a_feasible_decision() {
         let mut envelope = candidate();
         envelope.regimes[0].evidence.class = EvidenceClass::Unknown;
         let result = evaluate_mission(
@@ -919,7 +959,7 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_016_vendor_evidence_class_is_preserved_not_promoted() {
+    fn mcjce_020_vendor_evidence_class_is_preserved_not_promoted() {
         let mut envelope = candidate();
         envelope.regimes[0].evidence.class = EvidenceClass::VendorPhysicalTest;
         let result = evaluate_mission(
@@ -931,7 +971,7 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_017_coast_only_mission_does_not_claim_torque_envelope_coverage() {
+    fn mcjce_021_coast_only_mission_does_not_claim_torque_envelope_coverage() {
         let result = evaluate_mission(
             &candidate(),
             &mission(vec![sample(0.0, 0.0, 0.0, 2.0), sample(1.0, 0.0, 0.0, 3.0)]),
@@ -943,7 +983,7 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_018_evidence_references_and_scope_digests_survive_evaluation() {
+    fn mcjce_020_evidence_references_and_scope_digests_survive_evaluation() {
         let result = evaluate_mission(
             &candidate(),
             &mission(vec![sample(0.0, 2.0, 0.0, 0.0), sample(0.1, 2.0, 0.0, 0.0)]),
@@ -961,7 +1001,7 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_019_duplicate_regime_and_inconsistent_evidence_reject() {
+    fn mcjce_021_duplicate_regime_and_inconsistent_evidence_reject() {
         let mut duplicate = candidate();
         duplicate.regimes.push(duplicate.regimes[0].clone());
         assert!(evaluate_mission(
