@@ -327,6 +327,7 @@ fn dense_coordinate_rattle_step(
     lengths: [f64; 2],
     q0: &Vec9,
     vq0: &Vec9,
+    force_q: &Vec9,
     dt: f64,
 ) -> (Vec9, Vec9, [f64; 2], [f64; 2], [f64; 2]) {
     let metric_q = mass_metric_with_masses(masses);
@@ -334,6 +335,9 @@ fn dense_coordinate_rattle_step(
     let maps = relative_maps(basis);
     let y0 = mat_vec(inverse, q0);
     let vy0 = mat_vec(inverse, vq0);
+    // Generalized force is a covector: Q_y = S^T Q_q.
+    let force_y = mat_vec(&transpose(basis), force_q);
+    let acceleration_y = solve_dense_metric(&metric_y, &force_y);
     let j0 = dense_constraint_jacobian(&maps, &y0);
 
     // Compute M_y^-1 J_y(y_0)^T by solving the dense SPD metric directly.
@@ -346,7 +350,8 @@ fn dense_coordinate_rattle_step(
 
     let mut y_free = y0;
     for coordinate in 0..N {
-        y_free[coordinate] += dt * vy0[coordinate];
+        y_free[coordinate] +=
+            dt * vy0[coordinate] + 0.5 * dt * dt * acceleration_y[coordinate];
     }
     let mut multipliers = [0.0; 2];
     let mut y_plus = y_free;
@@ -427,6 +432,7 @@ fn dense_coordinate_rattle_step(
     // RATTLE endpoint momentum projection, entirely in the dense y metric.
     let mut momentum_half = mat_vec(&metric_y, &vy0);
     for coordinate in 0..N {
+        momentum_half[coordinate] += 0.5 * dt * force_y[coordinate];
         momentum_half[coordinate] -=
             0.5 * dt * (j0[0][coordinate] * multipliers[0] + j0[1][coordinate] * multipliers[1]);
     }
@@ -437,6 +443,11 @@ fn dense_coordinate_rattle_step(
         covector.copy_from_slice(&j_plus[edge]);
         minv_jplus_t[edge] = solve_dense_metric(&metric_y, &covector);
     }
+    // Apply the second constant-force half-kick before endpoint projection.
+    let mut momentum_before_projection = momentum_half;
+    for coordinate in 0..N {
+        momentum_before_projection[coordinate] += 0.5 * dt * force_y[coordinate];
+    }
     let mut velocity_gram = [[0.0; 2]; 2];
     for row in 0..2 {
         for column in 0..2 {
@@ -445,7 +456,7 @@ fn dense_coordinate_rattle_step(
                 .sum();
         }
     }
-    let minv_momentum_half = solve_dense_metric(&metric_y, &momentum_half);
+    let minv_momentum_half = solve_dense_metric(&metric_y, &momentum_before_projection);
     let velocity_rhs = [
         2.0 / dt
             * (0..N)
@@ -457,7 +468,7 @@ fn dense_coordinate_rattle_step(
                 .sum::<f64>(),
     ];
     let velocity_multipliers = solve_2x2_dense(velocity_gram, velocity_rhs);
-    let mut momentum_plus = momentum_half;
+    let mut momentum_plus = momentum_before_projection;
     for coordinate in 0..N {
         momentum_plus[coordinate] -= 0.5
             * dt
@@ -511,7 +522,7 @@ mod tests {
             let basis = to_float(&basis_i);
             let inverse = to_float(&inverse_i);
             let (q_plus, v_plus, position_lambda, velocity_lambda, residuals) =
-                dense_coordinate_rattle_step(&basis, &inverse, masses, lengths, &q0, &vq0, dt);
+                dense_coordinate_rattle_step(&basis, &inverse, masses, lengths, &q0, &vq0, &[0.0; N], dt);
             let reference_q = [
                 reference.after.q[0][0],
                 reference.after.q[0][1],
@@ -613,7 +624,7 @@ mod tests {
                     dense_velocity_lambda,
                     residuals,
                 ) = dense_coordinate_rattle_step(
-                    &basis, &inverse, masses, lengths, &dense_q, &dense_v, dt,
+                    &basis, &inverse, masses, lengths, &dense_q, &dense_v, &[0.0; N], dt,
                 );
                 let (reference_q, reference_v) = flatten_state(&reference.after);
 
@@ -718,7 +729,7 @@ mod tests {
         assert!(cholesky_positive_definite(&transformed_metric));
 
         let (dense_q, dense_v, _, _, residuals) =
-            dense_coordinate_rattle_step(&basis, &inverse, masses, lengths, &q0, &v0, 0.0025);
+            dense_coordinate_rattle_step(&basis, &inverse, masses, lengths, &q0, &v0, &[0.0; N], 0.0025);
         let (reference_q, reference_v) = flatten_state(&reference.after);
         let position_error = vector_max_abs(&dense_q, &reference_q);
         let velocity_error = vector_max_abs(&dense_v, &reference_v);
