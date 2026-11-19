@@ -291,7 +291,8 @@
           "gateType",
           "status",
           "accountableRole",
-          "evidenceIds"
+          "evidenceIds",
+          "dependsOnGateIds"
         ],
         "properties": {
           "gateId": {
@@ -354,6 +355,14 @@
           "applicabilityRationale": {
             "type": "string",
             "minLength": 1
+          },
+          "dependsOnGateIds": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         }
       }
