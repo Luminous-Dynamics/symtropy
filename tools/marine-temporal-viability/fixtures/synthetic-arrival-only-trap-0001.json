@@ -1,0 +1,3881 @@
+{
+  "schema_version": "0.1.0",
+  "scorecard_id": "MARINE-TEMPORAL-VIABILITY-ARRIVAL-ONLY-TRAP-0001",
+  "record_status": "synthetic",
+  "claim_ceiling": "trajectory_viability_audit_only",
+  "mission_window": {
+    "start": "2025-03-01T00:00:00Z",
+    "end": "2025-03-01T12:00:00Z",
+    "max_sample_gap_hours": 6
+  },
+  "mission_snapshot": {
+    "mission_id": "SYNTHETIC-MARINE-TEMPORAL-MISSION-0001",
+    "mission_snapshot_sha256": "be567df14abb3444a8a22592481c8259392e36e746f0dce7c87c6f52306b260e",
+    "craft_configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "occupancy_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "initial_resource_state_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "mission_plan_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "forecast_information_set_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "hard_gate_roster_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "operating_envelope_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "service_floor_contract_sha256": "d636b14c0c8d1f91d57a35d927bf321a5b6d382fd9c751e4357b2ffd9bbb91bc",
+    "scenario_member_set_sha256": "616abc0b5751cd0617575daf99feab2b60c5ec4dd065747f8649b4e534dcbd2a"
+  },
+  "service_floor_contract": [
+    {
+      "metric": "arrival_delay_hours",
+      "unit": "h",
+      "operator": "lte",
+      "floor_value": 5,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "energy_reserve_hours",
+      "unit": "h",
+      "operator": "gte",
+      "floor_value": 12,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "freshwater_reserve_days",
+      "unit": "day",
+      "operator": "gte",
+      "floor_value": 3,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "food_reserve_days",
+      "unit": "day",
+      "operator": "gte",
+      "floor_value": 7,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "waste_capacity_margin_days",
+      "unit": "day",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "critical_spares_coverage_days",
+      "unit": "day",
+      "operator": "gte",
+      "floor_value": 3,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "essential_service_outage_minutes",
+      "unit": "min",
+      "operator": "lte",
+      "floor_value": 30,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "comfort_breach_minutes",
+      "unit": "min",
+      "operator": "lte",
+      "floor_value": 60,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "crew_workload_hours_per_day",
+      "unit": "h/day",
+      "operator": "lte",
+      "floor_value": 8,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "purchased_energy_kwh_per_berth_day",
+      "unit": "kWh/berth-day",
+      "operator": "lte",
+      "floor_value": 6,
+      "minimum_coverage_fraction": 0.95
+    }
+  ],
+  "scenario_members": [
+    {
+      "scenario_member_id": "member-01",
+      "source_member_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "scenario_member_id": "member-02",
+      "source_member_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ],
+  "policies": [
+    {
+      "policy_id": "weather-blind-reference",
+      "role": "weather_blind_reference",
+      "forecast_use": false,
+      "mission_snapshot_sha256": "be567df14abb3444a8a22592481c8259392e36e746f0dce7c87c6f52306b260e",
+      "paths": [
+        {
+          "scenario_member_id": "member-01",
+          "source_member_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "path_result_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "events": [],
+          "timepoints": [
+            {
+              "at": "2025-03-01T00:00:00Z",
+              "elapsed_hours": 0,
+              "route_progress_fraction": 0,
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-GATE-weather-blind-reference-member-01-0",
+              "hard_gate_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "value": 18,
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "value": 12,
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "value": 2,
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "value": 10,
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "value": 20,
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "value": 5.2,
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                }
+              ]
+            },
+            {
+              "at": "2025-03-01T06:00:00Z",
+              "elapsed_hours": 6,
+              "route_progress_fraction": 0.5,
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-GATE-weather-blind-reference-member-01-1",
+              "hard_gate_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "value": 18,
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "value": 12,
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "value": 2,
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "value": 10,
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "value": 20,
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "value": 5.2,
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                }
+              ]
+            },
+            {
+              "at": "2025-03-01T12:00:00Z",
+              "elapsed_hours": 12,
+              "route_progress_fraction": 1,
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-GATE-weather-blind-reference-member-01-2",
+              "hard_gate_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "value": 18,
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "value": 12,
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "value": 2,
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "value": 10,
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "value": 20,
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "value": 5.2,
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                }
+              ]
+            }
+          ],
+          "segments": [
+            {
+              "from": "2025-03-01T00:00:00Z",
+              "to": "2025-03-01T06:00:00Z",
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-SEGMENT-GATE-weather-blind-reference-member-01-0",
+              "hard_gate_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                }
+              ]
+            },
+            {
+              "from": "2025-03-01T06:00:00Z",
+              "to": "2025-03-01T12:00:00Z",
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-SEGMENT-GATE-weather-blind-reference-member-01-1",
+              "hard_gate_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "scenario_member_id": "member-02",
+          "source_member_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "path_result_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "events": [],
+          "timepoints": [
+            {
+              "at": "2025-03-01T00:00:00Z",
+              "elapsed_hours": 0,
+              "route_progress_fraction": 0,
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-GATE-weather-blind-reference-member-02-0",
+              "hard_gate_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "value": 18,
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "value": 12,
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "value": 2,
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "value": 10,
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "value": 20,
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "value": 5.2,
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                }
+              ]
+            },
+            {
+              "at": "2025-03-01T06:00:00Z",
+              "elapsed_hours": 6,
+              "route_progress_fraction": 0.5,
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-GATE-weather-blind-reference-member-02-1",
+              "hard_gate_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "value": 18,
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "value": 12,
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "value": 2,
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "value": 10,
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "value": 20,
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "value": 5.2,
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                }
+              ]
+            },
+            {
+              "at": "2025-03-01T12:00:00Z",
+              "elapsed_hours": 12,
+              "route_progress_fraction": 1,
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-GATE-weather-blind-reference-member-02-2",
+              "hard_gate_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "value": 18,
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "value": 12,
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "value": 2,
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "value": 10,
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "value": 20,
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "value": 5.2,
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                }
+              ]
+            }
+          ],
+          "segments": [
+            {
+              "from": "2025-03-01T00:00:00Z",
+              "to": "2025-03-01T06:00:00Z",
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-SEGMENT-GATE-weather-blind-reference-member-02-0",
+              "hard_gate_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                }
+              ]
+            },
+            {
+              "from": "2025-03-01T06:00:00Z",
+              "to": "2025-03-01T12:00:00Z",
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-SEGMENT-GATE-weather-blind-reference-member-02-1",
+              "hard_gate_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "policy_id": "weather-informed-resource-blind",
+      "role": "weather_informed_resource_blind",
+      "forecast_use": true,
+      "mission_snapshot_sha256": "be567df14abb3444a8a22592481c8259392e36e746f0dce7c87c6f52306b260e",
+      "paths": [
+        {
+          "scenario_member_id": "member-01",
+          "source_member_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "path_result_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "events": [],
+          "timepoints": [
+            {
+              "at": "2025-03-01T00:00:00Z",
+              "elapsed_hours": 0,
+              "route_progress_fraction": 0,
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-GATE-weather-informed-resource-blind-member-01-0",
+              "hard_gate_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "value": 18,
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "value": 12,
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "value": 2,
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "value": 10,
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "value": 20,
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "value": 5.2,
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                }
+              ]
+            },
+            {
+              "at": "2025-03-01T06:00:00Z",
+              "elapsed_hours": 6,
+              "route_progress_fraction": 0.5,
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-GATE-weather-informed-resource-blind-member-01-1",
+              "hard_gate_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "value": 18,
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "value": 12,
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "value": 2,
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "value": 10,
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "value": 20,
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "value": 5.2,
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                }
+              ]
+            },
+            {
+              "at": "2025-03-01T12:00:00Z",
+              "elapsed_hours": 12,
+              "route_progress_fraction": 1,
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-GATE-weather-informed-resource-blind-member-01-2",
+              "hard_gate_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "value": 18,
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "value": 12,
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "value": 2,
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "value": 10,
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "value": 20,
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "value": 5.2,
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                }
+              ]
+            }
+          ],
+          "segments": [
+            {
+              "from": "2025-03-01T00:00:00Z",
+              "to": "2025-03-01T06:00:00Z",
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-SEGMENT-GATE-weather-informed-resource-blind-member-01-0",
+              "hard_gate_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                }
+              ]
+            },
+            {
+              "from": "2025-03-01T06:00:00Z",
+              "to": "2025-03-01T12:00:00Z",
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-SEGMENT-GATE-weather-informed-resource-blind-member-01-1",
+              "hard_gate_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "scenario_member_id": "member-02",
+          "source_member_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "path_result_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "events": [],
+          "timepoints": [
+            {
+              "at": "2025-03-01T00:00:00Z",
+              "elapsed_hours": 0,
+              "route_progress_fraction": 0,
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-GATE-weather-informed-resource-blind-member-02-0",
+              "hard_gate_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "value": 18,
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "value": 12,
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "value": 2,
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "value": 10,
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "value": 20,
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "value": 5.2,
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                }
+              ]
+            },
+            {
+              "at": "2025-03-01T06:00:00Z",
+              "elapsed_hours": 6,
+              "route_progress_fraction": 0.5,
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-GATE-weather-informed-resource-blind-member-02-1",
+              "hard_gate_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "value": 18,
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "value": 12,
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "value": 2,
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "value": 10,
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "value": 20,
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "value": 5.2,
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                }
+              ]
+            },
+            {
+              "at": "2025-03-01T12:00:00Z",
+              "elapsed_hours": 12,
+              "route_progress_fraction": 1,
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-GATE-weather-informed-resource-blind-member-02-2",
+              "hard_gate_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "value": 18,
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "value": 12,
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "value": 2,
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "value": 10,
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "value": 20,
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "value": 5.2,
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                }
+              ]
+            }
+          ],
+          "segments": [
+            {
+              "from": "2025-03-01T00:00:00Z",
+              "to": "2025-03-01T06:00:00Z",
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-SEGMENT-GATE-weather-informed-resource-blind-member-02-0",
+              "hard_gate_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                }
+              ]
+            },
+            {
+              "from": "2025-03-01T06:00:00Z",
+              "to": "2025-03-01T12:00:00Z",
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-SEGMENT-GATE-weather-informed-resource-blind-member-02-1",
+              "hard_gate_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "policy_id": "integrated-mission-candidate",
+      "role": "integrated_candidate",
+      "forecast_use": true,
+      "mission_snapshot_sha256": "be567df14abb3444a8a22592481c8259392e36e746f0dce7c87c6f52306b260e",
+      "paths": [
+        {
+          "scenario_member_id": "member-01",
+          "source_member_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "path_result_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "events": [
+            {
+              "event_id": "integrated-mission-candidate-member-01-freshwater-restock",
+              "event_time": "2025-03-01T08:00:00Z",
+              "event_type": "freshwater_replenishment",
+              "resource_metric": "freshwater_reserve_days",
+              "delta": 3,
+              "unit": "day",
+              "evidence_ref": "SYNTHETIC-WATER-RESTOCK",
+              "evidence_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+            }
+          ],
+          "timepoints": [
+            {
+              "at": "2025-03-01T00:00:00Z",
+              "elapsed_hours": 0,
+              "route_progress_fraction": 0,
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-GATE-integrated-mission-candidate-member-01-0",
+              "hard_gate_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "value": 18,
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "value": 12,
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "value": 2,
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "value": 10,
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "value": 20,
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "value": 5.2,
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                }
+              ]
+            },
+            {
+              "at": "2025-03-01T06:00:00Z",
+              "elapsed_hours": 6,
+              "route_progress_fraction": 0.5,
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-GATE-integrated-mission-candidate-member-01-1",
+              "hard_gate_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "value": 18,
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "value": 2,
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "value": 12,
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "value": 2,
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "value": 10,
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "value": 20,
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "value": 5.2,
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                }
+              ]
+            },
+            {
+              "at": "2025-03-01T12:00:00Z",
+              "elapsed_hours": 12,
+              "route_progress_fraction": 1,
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-GATE-integrated-mission-candidate-member-01-2",
+              "hard_gate_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "value": 18,
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "value": 12,
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "value": 2,
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "value": 10,
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "value": 20,
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "value": 5.2,
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                }
+              ]
+            }
+          ],
+          "segments": [
+            {
+              "from": "2025-03-01T00:00:00Z",
+              "to": "2025-03-01T06:00:00Z",
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-SEGMENT-GATE-integrated-mission-candidate-member-01-0",
+              "hard_gate_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 1.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                }
+              ]
+            },
+            {
+              "from": "2025-03-01T06:00:00Z",
+              "to": "2025-03-01T12:00:00Z",
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-SEGMENT-GATE-integrated-mission-candidate-member-01-1",
+              "hard_gate_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 1.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "scenario_member_id": "member-02",
+          "source_member_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "path_result_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "events": [],
+          "timepoints": [
+            {
+              "at": "2025-03-01T00:00:00Z",
+              "elapsed_hours": 0,
+              "route_progress_fraction": 0,
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-GATE-integrated-mission-candidate-member-02-0",
+              "hard_gate_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "value": 18,
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "value": 12,
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "value": 2,
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "value": 10,
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "value": 20,
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "value": 5.2,
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T00:00:00Z"
+                }
+              ]
+            },
+            {
+              "at": "2025-03-01T06:00:00Z",
+              "elapsed_hours": 6,
+              "route_progress_fraction": 0.5,
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-GATE-integrated-mission-candidate-member-02-1",
+              "hard_gate_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "value": 18,
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "value": 12,
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "value": 2,
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "value": 10,
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "value": 20,
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "value": 5.2,
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T06:00:00Z"
+                }
+              ]
+            },
+            {
+              "at": "2025-03-01T12:00:00Z",
+              "elapsed_hours": 12,
+              "route_progress_fraction": 1,
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-GATE-integrated-mission-candidate-member-02-2",
+              "hard_gate_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "value": 18,
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "value": 12,
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "value": 2,
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "value": 4,
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "value": 10,
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "value": 20,
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "value": 5,
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "value": 5.2,
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-temporal-known-answer",
+                  "measured_at": "2025-03-01T12:00:00Z"
+                }
+              ]
+            }
+          ],
+          "segments": [
+            {
+              "from": "2025-03-01T00:00:00Z",
+              "to": "2025-03-01T06:00:00Z",
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-SEGMENT-GATE-integrated-mission-candidate-member-02-0",
+              "hard_gate_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                }
+              ]
+            },
+            {
+              "from": "2025-03-01T06:00:00Z",
+              "to": "2025-03-01T12:00:00Z",
+              "hard_gate_disposition": "pass",
+              "hard_gate_violations": 0,
+              "hard_gate_evidence_ref": "SYNTHETIC-SEGMENT-GATE-integrated-mission-candidate-member-02-1",
+              "hard_gate_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "metrics": [
+                {
+                  "metric": "arrival_delay_hours",
+                  "unit": "h",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "energy_reserve_hours",
+                  "unit": "h",
+                  "lower_bound": 17.9,
+                  "upper_bound": 18.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "freshwater_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "food_reserve_days",
+                  "unit": "day",
+                  "lower_bound": 11.9,
+                  "upper_bound": 12.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "waste_capacity_margin_days",
+                  "unit": "day",
+                  "lower_bound": 1.9,
+                  "upper_bound": 2.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "critical_spares_coverage_days",
+                  "unit": "day",
+                  "lower_bound": 3.9,
+                  "upper_bound": 4.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "essential_service_outage_minutes",
+                  "unit": "min",
+                  "lower_bound": 9.9,
+                  "upper_bound": 10.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "comfort_breach_minutes",
+                  "unit": "min",
+                  "lower_bound": 19.9,
+                  "upper_bound": 20.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "crew_workload_hours_per_day",
+                  "unit": "h/day",
+                  "lower_bound": 4.9,
+                  "upper_bound": 5.1,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                },
+                {
+                  "metric": "purchased_energy_kwh_per_berth_day",
+                  "unit": "kWh/berth-day",
+                  "lower_bound": 5.1000000000000005,
+                  "upper_bound": 5.3,
+                  "coverage_fraction": 1,
+                  "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "measurement_class": "synthetic",
+                  "measurement_method": "synthetic-segment-envelope"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
