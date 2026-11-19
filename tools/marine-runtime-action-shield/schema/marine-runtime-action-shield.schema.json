@@ -1,0 +1,429 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:marine-runtime-action-shield:0.1.0",
+  "title": "Marine Runtime One-Step Action Shield Proposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "decision_id",
+    "record_status",
+    "claim_ceiling",
+    "decision_time",
+    "runtime_contract",
+    "mission_snapshot",
+    "current_state",
+    "service_contract",
+    "scenario_roster",
+    "action_candidates"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "decision_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "record_status": {
+      "enum": [
+        "synthetic",
+        "shadow_replay",
+        "measured_campaign",
+        "published_reproduction"
+      ]
+    },
+    "claim_ceiling": {
+      "const": "one_step_model_output_action_gate_only"
+    },
+    "decision_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "runtime_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transition_model_sha256",
+        "operating_domain_sha256",
+        "shield_version_sha256",
+        "max_state_age_ms",
+        "permit_ttl_ms"
+      ],
+      "properties": {
+        "transition_model_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "operating_domain_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "shield_version_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "max_state_age_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "permit_ttl_ms": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "mission_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mission_id",
+        "mission_snapshot_sha256",
+        "craft_configuration_sha256",
+        "occupancy_sha256",
+        "initial_resource_state_sha256",
+        "mission_plan_sha256",
+        "service_contract_sha256",
+        "scenario_roster_sha256",
+        "time_grid_sha256",
+        "forecast_information_set_sha256",
+        "hard_gate_roster_sha256",
+        "operating_envelope_sha256"
+      ],
+      "properties": {
+        "mission_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mission_snapshot_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "craft_configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "occupancy_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "initial_resource_state_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "mission_plan_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "service_contract_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "scenario_roster_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "time_grid_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "forecast_information_set_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "hard_gate_roster_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "operating_envelope_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "current_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "timestamp",
+        "state_sha256",
+        "telemetry_evidence_sha256"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "state_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "telemetry_evidence_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "service_contract": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 11,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric",
+          "unit",
+          "operator",
+          "floor_value",
+          "minimum_coverage_fraction"
+        ],
+        "properties": {
+          "metric": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operator": {
+            "enum": [
+              "gte",
+              "lte"
+            ]
+          },
+          "floor_value": {
+            "type": "number"
+          },
+          "minimum_coverage_fraction": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "scenario_roster": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_class",
+          "scenario_sha256",
+          "disturbance_sha256"
+        ],
+        "properties": {
+          "scenario_class": {
+            "enum": [
+              "nominal",
+              "adverse_forecast_error",
+              "main_generation_outage",
+              "watermaker_outage",
+              "common_cause_generation_watermaker_outage"
+            ]
+          },
+          "scenario_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "disturbance_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        }
+      }
+    },
+    "action_candidates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action_id",
+          "role",
+          "priority_rank",
+          "action",
+          "action_sha256",
+          "source_current_state_sha256",
+          "model_sha256",
+          "operating_domain_sha256",
+          "permit_expires_at",
+          "successors"
+        ],
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "enum": [
+              "primary",
+              "fallback"
+            ]
+          },
+          "priority_rank": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "fallback_for_action_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "action": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "propulsion_mode",
+              "propulsion_load_kw",
+              "generator_dispatch_mode",
+              "watermaker_mode",
+              "nonessential_load_shed"
+            ],
+            "properties": {
+              "propulsion_mode": {
+                "type": "string",
+                "minLength": 1
+              },
+              "propulsion_load_kw": {
+                "type": "number",
+                "minimum": 0
+              },
+              "generator_dispatch_mode": {
+                "type": "string",
+                "minLength": 1
+              },
+              "watermaker_mode": {
+                "type": "string",
+                "minLength": 1
+              },
+              "nonessential_load_shed": {
+                "type": "boolean"
+              }
+            }
+          },
+          "action_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "source_current_state_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "model_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "operating_domain_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "permit_expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "successors": {
+            "type": "array",
+            "minItems": 5,
+            "maxItems": 5,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "scenario_class",
+                "successor_state_sha256",
+                "resource_metrics"
+              ],
+              "properties": {
+                "scenario_class": {
+                  "enum": [
+                    "nominal",
+                    "adverse_forecast_error",
+                    "main_generation_outage",
+                    "watermaker_outage",
+                    "common_cause_generation_watermaker_outage"
+                  ]
+                },
+                "successor_state_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-fA-F0-9]{64}$"
+                },
+                "resource_metrics": {
+                  "type": "array",
+                  "minItems": 11,
+                  "maxItems": 11,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "metric",
+                      "unit",
+                      "value",
+                      "lower_bound",
+                      "upper_bound",
+                      "coverage_fraction",
+                      "measurement_class",
+                      "measurement_method",
+                      "evidence_sha256"
+                    ],
+                    "properties": {
+                      "metric": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "unit": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "value": {
+                        "type": "number"
+                      },
+                      "lower_bound": {
+                        "type": "number"
+                      },
+                      "upper_bound": {
+                        "type": "number"
+                      },
+                      "coverage_fraction": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      "measurement_class": {
+                        "enum": [
+                          "measured",
+                          "modeled",
+                          "derived",
+                          "synthetic"
+                        ]
+                      },
+                      "measurement_method": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "evidence_sha256": {
+                        "type": "string",
+                        "pattern": "^[a-fA-F0-9]{64}$"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
