@@ -313,6 +313,11 @@ fn validate_inputs(
             }
         }
     }
+    if case_ids.len() != carrier_ids.len()
+        || carrier_ids.iter().any(|config_id| !case_ids.contains(config_id))
+    {
+        errors.push("qualification catalog must cover every carrier engineering configuration exactly once".into());
+    }
     if errors.is_empty() { Ok(()) } else { Err(errors) }
 }
 
@@ -387,12 +392,15 @@ fn evaluate_case(
     let mut matching_factory_rows = Vec::new();
     let mut module_process_status = "not_required".to_string();
     let mut module_scenario_count = 0;
-    let mut base_factory_release_ready = true;
-    let mut module_release_ready = true;
+    let mut base_factory_release_ready = !factory_report.results.is_empty()
+        && factory_report.results.iter().all(|row| row.base_factory_production_release_ready);
+    let mut module_release_ready = false;
 
     if case.module_process_required {
         match case.module_process_config_id.as_deref() {
             None => {
+                base_factory_release_ready = false;
+                module_release_ready = false;
                 indeterminate = true;
                 module_process_status = "route_not_modelled".into();
                 findings.push("required_module_process_route_not_modelled".into());
@@ -450,8 +458,11 @@ fn evaluate_case(
             findings.push("module_factory_release_not_granted".into());
         }
     } else {
-        base_factory_release_ready = false;
         module_release_ready = false;
+    }
+    if !base_factory_release_ready {
+        indeterminate = true;
+        findings.push("base_factory_not_production_release_ready".into());
     }
 
     let gates: Vec<GateResult> = case.gates.iter().map(evaluate_gate).collect();
