@@ -87,6 +87,7 @@ enum EvidenceStatus {
     Measured,
     Manufacturer,
     PublicReference,
+    IndependentTest,
     Unknown,
     Stale,
     Conflicted,
@@ -137,6 +138,7 @@ struct ArchitectureResult {
     passed_qualification_gate_count: usize,
     failed_qualification_gate_count: usize,
     unknown_qualification_gate_count: usize,
+    missing_qualification_gates: Vec<String>,
     production_release_ready: bool,
     findings: Vec<String>,
     product_boundary_note: String,
@@ -350,12 +352,22 @@ fn validate_architecture(
         if gate.gate_id.trim().is_empty() || !gate_ids.insert(gate.gate_id.as_str()) {
             errors.push(format!("{prefix}.gate_id: must be nonempty and unique"));
         }
+        if !REQUIRED_QUALIFICATION_GATES.contains(&gate.gate_id.as_str()) {
+            errors.push(format!("{prefix}.gate_id: unsupported qualification gate"));
+        }
         if gate.evidence_reference.trim().is_empty()
             || gate.reviewer_or_authority.trim().is_empty()
             || gate.note.trim().is_empty()
         {
             errors.push(format!(
                 "{prefix}: evidence reference, reviewer/authority and note are required"
+            ));
+        }
+    }
+    for required_gate in REQUIRED_QUALIFICATION_GATES {
+        if !gate_ids.contains(required_gate) {
+            errors.push(format!(
+                "architectures[{architecture_index}].qualification_gates: missing {required_gate}"
             ));
         }
     }
@@ -390,23 +402,25 @@ fn evaluate_architecture(architecture: &Architecture) -> ArchitectureResult {
         .operations
         .iter()
         .filter(|operation| {
-            operation.cycle_time_seconds_per_unit.is_none()
-                || operation.equipment_or_fixture_id.is_none()
-                || operation.operator_skill_profile.is_none()
-                || operation.inspection_or_acceptance_method.is_none()
+            operation.implementation != ImplementationRoute::NotApplicable
+                && (operation.cycle_time_seconds_per_unit.is_none()
+                    || operation.equipment_or_fixture_id.is_none()
+                    || operation.operator_skill_profile.is_none()
+                    || operation.inspection_or_acceptance_method.is_none())
         })
         .count();
     let process_evidence_not_qualified_count = architecture
         .operations
         .iter()
         .filter(|operation| {
-            !matches!(
-                operation.evidence_status,
-                EvidenceStatus::Qualified
-                    | EvidenceStatus::Measured
-                    | EvidenceStatus::Manufacturer
-                    | EvidenceStatus::PublicReference
-            )
+            operation.implementation != ImplementationRoute::NotApplicable
+                && !matches!(
+                    operation.evidence_status,
+                    EvidenceStatus::Qualified
+                        | EvidenceStatus::Measured
+                        | EvidenceStatus::Manufacturer
+                        | EvidenceStatus::PublicReference
+                )
         })
         .count();
 
@@ -437,6 +451,16 @@ fn evaluate_architecture(architecture: &Architecture) -> ArchitectureResult {
                 )
         })
         .count();
+    let present_gate_ids: BTreeSet<&str> = architecture
+        .qualification_gates
+        .iter()
+        .map(|gate| gate.gate_id.as_str())
+        .collect();
+    let missing_qualification_gates: Vec<String> = REQUIRED_QUALIFICATION_GATES
+        .iter()
+        .filter(|gate| !present_gate_ids.contains(**gate))
+        .map(|gate| (*gate).to_string())
+        .collect();
 
     for family in &missing_process_families {
         findings.push(format!("missing_required_process_family:{family}"));
@@ -519,6 +543,7 @@ fn evaluate_architecture(architecture: &Architecture) -> ArchitectureResult {
         passed_qualification_gate_count,
         failed_qualification_gate_count,
         unknown_qualification_gate_count,
+        missing_qualification_gates,
         production_release_ready,
         findings,
         product_boundary_note: architecture.product_boundary_note.clone(),
