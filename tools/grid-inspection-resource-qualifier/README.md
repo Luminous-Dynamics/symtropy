@@ -13,7 +13,7 @@ It does **not** compute diagnoses, posteriors, likelihoods, probabilities, infor
 
 ## What is verified
 
-- Canonical SHA-256 of a separately referenced resource manifest.
+- Canonical SHA-256 of a separately referenced resource manifest and the complete upstream policy-certificate payload.
 - Resource identity, freshness and status.
 - Capacity windows, confirmed reservations and unknown reservations.
 - Common simultaneous availability for every resource required by one activity.
