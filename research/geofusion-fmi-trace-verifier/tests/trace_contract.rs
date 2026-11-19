@@ -184,6 +184,45 @@ fn accepted_step_may_report_last_successful_time_before_requested_endpoint() {
 }
 
 #[test]
+fn accepted_step_may_report_last_successful_time_after_requested_endpoint() {
+    let model = profile(
+        "single",
+        "sha256:model-single-v1",
+        "clock-binding-single-v1",
+        "sha256:clock-map-single-v1",
+        1_000_000_000,
+        1,
+    );
+    let step = attempt(
+        "single-step-0",
+        "single",
+        "sha256:model-single-v1",
+        "clock-binding-single-v1",
+        "sha256:clock-map-single-v1",
+        0,
+        None,
+        0,
+        1,
+        2,
+        1_000_000_000,
+        StepOutcome::Accepted,
+    );
+    let trace = RunTrace {
+        run_id: "synthetic-single-run-overshoot".to_owned(),
+        federates: vec![model],
+        attempts: vec![step],
+        barriers: vec![CommitBarrier {
+            barrier_id: "barrier-2s".to_owned(),
+            sequence: 0,
+            master_time_ns: 2_000_000_000,
+            participant_attempt_ids: vec!["single-step-0".to_owned()],
+        }],
+    };
+
+    assert_eq!(validate_trace(&trace), Ok(()));
+}
+
+#[test]
 fn clock_binding_maps_exactly_without_float_rounding() {
     let trace = valid_trace();
     let binding = &trace.federates[1].clock;
