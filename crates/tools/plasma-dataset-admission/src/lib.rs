@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::{Component, Path};
 
 pub const SCHEMA_VERSION: &str = "luminous.plasma-dataset-admission.v0.1";
 
@@ -31,8 +32,6 @@ pub struct ArtifactFile {
     pub expected_size_bytes: Option<u64>,
     pub remote_md5: Option<String>,
     pub remote_sha256: Option<String>,
-    pub observed_size_bytes: Option<u64>,
-    pub observed_sha256: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -67,6 +66,14 @@ pub struct AuditFinding {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct ArtifactObservation {
+    pub artifact_id: String,
+    pub observed_size_bytes: u64,
+    pub observed_sha256: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AuditReportBody {
     pub schema_version: String,
     pub source_id: String,
@@ -76,6 +83,7 @@ pub struct AuditReportBody {
     pub local_evaluation_allowed: bool,
     pub redistribution_allowed: bool,
     pub manifest_sha256: String,
+    pub artifact_observations: Vec<ArtifactObservation>,
     pub findings: Vec<AuditFinding>,
 }
 
@@ -103,6 +111,14 @@ fn non_empty(value: &str) -> bool {
     !value.trim().is_empty()
 }
 
+fn safe_file_name(value: &str) -> bool {
+    if !non_empty(value) || value.contains('/') || value.contains('\\') || value.contains('\0') {
+        return false;
+    }
+    let mut components = Path::new(value).components();
+    matches!(components.next(), Some(Component::Normal(_))) && components.next().is_none()
+}
+
 fn finding(code: &str, ids: Vec<String>, detail: &str) -> AuditFinding {
     AuditFinding {
         code: code.to_owned(),
@@ -111,23 +127,29 @@ fn finding(code: &str, ids: Vec<String>, detail: &str) -> AuditFinding {
     }
 }
 
-/// Bind the locally acquired bytes to their exact size and SHA-256.
-/// This records local byte identity; it does not authenticate an upstream release.
-pub fn record_local_bytes(file: &mut ArtifactFile, bytes: &[u8]) {
-    file.observed_size_bytes = Some(bytes.len() as u64);
-    file.observed_sha256 = Some(sha256_hex(bytes));
-}
-
-pub fn audit_manifest(manifest: &SourceManifest) -> Result<AuditReport, String> {
-    let manifest_bytes =
-        serde_json::to_vec(manifest).map_err(|error| format!("manifest serialization failed: {error}"))?;
+/// Audit metadata and actual locally staged bytes.
+///
+/// The caller must supply bytes keyed by artifact ID. Their size and SHA-256
+/// are recomputed here; no observed hash or size is trusted from the manifest.
+/// A source-published SHA-256 match is required for evaluation admission in v0.1.
+pub fn audit_manifest(
+    manifest: &SourceManifest,
+    local_artifacts: &BTreeMap<String, Vec<u8>>,
+) -> Result<AuditReport, String> {
+    let manifest_bytes = serde_json::to_vec(manifest)
+        .map_err(|error| format!("manifest serialization failed: {error}"))?;
     let manifest_sha256 = sha256_hex(&manifest_bytes);
     let mut findings = Vec::new();
+    let mut observations = Vec::new();
     let mut rejected = false;
     let mut blocked = false;
 
     if manifest.schema_version != SCHEMA_VERSION {
-        findings.push(finding("unsupported_schema_version", vec![], "The manifest schema version is not supported."));
+        findings.push(finding(
+            "unsupported_schema_version",
+            vec![],
+            "The manifest schema version is not supported.",
+        ));
         rejected = true;
     }
     if !non_empty(&manifest.source_id)
@@ -136,28 +158,36 @@ pub fn audit_manifest(manifest: &SourceManifest) -> Result<AuditReport, String> 
         || !non_empty(&manifest.version)
         || !non_empty(&manifest.metadata_captured_at)
     {
-        findings.push(finding("invalid_record_identity", vec![], "Record ID, DOI, HTTPS URI, version and capture timestamp are required."));
+        findings.push(finding(
+            "invalid_record_identity",
+            vec![],
+            "Record ID, DOI, HTTPS URI, version and capture timestamp are required.",
+        ));
         rejected = true;
     }
     if manifest.artifacts.is_empty() {
-        findings.push(finding("no_artifacts", vec![], "At least one artifact must be declared."));
+        findings.push(finding(
+            "no_artifacts",
+            vec![],
+            "At least one artifact must be declared.",
+        ));
         rejected = true;
     }
 
-    let mut artifact_ids = std::collections::BTreeSet::new();
-    let mut file_names = std::collections::BTreeSet::new();
+    let mut artifact_ids = BTreeSet::new();
+    let mut file_names = BTreeSet::new();
     let mut md5_groups: BTreeMap<String, Vec<String>> = BTreeMap::new();
 
     for artifact in &manifest.artifacts {
         if !non_empty(&artifact.artifact_id)
-            || !non_empty(&artifact.file_name)
+            || !safe_file_name(&artifact.file_name)
             || !artifact_ids.insert(artifact.artifact_id.clone())
             || !file_names.insert(artifact.file_name.clone())
         {
             findings.push(finding(
                 "invalid_or_duplicate_artifact_identity",
                 vec![artifact.artifact_id.clone()],
-                "Artifact IDs and original filenames must be non-empty and unique.",
+                "Artifact IDs must be unique and filenames must be unique, non-empty single path components.",
             ));
             rejected = true;
         }
@@ -196,64 +226,69 @@ pub fn audit_manifest(manifest: &SourceManifest) -> Result<AuditReport, String> 
             ));
             rejected = true;
         }
-        if let Some(sha256) = &artifact.observed_sha256
-            && !is_hex(sha256, 64)
-        {
-            findings.push(finding(
-                "invalid_observed_sha256",
-                vec![artifact.artifact_id.clone()],
-                "A locally observed SHA-256 value must contain exactly 64 hexadecimal characters.",
-            ));
-            rejected = true;
-        }
 
-        match (artifact.observed_size_bytes, artifact.observed_sha256.as_ref()) {
-            (None, None) => {
+        match local_artifacts.get(&artifact.artifact_id) {
+            None => {
                 findings.push(finding(
                     "artifact_not_locally_acquired",
                     vec![artifact.artifact_id.clone()],
-                    "No local byte length or SHA-256 has been recorded.",
+                    "No bytes were supplied for this declared artifact.",
                 ));
                 blocked = true;
             }
-            (Some(_), None) | (None, Some(_)) => {
-                findings.push(finding(
-                    "incomplete_local_observation",
-                    vec![artifact.artifact_id.clone()],
-                    "Local byte length and SHA-256 must be recorded together.",
-                ));
-                rejected = true;
-            }
-            (Some(observed_size), Some(observed_sha256)) => {
+            Some(bytes) => {
+                let observed_size = bytes.len() as u64;
+                let observed_sha256 = sha256_hex(bytes);
+                observations.push(ArtifactObservation {
+                    artifact_id: artifact.artifact_id.clone(),
+                    observed_size_bytes: observed_size,
+                    observed_sha256: observed_sha256.clone(),
+                });
+
                 if let Some(expected_size) = artifact.expected_size_bytes
                     && observed_size != expected_size
                 {
                     findings.push(finding(
                         "local_size_mismatch",
                         vec![artifact.artifact_id.clone()],
-                        "The locally observed byte length does not match the pinned exact source size.",
+                        "The actual local byte length does not match the exact source-reported size.",
                     ));
                     rejected = true;
                 }
-                if let Some(expected_sha256) = &artifact.remote_sha256
-                    && !observed_sha256.eq_ignore_ascii_case(expected_sha256)
-                {
-                    findings.push(finding(
-                        "upstream_sha256_mismatch",
-                        vec![artifact.artifact_id.clone()],
-                        "The locally observed SHA-256 does not match the source-reported SHA-256.",
-                    ));
-                    rejected = true;
-                }
-                if artifact.remote_sha256.is_none() {
-                    findings.push(finding(
-                        "upstream_sha256_unavailable",
-                        vec![artifact.artifact_id.clone()],
-                        "Local SHA-256 identifies staged bytes but cannot authenticate them against a source-published SHA-256; MD5-only source metadata is not admitted by this version.",
-                    ));
-                    blocked = true;
+
+                match &artifact.remote_sha256 {
+                    Some(expected_sha256) if is_hex(expected_sha256, 64) => {
+                        if !observed_sha256.eq_ignore_ascii_case(expected_sha256) {
+                            findings.push(finding(
+                                "upstream_sha256_mismatch",
+                                vec![artifact.artifact_id.clone()],
+                                "The SHA-256 recomputed from the supplied bytes does not match the source-reported SHA-256.",
+                            ));
+                            rejected = true;
+                        }
+                    }
+                    Some(_) => {}
+                    None => {
+                        findings.push(finding(
+                            "upstream_sha256_unavailable",
+                            vec![artifact.artifact_id.clone()],
+                            "Local SHA-256 identifies supplied bytes but cannot authenticate them against a source-published SHA-256; MD5-only source metadata is not admitted by this version.",
+                        ));
+                        blocked = true;
+                    }
                 }
             }
+        }
+    }
+
+    for local_id in local_artifacts.keys() {
+        if !artifact_ids.contains(local_id) {
+            findings.push(finding(
+                "unlisted_local_artifact",
+                vec![local_id.clone()],
+                "Local bytes were supplied for an artifact ID absent from the source manifest.",
+            ));
+            rejected = true;
         }
     }
 
@@ -272,7 +307,11 @@ pub fn audit_manifest(manifest: &SourceManifest) -> Result<AuditReport, String> 
 
     let license_allows_evaluation = match &manifest.license_review {
         None => {
-            findings.push(finding("license_review_missing", vec![], "No human-reviewed license decision is recorded; unknown is not permission."));
+            findings.push(finding(
+                "license_review_missing",
+                vec![],
+                "No human-reviewed license decision is recorded; unknown is not permission.",
+            ));
             blocked = true;
             false
         }
@@ -281,17 +320,29 @@ pub fn audit_manifest(manifest: &SourceManifest) -> Result<AuditReport, String> 
                 || !review.evidence_uri.starts_with("https://")
                 || !non_empty(&review.reviewed_at)
             {
-                findings.push(finding("license_review_incomplete", vec![], "License ID, HTTPS evidence URI and review timestamp are required."));
+                findings.push(finding(
+                    "license_review_incomplete",
+                    vec![],
+                    "License ID, HTTPS evidence URI and review timestamp are required.",
+                ));
                 blocked = true;
             }
             match review.decision {
                 LicenseDecision::Unknown => {
-                    findings.push(finding("license_unknown", vec![], "The explicit license decision is unknown."));
+                    findings.push(finding(
+                        "license_unknown",
+                        vec![],
+                        "The explicit license decision is unknown.",
+                    ));
                     blocked = true;
                     false
                 }
                 LicenseDecision::Restricted => {
-                    findings.push(finding("license_restricted", vec![], "The recorded license review does not permit this evaluation."));
+                    findings.push(finding(
+                        "license_restricted",
+                        vec![],
+                        "The recorded license review does not permit this evaluation.",
+                    ));
                     blocked = true;
                     false
                 }
@@ -304,11 +355,12 @@ pub fn audit_manifest(manifest: &SourceManifest) -> Result<AuditReport, String> 
         }
     };
 
-    let local_bytes_complete = manifest.artifacts.iter().all(|artifact| {
-        artifact.observed_size_bytes.is_some() && artifact.observed_sha256.as_ref().is_some_and(|value| is_hex(value, 64))
-    });
+    let all_artifacts_observed = manifest
+        .artifacts
+        .iter()
+        .all(|artifact| observations.iter().any(|item| item.artifact_id == artifact.artifact_id));
     let local_evaluation_allowed = license_allows_evaluation
-        && local_bytes_complete
+        && all_artifacts_observed
         && !blocked
         && !rejected;
     let redistribution_allowed = local_evaluation_allowed
@@ -335,10 +387,11 @@ pub fn audit_manifest(manifest: &SourceManifest) -> Result<AuditReport, String> 
         local_evaluation_allowed,
         redistribution_allowed,
         manifest_sha256,
+        artifact_observations: observations,
         findings,
     };
-    let receipt_bytes =
-        serde_json::to_vec(&body).map_err(|error| format!("receipt serialization failed: {error}"))?;
+    let receipt_bytes = serde_json::to_vec(&body)
+        .map_err(|error| format!("receipt serialization failed: {error}"))?;
     let receipt_sha256 = sha256_hex(&receipt_bytes);
 
     Ok(AuditReport {
@@ -352,17 +405,6 @@ mod tests {
     use super::*;
 
     fn base_manifest(decision: LicenseDecision) -> SourceManifest {
-        let mut artifact = ArtifactFile {
-            artifact_id: "artifact-a".to_owned(),
-            file_name: "reference.mat".to_owned(),
-            reported_size: Some("3 bytes".to_owned()),
-            expected_size_bytes: Some(3),
-            remote_md5: None,
-            remote_sha256: Some("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad".to_owned()),
-            observed_size_bytes: None,
-            observed_sha256: None,
-        };
-        record_local_bytes(&mut artifact, b"abc");
         SourceManifest {
             schema_version: SCHEMA_VERSION.to_owned(),
             source_id: "fixture-a".to_owned(),
@@ -376,15 +418,28 @@ mod tests {
                 evidence_uri: "https://zenodo.org/records/example".to_owned(),
                 reviewed_at: "2026-11-19".to_owned(),
             }),
-            artifacts: vec![artifact],
+            artifacts: vec![ArtifactFile {
+                artifact_id: "artifact-a".to_owned(),
+                file_name: "reference.mat".to_owned(),
+                reported_size: Some("3 bytes".to_owned()),
+                expected_size_bytes: Some(3),
+                remote_md5: None,
+                remote_sha256: Some(
+                    "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad".to_owned(),
+                ),
+            }],
         }
+    }
+
+    fn local_bytes(bytes: &[u8]) -> BTreeMap<String, Vec<u8>> {
+        BTreeMap::from([("artifact-a".to_owned(), bytes.to_vec())])
     }
 
     #[test]
     fn metadata_fixture_quarantines_duplicate_md5_and_missing_rights() {
         let source = include_str!("../../../../benchmarks/plasma/dataset-admission-pnas-2025-v0.json");
         let manifest: SourceManifest = serde_json::from_str(source).expect("fixture parses");
-        let report = audit_manifest(&manifest).expect("audit runs");
+        let report = audit_manifest(&manifest, &BTreeMap::new()).expect("audit runs");
         assert_eq!(report.body.disposition, AdmissionDisposition::BlockedPendingEvidence);
         assert!(!report.body.local_evaluation_allowed);
         assert!(!report.body.redistribution_allowed);
@@ -394,7 +449,8 @@ mod tests {
 
     #[test]
     fn evaluation_only_never_implies_redistribution() {
-        let report = audit_manifest(&base_manifest(LicenseDecision::EvaluationOnly)).expect("audit runs");
+        let report = audit_manifest(&base_manifest(LicenseDecision::EvaluationOnly), &local_bytes(b"abc"))
+            .expect("audit runs");
         assert_eq!(report.body.disposition, AdmissionDisposition::ReadyForLocalEvaluation);
         assert!(report.body.local_evaluation_allowed);
         assert!(!report.body.redistribution_allowed);
@@ -402,7 +458,11 @@ mod tests {
 
     #[test]
     fn explicit_redistribution_permission_is_separate() {
-        let report = audit_manifest(&base_manifest(LicenseDecision::RedistributionAllowed)).expect("audit runs");
+        let report = audit_manifest(
+            &base_manifest(LicenseDecision::RedistributionAllowed),
+            &local_bytes(b"abc"),
+        )
+        .expect("audit runs");
         assert_eq!(report.body.disposition, AdmissionDisposition::ReadyForRedistribution);
         assert!(report.body.local_evaluation_allowed);
         assert!(report.body.redistribution_allowed);
@@ -412,7 +472,7 @@ mod tests {
     fn missing_license_blocks_admission() {
         let mut manifest = base_manifest(LicenseDecision::EvaluationOnly);
         manifest.license_review = None;
-        let report = audit_manifest(&manifest).expect("audit runs");
+        let report = audit_manifest(&manifest, &local_bytes(b"abc")).expect("audit runs");
         assert_eq!(report.body.disposition, AdmissionDisposition::BlockedPendingEvidence);
         assert!(!report.body.local_evaluation_allowed);
     }
@@ -420,25 +480,30 @@ mod tests {
     #[test]
     fn unknown_or_restricted_license_blocks_admission() {
         for decision in [LicenseDecision::Unknown, LicenseDecision::Restricted] {
-            let report = audit_manifest(&base_manifest(decision)).expect("audit runs");
+            let report = audit_manifest(&base_manifest(decision), &local_bytes(b"abc"))
+                .expect("audit runs");
             assert_eq!(report.body.disposition, AdmissionDisposition::BlockedPendingEvidence);
         }
     }
 
     #[test]
     fn exact_size_mismatch_is_rejected() {
-        let mut manifest = base_manifest(LicenseDecision::EvaluationOnly);
-        manifest.artifacts[0].observed_size_bytes = Some(4);
-        let report = audit_manifest(&manifest).expect("audit runs");
+        let report = audit_manifest(
+            &base_manifest(LicenseDecision::EvaluationOnly),
+            &local_bytes(b"abcd"),
+        )
+        .expect("audit runs");
         assert_eq!(report.body.disposition, AdmissionDisposition::Rejected);
         assert!(!report.body.local_evaluation_allowed);
     }
 
     #[test]
     fn upstream_sha256_mismatch_is_rejected() {
-        let mut manifest = base_manifest(LicenseDecision::EvaluationOnly);
-        manifest.artifacts[0].remote_sha256 = Some("00".repeat(32));
-        let report = audit_manifest(&manifest).expect("audit runs");
+        let report = audit_manifest(
+            &base_manifest(LicenseDecision::EvaluationOnly),
+            &local_bytes(b"abd"),
+        )
+        .expect("audit runs");
         assert_eq!(report.body.disposition, AdmissionDisposition::Rejected);
     }
 
@@ -451,10 +516,19 @@ mod tests {
         second.remote_md5 = Some("0123456789abcdef0123456789abcdef".to_owned());
         manifest.artifacts[0].remote_md5 = Some("0123456789abcdef0123456789abcdef".to_owned());
         manifest.artifacts.push(second);
-        let report = audit_manifest(&manifest).expect("audit runs");
+        let bytes = BTreeMap::from([
+            ("artifact-a".to_owned(), b"abc".to_vec()),
+            ("artifact-b".to_owned(), b"abc".to_vec()),
+        ]);
+        let report = audit_manifest(&manifest, &bytes).expect("audit runs");
         assert_eq!(report.body.disposition, AdmissionDisposition::BlockedPendingEvidence);
-        let duplicate = report.body.findings.iter().find(|item| item.code == "duplicate_remote_md5_quarantine").expect("duplicate finding");
-        assert_eq!(duplicate.artifact_ids, vec!["artifact-a".to_owned(), "artifact-b".to_owned()]);
+        let duplicate = report.body.findings.iter()
+            .find(|item| item.code == "duplicate_remote_md5_quarantine")
+            .expect("duplicate finding");
+        assert_eq!(
+            duplicate.artifact_ids,
+            vec!["artifact-a".to_owned(), "artifact-b".to_owned()]
+        );
         assert!(!duplicate.detail.contains("identical"));
     }
 
@@ -462,33 +536,53 @@ mod tests {
     fn invalid_digest_syntax_is_rejected() {
         let mut manifest = base_manifest(LicenseDecision::EvaluationOnly);
         manifest.artifacts[0].remote_md5 = Some("not-an-md5".to_owned());
-        let report = audit_manifest(&manifest).expect("audit runs");
+        let report = audit_manifest(&manifest, &local_bytes(b"abc")).expect("audit runs");
         assert_eq!(report.body.disposition, AdmissionDisposition::Rejected);
     }
 
     #[test]
-    fn incomplete_local_observation_is_rejected() {
-        let mut manifest = base_manifest(LicenseDecision::EvaluationOnly);
-        manifest.artifacts[0].observed_sha256 = None;
-        let report = audit_manifest(&manifest).expect("audit runs");
-        assert_eq!(report.body.disposition, AdmissionDisposition::Rejected);
-    }
-
-    #[test]
-    fn missing_upstream_sha_is_reported_as_local_integrity_only() {
+    fn missing_upstream_sha_blocks_even_when_local_bytes_are_hashable() {
         let mut manifest = base_manifest(LicenseDecision::EvaluationOnly);
         manifest.artifacts[0].remote_sha256 = None;
-        let report = audit_manifest(&manifest).expect("audit runs");
+        let report = audit_manifest(&manifest, &local_bytes(b"abc")).expect("audit runs");
         assert_eq!(report.body.disposition, AdmissionDisposition::BlockedPendingEvidence);
         assert!(!report.body.local_evaluation_allowed);
         assert!(report.body.findings.iter().any(|item| item.code == "upstream_sha256_unavailable"));
     }
 
     #[test]
-    fn receipt_is_deterministic_for_identical_manifest() {
+    fn missing_local_artifact_blocks_admission() {
+        let report = audit_manifest(&base_manifest(LicenseDecision::EvaluationOnly), &BTreeMap::new())
+            .expect("audit runs");
+        assert_eq!(report.body.disposition, AdmissionDisposition::BlockedPendingEvidence);
+        assert!(report.body.findings.iter().any(|item| item.code == "artifact_not_locally_acquired"));
+    }
+
+    #[test]
+    fn unlisted_local_artifact_is_rejected() {
+        let bytes = BTreeMap::from([("not-declared".to_owned(), b"abc".to_vec())]);
+        let report = audit_manifest(&base_manifest(LicenseDecision::EvaluationOnly), &bytes)
+            .expect("audit runs");
+        assert_eq!(report.body.disposition, AdmissionDisposition::Rejected);
+        assert!(report.body.findings.iter().any(|item| item.code == "unlisted_local_artifact"));
+    }
+
+    #[test]
+    fn unsafe_file_names_are_rejected() {
+        for file_name in ["../escape.mat", "/absolute.mat", "nested/file.mat", "nested\\file.mat", ".."] {
+            let mut manifest = base_manifest(LicenseDecision::EvaluationOnly);
+            manifest.artifacts[0].file_name = file_name.to_owned();
+            let report = audit_manifest(&manifest, &local_bytes(b"abc")).expect("audit runs");
+            assert_eq!(report.body.disposition, AdmissionDisposition::Rejected);
+        }
+    }
+
+    #[test]
+    fn receipt_is_deterministic_for_identical_inputs() {
         let manifest = base_manifest(LicenseDecision::EvaluationOnly);
-        let first = audit_manifest(&manifest).expect("first audit");
-        let second = audit_manifest(&manifest).expect("second audit");
+        let bytes = local_bytes(b"abc");
+        let first = audit_manifest(&manifest, &bytes).expect("first audit");
+        let second = audit_manifest(&manifest, &bytes).expect("second audit");
         assert_eq!(first.receipt_sha256, second.receipt_sha256);
         assert_eq!(first, second);
     }
@@ -497,16 +591,5 @@ mod tests {
     fn unknown_fields_are_refused() {
         let input = r#"{"schema_version":"luminous.plasma-dataset-admission.v0.1","source_id":"x","record_doi":"10/x","record_uri":"https://example.org","version":"v1","metadata_captured_at":"now","license_review":null,"artifacts":[],"unexpected":true}"#;
         assert!(serde_json::from_str::<SourceManifest>(input).is_err());
-    }
-
-    #[test]
-    fn local_byte_observation_uses_sha256() {
-        let mut artifact = base_manifest(LicenseDecision::EvaluationOnly).artifacts.remove(0);
-        record_local_bytes(&mut artifact, b"abc");
-        assert_eq!(artifact.observed_size_bytes, Some(3));
-        assert_eq!(
-            artifact.observed_sha256.as_deref(),
-            Some("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
-        );
     }
 }
