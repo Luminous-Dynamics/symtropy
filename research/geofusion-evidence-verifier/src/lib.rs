@@ -20,6 +20,7 @@ pub enum VerificationError {
     UnsupportedEvidenceKind,
     ArtifactUnavailable,
     ArtifactIntegrityStateRejected,
+    EvidenceNotCurrent,
     UnsupportedDigestAlgorithm,
     MalformedDigest,
     DigestMismatch,
@@ -44,6 +45,7 @@ impl VerificationError {
             Self::UnsupportedEvidenceKind => "UNSUPPORTED_EVIDENCE_KIND",
             Self::ArtifactUnavailable => "ARTIFACT_UNAVAILABLE",
             Self::ArtifactIntegrityStateRejected => "ARTIFACT_INTEGRITY_STATE_REJECTED",
+            Self::EvidenceNotCurrent => "EVIDENCE_NOT_CURRENT",
             Self::UnsupportedDigestAlgorithm => "UNSUPPORTED_DIGEST_ALGORITHM",
             Self::MalformedDigest => "MALFORMED_DIGEST",
             Self::DigestMismatch => "DIGEST_MISMATCH",
@@ -236,11 +238,59 @@ pub fn verify_source_interval(
 
     let payload_class = string_field(&payload, "evidence_class", "source payload")?;
     let evidence_class = string_field(evidence, "evidence_class", "evidence envelope")?;
+    if !matches!(
+        evidence_class,
+        "synthetic"
+            | "published_design"
+            | "vendor_reported"
+            | "measured"
+            | "calibrated_model"
+            | "independently_validated_model"
+            | "audited_operation"
+    ) {
+        return Err(VerificationError::InvalidField("evidence_class"));
+    }
     same_text(payload_class, evidence_class, "evidence_class")?;
+
+    let validity = required(evidence, "validity", "evidence envelope")?;
+    match string_field(validity, "state", "validity")? {
+        "current" | "not_applicable" => {}
+        "stale" | "unknown" => return Err(VerificationError::EvidenceNotCurrent),
+        _ => return Err(VerificationError::InvalidField("validity.state")),
+    }
+
+    let measurement = required(evidence, "measurement", "evidence envelope")?;
+    let model = required(evidence, "model", "evidence envelope")?;
+    if matches!(evidence_class, "measured" | "audited_operation") {
+        if string_field(measurement, "applicability", "measurement")? != "applicable" {
+            return Err(VerificationError::InvalidField("measurement.applicability"));
+        }
+        let instruments = required(measurement, "instrument_ids", "measurement")?
+            .as_array()
+            .filter(|items| !items.is_empty())
+            .ok_or(VerificationError::InvalidField("measurement.instrument_ids"))?;
+        if instruments.iter().any(|item| item.as_str().is_none_or(|id| id.trim().is_empty())) {
+            return Err(VerificationError::InvalidField("measurement.instrument_ids"));
+        }
+        string_field(measurement, "calibration_certificate_id", "measurement")?;
+    }
+    if matches!(evidence_class, "calibrated_model" | "independently_validated_model") {
+        if string_field(model, "applicability", "model")? != "applicable"
+            || string_field(model, "convergence_state", "model")? != "converged"
+        {
+            return Err(VerificationError::InvalidField("model.convergence_state"));
+        }
+        string_field(model, "solver_id", "model")?;
+        string_field(model, "solver_version", "model")?;
+    }
 
     let artifact = required(evidence, "artifact", "evidence envelope")?;
     if string_field(artifact, "availability", "artifact")? != "available" {
         return Err(VerificationError::ArtifactUnavailable);
+    }
+    string_field(artifact, "locator", "artifact")?;
+    if string_field(artifact, "media_type", "artifact")? != "application/json" {
+        return Err(VerificationError::InvalidField("artifact.media_type"));
     }
     match string_field(artifact, "integrity_state", "artifact")? {
         "not_checked" | "verified" => {}
@@ -313,6 +363,17 @@ pub fn verify_source_interval(
     if string_field(time_window, "state", "time_window")? != "bounded" {
         return Err(VerificationError::TimeWindowMismatch("state must be bounded"));
     }
+    if !matches!(
+        string_field(time_window, "clock_quality", "time_window")?,
+        "synchronized" | "estimated" | "synthetic" | "unknown" | "not_applicable"
+    ) {
+        return Err(VerificationError::InvalidField("time_window.clock_quality"));
+    }
+    let _clock_uncertainty_ns = unsigned_field(
+        time_window,
+        "clock_uncertainty_ns",
+        "time_window",
+    )?;
     same_text(
         string_field(time_window, "start_utc", "time_window")?,
         string_field(&payload, "start_utc", "source payload")?,
@@ -340,7 +401,7 @@ pub fn verify_source_interval(
     )?;
     same_text(
         string_field(receipt_digest, "value", "receipt digest")?,
-        &actual_digest,
+        actual_digest.as_str(),
         "source_payload_digest.value",
     )?;
 
@@ -600,8 +661,8 @@ mod tests {
     #[test]
     fn duplicate_allocation_ids_are_rejected() {
         let mut a = allocation();
-        a["allocations"][1]["allocation_id"] =
-            a["allocations"][0]["allocation_id"].clone();
+        let first_id = a["allocations"][0]["allocation_id"].clone();
+        a["allocations"][1]["allocation_id"] = first_id;
         let error = verify_source_interval(PAYLOAD, &evidence(), &a).unwrap_err();
         assert_eq!(error.code(), "DUPLICATE_ALLOCATION_ID");
     }
