@@ -10,6 +10,10 @@ The fixture contains a post-flight anomaly discovery, an interval-censored onset
 
 A second asset contributes five days of operating exposure with no failure observed; it is right-censored. It must not be interpreted as proof of a five-day failure-free lifetime or mixed naively with the interval-censored defect to produce a point MTBF.
 
+The return-to-service boundary is deliberately stricter than a boolean status. A valid release requires an external authority record that is bound consistently in three places: the ledger boundary, a `return_to_service_authorized` event, and the exact asset/configuration active at that event sequence. The event must also include a source evidence item of kind `release_authority_record` with the same authority reference. A release for an earlier configuration does not authorize a later configuration.
+
+Four new negative/positive controls exercise this rule: exact scoped authorization passes; a mismatched authority reference, mismatched asset/configuration, or non-authority evidence kind fails closed. The synthetic example remains unreleased and ends in `awaiting_authorized_release`.
+
 The Rust validator checks:
 - event sequence and previous-event linkage;
 - asset and as-flown configuration references;
@@ -19,4 +23,4 @@ The Rust validator checks:
 - exposure duration against its time bounds;
 - no return-to-service status without an explicit external authority receipt.
 
-This is structural/provenance validation only. It does not verify the content or cryptographic authenticity of source evidence, determine whether a repair is technically adequate, or replace an applicable inspection, airworthiness or return-to-service authority.
+This is structural/provenance validation only. It does not verify the content or cryptographic authenticity of source evidence, determine whether a repair is technically adequate, or replace an applicable inspection, airworthiness or return-to-service authority. The exact-reference check proves only that the ledger is internally bound to the declared external receipt; it does not prove that the issuer is competent, that the signature is authentic, or that the release scope is legally sufficient.
