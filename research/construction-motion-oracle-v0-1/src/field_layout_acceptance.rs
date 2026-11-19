@@ -360,12 +360,12 @@ pub fn score_field_layout_run(
                         None,
                     ),
                     MeasurementDisposition::Measured => {
-                        let measurement = item.measurement.ok_or_else(|| {
+                        let measurement = item.measurement.as_ref().ok_or_else(|| {
                             FieldAcceptanceError::MeasurementDispositionPayloadMismatch(
                                 item.design_entity_id.clone(),
                             )
                         })?;
-                        match evaluate_measurement(entity.entity_type, measurement, profile) {
+                        match evaluate_measurement(entity.entity_type, measurement.clone(), profile) {
                             MeasurementEvaluation::Accepted => (
                                 RefereeEntityState::Accepted,
                                 EntityScoreReason::WithinFrozenAcceptanceProfile,
@@ -921,7 +921,7 @@ mod tests {
             Err(FieldAcceptanceError::InvalidManifestDigest)
         );
 
-        let mut invalid_measurement = measurement(0.1, 0.1);
+        let mut invalid_measurement = measurement(0.1, 0.1, 0.1);
         invalid_measurement.measurement_receipt_sha256 = "not-a-sha256".into();
         assert!(matches!(
             score_field_layout_run(
