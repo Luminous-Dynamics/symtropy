@@ -1,0 +1,47 @@
+name: Marine Forecast Replay Admission Audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/marine-forecast-replay-audit/**"
+      - ".github/workflows/marine-forecast-replay-audit.yml"
+      - "docs/research/marine/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marine-forecast-replay-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  replay-admission:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/marine-forecast-replay-audit/Cargo.toml -- --check
+
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/marine-forecast-replay-audit/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run semantic and negative-control tests
+        run: cargo test --manifest-path tools/marine-forecast-replay-audit/Cargo.toml
+
+      - name: Check bundle schema and synthetic fixture
+        run: |
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and (.properties.sources.minItems >= 1) and (.properties.decisions.minItems >= 1)' tools/marine-forecast-replay-audit/schema/marine-forecast-replay-bundle.schema.json
+          jq -e '.record_status == "synthetic" and (.sources | length == 3) and ([.sources[].information_class] | sort) == ["deployable_forecast","in_situ_validation","realized_evaluator_context"]' tools/marine-forecast-replay-audit/fixtures/synthetic-replay-bundle-0001.json
+
+      - name: Replay admission must remain synthetic-only
+        run: |
+          cargo run --quiet --manifest-path tools/marine-forecast-replay-audit/Cargo.toml -- tools/marine-forecast-replay-audit/fixtures/synthetic-replay-bundle-0001.json > /tmp/marine-replay-audit.json
+          jq -e '.disposition == "SYNTHETIC_ONLY" and .decision_reports[0].disposition == "SYNTHETIC_ONLY" and (.decision_reports[0].policy_input_candidates | length == 1) and (.decision_reports[0].admitted_policy_inputs | length == 0) and (.decision_reports[0].evaluator_only_inputs | length == 1) and (.decision_reports[0].validation_only_inputs | length == 1)' /tmp/marine-replay-audit.json
