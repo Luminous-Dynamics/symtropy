@@ -21,14 +21,15 @@
 //! - fault scenarios are deterministic sets, not invented probabilities;
 //! - a passing plan is not a booking, permit, launch authorization or safety case.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// Schema version for the first Earth-to-orbit chain contract.
 pub const SCHEMA_VERSION: &str = "symtropy.earth-orbit-chain.v1";
 
 /// Evidence state for a specialist qualification.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub enum EvidenceStatus {
     /// A caller-verified qualification receipt is expected to be supplied.
     /// This crate validates only that its SHA-256 identity is well-formed.
@@ -40,7 +41,8 @@ pub enum EvidenceStatus {
 }
 
 /// Status returned by the authoritative physical-resource capacity owner.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub enum ResourceQualificationStatus {
     /// The resource owner qualified this use for planning over the stated window.
     /// This does not reserve the resource or authorize dispatch.
@@ -54,7 +56,8 @@ pub enum ResourceQualificationStatus {
 }
 
 /// Functional role of a node in the supplied chain.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub enum NodeRole {
     Supplier,
     InlandTerminal,
@@ -68,14 +71,16 @@ pub enum NodeRole {
 }
 
 /// A facility, terminal, vehicle/service boundary, or mission endpoint.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct ChainNodeV1 {
     pub id: String,
     pub role: NodeRole,
 }
 
 /// Cargo mass is integer grams so this accounting layer can reconcile it exactly.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct CargoLotV1 {
     pub id: String,
     pub mass_grams: u64,
@@ -85,7 +90,8 @@ pub struct CargoLotV1 {
 ///
 /// This is intentionally a receipt, not a second representation of capacity.
 /// Shared-resource and interval-capacity calculations remain owned by #1639.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct ResourceQualificationV1 {
     pub id: String,
     pub resource_id: String,
@@ -101,7 +107,8 @@ pub struct ResourceQualificationV1 {
 /// start/end describe the whole resource occupancy interval for this v1 accounting
 /// contract. More detailed timetabling, dwell and service calendars remain owned
 /// by the transport / launch specialist models.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct TransferV1 {
     pub id: String,
     pub cargo_lot_id: String,
@@ -123,7 +130,8 @@ pub struct TransferV1 {
 ///
 /// The receipt is produced by the orbital mechanics / launch performance owner.
 /// This crate does not recompute inclination, azimuth, trajectory or insertion.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct OrbitServiceV1 {
     pub target_orbit_id: String,
     pub destination_node_id: String,
@@ -131,14 +139,16 @@ pub struct OrbitServiceV1 {
 }
 
 /// A deterministic disruption case. No probability is implied.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct FaultScenarioV1 {
     pub id: String,
     pub failed_dependency_ids: Vec<String>,
 }
 
 /// Complete, caller-supplied chain for one campaign.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct CampaignV1 {
     pub id: String,
     pub cargo_lots: Vec<CargoLotV1>,
@@ -870,6 +880,34 @@ mod tests {
         assert_eq!(report.total_cargo_mass_grams, 1_000);
         assert_eq!(report.accepted_delivered_cargo_mass_grams, 1_000);
         assert!(report.findings.is_empty());
+    }
+
+    #[test]
+    fn frozen_json_campaign_fixture_parses_and_reaches_declared_orbit() {
+        let campaign: CampaignV1 = serde_json::from_str(include_str!("../fixtures/v1/nominal.json"))
+            .expect("frozen Earth-to-orbit campaign fixture must parse");
+        let report = evaluate_campaign(&campaign);
+        assert_eq!(report.disposition, CampaignDisposition::Ready);
+        assert_eq!(report.accepted_delivered_cargo_mass_grams, 1_000_000);
+        assert_eq!(report.cargo_deliveries.len(), 1);
+        assert_eq!(report.cargo_deliveries[0].cargo_lot_id, "serviced-client-001");
+        assert_eq!(report.cargo_deliveries[0].target_orbit_id, "leo-550km");
+        assert_eq!(report.cargo_deliveries[0].status, CargoDeliveryStatus::Accepted);
+    }
+
+    #[test]
+    fn campaign_report_serialization_is_a_stable_json_contract() {
+        let campaign: CampaignV1 = serde_json::from_str(include_str!("../fixtures/v1/nominal.json"))
+            .expect("frozen campaign fixture must parse");
+        let report = evaluate_campaign(&campaign);
+        let json = serde_json::to_value(report).expect("campaign report must serialize");
+        let delivery = &json["cargo_deliveries"][0];
+        assert_eq!(delivery["cargo_lot_id"], "serviced-client-001");
+        assert_eq!(delivery["target_orbit_id"], "leo-550km");
+        assert_eq!(delivery["destination_node_id"], "orbit");
+        assert_eq!(delivery["terminal_node_id"], "orbit");
+        assert_eq!(delivery["arrival_epoch_seconds"], 50);
+        assert_eq!(delivery["status"], "accepted");
     }
 
     #[test]
