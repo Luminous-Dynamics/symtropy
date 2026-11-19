@@ -95,10 +95,27 @@ pub struct DesignCandidate {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct KnownConstraintViolation {
+    pub constraint_name: String,
+    pub minimum_robust_margin: f64,
+    pub unit: String,
+    pub evidence_class: EvidenceClass,
+    pub source_reference: Option<String>,
+    pub method: Option<String>,
+    pub stress_set_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct CandidateAssessment {
     pub candidate_id: String,
+    pub configuration_digest: String,
+    pub system_boundary_digest: String,
+    pub operating_condition_digest: String,
+    pub mission_set_digest: String,
+    pub stress_set_digest: String,
     pub disposition: CandidateDisposition,
     pub violated_constraints: Vec<String>,
+    pub known_constraint_violations: Vec<KnownConstraintViolation>,
     pub unknown_fields: Vec<String>,
     pub dominated_by: Vec<String>,
 }
@@ -239,6 +256,7 @@ fn assess_candidate(
     let mut classes = Vec::with_capacity(objectives.len() + constraints.len());
     let mut unknown_fields = Vec::new();
     let mut violated_constraints = Vec::new();
+    let mut known_constraint_violations = Vec::new();
 
     for (index, (definition, observation)) in objectives.iter().zip(&candidate.objectives).enumerate() {
         if observation.name != definition.name {
@@ -318,7 +336,16 @@ fn assess_candidate(
         }
         match observation.minimum_robust_margin {
             Some(margin) if margin < 0.0 && observation.evidence_class != EvidenceClass::Unknown => {
-                violated_constraints.push(definition.name.clone())
+                violated_constraints.push(definition.name.clone());
+                known_constraint_violations.push(KnownConstraintViolation {
+                    constraint_name: definition.name.clone(),
+                    minimum_robust_margin: margin,
+                    unit: definition.unit.clone(),
+                    evidence_class: observation.evidence_class,
+                    source_reference: observation.source_reference.clone(),
+                    method: observation.method.clone(),
+                    stress_set_digest: observation.stress_set_digest.clone(),
+                });
             }
             None => unknown_fields.push(format!("constraint[{index}]={}", definition.name)),
             Some(_) => {}
@@ -341,8 +368,14 @@ fn assess_candidate(
 
     Ok(CandidateAssessment {
         candidate_id: candidate.candidate_id.clone(),
+        configuration_digest: candidate.configuration_digest.clone(),
+        system_boundary_digest: candidate.system_boundary_digest.clone(),
+        operating_condition_digest: candidate.operating_condition_digest.clone(),
+        mission_set_digest: candidate.mission_set_digest.clone(),
+        stress_set_digest: candidate.stress_set_digest.clone(),
         disposition,
         violated_constraints,
+        known_constraint_violations,
         unknown_fields,
         dominated_by: Vec::new(),
     })
@@ -760,7 +793,52 @@ mod tests {
     }
 
     #[test]
-    fn pareto_020_all_candidates_are_retained_as_assessments() {
+    fn pareto_020_system_boundaries_are_separate_comparison_cohorts() {
+        let a = candidate("installed-boundary", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        let mut b = candidate("component-boundary", 2.0, 110.0, 0.8, EvidenceClass::IndependentPhysical);
+        b.system_boundary_digest = "motor-only-boundary".to_owned();
+        for metric in &mut b.objectives {
+            metric.system_boundary_digest = b.system_boundary_digest.clone();
+        }
+        for constraint in &mut b.hard_constraints {
+            constraint.system_boundary_digest = b.system_boundary_digest.clone();
+        }
+        let report = robust_pareto_report(&[a, b], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(report.fronts.len(), 2);
+        assert!(report.assessments.iter().all(|assessment| assessment.dominated_by.is_empty()));
+    }
+
+    #[test]
+    fn pareto_021_stress_sets_are_separate_comparison_cohorts() {
+        let a = candidate("stress-a", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        let mut b = candidate("stress-b", 2.0, 110.0, 0.8, EvidenceClass::IndependentPhysical);
+        b.stress_set_digest = "different-stress-envelope".to_owned();
+        for constraint in &mut b.hard_constraints {
+            constraint.stress_set_digest = b.stress_set_digest.clone();
+        }
+        let report = robust_pareto_report(&[a, b], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(report.fronts.len(), 2);
+        assert!(report.assessments.iter().all(|assessment| assessment.dominated_by.is_empty()));
+    }
+
+    #[test]
+    fn pareto_022_violation_receipt_preserves_source_and_margin() {
+        let mut candidate = candidate("receipt", 1.0, 100.0, 0.9, EvidenceClass::SourceAuthorPhysical);
+        candidate.hard_constraints[0].minimum_robust_margin = Some(-0.25);
+        let report = robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).unwrap();
+        let assessment = assessment(&report, "receipt");
+        assert_eq!(assessment.disposition, CandidateDisposition::Infeasible);
+        assert_eq!(assessment.known_constraint_violations.len(), 1);
+        let violation = &assessment.known_constraint_violations[0];
+        assert_eq!(violation.constraint_name, "thermal_margin");
+        assert_eq!(violation.minimum_robust_margin, -0.25);
+        assert_eq!(violation.evidence_class, EvidenceClass::SourceAuthorPhysical);
+        assert_eq!(violation.stress_set_digest, STRESS_SET);
+        assert!(violation.source_reference.is_some());
+    }
+
+    #[test]
+    fn pareto_023_all_candidates_are_retained_as_assessments() {
         let good = candidate("good", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
         let mut bad = candidate("bad", 0.5, 50.0, 1.0, EvidenceClass::IndependentPhysical);
         bad.hard_constraints[0].minimum_robust_margin = Some(-0.5);
