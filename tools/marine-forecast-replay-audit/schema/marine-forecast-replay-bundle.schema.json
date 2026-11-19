@@ -1,0 +1,426 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:marine-forecast-replay-bundle:0.1.0",
+  "title": "Marine Forecast Replay Admission Bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "bundle_id",
+    "record_status",
+    "claim_ceiling",
+    "sources",
+    "decisions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "bundle_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "record_status": {
+      "enum": [
+        "synthetic",
+        "shadow_replay",
+        "measured_campaign",
+        "published_reproduction"
+      ]
+    },
+    "claim_ceiling": {
+      "const": "replay_admission_only"
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "information_class",
+          "provider",
+          "product",
+          "product_version",
+          "evidence_class",
+          "artifact_uri",
+          "artifact_sha256",
+          "retrieved_at",
+          "rights"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "information_class": {
+            "enum": [
+              "deployable_forecast",
+              "realized_evaluator_context",
+              "in_situ_validation",
+              "commercial_route_reference"
+            ]
+          },
+          "provider": {
+            "type": "string",
+            "minLength": 1
+          },
+          "product": {
+            "type": "string",
+            "minLength": 1
+          },
+          "product_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_class": {
+            "enum": [
+              "synthetic",
+              "published",
+              "measured",
+              "validated_model",
+              "derived"
+            ]
+          },
+          "artifact_uri": {
+            "type": "string",
+            "minLength": 1
+          },
+          "artifact_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "retrieved_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rights": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "research_use_allowed",
+              "redistributable",
+              "review_ref"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "reviewed_research_use",
+                  "permissioned_research_use",
+                  "restricted",
+                  "unknown",
+                  "synthetic_only"
+                ]
+              },
+              "research_use_allowed": {
+                "type": "boolean"
+              },
+              "redistributable": {
+                "type": "boolean"
+              },
+              "review_ref": {
+                "type": "string"
+              }
+            }
+          },
+          "forecast": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cycle_id",
+              "source_issue_time",
+              "first_available_at",
+              "availability_evidence",
+              "lead_hours",
+              "valid_time",
+              "parameter_set",
+              "availability_evidence_ref",
+              "availability_evidence_sha256"
+            ],
+            "properties": {
+              "cycle_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_issue_time": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "first_available_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "availability_evidence": {
+                "enum": [
+                  "publisher_publication_record",
+                  "operational_distribution_log",
+                  "verified_archive_manifest",
+                  "first_seen_capture",
+                  "unknown",
+                  "synthetic_fixture"
+                ]
+              },
+              "lead_hours": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "valid_time": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "parameter_set": {
+                "type": "string",
+                "minLength": 1
+              },
+              "availability_evidence_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "availability_evidence_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              }
+            }
+          },
+          "grid": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "grid_id",
+              "coordinate_reference",
+              "axis_order",
+              "variable_units"
+            ],
+            "properties": {
+              "grid_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "coordinate_reference": {
+                "type": "string",
+                "minLength": 1
+              },
+              "axis_order": {
+                "enum": [
+                  "latitude_longitude",
+                  "longitude_latitude",
+                  "projected_xy",
+                  "declared_other"
+                ]
+              },
+              "variable_units": {
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "evaluator": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "valid_time",
+              "revision"
+            ],
+            "properties": {
+              "valid_time": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "revision": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "observation": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "station_id",
+              "sensor_id",
+              "observation_time",
+              "quality_flags"
+            ],
+            "properties": {
+              "station_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sensor_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "observation_time": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "quality_flags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "commercial": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "export_format",
+              "settings_digest"
+            ],
+            "properties": {
+              "export_format": {
+                "enum": [
+                  "GPX",
+                  "KML",
+                  "CSV"
+                ]
+              },
+              "settings_digest": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "information_class": {
+                  "const": "deployable_forecast"
+                }
+              },
+              "required": [
+                "information_class"
+              ]
+            },
+            "then": {
+              "required": [
+                "forecast",
+                "grid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "information_class": {
+                  "const": "realized_evaluator_context"
+                }
+              },
+              "required": [
+                "information_class"
+              ]
+            },
+            "then": {
+              "required": [
+                "evaluator"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "information_class": {
+                  "const": "in_situ_validation"
+                }
+              },
+              "required": [
+                "information_class"
+              ]
+            },
+            "then": {
+              "required": [
+                "observation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "information_class": {
+                  "const": "commercial_route_reference"
+                }
+              },
+              "required": [
+                "information_class"
+              ]
+            },
+            "then": {
+              "required": [
+                "commercial"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "decision_id",
+          "policy_id",
+          "decision_cutoff",
+          "target_valid_time",
+          "policy_input_source_ids",
+          "evaluator_context_source_ids",
+          "validation_observation_source_ids"
+        ],
+        "properties": {
+          "decision_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "policy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "decision_cutoff": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "target_valid_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "policy_input_source_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "evaluator_context_source_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "validation_observation_source_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}
