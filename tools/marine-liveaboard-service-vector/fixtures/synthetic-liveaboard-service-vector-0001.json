@@ -5,7 +5,7 @@
   "claim_ceiling": "non_compensatory_service_vector_comparison_only",
   "mission_snapshot": {
     "mission_id": "SYNTHETIC-LIVEABOARD-MISSION-0001",
-    "mission_snapshot_sha256": "10314d95d66795c32ba2141bcf66db0ec1f0992f03b254eddc1b42f4d63173a0",
+    "mission_snapshot_sha256": "a34b03a1f47bbb1bc6a3b85d0eb22f4a1e7a81e2ca851077c0faa264557d56c4",
     "craft_configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
     "occupancy_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
     "initial_resource_state_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
@@ -13,7 +13,8 @@
     "forecast_information_set_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
     "hard_gate_roster_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
     "operating_envelope_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
-    "service_floor_contract_sha256": "2a6506cda1d96b4c6406ec84904fdf07bc2ca4d2b0a9bbfa0360fb7e9700a919"
+    "service_floor_contract_sha256": "2a6506cda1d96b4c6406ec84904fdf07bc2ca4d2b0a9bbfa0360fb7e9700a919",
+    "constraint_registry_sha256": "025d0d1ee572f9dd067b738ae8866622d9814bb06592e51cb29b71924875f23a"
   },
   "service_floor_contract": [
     {
@@ -96,7 +97,7 @@
       "policy_id": "weather-blind-reference",
       "role": "weather_blind_reference",
       "forecast_use": false,
-      "mission_snapshot_sha256": "10314d95d66795c32ba2141bcf66db0ec1f0992f03b254eddc1b42f4d63173a0",
+      "mission_snapshot_sha256": "a34b03a1f47bbb1bc6a3b85d0eb22f4a1e7a81e2ca851077c0faa264557d56c4",
       "decision_output_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
       "operating_envelope_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
       "hard_gate_disposition": "pass",
@@ -241,7 +242,7 @@
       "policy_id": "weather-informed-resource-blind",
       "role": "weather_informed_resource_blind",
       "forecast_use": true,
-      "mission_snapshot_sha256": "10314d95d66795c32ba2141bcf66db0ec1f0992f03b254eddc1b42f4d63173a0",
+      "mission_snapshot_sha256": "a34b03a1f47bbb1bc6a3b85d0eb22f4a1e7a81e2ca851077c0faa264557d56c4",
       "decision_output_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
       "operating_envelope_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
       "hard_gate_disposition": "pass",
@@ -386,7 +387,7 @@
       "policy_id": "integrated-mission-candidate",
       "role": "integrated_candidate",
       "forecast_use": true,
-      "mission_snapshot_sha256": "10314d95d66795c32ba2141bcf66db0ec1f0992f03b254eddc1b42f4d63173a0",
+      "mission_snapshot_sha256": "a34b03a1f47bbb1bc6a3b85d0eb22f4a1e7a81e2ca851077c0faa264557d56c4",
       "decision_output_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "operating_envelope_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
       "hard_gate_disposition": "pass",
@@ -527,5 +528,19 @@
       "hard_gate_evidence_ref": "SYNTHETIC-HARD-GATE-EVIDENCE-integrated-mission-candidate",
       "hard_gate_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
     }
-  ]
+  ],
+  "constraint_registry": {
+    "hard_gate_ids": [
+      "intact-stability-envelope",
+      "traffic-separation-compliance",
+      "weather-exposure-limit"
+    ],
+    "soft_constraints": [
+      {
+        "constraint_id": "optional-comfort-preference",
+        "unit": "min",
+        "baseline_limit": 45
+      }
+    ]
+  }
 }
