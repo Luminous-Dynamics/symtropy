@@ -16,10 +16,20 @@ related:
 
 Dual-track engine:
 
-- **A. Research hero** — best-in-class **N-dimensional, Φ-coupled physics with deterministic replay** as a first-class physical law. No other engine does this. 2D/3D/4D rigid-body dynamics with integration metrics (Φ, harmony, energy) that meaningfully modulate forces, impulses, and friction at the solver level.
-- **B. Generalist adoption** — a production-grade Rust simulation framework on Bevy, with first-class hooks for ANY per-body metric (health, trust, skill, wealth, …). Consciousness is the reference implementation; the coupling framework is generic.
+- **A. Research track** — N-dimensional rigid-body/contact physics, deterministic replay within declared profiles, and experimental state/Φ-aware callbacks. These callbacks are research/application models, not evidence that Φ is a universal physical law. No unsupported uniqueness or SOTA claim is implied.
+- **B. Generalist adoption** — a Rust simulation substrate on Bevy with generic extension points for per-body metrics and domain-specific integrations. The core remains deliberately bounded; specialist physics stays in optional crates or external solver adapters.
 
-If a feature helps both tracks, it's a core priority. If it helps only B at the cost of A's focus (soft-body, triangle terrain, GPU broadphase), it lives as an **optional ecosystem crate**, not in the core.
+If a feature helps both tracks, it is a core priority. If it only serves a domain-specific workload, place it in an optional ecosystem crate or adapter rather than making the native core a monolithic solver.
+
+### Reality-physics composition programme
+
+The long-term scope is a **composable, evidence-aware physical-model coordinator**, not a single engine implementing every physical equation. The canonical architecture and qualification plan live in:
+- [Reality Physics Platform](../tech/REALITY_PHYSICS_PLATFORM.md)
+- [Reality Benchmark Portfolio](REALITY_BENCHMARK_PORTFOLIO.md)
+
+Compose the existing owners rather than opening a competing generic physics stack: [#4487 multi-fidelity model admission](https://github.com/Luminous-Dynamics/symtropy/issues/4487), [#1472 capability census](https://github.com/Luminous-Dynamics/symtropy/issues/1472), [#1467 twin projection boundary](https://github.com/Luminous-Dynamics/symtropy/issues/1467), [#5779 typed coupling ports](https://github.com/Luminous-Dynamics/symtropy/issues/5779), [#4275 FSI coupling](https://github.com/Luminous-Dynamics/symtropy/issues/4275), [#6156 FMI co-simulation qualification](https://github.com/Luminous-Dynamics/symtropy/issues/6156), and [#1685 plasma integration](https://github.com/Luminous-Dynamics/symtropy/issues/1685).
+
+The first engineering gate is a source-audited capability and port contract. New solver integrations must carry exact model identity, supported regime, units/frames, timing, conservation semantics, uncertainty, validity envelope and independent qualification evidence. Unknown or unsupported semantics must cause escalation or abstention, not a plausible default.
 
 ## Current State (honest, 2026-04)
 
