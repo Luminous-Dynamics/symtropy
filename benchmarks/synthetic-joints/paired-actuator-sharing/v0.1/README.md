@@ -103,7 +103,7 @@ Evidence classes remain IndependentPhysical, SourceAuthorPhysical, VendorPhysica
 
 ## 7. Synthetic known-answer fixtures
 
-`examples/paired-actuator-known-answer.json` contains two fully synthetic cases:
+`paired-actuator-sharing-known-answer.json` contains two fully synthetic cases:
 
 1. **Asymmetric pair:** unit A torque [2, 3] N·m, unit B [7, 8] N·m; current intervals [4, 5] A and [8, 9] A. The torque-share interval for unit A differs from its electrical current-share interval. The independent joint torque reference overlaps the unit sum.
 2. **Hot-unit negative control:** unit D temperature interval [68, 71] °C against a 70 °C thermal-limit lower bound. The other unit is cooler. The joint is Infeasible because the hottest unit's upper temperature exceeds the limit, regardless of the pair's average.
@@ -122,7 +122,7 @@ cargo clippy --manifest-path benchmarks/synthetic-joints/paired-actuator-sharing
 
 Dedicated workflow: `.github/workflows/paired-actuator-load-sharing.yml`.
 
-Nineteen Rust test definitions cover conservative torque sum, unequal torque shares, missing shares, no equal-share assumption, hottest-unit thermal gate, aggregate-pass/unit-fail, loaded speed, per-unit peak duration, joint-transducer agreement/contradiction, reference-plane/clock/condition mismatch, unknown evidence, preserved vendor/model classes, separate current share, joint configuration/time binding and malformed capabilities.
+Twenty Rust test definitions cover conservative torque sum, unequal torque shares, missing shares, no equal-share assumption, hottest-unit thermal gate, aggregate-pass/unit-fail, loaded speed, per-unit peak duration, joint-transducer agreement/contradiction, reference-plane/clock/condition mismatch, unknown evidence, preserved vendor/model classes, separate current share, joint configuration/time binding, per-unit evidence receipts and malformed capabilities.
 
 ## 9. M0–M5 and prospective targets
 
