@@ -381,7 +381,7 @@ mod tests {
 
     #[test]
     fn metadata_fixture_quarantines_duplicate_md5_and_missing_rights() {
-        let source = include_str!("../../../benchmarks/plasma/dataset-admission-pnas-2025-v0.json");
+        let source = include_str!("../../../../benchmarks/plasma/dataset-admission-pnas-2025-v0.json");
         let manifest: SourceManifest = serde_json::from_str(source).expect("fixture parses");
         let report = audit_manifest(&manifest).expect("audit runs");
         assert_eq!(report.body.disposition, AdmissionDisposition::BlockedPendingEvidence);
@@ -453,7 +453,7 @@ mod tests {
         let report = audit_manifest(&manifest).expect("audit runs");
         assert_eq!(report.body.disposition, AdmissionDisposition::BlockedPendingEvidence);
         let duplicate = report.body.findings.iter().find(|item| item.code == "duplicate_remote_md5_quarantine").expect("duplicate finding");
-        assert_eq!(duplicate.artifact_ids, vec!["artifact-a", "artifact-b"]);
+        assert_eq!(duplicate.artifact_ids, vec!["artifact-a".to_owned(), "artifact-b".to_owned()]);
         assert!(!duplicate.detail.contains("identical"));
     }
 
