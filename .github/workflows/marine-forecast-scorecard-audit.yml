@@ -43,7 +43,7 @@ jobs:
       - name: Member-coherent risk schema and negative control
         run: |
           jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.routes.minItems >= 2 and .properties.forecast.properties.members.minItems >= 2' tools/marine-forecast-scorecard/schema/marine-member-coherent-risk.schema.json
-          jq -e '.record_status == "synthetic" and .claim_ceiling == "member_coherent_route_risk_only" and (.routes | length == 2) and ([.routes[].members[]] | length == 4)' tools/marine-forecast-scorecard/fixtures/synthetic-member-coherent-risk-0001.json
+          jq -e '.record_status == "synthetic" and .claim_ceiling == "member_coherent_route_risk_only" and .forecast.forecast_issue_time == "2025-03-01T00:00:00Z" and (.routes | length == 2) and ([.routes[].members[]] | length == 4)' tools/marine-forecast-scorecard/fixtures/synthetic-member-coherent-risk-0001.json
           cargo run --quiet --manifest-path tools/marine-forecast-scorecard/Cargo.toml --bin member-coherent-risk -- audit-member-risk tools/marine-forecast-scorecard/fixtures/synthetic-member-coherent-risk-0001.json > /tmp/member-coherent-risk.json
           jq -e '.disposition == "SYNTHETIC_ONLY" and .route_ranking_changes_when_member_coherence_is_destroyed == true and .best_route_by_member_coherent_cvar95 == "route-correlated-alternating" and .best_route_by_independent_edge_marginal_resampling == "route-correlated-high-low"' /tmp/member-coherent-risk.json
 
