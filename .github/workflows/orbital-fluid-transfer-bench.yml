@@ -72,6 +72,9 @@ jobs:
             and .report.scenarios[0].interface_revision == 3
             and .report.scenarios[1].status == "storage_only_not_transfer_evidence"
             and .report.scenarios[1].receiver_id == "serviced-client-001"
+            and .report.scenarios[1].interface_id == "COOPERATIVE-CAPTURE-PORT-A"
+            and .report.scenarios[1].interface_revision == 3
+            and .report.scenarios[1].receiver_id == "serviced-client-001"
             and .report.scenarios[2].status == "transfer_accepted"
             and .report.scenarios[2].gross_transferred_g == 200000
             and (.report.scenarios | all(.mass_balance_residual_g == 0))
