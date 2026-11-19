@@ -1,0 +1,57 @@
+name: Grid restoration inspection episode contract
+
+on:
+  pull_request:
+    paths:
+      - "tools/grid-restoration-inspection-benchmark/**"
+      - ".github/workflows/grid-restoration-inspection-benchmark.yml"
+  push:
+    paths:
+      - "tools/grid-restoration-inspection-benchmark/**"
+      - ".github/workflows/grid-restoration-inspection-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Validate candidate-visible inspection episode contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate schema and synthetic episode invariants
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("tools/grid-restoration-inspection-benchmark")
+          schema = json.loads((root / "grid-restoration-inspection-episode-v0.1.schema.json").read_text())
+          fixture = json.loads((root / "fixtures/synthetic-grid-inspection-episode-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER)
+          errors = sorted(validator.iter_errors(fixture), key=lambda error: list(error.path))
+          assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
+
+          as_of = fixture["asOfHour"]
+          assert all(item["effectiveHour"] <= as_of and item["observedHour"] <= as_of for item in fixture["observableState"]["observations"])
+          assert len({item["inspectionId"] for item in fixture["inspectionCandidates"]}) == len(fixture["inspectionCandidates"])
+          assert len({item["actionId"] for item in fixture["recoveryActions"]}) == len(fixture["recoveryActions"])
+          shared_groups = {item["independenceGroupRef"] for item in fixture["observableState"]["observations"]}
+          assert len(shared_groups) == 1, "synthetic dashboard and telemetry are a correlated source pair"
+          assert fixture["inspectionCandidates"][1]["independenceGroupRef"] in shared_groups
+          assert fixture["inspectionCandidates"][0]["durationHours"] > fixture["inspectionCandidates"][1]["durationHours"]
+          assert fixture["inspectionCandidates"][0]["resourceRequirements"][0]["resourceRef"] == fixture["recoveryActions"][1]["resourceRequirements"][0]["resourceRef"]
+          assert "observationModelRef" in fixture["inspectionCandidates"][0]
+          assert "decisionModelInputRef" in fixture["inspectionCandidates"][0]
+          assert "posteriorProbability" not in json.dumps(fixture)
+          print("PASS: schema, decision-time, identity, correlation and shared-resource fixture invariants")
+          PY
