@@ -488,6 +488,13 @@ pub struct SiteStateLedger {
     resource_catalog_sha256: Option<String>,
     resource_catalog: BTreeMap<String, String>,
     space_time_reservations: BTreeMap<String, SpaceTimeReservationRecord>,
+    capacity_resource_catalog_sha256: Option<String>,
+    capacity_resources: BTreeMap<String, CapacityResourceDefinition>,
+    capacity_availability_snapshot_sha256: Option<String>,
+    capacity_site_snapshot_sha256: Option<String>,
+    capacity_site_clock_domain_id: Option<String>,
+    capacity_windows: Vec<CapacityAvailabilityWindow>,
+    capacity_reservations: BTreeMap<String, CapacityReservationRecord>,
     /// One non-overlapping interval index per exclusive resource. Since
     /// committed intervals cannot overlap, predecessor/successor checks are
     /// sufficient for O(log n) conflict detection on each claim.
@@ -680,6 +687,65 @@ impl SiteStateLedger {
         self.active_resource_windows.len()
     }
 
+    pub fn capacity_resource_catalog_sha256(&self) -> Option<&str> {
+        self.capacity_resource_catalog_sha256.as_deref()
+    }
+
+    pub fn capacity_availability_snapshot_sha256(&self) -> Option<&str> {
+        self.capacity_availability_snapshot_sha256.as_deref()
+    }
+
+    pub fn capacity_reservation(
+        &self,
+        reservation_id: &str,
+    ) -> Option<&CapacityReservationRecord> {
+        self.capacity_reservations.get(reservation_id)
+    }
+
+    pub fn active_capacity_reservations(
+        &self,
+    ) -> impl Iterator<Item = &CapacityReservationRecord> {
+        self.capacity_reservations
+            .values()
+            .filter(|record| record.is_active())
+    }
+
+    /// Assess all currently active capacity-N commitments against the latest
+    /// owner-attested capacity windows. A non-robust report is evidence of a
+    /// changed constraint, not permission to erase or auto-release claims.
+    pub fn assess_current_capacity(
+        &self,
+    ) -> Result<RobustCumulativeCapacityReport, SiteLedgerError> {
+        let catalog_sha256 = self
+            .capacity_resource_catalog_sha256
+            .as_ref()
+            .ok_or(SiteLedgerError::CapacityResourceCatalogMismatch)?;
+        let site_snapshot_sha256 = self
+            .capacity_site_snapshot_sha256
+            .as_ref()
+            .ok_or(SiteLedgerError::CapacityAvailabilitySnapshotMismatch)?;
+        let site_clock_domain_id = self
+            .capacity_site_clock_domain_id
+            .as_ref()
+            .ok_or(SiteLedgerError::CapacityAvailabilitySnapshotMismatch)?;
+        let scenario = RobustCumulativeCapacityScenario {
+            base: CumulativeCapacityScenario {
+                scenario_id: format!("site-ledger-sequence-{}", self.last_sequence),
+                resource_catalog_sha256: catalog_sha256.clone(),
+                site_snapshot_sha256: site_snapshot_sha256.clone(),
+                site_clock_domain_id: site_clock_domain_id.clone(),
+                resources: self.capacity_resources.values().cloned().collect(),
+                reservations: self
+                    .active_capacity_reservations()
+                    .map(|record| record.commit.reservation.clone())
+                    .collect(),
+            },
+            availability_windows: self.capacity_windows.clone(),
+        };
+        evaluate_robust_cumulative_resource_capacity(&scenario)
+            .map_err(SiteLedgerError::CapacityAdmissionUnqualified)
+    }
+
     pub fn event_history(&self) -> &[SiteEventEnvelope] {
         &self.events
     }
@@ -702,6 +768,13 @@ impl SiteStateLedger {
                         record.reservation.package_sha256 == *previous
                     }) {
                         return Err(SiteLedgerError::PackageHasActiveSpaceTimeReservations(
+                            previous.clone(),
+                        ));
+                    }
+                    if self.active_capacity_reservations().any(|record| {
+                        record.commit.package_sha256 == *previous
+                    }) {
+                        return Err(SiteLedgerError::PackageHasActiveCapacityReservations(
                             previous.clone(),
                         ));
                     }
@@ -767,6 +840,11 @@ impl SiteStateLedger {
                 for resource in resources {
                     if resource.resource_id.trim().is_empty() {
                         return Err(SiteLedgerError::EmptyResourceId);
+                    }
+                    if self.capacity_resources.contains_key(&resource.resource_id) {
+                        return Err(SiteLedgerError::CapacityCatalogNamespaceCollision(
+                            resource.resource_id.clone(),
+                        ));
                     }
                     if !is_sha256(&resource.definition_sha256) {
                         return Err(SiteLedgerError::InvalidReceiptDigest);
