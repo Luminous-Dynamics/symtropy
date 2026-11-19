@@ -629,6 +629,47 @@ mod tests {
         }
     }
 
+    fn factory_matrix_report() -> ModuleFactoryReport {
+        let configs = [
+            ("detachable-uav-pod-synthetic-demo", "detachable_drone_pod", "passes_synthetic_screen", "synthetic"),
+            ("amr-handoff-synthetic-demo", "amr_cargo_handoff", "passes_synthetic_screen", "synthetic"),
+            ("integrated-drone-bay-production-intent-unknown", "integrated_enclosed_bay", "indeterminate", "unknown"),
+        ];
+        let volumes = [1_000_u64, 10_000, 50_000, 100_000];
+        let mut results = Vec::new();
+        for (config_id, architecture, status, evidence_class) in configs {
+            for site_index in 0..3 {
+                for template_index in 0..3 {
+                    for target in volumes {
+                        results.push(ModuleFactoryResult {
+                            site_id: format!("site-{site_index}"),
+                            template_id: format!("template-{template_index}"),
+                            config_id: config_id.into(),
+                            target_good_vehicles_per_year: target,
+                            architecture: architecture.into(),
+                            evidence_class: evidence_class.into(),
+                            status: status.into(),
+                            base_factory_production_release_ready: false,
+                            module_production_release_ready: false,
+                            missing_fields: if evidence_class == "unknown" {
+                                vec!["good_module_yield_fraction".into()]
+                            } else {
+                                Vec::new()
+                            },
+                        });
+                    }
+                }
+            }
+        }
+        ModuleFactoryReport {
+            schema_version: "0.1.0".into(),
+            benchmark_id: "EV-CARRIER-MODULE-MFG-001".into(),
+            base_factory_benchmark_id: "EV-FACTORY-DESIGN-001".into(),
+            scenario_count: results.len(),
+            results,
+        }
+    }
+
     fn gate(
         requirement_id: &str,
         required: EvidenceClass,
@@ -677,6 +718,39 @@ mod tests {
             module_factory_report_sha256: sha('d'),
             qualification_catalog_sha256: sha('e'),
         }
+    }
+
+    #[test]
+    fn frozen_six_architecture_fixture_stays_indeterminate() {
+        let carrier: CarrierEngineeringReport = serde_json::from_str(include_str!(
+            "../fixtures/ev_carrier_engineering_report_contract_v0_1.json"
+        ))
+        .expect("carrier interface fixture");
+        let matrix: QualificationCatalog = serde_json::from_str(include_str!(
+            "../fixtures/ev_carrier_qualification_v0_1.json"
+        ))
+        .expect("qualification matrix fixture");
+        let report = evaluate_qualification_chain(
+            &carrier,
+            &factory_matrix_report(),
+            &matrix,
+            digests(),
+        )
+        .expect("frozen fixture should validate");
+        assert_eq!(report.case_count, 6);
+        assert_eq!(report.results.iter().map(|result| result.total_gate_count).sum::<usize>(), 67);
+        assert!(report.results.iter().all(|result| result.disposition == Disposition::Indeterminate));
+        assert!(report.results.iter().all(|result| !result.release_authority_granted));
+        assert!(report.results.iter().all(|result| !result.production_release_ready));
+        let pod = report.results.iter()
+            .find(|result| result.carrier_config_id == "urban-truck-detachable-drone-pod")
+            .expect("pod case");
+        assert_eq!(pod.module_process_scenario_count, 36);
+        assert_eq!(pod.module_process_status, "synthetic_or_incomplete_capacity_screen");
+        let trailer = report.results.iter()
+            .find(|result| result.carrier_config_id == "urban-truck-mobile-drone-station-trailer")
+            .expect("trailer case");
+        assert_eq!(trailer.module_process_status, "route_not_modelled");
     }
 
     #[test]
