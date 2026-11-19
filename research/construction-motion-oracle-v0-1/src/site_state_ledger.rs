@@ -498,13 +498,6 @@ pub struct SiteStateLedger {
     capacity_site_clock_domain_id: Option<String>,
     capacity_windows: Vec<CapacityAvailabilityWindow>,
     capacity_reservations: BTreeMap<String, CapacityReservationRecord>,
-    capacity_resource_catalog_sha256: Option<String>,
-    capacity_resources: BTreeMap<String, CapacityResourceDefinition>,
-    capacity_availability_snapshot_sha256: Option<String>,
-    capacity_site_snapshot_sha256: Option<String>,
-    capacity_site_clock_domain_id: Option<String>,
-    capacity_windows: Vec<CapacityAvailabilityWindow>,
-    capacity_reservations: BTreeMap<String, CapacityReservationRecord>,
     /// One non-overlapping interval index per exclusive resource. Since
     /// committed intervals cannot overlap, predecessor/successor checks are
     /// sufficient for O(log n) conflict detection on each claim.
