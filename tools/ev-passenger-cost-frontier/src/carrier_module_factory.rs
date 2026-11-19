@@ -56,7 +56,7 @@ pub struct ModuleProcessCatalog {
     pub claim_ceiling: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ModuleConfiguration {
     config_id: String,
@@ -69,7 +69,7 @@ struct ModuleConfiguration {
     notes: Vec<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ModuleStation {
     process_id: String,
