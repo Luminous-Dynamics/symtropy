@@ -208,6 +208,27 @@ pub struct FaultOutcomeV1 {
     pub failed_transfer_ids: Vec<String>,
 }
 
+/// Per-payload delivery record for downstream service composition.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CargoDeliveryStatus {
+    /// The whole campaign passed all required transport and orbit gates.
+    Accepted,
+    /// The payload was not accepted as delivered; inspect campaign findings.
+    NotAccepted,
+}
+
+/// Identity-bound payload delivery result; does not authorize spacecraft operations.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CargoDeliveryV1 {
+    pub cargo_lot_id: String,
+    pub cargo_mass_grams: u64,
+    pub target_orbit_id: String,
+    pub destination_node_id: String,
+    pub terminal_node_id: Option<String>,
+    pub arrival_epoch_seconds: Option<u64>,
+    pub status: CargoDeliveryStatus,
+}
+
 /// Independent accounting and admission report.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CampaignReportV1 {
@@ -216,6 +237,8 @@ pub struct CampaignReportV1 {
     pub total_cargo_mass_grams: u64,
     /// Zero unless the entire baseline campaign is Ready.
     pub accepted_delivered_cargo_mass_grams: u64,
+    /// Stable cargo identity joined to the declared destination and arrival.
+    pub cargo_deliveries: Vec<CargoDeliveryV1>,
     pub findings: Vec<Finding>,
     pub fault_outcomes: Vec<FaultOutcomeV1>,
 }
@@ -524,15 +547,59 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
     } else {
         Vec::new()
     };
+    let cargo_deliveries = cargo_delivery_records(campaign, disposition);
 
     CampaignReportV1 {
         schema_version: SCHEMA_VERSION,
         disposition,
         total_cargo_mass_grams,
         accepted_delivered_cargo_mass_grams,
+        cargo_deliveries,
         findings,
         fault_outcomes,
     }
+}
+
+fn cargo_delivery_records(
+    campaign: &CampaignV1,
+    disposition: CampaignDisposition,
+) -> Vec<CargoDeliveryV1> {
+    let mut deliveries = Vec::with_capacity(campaign.cargo_lots.len());
+    for cargo in &campaign.cargo_lots {
+        let mut legs: Vec<&TransferV1> = campaign
+            .transfers
+            .iter()
+            .filter(|transfer| transfer.cargo_lot_id == cargo.id)
+            .collect();
+        legs.sort_by_key(|leg| {
+            (
+                leg.starts_at_epoch_seconds,
+                leg.ends_at_epoch_seconds,
+                leg.id.clone(),
+            )
+        });
+        let terminal = legs.last();
+        let terminal_node_id = terminal.map(|leg| leg.to_node_id.clone());
+        let arrival_epoch_seconds = terminal.map(|leg| leg.ends_at_epoch_seconds);
+        let reached_destination = terminal_node_id.as_deref()
+            == Some(campaign.orbit_service.destination_node_id.as_str());
+        let status = if disposition == CampaignDisposition::Ready && reached_destination {
+            CargoDeliveryStatus::Accepted
+        } else {
+            CargoDeliveryStatus::NotAccepted
+        };
+        deliveries.push(CargoDeliveryV1 {
+            cargo_lot_id: cargo.id.clone(),
+            cargo_mass_grams: cargo.mass_grams,
+            target_orbit_id: campaign.orbit_service.target_orbit_id.clone(),
+            destination_node_id: campaign.orbit_service.destination_node_id.clone(),
+            terminal_node_id,
+            arrival_epoch_seconds,
+            status,
+        });
+    }
+    deliveries.sort_by_key(|delivery| delivery.cargo_lot_id.clone());
+    deliveries
 }
 
 fn evaluate_faults(campaign: &CampaignV1) -> Vec<FaultOutcomeV1> {
@@ -799,6 +866,30 @@ mod tests {
         assert_eq!(report.total_cargo_mass_grams, 1_000);
         assert_eq!(report.accepted_delivered_cargo_mass_grams, 1_000);
         assert!(report.findings.is_empty());
+    }
+
+    #[test]
+    fn accepted_delivery_binds_payload_identity_orbit_destination_and_arrival() {
+        let report = evaluate_campaign(&baseline());
+        assert_eq!(report.cargo_deliveries.len(), 1);
+        let delivery = &report.cargo_deliveries[0];
+        assert_eq!(delivery.cargo_lot_id, "payload-1");
+        assert_eq!(delivery.cargo_mass_grams, 1_000);
+        assert_eq!(delivery.target_orbit_id, "leo-550km");
+        assert_eq!(delivery.destination_node_id, "orbit");
+        assert_eq!(delivery.terminal_node_id.as_deref(), Some("orbit"));
+        assert_eq!(delivery.arrival_epoch_seconds, Some(50));
+        assert_eq!(delivery.status, CargoDeliveryStatus::Accepted);
+    }
+
+    #[test]
+    fn missing_campaign_evidence_never_promotes_a_cargo_delivery() {
+        let mut campaign = baseline();
+        campaign.orbit_service.compatibility = EvidenceStatus::Unknown;
+        let report = evaluate_campaign(&campaign);
+        let delivery = &report.cargo_deliveries[0];
+        assert_eq!(delivery.arrival_epoch_seconds, Some(50));
+        assert_eq!(delivery.status, CargoDeliveryStatus::NotAccepted);
     }
 
     #[test]
