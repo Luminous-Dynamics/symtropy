@@ -15,6 +15,7 @@ pub enum OperatingRegime {
     ReverseMotoring,
     ReverseRegenerating,
     Coast,
+    Ambiguous,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -52,6 +53,7 @@ pub struct EvidenceRecord {
     pub method: String,
     pub calibration_reference: Option<String>,
     pub configuration_digest: String,
+    pub operating_condition_digest: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -203,6 +205,7 @@ fn validate_candidate(candidate: &CandidateEnvelope) -> Result<(), String> {
         if envelope.evidence.source_reference.trim().is_empty()
             || envelope.evidence.method.trim().is_empty()
             || envelope.evidence.configuration_digest != candidate.configuration_digest
+            || envelope.evidence.operating_condition_digest != candidate.operating_condition_digest
         {
             return Err(format!("regime {:?} evidence is incomplete or belongs to another configuration", envelope.regime));
         }
@@ -370,7 +373,7 @@ pub fn evaluate_mission(
             SampleAssessment {
                 sample_index: index,
                 time_s: sample.time_s,
-                regime: OperatingRegime::Coast,
+                regime: OperatingRegime::Ambiguous,
                 decision: SampleDecision::Unknown,
                 required_torque_upper_nm: required_upper,
                 continuous_torque_lower_nm: None,
@@ -395,6 +398,21 @@ pub fn evaluate_mission(
                 reason: None,
             }
         } else if let Some(envelope) = candidate.regimes.iter().find(|branch| Some(branch.regime) == regime) {
+            if envelope.evidence.class == EvidenceClass::Unknown {
+                SampleAssessment {
+                    sample_index: index,
+                    time_s: sample.time_s,
+                    regime: regime.unwrap(),
+                    decision: SampleDecision::Unknown,
+                    required_torque_upper_nm: required_upper,
+                    continuous_torque_lower_nm: None,
+                    peak_torque_lower_nm: None,
+                    continuous_margin_nm: None,
+                    peak_margin_nm: None,
+                    evidence_class: Some(EvidenceClass::Unknown),
+                    reason: Some("envelope evidence provenance is unknown".to_owned()),
+                }
+            } else {
             let speed = sample.angular_speed_rad_s.abs();
             let continuous = interpolate_lower_bound(envelope, speed, false);
             let peak = interpolate_lower_bound(envelope, speed, true);
@@ -448,6 +466,7 @@ pub fn evaluate_mission(
                     evidence_class: Some(envelope.evidence.class),
                     reason: Some("speed is outside the envelope domain or falls in an interpolation gap".to_owned()),
                 },
+            }
             }
         } else {
             SampleAssessment {
@@ -584,6 +603,7 @@ mod tests {
             method: "synthetic known-answer fixture".to_owned(),
             calibration_reference: Some("synthetic-calibration".to_owned()),
             configuration_digest: CONFIG.to_owned(),
+            operating_condition_digest: CONDITIONS.to_owned(),
         }
     }
 
@@ -830,7 +850,31 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_015_duplicate_regime_and_inconsistent_evidence_reject() {
+    fn mcjce_015_unknown_evidence_cannot_produce_a_feasible_decision() {
+        let mut envelope = candidate();
+        envelope.regimes[0].evidence.class = EvidenceClass::Unknown;
+        let result = evaluate_mission(
+            &envelope,
+            &mission(vec![sample(0.0, 2.0, 0.0, 0.0), sample(0.1, 2.0, 0.0, 0.0)]),
+        ).unwrap();
+        assert_eq!(result.decision, MissionDecision::Unknown);
+        assert_eq!(result.samples[0].evidence_class, Some(EvidenceClass::Unknown));
+    }
+
+    #[test]
+    fn mcjce_016_vendor_evidence_class_is_preserved_not_promoted() {
+        let mut envelope = candidate();
+        envelope.regimes[0].evidence.class = EvidenceClass::VendorPhysicalTest;
+        let result = evaluate_mission(
+            &envelope,
+            &mission(vec![sample(0.0, 2.0, 0.0, 0.0), sample(0.1, 2.0, 0.0, 0.0)]),
+        ).unwrap();
+        assert_eq!(result.decision, MissionDecision::Feasible);
+        assert_eq!(result.samples[0].evidence_class, Some(EvidenceClass::VendorPhysicalTest));
+    }
+
+    #[test]
+    fn mcjce_017_duplicate_regime_and_inconsistent_evidence_reject() {
         let mut duplicate = candidate();
         duplicate.regimes.push(duplicate.regimes[0].clone());
         assert!(evaluate_mission(
