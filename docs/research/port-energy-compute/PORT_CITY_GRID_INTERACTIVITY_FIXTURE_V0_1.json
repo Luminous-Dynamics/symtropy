@@ -244,7 +244,7 @@
       "case_id": "sawem_instantaneous_reserve_ten_second_response",
       "category": "Positive",
       "mutation": "Declared demand-side reserve resource meets the published SAWEM 10-second full-response definition and 10-minute sustain duration, with Trading Unit/registration evidence.",
-      "expected_disposition": "PASS_CODE_PROFILE_ONLY"
+      "expected_disposition": "PASS_DRAFT_PROFILE_ONLY_NOT_MARKET_PARTICIPATION"
     },
     {
       "case_id": "six_second_idr_confused_with_sawem_ten_second_definition",
@@ -310,19 +310,27 @@
       "program_id": "sawem-instantaneous-reserve-demand-side",
       "provider": "NTCSA / SAWEM Market Code",
       "source": "https://www.ntcsa.co.za/wp-content/uploads/2026/02/Market-Code-v2.3.pdf",
-      "evidence_class": "published_market_code_rev_2_3_february_2026_definition",
+      "evidence_class": "published_NTCSA_submitted_Market_Code_Rev2_3_under_regulatory_finalization",
       "declared_terms": {
         "full_response_deadline_seconds": 10,
         "minimum_sustain_seconds": 600,
         "resource_type": "generating capacity or demand-side managed load",
         "scheduling": "day-ahead reserve category and real-time dispatch framework",
-        "payment": "capacity qualifying and performance adjustment provisions exist in the code"
+        "payment": "capacity qualifying and performance adjustment provisions exist in the code",
+        "market_product_activation": "not_verified",
+        "external_participant_eligibility": "not_verified"
       },
       "limitations": [
         "Market Code Rev2.3 publication does not by itself establish that a particular port participant is registered, qualified or currently eligible.",
         "NERSA's September 2026 regulatory tracker listed the Market Code approval workstream as finalisation with a target completion of 31 October 2026; the tracker snapshot is not evidence of the subsequent final regulatory decision.",
         "The 10-second definition is distinct from Eskom Distribution's published 6-second IDR product."
-      ]
+      ],
+      "regulatory_status_as_of_2026_11_19": {
+        "status": "not_established_as_finally_approved_or_open_for_external_participation",
+        "evidence": "NERSA 2025/26 Annual Report (published Oct 2026) states that finalisation of the Market Code and Trading Rules remains work underway.",
+        "source": "https://www.nersa.org.za/files/files/2026/10/NERSAAnnualReportfor2025-26.pdf",
+        "note": "The 10-second/10-minute Instantaneous Reserve wording is present in the published NTCSA Rev2.3 document, but must not be treated as an approved market product or participant eligibility."
+      }
     },
     {
       "program_id": "ntcsa-supplemental-demand-response",
