@@ -8,7 +8,7 @@
 
 Verify one raw source-interval payload, its evidence envelope and one source-allocation receipt without trusting declared digests or reported balance results.
 
-This is a deliberately bounded Rust runtime slice. It is not a full Draft 2020-12 JSON Schema engine, global multi-receipt ledger, measurement/calibration authority, solver runner or physical-truth oracle.
+This is a deliberately bounded Rust runtime slice. It is not a full Draft 2020-12 JSON Schema engine, persistent cross-campaign registry, measurement/calibration authority, solver runner or physical-truth oracle.
 
 ## What it verifies
 
@@ -43,7 +43,7 @@ Exit codes:
 
 ## Adversarial and positive test coverage
 
-The 17 current unit tests cover exact fixture success, byte tampering, declared byte-length mismatch, interval-ID mismatch, boundary mismatch, synthetic-to-measured evidence-class promotion, duplicate allocation IDs, service/carrier mismatch, over-allocation and negative residual, forged reported balance, allocation digest mismatch, rejected integrity state, zero tolerance, stale/unknown validity, mismatched time windows, unsupported digest algorithms and malformed digests.
+The 22 current unit tests cover exact fixture success, byte tampering, declared byte-length mismatch, interval-ID mismatch, boundary mismatch, synthetic-to-measured evidence-class promotion, duplicate allocation IDs, service/carrier mismatch, over-allocation and negative residual, forged reported balance, allocation digest mismatch, rejected integrity state, zero tolerance, stale/unknown validity, mismatched time windows, unsupported digest algorithms and malformed digests.
 
 ## Batch uniqueness
 
@@ -55,7 +55,7 @@ The check is **batch-scoped**. It is not a persistent cross-campaign registry, a
 
 - Only `source_interval` envelopes and source-allocation receipts are currently supported; the batch API prevents duplicate interval reuse within one supplied batch.
 - The verifier performs runtime semantic checks on the fields it consumes; it does not execute the complete JSON Schema Draft 2020-12 specification.
-- It cannot detect reuse of the same source interval across separate receipts without a batch-level registry / ledger input.
+- It cannot detect reuse of the same source interval across separately verified batches; a persistent cross-campaign ledger is not implemented.
 - For measured/audited classes it requires the declared measurement and calibration fields; it does not authenticate certificates or prove that a calibration covers the observation interval.
 - For calibrated/independently validated model classes it requires a declared applicable, converged solver record; it does not reproduce the solver or validate its physics.
 - It does not prove meter accuracy, clock synchronization, covariance, model-domain validity, physical source truth or operational authorization.
