@@ -1397,6 +1397,10 @@ mod tests {
         ));
         assert_eq!(ledger.accepted_count(&package_digest), Some(0));
         assert_eq!(ledger.last_sequence(), 4);
+        let replayed =
+            SiteStateLedger::replay(ledger.event_history(), ledger.actor_registry().clone())
+                .unwrap();
+        assert_eq!(replayed, ledger);
         assert!(matches!(
             ledger.event_history().last().map(|item| &item.payload),
             Some(SiteEventPayload::RobotProtocolObservationRecorded { observation, .. })
