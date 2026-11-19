@@ -18,6 +18,7 @@ pub mod observation;
 pub mod mode_options;
 pub mod procedure;
 pub mod simulation;
+pub mod shared_fleet;
 pub mod transaction;
 
 pub const SCHEMA_VERSION: u16 = 1;

@@ -64,6 +64,17 @@ jobs:
           grep -q '"dispatch_authorized": false' mfb-l1-evidence/carrier-uav-coavailability.json
           grep -q '"physical_command_emitted": false' mfb-l1-evidence/carrier-uav-coavailability.json
           cat mfb-l1-evidence/carrier-uav-coavailability.json
+      - name: Evaluate exact shared multi-region UAV fleet allocation
+        run: |
+          mkdir -p mfb-l1-evidence
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-evaluate-shared-fleet -- tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-uav-fleet.json > mfb-l1-evidence/shared-uav-fleet.json
+          grep -q '"dispatch_authorized": false' mfb-l1-evidence/shared-uav-fleet.json
+          grep -q '"physical_commands_emitted": false' mfb-l1-evidence/shared-uav-fleet.json
+          grep -q '"unauthorized_aerial_dispatches": 0' mfb-l1-evidence/shared-uav-fleet.json
+          grep -q '"expected_total_cost_denominator_bps": 10000' mfb-l1-evidence/shared-uav-fleet.json
+          jq -e '.region_count == 2 and .aircraft_count == 2 and .period_count == 4 and .scenario_count == 2 and .nonanticipative_tree_node_count == 7 and .dynamic_program_state_count > 0 and .action_count_evaluated > 0' mfb-l1-evidence/shared-uav-fleet.json
+          jq -e '.optimized_policy.expected_total_cost_units <= .truck_only.expected_total_cost_units + 0.000001 and .optimized_policy.expected_total_cost_units <= .fixed_initial_assignment.expected_total_cost_units + 0.000001' mfb-l1-evidence/shared-uav-fleet.json
+          cat mfb-l1-evidence/shared-uav-fleet.json
       - name: Validate nominal scenario fixture
         run: cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json
       - name: Validate ten-fault campaign fixture
