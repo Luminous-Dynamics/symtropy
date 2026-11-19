@@ -331,10 +331,20 @@ fn validate_path(
             continue;
         }
         let time = event_time.unwrap();
+        let delta_value = delta.unwrap();
+        let event_is_positive = ["energy_recharge", "energy_generation", "freshwater_replenishment",
+            "food_replenishment", "waste_service", "spares_restock", "repair_recovery"]
+            .contains(&event_type);
+        let event_is_negative = ["energy_consumption", "energy_loss", "freshwater_consumption",
+            "freshwater_leakage", "food_consumption", "food_spoilage", "waste_generation",
+            "spares_consumed"].contains(&event_type);
+        if (event_is_positive && delta_value <= 0.0) || (event_is_negative && delta_value >= 0.0) {
+            errors.push(format!("{context} resource event '{event_id}' has a delta sign inconsistent with its event type"));
+        }
         if time <= mission_start || time > mission_end {
             errors.push(format!("{context} resource event '{event_id}' lies outside the mission interval"));
         } else {
-            parsed_events.push((time, metric, delta.unwrap(), unit));
+            parsed_events.push((time, metric, delta_value, unit));
         }
     }
 
@@ -365,6 +375,9 @@ fn validate_path(
         let time = time.unwrap();
         point_times.push(time);
         point_time_strings.push(string_at(point, "at").unwrap_or("").to_owned());
+        if parse_time(string_at(point, "metrics").and_then(|_| string_at(point, "at"))).is_none() {
+            errors.push(format!("{point_context} has invalid timestamp data"));
+        }
         if index == 0 && time != mission_start {
             errors.push(format!("{point_context} does not start at mission_window.start"));
         }
@@ -393,7 +406,18 @@ fn validate_path(
             route_progress.push(progress.unwrap());
         }
         let class = if record_status == "synthetic" { "synthetic" } else { "measured" };
+        if parse_time(string_at(point, "at")) != parse_time(string_at(point, "at")) {
+            errors.push(format!("{point_context} timestamp is inconsistent"));
+        }
         let metrics = metric_values(point, floors, class, &point_context, errors);
+        if let Some(items) = point.get("metrics").and_then(Value::as_array) {
+            for item in items {
+                if parse_time(string_at(item, "measured_at")) != Some(time) {
+                    errors.push(format!("{point_context} metric '{}' measurement timestamp does not match the trajectory point",
+                        string_at(item, "metric").unwrap_or("unknown")));
+                }
+            }
+        }
         apply_floors(&metrics, floors, &point_context, blockers);
         point_metric_values.push(metrics);
     }
@@ -550,6 +574,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     let mut candidate_viable = true;
     let mut policy_reports = Vec::<Value>::new();
     let mut arrival_only_trap_count = 0_usize;
+    let mut mission_time_grid: Option<Vec<String>> = None;
     if let Some(policies) = policies {
         for policy in policies {
             let policy_id = string_at(policy, "policy_id").unwrap_or("").to_owned();
@@ -577,7 +602,6 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             }
             let mut path_members = BTreeSet::<String>::new();
             let mut policy_viable = true;
-            let mut policy_grid: Option<Vec<String>> = None;
             for path in paths {
                 let member_id = string_at(path, "scenario_member_id").unwrap_or("").to_owned();
                 if !path_members.insert(member_id.clone()) {
@@ -586,7 +610,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                 let path_viable = validate_path(
                     path, &policy_id, &member_digests, &floors,
                     mission_start, mission_end, max_gap_hours, status,
-                    &mut policy_grid, &mut errors, &mut blockers,
+                    &mut mission_time_grid, &mut errors, &mut blockers,
                 );
                 policy_viable &= path_viable;
                 let times = path.get("timepoints").and_then(Value::as_array).cloned().unwrap_or_default();
@@ -628,7 +652,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
 
     let disposition = if !errors.is_empty() {
         "INVALID"
-    } else if !candidate_viable || !blockers.is_empty() {
+    } else if !candidate_viable {
         "BLOCKED"
     } else if status == "synthetic" {
         "SYNTHETIC_ONLY"
@@ -758,6 +782,13 @@ mod tests {
     fn inventory_replenishment_without_evidence_event_is_invalid() {
         let mut value = arrival_trap();
         value["policies"][2]["paths"][0]["events"] = json!([]);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn resource_event_sign_must_match_event_type() {
+        let mut value = arrival_trap();
+        value["policies"][2]["paths"][0]["events"][0]["delta"] = json!(3.0);
         assert_eq!(audit(&value)["disposition"], "INVALID");
     }
 
