@@ -42,3 +42,24 @@ The `superhot_well` module adds a source-bounded reservoir-to-wellhead case cont
 - An optional velocity comparison requires a named external threshold basis. The comparison is a screening flag, not a universal erosion or safety limit.
 
 The module computes no reservoir productivity, wellbore pressure drop, flashing, phase slip, corrosion, scaling, casing erosion, power-cycle output or net MW. Its synthetic test case is arithmetic only and is not an IDDP-1 reproduction or a real well prediction.
+
+
+## Frozen adversarial contract corpus
+
+The integration test `tests/frozen_corpus.rs` executes the scenario rows in
+`tests/frozen-cases.tsv` against the public validators. The corpus covers stream
+unit/arithmetic guards, forbidden geothermal-primary heat routing, temperature
+approach, cross-carrier first-law closure, overflow-masked imbalance, source
+over-allocation and duplicate allocation, exact wellhead property-state binding,
+and explicit refusal of two-phase flow without qualified hydraulics.
+
+Run:
+
+```sh
+cargo test -p symtropy-geofusion-contracts
+cargo clippy -p symtropy-geofusion-contracts --all-targets -- -D warnings
+```
+
+The corpus is synthetic and qualifies contract behavior only. It does not
+qualify fluid properties, reservoir deliverability, two-phase hydraulics,
+equipment safety, fusion performance or a physical plant.
