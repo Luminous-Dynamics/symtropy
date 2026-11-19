@@ -1049,4 +1049,145 @@ mod tests {
         req.pressure_units.clear();
         assert!(audit_pressure_tensor(&req).is_err());
     }
+    fn grid_request(values: &[f64]) -> PressureGridRequest {
+        let pressure_tensors = values
+            .iter()
+            .map(|pxx| diagonal([*pxx, 1.0, 1.0]))
+            .collect::<Vec<_>>();
+        PressureGridRequest {
+            schema_version: SCHEMA_VERSION.to_owned(),
+            grid_id: "periodic-grid-4x2".to_owned(),
+            coordinate_frame_id: "cartesian-xyz".to_owned(),
+            pressure_units: "normalized_pressure".to_owned(),
+            nx: 4,
+            ny: 2,
+            dx: 1.0,
+            dy: 2.0,
+            pressure_tensors,
+            tolerances: tolerances(),
+        }
+    }
+
+    #[test]
+    fn constant_periodic_pressure_has_zero_divergence() {
+        let request = grid_request(&[2.0; 8]);
+        let report = audit_periodic_pressure_grid(&request).expect("grid audit");
+        assert_eq!(report.body.disposition, PressureGridDisposition::Admissible);
+        assert!(report.body.divergence.iter().flatten().all(|value| value.abs() < 1.0e-12));
+        assert!(report.body.global_conservation_residual_l2 < 1.0e-12);
+    }
+
+    #[test]
+    fn periodic_face_flux_operator_matches_known_pxx_divergence() {
+        let request = grid_request(&[
+            0.0, 2.0, 4.0, 2.0,
+            0.0, 2.0, 4.0, 2.0,
+        ]);
+        let report = audit_periodic_pressure_grid(&request).expect("grid audit");
+        assert_eq!(report.body.disposition, PressureGridDisposition::Admissible);
+        for y in 0..2 {
+            let base = y * 4;
+            assert!(report.body.divergence[base][0].abs() < 1.0e-12);
+            assert!((report.body.divergence[base + 1][0] - 2.0).abs() < 1.0e-12);
+            assert!(report.body.divergence[base + 2][0].abs() < 1.0e-12);
+            assert!((report.body.divergence[base + 3][0] + 2.0).abs() < 1.0e-12);
+        }
+        assert!(report.body.global_conservation_residual_l2 < 1.0e-12);
+    }
+
+    #[test]
+    fn arbitrary_periodic_pressure_field_has_telescoping_global_divergence() {
+        let values = [
+            1.0, 1.2, 0.8, 1.1,
+            0.9, 1.4, 1.3, 0.7,
+        ];
+        let mut request = grid_request(&values);
+        for (index, pressure) in request.pressure_tensors.iter_mut().enumerate() {
+            pressure[0][1] = 0.03 * index as f64;
+            pressure[1][0] = 0.03 * index as f64;
+            pressure[1][1] = 1.5 + 0.1 * index as f64;
+        }
+        let report = audit_periodic_pressure_grid(&request).expect("grid audit");
+        assert!(report.body.global_conservation_residual_l2 < 1.0e-11);
+    }
+
+    #[test]
+    fn cellwise_indefinite_tensor_rejects_grid_admissibility() {
+        let mut request = grid_request(&[1.0; 8]);
+        request.pressure_tensors[3] = diagonal([1.0, 1.0, -0.5]);
+        let report = audit_periodic_pressure_grid(&request).expect("grid audit");
+        assert_eq!(report.body.disposition, PressureGridDisposition::Rejected);
+        assert!(!report.body.all_cells_positive_semidefinite);
+        assert!(report.body.findings.iter().any(|finding| {
+            finding.cell_index == 3
+                && finding.code == "pressure_tensor_not_positive_semidefinite"
+        }));
+    }
+
+    #[test]
+    fn invalid_grid_shape_spacing_and_non_finite_cell_are_refused() {
+        let mut request = grid_request(&[1.0; 8]);
+        request.nx = 3;
+        assert!(audit_periodic_pressure_grid(&request).is_err());
+
+        let mut request = grid_request(&[1.0; 8]);
+        request.dx = 0.0;
+        assert!(audit_periodic_pressure_grid(&request).is_err());
+
+        let mut request = grid_request(&[1.0; 8]);
+        request.pressure_tensors[0][0][0] = f64::NAN;
+        assert!(audit_periodic_pressure_grid(&request).is_err());
+    }
+
+    #[test]
+    fn pressure_divergence_comparison_is_operator_level() {
+        let reference = grid_request(&[0.0, 2.0, 4.0, 2.0, 0.0, 2.0, 4.0, 2.0]);
+        let mut predicted = reference.clone();
+        for pressure in &mut predicted.pressure_tensors {
+            pressure[0][0] += 0.25;
+        }
+        let report =
+            compare_periodic_pressure_divergence(&reference, &predicted).expect("compare");
+        assert!(report.body.both_fields_admissible);
+        assert!(report.body.component_errors.iter().all(|error| error.rmse < 1.0e-12));
+    }
+
+    #[test]
+    fn pressure_divergence_comparison_refuses_grid_contract_mismatch() {
+        let reference = grid_request(&[1.0; 8]);
+        let mut predicted = reference.clone();
+        predicted.dy = 3.0;
+        assert!(compare_periodic_pressure_divergence(&reference, &predicted).is_err());
+    }
+
+    #[test]
+    fn pressure_divergence_comparison_detects_off_diagonal_flux_error() {
+        let reference = grid_request(&[1.0; 8]);
+        let mut predicted = reference.clone();
+        for y in 0..2 {
+            for x in 0..4 {
+                let value = if (x + y) % 2 == 0 { 0.0 } else { 0.2 };
+                let cell = y * 4 + x;
+                predicted.pressure_tensors[cell][0][1] = value;
+                predicted.pressure_tensors[cell][1][0] = value;
+            }
+        }
+        let report =
+            compare_periodic_pressure_divergence(&reference, &predicted).expect("compare");
+        assert!(report.body.component_errors[0].rmse > 0.0);
+        assert!(report.body.component_errors[1].rmse > 0.0);
+    }
+
+    #[test]
+    fn pressure_grid_receipt_replays_and_rejects_rehashed_tampering() {
+        let request = grid_request(&[0.0, 2.0, 4.0, 2.0, 0.0, 2.0, 4.0, 2.0]);
+        let mut report = audit_periodic_pressure_grid(&request).expect("grid audit");
+        verify_pressure_grid_report(&request, &report).expect("valid receipt");
+
+        report.body.maximum_absolute_divergence = 999.0;
+        let bytes = serde_json::to_vec(&report.body).expect("serialize report body");
+        report.receipt_sha256 = sha256_hex(&bytes);
+        assert!(verify_pressure_grid_report(&request, &report).is_err());
+    }
+
 }
