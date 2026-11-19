@@ -11,6 +11,8 @@
 #![warn(missing_docs)]
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::fs;
+use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -397,6 +399,10 @@ pub enum ContractError {
     ReplayTimeRegression,
     /// Artifact payload bytes do not match committed length or digest.
     ArtifactIntegrityMismatch,
+    /// Fixture root or artifact path could not be read.
+    ArtifactUnavailable,
+    /// Artifact path resolves to a directory or non-regular file.
+    ArtifactNotRegularFile,
 }
 
 impl std::fmt::Display for ContractError {
@@ -705,6 +711,38 @@ pub fn verify_artifact_bytes_v1(
     Ok(())
 }
 
+/// Read an artifact beneath a caller-supplied root and verify its exact bytes.
+///
+/// The path is canonicalized and must remain beneath the canonical root; a
+/// symlink resolving outside the root is rejected. Callers must keep fixture
+/// roots immutable/read-only while this function runs: standard path-based
+/// canonicalization does not provide an adversarial race-free openat boundary.
+pub fn read_verified_artifact_under_root_v1(
+    root: &Path,
+    reference: &ArtifactRefV1,
+) -> Result<Vec<u8>, ContractError> {
+    validate_artifact(reference)?;
+    let canonical_root = root
+        .canonicalize()
+        .map_err(|_| ContractError::ArtifactUnavailable)?;
+    let candidate = canonical_root.join(&reference.relative_path);
+    let canonical_artifact = candidate
+        .canonicalize()
+        .map_err(|_| ContractError::ArtifactUnavailable)?;
+    if !canonical_artifact.starts_with(&canonical_root) {
+        return Err(ContractError::InvalidArtifactPath);
+    }
+    let metadata = fs::metadata(&canonical_artifact)
+        .map_err(|_| ContractError::ArtifactUnavailable)?;
+    if !metadata.is_file() {
+        return Err(ContractError::ArtifactNotRegularFile);
+    }
+    let bytes = fs::read(&canonical_artifact)
+        .map_err(|_| ContractError::ArtifactUnavailable)?;
+    verify_artifact_bytes_v1(reference, &bytes)?;
+    Ok(bytes)
+}
+
 /// One causally available transport event and its optional observation payload.
 #[derive(Clone, Debug)]
 pub struct ReplayDeliveryV1<'a> {
@@ -794,16 +832,29 @@ mod tests {
 
         let video = include_bytes!("../fixtures/media/frame.gray8");
         let audio = include_bytes!("../fixtures/media/audio.s16le");
-        verify_artifact_bytes_v1(
+        verify_artifact_bytes_v1(bundle.observations[0].artifact_ref(), video).unwrap();
+        verify_artifact_bytes_v1(bundle.observations[1].artifact_ref(), audio).unwrap();
+
+        let package_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let loaded_video = read_verified_artifact_under_root_v1(
+            package_root,
             bundle.observations[0].artifact_ref(),
-            video,
         )
         .unwrap();
-        verify_artifact_bytes_v1(
+        let loaded_audio = read_verified_artifact_under_root_v1(
+            package_root,
             bundle.observations[1].artifact_ref(),
-            audio,
         )
         .unwrap();
+        assert_eq!(loaded_video.as_slice(), video);
+        assert_eq!(loaded_audio.as_slice(), audio);
+
+        let mut missing_reference = bundle.observations[0].artifact_ref().clone();
+        missing_reference.relative_path = "fixtures/media/not-present.gray8".to_owned();
+        assert_eq!(
+            read_verified_artifact_under_root_v1(package_root, &missing_reference),
+            Err(ContractError::ArtifactUnavailable)
+        );
     }
 
     #[test]
