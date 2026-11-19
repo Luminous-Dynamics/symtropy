@@ -274,11 +274,17 @@ A second bounded exact objective now minimises:
 
 Here the per-event weight is net firm-capacity shortfall in MW, and elapsed restoration is measured from the event start through the final required recovery task. This is a simplified weighted unserved-energy proxy; v0.x assumes constant shortfall until restoration and does not represent time-varying demand, customer interruption classes, network power flows, dynamic security, or production-cost dispatch.
 
-The CLI provides two distinct bounded exact modes:
+The normal scheduler now exposes two list-scheduling policies:
+- default earliest-feasible-start with stable task-ID tie-break;
+- `--policy-service-weighted-critical-path`, which breaks same-start ties by descending net firm shortfall divided by remaining precedence critical-path duration.
+
+The service-weighted policy is a heuristic, not an optimality proof. It is intended to improve outage ordering where resources are simultaneously available and service consequences differ. The benchmark must compare both policies on frozen cases and record cases where the priority ratio is misleading.
+
+The CLI also provides two distinct bounded exact modes:
 - `--exact-small`: minimum global makespan, at most 10 tasks.
 - `--exact-small-service`: minimum weighted unserved energy, at most 8 tasks.
 
-Both are exhaustive bounded references, not scalable optimisation claims. The service objective uses a deterministic greedy schedule as an initial upper bound, then exhaustively checks precedence-feasible serial schedules under the same resource calendars.
+Both are exhaustive bounded references, not scalable optimisation claims. The heuristic policy can be invoked with `cargo run --manifest-path tools/grid-asset-recovery-validator/Cargo.toml -- --policy-service-weighted-critical-path <case.json>`. The service objective uses a deterministic greedy schedule as an initial upper bound, then exhaustively checks precedence-feasible serial schedules under the same resource calendars.
 
 ### Service-priority counterexample
 
@@ -288,7 +294,7 @@ A two-event synthetic example has one crew:
 
 Stable-ID greedy order repairs the low-consequence event first: 1,550 MWh weighted shortfall. Exact service-oriented ordering repairs the critical event first: 1,150 MWh. That is 400 MWh / 25.8% lower under this simplified objective, with the same 15-hour global makespan.
 
-This is a scheduling microcase, not a grid restoration result. It demonstrates why "minimise project duration" and "minimise service harm" are different objectives and why a recovery plan should expose both.
+This is a scheduling microcase, not a grid restoration result. It demonstrates why "minimise project duration" and "minimise service harm" are different objectives and why a recovery plan should expose both. The service-weighted critical-path heuristic also selects the critical outage first on this microcase (1,150 MWh), matching the bounded exact result here. That agreement is a test of this small case only; it does not establish heuristic optimality or general superiority.
 
 ### Current synthetic fleet service ledger
 
