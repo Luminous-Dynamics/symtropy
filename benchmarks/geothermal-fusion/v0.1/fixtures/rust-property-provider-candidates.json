@@ -1,0 +1,124 @@
+{
+  "schema_version": "0.1.0",
+  "comparison_id": "RUST-IAPWS-PROVIDER-RECONNAISSANCE-001",
+  "snapshot_date": "2026-11-19",
+  "claim_ceiling": "candidate_reconnaissance_not_qualification_or_production_approval",
+  "selection_rule": "Candidates are ranked for a controlled independent conformance study only. No provider becomes a production dependency until it passes official known-answer, validity-envelope, phase/domain, units, safety and reproducibility gates.",
+  "reference_suite": {
+    "id": "IAPWS-IF97-OFFICIAL-COMPUTER-VERIFICATION-001",
+    "path": "benchmarks/geothermal-fusion/v0.1/fixtures/iapws-if97-official-known-answer.json",
+    "known_answer_points": 19,
+    "source": "IAPWS R7-97(2012)",
+    "regions": [1, 2, 3, 4, 5],
+    "includes_b23_boundary": true
+  },
+  "candidates": [
+    {
+      "candidate_id": "VLE-STEAM-IF97",
+      "crate": "vle-steam",
+      "crate_registry_version_to_verify": "0.20.1",
+      "upstream_tag": "v0.20.1",
+      "upstream_commit": "74cafc927e27026c5d41ff2411a56f765031f724",
+      "upstream_tag_object": "9863178a216d897539af818d8a69e4a3e138deed",
+      "upstream_repository": "https://github.com/miguelju/vle",
+      "license": "MIT",
+      "mandatory_dependencies_reported": 0,
+      "rust_edition": "2024",
+      "minimum_rust_reported": "1.85",
+      "api": {
+        "temperature": "K",
+        "pressure": "kPa absolute",
+        "mass_basis": true,
+        "outputs_include": ["specific_volume_m3_kg", "density_kg_m3", "enthalpy_kj_kg", "internal_energy_kj_kg", "entropy_kj_kg_k", "cp_kj_kg_k", "cv_kj_kg_k", "speed_of_sound_m_s"],
+        "states": ["TP", "TX", "PX", "PH", "PS"],
+        "backward_equations": ["T(p,h)", "T(p,s)"],
+        "regions": [1, 2, 3, 4, 5],
+        "saturation": ["p_sat(T)", "T_sat(p)"],
+        "transport_property_releases": ["IAPWS R12-08 viscosity", "IAPWS R15-11 thermal conductivity", "IAPWS R1-76(2014) surface tension"],
+        "two_phase_policy": "Transport functions are per-phase and refuse a two-phase state rather than silently averaging; saturation tables expose phase-specific values."
+      },
+      "upstream_test_evidence": {
+        "region_verification": [
+          {"region": 1, "table": 5, "points": 3},
+          {"region": 2, "table": 15, "points": 3},
+          {"region": 3, "table": 33, "points": 3},
+          {"region": 4, "tables": [35, 36], "points": 6},
+          {"region": 5, "table": 42, "points": 3}
+        ],
+        "additional_tests_reported": [
+          "h = u + p v identity",
+          "Clausius-Clapeyron consistency",
+          "PH and PS inverse round trips",
+          "saturation pressure/temperature inverse",
+          "two-phase quality round trip",
+          "region-series arithmetic compared with a powi reference implementation",
+          "Region 3 density solver comparison with earlier scan/Brent path"
+        ],
+        "upstream_release_ci": {
+          "workflow": "CI",
+          "run_id": 43733986531,
+          "commit": "74cafc927e27026c5d41ff2411a56f765031f724",
+          "run_url": "https://github.com/miguelju/vle/actions/runs/43733986531",
+          "cargo_test_job": {"job_id": 132872414482, "conclusion": "success"},
+          "format_clippy_job": {"job_id": 132872414269, "conclusion": "success"},
+          "scope": "Upstream project CI at the release commit. It is not a Symtropy adapter test or independent qualification."
+        }
+      },
+      "integration_risks": [
+        "API pressure is kPa absolute while Symtropy contracts store SI pressure in Pa; adapter must use explicit checked Pa↔kPa conversion.",
+        "Library is explicitly water/steam only; no saline-brine equation-of-state support is claimed.",
+        "Region 3 state handling and near-critical phase classification require independent boundary tests.",
+        "Single-maintainer / limited-adoption context is a supply-chain and long-term maintenance consideration, not evidence of incorrect physics.",
+        "Published registry version must be verified against the exact source tag and packaged source before production dependency pinning."
+      ],
+      "study_disposition": "FIRST_CANDIDATE_FOR_CONFORMANCE_STUDY_NOT_APPROVED"
+    },
+    {
+      "candidate_id": "SEUIF97-RUST",
+      "crate": "seuif97",
+      "crate_registry_version": "2.3.8",
+      "upstream_repository": "https://github.com/thermalogic/RustSEUIF97",
+      "documentation": "https://docs.rs/seuif97/2.3.8/seuif97/",
+      "license": "MIT",
+      "api": {
+        "input_pairs_reported": 12,
+        "properties_reported": 36,
+        "includes_transport_properties": true,
+        "includes_process_functions": true,
+        "features": ["optional Python binding", "optional WebAssembly binding"]
+      },
+      "upstream_claims": [
+        "5–20x faster than naive powi-loop implementations for Regions 1–3",
+        "3–7x faster than CoolProp IF97 in the package's comparison"
+      ],
+      "study_disposition": "SECOND_IF97_PROVIDER_FOR_DIFFERENTIAL_CONFORMANCE_AND_PERFORMANCE_STUDY",
+      "integration_risks": [
+        "Check the exact API units and region-selector behavior.",
+        "Inspect release source, unsafe/FFI surface, optional features, native build requirements and licence files.",
+        "Performance claims require equal property bundles, same hardware, warm-up, pinned compiler and repeated p50/p95 measurements."
+      ]
+    },
+    {
+      "candidate_id": "IAPWS95-CROSS_FORMULATION",
+      "crate": "iapws95",
+      "crate_registry_version": "0.2.5",
+      "documentation": "https://docs.rs/iapws95/0.2.5/iapws95/",
+      "formulation": "IAPWS-95 scientific/general formulation",
+      "study_disposition": "INDEPENDENT_FORMULATION_CROSS_CHECK_NOT_AN_IF97_REPLACEMENT",
+      "integration_risks": [
+        "Different formulation and possibly different valid range/API; compare physical states and documented tolerances rather than expecting bitwise equality.",
+        "License, source maintenance, API units and numerical stability remain to be audited before any dependency decision."
+      ]
+    }
+  ],
+  "adapter_requirements": [
+    "SI-only input boundary in Symtropy; explicitly convert Pa to kPa for vle-steam and verify round-trip conversion.",
+    "Never infer phase from an unqualified region number alone; preserve saturation/two-phase state and quality.",
+    "Require composition identity and refuse any declared saline brine in the IF97 adapter.",
+    "Bind every output to exact (fluid, composition, p, T or other input pair, phase, formulation, release, provider commit and boundary).",
+    "Run the 19 official known-answer points and independent cross-provider checks; distinguish reference precision from provider-to-provider agreement.",
+    "Add region-edge, saturation, critical-neighborhood, out-of-domain, NaN/Inf, unit-confusion, and inverse-state tests.",
+    "Record property-output digest and full provider metadata in ReservoirWellheadCase.",
+    "Benchmark correctness first; only then compare throughput, p50/p95 latency, allocations and memory."
+  ]
+}
