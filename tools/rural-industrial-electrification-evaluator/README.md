@@ -54,3 +54,40 @@ Unknown values never become zero or a pass. A failed known constraint can block 
 V0.1 does not calculate task energy from machine physics, traction, implement or PTO loads, payload, terrain, hydraulics, battery aging, cell thermal behaviour, charging curves, grid reinforcement, solar/storage dispatch, diesel efficiency, hydrogen pathways, costs, emissions or SMR economics. Those require explicit subsequent models and sources. The input demand must be separately estimated or measured for the exact task profile.
 
 Do not use this tool for actual vehicle, farm, mine, industrial electrical or safety decisions.
+
+
+## EV-CARRIER-REF-01 incremental carrier configuration screen
+
+The `ev_carrier_configuration_screen` binary composes optional delivery-pod / AMR hardware over the existing `vehicle_design_screen` output. It does not reconstruct the base vehicle model.
+
+Run from the repository root after the normal EV design screen:
+
+```bash
+cargo run --quiet --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml \
+  --bin vehicle_design_screen -- \
+  tools/rural-industrial-electrification-evaluator/fixtures/vehicle_designs_v0_1.json > vehicle-design-report.json
+
+cargo run --quiet --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml \
+  --bin ev_carrier_configuration_screen -- vehicle-design-report.json \
+  tools/rural-industrial-electrification-evaluator/fixtures/ev_carrier_configurations_v0_1.json
+```
+
+Each carrier configuration references an existing `design_id` (initially `urban-distribution-truck` or `light-commercial-van`) and declares only additions beyond the base design report:
+- installed pod / aircraft / dock / fixture mass;
+- incremental cargo mass not already included in the base target payload;
+- incremental vehicle traction-battery terminal energy draw;
+- additional simultaneous vehicle HV-bus continuous and peak power;
+- external site-meter energy and peak power;
+- whether the external charging peak coincides with base vehicle charging, plus the declared charging window.
+
+The energy ledgers are kept separate:
+1. incremental draw from the vehicle traction battery, including vehicle-to-UAV conversion losses, is added to the EV mission demand and later replenished through the EV's declared charging efficiency;
+2. external UAV/AMR site-meter energy is counted separately and is not added again to traction-battery demand;
+3. site peak is compared with the base vehicle charging load, either summed for coincident sessions or maxed for explicitly noncoincident sessions.
+
+External site recharge hours are only a **constant peak-power lower bound** (meter energy / declared peak kW). Passing that lower bound does not establish an actual charging curve or a successful depot schedule. Unknown coincidence, charger acceptance, mass, energy or power stays indeterminate. A known hard limit violation blocks the configuration even when other fields are unknown.
+
+The first fixture intentionally has two truck-only controls with explicit zero additions and four unengineered alternatives (integrated enclosed bay, detachable pod, mobile drone-station trailer and AMR handoff) with null unknowns. The expected result is two synthetic-control passes and four indeterminate alternatives. This is intentional: no pod mass, aircraft count, charger, fire containment, structural retention, electrical load, thermal duty, site concurrency or maintenance data have yet been established.
+
+The screen does **not** calculate axle loads, detailed CG, restraint, braking, crashworthiness, structure, thermal runaway propagation, HV isolation, EMC, cybersecurity, aircraft performance, aerodynamic energy, flight approval or economics. Those remain with the EV / road-dynamics, cargo, battery, airworthiness, site and factory qualification owners. It does not rank architecture options or authorize physical operation.
+
