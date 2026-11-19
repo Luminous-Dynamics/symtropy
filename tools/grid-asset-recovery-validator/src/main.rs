@@ -714,6 +714,7 @@ struct ScenarioSetReport {
     expected_weighted_unserved_energy_mwh: f64,
     p50_weighted_unserved_energy_mwh: f64,
     p95_weighted_unserved_energy_mwh: f64,
+    cvar95_weighted_unserved_energy_mwh: f64,
     worst_case_weighted_unserved_energy_mwh: f64,
     worst_case_scenario_id: String,
     outcomes: Vec<ScenarioOutcome>,
@@ -860,6 +861,30 @@ fn weighted_quantile(values: &[(f64, f64)], quantile: f64) -> f64 {
         }
     }
     ordered.last().map(|item| item.0).unwrap_or(0.0)
+}
+
+
+fn weighted_cvar(values: &[(f64, f64)], confidence: f64) -> f64 {
+    let tail_mass = (1.0 - confidence).clamp(0.0, 1.0);
+    if tail_mass <= 0.0 {
+        return weighted_quantile(values, confidence);
+    }
+    let mut ordered = values.to_vec();
+    ordered.sort_by(|left, right| right.0.total_cmp(&left.0));
+    let mut remaining = tail_mass;
+    let mut tail_total = 0.0;
+    for (value, probability) in ordered {
+        let take = probability.min(remaining);
+        tail_total += value * take;
+        remaining -= take;
+        if remaining <= 1e-12 {
+            break;
+        }
+    }
+    if remaining > 1e-9 {
+        return f64::NAN;
+    }
+    tail_total / tail_mass
 }
 
 fn evaluate_scenario_set(
@@ -1089,6 +1114,7 @@ fn evaluate_scenario_set(
         expected_weighted_unserved_energy_mwh: expected,
         p50_weighted_unserved_energy_mwh: weighted_quantile(&distribution, 0.50),
         p95_weighted_unserved_energy_mwh: weighted_quantile(&distribution, 0.95),
+        cvar95_weighted_unserved_energy_mwh: weighted_cvar(&distribution, 0.95),
         worst_case_weighted_unserved_energy_mwh: worst.weighted_unserved_energy_mwh,
         worst_case_scenario_id: worst.scenario_id.clone(),
         outcomes,
@@ -1317,6 +1343,10 @@ mod tests {
         assert!((report.probability_sum - 1.0).abs() < 1e-9);
         assert!(report.p95_weighted_unserved_energy_mwh >= report.p50_weighted_unserved_energy_mwh);
         assert_eq!(report.worst_case_scenario_id, "COMPOUND-STORM-SUPPLIER");
+        assert!((report.expected_weighted_unserved_energy_mwh - 73_033.0).abs() < 1e-6);
+        assert!((report.p50_weighted_unserved_energy_mwh - 65_680.0).abs() < 1e-6);
+        assert!((report.p95_weighted_unserved_energy_mwh - 95_680.0).abs() < 1e-6);
+        assert!((report.cvar95_weighted_unserved_energy_mwh - 102_290.0).abs() < 1e-6);
         let compound = report
             .outcomes
             .iter()
