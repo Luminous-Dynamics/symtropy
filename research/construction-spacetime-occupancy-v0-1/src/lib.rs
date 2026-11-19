@@ -795,6 +795,80 @@ mod tests {
         SpatialOccupancyBook::new(binding(), "site-clock-1").expect("valid book")
     }
 
+    fn temporal_occupancy(index: u64, start_ms: u64, end_ms: u64) -> SpatialOccupancy {
+        let id = format!("temporal-{index:05}");
+        let mut item = occupancy(
+            &id,
+            &id,
+            OccupancyKind::Workface,
+            bounds([0, 0, 0], [500, 500, 500]),
+            start_ms,
+            end_ms,
+        );
+        item.reservation.expires_at_ms = end_ms.saturating_add(100);
+        item
+    }
+
+    fn brute_force_conflicts(
+        book: &SpatialOccupancyBook,
+        candidate: &SpatialOccupancy,
+    ) -> Vec<ConflictRecord> {
+        let expanded_candidate = candidate
+            .bounds
+            .expanded(
+                candidate.uncertainty_margin_mm,
+                candidate.clearance_margin_mm,
+            )
+            .expect("candidate bounds are valid");
+        let (candidate_start, candidate_end) =
+            expanded_time_interval(&candidate.reservation).expect("candidate time is valid");
+        let mut expected = Vec::new();
+
+        for (existing_id, existing) in &book.occupancies {
+            let (existing_start, existing_end) = book
+                .expanded_intervals
+                .get(existing_id)
+                .copied()
+                .expect("every occupancy has an expanded interval");
+            let overlap_start = candidate_start.max(existing_start);
+            let overlap_end = candidate_end.min(existing_end);
+            if overlap_start >= overlap_end {
+                continue;
+            }
+            let expanded_existing = book
+                .expanded_bounds
+                .get(existing_id)
+                .copied()
+                .expect("every occupancy has expanded bounds");
+            let minimum = std::array::from_fn(|axis| {
+                expanded_candidate.min[axis].max(expanded_existing.min[axis])
+            });
+            let maximum = std::array::from_fn(|axis| {
+                expanded_candidate.max[axis].min(expanded_existing.max[axis])
+            });
+            if (0..3).any(|axis| minimum[axis] > maximum[axis]) {
+                continue;
+            }
+            expected.push(ConflictRecord {
+                existing_occupancy_id: existing.occupancy_id.clone(),
+                candidate_occupancy_id: candidate.occupancy_id.clone(),
+                existing_task_id: existing.task_id.clone(),
+                candidate_task_id: candidate.task_id.clone(),
+                existing_kind: existing.kind,
+                candidate_kind: candidate.kind,
+                overlap_bounds_mm: Bounds3Mm {
+                    min: minimum,
+                    max: maximum,
+                },
+                overlap_start_ms: overlap_start,
+                overlap_end_ms: overlap_end,
+                clock_domain_id: book.clock_domain_id.clone(),
+            });
+        }
+        expected.sort_by(|left, right| left.existing_occupancy_id.cmp(&right.existing_occupancy_id));
+        expected
+    }
+
     fn lattice_oracle_intersection(left: Bounds3Mm, right: Bounds3Mm) -> Option<Bounds3Mm> {
         let mut points = Vec::new();
         for x in 0_i64..=4 {
@@ -1698,4 +1772,213 @@ mod tests {
             Err(SpatialError::OccupancyIdConflict("stable-id".to_owned()))
         );
     }
+
+    #[test]
+    fn temporal_index_prunes_repeated_workface_candidates_with_disjoint_time() {
+        let mut book = book();
+        const RECORDS: u64 = 256;
+        for index in 0..RECORDS {
+            let start_ms = index * 10_000;
+            let item = temporal_occupancy(index, start_ms, start_ms + 1_000);
+            assert_eq!(
+                book.insert(item),
+                Ok(InsertOutcome::AdmittedToSpatialIndex)
+            );
+        }
+
+        let query = temporal_occupancy(RECORDS + 1, RECORDS * 10_000, RECORDS * 10_000 + 1_000);
+        let counts = book.candidate_counts_for(&query).unwrap();
+        assert_eq!(counts.spatial, RECORDS as usize);
+        assert_eq!(counts.temporal, 0);
+        assert_eq!(counts.space_time, 0);
+        assert_eq!(
+            book.candidate_count_for(&query).unwrap(),
+            RECORDS as usize
+        );
+        assert!(book.conflicts_for(&query).unwrap().is_empty());
+    }
+
+    #[test]
+    fn temporal_index_keeps_exact_half_open_adjacency_non_conflicting() {
+        let mut book = book();
+        assert_eq!(
+            book.insert(temporal_occupancy(1, 0, 1_000)),
+            Ok(InsertOutcome::AdmittedToSpatialIndex)
+        );
+        let adjacent = temporal_occupancy(2, 1_000, 2_000);
+        let counts = book.candidate_counts_for(&adjacent).unwrap();
+        assert_eq!(counts.space_time, 0);
+        assert!(book.conflicts_for(&adjacent).unwrap().is_empty());
+        assert_eq!(book.insert(adjacent), Ok(InsertOutcome::AdmittedToSpatialIndex));
+    }
+
+    #[test]
+    fn temporal_index_preserves_a_real_overlap_across_bucket_boundaries() {
+        let mut book = book();
+        assert_eq!(
+            book.insert(temporal_occupancy(1, 0, 1_000)),
+            Ok(InsertOutcome::AdmittedToSpatialIndex)
+        );
+        let overlap = temporal_occupancy(2, 999, 2_000);
+        let counts = book.candidate_counts_for(&overlap).unwrap();
+        assert!(counts.temporal >= 1);
+        assert!(counts.space_time >= 1);
+        assert_eq!(
+            book.conflicts_for(&overlap).unwrap().len(),
+            brute_force_conflicts(&book, &overlap).len()
+        );
+        assert!(matches!(
+            book.insert(overlap),
+            Err(SpatialError::PotentialConflict(_))
+        ));
+    }
+
+    #[test]
+    fn temporal_index_finds_records_stored_at_coarser_time_levels() {
+        let mut book = book();
+        // Five days exceeds the insertion budget at 1 s, 10 s and 60 s,
+        // but remains bounded at the 10 minute level.
+        let end_ms = 5 * 24 * 60 * 60 * 1_000;
+        assert_eq!(
+            book.insert(temporal_occupancy(1, 0, end_ms)),
+            Ok(InsertOutcome::AdmittedToSpatialIndex)
+        );
+        let query = temporal_occupancy(2, 3 * 24 * 60 * 60 * 1_000, 3 * 24 * 60 * 60 * 1_000 + 1_000);
+        let counts = book.candidate_counts_for(&query).unwrap();
+        assert!(counts.temporal >= 1);
+        assert!(counts.space_time >= 1);
+        assert_eq!(
+            book.conflicts_for(&query).unwrap(),
+            brute_force_conflicts(&book, &query)
+        );
+    }
+
+    #[test]
+    fn temporal_global_fallback_is_never_omitted() {
+        let mut book = book();
+        let very_long_end = 40 * 24 * 60 * 60 * 1_000;
+        assert_eq!(
+            book.insert(temporal_occupancy(1, 0, very_long_end)),
+            Ok(InsertOutcome::AdmittedToSpatialIndex)
+        );
+        let query = temporal_occupancy(2, very_long_end - 1_000, very_long_end + 1_000);
+        let counts = book.candidate_counts_for(&query).unwrap();
+        assert!(counts.temporal >= 1);
+        assert!(counts.space_time >= 1);
+        assert_eq!(
+            book.conflicts_for(&query).unwrap(),
+            brute_force_conflicts(&book, &query)
+        );
+    }
+
+    #[test]
+    fn a_wide_query_falls_back_to_all_records_at_each_unenumerable_level() {
+        let mut book = book();
+        for index in 0..20_u64 {
+            let start = index * 10_000;
+            book.insert(temporal_occupancy(index, start, start + 1_000))
+                .unwrap();
+        }
+        let wide = temporal_occupancy(100, 0, 40 * 24 * 60 * 60 * 1_000);
+        let counts = book.candidate_counts_for(&wide).unwrap();
+        assert_eq!(counts.spatial, 20);
+        assert_eq!(counts.space_time, 20);
+        assert_eq!(
+            book.conflicts_for(&wide).unwrap(),
+            brute_force_conflicts(&book, &wide)
+        );
+    }
+
+    #[test]
+    fn temporal_index_preserves_uncertainty_created_overlaps() {
+        let mut book = book();
+        let mut first = temporal_occupancy(1, 10_000, 11_000);
+        first.reservation.clock_uncertainty_ms = 5;
+        first.reservation.expires_at_ms = 11_105;
+        book.insert(first).unwrap();
+
+        let mut second = temporal_occupancy(2, 11_008, 12_000);
+        second.reservation.clock_uncertainty_ms = 5;
+        second.reservation.expires_at_ms = 12_105;
+        let counts = book.candidate_counts_for(&second).unwrap();
+        assert!(counts.space_time >= 1);
+        assert_eq!(
+            book.conflicts_for(&second).unwrap(),
+            brute_force_conflicts(&book, &second)
+        );
+    }
+
+    #[test]
+    fn generated_temporal_index_matches_full_scan_conflict_oracle() {
+        let mut book = book();
+        let mut seed = 0x9e37_79b9_u64;
+        let mut next = || {
+            seed = seed
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1);
+            seed >> 32
+        };
+
+        // Distinct spatial cells allow repeated time windows without inserting
+        // physical conflicts; query candidates then deliberately revisit cells.
+        for index in 0..512_u64 {
+            let x = i64::try_from(index % 32).unwrap() * 2_000;
+            let y = i64::try_from(index / 32).unwrap() * 2_000;
+            let mut item = temporal_occupancy(
+                index,
+                next() % 10_000_000,
+                (next() % 10_000_000) + 10_001_000,
+            );
+            let start = item.reservation.interval_start_ms;
+            item.reservation.interval_end_ms = start + 1_000 + (next() % 20_000);
+            item.reservation.expires_at_ms = item.reservation.interval_end_ms + 100;
+            item.bounds = bounds([x, y, 0], [x + 500, y + 500, 500]);
+            assert_eq!(
+                book.insert(item),
+                Ok(InsertOutcome::AdmittedToSpatialIndex)
+            );
+        }
+
+        for query_index in 0..1_024_u64 {
+            let source_index = next() % 512;
+            let x = i64::try_from(source_index % 32).unwrap() * 2_000;
+            let y = i64::try_from(source_index / 32).unwrap() * 2_000;
+            let existing = book
+                .occupancies
+                .get(&format!("temporal-{source_index:05}"))
+                .unwrap();
+            let mut query = temporal_occupancy(
+                10_000 + query_index,
+                existing.reservation.interval_start_ms.saturating_sub(next() % 20_000),
+                existing.reservation.interval_end_ms.saturating_add(next() % 20_000),
+            );
+            query.bounds = bounds([x, y, 0], [x + 500, y + 500, 500]);
+            assert_eq!(
+                book.conflicts_for(&query).unwrap(),
+                brute_force_conflicts(&book, &query),
+                "generated full-scan parity failed at query {query_index}"
+            );
+        }
+    }
+
+    #[test]
+    fn spatial_and_temporal_fallbacks_compose_without_false_negatives() {
+        let mut book = book();
+        let mut oversized = temporal_occupancy(1, 10_000, 20_000);
+        oversized.bounds = bounds([-10_000, -10_000, -10_000], [10_000, 10_000, 10_000]);
+        oversized.uncertainty_margin_mm = [1, 1, 1];
+        book.insert(oversized).unwrap();
+
+        let mut query = temporal_occupancy(2, 15_000, 16_000);
+        query.bounds = bounds([0, 0, 0], [100, 100, 100]);
+        let counts = book.candidate_counts_for(&query).unwrap();
+        assert!(counts.spatial >= 1);
+        assert!(counts.temporal >= 1);
+        assert!(counts.space_time >= 1);
+        assert_eq!(
+            book.conflicts_for(&query).unwrap(),
+            brute_force_conflicts(&book, &query)
+        );
+    }
+
 }
