@@ -66,7 +66,8 @@
       "payload": {
         "sortie_ref": "sortie-synth-001",
         "launch_site_ref": "site-synth-001"
-      }
+      },
+      "onset_known_at_utc": null
     },
     {
       "event_id": "event-02",
@@ -103,7 +104,8 @@
       "release_authority_ref": null,
       "payload": {
         "service_zone_ref": "zone-north"
-      }
+      },
+      "onset_known_at_utc": null
     },
     {
       "event_id": "event-03",
@@ -141,7 +143,8 @@
       "payload": {
         "sortie_duration_s": 85500,
         "flight_profile_ref": "profile-synthetic-001"
-      }
+      },
+      "onset_known_at_utc": null
     },
     {
       "event_id": "event-04",
@@ -182,7 +185,8 @@
         "defect_ref": "defect-synth-001",
         "detection_method": "post_flight_inspection",
         "onset_point_claimed": false
-      }
+      },
+      "onset_known_at_utc": null
     },
     {
       "event_id": "event-05",
@@ -222,7 +226,8 @@
       "payload": {
         "work_order_ref": "workorder-synth-001",
         "priority": "scheduled_after_grounding"
-      }
+      },
+      "onset_known_at_utc": null
     },
     {
       "event_id": "event-06",
@@ -262,7 +267,8 @@
       "payload": {
         "diagnosis_ref": "diagnosis-synth-001",
         "disposition": "replace_component"
-      }
+      },
+      "onset_known_at_utc": null
     },
     {
       "event_id": "event-07",
@@ -302,7 +308,8 @@
       "payload": {
         "part_ref": "part-hinge-synth-02",
         "request_ref": "parts-request-synth-001"
-      }
+      },
+      "onset_known_at_utc": null
     },
     {
       "event_id": "event-08",
@@ -342,7 +349,8 @@
       "payload": {
         "part_ref": "part-hinge-synth-02",
         "batch_ref": "batch-synth-004"
-      }
+      },
+      "onset_known_at_utc": null
     },
     {
       "event_id": "event-09",
@@ -382,7 +390,8 @@
       "payload": {
         "work_order_ref": "workorder-synth-001",
         "work_instruction_ref": "wi-synth-002"
-      }
+      },
+      "onset_known_at_utc": null
     },
     {
       "event_id": "event-10",
@@ -422,7 +431,8 @@
       "payload": {
         "repair_result": "completed",
         "verification_required": true
-      }
+      },
+      "onset_known_at_utc": null
     },
     {
       "event_id": "event-11",
@@ -462,7 +472,8 @@
       "payload": {
         "inspection_result": "pass",
         "inspector_role": "independent_inspection_role"
-      }
+      },
+      "onset_known_at_utc": null
     },
     {
       "event_id": "event-12",
@@ -502,7 +513,8 @@
       "payload": {
         "test_result": "pass",
         "return_to_service_authorized": false
-      }
+      },
+      "onset_known_at_utc": null
     }
   ],
   "exposure_records": [
@@ -522,7 +534,8 @@
         "evidence-02",
         "evidence-03",
         "evidence-04"
-      ]
+      ],
+      "risk_entry_utc": null
     },
     {
       "exposure_id": "exposure-haps02-sortie-right-censored-001",
@@ -538,7 +551,8 @@
       "event_time_upper_bound_utc": null,
       "source_evidence_refs": [
         "synthetic-haps02-telemetry-window-001"
-      ]
+      ],
+      "risk_entry_utc": null
     }
   ],
   "authorization_boundary": {
