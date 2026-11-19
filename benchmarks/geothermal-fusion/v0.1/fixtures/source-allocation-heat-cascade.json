@@ -24,9 +24,9 @@
         "energy_mwh": 6.0
       },
       {
-        "allocation_id": "power-cycle-thermal-input",
+        "allocation_id": "power_cycle_thermal_input",
         "destination_asset_id": "power-cycle-evaporator",
-        "service": "power-cycle-thermal-input",
+        "service": "power_cycle_thermal_input",
         "carrier": "heat",
         "energy_mwh": 3.0
       }
@@ -49,9 +49,9 @@
         "energy_mwh": 6.0
       },
       {
-        "allocation_id": "power-cycle-thermal-input",
+        "allocation_id": "power_cycle_thermal_input",
         "destination_asset_id": "power-cycle-evaporator",
-        "service": "power-cycle-thermal-input",
+        "service": "power_cycle_thermal_input",
         "carrier": "heat",
         "energy_mwh": 5.0
       }
