@@ -277,7 +277,7 @@ mod tests {
                 density_kg_m3: 100.0,
                 specific_enthalpy_j_kg: 2.8e6,
                 reference_specific_enthalpy_j_kg: 0.084e6,
-                phase: WellheadPhase::Supercritical,
+                phase: WellheadPhase::SinglePhaseVapor,
                 property_provenance: FluidPropertyProvenance {
                     fluid_composition_id: "synthetic-water".into(),
                     model_id: "synthetic-properties".into(),
@@ -288,7 +288,7 @@ mod tests {
                     state_boundary_id: "wellhead-01".into(),
                     evaluated_pressure_pa: 10.0e6,
                     evaluated_temperature_k: 648.15,
-                    evaluated_phase: WellheadPhase::Supercritical,
+                    evaluated_phase: WellheadPhase::SinglePhaseVapor,
                     evidence_class: EvidenceClass::Synthetic,
                 },
                 evidence_class: EvidenceClass::Synthetic,
