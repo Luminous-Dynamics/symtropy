@@ -9,6 +9,7 @@ Standalone Rust reference for **supplied** three-dimensional pressure tensors an
     cargo clippy --locked --manifest-path crates/tools/plasma-pressure-tensor-audit/Cargo.toml --all-targets -- -D warnings
     cargo run --locked --manifest-path crates/tools/plasma-pressure-tensor-audit/Cargo.toml -- benchmarks/plasma/pressure-tensor-audit-v0.json
     cargo run --locked --manifest-path crates/tools/plasma-pressure-tensor-audit/Cargo.toml --bin pressure-grid-audit -- benchmarks/plasma/pressure-grid-audit-v0.json
+    cargo run --locked --manifest-path crates/tools/plasma-pressure-tensor-audit/Cargo.toml --bin pressure-divergence-compare -- benchmarks/plasma/pressure-grid-reference-v0.json benchmarks/plasma/pressure-grid-predicted-v0.json
 
 ## Physics contract
 
@@ -33,7 +34,7 @@ The same crate also accepts a cell-centred 2D spatial / 3V pressure tensor field
 
 Each periodic face uses the arithmetic average of its two adjacent cell tensors, and the divergence is the right-minus-left plus upper-minus-lower face flux divided by spacing. The same face value is shared by both neighboring cells; the global integral therefore telescopes to floating-point summation tolerance.
 
-The grid report checks cellwise symmetry/PSD, reports cell-indexed failures, returns the full three-component divergence field, maximum divergence, and global integrated-divergence residual. `compare_periodic_pressure_divergence` compares reference and predicted fields only when grid ID, dimensions, spacing, frame and pressure units match exactly; it reports component-wise MAE, RMSE and relative L2. Both grid and comparison reports have deterministic digests and replay verifiers.
+The grid report checks cellwise symmetry/PSD, reports cell-indexed failures, returns the full three-component divergence field, maximum divergence, and global integrated-divergence residual. `compare_periodic_pressure_divergence` compares reference and predicted fields only when grid ID, dimensions, spacing, frame and pressure units match exactly; it reports component-wise MAE, RMSE and relative L2. The `pressure-divergence-compare` CLI accepts separate reference/predicted JSON requests, emits a machine-readable report and exits nonzero if either pressure field is inadmissible. Both grid and comparison reports have deterministic digests and replay verifiers. The frozen 4×2 fixtures include an off-diagonal tensor pattern that creates nonzero divergence error in components 0 and 1 while component 2 remains exact.
 
 **This periodic operator is a synthetic reference only.** It is not assumed to reproduce ECsim, a finite-difference fluid solver or any production code's halos/boundaries. A real solver adapter must bind its exact discrete stencil, boundary conditions, grid staggering and units before claiming solver-equivalent operator error.
 
