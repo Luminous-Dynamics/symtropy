@@ -12,7 +12,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 const BENCHMARK_ID: &str = "av-decision-sufficient-observation-v0";
 const TOLERANCE: f64 = 1.0e-9;
@@ -49,6 +49,8 @@ fn close(left: f64, right: f64) -> bool {
 }
 
 const AGENT_FORBIDDEN_KEYS: &[&str] = &[
+    "expected_eig_nats",
+    "expected_evsi",
     "world_truth",
     "evaluator_truth",
     "realized_hypothesis_id",
@@ -67,7 +69,9 @@ fn reject_agent_truth_fields(value: &Value, path: &str) -> Result<(), String> {
         Value::Object(object) => {
             for (key, child) in object {
                 if AGENT_FORBIDDEN_KEYS.contains(&key.as_str()) {
-                    return Err(format!("evaluator-only field {key:?} leaked into agent data at {path}"));
+                    return Err(format!(
+                        "evaluator-only field {key:?} leaked into agent data at {path}"
+                    ));
                 }
                 reject_agent_truth_fields(child, &format!("{path}.{key}"))?;
             }
@@ -130,7 +134,10 @@ fn best_decision(
 fn parse_decision_problem(
     episode: &Value,
 ) -> Result<(Vec<String>, Vec<f64>, Vec<String>, Vec<Vec<f64>>), String> {
-    let hypotheses = array(required(required(episode, "public_belief")?, "hypotheses")?, "hypotheses")?;
+    let hypotheses = array(
+        required(required(episode, "public_belief")?, "hypotheses")?,
+        "hypotheses",
+    )?;
     let decisions = array(
         required(required(episode, "task")?, "terminal_decisions")?,
         "terminal_decisions",
@@ -182,7 +189,9 @@ fn parse_decision_problem(
             return Err("decision losses must be non-negative".to_owned());
         }
         if losses[hypothesis_index][decision_index].is_finite() {
-            return Err(format!("duplicate loss cell ({hypothesis_id:?}, {decision_id:?})"));
+            return Err(format!(
+                "duplicate loss cell ({hypothesis_id:?}, {decision_id:?})"
+            ));
         }
         losses[hypothesis_index][decision_index] = loss;
     }
@@ -225,10 +234,14 @@ fn evaluate_request(
             let label = string(required(outcome, "outcome")?, "outcome.label")?;
             let probability = number(required(outcome, "probability")?, "outcome.probability")?;
             if !(0.0..=1.0).contains(&probability) {
-                return Err(format!("outcome probability for {label:?} is outside [0, 1]"));
+                return Err(format!(
+                    "outcome probability for {label:?} is outside [0, 1]"
+                ));
             }
             if probabilities.insert(label.clone(), probability).is_some() {
-                return Err(format!("duplicate outcome {label:?} for hypothesis {row_id:?}"));
+                return Err(format!(
+                    "duplicate outcome {label:?} for hypothesis {row_id:?}"
+                ));
             }
             total += probability;
         }
@@ -292,12 +305,7 @@ fn evaluate_request(
     })
 }
 
-fn assert_number(
-    object: &Value,
-    field: &str,
-    actual: f64,
-    context: &str,
-) -> Result<(), String> {
+fn assert_number(object: &Value, field: &str, actual: f64, context: &str) -> Result<(), String> {
     let expected = number(required(object, field)?, &format!("{context}.{field}"))?;
     if !close(actual, expected) {
         return Err(format!(
@@ -312,12 +320,11 @@ fn audit_oracle_references(
     oracle_episodes: &[Value],
 ) -> Result<(), String> {
     for (agent_episode, oracle_episode) in agent_episodes.iter().zip(oracle_episodes.iter()) {
-        let episode_id = string(
-            required(agent_episode, "episode_id")?,
-            "agent.episode_id",
+        let episode_id = string(required(agent_episode, "episode_id")?, "agent.episode_id")?;
+        let realized_hypothesis = string(
+            required(oracle_episode, "realized_hypothesis_id")?,
+            "oracle.realized_hypothesis_id",
         )?;
-        let realized_hypothesis =
-            string(required(oracle_episode, "realized_hypothesis_id")?, "oracle.realized_hypothesis_id")?;
         let public_hypotheses = array(
             required(required(agent_episode, "public_belief")?, "hypotheses")?,
             "agent.public_belief.hypotheses",
@@ -334,7 +341,10 @@ fn audit_oracle_references(
             required(agent_episode, "candidate_requests")?,
             "agent.candidate_requests",
         )?;
-        if let Some(outcomes) = oracle_episode.get("realized_outcomes").and_then(Value::as_object) {
+        if let Some(outcomes) = oracle_episode
+            .get("realized_outcomes")
+            .and_then(Value::as_object)
+        {
             for (request_id, realized_outcome) in outcomes {
                 let request = requests
                     .iter()
@@ -357,15 +367,17 @@ fn audit_oracle_references(
                         == Some(realized_hypothesis.as_str())
                 });
                 let labels_realized_outcome = match realized_row {
-                    Some(row) => array(
-                        required(row, "outcomes")?,
-                        "request.outcomes",
-                    )?
-                    .iter()
-                    .any(|outcome| {
-                        outcome.get("outcome").and_then(Value::as_str) == Some(outcome_label.as_str())
-                            && outcome.get("probability").and_then(Value::as_f64).unwrap_or(0.0) > 0.0
-                    }),
+                    Some(row) => array(required(row, "outcomes")?, "request.outcomes")?
+                        .iter()
+                        .any(|outcome| {
+                            outcome.get("outcome").and_then(Value::as_str)
+                                == Some(outcome_label.as_str())
+                                && outcome
+                                    .get("probability")
+                                    .and_then(Value::as_f64)
+                                    .unwrap_or(0.0)
+                                    > 0.0
+                        }),
                     None => false,
                 };
                 if !labels_realized_outcome && !intentionally_open_world {
@@ -376,7 +388,10 @@ fn audit_oracle_references(
             }
         }
 
-        if let Some(actual_arrivals) = oracle_episode.get("actual_arrival_tick").and_then(Value::as_object) {
+        if let Some(actual_arrivals) = oracle_episode
+            .get("actual_arrival_tick")
+            .and_then(Value::as_object)
+        {
             for (request_id, actual_tick) in actual_arrivals {
                 let actual_tick = actual_tick.as_u64().ok_or_else(|| {
                     format!("oracle arrival tick for {request_id:?} must be an integer")
@@ -387,17 +402,21 @@ fn audit_oracle_references(
                         request.get("request_id").and_then(Value::as_str) == Some(request_id)
                     })
                     .ok_or_else(|| format!("unknown arrival request {request_id:?}"))?;
-                let declared_tick = required(request, "arrival_tick")?.as_u64().ok_or_else(|| {
-                    format!("agent arrival tick for {request_id:?} must be an integer")
-                })?;
+                let declared_tick =
+                    required(request, "arrival_tick")?.as_u64().ok_or_else(|| {
+                        format!("agent arrival tick for {request_id:?} must be an integer")
+                    })?;
                 if declared_tick != actual_tick {
-                    return Err(format!("agent/evaluator arrival tick mismatch for {request_id:?}"));
+                    return Err(format!(
+                        "agent/evaluator arrival tick mismatch for {request_id:?}"
+                    ));
                 }
             }
         }
 
-        if let Some(permission_truth) =
-            oracle_episode.get("permission_truth").and_then(Value::as_object)
+        if let Some(permission_truth) = oracle_episode
+            .get("permission_truth")
+            .and_then(Value::as_object)
         {
             for (request_id, truth) in permission_truth {
                 let truth = string(truth, "oracle.permission_truth")?;
@@ -414,13 +433,16 @@ fn audit_oracle_references(
                     truth.as_str()
                 };
                 if declared != expected_permission {
-                    return Err(format!("agent/evaluator permission mismatch for {request_id:?}"));
+                    return Err(format!(
+                        "agent/evaluator permission mismatch for {request_id:?}"
+                    ));
                 }
             }
         }
 
-        if let Some(dependency_truth) =
-            oracle_episode.get("actual_dependency_groups").and_then(Value::as_object)
+        if let Some(dependency_truth) = oracle_episode
+            .get("actual_dependency_groups")
+            .and_then(Value::as_object)
         {
             let current_evidence = array(
                 required(agent_episode, "current_evidence")?,
@@ -466,8 +488,14 @@ fn check_episode_ids(
         return Err("agent/oracle/expected episode counts differ".to_owned());
     }
     for index in 0..agent_episodes.len() {
-        let agent_id = string(required(&agent_episodes[index], "episode_id")?, "agent.episode_id")?;
-        let oracle_id = string(required(&oracle_episodes[index], "episode_id")?, "oracle.episode_id")?;
+        let agent_id = string(
+            required(&agent_episodes[index], "episode_id")?,
+            "agent.episode_id",
+        )?;
+        let oracle_id = string(
+            required(&oracle_episodes[index], "episode_id")?,
+            "oracle.episode_id",
+        )?;
         let expected_id = string(
             required(&expected_episodes[index], "episode_id")?,
             "expected.episode_id",
@@ -483,17 +511,15 @@ fn check_episode_ids(
 ///
 /// This is a benchmark fixture verifier, not a request-selection policy. The hidden
 /// evaluator file must be supplied only to this separate evaluator-side process.
-pub fn audit_fixtures(
-    agent: &Value,
-    oracle: &Value,
-    expected: &Value,
-) -> Result<Value, String> {
+pub fn audit_fixtures(agent: &Value, oracle: &Value, expected: &Value) -> Result<Value, String> {
     for (name, root) in [("agent", agent), ("oracle", oracle), ("expected", expected)] {
         if required(root, "schema_version")?.as_u64() != Some(1) {
             return Err(format!("{name} fixture has an unsupported schema version"));
         }
-        if string(required(root, "benchmark_id")?, &format!("{name}.benchmark_id"))?
-            != BENCHMARK_ID
+        if string(
+            required(root, "benchmark_id")?,
+            &format!("{name}.benchmark_id"),
+        )? != BENCHMARK_ID
         {
             return Err(format!("{name} fixture has the wrong benchmark ID"));
         }
@@ -519,13 +545,21 @@ pub fn audit_fixtures(
     let expected_first = &expected_episodes[0];
     let (hypothesis_ids, priors, decisions, losses) = parse_decision_problem(first)?;
     let (current_decision, current_risk) = best_decision(&priors, &losses, &decisions)?;
-    let stated_decision = string(required(first, "current_best_decision")?, "current_best_decision")?;
+    let stated_decision = string(
+        required(first, "current_best_decision")?,
+        "current_best_decision",
+    )?;
     if current_decision != stated_decision {
         return Err(format!(
             "current best decision mismatch: stated {stated_decision:?}, calculated {current_decision:?}"
         ));
     }
-    assert_number(first, "current_expected_loss", current_risk, "agent.episode[0]")?;
+    assert_number(
+        first,
+        "current_expected_loss",
+        current_risk,
+        "agent.episode[0]",
+    )?;
     if string(
         required(expected_first, "current_best_decision")?,
         "expected.current_best_decision",
@@ -572,7 +606,9 @@ pub fn audit_fixtures(
     }
 
     if calculated_requests.len() != 2 {
-        return Err("episode 1 must contain the two paired EIG/EVSI counterexample requests".to_owned());
+        return Err(
+            "episode 1 must contain the two paired EIG/EVSI counterexample requests".to_owned(),
+        );
     }
 
     let subtype_eig = number(
@@ -592,7 +628,10 @@ pub fn audit_fixtures(
         "hazard_cue.net_evsi",
     )?;
     if !(subtype_eig > hazard_eig && hazard_net > subtype_net && hazard_net > 0.0) {
-        return Err("high-EIG/zero-EVSI versus lower-EIG/positive-EVSI counterexample did not hold".to_owned());
+        return Err(
+            "high-EIG/zero-EVSI versus lower-EIG/positive-EVSI counterexample did not hold"
+                .to_owned(),
+        );
     }
 
     // Robust stop: both hypotheses must independently prefer the same terminal action.
@@ -607,7 +646,10 @@ pub fn audit_fixtures(
     if per_hypothesis_actions.iter().collect::<BTreeSet<_>>().len() != 1 {
         return Err("robust-stop fixture does not have one common terminal action".to_owned());
     }
-    let robust_requests = array(required(robust_stop, "candidate_requests")?, "robust_stop.requests")?;
+    let robust_requests = array(
+        required(robust_stop, "candidate_requests")?,
+        "robust_stop.requests",
+    )?;
     for request in robust_requests {
         let result = evaluate_request(request, &ids, &priors, &decisions, &losses)?;
         if !close(result.evsi, 0.0) {
@@ -635,7 +677,10 @@ pub fn audit_fixtures(
     let max_latency = number(required(budget, "max_latency_ticks")?, "max_latency_ticks")?;
     let max_bytes = number(required(budget, "max_bytes")?, "max_bytes")?;
     let max_energy = number(required(budget, "max_energy_units")?, "max_energy_units")?;
-    let budget_requests = array(required(budget_episode, "candidate_requests")?, "budget.requests")?;
+    let budget_requests = array(
+        required(budget_episode, "candidate_requests")?,
+        "budget.requests",
+    )?;
     let mut saw_ineligible_over_budget = false;
     for request in budget_requests {
         let cost = required(request, "cost")?;
@@ -654,18 +699,22 @@ pub fn audit_fixtures(
         required(&agent_episodes[4], "candidate_requests")?,
         "privacy.requests",
     )?;
-    if !privacy_requests.iter().any(|request| {
-        request.get("permission").and_then(Value::as_str) == Some("denied")
-    }) {
+    if !privacy_requests
+        .iter()
+        .any(|request| request.get("permission").and_then(Value::as_str) == Some("denied"))
+    {
         return Err("privacy fixture has no explicitly denied request".to_owned());
     }
 
     let dependence_episode = &agent_episodes[5];
     let observed_group = string(
         required(
-            array(required(dependence_episode, "current_evidence")?, "current_evidence")?
-                .first()
-                .ok_or_else(|| "dependence fixture needs current evidence".to_owned())?,
+            array(
+                required(dependence_episode, "current_evidence")?,
+                "current_evidence",
+            )?
+            .first()
+            .ok_or_else(|| "dependence fixture needs current evidence".to_owned())?,
             "dependency_group",
         )?,
         "current_evidence.dependency_group",
@@ -680,9 +729,7 @@ pub fn audit_fixtures(
         required(derived_request, "dependency_group")?,
         "derived_request.dependency_group",
     )?;
-    if observed_group != derived_group
-        || derived_request.get("derived_from_evidence").is_none()
-    {
+    if observed_group != derived_group || derived_request.get("derived_from_evidence").is_none() {
         return Err("common-cause dependency is not explicitly represented".to_owned());
     }
 
@@ -740,10 +787,8 @@ mod tests {
     use super::*;
 
     fn fixtures() -> (Value, Value, Value) {
-        let agent: Value = serde_json::from_str(include_str!(
-            "../fixtures/agent/agent-inputs-v1.json"
-        ))
-        .unwrap();
+        let agent: Value =
+            serde_json::from_str(include_str!("../fixtures/agent/agent-inputs-v1.json")).unwrap();
         let oracle: Value = serde_json::from_str(include_str!(
             "../fixtures/evaluator-only/evaluator-oracle-v1.json"
         ))
@@ -763,36 +808,39 @@ mod tests {
             report.get("status").and_then(Value::as_str),
             Some("fixture_integrity_and_finite_known_answers_pass")
         );
-        assert_eq!(
-            report.get("episode_count").and_then(Value::as_u64),
-            Some(7)
-        );
+        assert_eq!(report.get("episode_count").and_then(Value::as_u64), Some(7));
     }
 
     #[test]
     fn the_lower_eig_request_has_the_higher_positive_net_evsi() {
         let (agent, oracle, expected) = fixtures();
         let report = audit_fixtures(&agent, &oracle, &expected).unwrap();
-        let requests = report.get("episode_001_requests").unwrap().as_array().unwrap();
+        let requests = report
+            .get("episode_001_requests")
+            .unwrap()
+            .as_array()
+            .unwrap();
         let subtype = &requests[0];
         let cue = &requests[1];
-        assert!(
-            subtype["eig_nats"].as_f64().unwrap()
-                > cue["eig_nats"].as_f64().unwrap()
-        );
-        assert!(
-            cue["net_evsi"].as_f64().unwrap()
-                > subtype["net_evsi"].as_f64().unwrap()
-        );
+        assert!(subtype["eig_nats"].as_f64().unwrap() > cue["eig_nats"].as_f64().unwrap());
+        assert!(cue["net_evsi"].as_f64().unwrap() > subtype["net_evsi"].as_f64().unwrap());
         assert!(cue["net_evsi"].as_f64().unwrap() > 0.0);
     }
 
     #[test]
     fn evaluator_fixture_is_required_but_never_used_as_agent_policy_input() {
         let (agent, oracle, expected) = fixtures();
-        assert!(oracle["episodes"][0].get("realized_hypothesis_id").is_some());
+        assert!(
+            oracle["episodes"][0]
+                .get("realized_hypothesis_id")
+                .is_some()
+        );
         assert!(agent["episodes"][0].get("realized_hypothesis_id").is_none());
-        assert!(expected["episodes"][0].get("realized_hypothesis_id").is_none());
+        assert!(
+            expected["episodes"][0]
+                .get("realized_hypothesis_id")
+                .is_none()
+        );
         audit_fixtures(&agent, &oracle, &expected).unwrap();
     }
 
@@ -811,7 +859,10 @@ mod tests {
     fn incomplete_outcome_partition_must_remain_out_of_quantified_lane() {
         let (agent, oracle, expected) = fixtures();
         let report = audit_fixtures(&agent, &oracle, &expected).unwrap();
-        assert_eq!(report["verified"]["uncalibrated_open_world_incompleteness"], true);
+        assert_eq!(
+            report["verified"]["uncalibrated_open_world_incompleteness"],
+            true
+        );
         assert_eq!(
             agent["episodes"][6]["public_belief"]["status"].as_str(),
             Some("uncalibrated")
