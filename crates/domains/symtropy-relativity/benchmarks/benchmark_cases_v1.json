@@ -958,6 +958,66 @@
         "nonlinear_rotating_two_gauge_solution": false,
         "claim_ceiling": "High-precision numerical coordinate reference for static BD and linear spin only. Not an interval certificate, independent isotropic action solver, or nonlinear rotating solution."
       }
+    },
+    {
+      "case_id": "BH-5D-EGB-ISO-HORIZON-ASYMPTOTIC-001",
+      "status": "matched_asymptotic_derived_and_90_digit_numerical_grid_checked",
+      "theory_id": "5d_einstein_gauss_bonnet_static_boulware_deser",
+      "spacetime_dimension": 5,
+      "source": "Derived from the static Einstein-branch Boulware-Deser lapse and the areal/isotropic map convention of Brihaye et al. (2010), arXiv:1010.0860",
+      "owner_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6206",
+      "related_issues": [
+        "https://github.com/Luminous-Dynamics/symtropy/issues/6181",
+        "https://github.com/Luminous-Dynamics/symtropy/issues/6202"
+      ],
+      "dimensionless_coupling": "lambda=alpha/r_H^2",
+      "coordinate_definition": {
+        "isotropic_horizon": "xi_H=exp(-integral_0^1 ((F(y,lambda)^(-1/2)-1)/y) dy)",
+        "matched_asymptotic": "xi_H ~ A_inner*sqrt(lambda)*exp(-pi*sqrt(lambda)/2)",
+        "A_inner_exact": "exp(-C_inner)",
+        "C_inner_exact": "-1 -(2+sqrt(2))*log(1+1/sqrt(2))/4 -(2-sqrt(2))*log(1-1/sqrt(2))/4 + log(2)",
+        "A_inner_numeric": "1.792308527864158580567669561327316248563265695888601044",
+        "horizon_relative_chart": "eta=log(xi/xi_H), d eta/d rho=1/(rho*sqrt(F))",
+        "optional_compactification": "z=eta/(1+eta)"
+      },
+      "numerical_grid": {
+        "mpmath_dps": 90,
+        "lambda": [
+          "100",
+          "1000",
+          "10000",
+          "100000",
+          "1000000"
+        ],
+        "exact_to_asymptotic_ratio": [
+          "0.96422212155804617344372632739440215",
+          "0.98792373567528005144794198646264026",
+          "0.99610693679330083536580102336526216",
+          "0.99876156031649097680332847863873042",
+          "0.99960763901765176832066120929641041"
+        ],
+        "relative_error": [
+          "0.035777878442",
+          "0.0120762643247",
+          "0.0038930632067",
+          "0.00123843968351",
+          "0.000392360982348"
+        ]
+      },
+      "artifacts": [
+        "crates/domains/symtropy-lovelock5d/benchmarks/horizon_coordinate_asymptotic.py",
+        "crates/domains/symtropy-lovelock5d/benchmarks/horizon_coordinate_asymptotic_v1.json",
+        "crates/domains/symtropy-lovelock5d/benchmarks/horizon_coordinate_asymptotic_v1.md"
+      ],
+      "validation": {
+        "numerical_ratio_monotone_on_frozen_grid": true,
+        "maximum_relative_error_below_0_05": true,
+        "replayed_at_90_digit_working_precision": true,
+        "interval_remainder_bound": false,
+        "nonlinear_rotating_solution": false,
+        "physical_horizon_shrinkage": false,
+        "claim_ceiling": "Static BD isotropic-coordinate matched asymptotic and numerical checks only; coordinate compression is not physical horizon shrinkage, a curvature singularity, an extremality result or a new rotating solution."
+      }
     }
   ],
   "fairness_rules": [
