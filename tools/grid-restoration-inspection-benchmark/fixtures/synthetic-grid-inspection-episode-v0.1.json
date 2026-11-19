@@ -175,7 +175,7 @@
   "resourceState": {
     "portfolioRef": "synthetic://shared-resource-portfolio/grid-recovery-001",
     "asOfManifestRef": "synthetic://resource-manifest/synthetic-grid-resource-manifest-001/v1",
-    "asOfManifestSha256": "8fd962771c344831b16f72c4a1a6b2143baa08d3f1623d9f79123a6be93e1c5a"
+    "asOfManifestSha256": "c01e8f79f9b599fee014bdc3e10d7325cf08520237120dd555c723b191061656"
   },
   "references": {
     "diagnosisModelRef": "symthaea://industrial-diagnosis-voi/12403",
