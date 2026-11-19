@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, BTreeSet};
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum Component {
-    ReusableLaunch,
+    EarthOrbitChain,
     OrbitalCapture,
     OrbitalFluid,
 }
@@ -147,9 +147,9 @@ fn is_source_commit(value: &str) -> bool {
 fn expected_component(kind: EventKind) -> Option<(Component, &'static str, &'static str)> {
     match kind {
         EventKind::PayloadDeliveryAccepted => Some((
-            Component::ReusableLaunch,
-            "luminous.reusable-launch-production.receipt.v0.1",
-            "payload_delivery_accepted",
+            Component::EarthOrbitChain,
+            "symtropy.earth-orbit-chain.v1",
+            "ready",
         )),
         EventKind::CaptureHandoffAccepted => Some((
             Component::OrbitalCapture,
@@ -575,7 +575,7 @@ mod tests {
     fn evidence_component_mismatch_is_rejected() {
         let data = fixture();
         let mut case = data.cases[0].clone();
-        case.events[1].evidence.as_mut().unwrap().component = Component::ReusableLaunch;
+        case.events[1].evidence.as_mut().unwrap().component = Component::EarthOrbitChain;
         assert_eq!(evaluate_case(&case, &pins(&data)).actual_status, GateStatus::Rejected);
     }
 }
