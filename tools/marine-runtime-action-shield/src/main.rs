@@ -362,7 +362,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     }
     let mut state_stale = false;
     match (
-        decision_time,
+        decision_time.clone(),
         parse_time(string_at(current_state,"timestamp")),
         max_age,
     ) {
@@ -598,6 +598,20 @@ mod tests {
     fn action_digest_must_bind_exact_control_values() {
         let mut value=fixture();
         value["action_candidates"][1]["action"]["propulsion_load_kw"]=json!(1.0);
+        assert_eq!(audit(&value)["disposition"],"INVALID");
+    }
+
+    #[test]
+    fn mission_contract_digest_must_match_runtime_snapshot() {
+        let mut value=fixture();
+        value["service_contract"][0]["floor_value"]=json!(3.0);
+        assert_eq!(audit(&value)["disposition"],"INVALID");
+    }
+
+    #[test]
+    fn successor_evidence_must_use_the_exact_required_scenario_class() {
+        let mut value=fixture();
+        value["action_candidates"][1]["successors"][0]["scenario_class"]=json!("unregistered-scenario");
         assert_eq!(audit(&value)["disposition"],"INVALID");
     }
 
