@@ -818,6 +818,23 @@ mod tests {
     }
 
     #[test]
+    fn committed_two_region_fixture_matches_exact_search_contract() {
+        let fixture: SharedFleetInput = serde_json::from_str(include_str!(
+            "../fixtures/synthetic-two-region-shared-aircraft.json"
+        ))
+        .expect("shared-fleet fixture must deserialize");
+        let report = evaluate_shared_fleet(&fixture).expect("fixture must evaluate");
+        assert_eq!(report.region_count, 2);
+        assert_eq!(report.period_count, 3);
+        assert_eq!(report.scenario_count, 2);
+        assert_eq!(report.nonanticipative_policy_node_count, 5);
+        assert_eq!(report.exact_policy_count_evaluated, 243);
+        assert_eq!(report.optimized_policy.unauthorized_aerial_dispatches, 0);
+        assert_eq!(report.optimized_policy.protected_reserve_violations, 0);
+        assert!(!report.dispatch_commands_emitted);
+    }
+
+    #[test]
     fn identical_scenario_prefixes_share_the_same_decision_node() {
         let (nodes, _) = build_decision_nodes(&canonicalize(&input())).expect("valid tree");
         assert_eq!(nodes.iter().filter(|node| node.key.period_index == 0).count(), 1);
@@ -829,7 +846,7 @@ mod tests {
         let mut test = input();
         test.reposition_links[0].travel_periods = 2;
         let canonical = canonicalize(&test);
-        let (nodes, indices, mask) = forced_region_mask(&canonical, "rural");
+        let (_nodes, indices, mask) = forced_region_mask(&canonical, "rural");
         let metrics = simulate_scenario(
             &canonical,
             &canonical.scenarios[0],
@@ -877,6 +894,63 @@ mod tests {
         .expect("forced reposition policy");
         assert_eq!(metrics.repositioning_events, 0);
         assert!(metrics.hard_gate_blocked_actions > 0);
+    }
+
+    #[test]
+    fn insufficient_energy_blocks_forced_reposition_before_spending_reserve() {
+        let mut test = input();
+        test.initial_aircraft_energy_units = 16;
+        test.protected_energy_reserve_units = 13;
+        let canonical = canonicalize(&test);
+        let (_nodes, indices, mask) = forced_region_mask(&canonical, "rural");
+        let metrics = simulate_scenario(
+            &canonical,
+            &canonical.scenarios[0],
+            &indices,
+            mask,
+            true,
+        )
+        .expect("forced reposition policy");
+        assert_eq!(metrics.repositioning_events, 0);
+        assert!(metrics.energy_blocked_actions > 0);
+        assert_eq!(metrics.end_energy_units, 16);
+    }
+
+    #[test]
+    fn stale_permission_blocks_a_forced_aerial_service() {
+        let mut test = input();
+        test.scenarios[0].periods[0].observations[0].permission = PermissionState::Stale;
+        let canonical = canonicalize(&test);
+        let (_nodes, indices, mask) = forced_region_mask(&canonical, "urban");
+        let metrics = simulate_scenario(
+            &canonical,
+            &canonical.scenarios[0],
+            &indices,
+            mask,
+            true,
+        )
+        .expect("forced service policy");
+        assert_eq!(metrics.aerial_deliveries, 0);
+        assert!(metrics.hard_gate_blocked_actions > 0);
+    }
+
+    #[test]
+    fn idle_period_charging_is_capped_at_declared_aircraft_energy() {
+        let canonical = canonicalize(&input());
+        let (nodes, indices) = build_decision_nodes(&canonical).expect("valid tree");
+        let radix = canonical.regions.len() as u64 + 1;
+        let all_idle_mask = (radix.pow(nodes.len() as u32) - 1) / (radix - 1);
+        let metrics = simulate_scenario(
+            &canonical,
+            &canonical.scenarios[0],
+            &indices,
+            all_idle_mask,
+            true,
+        )
+        .expect("all-idle policy");
+        assert_eq!(metrics.end_energy_units, 20);
+        assert_eq!(metrics.idle_periods, 3);
+        assert_eq!(metrics.idle_recharge_energy_units, 4);
     }
 
     #[test]
