@@ -117,7 +117,8 @@
           "travel_periods",
           "energy_units",
           "cost_units",
-          "evidence_status"
+          "evidence_status",
+          "evidence_reference"
         ],
         "properties": {
           "from_region_id": {
@@ -148,6 +149,10 @@
               "conflicted",
               "revoked"
             ]
+          },
+          "evidence_reference": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
@@ -196,7 +201,9 @@
                       "region_id",
                       "demand_units",
                       "weather",
-                      "permission"
+                      "weather_evidence_reference",
+                      "permission",
+                      "permission_evidence_reference"
                     ],
                     "properties": {
                       "region_id": {
@@ -224,6 +231,14 @@
                           "stale",
                           "revoked"
                         ]
+                      },
+                      "weather_evidence_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "permission_evidence_reference": {
+                        "type": "string",
+                        "minLength": 1
                       }
                     }
                   }
