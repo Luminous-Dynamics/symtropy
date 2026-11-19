@@ -43,7 +43,7 @@ The implementation uses the exact piecewise closed form, including the endpoint 
 ## Synthetic controls
 
 - Safe fixture: five scenarios × two intervals × eleven metrics = 110 computed envelopes. The freshwater floor is 80 L; endpoint intervals at 90 L remain above the floor and the declared 2 L/hour bound yields an inter-sample lower envelope of 83.9 L.
-- Hidden-dip fixture: every freshwater endpoint remains 90 L, but the declared 4 L/hour bound yields a conservative inter-sample lower envelope of 77.9 L. This must block.
+- Hidden-dip fixture: every freshwater endpoint remains 90 L, but the declared 12 L/hour bound yields a conservative inter-sample lower envelope of 53.9 L in the adverse-weather branch. The other four branches rise from the same 90 L initial reserve to 150 L and 140 L; their lower envelopes remain above 80 L. Only the adverse-weather branch must block.
 - A symmetric upper-bound control raises both endpoint workload values to 11.8 hours against a 12-hour ceiling; the 0.1 hour/hour rate ceiling yields an upper envelope of 12.2 hours and blocks.
 
 All values and rate-bound evidence references are synthetic examples, not calibrated vessel data or engineering limits.
