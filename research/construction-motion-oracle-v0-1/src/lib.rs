@@ -25,9 +25,9 @@ pub use field_layout_acceptance::{
     RefereeMeasurement, RobotClaimedEntityState, score_field_layout_run,
 };
 pub use site_state_ledger::{
-    RobotExecutionDisposition, SiteActorRole, SiteApplyOutcome, SiteEntityState, SiteEventEnvelope,
-    SiteEventPayload, SiteLedgerError, SiteRefereeAssessment, SiteRejectionReason, SiteStateLedger,
-    SiteWorkPackage,
+    RobotExecutionDisposition, RobotProtocolObservation, SiteActorRole, SiteApplyOutcome,
+    SiteEntityState, SiteEventEnvelope, SiteEventPayload, SiteLedgerError, SiteRefereeAssessment,
+    SiteRejectionReason, SiteStateLedger, SiteWorkPackage,
 };
 
 use construction_motion_envelope::{
