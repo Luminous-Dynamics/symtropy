@@ -1,0 +1,45 @@
+{
+  "schema_version": "0.1.0",
+  "receipt_id": "GF-SYNTHETIC-ALLOCATION-001",
+  "source_evidence_id": "GF-SYNTHETIC-SOURCE-INTERVAL-001",
+  "source_payload_digest": {
+    "algorithm": "sha256",
+    "value": "0cdcab2b9625b3669918761b7a4da378e9d344321301f2dd0bb48feb67b788c8"
+  },
+  "source_asset_id": "synthetic-geothermal-wellfield-01",
+  "source_boundary_id": "synthetic-wellhead-heat-meter-01",
+  "source_interval_id": "synthetic-hour-0001",
+  "carrier": "heat",
+  "available_energy_mwh": 10,
+  "allocations": [
+    {
+      "allocation_id": "direct-process-heat",
+      "destination_asset_id": "process-heat-loop",
+      "service": "industrial_process_heat",
+      "carrier": "heat",
+      "energy_mwh": 6
+    },
+    {
+      "allocation_id": "power-cycle-input",
+      "destination_asset_id": "orc-evaporator",
+      "service": "power_cycle_thermal_input",
+      "carrier": "heat",
+      "energy_mwh": 3
+    }
+  ],
+  "curtailed_energy_mwh": 1,
+  "evaluation": {
+    "relative_tolerance": 1e-9,
+    "allocated_energy_mwh": 9,
+    "residual_energy_mwh": 0,
+    "normalized_absolute_residual": 0,
+    "within_tolerance": true,
+    "disposition": "within_tolerance"
+  },
+  "lineage": {
+    "derived_from_evidence_ids": [
+      "GF-SYNTHETIC-SOURCE-INTERVAL-001"
+    ]
+  },
+  "claim_ceiling": "Synthetic source allocation arithmetic; no physical source truth or plant feasibility."
+}

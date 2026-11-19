@@ -1,0 +1,194 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "GEOFUSION-EVIDENCE-PACKAGE-001",
+  "research_snapshot_date": "2026-11-19",
+  "domain_profile_owner": "Symtropy #6158",
+  "composition_owner": "Symtropy #6142",
+  "standards": [
+    {
+      "id": "SSP",
+      "version": "2.0.1",
+      "role": "whole_simulation_system_structure",
+      "required": true,
+      "owner": "GeoFusion architecture / #6142",
+      "establishes": [
+        "component topology",
+        "connections",
+        "hierarchical composition",
+        "parameterization",
+        "unit definitions and conversion metadata",
+        "package resources"
+      ],
+      "does_not_establish": [
+        "master algorithm correctness",
+        "physical model validity",
+        "energy conservation"
+      ],
+      "url": "https://ssp-standard.org/docs/2.0.1/"
+    },
+    {
+      "id": "SSP-LS-Traceability",
+      "version": "1.0.0",
+      "role": "simulation_process_traceability_and_credibility",
+      "required": false,
+      "owner": "GeoFusion evidence composition / #6158; standards semantics reused from SSP project",
+      "establishes": [
+        "credible decision and simulation process metadata",
+        "simulation task lifecycle inputs, procedures, outputs and rationale",
+        "simulation resource metadata and references",
+        "derivation-chain snapshots using globally unique GUIDs for traceability document revisions",
+        "optional SRMD resource checksum using SHA3-256 over raw resource bytes"
+      ],
+      "does_not_establish": [
+        "meter calibration certificate authority or calibration-interval coverage",
+        "instrument accuracy or physical measurement truth",
+        "source/carrier/boundary/interval energy-allocation semantics",
+        "physical model validity or operational authority"
+      ],
+      "url": "https://ssp-standard.org/ssp-ls-traceability/1.0.0/",
+      "checksum_semantics": {
+        "algorithm": "SHA3-256",
+        "scope": "optional SRMD resource raw-byte checksum",
+        "distinct_from": [
+          "GeoFusion evidence-envelope SHA-256 payload digest",
+          "BagIt SHA-256/SHA-512 payload manifests"
+        ],
+        "note": "SSP-LS DerivationChain GUIDs are traceability-document identifiers, not cryptographic digests."
+      }
+    },
+    {
+      "id": "FMI",
+      "version": "3.0.2",
+      "role": "component_execution_interface",
+      "required": true,
+      "owner": "FMI component adapter and trace verifier",
+      "establishes": [
+        "FMU interface and execution semantics",
+        "clocks and communication steps",
+        "early return and event capabilities"
+      ],
+      "does_not_establish": [
+        "federation master quality",
+        "system-level conservation",
+        "physical source validity"
+      ],
+      "url": "https://fmi-standard.org/docs/3.0.2/"
+    },
+    {
+      "id": "BagIt",
+      "version": "1.0",
+      "role": "payload_inventory_and_checksum_package",
+      "required": true,
+      "owner": "evidence bundle packaging",
+      "checksum_policy": {
+        "must_support": [
+          "sha256",
+          "sha512"
+        ],
+        "default_new_bags": "sha512"
+      },
+      "establishes": [
+        "complete payload manifest",
+        "payload and tag byte-integrity verification"
+      ],
+      "does_not_establish": [
+        "active-attack authenticity",
+        "provenance meaning",
+        "source truth"
+      ],
+      "url": "https://www.rfc-editor.org/rfc/rfc8493"
+    },
+    {
+      "id": "RO-Crate",
+      "version": "1.3.0",
+      "role": "research_object_context",
+      "required": true,
+      "owner": "reuse Symtropy #5524 and #5559",
+      "establishes": [
+        "dataset and file context",
+        "software/equipment/agent relationships",
+        "research object distribution and preservation metadata"
+      ],
+      "does_not_establish": [
+        "cryptographic issuer trust",
+        "scientific validity",
+        "operational authorization"
+      ],
+      "url": "https://www.researchobject.org/ro-crate/specification/1.3/"
+    },
+    {
+      "id": "W3C-PROV-O",
+      "version": "W3C-Recommendation-2013",
+      "role": "provenance_graph_semantics",
+      "required": true,
+      "owner": "reuse Symtropy #5524 and #5559",
+      "establishes": [
+        "entity/activity/agent model",
+        "usage and generation",
+        "qualified derivation and attribution"
+      ],
+      "does_not_establish": [
+        "physical truth",
+        "calibration correctness",
+        "data rights"
+      ],
+      "url": "https://www.w3.org/TR/prov-o/"
+    },
+    {
+      "id": "in-toto-Attestation",
+      "version": "1.2",
+      "role": "signed_statement_and_predicate_model",
+      "required": false,
+      "owner": "reuse Symtropy #5560",
+      "establishes": [
+        "artifact subject binding",
+        "typed predicate metadata",
+        "attestation statement structure"
+      ],
+      "does_not_establish": [
+        "science or physical correctness",
+        "signer authorization outside trust policy"
+      ],
+      "url": "https://github.com/in-toto/attestation/tree/main/spec"
+    },
+    {
+      "id": "DSSE",
+      "version": "1.0.2",
+      "role": "authenticated_attestation_envelope",
+      "required": false,
+      "owner": "reuse Symtropy #5560",
+      "establishes": [
+        "payload-type and payload-byte signature binding"
+      ],
+      "does_not_establish": [
+        "signer role authorization",
+        "scientific or physical validity"
+      ],
+      "url": "https://github.com/secure-systems-lab/dsse"
+    },
+    {
+      "id": "OGC-API-Records",
+      "version": "1.0",
+      "role": "optional_geospatial_discovery_metadata",
+      "required": false,
+      "owner": "Sol-Atlas / existing OGC integration owners",
+      "establishes": [
+        "catalogue discovery and spatial/temporal record metadata"
+      ],
+      "does_not_establish": [
+        "payload integrity",
+        "physical model validity"
+      ],
+      "url": "https://ogcapi.ogc.org/records/"
+    }
+  ],
+  "non_duplication_rules": [
+    "SSP owns system topology; FMI owns component execution interface; do not create a parallel proprietary topology graph.",
+    "SSP-LS-Traceability carries simulation-process traceability context; GeoFusion retains source/carrier/boundary/interval/allocation semantics.",
+    "BagIt owns package completeness and manifest-level checksums; runtime source verifier owns semantic source-receipt checks.",
+    "RO-Crate owns research-object context; PROV-O owns graph semantics; do not duplicate either.",
+    "DSSE/in-toto signer and trust policy remains owned by #5560; signatures never upgrade scientific evidence class.",
+    "SSP-LS DerivationChain GUIDs track STMD/DTMD document lineage; PROV-O models evidence/activity/agent semantics; byte digests verify exact content. Do not conflate these three identities."
+  ],
+  "claim_ceiling": "Conformance and integrity results for the declared interchange/package layers only. They do not establish physical truth, calibrated measurement quality, solver validity, geothermal resource quality, fusion performance or operational authority."
+}

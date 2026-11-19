@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/geofusion-heat-source-interval-v0.1.schema.json",
+  "title": "GeoFusion Heat Source Interval Payload v0.1",
+  "description": "First thermal source-interval payload profile. It binds a declared heat interval and explicit measurement boundary. A valid instance is not a measurement truth or calibration claim.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "asset_id",
+    "measurement_boundary_id",
+    "interval_id",
+    "start_utc",
+    "duration_ns",
+    "carrier",
+    "available_energy_mwh",
+    "average_thermal_power_mw",
+    "source_temperature_c",
+    "evidence_class",
+    "note"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "asset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "measurement_boundary_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "interval_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "start_utc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "duration_ns": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "carrier": {
+      "const": "heat"
+    },
+    "available_energy_mwh": {
+      "type": "number",
+      "minimum": 0
+    },
+    "average_thermal_power_mw": {
+      "type": "number",
+      "minimum": 0
+    },
+    "source_temperature_c": {
+      "type": "number",
+      "minimum": -273.15
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "published_design",
+        "vendor_reported",
+        "measured",
+        "calibrated_model",
+        "independently_validated_model",
+        "audited_operation"
+      ]
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": "0.1.0",
+  "asset_id": "synthetic-geothermal-wellfield-01",
+  "measurement_boundary_id": "synthetic-wellhead-heat-meter-01",
+  "interval_id": "synthetic-hour-0001",
+  "start_utc": "2026-01-01T00:00:00Z",
+  "duration_ns": 3600000000000,
+  "carrier": "heat",
+  "available_energy_mwh": 10.0,
+  "average_thermal_power_mw": 10.0,
+  "source_temperature_c": 200.0,
+  "evidence_class": "synthetic",
+  "note": "Synthetic arithmetic fixture only; not a real well, meter, calibration, or geothermal resource."
+}

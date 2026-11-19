@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/geofusion-electric-source-interval-v0.1.schema.json",
+  "title": "GeoFusion Electrical Source Interval Payload v0.1",
+  "description": "Electrical source-interval payload profile. It binds declared electrical energy to average electrical power and a named measurement boundary. A valid instance is not measurement truth, firm grid capacity or plant performance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "asset_id",
+    "measurement_boundary_id",
+    "interval_id",
+    "start_utc",
+    "duration_ns",
+    "carrier",
+    "available_energy_mwh",
+    "average_electric_power_mw",
+    "evidence_class",
+    "note"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "asset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "measurement_boundary_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "interval_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "start_utc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "duration_ns": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "carrier": {
+      "const": "electricity"
+    },
+    "available_energy_mwh": {
+      "type": "number",
+      "minimum": 0
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "published_design",
+        "vendor_reported",
+        "measured",
+        "calibrated_model",
+        "independently_validated_model",
+        "audited_operation"
+      ]
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1
+    },
+    "average_electric_power_mw": {
+      "type": "number",
+      "minimum": 0
+    }
+  }
+}

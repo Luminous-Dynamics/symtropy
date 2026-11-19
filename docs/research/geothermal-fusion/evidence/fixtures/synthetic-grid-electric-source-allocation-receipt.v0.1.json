@@ -1,0 +1,52 @@
+{
+  "schema_version": "0.1.0",
+  "receipt_id": "GF-SYNTHETIC-ELECTRIC-ALLOCATION-001",
+  "source_evidence_id": "GF-SYNTHETIC-ELECTRIC-SOURCE-INTERVAL-001",
+  "source_payload_digest": {
+    "algorithm": "sha256",
+    "value": "2630c420ddb096e2a763ff2a096acad3eb554b441adbb3bc5eb1d14edfae9c72"
+  },
+  "source_asset_id": "synthetic-grid-connection-01",
+  "source_boundary_id": "synthetic-pcc-electric-meter-01",
+  "source_interval_id": "synthetic-electric-hour-0001",
+  "carrier": "electricity",
+  "available_energy_mwh": 10,
+  "allocations": [
+    {
+      "allocation_id": "facility-electric-edge-001",
+      "destination_asset_id": "facility-bus",
+      "service": "facility_electrical_load",
+      "carrier": "electricity",
+      "energy_mwh": 5
+    },
+    {
+      "allocation_id": "fusion-auxiliary-edge-001",
+      "destination_asset_id": "fusion-auxiliary-bus",
+      "service": "fusion_electrical_auxiliary",
+      "carrier": "electricity",
+      "energy_mwh": 3
+    },
+    {
+      "allocation_id": "reverse-osmosis-edge-001",
+      "destination_asset_id": "water-plant-bus",
+      "service": "reverse_osmosis_electrical_load",
+      "carrier": "electricity",
+      "energy_mwh": 2
+    }
+  ],
+  "curtailed_energy_mwh": 0,
+  "evaluation": {
+    "relative_tolerance": 1e-9,
+    "allocated_energy_mwh": 10,
+    "residual_energy_mwh": 0,
+    "normalized_absolute_residual": 0,
+    "within_tolerance": true,
+    "disposition": "within_tolerance"
+  },
+  "lineage": {
+    "derived_from_evidence_ids": [
+      "GF-SYNTHETIC-ELECTRIC-SOURCE-INTERVAL-001"
+    ]
+  },
+  "claim_ceiling": "Synthetic electrical source allocation arithmetic; no grid or plant performance claim."
+}

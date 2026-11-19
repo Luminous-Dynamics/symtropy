@@ -1,0 +1,13 @@
+{
+  "schema_version": "0.1.0",
+  "asset_id": "synthetic-grid-connection-01",
+  "measurement_boundary_id": "synthetic-pcc-electric-meter-01",
+  "interval_id": "synthetic-electric-hour-0001",
+  "start_utc": "2026-01-01T00:00:00Z",
+  "duration_ns": 3600000000000,
+  "carrier": "electricity",
+  "available_energy_mwh": 10.0,
+  "average_electric_power_mw": 10.0,
+  "evidence_class": "synthetic",
+  "note": "Synthetic electrical arithmetic fixture only; not a real grid connection, meter, calibration, or plant."
+}

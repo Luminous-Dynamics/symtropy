@@ -1,0 +1,1527 @@
+#![forbid(unsafe_code)]
+
+//! Runtime verifier for one source-interval evidence envelope and its allocation receipt.
+//!
+//! This verifies exact raw bytes, identity joins, carrier/service compatibility and
+//! source-interval arithmetic. It does not validate the full JSON Schema, calibration
+//! truth, source authenticity, solver physics, or global uniqueness across receipts.
+
+use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
+use std::collections::BTreeSet;
+use std::fmt;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum VerificationError {
+    InvalidJson(&'static str),
+    EmptyBatch,
+    BatchTooLarge,
+    DuplicateSourceInterval,
+    DuplicateEvidenceId,
+    DuplicateAllocationReceiptId,
+    OverlappingSourceIntervals,
+    MissingField(&'static str),
+    InvalidField(&'static str),
+    UnsupportedSchemaVersion,
+    UnsupportedEvidenceKind,
+    ArtifactUnavailable,
+    ArtifactIntegrityStateRejected,
+    EvidenceNotCurrent,
+    UnsupportedDigestAlgorithm,
+    MalformedDigest,
+    DigestMismatch,
+    ByteLengthMismatch,
+    SourceIdentityMismatch(&'static str),
+    TimeWindowMismatch(&'static str),
+    TimeQualityInsufficient,
+    CalibrationWindowInvalid,
+    CalibrationDoesNotCoverSourceInterval,
+    DuplicateInstrumentId,
+    SourcePowerEnergyMismatch,
+    UnsupportedCarrier,
+    InvalidEnergy(&'static str),
+    DuplicateAllocationId,
+    ServiceCarrierMismatch,
+    ArithmeticOverflow,
+    DeclaredEvaluationMismatch(&'static str),
+}
+
+impl VerificationError {
+    pub fn code(&self) -> &'static str {
+        match self {
+            Self::InvalidJson(_) => "INVALID_JSON",
+            Self::EmptyBatch => "EMPTY_BATCH",
+            Self::BatchTooLarge => "BATCH_TOO_LARGE",
+            Self::DuplicateSourceInterval => "DUPLICATE_SOURCE_INTERVAL",
+            Self::DuplicateEvidenceId => "DUPLICATE_EVIDENCE_ID",
+            Self::DuplicateAllocationReceiptId => "DUPLICATE_ALLOCATION_RECEIPT_ID",
+            Self::OverlappingSourceIntervals => "OVERLAPPING_SOURCE_INTERVALS",
+            Self::MissingField(_) => "MISSING_FIELD",
+            Self::InvalidField(_) => "INVALID_FIELD",
+            Self::UnsupportedSchemaVersion => "UNSUPPORTED_SCHEMA_VERSION",
+            Self::UnsupportedEvidenceKind => "UNSUPPORTED_EVIDENCE_KIND",
+            Self::ArtifactUnavailable => "ARTIFACT_UNAVAILABLE",
+            Self::ArtifactIntegrityStateRejected => "ARTIFACT_INTEGRITY_STATE_REJECTED",
+            Self::EvidenceNotCurrent => "EVIDENCE_NOT_CURRENT",
+            Self::UnsupportedDigestAlgorithm => "UNSUPPORTED_DIGEST_ALGORITHM",
+            Self::MalformedDigest => "MALFORMED_DIGEST",
+            Self::DigestMismatch => "DIGEST_MISMATCH",
+            Self::ByteLengthMismatch => "BYTE_LENGTH_MISMATCH",
+            Self::SourceIdentityMismatch(_) => "SOURCE_IDENTITY_MISMATCH",
+            Self::TimeWindowMismatch(_) => "TIME_WINDOW_MISMATCH",
+            Self::TimeQualityInsufficient => "TIME_QUALITY_INSUFFICIENT",
+            Self::CalibrationWindowInvalid => "CALIBRATION_WINDOW_INVALID",
+            Self::CalibrationDoesNotCoverSourceInterval => "CALIBRATION_DOES_NOT_COVER_INTERVAL",
+            Self::DuplicateInstrumentId => "DUPLICATE_INSTRUMENT_ID",
+            Self::SourcePowerEnergyMismatch => "SOURCE_POWER_ENERGY_MISMATCH",
+            Self::UnsupportedCarrier => "UNSUPPORTED_CARRIER",
+            Self::InvalidEnergy(_) => "INVALID_ENERGY",
+            Self::DuplicateAllocationId => "DUPLICATE_ALLOCATION_ID",
+            Self::ServiceCarrierMismatch => "SERVICE_CARRIER_MISMATCH",
+            Self::ArithmeticOverflow => "ARITHMETIC_OVERFLOW",
+            Self::DeclaredEvaluationMismatch(_) => "DECLARED_EVALUATION_MISMATCH",
+        }
+    }
+}
+
+impl fmt::Display for VerificationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidJson(label)
+            | Self::MissingField(label)
+            | Self::InvalidField(label)
+            | Self::SourceIdentityMismatch(label)
+            | Self::TimeWindowMismatch(label)
+            | Self::InvalidEnergy(label)
+            | Self::DeclaredEvaluationMismatch(label) => {
+                write!(f, "{}: {}", self.code(), label)
+            }
+            _ => write!(f, "{}", self.code()),
+        }
+    }
+}
+
+impl std::error::Error for VerificationError {}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct VerificationReport {
+    pub evidence_id: String,
+    pub allocation_receipt_id: String,
+    pub source_asset_id: String,
+    pub source_boundary_id: String,
+    pub source_interval_id: String,
+    pub source_interval_start_utc: String,
+    pub source_interval_start_unix_ns: i128,
+    pub source_interval_duration_ns: u64,
+    pub declared_calibration_window_disposition: String,
+    pub carrier: String,
+    pub payload_sha256: String,
+    pub payload_byte_length: u64,
+    pub integrity_verified: bool,
+    pub allocated_energy_mwh: f64,
+    pub curtailed_energy_mwh: f64,
+    /// Positive means unallocated source energy; negative means over-allocation.
+    pub residual_energy_mwh: f64,
+    pub normalized_absolute_residual: f64,
+    pub within_tolerance: bool,
+    /// A qualified allocation receipt requires both byte integrity and balance closure.
+    pub qualified: bool,
+}
+
+impl VerificationReport {
+    pub fn to_json(&self) -> Value {
+        json!({
+            "evidence_id": self.evidence_id,
+            "allocation_receipt_id": self.allocation_receipt_id,
+            "source_asset_id": self.source_asset_id,
+            "source_boundary_id": self.source_boundary_id,
+            "source_interval_id": self.source_interval_id,
+            "source_interval_start_utc": self.source_interval_start_utc,
+            "source_interval_start_unix_ns": self.source_interval_start_unix_ns.to_string(),
+            "source_interval_duration_ns": self.source_interval_duration_ns,
+            "declared_calibration_window_disposition": self.declared_calibration_window_disposition,
+            "carrier": self.carrier,
+            "payload_sha256": self.payload_sha256,
+            "payload_byte_length": self.payload_byte_length,
+            "integrity_verified": self.integrity_verified,
+            "allocated_energy_mwh": self.allocated_energy_mwh,
+            "curtailed_energy_mwh": self.curtailed_energy_mwh,
+            "residual_energy_mwh": self.residual_energy_mwh,
+            "normalized_absolute_residual": self.normalized_absolute_residual,
+            "within_tolerance": self.within_tolerance,
+            "qualified": self.qualified,
+            "claim_ceiling": concat!(
+                "Byte identity, declared source identity and one source-interval ",
+                "allocation arithmetic only; ",
+                "not physical truth or operational authorization."
+            )
+        })
+    }
+}
+
+/// One independently verifiable source interval and its allocation receipt.
+#[derive(Debug, Clone, Copy)]
+pub struct SourceIntervalInput<'a> {
+    pub payload_bytes: &'a [u8],
+    pub evidence: &'a Value,
+    pub allocation: &'a Value,
+}
+
+fn required<'a>(
+    value: &'a Value,
+    key: &'static str,
+    context: &'static str,
+) -> Result<&'a Value, VerificationError> {
+    value
+        .as_object()
+        .ok_or(VerificationError::InvalidField(context))?
+        .get(key)
+        .ok_or(VerificationError::MissingField(key))
+}
+
+fn string_field<'a>(
+    value: &'a Value,
+    key: &'static str,
+    context: &'static str,
+) -> Result<&'a str, VerificationError> {
+    required(value, key, context)?
+        .as_str()
+        .filter(|s| !s.trim().is_empty())
+        .ok_or(VerificationError::InvalidField(key))
+}
+
+fn number_field(
+    value: &Value,
+    key: &'static str,
+    context: &'static str,
+) -> Result<f64, VerificationError> {
+    let number = required(value, key, context)?
+        .as_f64()
+        .ok_or(VerificationError::InvalidField(key))?;
+    if !number.is_finite() {
+        return Err(VerificationError::InvalidEnergy(key));
+    }
+    Ok(number)
+}
+
+fn unsigned_field(
+    value: &Value,
+    key: &'static str,
+    context: &'static str,
+) -> Result<u64, VerificationError> {
+    required(value, key, context)?
+        .as_u64()
+        .ok_or(VerificationError::InvalidField(key))
+}
+
+fn same_text(
+    left: &str,
+    right: &str,
+    field: &'static str,
+) -> Result<(), VerificationError> {
+    if left == right {
+        Ok(())
+    } else {
+        Err(VerificationError::SourceIdentityMismatch(field))
+    }
+}
+
+fn same_number(left: f64, right: f64) -> bool {
+    let scale = left.abs().max(right.abs()).max(f64::MIN_POSITIVE);
+    (left - right).abs() <= 8.0 * f64::EPSILON * scale
+}
+
+fn carrier_supported(carrier: &str) -> bool {
+    matches!(carrier, "heat" | "electricity")
+}
+
+fn service_matches_carrier(service: &str, carrier: &str) -> bool {
+    match service {
+        "dt_plasma_heating"
+        | "fusion_electrical_auxiliary"
+        | "facility_electrical_load"
+        | "grid_export"
+        | "reverse_osmosis_electrical_load" => carrier == "electricity",
+        "industrial_process_heat"
+        | "facility_heat"
+        | "thermal_storage_charge"
+        | "power_cycle_thermal_input"
+        | "absorption_chiller_drive_heat"
+        | "thermal_desalination_heat" => carrier == "heat",
+        "other" => true,
+        _ => false,
+    }
+}
+
+fn parse_utc_timestamp_ns(value: &str) -> Result<i128, VerificationError> {
+    let invalid = || {
+        VerificationError::TimeWindowMismatch("start_utc must be canonical RFC 3339 UTC")
+    };
+    let bytes = value.as_bytes();
+    if bytes.len() < 20 || bytes.last() != Some(&b'Z') {
+        return Err(invalid());
+    }
+    if bytes.get(4) != Some(&b'-')
+        || bytes.get(7) != Some(&b'-')
+        || bytes.get(10) != Some(&b'T')
+        || bytes.get(13) != Some(&b':')
+        || bytes.get(16) != Some(&b':')
+    {
+        return Err(invalid());
+    }
+    let parse_digits = |start: usize, end: usize| -> Result<i64, VerificationError> {
+        let slice = bytes.get(start..end).ok_or_else(invalid)?;
+        if slice.is_empty() || !slice.iter().all(u8::is_ascii_digit) {
+            return Err(invalid());
+        }
+        let text = std::str::from_utf8(slice).map_err(|_| invalid())?;
+        text.parse::<i64>().map_err(|_| invalid())
+    };
+    let year = parse_digits(0, 4)?;
+    if year == 0 {
+        return Err(invalid());
+    }
+    let month = parse_digits(5, 7)?;
+    let day = parse_digits(8, 10)?;
+    let hour = parse_digits(11, 13)?;
+    let minute = parse_digits(14, 16)?;
+    let second = parse_digits(17, 19)?;
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let days_in_month = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap => 29,
+        2 => 28,
+        _ => return Err(invalid()),
+    };
+    if !(1..=days_in_month).contains(&day) || hour > 23 || minute > 59 || second > 59 {
+        return Err(invalid());
+    }
+
+    // Proleptic Gregorian civil date to days since 1970-01-01.
+    let adjusted_year = year - if month <= 2 { 1 } else { 0 };
+    let era = adjusted_year.div_euclid(400);
+    let year_of_era = adjusted_year - era * 400;
+    let shifted_month = month + if month > 2 { -3 } else { 9 };
+    let day_of_year = (153 * shifted_month + 2) / 5 + day - 1;
+    let day_of_era =
+        year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+    let days_since_epoch = i128::from(era * 146_097 + day_of_era - 719_468);
+    let seconds = days_since_epoch * 86_400
+        + i128::from(hour * 3_600 + minute * 60 + second);
+
+    let fraction_ns = if bytes.len() == 20 {
+        0_i128
+    } else if bytes.get(19) == Some(&b'.') {
+        let fractional_digits = &bytes[20..bytes.len() - 1];
+        if fractional_digits.is_empty()
+            || fractional_digits.len() > 9
+            || !fractional_digits.iter().all(u8::is_ascii_digit)
+        {
+            return Err(invalid());
+        }
+        let digits = std::str::from_utf8(fractional_digits)
+            .map_err(|_| invalid())?
+            .parse::<i128>()
+            .map_err(|_| invalid())?;
+        digits * 10_i128.pow((9 - fractional_digits.len()) as u32)
+    } else {
+        return Err(invalid());
+    };
+    Ok(seconds * 1_000_000_000 + fraction_ns)
+}
+
+fn digest_hex(bytes: &[u8]) -> String {
+    format!("{:x}", Sha256::digest(bytes))
+}
+
+/// Verify a raw source-interval payload, its evidence envelope and one allocation receipt.
+///
+/// The raw payload bytes are hashed exactly as received; they are never parsed and
+/// re-serialized before hashing. JSON parsing occurs only after byte integrity is checked.
+pub fn verify_source_interval(
+    payload_bytes: &[u8],
+    evidence: &Value,
+    allocation: &Value,
+) -> Result<VerificationReport, VerificationError> {
+    if string_field(evidence, "schema_version", "evidence envelope")? != "0.1.0"
+        || string_field(allocation, "schema_version", "allocation receipt")? != "0.1.0"
+    {
+        return Err(VerificationError::UnsupportedSchemaVersion);
+    }
+    if string_field(evidence, "evidence_kind", "evidence envelope")? != "source_interval" {
+        return Err(VerificationError::UnsupportedEvidenceKind);
+    }
+
+    let evidence_class = string_field(evidence, "evidence_class", "evidence envelope")?;
+    if !matches!(
+        evidence_class,
+        "synthetic"
+            | "published_design"
+            | "vendor_reported"
+            | "measured"
+            | "calibrated_model"
+            | "independently_validated_model"
+            | "audited_operation"
+    ) {
+        return Err(VerificationError::InvalidField("evidence_class"));
+    }
+    same_text(payload_class, evidence_class, "evidence_class")?;
+
+    let validity = required(evidence, "validity", "evidence envelope")?;
+    match string_field(validity, "state", "validity")? {
+        "current" => {}
+        "not_applicable" if evidence_class == "synthetic" => {}
+        "stale" | "unknown" | "not_applicable" => {
+            return Err(VerificationError::EvidenceNotCurrent);
+        }
+        _ => return Err(VerificationError::InvalidField("validity.state")),
+    }
+
+    let measurement = required(evidence, "measurement", "evidence envelope")?;
+    let model = required(evidence, "model", "evidence envelope")?;
+    let mut calibration_window_utc: Option<(String, String)> = None;
+    if matches!(evidence_class, "measured" | "audited_operation")
+        && string_field(measurement, "applicability", "measurement")? != "applicable"
+    {
+        return Err(VerificationError::InvalidField("measurement.applicability"));
+    }
+    if matches!(evidence_class, "measured" | "audited_operation") {
+        let instruments = required(measurement, "instrument_ids", "measurement")?
+            .as_array()
+            .filter(|items| !items.is_empty())
+            .ok_or(VerificationError::InvalidField("measurement.instrument_ids"))?;
+        let mut instrument_ids = BTreeSet::new();
+        for item in instruments {
+            let instrument_id = item
+                .as_str()
+                .filter(|id| !id.trim().is_empty())
+                .ok_or(VerificationError::InvalidField("measurement.instrument_ids"))?;
+            if !instrument_ids.insert(instrument_id) {
+                return Err(VerificationError::DuplicateInstrumentId);
+            }
+        }
+        string_field(measurement, "calibration_certificate_id", "measurement")?;
+        let valid_from = string_field(
+            measurement,
+            "calibration_valid_from_utc",
+            "measurement",
+        )?
+        .to_owned();
+        let valid_until = string_field(
+            measurement,
+            "calibration_valid_until_utc",
+            "measurement",
+        )?
+        .to_owned();
+        calibration_window_utc = Some((valid_from, valid_until));
+    }
+    if matches!(
+        evidence_class,
+        "calibrated_model" | "independently_validated_model"
+    ) && (string_field(model, "applicability", "model")? != "applicable"
+        || string_field(model, "convergence_state", "model")? != "converged")
+    {
+        return Err(VerificationError::InvalidField("model.convergence_state"));
+    }
+    if matches!(
+        evidence_class,
+        "calibrated_model" | "independently_validated_model"
+    ) {
+        string_field(model, "solver_id", "model")?;
+        string_field(model, "solver_version", "model")?;
+    }
+
+    let artifact = required(evidence, "artifact", "evidence envelope")?;
+    if string_field(artifact, "availability", "artifact")? != "available" {
+        return Err(VerificationError::ArtifactUnavailable);
+    }
+    string_field(artifact, "locator", "artifact")?;
+    if string_field(artifact, "media_type", "artifact")? != "application/json" {
+        return Err(VerificationError::InvalidField("artifact.media_type"));
+    }
+    match string_field(artifact, "integrity_state", "artifact")? {
+        "not_checked" | "verified" => {}
+        _ => return Err(VerificationError::ArtifactIntegrityStateRejected),
+    }
+
+    let digest = required(artifact, "digest", "artifact")?;
+    if string_field(digest, "algorithm", "artifact digest")? != "sha256" {
+        return Err(VerificationError::UnsupportedDigestAlgorithm);
+    }
+    let declared_digest = string_field(digest, "value", "artifact digest")?;
+    if declared_digest.len() != 64
+        || !declared_digest
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        return Err(VerificationError::MalformedDigest);
+    }
+
+    let actual_digest = digest_hex(payload_bytes);
+    if actual_digest != declared_digest {
+        return Err(VerificationError::DigestMismatch);
+    }
+    let actual_length = u64::try_from(payload_bytes.len())
+        .map_err(|_| VerificationError::ArithmeticOverflow)?;
+    if unsigned_field(artifact, "byte_length", "artifact")? != actual_length {
+        return Err(VerificationError::ByteLengthMismatch);
+    }
+
+    // Verify byte identity before parsing untrusted payload contents.
+    let payload: Value = serde_json::from_slice(payload_bytes)
+        .map_err(|_| VerificationError::InvalidJson("source payload"))?;
+    if string_field(&payload, "schema_version", "source payload")? != "0.1.0" {
+        return Err(VerificationError::UnsupportedSchemaVersion);
+    }
+    let payload_class = string_field(&payload, "evidence_class", "source payload")?;
+    same_text(payload_class, evidence_class, "evidence_class")?;
+
+    let subject = required(evidence, "subject", "evidence envelope")?;
+    if string_field(subject, "kind", "subject")? != "physical_asset" {
+        return Err(VerificationError::InvalidField("subject.kind"));
+    }
+    let asset_id = string_field(&payload, "asset_id", "source payload")?;
+    same_text(
+        string_field(subject, "subject_id", "subject")?,
+        asset_id,
+        "subject.subject_id",
+    )?;
+    same_text(
+        string_field(subject, "asset_id", "subject")?,
+        asset_id,
+        "subject.asset_id",
+    )?;
+
+    let boundary_id = string_field(&payload, "measurement_boundary_id", "source payload")?;
+    same_text(
+        string_field(subject, "boundary_id", "subject")?,
+        boundary_id,
+        "subject.boundary_id",
+    )?;
+    let interval_id = string_field(&payload, "interval_id", "source payload")?;
+    same_text(
+        string_field(subject, "interval_id", "subject")?,
+        interval_id,
+        "subject.interval_id",
+    )?;
+
+    let carrier = string_field(&payload, "carrier", "source payload")?;
+    if !carrier_supported(carrier) {
+        return Err(VerificationError::UnsupportedCarrier);
+    }
+    same_text(
+        string_field(subject, "carrier", "subject")?,
+        carrier,
+        "subject.carrier",
+    )?;
+
+    let time_window = required(evidence, "time_window", "evidence envelope")?;
+    if string_field(time_window, "state", "time_window")? != "bounded" {
+        return Err(VerificationError::TimeWindowMismatch("state must be bounded"));
+    }
+    let clock_quality = string_field(time_window, "clock_quality", "time_window")?;
+    let clock_quality_allowed = match evidence_class {
+        "synthetic" => clock_quality == "synthetic",
+        "measured" | "audited_operation" => clock_quality == "synchronized",
+        _ => matches!(clock_quality, "synchronized" | "estimated"),
+    };
+    if !clock_quality_allowed {
+        return Err(VerificationError::TimeQualityInsufficient);
+    }
+    let _clock_uncertainty_ns = unsigned_field(
+        time_window,
+        "clock_uncertainty_ns",
+        "time_window",
+    )?;
+    let start_utc = string_field(&payload, "start_utc", "source payload")?;
+    let envelope_start_utc = string_field(time_window, "start_utc", "time_window")?;
+    let source_interval_start_unix_ns = parse_utc_timestamp_ns(start_utc)?;
+    let envelope_start_unix_ns = parse_utc_timestamp_ns(envelope_start_utc)?;
+    if source_interval_start_unix_ns != envelope_start_unix_ns {
+        return Err(VerificationError::TimeWindowMismatch("start_utc"));
+    }
+    let source_interval_duration_ns =
+        unsigned_field(&payload, "duration_ns", "source payload")?;
+    if source_interval_duration_ns == 0 {
+        return Err(VerificationError::TimeWindowMismatch(
+            "duration_ns must be positive",
+        ));
+    }
+    if unsigned_field(time_window, "duration_ns", "time_window")?
+        != source_interval_duration_ns
+    {
+        return Err(VerificationError::TimeWindowMismatch("duration_ns"));
+    }
+    let source_interval_end_unix_ns = source_interval_start_unix_ns
+        .checked_add(i128::from(source_interval_duration_ns))
+        .ok_or(VerificationError::ArithmeticOverflow)?;
+    let mut declared_calibration_window_disposition = "not_applicable";
+    if let Some((valid_from_utc, valid_until_utc)) = calibration_window_utc {
+        let calibration_start_ns = parse_utc_timestamp_ns(&valid_from_utc)
+            .map_err(|_| VerificationError::CalibrationWindowInvalid)?;
+        let calibration_end_ns = parse_utc_timestamp_ns(&valid_until_utc)
+            .map_err(|_| VerificationError::CalibrationWindowInvalid)?;
+        if calibration_end_ns <= calibration_start_ns {
+            return Err(VerificationError::CalibrationWindowInvalid);
+        }
+        if calibration_start_ns > source_interval_start_unix_ns
+            || calibration_end_ns < source_interval_end_unix_ns
+        {
+            return Err(VerificationError::CalibrationDoesNotCoverSourceInterval);
+        }
+        declared_calibration_window_disposition =
+            "declared_calibration_window_covers_source_interval";
+    }
+
+    let evidence_id = string_field(evidence, "evidence_id", "evidence envelope")?;
+    same_text(
+        string_field(allocation, "source_evidence_id", "allocation receipt")?,
+        evidence_id,
+        "source_evidence_id",
+    )?;
+
+    let receipt_digest = required(allocation, "source_payload_digest", "allocation receipt")?;
+    same_text(
+        string_field(receipt_digest, "algorithm", "receipt digest")?,
+        "sha256",
+        "source_payload_digest.algorithm",
+    )?;
+    same_text(
+        string_field(receipt_digest, "value", "receipt digest")?,
+        actual_digest.as_str(),
+        "source_payload_digest.value",
+    )?;
+
+    same_text(
+        string_field(allocation, "source_asset_id", "allocation receipt")?,
+        asset_id,
+        "source_asset_id",
+    )?;
+    same_text(
+        string_field(allocation, "source_boundary_id", "allocation receipt")?,
+        boundary_id,
+        "source_boundary_id",
+    )?;
+    same_text(
+        string_field(allocation, "source_interval_id", "allocation receipt")?,
+        interval_id,
+        "source_interval_id",
+    )?;
+    same_text(
+        string_field(allocation, "carrier", "allocation receipt")?,
+        carrier,
+        "allocation.carrier",
+    )?;
+
+    let available = number_field(&payload, "available_energy_mwh", "source payload")?;
+    if available < 0.0 {
+        return Err(VerificationError::InvalidEnergy("available_energy_mwh"));
+    }
+    let average_power_field = match carrier {
+        "heat" => "average_thermal_power_mw",
+        "electricity" => "average_electric_power_mw",
+        _ => return Err(VerificationError::UnsupportedCarrier),
+    };
+    let average_power = number_field(&payload, average_power_field, "source payload")?;
+    if average_power < 0.0 {
+        return Err(VerificationError::InvalidEnergy(average_power_field));
+    }
+    let duration_hours = source_interval_duration_ns as f64 / 3_600_000_000_000.0;
+    let power_duration_energy_mwh = average_power * duration_hours;
+    if !duration_hours.is_finite() || !power_duration_energy_mwh.is_finite() {
+        return Err(VerificationError::ArithmeticOverflow);
+    }
+    if !same_number(power_duration_energy_mwh, available) {
+        return Err(VerificationError::SourcePowerEnergyMismatch);
+    }
+    let receipt_available =
+        number_field(allocation, "available_energy_mwh", "allocation receipt")?;
+    if receipt_available < 0.0 || !same_number(available, receipt_available) {
+        return Err(VerificationError::SourceIdentityMismatch(
+            "available_energy_mwh",
+        ));
+    }
+
+    let allocations = required(allocation, "allocations", "allocation receipt")?
+        .as_array()
+        .ok_or(VerificationError::InvalidField("allocations"))?;
+    let mut allocation_ids = BTreeSet::new();
+    let mut allocated = 0.0_f64;
+    for edge in allocations {
+        let allocation_id = string_field(edge, "allocation_id", "allocation edge")?;
+        if !allocation_ids.insert(allocation_id) {
+            return Err(VerificationError::DuplicateAllocationId);
+        }
+        string_field(edge, "destination_asset_id", "allocation edge")?;
+        let edge_carrier = string_field(edge, "carrier", "allocation edge")?;
+        same_text(edge_carrier, carrier, "allocation.carrier")?;
+        let service = string_field(edge, "service", "allocation edge")?;
+        if !service_matches_carrier(service, carrier) {
+            return Err(VerificationError::ServiceCarrierMismatch);
+        }
+        let energy = number_field(edge, "energy_mwh", "allocation edge")?;
+        if energy <= 0.0 {
+            return Err(VerificationError::InvalidEnergy(
+                "allocation.energy_mwh",
+            ));
+        }
+        allocated += energy;
+        if !allocated.is_finite() {
+            return Err(VerificationError::ArithmeticOverflow);
+        }
+    }
+
+    let curtailed = number_field(
+        allocation,
+        "curtailed_energy_mwh",
+        "allocation receipt",
+    )?;
+    if curtailed < 0.0 {
+        return Err(VerificationError::InvalidEnergy(
+            "curtailed_energy_mwh",
+        ));
+    }
+
+    let evaluation = required(allocation, "evaluation", "allocation receipt")?;
+    let tolerance = number_field(evaluation, "relative_tolerance", "evaluation")?;
+    if !(0.0..1.0).contains(&tolerance) {
+        return Err(VerificationError::InvalidField(
+            "evaluation.relative_tolerance",
+        ));
+    }
+
+    // Match the source-allocation ledger's scale-normalized first-law residual.
+    let scale = available
+        .abs()
+        .max(allocated.abs())
+        .max(curtailed.abs())
+        .max(f64::MIN_POSITIVE);
+    let scaled_residual = available / scale - allocated / scale - curtailed / scale;
+    let normalized_denominator = available / scale + allocated / scale + curtailed / scale;
+    let normalized = if normalized_denominator == 0.0 {
+        0.0
+    } else {
+        scaled_residual.abs() / normalized_denominator
+    };
+    let residual = scaled_residual * scale;
+    if !scaled_residual.is_finite() || !normalized.is_finite() || !residual.is_finite() {
+        return Err(VerificationError::ArithmeticOverflow);
+    }
+    let within_tolerance = normalized <= tolerance;
+
+    if !same_number(
+        number_field(evaluation, "allocated_energy_mwh", "evaluation")?,
+        allocated,
+    ) {
+        return Err(VerificationError::DeclaredEvaluationMismatch(
+            "allocated_energy_mwh",
+        ));
+    }
+    if !same_number(
+        number_field(evaluation, "residual_energy_mwh", "evaluation")?,
+        residual,
+    ) {
+        return Err(VerificationError::DeclaredEvaluationMismatch(
+            "residual_energy_mwh",
+        ));
+    }
+    if !same_number(
+        number_field(
+            evaluation,
+            "normalized_absolute_residual",
+            "evaluation",
+        )?,
+        normalized,
+    ) {
+        return Err(VerificationError::DeclaredEvaluationMismatch(
+            "normalized_absolute_residual",
+        ));
+    }
+    let declared_within = required(evaluation, "within_tolerance", "evaluation")?
+        .as_bool()
+        .ok_or(VerificationError::InvalidField(
+            "evaluation.within_tolerance",
+        ))?;
+    if declared_within != within_tolerance {
+        return Err(VerificationError::DeclaredEvaluationMismatch(
+            "within_tolerance",
+        ));
+    }
+    let expected_disposition = if within_tolerance {
+        "within_tolerance"
+    } else {
+        "unbalanced"
+    };
+    same_text(
+        string_field(evaluation, "disposition", "evaluation")?,
+        expected_disposition,
+        "evaluation.disposition",
+    )
+    .map_err(|_| {
+        VerificationError::DeclaredEvaluationMismatch("disposition")
+    })?;
+
+    let source_interval_start_utc = start_utc.to_owned();
+    let receipt_id = string_field(allocation, "receipt_id", "allocation receipt")?;
+    Ok(VerificationReport {
+        evidence_id: evidence_id.to_owned(),
+        allocation_receipt_id: receipt_id.to_owned(),
+        source_asset_id: asset_id.to_owned(),
+        source_boundary_id: boundary_id.to_owned(),
+        source_interval_id: interval_id.to_owned(),
+        source_interval_start_utc,
+        source_interval_start_unix_ns,
+        source_interval_duration_ns,
+        declared_calibration_window_disposition: declared_calibration_window_disposition.to_owned(),
+        carrier: carrier.to_owned(),
+        payload_sha256: actual_digest,
+        payload_byte_length: actual_length,
+        integrity_verified: true,
+        allocated_energy_mwh: allocated,
+        curtailed_energy_mwh: curtailed,
+        residual_energy_mwh: residual,
+        normalized_absolute_residual: normalized,
+        within_tolerance,
+        qualified: within_tolerance,
+    })
+}
+
+
+/// Verify a batch while enforcing one receipt per physical source interval.
+///
+/// Duplicate detection keys the source asset, meter boundary, carrier, exact
+/// UTC start representation and duration; caller-chosen evidence, interval and
+/// receipt IDs do not establish physical uniqueness. The check is scoped to
+/// this batch, not a persistent cross-campaign registry.
+pub fn verify_source_interval_batch(
+    inputs: &[SourceIntervalInput<'_>],
+) -> Result<Vec<VerificationReport>, VerificationError> {
+    if inputs.is_empty() {
+        return Err(VerificationError::EmptyBatch);
+    }
+    if inputs.len() > 256 {
+        return Err(VerificationError::BatchTooLarge);
+    }
+
+    let mut source_intervals = BTreeSet::new();
+    let mut intervals_by_source =
+        std::collections::BTreeMap::<(String, String, String), Vec<(i128, i128)>>::new();
+    let mut evidence_ids = BTreeSet::new();
+    let mut receipt_ids = BTreeSet::new();
+    let mut reports = Vec::with_capacity(inputs.len());
+
+    for input in inputs {
+        let report = verify_source_interval(
+            input.payload_bytes,
+            input.evidence,
+            input.allocation,
+        )?;
+
+        let source_key = (
+            report.source_asset_id.clone(),
+            report.source_boundary_id.clone(),
+            report.carrier.clone(),
+            report.source_interval_start_unix_ns,
+            report.source_interval_duration_ns,
+        );
+        if !source_intervals.insert(source_key) {
+            return Err(VerificationError::DuplicateSourceInterval);
+        }
+        let source_group = (
+            report.source_asset_id.clone(),
+            report.source_boundary_id.clone(),
+            report.carrier.clone(),
+        );
+        let start = report.source_interval_start_unix_ns;
+        let end = start
+            .checked_add(i128::from(report.source_interval_duration_ns))
+            .ok_or(VerificationError::ArithmeticOverflow)?;
+        let group_intervals = intervals_by_source.entry(source_group).or_default();
+        if group_intervals
+            .iter()
+            .any(|(other_start, other_end)| start < *other_end && *other_start < end)
+        {
+            return Err(VerificationError::OverlappingSourceIntervals);
+        }
+        group_intervals.push((start, end));
+        if !evidence_ids.insert(report.evidence_id.clone()) {
+            return Err(VerificationError::DuplicateEvidenceId);
+        }
+        if !receipt_ids.insert(report.allocation_receipt_id.clone()) {
+            return Err(VerificationError::DuplicateAllocationReceiptId);
+        }
+        reports.push(report);
+    }
+
+    Ok(reports)
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    const PAYLOAD: &[u8] = include_bytes!(concat!(
+        "../../../docs/research/geothermal-fusion/evidence/fixtures/",
+        "synthetic-geothermal-source-interval.v0.1.json"
+    ));
+    const EVIDENCE: &str = include_str!(concat!(
+        "../../../docs/research/geothermal-fusion/evidence/fixtures/",
+        "synthetic-source-interval-evidence.v0.1.json"
+    ));
+    const ALLOCATION: &str = include_str!(concat!(
+        "../../../docs/research/geothermal-fusion/evidence/fixtures/",
+        "synthetic-source-allocation-receipt.v0.1.json"
+    ));
+    const ELECTRIC_PAYLOAD: &[u8] = include_bytes!(concat!(
+        "../../../docs/research/geothermal-fusion/evidence/fixtures/",
+        "synthetic-grid-electric-source-interval.v0.1.json"
+    ));
+    const ELECTRIC_EVIDENCE: &str = include_str!(concat!(
+        "../../../docs/research/geothermal-fusion/evidence/fixtures/",
+        "synthetic-grid-electric-source-interval-evidence.v0.1.json"
+    ));
+    const ELECTRIC_ALLOCATION: &str = include_str!(concat!(
+        "../../../docs/research/geothermal-fusion/evidence/fixtures/",
+        "synthetic-grid-electric-source-allocation-receipt.v0.1.json"
+    ));
+
+    fn electrical_evidence() -> Value {
+        serde_json::from_str(ELECTRIC_EVIDENCE).expect("electrical evidence fixture JSON")
+    }
+
+    fn electrical_allocation() -> Value {
+        serde_json::from_str(ELECTRIC_ALLOCATION)
+            .expect("electrical allocation fixture JSON")
+    }
+
+    fn electricity_fixture() -> (Vec<u8>, Value, Value) {
+        (
+            ELECTRIC_PAYLOAD.to_vec(),
+            electrical_evidence(),
+            electrical_allocation(),
+        )
+    }
+
+    fn evidence() -> Value {
+        serde_json::from_str(EVIDENCE).expect("evidence fixture JSON")
+    }
+
+    fn interval_fixture(
+        interval_id: &str,
+        start_utc: &str,
+        evidence_id: &str,
+        receipt_id: &str,
+    ) -> (Vec<u8>, Value, Value) {
+        let mut payload: Value = serde_json::from_slice(PAYLOAD).unwrap();
+        payload["interval_id"] = json!(interval_id);
+        payload["start_utc"] = json!(start_utc);
+        let bytes = serde_json::to_vec(&payload).unwrap();
+        let digest = digest_hex(&bytes);
+
+        let mut e = evidence();
+        e["evidence_id"] = json!(evidence_id);
+        e["subject"]["interval_id"] = json!(interval_id);
+        e["time_window"]["start_utc"] = json!(start_utc);
+        e["artifact"]["byte_length"] = json!(bytes.len());
+        e["artifact"]["digest"]["value"] = json!(digest);
+
+        let mut a = allocation();
+        a["receipt_id"] = json!(receipt_id);
+        a["source_evidence_id"] = json!(evidence_id);
+        a["source_payload_digest"]["value"] = json!(digest);
+        a["source_interval_id"] = json!(interval_id);
+
+        (bytes, e, a)
+    }
+
+    fn allocation() -> Value {
+        serde_json::from_str(ALLOCATION).expect("allocation fixture JSON")
+    }
+
+    #[test]
+    fn numeric_comparison_remains_relative_at_tiny_energy_scales() {
+        assert!(!same_number(1e-300, 2e-300));
+        assert!(same_number(1e-300, 1e-300 + 1e-315));
+    }
+
+    #[test]
+    fn source_interval_fixture_verifies_exact_bytes_and_allocation() {
+        let report = verify_source_interval(PAYLOAD, &evidence(), &allocation()).unwrap();
+        assert!(report.integrity_verified);
+        assert!(report.within_tolerance);
+        assert!(report.qualified);
+        assert_eq!(report.payload_byte_length, 523);
+        assert_eq!(
+            report.payload_sha256,
+            "0cdcab2b9625b3669918761b7a4da378e9d344321301f2dd0bb48feb67b788c8"
+        );
+        assert_eq!(report.allocated_energy_mwh, 9.0);
+        assert_eq!(report.curtailed_energy_mwh, 1.0);
+        assert_eq!(report.residual_energy_mwh, 0.0);
+    }
+
+    #[test]
+    fn electrical_source_interval_verifies_power_and_allocation() {
+        let (bytes, evidence, allocation) = electricity_fixture();
+        let report = verify_source_interval(&bytes, &evidence, &allocation).unwrap();
+        assert_eq!(report.carrier, "electricity");
+        assert_eq!(report.payload_byte_length, 509);
+        assert_eq!(
+            report.payload_sha256,
+            "2630c420ddb096e2a763ff2a096acad3eb554b441adbb3bc5eb1d14edfae9c72"
+        );
+        assert_eq!(report.allocated_energy_mwh, 10.0);
+        assert_eq!(report.residual_energy_mwh, 0.0);
+        assert!(report.qualified);
+    }
+
+    #[test]
+    fn electrical_source_energy_must_match_average_electric_power() {
+        let (mut bytes, mut evidence, mut allocation) = electricity_fixture();
+        let mut payload: Value = serde_json::from_slice(&bytes).unwrap();
+        payload["average_electric_power_mw"] = json!(11.0);
+        bytes = serde_json::to_vec(&payload).unwrap();
+        let digest = digest_hex(&bytes);
+        evidence["artifact"]["byte_length"] = json!(bytes.len());
+        evidence["artifact"]["digest"]["value"] = json!(digest);
+        allocation["source_payload_digest"]["value"] = json!(digest);
+
+        let error = verify_source_interval(&bytes, &evidence, &allocation).unwrap_err();
+        assert_eq!(error.code(), "SOURCE_POWER_ENERGY_MISMATCH");
+    }
+
+    #[test]
+    fn electrical_source_rejects_heat_only_service_allocations() {
+        let (bytes, evidence, mut allocation) = electricity_fixture();
+        allocation["allocations"][0]["service"] = json!("industrial_process_heat");
+        let error = verify_source_interval(&bytes, &evidence, &allocation).unwrap_err();
+        assert_eq!(error.code(), "SERVICE_CARRIER_MISMATCH");
+    }
+
+    #[test]
+    fn batch_accepts_heat_and_electricity_as_distinct_carriers() {
+        let heat_evidence = evidence();
+        let heat_allocation = allocation();
+        let (electric_bytes, electric_evidence, electric_allocation) = electricity_fixture();
+        let inputs = [
+            SourceIntervalInput {
+                payload_bytes: PAYLOAD,
+                evidence: &heat_evidence,
+                allocation: &heat_allocation,
+            },
+            SourceIntervalInput {
+                payload_bytes: &electric_bytes,
+                evidence: &electric_evidence,
+                allocation: &electric_allocation,
+            },
+        ];
+        let reports = verify_source_interval_batch(&inputs).unwrap();
+        assert_eq!(reports.len(), 2);
+        assert!(reports.iter().all(|report| report.qualified));
+        assert!(reports.iter().any(|report| report.carrier == "heat"));
+        assert!(reports.iter().any(|report| report.carrier == "electricity"));
+    }
+
+    #[test]
+    fn mutated_payload_bytes_are_rejected() {
+        let mut bytes = PAYLOAD.to_vec();
+        bytes.push(b' ');
+        let error = verify_source_interval(&bytes, &evidence(), &allocation()).unwrap_err();
+        assert_eq!(error.code(), "DIGEST_MISMATCH");
+    }
+
+    #[test]
+    fn malformed_tampered_payload_is_hashed_before_json_parsing() {
+        let mut bytes = PAYLOAD.to_vec();
+        bytes.push(b'!');
+        let error = verify_source_interval(&bytes, &evidence(), &allocation()).unwrap_err();
+        assert_eq!(error.code(), "DIGEST_MISMATCH");
+    }
+
+    #[test]
+    fn declared_payload_length_is_recomputed() {
+        let mut e = evidence();
+        e["artifact"]["byte_length"] = json!(524);
+        let error = verify_source_interval(PAYLOAD, &e, &allocation()).unwrap_err();
+        assert_eq!(error.code(), "BYTE_LENGTH_MISMATCH");
+    }
+
+    #[test]
+    fn source_interval_identity_must_match_all_three_records() {
+        let mut e = evidence();
+        e["subject"]["interval_id"] = json!("wrong-interval");
+        let error = verify_source_interval(PAYLOAD, &e, &allocation()).unwrap_err();
+        assert_eq!(error.code(), "SOURCE_IDENTITY_MISMATCH");
+
+        let mut a = allocation();
+        a["source_interval_id"] = json!("wrong-interval");
+        let error = verify_source_interval(PAYLOAD, &evidence(), &a).unwrap_err();
+        assert_eq!(error.code(), "SOURCE_IDENTITY_MISMATCH");
+    }
+
+    #[test]
+    fn wrong_measurement_boundary_is_rejected() {
+        let mut a = allocation();
+        a["source_boundary_id"] = json!("wrong-boundary");
+        let error = verify_source_interval(PAYLOAD, &evidence(), &a).unwrap_err();
+        assert_eq!(error.code(), "SOURCE_IDENTITY_MISMATCH");
+    }
+
+    #[test]
+    fn evidence_class_cannot_be_promoted_from_synthetic_to_measured() {
+        let mut e = evidence();
+        e["evidence_class"] = json!("measured");
+        let error = verify_source_interval(PAYLOAD, &e, &allocation()).unwrap_err();
+        assert_eq!(error.code(), "SOURCE_IDENTITY_MISMATCH");
+    }
+
+    #[test]
+    fn duplicate_allocation_ids_are_rejected() {
+        let mut a = allocation();
+        let first_id = a["allocations"][0]["allocation_id"].clone();
+        a["allocations"][1]["allocation_id"] = first_id;
+        let error = verify_source_interval(PAYLOAD, &evidence(), &a).unwrap_err();
+        assert_eq!(error.code(), "DUPLICATE_ALLOCATION_ID");
+    }
+
+    #[test]
+    fn service_and_carrier_mismatch_is_rejected() {
+        let mut a = allocation();
+        a["allocations"][0]["service"] = json!("reverse_osmosis_electrical_load");
+        let error = verify_source_interval(PAYLOAD, &evidence(), &a).unwrap_err();
+        assert_eq!(error.code(), "SERVICE_CARRIER_MISMATCH");
+    }
+
+    #[test]
+    fn over_allocation_is_exposed_as_unqualified_with_negative_residual() {
+        let mut a = allocation();
+        a["allocations"][1]["energy_mwh"] = json!(5.0);
+        a["evaluation"]["allocated_energy_mwh"] = json!(11.0);
+        a["evaluation"]["residual_energy_mwh"] = json!(-2.0);
+        a["evaluation"]["normalized_absolute_residual"] = json!(2.0 / 22.0);
+        a["evaluation"]["within_tolerance"] = json!(false);
+        a["evaluation"]["disposition"] = json!("unbalanced");
+
+        let report = verify_source_interval(PAYLOAD, &evidence(), &a).unwrap();
+        assert!(report.integrity_verified);
+        assert!(!report.within_tolerance);
+        assert!(!report.qualified);
+        assert!((report.residual_energy_mwh + 2.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn forged_balanced_evaluation_is_rejected() {
+        let mut a = allocation();
+        a["evaluation"]["allocated_energy_mwh"] = json!(8.0);
+        let error = verify_source_interval(PAYLOAD, &evidence(), &a).unwrap_err();
+        assert_eq!(error.code(), "DECLARED_EVALUATION_MISMATCH");
+    }
+
+    #[test]
+    fn evidence_and_allocation_digest_must_match_the_recomputed_digest() {
+        let mut a = allocation();
+        a["source_payload_digest"]["value"] = json!("0".repeat(64));
+        let error = verify_source_interval(PAYLOAD, &evidence(), &a).unwrap_err();
+        assert_eq!(error.code(), "SOURCE_IDENTITY_MISMATCH");
+    }
+
+    #[test]
+    fn unsupported_integrity_claim_is_rejected() {
+        let mut e = evidence();
+        e["artifact"]["integrity_state"] = json!("mismatch");
+        let error = verify_source_interval(PAYLOAD, &e, &allocation()).unwrap_err();
+        assert_eq!(error.code(), "ARTIFACT_INTEGRITY_STATE_REJECTED");
+    }
+
+    fn measured_fixture(
+        calibration_from_utc: &str,
+        calibration_until_utc: &str,
+    ) -> (Vec<u8>, Value, Value) {
+        let mut payload: Value = serde_json::from_slice(PAYLOAD).unwrap();
+        payload["evidence_class"] = json!("measured");
+        payload["note"] = json!(concat!(
+            "Test-only synthetic fixture used to exercise measured-evidence metadata; ",
+            "not a physical meter reading."
+        ));
+        let bytes = serde_json::to_vec(&payload).unwrap();
+        let digest = digest_hex(&bytes);
+
+        let mut e = evidence();
+        e["evidence_class"] = json!("measured");
+        e["validity"]["state"] = json!("current");
+        e["time_window"]["clock_quality"] = json!("synchronized");
+        e["measurement"]["applicability"] = json!("applicable");
+        e["measurement"]["instrument_ids"] = json!(["meter-a"]);
+        e["measurement"]["calibration_certificate_id"] = json!("CAL-001");
+        e["measurement"]["calibration_valid_from_utc"] = json!(calibration_from_utc);
+        e["measurement"]["calibration_valid_until_utc"] = json!(calibration_until_utc);
+        e["artifact"]["byte_length"] = json!(bytes.len());
+        e["artifact"]["digest"]["value"] = json!(digest);
+
+        let mut a = allocation();
+        a["source_payload_digest"]["value"] = json!(digest);
+        (bytes, e, a)
+    }
+
+    #[test]
+    fn measured_receipt_requires_calibration_to_cover_the_entire_interval() {
+        let (bytes, e, a) = measured_fixture(
+            "2025-12-01T00:00:00Z",
+            "2026-02-01T00:00:00Z",
+        );
+        let report = verify_source_interval(&bytes, &e, &a).unwrap();
+        assert!(report.qualified);
+        assert!(report.integrity_verified);
+        assert_eq!(
+            report.declared_calibration_window_disposition,
+            "declared_calibration_window_covers_source_interval"
+        );
+    }
+
+    #[test]
+    fn expired_calibration_is_rejected_for_source_interval() {
+        let (bytes, e, a) = measured_fixture(
+            "2025-12-01T00:00:00Z",
+            "2025-12-31T23:59:59Z",
+        );
+        let error = verify_source_interval(&bytes, &e, &a).unwrap_err();
+        assert_eq!(error.code(), "CALIBRATION_DOES_NOT_COVER_INTERVAL");
+    }
+
+    #[test]
+    fn calibration_start_after_source_interval_start_is_rejected() {
+        let (bytes, e, a) = measured_fixture(
+            "2026-01-01T00:01:00Z",
+            "2026-02-01T00:00:00Z",
+        );
+        let error = verify_source_interval(&bytes, &e, &a).unwrap_err();
+        assert_eq!(error.code(), "CALIBRATION_DOES_NOT_COVER_INTERVAL");
+    }
+
+    #[test]
+    fn calibration_expiring_before_source_interval_end_is_rejected() {
+        let (bytes, e, a) = measured_fixture(
+            "2025-12-01T00:00:00Z",
+            "2026-01-01T00:59:59Z",
+        );
+        let error = verify_source_interval(&bytes, &e, &a).unwrap_err();
+        assert_eq!(error.code(), "CALIBRATION_DOES_NOT_COVER_INTERVAL");
+    }
+
+    #[test]
+    fn malformed_calibration_timestamp_is_rejected() {
+        let (bytes, e, a) = measured_fixture(
+            "2026-02-30T00:00:00Z",
+            "2026-03-01T00:00:00Z",
+        );
+        let error = verify_source_interval(&bytes, &e, &a).unwrap_err();
+        assert_eq!(error.code(), "CALIBRATION_WINDOW_INVALID");
+    }
+
+    #[test]
+    fn duplicate_measurement_instrument_ids_are_rejected() {
+        let (bytes, mut e, a) = measured_fixture(
+            "2025-12-01T00:00:00Z",
+            "2026-02-01T00:00:00Z",
+        );
+        e["measurement"]["instrument_ids"] = json!(["meter-a", "meter-a"]);
+        let error = verify_source_interval(&bytes, &e, &a).unwrap_err();
+        assert_eq!(error.code(), "DUPLICATE_INSTRUMENT_ID");
+    }
+
+    #[test]
+    fn stale_or_unknown_validity_cannot_be_qualified() {
+        let mut e = evidence();
+        e["validity"]["state"] = json!("unknown");
+        e["validity"]["reason"] = json!("calibration/validity evidence absent");
+        let error = verify_source_interval(PAYLOAD, &e, &allocation()).unwrap_err();
+        assert_eq!(error.code(), "EVIDENCE_NOT_CURRENT");
+    }
+
+    #[test]
+    fn bounded_time_window_must_match_the_raw_source_interval() {
+        let mut e = evidence();
+        e["time_window"]["start_utc"] = json!("2026-01-01T01:00:00Z");
+        let error = verify_source_interval(PAYLOAD, &e, &allocation()).unwrap_err();
+        assert_eq!(error.code(), "TIME_WINDOW_MISMATCH");
+    }
+
+    #[test]
+    fn unsupported_digest_algorithm_is_rejected() {
+        let mut e = evidence();
+        e["artifact"]["digest"]["algorithm"] = json!("md5");
+        let error = verify_source_interval(PAYLOAD, &e, &allocation()).unwrap_err();
+        assert_eq!(error.code(), "UNSUPPORTED_DIGEST_ALGORITHM");
+    }
+
+    #[test]
+    fn malformed_digest_is_rejected_before_comparison() {
+        let mut e = evidence();
+        e["artifact"]["digest"]["value"] = json!("z".repeat(64));
+        let error = verify_source_interval(PAYLOAD, &e, &allocation()).unwrap_err();
+        assert_eq!(error.code(), "MALFORMED_DIGEST");
+    }
+
+    #[test]
+    fn synthetic_interval_requires_synthetic_clock_quality() {
+        let mut e = evidence();
+        e["time_window"]["clock_quality"] = json!("unknown");
+        let error = verify_source_interval(PAYLOAD, &e, &allocation()).unwrap_err();
+        assert_eq!(error.code(), "TIME_QUALITY_INSUFFICIENT");
+    }
+
+    #[test]
+    fn source_interval_timestamp_must_be_utc_zulu() {
+        let (bytes, e, a) = interval_fixture(
+            "offset-spelling",
+            "2026-01-01T00:00:00+00:00",
+            "GF-OFFSET-EVIDENCE",
+            "GF-OFFSET-ALLOCATION",
+        );
+        let error = verify_source_interval(&bytes, &e, &a).unwrap_err();
+        assert_eq!(error.code(), "TIME_WINDOW_MISMATCH");
+    }
+
+    #[test]
+    fn source_energy_must_equal_average_power_times_interval_duration() {
+        let mut payload: Value = serde_json::from_slice(PAYLOAD).unwrap();
+        payload["available_energy_mwh"] = json!(11.0);
+        let bytes = serde_json::to_vec(&payload).unwrap();
+        let digest = digest_hex(&bytes);
+
+        let mut e = evidence();
+        e["artifact"]["byte_length"] = json!(bytes.len());
+        e["artifact"]["digest"]["value"] = json!(digest);
+        let mut a = allocation();
+        a["source_payload_digest"]["value"] = json!(digest);
+
+        let error = verify_source_interval(&bytes, &e, &a).unwrap_err();
+        assert_eq!(error.code(), "SOURCE_POWER_ENERGY_MISMATCH");
+    }
+
+    #[test]
+    fn zero_duration_source_interval_is_rejected() {
+        let mut payload: Value = serde_json::from_slice(PAYLOAD).unwrap();
+        payload["duration_ns"] = json!(0);
+        let bytes = serde_json::to_vec(&payload).unwrap();
+        let digest = digest_hex(&bytes);
+
+        let mut e = evidence();
+        e["artifact"]["byte_length"] = json!(bytes.len());
+        e["artifact"]["digest"]["value"] = json!(digest);
+        e["time_window"]["duration_ns"] = json!(0);
+        let mut a = allocation();
+        a["source_payload_digest"]["value"] = json!(digest);
+
+        let error = verify_source_interval(&bytes, &e, &a).unwrap_err();
+        assert_eq!(error.code(), "TIME_WINDOW_MISMATCH");
+    }
+
+    #[test]
+    fn year_zero_timestamp_is_rejected() {
+        let error = parse_utc_timestamp_ns("0000-01-01T00:00:00Z").unwrap_err();
+        assert_eq!(error.code(), "TIME_WINDOW_MISMATCH");
+    }
+
+    #[test]
+    fn oversized_batch_is_rejected_before_processing() {
+        let null_value = Value::Null;
+        let inputs = vec![
+            SourceIntervalInput {
+                payload_bytes: PAYLOAD,
+                evidence: &null_value,
+                allocation: &null_value,
+            };
+            257
+        ];
+        let error = verify_source_interval_batch(&inputs).unwrap_err();
+        assert_eq!(error.code(), "BATCH_TOO_LARGE");
+    }
+
+    #[test]
+    fn empty_batch_is_rejected() {
+        let error = verify_source_interval_batch(&[]).unwrap_err();
+        assert_eq!(error.code(), "EMPTY_BATCH");
+    }
+
+    #[test]
+    fn batch_rejects_same_physical_interval_with_new_caller_ids() {
+        let e1 = evidence();
+        let a1 = allocation();
+        let (bytes2, e2, a2) = interval_fixture(
+            "renamed-interval-id",
+            "2026-01-01T00:00:00Z",
+            "GF-SECOND-EVIDENCE",
+            "GF-SECOND-ALLOCATION",
+        );
+        let inputs = [
+            SourceIntervalInput {
+                payload_bytes: PAYLOAD,
+                evidence: &e1,
+                allocation: &a1,
+            },
+            SourceIntervalInput {
+                payload_bytes: &bytes2,
+                evidence: &e2,
+                allocation: &a2,
+            },
+        ];
+        let error = verify_source_interval_batch(&inputs).unwrap_err();
+        assert_eq!(error.code(), "DUPLICATE_SOURCE_INTERVAL");
+    }
+
+    #[test]
+    fn equivalent_fractional_utc_timestamp_cannot_bypass_duplicate_detection() {
+        let e1 = evidence();
+        let a1 = allocation();
+        let (bytes2, e2, a2) = interval_fixture(
+            "renamed-interval-id",
+            "2026-01-01T00:00:00.000Z",
+            "GF-SECOND-EVIDENCE",
+            "GF-SECOND-ALLOCATION",
+        );
+        let inputs = [
+            SourceIntervalInput {
+                payload_bytes: PAYLOAD,
+                evidence: &e1,
+                allocation: &a1,
+            },
+            SourceIntervalInput {
+                payload_bytes: &bytes2,
+                evidence: &e2,
+                allocation: &a2,
+            },
+        ];
+        let error = verify_source_interval_batch(&inputs).unwrap_err();
+        assert_eq!(error.code(), "DUPLICATE_SOURCE_INTERVAL");
+    }
+
+    #[test]
+    fn overlapping_source_intervals_with_different_starts_are_rejected() {
+        let e1 = evidence();
+        let a1 = allocation();
+        let (bytes2, e2, a2) = interval_fixture(
+            "synthetic-hour-overlap",
+            "2026-01-01T00:30:00Z",
+            "GF-OVERLAP-EVIDENCE",
+            "GF-OVERLAP-ALLOCATION",
+        );
+        let inputs = [
+            SourceIntervalInput {
+                payload_bytes: PAYLOAD,
+                evidence: &e1,
+                allocation: &a1,
+            },
+            SourceIntervalInput {
+                payload_bytes: &bytes2,
+                evidence: &e2,
+                allocation: &a2,
+            },
+        ];
+        let error = verify_source_interval_batch(&inputs).unwrap_err();
+        assert_eq!(error.code(), "OVERLAPPING_SOURCE_INTERVALS");
+    }
+
+    #[test]
+    fn invalid_utc_timestamp_is_rejected() {
+        let (bytes, mut e, a) = interval_fixture(
+            "invalid-date",
+            "2026-02-30T00:00:00Z",
+            "GF-INVALID-DATE",
+            "GF-INVALID-DATE-ALLOCATION",
+        );
+        e["time_window"]["start_utc"] = json!("2026-02-30T00:00:00Z");
+        let error = verify_source_interval(&bytes, &e, &a).unwrap_err();
+        assert_eq!(error.code(), "TIME_WINDOW_MISMATCH");
+    }
+
+    #[test]
+    fn batch_accepts_non_overlapping_source_intervals_from_same_meter() {
+        let e1 = evidence();
+        let a1 = allocation();
+        let (bytes2, e2, a2) = interval_fixture(
+            "synthetic-hour-0002",
+            "2026-01-01T01:00:00Z",
+            "GF-SOURCE-INTERVAL-002",
+            "GF-ALLOCATION-002",
+        );
+        let inputs = [
+            SourceIntervalInput {
+                payload_bytes: PAYLOAD,
+                evidence: &e1,
+                allocation: &a1,
+            },
+            SourceIntervalInput {
+                payload_bytes: &bytes2,
+                evidence: &e2,
+                allocation: &a2,
+            },
+        ];
+        let reports = verify_source_interval_batch(&inputs).unwrap();
+        assert_eq!(reports.len(), 2);
+        assert!(reports.iter().all(|report| report.qualified));
+    }
+
+    #[test]
+    fn batch_rejects_duplicate_evidence_ids() {
+        let e1 = evidence();
+        let a1 = allocation();
+        let (bytes2, e2, a2) = interval_fixture(
+            "synthetic-hour-0002",
+            "2026-01-01T01:00:00Z",
+            "GF-SYNTHETIC-SOURCE-INTERVAL-001",
+            "GF-ALLOCATION-002",
+        );
+        let inputs = [
+            SourceIntervalInput {
+                payload_bytes: PAYLOAD,
+                evidence: &e1,
+                allocation: &a1,
+            },
+            SourceIntervalInput {
+                payload_bytes: &bytes2,
+                evidence: &e2,
+                allocation: &a2,
+            },
+        ];
+        let error = verify_source_interval_batch(&inputs).unwrap_err();
+        assert_eq!(error.code(), "DUPLICATE_EVIDENCE_ID");
+    }
+
+    #[test]
+    fn batch_rejects_duplicate_allocation_receipt_ids() {
+        let e1 = evidence();
+        let a1 = allocation();
+        let (bytes2, e2, a2) = interval_fixture(
+            "synthetic-hour-0002",
+            "2026-01-01T01:00:00Z",
+            "GF-SOURCE-INTERVAL-002",
+            "GF-SYNTHETIC-ALLOCATION-001",
+        );
+        let inputs = [
+            SourceIntervalInput {
+                payload_bytes: PAYLOAD,
+                evidence: &e1,
+                allocation: &a1,
+            },
+            SourceIntervalInput {
+                payload_bytes: &bytes2,
+                evidence: &e2,
+                allocation: &a2,
+            },
+        ];
+        let error = verify_source_interval_batch(&inputs).unwrap_err();
+        assert_eq!(error.code(), "DUPLICATE_ALLOCATION_RECEIPT_ID");
+    }
+
+    #[test]
+    fn zero_relative_tolerance_is_rejected_like_the_rust_contract() {
+        let mut a = allocation();
+        a["evaluation"]["relative_tolerance"] = json!(0.0);
+        let error = verify_source_interval(PAYLOAD, &evidence(), &a).unwrap_err();
+        assert_eq!(error.code(), "INVALID_FIELD");
+    }
+}
