@@ -15,9 +15,9 @@ NASA Langley Research Center et al., In-space Servicing, Assembly, and Manufactu
 
 ## Count discipline
 
-The seed records NASA's 11 Figure 3 functional-area counts. Those values sum to **523 category assignments**. That is not a unique-project count: NASA explicitly allows one activity or technology to be assigned to multiple areas. Do not use 523 as the denominator for unique technology coverage, and do not import unsupported headline totals.
+The seed records NASA's 11 Figure 3 functional-area counts. Those values sum to **523 functional-area entries/counts**. NASA's 2026 ISAM webpage separately reports **621 capability-area entries** for the overall inventory. These figures are not yet reconciled to the PDF's Table 2 and Appendix 9, so do not treat 523 as the overall inventory denominator or assume 621 is a deduplicated count without reproducing the source rows. NASA explicitly says entries can be detailed in multiple functional areas; software/algorithms are recorded in a separate cross-cutting section.
 
-The cross-cutting areas (Software and Algorithms; Logistics and Operations; Laws, Policies, and Standards) are maintained separately from the 11 functional areas. They must not be added to the Figure 3 functional-area total.
+The cross-cutting areas (Software and Algorithms; Logistics and Operations; Laws, Policies, and Standards) are maintained separately from the 11 functional areas. They must not be silently mixed into the 523 Figure 3 functional-area count. The exact reconciliation to NASA's 621 headline capability-area entries is an explicit extraction task.
 
 ## What this seed does and does not contain
 
