@@ -289,7 +289,10 @@ pub fn validate_case(case: &FleetReliabilityCase) -> Result<(), ReliabilityError
         }
         validate_probability(
             dependency.availability_probability,
-            &format!("dependency {} availability_probability", dependency.dependency_id),
+            &format!(
+                "dependency {} availability_probability",
+                dependency.dependency_id
+            ),
         )?;
         if !matches!(
             dependency.dependency_scope.as_str(),
@@ -323,9 +326,8 @@ pub fn validate_case(case: &FleetReliabilityCase) -> Result<(), ReliabilityError
     if let Some(target) = contract.target_service_availability_fraction {
         validate_probability(target, "target_service_availability_fraction")?;
     }
-    let mut required_dependencies = HashSet::with_capacity(
-        contract.required_shared_dependency_ids.len(),
-    );
+    let mut required_dependencies =
+        HashSet::with_capacity(contract.required_shared_dependency_ids.len());
     for dependency_id in &contract.required_shared_dependency_ids {
         if !dependency_ids.contains(dependency_id.as_str()) {
             return Err(ReliabilityError::new(format!(
@@ -449,9 +451,7 @@ pub fn evaluate_case(
         }
 
         let operational_count = (0..node_count)
-            .filter(|index| {
-                independent_node_up[*index] && !common_cause_node_down[*index]
-            })
+            .filter(|index| independent_node_up[*index] && !common_cause_node_down[*index])
             .count();
         let reference_node_up =
             independent_node_up[single_node_index] && !common_cause_node_down[single_node_index];
@@ -467,8 +467,7 @@ pub fn evaluate_case(
         }
     }
 
-    if !probability_mass.is_finite()
-        || (probability_mass - 1.0).abs() > PROBABILITY_MASS_TOLERANCE
+    if !probability_mass.is_finite() || (probability_mass - 1.0).abs() > PROBABILITY_MASS_TOLERANCE
     {
         return Err(ReliabilityError::new(format!(
             "enumerated scenario probability mass is {}, expected 1.0",
@@ -494,7 +493,9 @@ pub fn evaluate_case(
         absolute_service_availability_gain_vs_single_node: fleet_availability
             - single_node_availability,
         common_cause_overstatement_probability_points: naive_availability - fleet_availability,
-        target_service_availability_fraction: case.service_contract.target_service_availability_fraction,
+        target_service_availability_fraction: case
+            .service_contract
+            .target_service_availability_fraction,
         fleet_meets_target: case
             .service_contract
             .target_service_availability_fraction
@@ -512,8 +513,7 @@ fn naive_independent_k_out_of_n_availability(
         for (operational_count, probability) in distribution.iter().enumerate() {
             next[operational_count] +=
                 probability * (1.0 - node.independent_availability_probability);
-            next[operational_count + 1] +=
-                probability * node.independent_availability_probability;
+            next[operational_count + 1] += probability * node.independent_availability_probability;
         }
         distribution = next;
     }
@@ -563,7 +563,10 @@ mod tests {
         close(report.probability_mass, 1.0);
         close(report.single_node_service_availability, 0.838856);
         close(report.fleet_k_of_n_service_availability, 0.8952271232);
-        close(report.naive_independent_k_of_n_service_availability, 0.95236928);
+        close(
+            report.naive_independent_k_of_n_service_availability,
+            0.95236928,
+        );
         close(
             report.common_cause_overstatement_probability_points,
             0.0571421568,
@@ -579,7 +582,10 @@ mod tests {
         close(report.probability_mass, 1.0);
         close(report.single_node_service_availability, 0.838856);
         close(report.fleet_k_of_n_service_availability, 0.9444876032);
-        close(report.naive_independent_k_of_n_service_availability, 0.95236928);
+        close(
+            report.naive_independent_k_of_n_service_availability,
+            0.95236928,
+        );
         close(
             report.common_cause_overstatement_probability_points,
             0.0078816768,
@@ -595,7 +601,10 @@ mod tests {
         close(report.probability_mass, 1.0);
         close(report.single_node_service_availability, 0.9506);
         close(report.fleet_k_of_n_service_availability, 0.9996984370158802);
-        close(report.naive_independent_k_of_n_service_availability, 0.9999999996);
+        close(
+            report.naive_independent_k_of_n_service_availability,
+            0.9999999996,
+        );
         close(
             report.common_cause_overstatement_probability_points,
             0.00030156258411973,
@@ -611,7 +620,10 @@ mod tests {
         close(report.probability_mass, 1.0);
         close(report.single_node_service_availability, 0.945847);
         close(report.fleet_k_of_n_service_availability, 0.9946999448308008);
-        close(report.naive_independent_k_of_n_service_availability, 0.9999999996);
+        close(
+            report.naive_independent_k_of_n_service_availability,
+            0.9999999996,
+        );
         close(
             report.absolute_service_availability_gain_vs_single_node,
             0.0488529448308008,
@@ -638,8 +650,7 @@ mod tests {
         let common = evaluate_case(&parse_fixture(COMMON_CAUSE_CASE)).unwrap();
         let diverse = evaluate_case(&parse_fixture(DIVERSE_WEATHER_CASE)).unwrap();
         close(
-            diverse.fleet_k_of_n_service_availability
-                - common.fleet_k_of_n_service_availability,
+            diverse.fleet_k_of_n_service_availability - common.fleet_k_of_n_service_availability,
             0.04926048,
         );
     }
@@ -654,7 +665,9 @@ mod tests {
     #[test]
     fn parser_rejects_unknown_common_cause_node() {
         let mut case = parse_fixture(COMMON_CAUSE_CASE);
-        case.common_cause_events[0].affected_node_ids.push("haps-unknown".to_owned());
+        case.common_cause_events[0]
+            .affected_node_ids
+            .push("haps-unknown".to_owned());
         assert!(validate_case(&case).is_err());
     }
 
@@ -681,9 +694,7 @@ mod tests {
             node.node_id = format!("extra-node-{index}");
             case.nodes.push(node);
         }
-        case.common_cause_events[0]
-            .affected_node_ids
-            .truncate(1);
+        case.common_cause_events[0].affected_node_ids.truncate(1);
         case.service_contract.minimum_operational_node_count = 1;
         assert!(matches!(
             validate_case(&case),
