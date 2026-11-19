@@ -44,7 +44,7 @@ jobs:
       - name: Check grouped voyage split schema and synthetic fixture
         run: |
           jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and (.properties.episodes.minItems >= 1) and (.properties.folds.minItems == 3)' tools/marine-forecast-replay-audit/schema/marine-episode-split-manifest.schema.json
-          jq -e '.record_status == "synthetic" and .claim_ceiling == "holdout_partition_integrity_only" and (.episodes | length == 9) and ([.episodes[].decision_samples[]] | length == 18) and ([.episodes[].fold] | group_by(.) | map({(.[0]): length}) | add == {"development":3,"validation":3,"test":3}) and ([.episodes[] | select(.fold == "test") | .environment_strata[]] | unique | length >= 3)' tools/marine-forecast-replay-audit/fixtures/synthetic-episode-split-manifest-0001.json
+          jq -e '.record_status == "synthetic" and .claim_ceiling == "holdout_partition_integrity_only" and .grouping_unit == "joint_voyage_weather_event" and (.episodes | length == 9) and ([.episodes[].decision_samples[]] | length == 18) and ([.episodes[].fold] | group_by(.) | map({(.[0]): length}) | add == {"development":3,"validation":3,"test":3}) and ([.episodes[] | select(.fold == "test") | .environment_strata[]] | unique | length >= 3)' tools/marine-forecast-replay-audit/fixtures/synthetic-episode-split-manifest-0001.json
 
       - name: Validate grouped holdout partition integrity
         run: |
