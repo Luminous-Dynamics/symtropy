@@ -6,7 +6,7 @@
 
 ## Purpose
 
-Verify one raw source-interval payload, its evidence envelope and one source-allocation receipt without trusting declared digests or reported balance results.
+Verify raw source-interval payloads, evidence envelopes and source-allocation receipts without trusting declared digests or reported balance results. The batch API also checks duplicate and overlapping source intervals within one supplied batch.
 
 This is a deliberately bounded Rust runtime slice. It is not a full Draft 2020-12 JSON Schema engine, persistent cross-campaign registry, measurement/calibration authority, solver runner or physical-truth oracle.
 
@@ -47,18 +47,18 @@ Exit codes:
 
 ## Adversarial and positive test coverage
 
-The 24 current unit tests cover exact fixture success, byte tampering, declared byte-length mismatch, interval-ID mismatch, boundary mismatch, synthetic-to-measured evidence-class promotion, duplicate allocation IDs, service/carrier mismatch, over-allocation and negative residual, forged reported balance, allocation digest mismatch, rejected integrity state, zero tolerance, stale/unknown validity, mismatched time windows, unsupported digest algorithms, malformed digests, duplicate source intervals across batches, duplicate evidence/receipt IDs, source power-duration mismatch and zero-duration rejection.
+The 31 current unit tests cover exact fixture success, byte tampering (including malformed tampered JSON), declared byte-length mismatch, interval-ID mismatch, boundary mismatch, synthetic-to-measured evidence-class promotion, duplicate allocation IDs, service/carrier mismatch, over-allocation and negative residual, forged reported balance, allocation digest mismatch, rejected integrity state, zero tolerance, stale/unknown validity, clock-quality refusal, mismatched and non-UTC time windows, unsupported digest algorithms, malformed digests, relative comparisons at tiny energy scales, duplicate source intervals across batches (including fractional-second spellings), overlapping intervals, invalid calendar dates, duplicate evidence/receipt IDs, source power-duration mismatch and zero-duration rejection.
 
 ## Batch uniqueness
 
 `verify_source_interval_batch` verifies a set of source-interval bundles and enforces one receipt per physical source interval in that batch. Its duplicate key is source asset + measurement boundary + carrier + exact UTC start representation + duration. It also rejects duplicate evidence IDs and allocation receipt IDs. Renaming an interval/evidence/receipt ID cannot make the same source interval allocatable twice in one batch.
 
-The check is **batch-scoped**. It is not a persistent cross-campaign registry, and the current v0.1 key compares the declared UTC start string exactly rather than normalizing equivalent RFC 3339 spellings. A future archive-level ledger should canonicalize instants and retain committed source intervals across independent batches.
+The check is **batch-scoped**. It parses canonical UTC `Z` timestamps into integer nanoseconds, so equivalent fractional-second spellings cannot bypass duplicate detection. It also rejects overlapping windows for the same source asset, measurement boundary and carrier. It is not a persistent cross-campaign registry; a future archive-level ledger should retain committed source intervals across independent batches.
 
 ## Explicit limitations
 
 - The runtime API currently supports source-interval envelopes and source-allocation receipts; the checked raw payload JSON Schema is the first heat-only profile. Electrical raw-payload profiles are not yet defined.
-- The batch API prevents duplicate interval reuse within one supplied batch.
+- The batch API prevents duplicate and overlapping interval reuse within one supplied batch, using a canonical UTC nanosecond start key.
 - The verifier performs runtime semantic checks on the fields it consumes; it does not execute the complete JSON Schema Draft 2020-12 specification.
 - It cannot detect reuse of the same source interval across separately verified batches; a persistent cross-campaign ledger is not implemented.
 - For measured/audited classes it requires the declared measurement and calibration fields; it does not authenticate certificates or prove that a calibration covers the observation interval.
