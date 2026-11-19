@@ -398,8 +398,20 @@ fn validate_case(case: &FleetContinuityCase) -> Result<(), FleetError> {
             event.duration_hours,
             horizon,
         )?;
+        validate_grid_alignment(
+            &event.event_id,
+            event.start_hour,
+            event.duration_hours,
+            step,
+        )?;
         if !event.haps_capacity_factor.is_finite()
             || !(0.0..=1.0).contains(&event.haps_capacity_factor)
+            || ![
+                "all_haps_in_service_region",
+                "network_layer",
+                "declared_platform_subset",
+            ]
+            .contains(&event.scope.as_str())
             || event
                 .terrestrial_capacity_override_units
                 .is_some_and(|value| !value.is_finite() || value < 0.0)
@@ -477,14 +489,30 @@ fn validate_case(case: &FleetContinuityCase) -> Result<(), FleetError> {
             }
         }
 
+        let reserved_ids: HashSet<&str> = policy
+            .reserve_dispatch_events
+            .iter()
+            .map(|event| event.platform_id.as_str())
+            .collect();
+        for platform_id in &policy.operating_platform_ids {
+            if platforms[platform_id.as_str()].initial_state != "on_station" {
+                return Err(FleetError::InvalidEvent(format!(
+                    "{} lists {} as operating but its initial_state is not on_station",
+                    policy.policy_id, platform_id
+                )));
+            }
+        }
+
         let mut per_platform_events: HashMap<&str, Vec<(f64, f64, &str)>> = HashMap::new();
         for event in &policy.platform_unavailability_events {
             if !platform_ids.contains(event.platform_id.as_str()) {
                 return Err(FleetError::UnknownPlatform(event.platform_id.clone()));
             }
-            if !operating.contains(event.platform_id.as_str()) {
+            if !operating.contains(event.platform_id.as_str())
+                && !reserved_ids.contains(event.platform_id.as_str())
+            {
                 return Err(FleetError::InvalidEvent(format!(
-                    "{} applies an unavailability event to a platform not in its operating set",
+                    "{} applies an unavailability event to a platform that is neither operating nor dispatched as reserve",
                     event.event_id
                 )));
             }
@@ -493,6 +521,12 @@ fn validate_case(case: &FleetContinuityCase) -> Result<(), FleetError> {
                 event.start_hour,
                 event.duration_hours,
                 horizon,
+            )?;
+            validate_grid_alignment(
+                &event.event_id,
+                event.start_hour,
+                event.duration_hours,
+                step,
             )?;
             per_platform_events
                 .entry(event.platform_id.as_str())
@@ -519,6 +553,12 @@ fn validate_case(case: &FleetContinuityCase) -> Result<(), FleetError> {
             if !platform_ids.contains(dispatch.platform_id.as_str()) {
                 return Err(FleetError::UnknownPlatform(dispatch.platform_id.clone()));
             }
+            if platforms[dispatch.platform_id.as_str()].initial_state != "standby_ready" {
+                return Err(FleetError::InvalidEvent(format!(
+                    "{} reserve {} is not in standby_ready initial state",
+                    policy.policy_id, dispatch.platform_id
+                )));
+            }
             if operating.contains(dispatch.platform_id.as_str()) {
                 return Err(FleetError::InvalidEvent(format!(
                     "{} reserve {} is already in operating_platform_ids",
@@ -541,6 +581,13 @@ fn validate_case(case: &FleetContinuityCase) -> Result<(), FleetError> {
                     - dispatch.dispatch_delay_hours)
                     .abs()
                     > EPSILON
+                || [
+                    dispatch.requested_at_hour,
+                    dispatch.on_station_at_hour,
+                    dispatch.released_at_hour,
+                ]
+                .iter()
+                .any(|value| !is_grid_aligned(*value, step))
             {
                 return Err(FleetError::InvalidEvent(format!(
                     "{} has an invalid reserve dispatch interval/delay",
@@ -556,6 +603,24 @@ fn validate_case(case: &FleetContinuityCase) -> Result<(), FleetError> {
         ));
     }
 
+    Ok(())
+}
+
+fn is_grid_aligned(value: f64, step: f64) -> bool {
+    ((value / step) - (value / step).round()).abs() <= EPSILON
+}
+
+fn validate_grid_alignment(
+    event_id: &str,
+    start: f64,
+    duration: f64,
+    step: f64,
+) -> Result<(), FleetError> {
+    if !is_grid_aligned(start, step) || !is_grid_aligned(duration, step) {
+        return Err(FleetError::InvalidEvent(format!(
+            "{event_id} is not aligned to the declared time_step_hours"
+        )));
+    }
     Ok(())
 }
 
@@ -616,83 +681,71 @@ fn evaluate_policy(
 
     for index in 0..steps {
         let time = index as f64 * step;
-        let mut haps_capacity = 0.0;
-
-        for platform_id in &policy.operating_platform_ids {
-            let unavailable = policy.platform_unavailability_events.iter().any(|event| {
-                event.platform_id == *platform_id
-                    && time + EPSILON >= event.start_hour
-                    && time < event.start_hour + event.duration_hours - EPSILON
-            });
-            if !unavailable {
-                haps_capacity += platforms[platform_id.as_str()].service_capacity_units;
-            }
-        }
-
+        let mut active_platform_ids: Vec<&str> = policy
+            .operating_platform_ids
+            .iter()
+            .map(String::as_str)
+            .collect();
         for dispatch in &policy.reserve_dispatch_events {
             if time + EPSILON >= dispatch.on_station_at_hour
                 && time < dispatch.released_at_hour - EPSILON
             {
-                let unavailable = policy.platform_unavailability_events.iter().any(|event| {
-                    event.platform_id == dispatch.platform_id
-                        && time + EPSILON >= event.start_hour
-                        && time < event.start_hour + event.duration_hours - EPSILON
-                });
-                if !unavailable {
-                    haps_capacity += platforms[dispatch.platform_id.as_str()].service_capacity_units;
+                active_platform_ids.push(dispatch.platform_id.as_str());
+            }
+        }
+
+        let mut haps_capacity = 0.0;
+        for platform_id in active_platform_ids {
+            let unavailable = policy.platform_unavailability_events.iter().any(|event| {
+                event.platform_id == platform_id
+                    && time + EPSILON >= event.start_hour
+                    && time < event.start_hour + event.duration_hours - EPSILON
+            });
+            if unavailable {
+                continue;
+            }
+            let mut platform_factor = 1.0;
+            for event in &case.common_cause_events {
+                let in_interval = time + EPSILON >= event.start_hour
+                    && time < event.start_hour + event.duration_hours - EPSILON;
+                if !in_interval {
+                    continue;
+                }
+                match event.scope.as_str() {
+                    "all_haps_in_service_region" => {
+                        platform_factor *= event.haps_capacity_factor;
+                    }
+                    "declared_platform_subset"
+                        if event
+                            .affected_platform_ids
+                            .as_deref()
+                            .unwrap_or_default()
+                            .iter()
+                            .any(|affected| affected == platform_id) =>
+                    {
+                        platform_factor *= event.haps_capacity_factor;
+                    }
+                    _ => {}
                 }
             }
+            haps_capacity +=
+                platforms[platform_id].service_capacity_units * platform_factor;
         }
 
         let mut terrestrial_capacity =
             case.service_contract.normal_terrestrial_capacity_units;
         let mut satellite_capacity = case.service_contract.normal_satellite_capacity_units;
-
         for event in &case.common_cause_events {
             let in_interval = time + EPSILON >= event.start_hour
                 && time < event.start_hour + event.duration_hours - EPSILON;
             if !in_interval {
                 continue;
             }
-            match event.scope.as_str() {
-                "all_haps_in_service_region" => {
-                    haps_capacity *= event.haps_capacity_factor;
-                    if let Some(value) = event.terrestrial_capacity_override_units {
-                        terrestrial_capacity = value;
-                    }
-                    if let Some(value) = event.satellite_capacity_override_units {
-                        satellite_capacity = value;
-                    }
-                }
-                "declared_platform_subset" => {
-                    let affected = event.affected_platform_ids.as_deref().unwrap_or_default();
-                    let affected_capacity = affected
-                        .iter()
-                        .filter(|id| policy.operating_platform_ids.contains(id))
-                        .map(|id| platforms[id.as_str()].service_capacity_units)
-                        .sum::<f64>();
-                    haps_capacity = (haps_capacity - affected_capacity).max(0.0)
-                        + affected_capacity * event.haps_capacity_factor;
-                    if let Some(value) = event.terrestrial_capacity_override_units {
-                        terrestrial_capacity = value;
-                    }
-                    if let Some(value) = event.satellite_capacity_override_units {
-                        satellite_capacity = value;
-                    }
-                }
-                "network_layer" => {
-                    if let Some(value) = event.terrestrial_capacity_override_units {
-                        terrestrial_capacity = value;
-                    }
-                    if let Some(value) = event.satellite_capacity_override_units {
-                        satellite_capacity = value;
-                    }
-                }
-                other => {
-                    return Err(FleetError::InvalidEvent(format!(
-                        "unsupported common-cause scope {other}"
-                    )));
-                }
+            if let Some(value) = event.terrestrial_capacity_override_units {
+                terrestrial_capacity = value;
+            }
+            if let Some(value) = event.satellite_capacity_override_units {
+                satellite_capacity = value;
             }
         }
 
