@@ -6,6 +6,7 @@ on:
       - "research/construction-spacetime-occupancy-time-index-stack-v0-1"
     paths:
       - "research/construction-observation-planning-v0-1/**"
+      - "research/construction-spacetime-occupancy-v0-1/**"
       - ".github/workflows/construction-observation-planning-v0-1.yml"
   push:
     branches:
@@ -41,3 +42,14 @@ jobs:
         run: cargo test --manifest-path research/construction-observation-planning-v0-1/Cargo.toml --locked
       - name: Strict Clippy
         run: cargo clippy --manifest-path research/construction-observation-planning-v0-1/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Occupancy locked metadata
+        run: cargo metadata --manifest-path research/construction-spacetime-occupancy-v0-1/Cargo.toml --locked --format-version 1
+      - name: Occupancy formatting
+        run: cargo fmt --manifest-path research/construction-spacetime-occupancy-v0-1/Cargo.toml -- --check
+      - name: Occupancy tests
+        run: cargo test --manifest-path research/construction-spacetime-occupancy-v0-1/Cargo.toml --locked
+      - name: Occupancy strict Clippy
+        run: cargo clippy --manifest-path research/construction-spacetime-occupancy-v0-1/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Occupancy scale benchmark
+        if: runner.os == 'Linux'
+        run: cargo bench --manifest-path research/construction-spacetime-occupancy-v0-1/Cargo.toml --locked --bench scale
