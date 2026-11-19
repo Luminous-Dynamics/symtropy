@@ -31,3 +31,12 @@ The synthetic adversarial fixture has a freshwater reserve of 2 days at hour 6, 
 - The segment envelope is only as trustworthy as the upstream model/evidence. This tool checks the declared conservative bound; it does not prove a numerical model has bounded the true continuous trajectory.
 - Floors are contract-specific demonstration values; real limits need actual vessel systems, crew, applicable law and qualified engineering review.
 - This is not a stability model, live safety monitor, safety certificate or navigation authority.
+
+
+## Adversarial corpus and benchmark boundary
+
+Fifteen authored Rust tests cover: positive whole-trajectory admission; arrival-only acceptance trap with later replenishment; inter-sample segment breach; point-estimate pass with conservative-bound failure; cumulative outage memory; crew workload spike; stale/gapped sampling; missing or mismatched resource events; event-sign semantics; scenario-member source digest identity; weather-blind forecast isolation; hard-gate failure; exact segment/time-grid alignment.
+
+The first fixture contains three matched policy arms, two coherent scenario members per arm, 18 timepoints and 12 inter-sample segments. The adversarial fixture has the integrated candidate cross its freshwater reserve floor at hour 6, consume 3 reserve-days with a timed receipt, then replenish 3 reserve-days at hour 8 and arrive at hour 12 with 5 reserve-days. The trajectory is blocked even though the final arrival snapshot passes.
+
+All benchmark thresholds and data are synthetic. The segment envelopes are checked as declared bounds, not proven physically conservative by this auditor. A measured deployment requires independent evaluation of the model that produces them, sensor/evidence quality, onboard compute latency and qualified vessel-system validation.
