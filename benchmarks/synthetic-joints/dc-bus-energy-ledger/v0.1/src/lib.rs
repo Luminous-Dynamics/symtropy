@@ -68,6 +68,8 @@ pub struct NumericInterval {
 pub struct IntegratedEnergyTerm {
     /// Exact port name used by the selected balance equation.
     pub port_id: String,
+    /// Digest of the exact physical interface/location where this port is measured.
+    pub physical_port_digest: String,
     /// Signed energy interval before quadrature-error expansion, in joules.
     pub energy_j: NumericInterval,
     pub unit: String,
@@ -98,6 +100,7 @@ pub struct IntegratedEnergyTerm {
 #[derive(Debug, Clone, PartialEq)]
 pub struct EnergyTermReceipt {
     pub port_id: String,
+    pub physical_port_digest: String,
     pub raw_energy_j: NumericInterval,
     pub integration_error_bound_j: f64,
     pub qualified_energy_j: NumericInterval,
@@ -126,6 +129,8 @@ pub struct EnergyBalanceReport {
     pub mission_interval_digest: Option<String>,
     pub operating_condition_digest: Option<String>,
     pub time_alignment_digest: Option<String>,
+    pub start_time_s: Option<f64>,
+    pub end_time_s: Option<f64>,
     pub term_receipts: Vec<EnergyTermReceipt>,
     pub reason: Option<String>,
     pub interpretation: String,
@@ -229,6 +234,8 @@ fn unknown_report(
         mission_interval_digest: None,
         operating_condition_digest: None,
         time_alignment_digest: None,
+        start_time_s: None,
+        end_time_s: None,
         term_receipts,
         reason: Some(reason.into()),
         interpretation: "Energy balance is Unknown. Missing evidence is not zero and no regeneration/storage claim is made.".to_owned(),
@@ -285,6 +292,7 @@ fn validate_and_expand_term(
 
     let required_strings = [
         term.port_id.as_str(),
+        term.physical_port_digest.as_str(),
         term.integration_error_source_reference.as_str(),
         term.integration_error_digest.as_str(),
         term.integration_method.as_str(),
@@ -316,6 +324,7 @@ fn validate_and_expand_term(
 
     Ok(Ok(EnergyTermReceipt {
         port_id: term.port_id.clone(),
+        physical_port_digest: term.physical_port_digest.clone(),
         raw_energy_j: term.energy_j,
         integration_error_bound_j,
         qualified_energy_j,
@@ -455,6 +464,8 @@ fn assess(
         mission_interval_digest: Some(first.mission_interval_digest.clone()),
         operating_condition_digest: Some(first.operating_condition_digest.clone()),
         time_alignment_digest: Some(first.time_alignment_digest.clone()),
+        start_time_s: Some(first.start_time_s),
+        end_time_s: Some(first.end_time_s),
         term_receipts: receipts,
         reason: None,
         interpretation: "Zero containment means the signed energy balance is consistent with the declared deterministic intervals and integration bounds; it does not prove the model, instrumentation or physical recovery path is correct. A wide residual interval may be uninformative.".to_owned(),
@@ -517,6 +528,8 @@ fn coupling(
     if from.mission_interval_digest != to.mission_interval_digest
         || from.operating_condition_digest != to.operating_condition_digest
         || from.time_alignment_digest != to.time_alignment_digest
+        || from.start_time_s != to.start_time_s
+        || from.end_time_s != to.end_time_s
     {
         result.reason = Some("boundary coupling records do not share mission interval, operating conditions and time alignment".to_owned());
         return result;
@@ -530,6 +543,11 @@ fn coupling(
         result.reason = Some(format!("downstream port {to_port:?} is missing from its receipt"));
         return result;
     };
+
+    if from_term.physical_port_digest != to_term.physical_port_digest {
+        result.reason = Some("boundary coupling terms do not identify the same physical port location".to_owned());
+        return result;
+    }
 
     let difference = NumericInterval {
         lower: from_term.qualified_energy_j.lower - to_term.qualified_energy_j.upper,
@@ -639,6 +657,7 @@ mod tests {
     fn term(port: &str, energy: f64) -> IntegratedEnergyTerm {
         IntegratedEnergyTerm {
             port_id: port.to_owned(),
+            physical_port_digest: format!("physical-port-{port}-v1"),
             energy_j: NumericInterval { lower: energy, upper: energy },
             unit: "J".to_owned(),
             bound_representation: BoundRepresentation::ValidatedBound,
@@ -913,7 +932,8 @@ mod tests {
     fn complete_motoring_case() -> (Vec<IntegratedEnergyTerm>, Vec<IntegratedEnergyTerm>, Vec<IntegratedEnergyTerm>) {
         let mut actuator = actuator_motoring();
         actuator[0].energy_j = NumericInterval { lower: 100.0, upper: 100.0 };
-        let bus = vec![
+        actuator[0].physical_port_digest = "drive-dc-terminal-interface-v1".to_owned();
+        let mut bus = vec![
             term("external_source_in", 150.0),
             term("drive_draw_signed", 100.0),
             term("storage_draw_signed", 20.0),
@@ -921,7 +941,10 @@ mod tests {
             term("brake_dissipated", 15.0),
             term("delta_bus_cap", 0.0),
         ];
-        let storage = storage_flow();
+        bus[1].physical_port_digest = "drive-dc-terminal-interface-v1".to_owned();
+        bus[2].physical_port_digest = "storage-terminal-interface-v1".to_owned();
+        let mut storage = storage_flow();
+        storage[0].physical_port_digest = "storage-terminal-interface-v1".to_owned();
         (actuator, bus, storage)
     }
 
@@ -970,7 +993,30 @@ mod tests {
     }
 
     #[test]
-    fn ledger_027_unknown_evidence_is_unknown_not_a_balance_pass() {
+    fn ledger_027_boundary_coupling_requires_the_same_physical_port_digest() {
+        let (actuator, mut bus, storage) = complete_motoring_case();
+        bus[1].physical_port_digest = "different-side-of-connector-v1".to_owned();
+        let report = assess_complete_energy_ledger(&actuator, &bus, &storage).unwrap();
+        assert_eq!(report.actuator_module.disposition, BalanceDisposition::ConsistentWithDeclaredBounds);
+        assert_eq!(report.shared_dc_bus.disposition, BalanceDisposition::ConsistentWithDeclaredBounds);
+        assert_eq!(report.actuator_to_bus.disposition, BoundaryCouplingDisposition::Unknown);
+        assert_eq!(report.overall_disposition, BalanceDisposition::Unknown);
+    }
+
+    #[test]
+    fn ledger_028_cross_boundary_exact_start_and_end_times_must_match() {
+        let (actuator, mut bus, storage) = complete_motoring_case();
+        for term in &mut bus {
+            term.start_time_s = 0.001;
+            term.end_time_s = 1.001;
+        }
+        let report = assess_complete_energy_ledger(&actuator, &bus, &storage).unwrap();
+        assert_eq!(report.actuator_to_bus.disposition, BoundaryCouplingDisposition::Unknown);
+        assert_eq!(report.overall_disposition, BalanceDisposition::Unknown);
+    }
+
+    #[test]
+    fn ledger_029_unknown_evidence_is_unknown_not_a_balance_pass() {
         let mut terms = actuator_motoring();
         terms[0].evidence_class = EvidenceClass::Unknown;
         let report = assess_actuator_module_balance(&terms).unwrap();
