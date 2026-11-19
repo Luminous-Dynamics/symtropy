@@ -902,7 +902,7 @@ mod tests {
     }
 
     #[test]
-    fn sharing_020_unknown_capability_provenance_cannot_be_feasible() {
+    fn sharing_018_unknown_capability_provenance_cannot_be_feasible() {
         let mut a = unit("A", interval(4.0, 5.0), interval(40.0, 42.0));
         a.capability_evidence_class = EvidenceClass::Unknown;
         a.capability_source_reference = None;
@@ -916,7 +916,7 @@ mod tests {
     }
 
     #[test]
-    fn sharing_020_duplicate_ids_and_invalid_capability_reject() {
+    fn sharing_019_duplicate_ids_and_invalid_capability_reject() {
         let a = unit("same", interval(4.0, 5.0), interval(40.0, 42.0));
         let b = unit("same", interval(5.0, 6.0), interval(41.0, 43.0));
         assert!(evaluate_joint(&input(vec![a, b])).is_err());
