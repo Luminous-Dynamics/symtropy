@@ -33,6 +33,26 @@ jobs:
           toolchain: "1.96.0"
           components: rustfmt, clippy
 
+      - name: Check readiness schemas and frozen conformance vectors
+        shell: bash
+        run: |
+          set -euo pipefail
+          vectors=tools/shipyard-crane-readiness/fixtures/conformance-vectors-v0.1.json
+          jq -e '
+            .contract_version == "shipyard-crane-readiness-v0.1"
+            and .vector_set_id == "SHIPYARD-CRANE-READINESS-CONFORMANCE-V0.1"
+            and (.vectors | length) == 15
+            and ([.vectors[].id] | unique | length) == 15
+            and ([.vectors[].test_name] | unique | length) == 15
+            and all(.vectors[]; .synthetic_only == true)
+          ' "$vectors"
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.contract_version.const == "shipyard-crane-readiness-v0.1" and (.required | index("lift_preflight") != null)' tools/shipyard-crane-readiness/schemas/readiness-plan-v0.1.schema.json
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.disposition.enum == ["ready_for_human_review","rejected","indeterminate"]' tools/shipyard-crane-readiness/schemas/readiness-report-v0.1.schema.json
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.vectors.minItems == 15' tools/shipyard-crane-readiness/schemas/conformance-vectors-v0.1.schema.json
+          while IFS= read -r test_name; do
+            grep -Fq "fn ${test_name}(" tools/shipyard-crane-readiness/src/lib.rs
+          done < <(jq -r '.vectors[].test_name' "$vectors")
+
       - name: Check formatting
         run: cargo fmt --manifest-path tools/shipyard-crane-readiness/Cargo.toml -- --check
 
