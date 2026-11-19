@@ -816,7 +816,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_024_system_boundaries_are_separate_comparison_cohorts() {
+    fn pareto_021_system_boundaries_are_separate_comparison_cohorts() {
         let a = candidate("installed-boundary", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
         let mut b = candidate("component-boundary", 2.0, 110.0, 0.8, EvidenceClass::IndependentPhysical);
         b.system_boundary_digest = "motor-only-boundary".to_owned();
@@ -832,7 +832,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_024_stress_sets_are_separate_comparison_cohorts() {
+    fn pareto_022_stress_sets_are_separate_comparison_cohorts() {
         let a = candidate("stress-a", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
         let mut b = candidate("stress-b", 2.0, 110.0, 0.8, EvidenceClass::IndependentPhysical);
         b.stress_set_digest = "different-stress-envelope".to_owned();
@@ -845,7 +845,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_024_violation_receipt_preserves_source_and_margin() {
+    fn pareto_023_violation_receipt_preserves_source_and_margin() {
         let mut candidate = candidate("receipt", 1.0, 100.0, 0.9, EvidenceClass::SourceAuthorPhysical);
         candidate.hard_constraints[0].minimum_robust_margin = Some(-0.25);
         let report = robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).unwrap();
