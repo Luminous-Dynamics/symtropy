@@ -1,0 +1,129 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "EV-CARRIER-REF-01",
+  "claim_ceiling": "Synthetic incremental configuration screen only. Unknown drone/pod hardware values remain null; no manufacturing, roadworthiness, restraint, airworthiness, flight, certification, measured performance, commercial or deployment claim.",
+  "configurations": [
+    {
+      "config_id": "urban-truck-only-control",
+      "base_design_id": "urban-distribution-truck",
+      "architecture": "truck_only",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic:EV-PLATFORM-001/urban-distribution-truck",
+      "energy_boundary_note": "Control case: no incremental module mass, vehicle battery draw, HV-bus demand or external UAV site-meter energy; base EV design-screen energy boundary only.",
+      "incremental_installed_mass_kg": 0,
+      "incremental_payload_mass_kg": 0,
+      "incremental_vehicle_battery_draw_kwh": 0,
+      "incremental_vehicle_bus_continuous_power_kw": 0,
+      "incremental_vehicle_bus_peak_power_kw": 0,
+      "incremental_external_site_meter_energy_kwh": 0,
+      "incremental_external_site_peak_power_kw": 0,
+      "external_site_peak_coincident_with_vehicle_charging": false,
+      "notes": [
+        "Synthetic control only; not an actual truck specification."
+      ]
+    },
+    {
+      "config_id": "light-commercial-van-only-control",
+      "base_design_id": "light-commercial-van",
+      "architecture": "truck_only",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic:EV-PLATFORM-001/light-commercial-van",
+      "energy_boundary_note": "Control case: no incremental module mass, vehicle battery draw, HV-bus demand or external UAV site-meter energy; base EV design-screen energy boundary only.",
+      "incremental_installed_mass_kg": 0,
+      "incremental_payload_mass_kg": 0,
+      "incremental_vehicle_battery_draw_kwh": 0,
+      "incremental_vehicle_bus_continuous_power_kw": 0,
+      "incremental_vehicle_bus_peak_power_kw": 0,
+      "incremental_external_site_meter_energy_kwh": 0,
+      "incremental_external_site_peak_power_kw": 0,
+      "external_site_peak_coincident_with_vehicle_charging": false,
+      "notes": [
+        "Synthetic control only; not an actual van specification."
+      ]
+    },
+    {
+      "config_id": "urban-truck-integrated-enclosed-drone-bay",
+      "base_design_id": "urban-distribution-truck",
+      "architecture": "integrated_enclosed_bay",
+      "evidence_class": "unknown",
+      "evidence_reference": "",
+      "energy_boundary_note": "Vehicle-battery draw is battery-terminal energy including vehicle-to-UAV converter losses. External site energy is a separate site-meter boundary. No pod mass, charging hardware, electrical load, thermal or fire data have been qualified.",
+      "incremental_installed_mass_kg": null,
+      "incremental_payload_mass_kg": null,
+      "incremental_vehicle_battery_draw_kwh": null,
+      "incremental_vehicle_bus_continuous_power_kw": null,
+      "incremental_vehicle_bus_peak_power_kw": null,
+      "incremental_external_site_meter_energy_kwh": null,
+      "incremental_external_site_peak_power_kw": null,
+      "external_site_peak_coincident_with_vehicle_charging": null,
+      "notes": [
+        "Require pod/aircraft as-built mass and mounting interface.",
+        "Require phase/duty-cycle battery-terminal energy and HV-bus power.",
+        "Require independent site-meter energy and time-resolved coincident peak data.",
+        "Require qualified cargo, retention, axle/CG, thermal/fire, EMC and service evidence."
+      ]
+    },
+    {
+      "config_id": "urban-truck-detachable-drone-pod",
+      "base_design_id": "urban-distribution-truck",
+      "architecture": "detachable_drone_pod",
+      "evidence_class": "unknown",
+      "evidence_reference": "",
+      "energy_boundary_note": "Vehicle battery and external site energy remain separate. Detachable pod mass, transfer/handling energy, charger boundary and site concurrency are unqualified.",
+      "incremental_installed_mass_kg": null,
+      "incremental_payload_mass_kg": null,
+      "incremental_vehicle_battery_draw_kwh": null,
+      "incremental_vehicle_bus_continuous_power_kw": null,
+      "incremental_vehicle_bus_peak_power_kw": null,
+      "incremental_external_site_meter_energy_kwh": null,
+      "incremental_external_site_peak_power_kw": null,
+      "external_site_peak_coincident_with_vehicle_charging": null,
+      "notes": [
+        "Require pod mass/CG and detachable mounting/retention evidence.",
+        "Require transfer, charging, maintenance and replenishment energy data.",
+        "Compare pod sharing and idle/repositioning costs in LOGISTICS-MODE-OPTIONS-001."
+      ]
+    },
+    {
+      "config_id": "urban-truck-mobile-drone-station-trailer",
+      "base_design_id": "urban-distribution-truck",
+      "architecture": "mobile_drone_station_trailer",
+      "evidence_class": "unknown",
+      "evidence_reference": "",
+      "energy_boundary_note": "Trailer, aircraft and site energy are separate from the tractor battery. This configuration must be compared with the published TSP-MDST trailer architecture on matched missions.",
+      "incremental_installed_mass_kg": null,
+      "incremental_payload_mass_kg": null,
+      "incremental_vehicle_battery_draw_kwh": null,
+      "incremental_vehicle_bus_continuous_power_kw": null,
+      "incremental_vehicle_bus_peak_power_kw": null,
+      "incremental_external_site_meter_energy_kwh": null,
+      "incremental_external_site_peak_power_kw": null,
+      "external_site_peak_coincident_with_vehicle_charging": null,
+      "notes": [
+        "Require trailer gross/axle/coupling/braking and stability envelope.",
+        "Require trailer battery/charger/site meter and aircraft service data.",
+        "Do not claim novelty from mobile trailer deployment alone."
+      ]
+    },
+    {
+      "config_id": "urban-truck-amr-handoff-module",
+      "base_design_id": "urban-distribution-truck",
+      "architecture": "amr_cargo_handoff",
+      "evidence_class": "unknown",
+      "evidence_reference": "",
+      "energy_boundary_note": "Vehicle traction-battery draw, AMR battery energy and external charging meter energy must be declared separately; no AMR energy or handling data are yet qualified.",
+      "incremental_installed_mass_kg": null,
+      "incremental_payload_mass_kg": null,
+      "incremental_vehicle_battery_draw_kwh": null,
+      "incremental_vehicle_bus_continuous_power_kw": null,
+      "incremental_vehicle_bus_peak_power_kw": null,
+      "incremental_external_site_meter_energy_kwh": null,
+      "incremental_external_site_peak_power_kw": null,
+      "external_site_peak_coincident_with_vehicle_charging": null,
+      "notes": [
+        "Require AMR and handling module mass, access, duty and charging profiles.",
+        "AMR fleet scheduling and handoff remain separate qualified owners."
+      ]
+    }
+  ]
+}
