@@ -831,6 +831,15 @@ mod tests {
     }
 
     #[test]
+    fn geothermal_heat_can_feed_temperature_qualified_thermal_desalination() {
+        let mut stream = geothermal_heat_stream();
+        stream.source_kind = SourceKind::GeothermalSecondaryHeat;
+        stream.service = ServiceKind::ThermalDesalinationHeat;
+        stream.thermal_isolation = None;
+        assert_eq!(stream.validate(1e-9), Ok(()));
+    }
+
+    #[test]
     fn geothermal_generated_electricity_can_feed_reverse_osmosis() {
         let stream = electric_stream(
             SourceKind::GeothermalGeneratedElectricity,
