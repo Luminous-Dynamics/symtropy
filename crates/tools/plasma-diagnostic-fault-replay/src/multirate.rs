@@ -930,6 +930,8 @@ mod tests {
             20,
         );
         let mut receipt = align_as_of(&req).expect("alignment");
+        verify_alignment_receipt_for_request(&req, &receipt)
+            .expect("receipt must match deterministic request replay");
         receipt.body.entries[0].value = Some(999.0);
         assert!(verify_alignment_receipt(&receipt).is_err());
         receipt.receipt_sha256 = digest_serialized(&receipt.body).expect("tampered receipt digest");
