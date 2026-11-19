@@ -233,7 +233,9 @@
           "measurement_method": "synthetic-known-answer-projection",
           "measurement_class": "synthetic"
         }
-      ]
+      ],
+      "hard_gate_evidence_ref": "SYNTHETIC-HARD-GATE-EVIDENCE-weather-blind-reference",
+      "hard_gate_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     },
     {
       "policy_id": "weather-informed-resource-blind",
@@ -376,7 +378,9 @@
           "measurement_method": "synthetic-known-answer-projection",
           "measurement_class": "synthetic"
         }
-      ]
+      ],
+      "hard_gate_evidence_ref": "SYNTHETIC-HARD-GATE-EVIDENCE-weather-informed-resource-blind",
+      "hard_gate_evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
     },
     {
       "policy_id": "integrated-mission-candidate",
@@ -519,7 +523,9 @@
           "measurement_method": "synthetic-known-answer-projection",
           "measurement_class": "synthetic"
         }
-      ]
+      ],
+      "hard_gate_evidence_ref": "SYNTHETIC-HARD-GATE-EVIDENCE-integrated-mission-candidate",
+      "hard_gate_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
     }
   ]
 }
