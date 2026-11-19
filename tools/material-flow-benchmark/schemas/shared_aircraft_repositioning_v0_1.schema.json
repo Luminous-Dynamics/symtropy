@@ -130,7 +130,7 @@
           },
           "travel_periods": {
             "type": "integer",
-            "minimum": 1
+            "const": 1
           },
           "energy_units": {
             "type": "integer",
