@@ -79,7 +79,8 @@
           "asset_ref",
           "lift_class",
           "configuration_ref",
-          "configuration_revision"
+          "configuration_revision",
+          "initial_state"
         ],
         "properties": {
           "asset_ref": {
@@ -108,6 +109,21 @@
               "type": "string"
             },
             "uniqueItems": true
+          },
+          "initial_state": {
+            "enum": [
+              "ready_for_dispatch",
+              "launch_recovery",
+              "in_service",
+              "postflight_inspection",
+              "grounded",
+              "maintenance_queued",
+              "maintenance_in_progress",
+              "verification_hold",
+              "awaiting_authorized_release",
+              "ready_for_dispatch_pending_authorized_release",
+              "retired"
+            ]
           }
         }
       }
@@ -511,5 +527,5 @@
       "uniqueItems": true
     }
   },
-  "$comment": "Semantic invariants: event IDs unique; event_sequence is contiguous; previous_event_id links to the prior record; each event asset/configuration exists in assets; configuration_ref matches the relevant asset configuration; observed_at_utc and recorded_at_utc are distinct concepts and recorded_at_utc must not precede observed_at_utc unless a declared clock/correction rule applies; occurred_at_utc may be null when true occurrence is unknown; interval-censored onset requires a lower and upper bound and no fabricated point onset; exposure_seconds must equal end-start after declared clock normalization; right-censored exposure has no failure event/bounds and represents a platform observed operating through end_utc without a detected failure; no release_status other than authorized_by_external_authority may set return_to_service_authorized=true; even that state requires a non-null release_authority_ref and explicit scope. Content digests and signatures are not verified by this schema. Synthetic records do not constitute real maintenance, inspection or operational evidence."
+  "$comment": "Semantic invariants: event IDs unique; event_sequence is contiguous; previous_event_id links to the prior record; each event asset/configuration exists in assets; configuration_ref matches the relevant asset configuration; observed_at_utc and recorded_at_utc are distinct concepts and recorded_at_utc must not precede observed_at_utc unless a declared clock/correction rule applies; occurred_at_utc may be null when true occurrence is unknown; interval-censored onset requires a lower and upper bound and no fabricated point onset; exposure_seconds must equal end-start after declared clock normalization; right-censored exposure has no failure event/bounds and represents a platform observed operating through end_utc without a detected failure; no release_status other than authorized_by_external_authority may set return_to_service_authorized=true; even that state requires a non-null release_authority_ref and explicit scope. Content digests and signatures are not verified by this schema. Synthetic records do not constitute real maintenance, inspection or operational evidence. Event state transitions are validated from each asset's initial_state through the ordered event chain."
 }
