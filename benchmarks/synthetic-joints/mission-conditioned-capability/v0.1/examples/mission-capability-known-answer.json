@@ -1,0 +1,159 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "synthetic-mission-conditioned-joint-capability-v0.1",
+  "candidate": {
+    "candidate_id": "synthetic-joint-candidate",
+    "configuration_digest": "synthetic-candidate-config-v0.1",
+    "operating_condition_digest": "synthetic-48V-25C-plate-A-v0.1",
+    "regimes": [
+      {
+        "regime": "hold",
+        "points": [
+          {
+            "speed_abs_rad_s": 0,
+            "continuous_torque_nm": 10,
+            "continuous_uncertainty_nm": 1,
+            "peak_torque_nm": 15,
+            "peak_uncertainty_nm": 1
+          },
+          {
+            "speed_abs_rad_s": 10,
+            "continuous_torque_nm": 8,
+            "continuous_uncertainty_nm": 1,
+            "peak_torque_nm": 12,
+            "peak_uncertainty_nm": 1
+          }
+        ],
+        "maximum_interpolation_gap_rad_s": 10,
+        "maximum_contiguous_peak_duration_s": 0.5,
+        "evidence": {
+          "class": "model_derived",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy",
+          "method": "Synthetic known-answer torque-speed envelope for hold; values are invented software fixtures and are not actuator measurements.",
+          "calibration_reference": null,
+          "configuration_digest": "synthetic-candidate-config-v0.1",
+          "operating_condition_digest": "synthetic-48V-25C-plate-A-v0.1"
+        },
+        "notes": [
+          "Synthetic values only."
+        ]
+      },
+      {
+        "regime": "forward_motoring",
+        "points": [
+          {
+            "speed_abs_rad_s": 0,
+            "continuous_torque_nm": 10,
+            "continuous_uncertainty_nm": 1,
+            "peak_torque_nm": 15,
+            "peak_uncertainty_nm": 1
+          },
+          {
+            "speed_abs_rad_s": 10,
+            "continuous_torque_nm": 8,
+            "continuous_uncertainty_nm": 1,
+            "peak_torque_nm": 12,
+            "peak_uncertainty_nm": 1
+          }
+        ],
+        "maximum_interpolation_gap_rad_s": 10,
+        "maximum_contiguous_peak_duration_s": 0.5,
+        "evidence": {
+          "class": "model_derived",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy",
+          "method": "Synthetic known-answer torque-speed envelope for forward_motoring; values are invented software fixtures and are not actuator measurements.",
+          "calibration_reference": null,
+          "configuration_digest": "synthetic-candidate-config-v0.1",
+          "operating_condition_digest": "synthetic-48V-25C-plate-A-v0.1"
+        },
+        "notes": [
+          "Synthetic values only."
+        ]
+      },
+      {
+        "regime": "forward_regenerating",
+        "points": [
+          {
+            "speed_abs_rad_s": 0,
+            "continuous_torque_nm": 10,
+            "continuous_uncertainty_nm": 1,
+            "peak_torque_nm": 15,
+            "peak_uncertainty_nm": 1
+          },
+          {
+            "speed_abs_rad_s": 10,
+            "continuous_torque_nm": 8,
+            "continuous_uncertainty_nm": 1,
+            "peak_torque_nm": 12,
+            "peak_uncertainty_nm": 1
+          }
+        ],
+        "maximum_interpolation_gap_rad_s": 10,
+        "maximum_contiguous_peak_duration_s": 0.5,
+        "evidence": {
+          "class": "model_derived",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy",
+          "method": "Synthetic known-answer torque-speed envelope for forward_regenerating; values are invented software fixtures and are not actuator measurements.",
+          "calibration_reference": null,
+          "configuration_digest": "synthetic-candidate-config-v0.1",
+          "operating_condition_digest": "synthetic-48V-25C-plate-A-v0.1"
+        },
+        "notes": [
+          "Synthetic values only."
+        ]
+      }
+    ],
+    "installed_mass": {
+      "status": "unknown",
+      "value": null,
+      "unit": "kg",
+      "uncertainty": null,
+      "boundary": "Complete joint module including motor, drive, transmission, sensors, cabling and mount.",
+      "reason": "No physical candidate; mass cannot be inferred from a component-level assumption."
+    },
+    "installed_volume": {
+      "status": "unknown",
+      "value": null,
+      "unit": "m3",
+      "uncertainty": null,
+      "boundary": "Complete installed module envelope.",
+      "reason": "No physical candidate."
+    },
+    "notes": [
+      "This is a synthetic known-answer fixture. No vendor, physical or lab performance is claimed."
+    ]
+  },
+  "mission": {
+    "mission_id": "synthetic-hold-drive-regenerate",
+    "candidate_configuration_digest": "synthetic-candidate-config-v0.1",
+    "operating_condition_digest": "synthetic-48V-25C-plate-A-v0.1",
+    "samples": [
+      {
+        "time_s": 0,
+        "required_torque_nm": 2,
+        "required_torque_uncertainty_nm": 0.1,
+        "angular_speed_rad_s": 0
+      },
+      {
+        "time_s": 1,
+        "required_torque_nm": 5,
+        "required_torque_uncertainty_nm": 0.5,
+        "angular_speed_rad_s": 5
+      },
+      {
+        "time_s": 2,
+        "required_torque_nm": -2,
+        "required_torque_uncertainty_nm": 0.2,
+        "angular_speed_rad_s": 1
+      }
+    ],
+    "task_success_condition": "All samples covered by the appropriate conservative mechanical torque-speed branch; no peak-duration exceedance.",
+    "payload_boundary": "Synthetic scalar joint demand; no physical payload.",
+    "environmental_conditions": "Synthetic 48 V, 25 C, plate-A condition digest; not a physical test condition.",
+    "sampling_method": "Three synthetic trajectory knots with seconds, signed required output torque, uncertainty and angular velocity.",
+    "notes": [
+      "Only the signed mechanical port is represented. No DC bus, thermal, current, passivity or reliability result is implied."
+    ]
+  },
+  "claim_ceiling": "Synthetic input fixture for schema and analytic evaluator known-answer testing only. It is not physical actuator data, independent test evidence, a full joint qualification or a safety case."
+}
