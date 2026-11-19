@@ -13,8 +13,7 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const SCHEMA_VERSION: u32 = 1;
-const CLAIM_CEILING: &str =
-    "finite-campaign-receipt-normalization-only;does-not-run-simulations-or-authenticate-measurements";
+const CLAIM_CEILING: &str = "finite-campaign-receipt-normalization-only;does-not-run-simulations-or-authenticate-measurements";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -270,31 +269,49 @@ impl std::fmt::Display for EvaluationError {
             Self::CounterOverflow(name) => write!(f, "integer counter overflow: {name}"),
             Self::DuplicateCampaignId(id) => write!(f, "duplicate campaign ID: {id}"),
             Self::EngineConfigurationMismatch(id) => {
-                write!(f, "replications use different version/executable/configuration for engine ID: {id}")
+                write!(
+                    f,
+                    "replications use different version/executable/configuration for engine ID: {id}"
+                )
             }
             Self::DuplicateResult(id) => write!(f, "duplicate result for case: {id}"),
             Self::MissingCaseResult(id) => write!(f, "campaign omitted required case: {id}"),
             Self::UnexpectedCaseResult(id) => write!(f, "campaign contains an unknown case: {id}"),
             Self::HardwareProfileMismatch(id) => {
-                write!(f, "campaign uses a different comparison hardware profile: {id}")
+                write!(
+                    f,
+                    "campaign uses a different comparison hardware profile: {id}"
+                )
             }
             Self::SimulatedTicksExceedCaseHorizon(id) => {
-                write!(f, "campaign reports more simulated ticks than requested for case: {id}")
+                write!(
+                    f,
+                    "campaign reports more simulated ticks than requested for case: {id}"
+                )
             }
             Self::NotRunHasProgress(id) => {
                 write!(f, "a not-run case reports simulated progress: {id}")
             }
             Self::EnergySamplingPolicyMissing(id) => {
-                write!(f, "energy receipt has no preregistered sample-gap policy: {id}")
+                write!(
+                    f,
+                    "energy receipt has no preregistered sample-gap policy: {id}"
+                )
             }
             Self::EnergySampleGapExceeded(id) => {
                 write!(f, "energy receipt exceeds sample-gap policy: {id}")
             }
             Self::EnergyWindowMismatch(id) => {
-                write!(f, "energy measurement window does not equal the campaign wall-time window: {id}")
+                write!(
+                    f,
+                    "energy measurement window does not equal the campaign wall-time window: {id}"
+                )
             }
             Self::EnergyScopeSourceMismatch(id) => {
-                write!(f, "energy source/scope/sampling semantics are incompatible: {id}")
+                write!(
+                    f,
+                    "energy source/scope/sampling semantics are incompatible: {id}"
+                )
             }
             Self::InvalidLatencyOrder(id) => {
                 write!(f, "latency percentiles are not ordered for campaign: {id}")
@@ -313,11 +330,12 @@ pub fn evaluate(input: &BenchmarkInputV1) -> Result<BenchmarkReportV1, Evaluatio
     let input_sha256 = canonical_sha256(&canonical)?;
     let energy_sensors_comparable = energy_is_comparable(&canonical.campaigns);
     let requested_cases = canonical.cases.len() as u64;
-    let requested_ticks = canonical.cases.iter().try_fold(0_u64, |total, case| {
-        total
-            .checked_add(case.required_simulated_ticks)
-            .ok_or(EvaluationError::CounterOverflow("requested_simulated_ticks"))
-    })?;
+    let requested_ticks =
+        canonical.cases.iter().try_fold(0_u64, |total, case| {
+            total.checked_add(case.required_simulated_ticks).ok_or(
+                EvaluationError::CounterOverflow("requested_simulated_ticks"),
+            )
+        })?;
 
     let mut reports = canonical
         .campaigns
@@ -411,10 +429,8 @@ fn evaluate_campaign(
     let horizon_coverage = ratio_or_zero(qualified_ticks, requested_ticks);
     let raw_rate = raw_ticks as f64 / wall_seconds;
     let qualified_rate = qualified_ticks as f64 / wall_seconds;
-    let (energy_scope, energy_per_tick) = match (
-        &campaign.energy_measurement,
-        qualified_ticks > 0,
-    ) {
+    let (energy_scope, energy_per_tick) = match (&campaign.energy_measurement, qualified_ticks > 0)
+    {
         (Some(energy), true) => (
             Some(energy.scope),
             Some(energy.integrated_energy_uj / qualified_ticks as f64),
@@ -468,9 +484,7 @@ fn case_rejection_reasons(
     match result.semantic_equivalence {
         SemanticEquivalence::Matched => {}
         SemanticEquivalence::Mismatch => reasons.push(RejectionReason::SemanticMismatch),
-        SemanticEquivalence::Unknown => {
-            reasons.push(RejectionReason::SemanticEquivalenceUnknown)
-        }
+        SemanticEquivalence::Unknown => reasons.push(RejectionReason::SemanticEquivalenceUnknown),
     }
     if result.completed_simulated_ticks < requirement.required_simulated_ticks {
         reasons.push(RejectionReason::HorizonIncomplete);
@@ -539,12 +553,17 @@ fn validate_input(input: &BenchmarkInputV1) -> Result<(), EvaluationError> {
     for campaign in &input.campaigns {
         validate_nonempty(&campaign.campaign_id, "campaign.campaign_id")?;
         if !campaign_ids.insert(campaign.campaign_id.clone()) {
-            return Err(EvaluationError::DuplicateCampaignId(campaign.campaign_id.clone()));
+            return Err(EvaluationError::DuplicateCampaignId(
+                campaign.campaign_id.clone(),
+            ));
         }
         validate_nonempty(&campaign.engine_id, "campaign.engine_id")?;
         validate_nonempty(&campaign.engine_version, "campaign.engine_version")?;
         validate_sha256(&campaign.executable_sha256, "campaign.executable_sha256")?;
-        validate_sha256(&campaign.configuration_sha256, "campaign.configuration_sha256")?;
+        validate_sha256(
+            &campaign.configuration_sha256,
+            "campaign.configuration_sha256",
+        )?;
         validate_sha256(
             &campaign.hardware_profile_sha256,
             "campaign.hardware_profile_sha256",
@@ -585,12 +604,18 @@ fn validate_campaign_cases(
     input: &BenchmarkInputV1,
     campaign: &EngineCampaign,
 ) -> Result<(), EvaluationError> {
-    let required = input.cases.iter().map(|case| case.case_id.as_str()).collect::<BTreeSet<_>>();
+    let required = input
+        .cases
+        .iter()
+        .map(|case| case.case_id.as_str())
+        .collect::<BTreeSet<_>>();
     let mut seen = BTreeSet::new();
     for result in &campaign.results {
         validate_nonempty(&result.case_id, "result.case_id")?;
         if !required.contains(result.case_id.as_str()) {
-            return Err(EvaluationError::UnexpectedCaseResult(result.case_id.clone()));
+            return Err(EvaluationError::UnexpectedCaseResult(
+                result.case_id.clone(),
+            ));
         }
         if !seen.insert(result.case_id.as_str()) {
             return Err(EvaluationError::DuplicateResult(result.case_id.clone()));
@@ -646,18 +671,26 @@ fn validate_energy_measurement(
         return Err(EvaluationError::ZeroValue("energy measurement coverage"));
     }
     if energy.measurement_window_us != campaign.campaign_wall_time_us {
-        return Err(EvaluationError::EnergyWindowMismatch(campaign.campaign_id.clone()));
+        return Err(EvaluationError::EnergyWindowMismatch(
+            campaign.campaign_id.clone(),
+        ));
     }
     match (energy.source, energy.scope) {
         (EnergySource::NvmlPowerSamples | EnergySource::DcgmProfiling, EnergyScope::GpuBoard) => {}
         (EnergySource::RaplEnergyCounter, EnergyScope::CpuPackage) => {}
         (EnergySource::ExternalPowerMeter, _) => {}
-        _ => return Err(EvaluationError::EnergyScopeSourceMismatch(campaign.campaign_id.clone())),
+        _ => {
+            return Err(EvaluationError::EnergyScopeSourceMismatch(
+                campaign.campaign_id.clone(),
+            ));
+        }
     }
     if energy.sampling_semantics == EnergySamplingSemantics::ExternalIntegrated
         && energy.source != EnergySource::ExternalPowerMeter
     {
-        return Err(EvaluationError::EnergyScopeSourceMismatch(campaign.campaign_id.clone()));
+        return Err(EvaluationError::EnergyScopeSourceMismatch(
+            campaign.campaign_id.clone(),
+        ));
     }
     if energy.max_sample_gap_us > max_gap {
         return Err(EvaluationError::EnergySampleGapExceeded(
@@ -750,7 +783,9 @@ fn aggregate_engines(reports: &[CampaignReport]) -> Vec<EngineAggregateReport> {
                 .iter()
                 .filter_map(|campaign| campaign.max_qualified_error_ratio)
                 .collect::<Vec<_>>();
-            let all_have_energy = campaigns.iter().all(|campaign| campaign.energy_per_qualified_tick_uj.is_some());
+            let all_have_energy = campaigns
+                .iter()
+                .all(|campaign| campaign.energy_per_qualified_tick_uj.is_some());
             let energy = campaigns
                 .iter()
                 .filter_map(|campaign| campaign.energy_per_qualified_tick_uj)
@@ -815,10 +850,7 @@ fn quantile(mut values: Vec<f64>, probability: f64) -> Option<f64> {
     Some(lower_value + (upper_value - lower_value) * fraction)
 }
 
-fn pareto_frontier(
-    reports: &[EngineAggregateReport],
-    include_energy: bool,
-) -> Vec<String> {
+fn pareto_frontier(reports: &[EngineAggregateReport], include_energy: bool) -> Vec<String> {
     let eligible = reports
         .iter()
         .filter(|report| report.max_qualified_error_ratio_median.is_some())
@@ -837,8 +869,7 @@ fn pareto_frontier(
 }
 
 fn dominates(a: &EngineAggregateReport, b: &EngineAggregateReport, include_energy: bool) -> bool {
-    let mut no_worse = a.qualified_ticks_per_second_median
-        >= b.qualified_ticks_per_second_median
+    let mut no_worse = a.qualified_ticks_per_second_median >= b.qualified_ticks_per_second_median
         && a.case_coverage_median >= b.case_coverage_median
         && a.p95_step_latency_us_median <= b.p95_step_latency_us_median
         && a.p99_step_latency_us_median <= b.p99_step_latency_us_median
@@ -954,7 +985,12 @@ mod tests {
         }
     }
 
-    fn campaign(campaign_id: &str, engine_id: &str, wall_time: u64, results: Vec<CaseResult>) -> EngineCampaign {
+    fn campaign(
+        campaign_id: &str,
+        engine_id: &str,
+        wall_time: u64,
+        results: Vec<CaseResult>,
+    ) -> EngineCampaign {
         EngineCampaign {
             campaign_id: campaign_id.to_owned(),
             engine_id: engine_id.to_owned(),
@@ -983,12 +1019,22 @@ mod tests {
             max_energy_sample_gap_us: None,
             cases: vec![case("case-a"), case("case-b")],
             campaigns: vec![
-                campaign("fast-run-01", "engine-fast-low-coverage", 2_000, vec![result("case-a"), {
-                    let mut invalid = result("case-b");
-                    invalid.semantic_equivalence = SemanticEquivalence::Mismatch;
-                    invalid
-                }]),
-                campaign("slow-run-01", "engine-slower-qualified", 8_000, vec![result("case-a"), result("case-b")]),
+                campaign(
+                    "fast-run-01",
+                    "engine-fast-low-coverage",
+                    2_000,
+                    vec![result("case-a"), {
+                        let mut invalid = result("case-b");
+                        invalid.semantic_equivalence = SemanticEquivalence::Mismatch;
+                        invalid
+                    }],
+                ),
+                campaign(
+                    "slow-run-01",
+                    "engine-slower-qualified",
+                    8_000,
+                    vec![result("case-a"), result("case-b")],
+                ),
             ],
         }
     }
@@ -996,10 +1042,21 @@ mod tests {
     #[test]
     fn raw_throughput_is_not_confused_with_qualified_throughput() {
         let report = evaluate(&input()).expect("valid campaigns");
-        let fast = report.campaigns.iter().find(|c| c.engine_id == "engine-fast-low-coverage").expect("fast");
-        let qualified = report.campaigns.iter().find(|c| c.engine_id == "engine-slower-qualified").expect("qualified");
+        let fast = report
+            .campaigns
+            .iter()
+            .find(|c| c.engine_id == "engine-fast-low-coverage")
+            .expect("fast");
+        let qualified = report
+            .campaigns
+            .iter()
+            .find(|c| c.engine_id == "engine-slower-qualified")
+            .expect("qualified");
         assert!(fast.raw_simulated_ticks_per_second > qualified.raw_simulated_ticks_per_second);
-        assert!(fast.qualified_simulated_ticks_per_second > qualified.qualified_simulated_ticks_per_second);
+        assert!(
+            fast.qualified_simulated_ticks_per_second
+                > qualified.qualified_simulated_ticks_per_second
+        );
         assert_eq!(fast.max_qualified_error_ratio, Some(0.5));
         assert_eq!(qualified.max_qualified_error_ratio, Some(0.5));
         assert!(fast.case_coverage < qualified.case_coverage);
@@ -1024,7 +1081,11 @@ mod tests {
         data.campaigns[0].results[1].outcome = CaseOutcome::TimedOut;
         data.campaigns[0].results[1].completed_simulated_ticks = 50;
         let report = evaluate(&data).expect("timeout is a recorded outcome");
-        let campaign = report.campaigns.iter().find(|c| c.engine_id == "engine-fast-low-coverage").expect("fast");
+        let campaign = report
+            .campaigns
+            .iter()
+            .find(|c| c.engine_id == "engine-fast-low-coverage")
+            .expect("fast");
         assert_eq!(campaign.requested_cases, 2);
         assert_eq!(campaign.timed_out_cases, 1);
         assert_eq!(campaign.case_coverage, 0.5);
@@ -1035,11 +1096,20 @@ mod tests {
         let mut data = input();
         data.campaigns[0].results[0].completed_simulated_ticks = 50;
         let report = evaluate(&data).expect("partial result");
-        let campaign = report.campaigns.iter().find(|c| c.engine_id == "engine-fast-low-coverage").expect("fast");
+        let campaign = report
+            .campaigns
+            .iter()
+            .find(|c| c.engine_id == "engine-fast-low-coverage")
+            .expect("fast");
         assert_eq!(campaign.raw_simulated_ticks, 50);
         assert_eq!(campaign.qualified_simulated_ticks, 0);
         assert_eq!(
-            campaign.evaluations.iter().find(|e| e.case_id == "case-a").expect("case").rejection_reasons,
+            campaign
+                .evaluations
+                .iter()
+                .find(|e| e.case_id == "case-a")
+                .expect("case")
+                .rejection_reasons,
             vec![RejectionReason::HorizonIncomplete]
         );
     }
@@ -1049,7 +1119,11 @@ mod tests {
         let mut data = input();
         data.campaigns[0].results[0].semantic_equivalence = SemanticEquivalence::Mismatch;
         let report = evaluate(&data).expect("mismatch must remain visible");
-        let campaign = report.campaigns.iter().find(|c| c.engine_id == "engine-fast-low-coverage").expect("fast");
+        let campaign = report
+            .campaigns
+            .iter()
+            .find(|c| c.engine_id == "engine-fast-low-coverage")
+            .expect("fast");
         assert_eq!(campaign.qualified_cases, 0);
     }
 
@@ -1059,10 +1133,23 @@ mod tests {
         data.campaigns[0].results[0].error_upper_bound = None;
         data.campaigns[0].results[0].hard_constraint_violations = None;
         let report = evaluate(&data).expect("missing evidence is reportable");
-        let item = report.campaigns.iter().find(|c| c.engine_id == "engine-fast-low-coverage").unwrap()
-            .evaluations.iter().find(|e| e.case_id == "case-a").unwrap();
-        assert!(item.rejection_reasons.contains(&RejectionReason::ErrorEvidenceMissing));
-        assert!(item.rejection_reasons.contains(&RejectionReason::HardConstraintEvidenceMissing));
+        let item = report
+            .campaigns
+            .iter()
+            .find(|c| c.engine_id == "engine-fast-low-coverage")
+            .unwrap()
+            .evaluations
+            .iter()
+            .find(|e| e.case_id == "case-a")
+            .unwrap();
+        assert!(
+            item.rejection_reasons
+                .contains(&RejectionReason::ErrorEvidenceMissing)
+        );
+        assert!(
+            item.rejection_reasons
+                .contains(&RejectionReason::HardConstraintEvidenceMissing)
+        );
     }
 
     #[test]
@@ -1070,9 +1157,19 @@ mod tests {
         let mut data = input();
         data.campaigns[0].results[0].error_upper_bound = Some(0.02);
         let report = evaluate(&data).expect("over-bound result");
-        let item = report.campaigns.iter().find(|c| c.engine_id == "engine-fast-low-coverage").unwrap()
-            .evaluations.iter().find(|e| e.case_id == "case-a").unwrap();
-        assert!(item.rejection_reasons.contains(&RejectionReason::ErrorBoundExceeded));
+        let item = report
+            .campaigns
+            .iter()
+            .find(|c| c.engine_id == "engine-fast-low-coverage")
+            .unwrap()
+            .evaluations
+            .iter()
+            .find(|e| e.case_id == "case-a")
+            .unwrap();
+        assert!(
+            item.rejection_reasons
+                .contains(&RejectionReason::ErrorBoundExceeded)
+        );
     }
 
     #[test]
@@ -1080,9 +1177,19 @@ mod tests {
         let mut data = input();
         data.campaigns[0].results[0].replay_conformant = Some(false);
         let report = evaluate(&data).expect("replay mismatch");
-        let item = report.campaigns.iter().find(|c| c.engine_id == "engine-fast-low-coverage").unwrap()
-            .evaluations.iter().find(|e| e.case_id == "case-a").unwrap();
-        assert!(item.rejection_reasons.contains(&RejectionReason::ReplayNonConformant));
+        let item = report
+            .campaigns
+            .iter()
+            .find(|c| c.engine_id == "engine-fast-low-coverage")
+            .unwrap()
+            .evaluations
+            .iter()
+            .find(|e| e.case_id == "case-a")
+            .unwrap();
+        assert!(
+            item.rejection_reasons
+                .contains(&RejectionReason::ReplayNonConformant)
+        );
     }
 
     #[test]
@@ -1139,7 +1246,11 @@ mod tests {
         }
         let report = evaluate(&data).expect("energy measured for both campaigns");
         assert!(report.energy_included_in_frontier);
-        let slower = report.campaigns.iter().find(|c| c.engine_id == "engine-slower-qualified").unwrap();
+        let slower = report
+            .campaigns
+            .iter()
+            .find(|c| c.engine_id == "engine-slower-qualified")
+            .unwrap();
         assert_eq!(slower.energy_per_qualified_tick_uj, Some(100.0));
     }
 
@@ -1240,7 +1351,11 @@ mod tests {
             }
         }
         let report = evaluate(&data).expect("all statuses have explicit outcomes");
-        let fast = report.campaigns.iter().find(|c| c.engine_id == "engine-fast-low-coverage").unwrap();
+        let fast = report
+            .campaigns
+            .iter()
+            .find(|c| c.engine_id == "engine-fast-low-coverage")
+            .unwrap();
         assert_eq!(fast.failed_cases, 1);
         assert_eq!(fast.abstained_cases, 1);
         assert_eq!(fast.not_run_cases, 1);
@@ -1252,9 +1367,19 @@ mod tests {
         let mut data = input();
         data.campaigns[0].results[0].hard_constraint_violations = Some(1);
         let report = evaluate(&data).expect("reported invariant violation");
-        let item = report.campaigns.iter().find(|c| c.engine_id == "engine-fast-low-coverage").unwrap()
-            .evaluations.iter().find(|e| e.case_id == "case-a").unwrap();
-        assert!(item.rejection_reasons.contains(&RejectionReason::HardConstraintExceeded));
+        let item = report
+            .campaigns
+            .iter()
+            .find(|c| c.engine_id == "engine-fast-low-coverage")
+            .unwrap()
+            .evaluations
+            .iter()
+            .find(|e| e.case_id == "case-a")
+            .unwrap();
+        assert!(
+            item.rejection_reasons
+                .contains(&RejectionReason::HardConstraintExceeded)
+        );
     }
 
     #[test]
@@ -1350,7 +1475,11 @@ mod tests {
             result.semantic_equivalence = SemanticEquivalence::Unknown;
         }
         let report = evaluate(&data).expect("unknown semantics are reportable");
-        let fast = report.campaigns.iter().find(|c| c.engine_id == "engine-fast-low-coverage").unwrap();
+        let fast = report
+            .campaigns
+            .iter()
+            .find(|c| c.engine_id == "engine-fast-low-coverage")
+            .unwrap();
         assert_eq!(fast.qualified_simulated_ticks_per_second, 0.0);
         assert_eq!(fast.case_coverage, 0.0);
         assert!(!report.pareto_frontier_engine_ids.contains(&fast.engine_id));
