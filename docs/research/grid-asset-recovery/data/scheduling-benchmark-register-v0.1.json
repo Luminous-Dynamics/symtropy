@@ -48,7 +48,7 @@
       "recordId": "RCPLIB-UGENT",
       "title": "RCPLIB and associated single-mode RCPSP families",
       "category": "classic_rcpsp",
-      "reportedScale": "University catalogue lists more than 30,000 generated/supplied instances across RCPSP families, with some generators able to produce almost four million projects",
+      "reportedScale": "RCPLIB repository last updated v2.4 (March 2026); includes RG30/RG300/DC1/DC2/MT/PSPLIB, 1kNetRes (1,000), VNR (1,750), NetRes (almost 4 million generated instances), CV (623), sD (390), MH (461), LPP/LPSP",
       "features": [
         "multiple network generators",
         "hard exact-solver sets",
@@ -58,8 +58,8 @@
       "licenseStatus": "license_not_verified",
       "license": null,
       "importStatus": "metadata_registered_not_imported",
-      "primarySource": "https://www.projectmanagement.ugent.be/research/data",
-      "secondarySource": "https://github.com",
+      "primarySource": "https://github.com/mariovanhoucke/RCPLIB-Resource-Constrained-Project-Library/releases/latest",
+      "secondarySource": "https://www.projectmanagement.ugent.be/research/data",
       "relevance": "Scale and network-structure stress testing after a compatible parser is implemented.",
       "limitations": "Do not treat all families as one corpus; record exact sub-dataset and source hash. License and redistribution conditions require review."
     },
@@ -78,7 +78,7 @@
       "license": null,
       "importStatus": "metadata_registered_not_imported",
       "primarySource": "https://www.projectmanagement.ugent.be/research/data",
-      "secondarySource": "https://github.com",
+      "secondarySource": "https://github.com/MarioVanhoucke/MSLIB-Multi-Skilled-Resource-Constrained-Project-Library",
       "relevance": "Tests crew qualification, skill coverage and specialist bottlenecks that generic one-type crew resources cannot represent.",
       "limitations": "Skills do not automatically equal HV qualification, switching authority, site competence or safety authorisation; map skill ontologies explicitly and do not infer legal competency."
     },
@@ -86,7 +86,7 @@
       "recordId": "MMLIB-UGENT",
       "title": "Multi-mode resource-constrained project scheduling datasets",
       "category": "multi_mode_rcpsp",
-      "reportedScale": "4,320 MMLIB50, MMLIB100 and MMLIB+ instances reported by the University of Ghent catalogue",
+      "reportedScale": "MMLIB50, MMLIB100 and MMLIB+; 4,320 instances reported by the University of Ghent catalogue; latest repository release v2.1 (July 2026)",
       "features": [
         "multiple execution modes per task",
         "different resource demands by mode",
@@ -95,8 +95,8 @@
       "licenseStatus": "license_not_verified",
       "license": null,
       "importStatus": "metadata_registered_not_imported",
-      "primarySource": "https://www.projectmanagement.ugent.be/research/data",
-      "secondarySource": "https://github.com",
+      "primarySource": "https://github.com/MarioVanhoucke/MMLIB-Multi-Mode-Resource-Constrained-Project-Library/releases/latest",
+      "secondarySource": "https://www.projectmanagement.ugent.be/research/data",
       "relevance": "Tests recovery alternatives such as local repair, exchange spare, qualified replacement module or full OEM replacement as different modes.",
       "limitations": "Our current recovery contract models one selected plan per event; alternate modes and mode-switching are not yet implemented."
     },
@@ -116,7 +116,7 @@
       "license": null,
       "importStatus": "metadata_registered_not_imported",
       "primarySource": "https://www.projectmanagement.ugent.be/research/data",
-      "secondarySource": "https://www.or-as.be/research/data/",
+      "secondarySource": "https://github.com/MarioVanhoucke/DSLIB-Dynamic-Scheduling-Empirical-Project-Library",
       "relevance": "Useful empirical comparator for delay, schedule-risk and reactive replanning methodology.",
       "limitations": "Not grid asset repair data. Access/privacy/licensing and industrial confidentiality must be reviewed before any import."
     },
