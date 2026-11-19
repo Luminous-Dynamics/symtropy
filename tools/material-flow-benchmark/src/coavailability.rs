@@ -331,19 +331,6 @@ fn find_stop(input: &CoAvailabilityInput, stop_id: &str) -> Option<StopWindow> {
     })
 }
 
-fn interval_conflict(
-    reservations: &[ResourceReservation],
-    resource_id: &str,
-    start_ms: u64,
-    end_ms: u64,
-) -> Option<&ResourceReservation> {
-    reservations.iter().find(|reservation| {
-        reservation.resource_id == resource_id
-            && start_ms < reservation.end_ms
-            && reservation.start_ms < end_ms
-    })
-}
-
 fn find_first_available_launch(
     reservations: &[ResourceReservation],
     launch_pad_id: &str,
@@ -942,8 +929,24 @@ mod tests {
     }
 
     #[test]
-    fn rejects_launch_pad_conflict() {
+    fn finds_next_launch_pad_slot_after_reservation() {
         let mut test = input();
+        test.sortie.launch_window_close_ms = 400_000;
+        test.existing_reservations.push(ResourceReservation {
+            reservation_id: "other-sortie".into(),
+            resource_id: "pad-depot-1".into(),
+            start_ms: 120_000,
+            end_ms: 180_000,
+        });
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Feasible);
+        assert_eq!(report.selected_launch_time_ms, Some(180_000));
+    }
+
+    #[test]
+    fn rejects_launch_pad_conflict_when_entire_window_is_reserved() {
+        let mut test = input();
+        test.sortie.launch_window_close_ms = 200_000;
         test.existing_reservations.push(ResourceReservation {
             reservation_id: "other-sortie".into(),
             resource_id: "pad-depot-1".into(),
@@ -952,7 +955,6 @@ mod tests {
         });
         let report = evaluate_coavailability(&test).expect("valid structure");
         assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
-        assert!(report.findings.iter().any(|finding| finding.contains("launch pad")));
     }
 
     #[test]
@@ -1021,17 +1023,31 @@ mod tests {
     }
 
     #[test]
-    fn rejects_recovery_pad_conflict() {
+    fn finds_next_recovery_pad_slot_after_reservation() {
+        let mut test = input();
+        test.existing_reservations.push(ResourceReservation {
+            reservation_id: "other-sortie".into(),
+            resource_id: "pad-hub-b-1".into(),
+            start_ms: 1_350_000,
+            end_ms: 1_400_000,
+        });
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Feasible);
+        assert_eq!(report.selected_launch_time_ms, Some(140_000));
+        assert_eq!(report.selected_recovery_time_ms, Some(1_400_000));
+    }
+
+    #[test]
+    fn rejects_recovery_pad_conflict_when_entire_window_is_reserved() {
         let mut test = input();
         test.existing_reservations.push(ResourceReservation {
             reservation_id: "other-sortie".into(),
             resource_id: "pad-hub-b-1".into(),
             start_ms: 1_300_000,
-            end_ms: 1_360_000,
+            end_ms: 1_700_000,
         });
         let report = evaluate_coavailability(&test).expect("valid structure");
         assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
-        assert!(report.findings.iter().any(|finding| finding.contains("recovery pad")));
     }
 
     #[test]
