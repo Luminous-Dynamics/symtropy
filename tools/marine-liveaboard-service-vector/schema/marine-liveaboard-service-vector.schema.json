@@ -165,7 +165,9 @@
           "hard_gate_disposition",
           "hard_gate_violations",
           "soft_constraint_relaxations",
-          "resource_metrics"
+          "resource_metrics",
+          "hard_gate_evidence_ref",
+          "hard_gate_evidence_sha256"
         ],
         "properties": {
           "policy_id": {
@@ -324,6 +326,14 @@
                 }
               }
             }
+          },
+          "hard_gate_evidence_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "hard_gate_evidence_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
           }
         }
       }
