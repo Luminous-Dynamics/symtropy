@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-foreground-background-isolation-v0",
+  "tick_unit": "millisecond",
+  "resource_contract": {
+    "total_cpu_slots": 2,
+    "foreground_reserved_cpu_slots": 1,
+    "background_max_cpu_slots": 2,
+    "memory_budget_mib": 512,
+    "storage_write_budget_mib_per_second": 16,
+    "policy_must_report_actual_usage": true,
+    "note": "Synthetic resource units; not a hardware calibration."
+  },
+  "episodes": [
+    {
+      "episode_id": "fg-001-compaction-contention",
+      "description": "Foreground response deadline overlaps a long background compaction task.",
+      "foreground_requests": [
+        {
+          "request_id": "answer-current-event",
+          "revision": 1,
+          "created_tick": 80,
+          "deadline_tick": 120,
+          "required_work_units": 24,
+          "request_kind": "proactive_event_response",
+          "priority_class": "deadline_critical"
+        }
+      ],
+      "background_jobs": [
+        {
+          "job_id": "compact-event-index-7",
+          "job_kind": "memory_compaction",
+          "created_tick": 0,
+          "required_work_units": 120,
+          "preemptible": true,
+          "source_refs": [
+            "obs:cam:frame-021",
+            "obs:mic:chunk-017"
+          ]
+        }
+      ],
+      "policy_arms": [
+        "shared_fifo_non_preemptive",
+        "shared_priority_preemptive",
+        "reserved_foreground_lane"
+      ]
+    },
+    {
+      "episode_id": "as-known-002-late-index",
+      "description": "An earlier measurement is not indexed until after the historical query cutoff.",
+      "query": {
+        "query_id": "what-was-known-at-tick-80",
+        "created_tick": 80,
+        "as_known_cutoff_tick": 80,
+        "deadline_tick": 110
+      },
+      "admitted_evidence": [
+        {
+          "evidence_ref": "obs:cam:frame-100",
+          "event_start_tick": 20,
+          "event_end_tick": 21,
+          "available_tick": 25,
+          "epistemic_origin": "Observed"
+        }
+      ],
+      "background_jobs": [
+        {
+          "job_id": "index-late-event",
+          "job_kind": "event_memory_index",
+          "created_tick": 25,
+          "required_work_units": 70,
+          "source_refs": [
+            "obs:mic:chunk-021"
+          ]
+        }
+      ],
+      "policy_arms": [
+        "single_loop",
+        "async_memory_backend"
+      ]
+    },
+    {
+      "episode_id": "cancel-003-stale-retrieval",
+      "description": "A historical retrieval finishes after the originating task revision has been superseded.",
+      "task_revisions": [
+        {
+          "task_id": "monitor-machine",
+          "revision": 1,
+          "created_tick": 10,
+          "deadline_tick": 80,
+          "action": "monitor"
+        },
+        {
+          "task_id": "monitor-machine",
+          "revision": 1,
+          "created_tick": 10,
+          "deadline_tick": 80,
+          "action": "cancel",
+          "effective_tick": 45
+        },
+        {
+          "task_id": "monitor-machine",
+          "revision": 2,
+          "created_tick": 50,
+          "deadline_tick": 95,
+          "action": "replace",
+          "scope": "monitor-bearing-only"
+        }
+      ],
+      "background_jobs": [
+        {
+          "job_id": "retrieve-obsolete-context",
+          "job_kind": "historical_retrieval",
+          "created_tick": 30,
+          "required_work_units": 50,
+          "request_id": "monitor-machine",
+          "request_revision": 1
+        }
+      ],
+      "policy_arms": [
+        "shared_queue",
+        "revision_bound_async_retrieval"
+      ]
+    },
+    {
+      "episode_id": "backlog-004-bounded-progress",
+      "description": "Short foreground bursts must not permanently starve background indexing.",
+      "foreground_requests": [
+        {
+          "request_id": "fg-a",
+          "revision": 1,
+          "created_tick": 0,
+          "deadline_tick": 20,
+          "required_work_units": 15,
+          "priority_class": "deadline_critical"
+        },
+        {
+          "request_id": "fg-b",
+          "revision": 1,
+          "created_tick": 20,
+          "deadline_tick": 40,
+          "required_work_units": 15,
+          "priority_class": "deadline_critical"
+        },
+        {
+          "request_id": "fg-c",
+          "revision": 1,
+          "created_tick": 40,
+          "deadline_tick": 60,
+          "required_work_units": 15,
+          "priority_class": "deadline_critical"
+        }
+      ],
+      "background_jobs": [
+        {
+          "job_id": "index-a",
+          "job_kind": "event_memory_index",
+          "created_tick": 0,
+          "required_work_units": 35,
+          "source_refs": [
+            "obs:cam:1"
+          ]
+        },
+        {
+          "job_id": "index-b",
+          "job_kind": "event_memory_index",
+          "created_tick": 10,
+          "required_work_units": 35,
+          "source_refs": [
+            "obs:cam:2"
+          ]
+        },
+        {
+          "job_id": "index-c",
+          "job_kind": "event_memory_index",
+          "created_tick": 20,
+          "required_work_units": 35,
+          "source_refs": [
+            "obs:cam:3"
+          ]
+        }
+      ],
+      "measurement_window_end_tick": 180,
+      "policy_arms": [
+        "strict_foreground_priority",
+        "two_lane_bounded_background"
+      ]
+    },
+    {
+      "episode_id": "compact-005-preserve-source-anchors",
+      "description": "Compaction may change representation but must preserve all evidence links.",
+      "memory_records": [
+        {
+          "record_id": "event-summary-v1",
+          "source_refs": [
+            "obs:cam:frame-7",
+            "obs:mic:chunk-4"
+          ],
+          "source_digests": [
+            "sha256:cam7",
+            "sha256:mic4"
+          ],
+          "revision": 1,
+          "epistemic_origin": "Remembered"
+        }
+      ],
+      "compaction_job": {
+        "job_id": "compact-summary",
+        "created_tick": 10,
+        "required_work_units": 40
+      },
+      "policy_arms": [
+        "summary_only",
+        "summary_plus_source_anchor_graph"
+      ]
+    }
+  ]
+}
