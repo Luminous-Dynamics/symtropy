@@ -1,0 +1,285 @@
+{
+  "schema": "luminous.port_nexus.objective_specific_workload_flexibility",
+  "schema_version": "0.1.0",
+  "fixture_id": "port-nexus-no-new-peak-8-slot-v0-1",
+  "generated_at": "2026-11-19",
+  "evidence_class": "synthetic_known_answer_fixture",
+  "claim_ceiling": "Mechanism test only. Not a South African port load, production workload trace, optimized dispatch result, field trial, grid study, or reproduction of the cited paper.",
+  "source_basis": {
+    "motivating_study": {
+      "title": "Power-energy profiling of AI data center workloads reveals objective-specific grid flexibility and coordination risks",
+      "authors": "Yuren Yang et al.",
+      "journal": "Advances in Applied Energy",
+      "available_online": "2026-11-14",
+      "doi": "10.1016/j.adapen.2026.100322",
+      "url": "https://doi.org/10.1016/j.adapen.2026.100322",
+      "use": "Motivates objective-specific job ranking and aggregate no-new-peak admission; published results are not copied into this fixture."
+    },
+    "related_study": {
+      "title": "Data center workload flexibility for power system demand response: Evidence from Alibaba traces",
+      "authors": "Adriano Caprara et al.",
+      "journal": "International Journal of Electrical Power & Energy Systems 178",
+      "publication_date": "2026-05",
+      "doi": "10.1016/j.ijepes.2026.111940",
+      "url": "https://doi.org/10.1016/j.ijepes.2026.111940",
+      "use": "Separate trace-based flexibility comparator; not treated as equivalent to the November 2026 study."
+    }
+  },
+  "scenario": {
+    "interval_duration_hours": 1,
+    "time_slot_semantics": "Zero-based half-open one-hour intervals; slot 0 is the first interval.",
+    "site_id": "synthetic-port-pcc-01",
+    "measurement_boundary": "Synthetic point-of-common-coupling net import after all explicitly included behind-the-meter supply; no storage dispatch or losses are modeled.",
+    "net_import_without_flexible_jobs_kw": [
+      14,
+      15,
+      18,
+      17,
+      10,
+      8,
+      12,
+      13
+    ],
+    "signals": {
+      "price_per_kwh": [
+        0.05,
+        0.06,
+        0.3,
+        0.25,
+        0.12,
+        0.1,
+        0.22,
+        0.18
+      ],
+      "carbon_intensity_gco2_per_kwh": [
+        300,
+        50,
+        400,
+        350,
+        200,
+        140,
+        210,
+        250
+      ]
+    },
+    "jobs": [
+      {
+        "job_id": "job-1",
+        "power_kw": 2,
+        "energy_kwh": 2,
+        "baseline_slot": 4,
+        "release_slot": 0,
+        "deadline_exclusive": 8,
+        "duration_slots": 1
+      },
+      {
+        "job_id": "job-2",
+        "power_kw": 2,
+        "energy_kwh": 2,
+        "baseline_slot": 4,
+        "release_slot": 0,
+        "deadline_exclusive": 8,
+        "duration_slots": 1
+      },
+      {
+        "job_id": "job-3",
+        "power_kw": 2,
+        "energy_kwh": 2,
+        "baseline_slot": 4,
+        "release_slot": 0,
+        "deadline_exclusive": 8,
+        "duration_slots": 1
+      },
+      {
+        "job_id": "job-4",
+        "power_kw": 2,
+        "energy_kwh": 2,
+        "baseline_slot": 4,
+        "release_slot": 0,
+        "deadline_exclusive": 8,
+        "duration_slots": 1
+      }
+    ],
+    "reference": {
+      "baseline_job_placements": {
+        "job-1": 4,
+        "job-2": 4,
+        "job-3": 4,
+        "job-4": 4
+      },
+      "total_net_import_kw_by_slot": [
+        14,
+        15,
+        18,
+        17,
+        18,
+        8,
+        12,
+        13
+      ],
+      "peak_kw": 18,
+      "total_import_energy_kwh": 115,
+      "tou_cost": 19.19,
+      "carbon_emissions_gco2": 28590
+    },
+    "admission_policies": {
+      "unconstrained": {
+        "no_new_peak": false,
+        "max_slot_import_kw": null
+      },
+      "no_new_peak": {
+        "no_new_peak": true,
+        "max_slot_import_kw": 18,
+        "cap_definition": "Maximum net PCC import over the full evaluation horizon must not exceed the maximum of the frozen baseline trajectory."
+      }
+    },
+    "fixed_external_site_limit_kw": 25,
+    "omitted_physics": [
+      "storage state, losses, efficiency, degradation and reserve",
+      "renewable generation uncertainty and forecast vintage",
+      "network topology, feeder/transformer constraints, voltage and frequency",
+      "PCC ramp limits and sub-hourly dynamics",
+      "cooling and thermal inertia",
+      "workload queueing, preemption, checkpoint and accelerator-resource constraints",
+      "multi-site migration and network/data-locality costs",
+      "uncertainty in price and carbon signals"
+    ]
+  },
+  "reference_algorithm": {
+    "name": "deterministic-greedy-one-slot-reference-v0.1",
+    "status": "illustrative reference algorithm, not an optimal scheduler",
+    "procedure": [
+      "Initialize all jobs at their baseline slots.",
+      "Process jobs in ascending job_id order.",
+      "For each job, remove it from its current slot and evaluate every allowed slot in its half-open release/deadline window.",
+      "For each candidate slot, reconstruct the entire eight-slot net PCC trajectory.",
+      "When no_new_peak is enabled, reject candidates whose maximum trajectory import exceeds the frozen baseline peak.",
+      "Select the candidate with minimum total objective over the full horizon.",
+      "Break exact objective ties by lower resulting peak, then lower slot index.",
+      "Do not alter job energy, power, duration or identity."
+    ],
+    "objectives": {
+      "tou_cost": "sum(slot_import_kw * interval_duration_hours * price_per_kwh)",
+      "carbon_emissions": "sum(slot_import_kw * interval_duration_hours * carbon_intensity_gco2_per_kwh)"
+    },
+    "limitations": [
+      "One-slot indivisible jobs only.",
+      "Greedy job ordering makes this a mechanism oracle, not a global optimum or production scheduling policy.",
+      "The case is intentionally too small to represent the heterogeneity or scale of the Alibaba trace study."
+    ]
+  },
+  "expected_results": {
+    "tou_cost": {
+      "baseline": {
+        "value": 19.19,
+        "unit": "synthetic currency units",
+        "peak_kw": 18
+      },
+      "unconstrained": {
+        "placements": {
+          "job-1": 0,
+          "job-2": 0,
+          "job-3": 0,
+          "job-4": 0
+        },
+        "net_import_kw_by_slot": [
+          22,
+          15,
+          18,
+          17,
+          10,
+          8,
+          12,
+          13
+        ],
+        "objective_value": 18.63,
+        "objective_improvement": 0.56,
+        "peak_kw": 22,
+        "peak_increase_percent": 22.2222222222
+      },
+      "no_new_peak": {
+        "placements": {
+          "job-1": 0,
+          "job-2": 0,
+          "job-3": 1,
+          "job-4": 5
+        },
+        "net_import_kw_by_slot": [
+          18,
+          17,
+          18,
+          17,
+          10,
+          10,
+          12,
+          13
+        ],
+        "objective_value": 18.75,
+        "objective_improvement": 0.44,
+        "peak_kw": 18,
+        "peak_increase_percent": 0,
+        "retained_benefit_percent": 78.5714285714
+      }
+    },
+    "carbon_emissions": {
+      "baseline": {
+        "value": 28590,
+        "unit": "gCO2",
+        "peak_kw": 18
+      },
+      "unconstrained": {
+        "placements": {
+          "job-1": 1,
+          "job-2": 1,
+          "job-3": 1,
+          "job-4": 1
+        },
+        "net_import_kw_by_slot": [
+          14,
+          23,
+          18,
+          17,
+          10,
+          8,
+          12,
+          13
+        ],
+        "objective_value": 27390,
+        "objective_improvement": 1200,
+        "peak_kw": 23,
+        "peak_increase_percent": 27.7777777778
+      },
+      "no_new_peak": {
+        "placements": {
+          "job-1": 1,
+          "job-2": 5,
+          "job-3": 5,
+          "job-4": 5
+        },
+        "net_import_kw_by_slot": [
+          14,
+          17,
+          18,
+          17,
+          10,
+          14,
+          12,
+          13
+        ],
+        "objective_value": 27930,
+        "objective_improvement": 660,
+        "peak_kw": 18,
+        "peak_increase_percent": 0,
+        "retained_benefit_percent": 55
+      }
+    }
+  },
+  "invariants": [
+    "Every job appears exactly once in each schedule.",
+    "Every job remains within its release/deadline window.",
+    "Total scheduled flexible-job energy remains 8 kWh.",
+    "The no-new-peak schedule never exceeds the frozen 18 kW reference peak.",
+    "The unconstrained TOU and carbon schedules exceed the baseline peak and must not be labelled grid-safe.",
+    "TOU and carbon objectives may select different slots and have different retained-benefit ratios."
+  ]
+}
