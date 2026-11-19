@@ -320,13 +320,15 @@ fn validate_event_ledger(
                 }
             }
             ExecutionEventType::ProgressSnapshot => {
-                if !approximately_equal(event.end_hour, case.as_of_hour)
-                    || !approximately_equal(event.effective_hour, case.as_of_hour)
-                    || event.evidence_status == EvidenceStatus::Superseded
-                        && event.interruption_cause.is_some()
+                if event.end_hour > case.as_of_hour + TOLERANCE
+                    || event.effective_hour > case.as_of_hour + TOLERANCE
+                    || event.evidence_status == EvidenceStatus::Current
+                        && (!approximately_equal(event.end_hour, case.as_of_hour)
+                            || !approximately_equal(event.effective_hour, case.as_of_hour))
+                    || event.interruption_cause.is_some()
                 {
                     errors.push(format!(
-                        "progress snapshot {} must represent the current as-of boundary",
+                        "progress snapshot {} must be bounded by the declared as-of time",
                         event.event_id
                     ));
                 }
@@ -649,6 +651,99 @@ fn capacity_at(resource: &ExecutionResource, hour: f64) -> u32 {
         .unwrap_or(0)
 }
 
+fn validate_task_dependencies(
+    tasks: &BTreeMap<String, &ExecutionTask>,
+    segment_views: &BTreeMap<String, Vec<SegmentView>>,
+    planned_by_task: &BTreeMap<String, Vec<&PlannedSegment>>,
+    errors: &mut Vec<String>,
+) {
+    let mut indegree: BTreeMap<String, usize> =
+        tasks.keys().map(|key| (key.clone(), 0)).collect();
+    let mut successors: BTreeMap<String, Vec<String>> = BTreeMap::new();
+
+    for (key, task) in tasks {
+        for dependency in &task.depends_on {
+            let dependency_key = task_key(&task.event_id, dependency);
+            if !tasks.contains_key(&dependency_key) {
+                errors.push(format!("task {key} references unknown dependency {dependency}"));
+                continue;
+            }
+            successors.entry(dependency_key).or_default().push(key.clone());
+            if let Some(degree) = indegree.get_mut(key) {
+                *degree += 1;
+            }
+        }
+    }
+
+    let mut ready: BTreeSet<String> = indegree
+        .iter()
+        .filter(|(_, degree)| **degree == 0)
+        .map(|(key, _)| key.clone())
+        .collect();
+    let mut visited = 0usize;
+    while let Some(key) = ready.pop_first() {
+        visited += 1;
+        if let Some(next) = successors.get(&key) {
+            for successor in next {
+                if let Some(degree) = indegree.get_mut(successor) {
+                    *degree -= 1;
+                    if *degree == 0 {
+                        ready.insert(successor.clone());
+                    }
+                }
+            }
+        }
+    }
+    if visited != tasks.len() {
+        errors.push("task dependency graph contains a cycle".to_string());
+    }
+
+    for (key, task) in tasks {
+        let starts: Vec<f64> = segment_views
+            .get(key)
+            .into_iter()
+            .flatten()
+            .map(|segment| segment.start_hour)
+            .chain(
+                planned_by_task
+                    .get(key)
+                    .into_iter()
+                    .flatten()
+                    .map(|segment| segment.start_hour),
+            )
+            .collect();
+        let Some(first_start) = starts.into_iter().min_by(f64::total_cmp) else {
+            continue;
+        };
+
+        for dependency in &task.depends_on {
+            let dependency_key = task_key(&task.event_id, dependency);
+            let dependency_end = segment_views
+                .get(&dependency_key)
+                .into_iter()
+                .flatten()
+                .map(|segment| segment.end_hour)
+                .chain(
+                    planned_by_task
+                        .get(&dependency_key)
+                        .into_iter()
+                        .flatten()
+                        .map(|segment| segment.end_hour),
+                )
+                .max_by(f64::total_cmp);
+            match dependency_end {
+                Some(end) if first_start + TOLERANCE >= end => {}
+                Some(end) => errors.push(format!(
+                    "task {key} starts at {first_start} before dependency {dependency} ends at {end}"
+                )),
+                None => errors.push(format!(
+                    "task {key} cannot proceed because dependency {dependency} has no execution or planned segment"
+                )),
+            }
+        }
+    }
+}
+
 fn validate_resource_usage(
     case: &ExecutionCase,
     tasks: &BTreeMap<String, &ExecutionTask>,
@@ -928,6 +1023,13 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
         planned_by_task.entry(key).or_default().push(segment);
     }
 
+    validate_task_dependencies(
+        &tasks_by_key,
+        &segment_views,
+        &planned_by_task,
+        &mut errors,
+    );
+
     let mut reports = Vec::new();
     for (key, task) in &tasks_by_key {
         let views = segment_views.get(key).cloned().unwrap_or_default();
@@ -1031,6 +1133,23 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
         let commitment = commitments_proposed
             .values()
             .find(|item| item.event_id == task.event_id && item.task_id == task.task_id);
+
+        if commitment.is_some_and(|item| item.state == CommitmentState::Paused)
+            && planned.is_empty()
+            && !views.is_empty()
+            && observed_effort + TOLERANCE < task.required_effort_hours
+        {
+            interruption_count += 1;
+            let last = views.last().expect("non-empty views checked");
+            if last.interruption_cause.as_deref().is_none_or(str::is_empty) {
+                errors.push(format!("paused task {key} has no final interruption cause"));
+            }
+            if task.preemption_mode == PreemptionMode::Checkpointed
+                && !task.checkpoint_effort_hours.iter().any(|value| approximately_equal(*value, observed_effort))
+            {
+                errors.push(format!("paused task {key} stopped at non-checkpoint effort {observed_effort}"));
+            }
+        }
 
         let state_name = match commitment.map(|item| item.state) {
             Some(CommitmentState::InProgress) => "in_progress",
@@ -1266,8 +1385,6 @@ mod tests {
     fn exact_duplicate_event_delivery_is_deduplicated() {
         let mut case = fixture();
         case.events.push(case.events[0].clone());
-        case.baseline_commitments[0].frozen_event_ids.push("seg-1-complete".to_string());
-        case.proposed_commitments[0].frozen_event_ids.push("seg-1-complete".to_string());
         let report = validate(&case).expect("identical event replay is idempotent");
         assert_eq!(report.event_deliveries_deduplicated, 1);
     }
