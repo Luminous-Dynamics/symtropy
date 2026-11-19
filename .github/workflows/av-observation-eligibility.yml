@@ -1,0 +1,98 @@
+name: AV observation eligibility fixture integrity
+
+on:
+  push:
+    branches:
+      - research/av-observation-eligibility-v0
+    paths:
+      - "research/av-observation-eligibility-v0/**"
+      - ".github/workflows/av-observation-eligibility.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/av-observation-eligibility-v0/**"
+      - ".github/workflows/av-observation-eligibility.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: av-observation-eligibility-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  fixture-integrity:
+    name: Exact-head three-axis eligibility fixtures
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+
+      - name: Assert exact checkout
+        run: test "$(git rev-parse HEAD)" = "${QUALIFIED_SHA}"
+
+      - name: Validate JSON and episode identities
+        run: |
+          jq -e '.schema_version == 1 and .benchmark_id == "av-observation-eligibility-v0" and (.episodes | length == 8) and ([.episodes[].episode_id] | unique | length == 8)' research/av-observation-eligibility-v0/fixtures/agent/workload-v1.json
+          jq -e '.schema_version == 1 and .benchmark_id == "av-observation-eligibility-v0" and (.episodes | length == 8) and ([.episodes[].episode_id] | unique | length == 8)' research/av-observation-eligibility-v0/fixtures/evaluator-only/outcomes-v1.json
+          jq -e '.schema_version == 1 and .benchmark_id == "av-observation-eligibility-v0" and (.episodes | length == 8) and ([.episodes[].episode_id] | unique | length == 8)' research/av-observation-eligibility-v0/fixtures/expected/known-answer-v1.json
+          diff <(jq -r '.episodes[].episode_id' research/av-observation-eligibility-v0/fixtures/agent/workload-v1.json) <(jq -r '.episodes[].episode_id' research/av-observation-eligibility-v0/fixtures/evaluator-only/outcomes-v1.json)
+          diff <(jq -r '.episodes[].episode_id' research/av-observation-eligibility-v0/fixtures/agent/workload-v1.json) <(jq -r '.episodes[].episode_id' research/av-observation-eligibility-v0/fixtures/expected/known-answer-v1.json)
+
+      - name: Reject evaluator-only labels in public workload
+        run: |
+          ! grep -Eq '"(evaluator_truth|actual_source_event|expected_freshness|current_window_eligible|historical_eligible|oracle_outcome|hidden_event_class)"' research/av-observation-eligibility-v0/fixtures/agent/workload-v1.json
+
+      - name: Assert reordered-but-fresh is possible
+        run: |
+          jq -e '.episodes[] | select(.episode_id == "elig-001-reordered-fresh") |
+            .current_delivery.source_sequence < .delivered_history[0].source_sequence and
+            (.now.tick - .current_delivery.capture_time_us) <= .freshness_policy.maximum_age_us and
+            .now.clock_domain == .current_delivery.clock_domain' research/av-observation-eligibility-v0/fixtures/agent/workload-v1.json
+
+      - name: Assert in-order-but-stale is possible
+        run: |
+          jq -e '.episodes[] | select(.episode_id == "elig-002-in-order-stale") |
+            .current_delivery.source_sequence > .delivered_history[0].source_sequence and
+            (.now.tick - .current_delivery.capture_time_us) > .freshness_policy.maximum_age_us' research/av-observation-eligibility-v0/fixtures/agent/workload-v1.json
+
+      - name: Assert duplicate does not refresh source age
+        run: |
+          jq -e '.episodes[] | select(.episode_id == "elig-003-duplicate-no-refresh") |
+            .current_delivery.observation_id == .delivered_history[0].observation_id and
+            .current_delivery.source_sequence == .delivered_history[0].source_sequence and
+            (.now.tick - .current_delivery.source_capture_time_us) > .freshness_policy.maximum_age_us' research/av-observation-eligibility-v0/fixtures/agent/workload-v1.json
+
+      - name: Assert decision deadline and historical cutoff differ
+        run: |
+          jq -e '.episodes[] | select(.episode_id == "elig-005-late-live-historical-valid") |
+            .current_delivery.availability_tick > .task.deadline_tick and
+            .current_delivery.availability_tick <= .task.query_cutoff_tick' research/av-observation-eligibility-v0/fixtures/agent/workload-v1.json
+
+      - name: Assert reset generation is incomparable
+        run: |
+          jq -e '.episodes[] | select(.episode_id == "elig-006-clock-reset-incomparable") |
+            .delivered_history[0].clock_domain.generation != .current_delivery.clock_domain.generation and
+            .qualified_clock_transform == null' research/av-observation-eligibility-v0/fixtures/agent/workload-v1.json
+
+      - name: Assert dropped audio stays payload-free
+        run: |
+          jq -e '.episodes[] | select(.episode_id == "elig-007-dropped-audio-gap") |
+            .current_delivery.transport == "Dropped" and
+            .current_delivery.observation_id == null and
+            .current_delivery.capture_start_sample == 1100 and
+            .current_delivery.capture_end_sample == 1200' research/av-observation-eligibility-v0/fixtures/agent/workload-v1.json
+
+      - name: Assert superseded request cannot be current
+        run: |
+          jq -e '.episodes[] | select(.episode_id == "elig-008-superseded-request") |
+            .current_delivery.request_revision < .task.request_revision and
+            .superseded_requests[0].request_revision == .current_delivery.request_revision' research/av-observation-eligibility-v0/fixtures/agent/workload-v1.json
