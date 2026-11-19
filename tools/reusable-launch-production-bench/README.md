@@ -29,6 +29,7 @@ The nested Cargo manifest has its own `[workspace]` declaration so the reference
 - Flight outcome, recovery, and payload-acceptance records kept distinct.
 - Accepted payload mass is counted only when the payload is explicitly accepted.
 - Inspection/refurbishment work is scheduled against declared finite station capacity.
+- Every completed post-flight inspection/refurbishment interval must bind to exactly one observed lifecycle work window; queued work must finish before the asset's next state transition.
 - Deterministic FCFS scheduling with stable task-ID tie-breaking.
 - Lifecycle costs are recomputed from the frozen synthetic fixture.
 - Missing, contradictory, duplicated, or invalid evidence blocks receipt generation.
