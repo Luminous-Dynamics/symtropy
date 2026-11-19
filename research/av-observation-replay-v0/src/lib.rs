@@ -243,7 +243,12 @@ pub struct AudioChunkObservationV1 {
 
 /// One modality-specific observation delivered to the agent.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(tag = "kind", content = "observation", rename_all = "snake_case")]
+#[serde(
+    tag = "kind",
+    content = "observation",
+    rename_all = "snake_case",
+    deny_unknown_fields
+)]
 pub enum AgentObservationV1 {
     /// A raw visual frame.
     VideoFrame(VideoFrameObservationV1),
@@ -799,13 +804,25 @@ mod tests {
     }
 
     #[test]
-    fn unknown_truth_fields_are_rejected() {
-        let poisoned = include_str!("../fixtures/agent-observations-v1.json")
-            .replace(
-                "\"stream_id\":",
-                "\"world_truth\": {\"entity_id\": \"hidden-entity\"}, \"stream_id\":",
-            );
-        assert!(serde_json::from_str::<AgentObservationBundleV1>(&poisoned).is_err());
+    fn unknown_truth_fields_are_rejected_at_every_observation_boundary() {
+        let fixture = include_str!("../fixtures/agent-observations-v1.json");
+        let root_poisoned = fixture.replace(
+            "\"stream_id\":",
+            "\"world_truth\": {\"entity_id\": \"hidden-entity\"}, \"stream_id\":",
+        );
+        assert!(serde_json::from_str::<AgentObservationBundleV1>(&root_poisoned).is_err());
+
+        let envelope_poisoned = fixture.replace(
+            "\"kind\": \"video_frame\",",
+            "\"kind\": \"video_frame\", \"world_truth\": {\"entity_id\": \"hidden-entity\"},",
+        );
+        assert!(serde_json::from_str::<AgentObservationBundleV1>(&envelope_poisoned).is_err());
+
+        let payload_poisoned = fixture.replace(
+            "\"observation_id\": \"obs-video-0001\",",
+            "\"world_id\": \"hidden-world\", \"observation_id\": \"obs-video-0001\",",
+        );
+        assert!(serde_json::from_str::<AgentObservationBundleV1>(&payload_poisoned).is_err());
     }
 
     #[test]
