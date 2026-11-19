@@ -4,9 +4,9 @@ use geofusion_evidence_verifier::verify_source_interval;
 use serde_json::Value;
 use std::env;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-fn read_json(path: &PathBuf, label: &'static str) -> Result<Value, String> {
+fn read_json(path: &Path, label: &'static str) -> Result<Value, String> {
     let text = fs::read_to_string(path)
         .map_err(|error| format!("{}: cannot read {}: {}", label, path.display(), error))?;
     serde_json::from_str(&text)
