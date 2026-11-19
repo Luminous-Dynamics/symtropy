@@ -48,6 +48,7 @@ jobs:
           jq empty tools/rural-industrial-electrification-evaluator/schemas/vehicle_platforms_v0_1.schema.json
           jq empty tools/rural-industrial-electrification-evaluator/schemas/vehicle_subsystem_architectures_v0_1.schema.json
           jq empty tools/rural-industrial-electrification-evaluator/schemas/vehicle_verification_matrix_v0_1.schema.json
+          jq empty tools/rural-industrial-electrification-evaluator/schemas/ev_carrier_configurations_v0_1.schema.json
           jq empty tools/rural-industrial-electrification-evaluator/schemas/charging_queue_v0_1.schema.json
           jq empty tools/rural-industrial-electrification-evaluator/schemas/charging_curve_v0_1.schema.json
       - name: Run all evaluator tests
@@ -78,6 +79,18 @@ jobs:
           jq -e '.results | length == 19 and all(.[]; .evidence_class == "synthetic" and (.status == "passes_synthetic_screen" or .status == "blocked"))' vehicle-design-report.json
           jq -e '[.results[] | select(.design_id == "open-pit-haul-battery-only-control") | .status] == ["blocked"]' vehicle-design-report.json
           jq -e '[.results[] | select(.design_id != "open-pit-haul-battery-only-control") | select(.status != "passes_synthetic_screen")] | length == 0' vehicle-design-report.json
+      - name: Run EV carrier incremental configuration screen
+        run: |
+          cargo run --quiet --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml \
+            --bin ev_carrier_configuration_screen -- vehicle-design-report.json \
+            tools/rural-industrial-electrification-evaluator/fixtures/ev_carrier_configurations_v0_1.json > ev-carrier-config-report.json
+          jq -e '.results | length == 6 and all(.[]; (.status == "passes_synthetic_screen" or .status == "indeterminate" or .status == "blocked"))' ev-carrier-config-report.json
+          jq -e '[.results[] | select(.architecture == "truck_only") | .status] == ["passes_synthetic_screen", "passes_synthetic_screen"]' ev-carrier-config-report.json
+          jq -e '[.results[] | select(.architecture != "truck_only") | .status] | all(. == "indeterminate")' ev-carrier-config-report.json
+          jq -e '[.results[] | select(.architecture != "truck_only") | .missing_fields | length] | all(. > 0)' ev-carrier-config-report.json
+          jq -e '[.results[] | select(.config_id == "urban-truck-only-control") | .gross_mass_margin_after_module_kg] == [5800]' ev-carrier-config-report.json
+          jq -e '[.results[] | select(.config_id == "urban-truck-only-control") | .vehicle_battery_energy_margin_after_module_kwh] == [64.462]' ev-carrier-config-report.json
+          cat ev-carrier-config-report.json
       - name: Run longitudinal EV mission physics screen
         run: |
           cargo run --quiet --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml \
