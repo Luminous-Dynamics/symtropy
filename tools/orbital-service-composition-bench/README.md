@@ -8,7 +8,7 @@ The benchmark asks whether three separate synthetic evidence claims can be joine
 
 `payload delivery to target orbit -> mechanical capture handoff -> receiver-accepted fluid transfer`
 
-It requires the same subject identity across all stages, a matching interface ID and revision between capture and transfer, the target orbit required by the mission profile, a matching fluid identity, and receiver-accepted mass meeting the declared service quantity.
+It requires the same subject identity across all stages, the exact destination node and target orbit, a matching interface ID and revision between capture and transfer, the matching fluid identity, and receiver-accepted mass meeting the declared service quantity.
 
 Launch attempt is not payload delivery. Approach is not capture. Capture is not fluid connection. Storage-only evidence is not transfer. Gross/source mass moved is not receiver-accepted mass. Customer acknowledgement is not technical acceptance.
 
@@ -25,7 +25,7 @@ cargo run --quiet --manifest-path tools/orbital-service-composition-bench/Cargo.
 
 ## Frozen corpus
 
-The v0.1 corpus contains 19 synthetic cases: one complete contract control, nine hard-negative controls and nine missing/insufficient-evidence controls. The expected dispositions are frozen in `cases.json`. The target is 100% expected-result agreement and zero operational-authority grants.
+The v0.1 corpus contains 20 synthetic cases: one complete contract control, ten hard-negative controls and nine missing/insufficient-evidence controls. The expected dispositions are frozen in `cases.json`. The target is 100% expected-result agreement and zero operational-authority grants.
 
 ## Current integration gap
 
@@ -75,3 +75,27 @@ Do not claim to outperform SpaceX, NASA, DARPA or a solver suite on one aggregat
 ## Claim ceiling
 
 A passing v0.1 means only that synthetic event traces conform to this software contract. It does not validate upstream receipt bytes, authenticate producers, establish physical payload delivery, orbit insertion, capture, sealing, transfer, metrology, sustained service, economics, hardware performance or flight qualification. No live command or actuator path exists.
+
+
+## Compose actual source receipt files
+
+The CLI now has a second mode for joining the JSON receipts emitted by the three source tools:
+
+```sh
+cargo run --locked --manifest-path tools/orbital-service-composition-bench/Cargo.toml -- \
+  compose \
+  tools/orbital-service-composition-bench/fixtures/v0.1/cases.json \
+  earth-orbit-chain-receipt.json \
+  orbital-capture-handoff-receipt.json \
+  orbital-fluid-transfer-receipt.json \
+  --source-commit "$(git rev-parse HEAD)"
+```
+
+The adapter requires the exact source receipt schemas and frozen commits, and joins:
+- delivery: per-cargo ID/mass, target orbit, destination, arrival and accepted status;
+- capture: client ID, interface ID/revision, frame, epoch and accepted-for-handoff status with no authority grant;
+- fluid: receiver ID, the same interface ID/revision, fluid class/ID, phase, accepted receiver mass, temperature, pressure and metrology uncertainty.
+
+The returned bundle contains SHA-256 digests of the exact composition fixture and all three receipt files, pinned source commits and the joined service record. The bundle command fails closed on schema/commit mismatch, receiver or interface mismatch, rejected status or insufficient accepted mass.
+
+The receipt-bundle unit tests currently use synthetic receipt-shaped values. The adapter is ready to consume the three file outputs, but no cross-repository CI artifact ingestion has yet been claimed. A valid bundle remains synthetic software evidence because all three current source fixtures are synthetic and their upstream resource/orbit/capture/fluid evidence inputs are not hardware-qualified or authenticated.
