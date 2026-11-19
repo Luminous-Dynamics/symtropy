@@ -103,6 +103,7 @@ impl TriggerPolicy {
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct TriggerState {
     pub baseline_plan_id: Option<String>,
+    pub last_snapshot_id: Option<String>,
     pub last_snapshot_sequence: Option<u64>,
     pub last_decision_time_ms: Option<u64>,
     pub last_trigger_time_ms: Option<u64>,
@@ -301,6 +302,7 @@ fn update_snapshot_state(
 ) -> TriggerState {
     let mut next = state.clone();
     next.baseline_plan_id = Some(snapshot.baseline_plan_id.clone());
+    next.last_snapshot_id = Some(snapshot.snapshot_id.clone());
     next.last_snapshot_sequence = Some(snapshot.sequence);
     next.last_decision_time_ms = Some(snapshot.decision_time_ms);
     if baseline_changed {
@@ -353,6 +355,8 @@ pub fn evaluate_trigger(
         if snapshot.sequence == last_sequence {
             if previous_state.baseline_plan_id.as_deref()
                 == Some(snapshot.baseline_plan_id.as_str())
+                && previous_state.last_snapshot_id.as_deref()
+                    == Some(snapshot.snapshot_id.as_str())
             {
                 return Ok(TriggerEvaluation {
                     snapshot_id: snapshot.snapshot_id.clone(),
@@ -366,7 +370,7 @@ pub fn evaluate_trigger(
                 });
             }
             return Err(TriggerError::InvalidChronology(
-                "same sequence cannot identify a different baseline",
+                "same sequence cannot identify different snapshot content or baseline",
             ));
         }
     }
@@ -758,7 +762,10 @@ mod tests {
         let first_result = evaluate_trigger(&first, &definitions(), &policy(), &TriggerState::default()).unwrap();
         let second = snapshot(2, 110_000, &[("pcc_headroom_kw", 75.0)]);
         let second_result = evaluate_trigger(&second, &definitions(), &policy(), &first_result.next_state).unwrap();
-        assert_eq!(second_result.decision, TriggerDecision::NoTrigger);
+        assert_eq!(
+            second_result.decision,
+            TriggerDecision::Suppressed { reason: SuppressionReason::Hysteresis }
+        );
     }
 
     #[test]
@@ -894,6 +901,31 @@ mod tests {
             result.decision,
             TriggerDecision::ReplanRequested { priority: TriggerPriority::Normal }
         );
+    }
+
+    #[test]
+    fn same_sequence_with_different_snapshot_id_is_invalid() {
+        let first = snapshot(1, 100_000, &[]);
+        let first_result = evaluate_trigger(&first, &definitions(), &policy(), &TriggerState::default()).unwrap();
+        let mut second = snapshot(1, 100_000, &[]);
+        second.snapshot_id = "different-content".to_owned();
+        assert!(matches!(
+            evaluate_trigger(&second, &definitions(), &policy(), &first_result.next_state),
+            Err(TriggerError::InvalidChronology(_))
+        ));
+    }
+
+    #[test]
+    fn unknown_quality_on_noncritical_signal_does_not_promote_a_pass() {
+        let mut defs = definitions();
+        defs[0].critical = false;
+        let mut input = snapshot(1, 100_000, &[]);
+        let m = input.measurements.iter_mut()
+            .find(|m| m.signal_id == "berth_arrival_delay_min").unwrap();
+        m.quality = EvidenceQuality::Unknown;
+        let result = evaluate_trigger(&input, &defs, &policy(), &TriggerState::default()).unwrap();
+        assert_eq!(result.decision, TriggerDecision::NoTrigger);
+        assert!(result.signal_receipts.iter().all(|r| r.signal_id != "berth_arrival_delay_min"));
     }
 
     #[test]
