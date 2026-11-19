@@ -33,8 +33,7 @@ fn natural_frequency_rad_s(
         return None;
     }
 
-    let inverse_reflected_rotor =
-        1.0 / (gear_ratio.powi(2) * rotor_inertia_kg_m2);
+    let inverse_reflected_rotor = 1.0 / (gear_ratio.powi(2) * rotor_inertia_kg_m2);
     let inverse_link = 1.0 / link_inertia_kg_m2;
     let omega = (stiffness_nm_per_rad * (inverse_reflected_rotor + inverse_link)).sqrt();
     positive_finite(omega).then_some(omega)
@@ -74,10 +73,8 @@ fn finite_contact_peak_torque_nm(
         return None;
     }
 
-    let finite_duration_factor =
-        PI.powi(2) * (scaled_duration / 2.0).cos() / denominator;
-    let peak = stiffness_nm_per_rad * impact_impulse_nm_s
-        / (link_inertia_kg_m2 * omega)
+    let finite_duration_factor = PI.powi(2) * (scaled_duration / 2.0).cos() / denominator;
+    let peak = stiffness_nm_per_rad * impact_impulse_nm_s / (link_inertia_kg_m2 * omega)
         * finite_duration_factor
         + operational_torque_nm;
 
@@ -104,14 +101,13 @@ fn short_contact_peak_torque_nm(
 
     let gear_squared = gear_ratio.powi(2);
     let numerator = rotor_inertia_kg_m2 * stiffness_nm_per_rad * gear_squared;
-    let denominator = gear_squared * rotor_inertia_kg_m2 * link_inertia_kg_m2
-        + link_inertia_kg_m2.powi(2);
+    let denominator =
+        gear_squared * rotor_inertia_kg_m2 * link_inertia_kg_m2 + link_inertia_kg_m2.powi(2);
     if !positive_finite(numerator) || !positive_finite(denominator) {
         return None;
     }
 
-    let peak = (numerator / denominator).sqrt() * impact_impulse_nm_s
-        + operational_torque_nm;
+    let peak = (numerator / denominator).sqrt() * impact_impulse_nm_s + operational_torque_nm;
     peak.is_finite().then_some(peak)
 }
 
@@ -138,8 +134,7 @@ fn maximum_stiffness_from_impulse_nm_per_rad(
         return None;
     }
 
-    let inertia_term =
-        1.0 / link_inertia_kg_m2 + 1.0 / (gear_ratio.powi(2) * rotor_inertia_kg_m2);
+    let inertia_term = 1.0 / link_inertia_kg_m2 + 1.0 / (gear_ratio.powi(2) * rotor_inertia_kg_m2);
     let stiffness = link_inertia_kg_m2.powi(2)
         * inertia_term
         * (torque_margin / maximum_impact_impulse_nm_s).powi(2);
@@ -170,10 +165,8 @@ fn maximum_stiffness_from_speed_nm_per_rad(
         return None;
     }
 
-    let inertia_term =
-        1.0 / link_inertia_kg_m2 + 1.0 / (gear_ratio.powi(2) * rotor_inertia_kg_m2);
-    let stiffness = inertia_term
-        * (torque_margin / maximum_link_speed_rad_s).powi(2);
+    let inertia_term = 1.0 / link_inertia_kg_m2 + 1.0 / (gear_ratio.powi(2) * rotor_inertia_kg_m2);
+    let stiffness = inertia_term * (torque_margin / maximum_link_speed_rad_s).powi(2);
 
     positive_finite(stiffness).then_some(stiffness)
 }
@@ -192,20 +185,15 @@ fn minimum_spring_energy_j(
         return None;
     }
 
-    let inertia_term =
-        1.0 / link_inertia_kg_m2 + 1.0 / (gear_ratio.powi(2) * rotor_inertia_kg_m2);
-    let energy = impact_impulse_nm_s.powi(2)
-        / (2.0 * link_inertia_kg_m2.powi(2) * inertia_term);
+    let inertia_term = 1.0 / link_inertia_kg_m2 + 1.0 / (gear_ratio.powi(2) * rotor_inertia_kg_m2);
+    let energy = impact_impulse_nm_s.powi(2) / (2.0 * link_inertia_kg_m2.powi(2) * inertia_term);
 
     energy.is_finite().then_some(energy)
 }
 
 // R2 uses motor inertia and gear ratio directly. Do not substitute the R1
 // gearbox-interface torque bound for this normalized energy-based metric.
-fn reflected_motor_inertia_kg_m2(
-    motor_inertia_kg_m2: f64,
-    gear_ratio: f64,
-) -> Option<f64> {
+fn reflected_motor_inertia_kg_m2(motor_inertia_kg_m2: f64, gear_ratio: f64) -> Option<f64> {
     if !positive_finite(motor_inertia_kg_m2) || !positive_finite(gear_ratio) {
         return None;
     }
@@ -255,16 +243,11 @@ fn qdd_normalized_impact_robustness(
         return None;
     }
 
-    let gamma = motor_to_link_inertia_ratio(
-        motor_inertia_kg_m2,
-        gear_ratio,
-        link_inertia_kg_m2,
-    )?;
+    let gamma = motor_to_link_inertia_ratio(motor_inertia_kg_m2, gear_ratio, link_inertia_kg_m2)?;
     let potential_energy = maximum_torque_nm.powi(2) / (2.0 * stiffness_nm_per_rad);
-    let impact_kinetic_energy =
-        reference_impulse_nm_s.powi(2) / (2.0 * link_inertia_kg_m2);
-    let robustness = (potential_energy / impact_kinetic_energy).sqrt()
-        * ((gamma + 1.0) / gamma).sqrt();
+    let impact_kinetic_energy = reference_impulse_nm_s.powi(2) / (2.0 * link_inertia_kg_m2);
+    let robustness =
+        (potential_energy / impact_kinetic_energy).sqrt() * ((gamma + 1.0) / gamma).sqrt();
 
     positive_finite(robustness).then_some(robustness)
 }
@@ -292,19 +275,15 @@ fn impact_001_natural_frequency_and_contact_parameter() {
 
 #[test]
 fn impact_002_finite_contact_peak_torque_known_answer() {
-    let peak = finite_contact_peak_torque_nm(
-        250.0, 5.0, 0.0004, 0.02, 0.2, 0.001, 5.0,
-    )
-    .expect("synthetic contact duration is within the declared domain");
+    let peak = finite_contact_peak_torque_nm(250.0, 5.0, 0.0004, 0.02, 0.2, 0.001, 5.0)
+        .expect("synthetic contact duration is within the declared domain");
     assert_close(peak, 17.89848475076076, "finite-contact peak torque [N m]");
 }
 
 #[test]
 fn impact_003_finite_contact_converges_to_short_contact_limit() {
-    let finite = finite_contact_peak_torque_nm(
-        250.0, 5.0, 0.0004, 0.02, 0.2, 1.0e-9, 5.0,
-    )
-    .expect("small positive contact duration must be admitted");
+    let finite = finite_contact_peak_torque_nm(250.0, 5.0, 0.0004, 0.02, 0.2, 1.0e-9, 5.0)
+        .expect("small positive contact duration must be admitted");
     let short = short_contact_peak_torque_nm(250.0, 5.0, 0.0004, 0.02, 0.2, 5.0)
         .expect("positive synthetic parameters must be admitted");
     assert_close(finite, short, "finite-duration zero-contact limit [N m]");
@@ -316,27 +295,25 @@ fn impact_004_finite_contact_rejects_out_of_domain_duration() {
         .expect("positive synthetic parameters must be admitted");
     let boundary_duration = PI / omega;
     assert!(
-        finite_contact_peak_torque_nm(
-            250.0, 5.0, 0.0004, 0.02, 0.2, boundary_duration, 5.0,
-        )
-        .is_none(),
+        finite_contact_peak_torque_nm(250.0, 5.0, 0.0004, 0.02, 0.2, boundary_duration, 5.0,)
+            .is_none(),
         "the finite-contact expression must reject Delta*omega >= pi"
     );
 }
 
 #[test]
 fn impact_005_impulse_and_speed_stiffness_bounds_are_equivalent() {
-    let from_impulse = maximum_stiffness_from_impulse_nm_per_rad(
-        0.02, 0.0004, 5.0, 80.0, 5.0, 0.2,
-    )
-    .expect("positive torque margin and impulse must be admitted");
-    let from_speed = maximum_stiffness_from_speed_nm_per_rad(
-        0.02, 0.0004, 5.0, 80.0, 5.0, 10.0,
-    )
-    .expect("positive torque margin and speed must be admitted");
+    let from_impulse = maximum_stiffness_from_impulse_nm_per_rad(0.02, 0.0004, 5.0, 80.0, 5.0, 0.2)
+        .expect("positive torque margin and impulse must be admitted");
+    let from_speed = maximum_stiffness_from_speed_nm_per_rad(0.02, 0.0004, 5.0, 80.0, 5.0, 10.0)
+        .expect("positive torque margin and speed must be admitted");
     assert_close(from_impulse, 8437.5, "impulse maximum stiffness [N m/rad]");
     assert_close(from_speed, 8437.5, "speed maximum stiffness [N m/rad]");
-    assert_close(from_impulse, from_speed, "equivalent stiffness formulations");
+    assert_close(
+        from_impulse,
+        from_speed,
+        "equivalent stiffness formulations",
+    );
 }
 
 #[test]
@@ -357,14 +334,17 @@ fn impact_007_qdd_reflected_inertia_and_use_case_gear_boundary() {
 
     assert_close(reflected, 0.04, "reflected motor inertia [kg m^2]");
     assert_close(gamma, 2.0, "motor-to-link inertia ratio");
-    assert_close(boundary, 7.681145747868608, "use-case gear-ratio transition");
+    assert_close(
+        boundary,
+        7.681145747868608,
+        "use-case gear-ratio transition",
+    );
 }
 
 #[test]
 fn impact_008_qdd_energy_normalized_robustness_known_answer() {
-    let robustness =
-        qdd_normalized_impact_robustness(0.0004, 0.02, 10.0, 20.0, 1000.0, 0.03)
-            .expect("positive synthetic QDD parameters must be admitted");
+    let robustness = qdd_normalized_impact_robustness(0.0004, 0.02, 10.0, 20.0, 1000.0, 0.03)
+        .expect("positive synthetic QDD parameters must be admitted");
     assert_close(
         robustness,
         3.651483716701107,
@@ -376,31 +356,20 @@ fn impact_008_qdd_energy_normalized_robustness_known_answer() {
 fn impact_009_invalid_and_non_finite_inputs_fail_closed() {
     assert!(natural_frequency_rad_s(0.0, 5.0, 0.0004, 0.02).is_none());
     assert!(natural_frequency_rad_s(250.0, f64::INFINITY, 0.0004, 0.02).is_none());
-    assert!(finite_contact_peak_torque_nm(
-        250.0, 5.0, 0.0004, 0.02, -0.1, 0.001, 5.0,
-    )
-    .is_none());
-    assert!(short_contact_peak_torque_nm(
-        250.0, 0.0, 0.0004, 0.02, 0.2, 5.0,
-    )
-    .is_none());
+    assert!(finite_contact_peak_torque_nm(250.0, 5.0, 0.0004, 0.02, -0.1, 0.001, 5.0,).is_none());
+    assert!(short_contact_peak_torque_nm(250.0, 0.0, 0.0004, 0.02, 0.2, 5.0,).is_none());
     assert!(minimum_spring_energy_j(0.02, 0.0004, 5.0, f64::NAN).is_none());
     assert!(reflected_motor_inertia_kg_m2(0.0004, -5.0).is_none());
     assert!(qdd_gear_ratio_transition(0.0004, 0.02, 0.0).is_none());
-    assert!(qdd_normalized_impact_robustness(
-        0.0004, 0.02, 10.0, 20.0, 1000.0, 0.0,
-    )
-    .is_none());
+    assert!(qdd_normalized_impact_robustness(0.0004, 0.02, 10.0, 20.0, 1000.0, 0.0,).is_none());
 }
 
 #[test]
 fn impact_010_stiffness_bounds_reject_zero_torque_margin() {
-    assert!(maximum_stiffness_from_impulse_nm_per_rad(
-        0.02, 0.0004, 5.0, 80.0, 80.0, 0.2,
-    )
-    .is_none());
-    assert!(maximum_stiffness_from_speed_nm_per_rad(
-        0.02, 0.0004, 5.0, 80.0, 81.0, 10.0,
-    )
-    .is_none());
+    assert!(
+        maximum_stiffness_from_impulse_nm_per_rad(0.02, 0.0004, 5.0, 80.0, 80.0, 0.2,).is_none()
+    );
+    assert!(
+        maximum_stiffness_from_speed_nm_per_rad(0.02, 0.0004, 5.0, 80.0, 81.0, 10.0,).is_none()
+    );
 }
