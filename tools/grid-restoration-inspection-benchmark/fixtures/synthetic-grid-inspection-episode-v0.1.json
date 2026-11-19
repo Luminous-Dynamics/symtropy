@@ -1,0 +1,199 @@
+{
+  "schemaVersion": "0.1.0",
+  "episodeId": "grid-inspection-synthetic-001",
+  "caseMaturity": "synthetic_fixture",
+  "timeOriginUtc": "2030-01-01T00:00:00Z",
+  "asOfHour": 8,
+  "decisionEpoch": 1,
+  "observableState": {
+    "unknowns": [
+      {
+        "subjectRef": "synthetic://asset/transformer-17",
+        "claim": "internal insulation condition",
+        "status": "unknown"
+      },
+      {
+        "subjectRef": "synthetic://asset/transformer-17",
+        "claim": "bushing damage severity",
+        "status": "unknown"
+      }
+    ],
+    "conflicts": [
+      {
+        "claim": "asset thermal state",
+        "observationRefs": [
+          "obs-dashboard-mirror",
+          "obs-aux-telemetry"
+        ],
+        "status": "unresolved"
+      }
+    ],
+    "observations": [
+      {
+        "observationId": "obs-aux-telemetry",
+        "assetRef": "synthetic://asset/transformer-17",
+        "claimType": "alarm_only",
+        "sourceRef": "synthetic://source/aux-telemetry",
+        "sourceFamily": "auxiliary-telemetry",
+        "independenceGroupRef": "synthetic://failure-domain/aux-power-telecom",
+        "calibrationRef": "synthetic://calibration/telemetry-gateway/v3",
+        "effectiveHour": 7.5,
+        "observedHour": 7.8,
+        "validUntilHour": 9,
+        "evidenceStatus": "current",
+        "evidenceClass": "synthetic_fixture",
+        "payloadRef": "synthetic://observation/aux-telemetry/001"
+      },
+      {
+        "observationId": "obs-dashboard-mirror",
+        "assetRef": "synthetic://asset/transformer-17",
+        "claimType": "dashboard_alarm_mirror",
+        "sourceRef": "synthetic://source/dashboard-mirror",
+        "sourceFamily": "derived-dashboard",
+        "independenceGroupRef": "synthetic://failure-domain/aux-power-telecom",
+        "calibrationRef": null,
+        "effectiveHour": 7.5,
+        "observedHour": 7.9,
+        "validUntilHour": 9,
+        "evidenceStatus": "current",
+        "evidenceClass": "synthetic_fixture",
+        "payloadRef": "synthetic://observation/dashboard-mirror/001"
+      }
+    ]
+  },
+  "inspectionCandidates": [
+    {
+      "inspectionId": "inspect-independent-insulation-test",
+      "assetRef": "synthetic://asset/transformer-17",
+      "methodRef": "synthetic://method/independent-insulation-test/v1",
+      "applicabilityRef": "synthetic://applicability/transformer-family-a/v1",
+      "observationModelRef": "symthaea://industrial-diagnosis-voi/synthetic-model/insulation-test",
+      "decisionModelInputRef": "symthaea://industrial-diagnosis-voi/request/transformer-17/epoch-1",
+      "earliestStartHour": 8,
+      "durationHours": 2,
+      "resultLatencyHours": 0.5,
+      "costRef": "synthetic://cost/test-mobilization/001",
+      "resourceRequirements": [
+        {
+          "resourceRef": "synthetic://resource/specialist-crew-01",
+          "units": 1
+        },
+        {
+          "resourceRef": "synthetic://resource/portable-test-set-01",
+          "units": 1
+        }
+      ],
+      "accessPrerequisiteRefs": [
+        "synthetic://access/transformer-17/safe-access"
+      ],
+      "authorityRequirementRef": "synthetic://authority/asset-owner/inspection",
+      "independenceGroupRef": "synthetic://failure-domain/independent-field-test",
+      "failureOutcomeRef": "synthetic://inspection-outcome/inconclusive"
+    },
+    {
+      "inspectionId": "inspect-dashboard-refresh",
+      "assetRef": "synthetic://asset/transformer-17",
+      "methodRef": "synthetic://method/dashboard-refresh/v1",
+      "applicabilityRef": "synthetic://applicability/dashboard-source-family/v1",
+      "observationModelRef": "symthaea://industrial-diagnosis-voi/synthetic-model/dashboard-refresh",
+      "decisionModelInputRef": "symthaea://industrial-diagnosis-voi/request/transformer-17/epoch-1",
+      "earliestStartHour": 8,
+      "durationHours": 0.1,
+      "resultLatencyHours": 0.1,
+      "costRef": null,
+      "resourceRequirements": [
+        {
+          "resourceRef": "synthetic://resource/telemetry-gateway-01",
+          "units": 1
+        }
+      ],
+      "accessPrerequisiteRefs": [],
+      "authorityRequirementRef": "synthetic://authority/asset-owner/telemetry-read",
+      "independenceGroupRef": "synthetic://failure-domain/aux-power-telecom",
+      "failureOutcomeRef": "synthetic://inspection-outcome/no-new-independent-evidence"
+    }
+  ],
+  "recoveryActions": [
+    {
+      "actionId": "hold-and-inspect",
+      "actionType": "defer",
+      "assetRef": "synthetic://asset/transformer-17",
+      "requiredEvidenceRefs": [
+        "synthetic://evidence/independent-insulation-result"
+      ],
+      "resourceRequirements": [],
+      "estimatedEffortHours": 0,
+      "earliestStartHour": 8,
+      "authorityRequirementRef": "synthetic://authority/asset-owner/hold",
+      "serviceModelInputRef": "synthetic://service-model/transformer-17/hold"
+    },
+    {
+      "actionId": "repair-bushing-proposal",
+      "actionType": "repair_proposal",
+      "assetRef": "synthetic://asset/transformer-17",
+      "requiredEvidenceRefs": [
+        "synthetic://evidence/bushing-condition-accepted"
+      ],
+      "resourceRequirements": [
+        {
+          "resourceRef": "synthetic://resource/specialist-crew-01",
+          "units": 1
+        }
+      ],
+      "estimatedEffortHours": 6,
+      "earliestStartHour": 8,
+      "authorityRequirementRef": "synthetic://authority/asset-owner/repair",
+      "serviceModelInputRef": "synthetic://service-model/transformer-17/repair-bushing"
+    },
+    {
+      "actionId": "replace-transformer-proposal",
+      "actionType": "replace_proposal",
+      "assetRef": "synthetic://asset/transformer-17",
+      "requiredEvidenceRefs": [
+        "synthetic://evidence/replacement-engineering-accepted"
+      ],
+      "resourceRequirements": [
+        {
+          "resourceRef": "synthetic://resource/heavy-haul-01",
+          "units": 1
+        },
+        {
+          "resourceRef": "synthetic://resource/crane-01",
+          "units": 1
+        },
+        {
+          "resourceRef": "synthetic://resource/specialist-crew-01",
+          "units": 1
+        }
+      ],
+      "estimatedEffortHours": 14,
+      "earliestStartHour": 8,
+      "authorityRequirementRef": "synthetic://authority/asset-owner/replacement",
+      "serviceModelInputRef": "synthetic://service-model/transformer-17/replacement"
+    }
+  ],
+  "resourceState": {
+    "portfolioRef": "synthetic://shared-resource-portfolio/grid-recovery-001",
+    "asOfManifestRef": "synthetic://resource-manifest/synthetic-grid-resource-manifest-001/v1",
+    "asOfManifestSha256": "c01e8f79f9b599fee014bdc3e10d7325cf08520237120dd555c723b191061656"
+  },
+  "references": {
+    "diagnosisModelRef": "symthaea://industrial-diagnosis-voi/12403",
+    "valueOfInformationRequestRef": "symthaea://industrial-diagnosis-voi/request/transformer-17/epoch-1",
+    "executionLedgerRef": "symtropy://grid-asset-recovery/6213/execution-case/grid-recovery-001",
+    "resourcePortfolioRef": "symtropy://grid-recovery-supply-chain/6237/portfolio/grid-recovery-001",
+    "serviceOutcomeRef": "symtropy://grid-restoration-service/6235/trajectory/grid-recovery-001",
+    "impactClosureRef": "symtropy://factory-observe-repair/5520/impact-closure-adapter/grid-recovery-001",
+    "authorityPolicyRef": "mycelix://authority-policy/asset-owner-inspection-repair/v1"
+  },
+  "policyArms": [
+    "no_new_inspection",
+    "fixed_sequence",
+    "information_gain_greedy",
+    "one_step_net_voi",
+    "resource_aware_voi",
+    "voi_selective_repair",
+    "robust_interval",
+    "bounded_exact_oracle"
+  ]
+}

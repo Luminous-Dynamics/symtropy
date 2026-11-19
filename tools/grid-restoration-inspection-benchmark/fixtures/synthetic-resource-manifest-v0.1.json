@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "0.1.0",
+  "manifestId": "synthetic-grid-resource-manifest-001",
+  "timeOriginUtc": "2030-01-01T00:00:00Z",
+  "asOfHour": 8,
+  "resources": [
+    {
+      "resourceRef": "synthetic://resource/specialist-crew-01",
+      "status": "available",
+      "capacityUnits": 1,
+      "availabilityWindows": [
+        {
+          "startHour": 8,
+          "endHour": 16,
+          "capacityUnits": 1
+        }
+      ],
+      "sourceRef": "synthetic://resource-state/crew-01/v1"
+    },
+    {
+      "resourceRef": "synthetic://resource/portable-test-set-01",
+      "status": "available",
+      "capacityUnits": 1,
+      "availabilityWindows": [
+        {
+          "startHour": 8,
+          "endHour": 16,
+          "capacityUnits": 1
+        }
+      ],
+      "sourceRef": "synthetic://resource-state/test-set-01/v1"
+    },
+    {
+      "resourceRef": "synthetic://resource/telemetry-gateway-01",
+      "status": "degraded",
+      "capacityUnits": 1,
+      "availabilityWindows": [
+        {
+          "startHour": 8,
+          "endHour": 9,
+          "capacityUnits": 1
+        }
+      ],
+      "sourceRef": "synthetic://resource-state/telemetry-gateway-01/v1"
+    },
+    {
+      "resourceRef": "synthetic://resource/uav-01",
+      "status": "unavailable",
+      "capacityUnits": 0,
+      "availabilityWindows": [
+        {
+          "startHour": 8,
+          "endHour": 24,
+          "capacityUnits": 0
+        }
+      ],
+      "sourceRef": "synthetic://resource-state/uav-01/v1"
+    },
+    {
+      "resourceRef": "synthetic://resource/heavy-haul-01",
+      "status": "available",
+      "capacityUnits": 1,
+      "availabilityWindows": [
+        {
+          "startHour": 9,
+          "endHour": 18,
+          "capacityUnits": 1
+        }
+      ],
+      "sourceRef": "synthetic://resource-state/heavy-haul-01/v1"
+    },
+    {
+      "resourceRef": "synthetic://resource/crane-01",
+      "status": "available",
+      "capacityUnits": 1,
+      "availabilityWindows": [
+        {
+          "startHour": 9,
+          "endHour": 18,
+          "capacityUnits": 1
+        }
+      ],
+      "sourceRef": "synthetic://resource-state/crane-01/v1"
+    }
+  ]
+}
