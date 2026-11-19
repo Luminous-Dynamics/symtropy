@@ -50,13 +50,13 @@ Exit codes:
 
 ## Adversarial and positive test coverage
 
-The 31 current unit tests cover exact fixture success, byte tampering (including malformed tampered JSON), declared byte-length mismatch, interval-ID mismatch, boundary mismatch, synthetic-to-measured evidence-class promotion, duplicate allocation IDs, service/carrier mismatch, over-allocation and negative residual, forged reported balance, allocation digest mismatch, rejected integrity state, zero tolerance, stale/unknown validity, clock-quality refusal, mismatched and non-UTC time windows, unsupported digest algorithms, malformed digests, relative comparisons at tiny energy scales, duplicate source intervals across batches (including fractional-second spellings), overlapping intervals, invalid calendar dates, duplicate evidence/receipt IDs, source power-duration mismatch and zero-duration rejection.
+The 33 current unit tests cover exact fixture success, byte tampering (including malformed tampered JSON), declared byte-length mismatch, interval-ID mismatch, boundary mismatch, synthetic-to-measured evidence-class promotion, duplicate allocation IDs, service/carrier mismatch, over-allocation and negative residual, forged reported balance, allocation digest mismatch, rejected integrity state, zero tolerance, stale/unknown validity, clock-quality refusal, mismatched and non-UTC time windows, unsupported digest algorithms, malformed digests, relative comparisons at tiny energy scales, duplicate source intervals across batches (including fractional-second spellings), overlapping intervals, invalid calendar dates, duplicate evidence/receipt IDs, source power-duration mismatch and zero-duration rejection.
 
 ## Batch uniqueness
 
 `verify_source_interval_batch` verifies a set of source-interval bundles and enforces one receipt per physical source interval in that batch. Its duplicate key is source asset + measurement boundary + carrier + exact UTC start representation + duration. It also rejects duplicate evidence IDs and allocation receipt IDs. Renaming an interval/evidence/receipt ID cannot make the same source interval allocatable twice in one batch.
 
-The check is **batch-scoped**. It parses canonical UTC `Z` timestamps into integer nanoseconds, so equivalent fractional-second spellings cannot bypass duplicate detection. It also rejects overlapping windows for the same source asset, measurement boundary and carrier. It is not a persistent cross-campaign registry; a future archive-level ledger should retain committed source intervals across independent batches.
+The check is **batch-scoped**. It parses canonical UTC `Z` timestamps into integer nanoseconds, so equivalent fractional-second spellings cannot bypass duplicate detection. It also rejects overlapping windows for the same source asset, measurement boundary and carrier. It is capped at 256 intervals per call. It is not a persistent cross-campaign registry; a future archive-level ledger should retain committed source intervals across independent batches.
 
 ## Explicit limitations
 
