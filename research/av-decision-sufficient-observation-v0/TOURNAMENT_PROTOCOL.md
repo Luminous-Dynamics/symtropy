@@ -36,6 +36,7 @@ The best practical modular policy is the primary baseline. An ablation that remo
 
 Each episode binds:
 - exact scenario ID/version and source/seed ancestry;
+- task-request lifecycle events: create, modify, cancel, supersede, expiry and acknowledgement;
 - source stream and observation artifact digests;
 - world/camera/microphone profile and calibration status;
 - clock domains and reset generations;
@@ -46,6 +47,19 @@ Each episode binds:
 - exact policy/model/runtime revisions and resource measurement method.
 
 Train, calibration and confirmatory episodes must be disjoint by scenario family, source episode, seed ancestry, environment, speaker/session, texture/render parent and nuisance-factor family, according to the generalization claim. Never split adjacent frames/windows from one generated episode across partitions.
+
+## Continuous interaction / dead-time extensions
+
+The static fixtures are only the first rung. The next episode family must borrow the important interaction structure from SPOT-Bench and IPIBench:
+
+- **Dead-time:** long stretches where no response is expected; score correct silence and unnecessary resource use.
+- **Task modification:** user changes the target, scope or response condition while the stream is active.
+- **Cancellation:** a pending observation request is cancelled; a late arrival must not revive the cancelled task or trigger an obsolete response.
+- **Reactive/proactive interleaving:** a user asks an immediate question while a standing proactive monitor is active; evaluate floor priority, response delay and task continuity separately.
+- **Multi-task contention:** several standing requests compete for sensor, compute and interruption budgets; a high-priority explicit query must not be starved by a low-value proactive request.
+- **Duplicate suppression:** one underlying event observed through several derived/correlated paths must not create repeated alerts.
+
+A request is a versioned intent object. Responses and sensor acquisitions bind to the exact request revision that authorized them. Cancellation or modification creates a new revision; it never rewrites the old audit record. A result arriving for a superseded request remains retrievable as historical evidence but cannot automatically satisfy the new request.
 
 ## Hard gates before scoring
 
