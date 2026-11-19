@@ -1,0 +1,452 @@
+{
+  "schema": "luminous.subsea_compute_industry_benchmark",
+  "schema_version": "0.1.0",
+  "fixture_id": "subsea-udc-competitor-evidence-register-v0-1",
+  "snapshot_date": "2026-11-19",
+  "claim_ceiling": "Public competitor evidence register and matched benchmark contract only. No independent performance, site, economics, reliability or environmental results are certified.",
+  "comparability_rules": [
+    "Commercial operation, construction complete, pilot, tender and proposed are distinct statuses.",
+    "Subsea pressure-vessel compute, onshore seawater-cooled compute and floating offshore platforms are separate architecture classes.",
+    "Module IT capacity, whole-facility electrical capacity, site grid import and renewable nameplate are different quantities.",
+    "PUE comparisons require identical whole-facility meter boundary and time window.",
+    "WUE claims must distinguish freshwater consumed by the data centre from seawater intake, discharge and ecosystem impacts.",
+    "Seawater cooling does not imply environmental acceptability; intake, thermal discharge, biofouling, chemical treatment, plume and habitat impacts require site-specific evidence.",
+    "Compute throughput comparisons require workload, model, precision, accelerator, quality, latency, availability and power boundary.",
+    "Reliability comparisons require sample size, confidence interval, operating duration, failure definition, repair strategy and matched control.",
+    "Source conflicts remain CONFLICTED_UNKNOWN; do not average incompatible values or choose the most attractive figure.",
+    "Project-launch announcements and planned phase targets are not actual commissioning evidence or metered operating performance."
+  ],
+  "comparators": [
+    {
+      "project_id": "hicloud-hainan-udc",
+      "operator_or_developer": "HiCloud / Highlander; China Telecom participation described in official reporting",
+      "location": "Lingshui, Hainan, China",
+      "architecture_class": "subsea_pressure_module_commercial",
+      "status": "commercial_operation_reported",
+      "timeline": {
+        "first_commercial_operation": "2022-12",
+        "cluster_expansion": "2025-02",
+        "evidence_class": "official_Xinhua_republication_by_Shanghai_municipal_government"
+      },
+      "evidence": [
+        {
+          "field": "commercial_operation",
+          "value": true,
+          "source": "China government / Xinhua",
+          "date": "2025-02-19",
+          "url": "https://english.www.gov.cn/news/202502/19/content_WS67b5a14dc6d0868f4e8efcaa.html",
+          "evidence_class": "official_public_report"
+        },
+        {
+          "field": "additional_module_servers",
+          "value": 400,
+          "unit": "high-performance servers",
+          "source": "China government / Xinhua",
+          "date": "2025-02-19",
+          "url": "https://english.www.gov.cn/news/202502/19/content_WS67b5a14dc6d0868f4e8efcaa.html",
+          "evidence_class": "official_public_report"
+        },
+        {
+          "field": "customers",
+          "value": 10,
+          "unit": "companies signed up",
+          "source": "China government / Xinhua",
+          "date": "2025-02-19",
+          "url": "https://english.www.gov.cn/news/202502/19/content_WS67b5a14dc6d0868f4e8efcaa.html",
+          "evidence_class": "official_public_report"
+        },
+        {
+          "field": "compute_throughput_claim",
+          "value": "equivalent to 30,000 high-end gaming PCs",
+          "source": "China Media Group as cited by Xinhua",
+          "date": "2025-02-19",
+          "evidence_class": "reported_claim_not_matched_benchmark"
+        },
+        {
+          "field": "AI_query_rate_claim",
+          "value": 7000,
+          "unit": "queries/s",
+          "source": "China Media Group as cited by Xinhua",
+          "date": "2025-02-19",
+          "evidence_class": "reported_claim_without_workload_specification"
+        },
+        {
+          "field": "reported_computing_capacity",
+          "value": 675,
+          "unit": "PFLOPS",
+          "source": "HiCloud manager quoted by Xinhua",
+          "date": "2025-06-11",
+          "evidence_class": "operator_reported_not_independently_benchmarked"
+        },
+        {
+          "field": "reported_server_failures_since_launch",
+          "value": 0,
+          "unit": "failures",
+          "source": "HiCloud manager quoted by Xinhua",
+          "date": "2025-06-11",
+          "evidence_class": "operator_reported_no_public_failure_dataset"
+        },
+        {
+          "field": "reported_module_depth",
+          "value": ">30",
+          "unit": "metres",
+          "source": "Xinhua / Shanghai Municipal Government",
+          "date": "2025-06-11",
+          "evidence_class": "reported_depth_not_primary_as_built_survey"
+        }
+      ],
+      "unknowns": {
+        "whole_facility_it_capacity_mw": null,
+        "whole_facility_pue": null,
+        "wue_boundary_and_metering": null,
+        "offshore_renewable_fraction_hourly": null,
+        "hourly_grid_import": null,
+        "module_depth_and_design_pressure": null,
+        "rack_density_and_accelerator_inventory": null,
+        "workload_quality_and_latency": null,
+        "availability_and_mttr": null,
+        "server_failure_sample_and_control": null,
+        "seawater_intake_and_discharge": null,
+        "marine_thermal_plume_validation": null,
+        "maintenance_and_module_exchange_times": null,
+        "lifecycle_cost_and_decommissioning": null,
+        "environmental_authorization_and_monitoring": null,
+        "cable_route_diversity_and_repair_evidence": null
+      },
+      "sources": [
+        {
+          "source": "Shanghai Municipal Government / Xinhua",
+          "date": "2025-06-11",
+          "url": "https://english.shanghai.gov.cn/en-Strength-Scitechcenter/20250611/c60460fe62e440d08b62be991cade0c9.html",
+          "evidence_class": "official_municipal_government_republication_of_Xinhua"
+        }
+      ]
+    },
+    {
+      "project_id": "hicloud-shanghai-lingang-udc",
+      "operator_or_developer": "HiCloud / Highlander; Shanghai Lingang project partners including state-backed telecom providers are reported",
+      "location": "Lingang Special Area, Shanghai, China",
+      "architecture_class": "subsea_pressure_module_offshore_wind_coupled",
+      "status": "full_commercial_operation_reported_2026",
+      "timeline": {
+        "project_launch": "2025-06",
+        "construction_completion": "2025-10",
+        "initial_trials": "2026-02",
+        "full_commercial_operation_reported": "2026-05",
+        "phase_one_demonstrator_capacity_mw": 2.3,
+        "reported_total_capacity_mw": 24,
+        "proposed_larger_programme_capacity_mw": 500,
+        "official_project_launch": "2025-06-10",
+        "phase_one_expected_operational_date": "2025-09",
+        "phase_one_expected_operational_evidence_class": "project_launch_forecast",
+        "phase_two_planned_capacity_mw": 24
+      },
+      "sources": [
+        {
+          "source": "Data Center Dynamics",
+          "date": "2026-05-20",
+          "url": "https://www.datacenterdynamics.com/en/news/hiclouds-offshore-wind-powered-underwater-data-center-up-and-running-off-coast-of-shanghai-china/",
+          "evidence_class": "industry_trade_report"
+        },
+        {
+          "source": "Offshore Wind",
+          "date": "2026-05-18",
+          "url": "https://www.offshorewind.biz/2026/05/18/china-puts-worlds-first-offshore-wind-powered-underwater-data-centre-into-operation/",
+          "evidence_class": "industry_trade_report"
+        },
+        {
+          "source": "Shanghai Municipal Government / Xinhua",
+          "date": "2025-06-11",
+          "url": "https://english.shanghai.gov.cn/en-Strength-Scitechcenter/20250611/c60460fe62e440d08b62be991cade0c9.html",
+          "evidence_class": "official_municipal_government_republication_of_Xinhua_project_announcement"
+        }
+      ],
+      "evidence": [
+        {
+          "field": "reported_total_capacity",
+          "value": 24,
+          "unit": "MW",
+          "source": "Data Center Dynamics / Offshore Wind",
+          "evidence_class": "reported_project_capacity"
+        },
+        {
+          "field": "phase_one_capacity",
+          "value": 2.3,
+          "unit": "MW",
+          "source": "Offshore Wind reporting project phasing",
+          "evidence_class": "reported_project_phase"
+        },
+        {
+          "field": "pue",
+          "value": 1.15,
+          "unit": "PUE",
+          "source": "developer claim as reported by Offshore Wind",
+          "evidence_class": "developer_reported_not_independently_audited"
+        },
+        {
+          "field": "electricity_reduction",
+          "value": 22.8,
+          "unit": "percent",
+          "source": "developer claim as reported by Offshore Wind",
+          "evidence_class": "developer_reported_not_independently_audited"
+        },
+        {
+          "field": "water_use",
+          "value": 0,
+          "unit": "freshwater",
+          "source": "developer claim as reported by Offshore Wind",
+          "evidence_class": "developer_reported_boundary_unknown"
+        },
+        {
+          "field": "land_use_reduction",
+          "value": 90,
+          "unit": "percent",
+          "source": "developer claim as reported by Offshore Wind",
+          "evidence_class": "developer_reported_not_independently_audited"
+        },
+        {
+          "field": "offshore_wind_supply",
+          "value": "substantial share / directly connected as reported",
+          "source": "Data Center Dynamics and Offshore Wind",
+          "evidence_class": "qualitative_report_not_hourly_metered_share"
+        },
+        {
+          "field": "official_project_launch",
+          "value": "2025-06-10",
+          "source": "Shanghai Municipal Government / Xinhua",
+          "date": "2025-06-11",
+          "evidence_class": "official_project_launch"
+        },
+        {
+          "field": "first_phase_demonstration_capacity",
+          "value": 2.3,
+          "unit": "MW",
+          "source": "Hicloud general manager quoted by Xinhua",
+          "date": "2025-06-11",
+          "evidence_class": "project_announced_phase"
+        },
+        {
+          "field": "phase_two_target_capacity",
+          "value": 24,
+          "unit": "MW",
+          "source": "Hicloud general manager quoted by Xinhua",
+          "date": "2025-06-11",
+          "evidence_class": "planned_capacity_not_as_built_metered"
+        },
+        {
+          "field": "phase_two_target_pue",
+          "value": 1.15,
+          "unit": "PUE threshold",
+          "source": "Hicloud general manager quoted by Xinhua",
+          "date": "2025-06-11",
+          "evidence_class": "developer_target_not_independently_audited"
+        },
+        {
+          "field": "phase_two_target_offshore_wind_share",
+          "value": 90,
+          "unit": "percent",
+          "source": "Hicloud general manager quoted by Xinhua",
+          "date": "2025-06-11",
+          "evidence_class": "developer_target_not_hourly_metered"
+        },
+        {
+          "field": "reported_cooling_electricity_share_target",
+          "value": 10,
+          "unit": "percent of total power or less",
+          "source": "Hicloud general manager quoted by Xinhua",
+          "date": "2025-06-11",
+          "evidence_class": "developer_target_not_independently_audited"
+        }
+      ],
+      "conflicts": [
+        {
+          "field": "module_depth_below_surface_m",
+          "value_a": 35,
+          "source_a": "Data Center Dynamics 2026-05-20",
+          "url_a": "https://www.datacenterdynamics.com/en/news/hiclouds-offshore-wind-powered-underwater-data-center-up-and-running-off-coast-of-shanghai-china/",
+          "value_b": 10,
+          "source_b": "Offshore Wind 2026-05-18",
+          "url_b": "https://www.offshorewind.biz/2026/05/18/china-puts-worlds-first-offshore-wind-powered-underwater-data-centre-into-operation/",
+          "disposition": "CONFLICTED_UNKNOWN",
+          "note": "Could be differing definitions, phase, module location or reporting error. Do not use for hydrostatic pressure, bathymetry, cable length or installation design until primary as-built documentation resolves it."
+        }
+      ],
+      "unknowns": {
+        "facility_boundary_and_it_load_mw": null,
+        "independent_interval_pue": null,
+        "wue_method_and_freshwater_boundary": null,
+        "hourly_offshore_wind_fraction": null,
+        "grid_import_and_power_quality": null,
+        "compute_workload_throughput_and_precision": null,
+        "latency_and_customer_sla": null,
+        "availability_and_mttr": null,
+        "server_failure_data": null,
+        "module_depth_primary_as_built": null,
+        "intake_and_outfall_flow_temperature": null,
+        "thermal_plume_and_environmental_monitoring": null,
+        "maintenance_vessel_and_module_exchange_cost": null,
+        "cable_routes_and_redundancy": null,
+        "environmental_permit_and_marine_baseline": null,
+        "lifecycle_capex_opex_and_decommissioning": null,
+        "actual_hourly_offshore_wind_fraction": null,
+        "actual_whole_facility_pue_metered": null,
+        "phase_two_as_built_capacity_and_acceptance": null,
+        "actual_energy_reduction_against_matched_onshore_baseline": null,
+        "primary_as_built_module_depth_and_datum": null
+      }
+    },
+    {
+      "project_id": "microsoft-project-natick",
+      "operator_or_developer": "Microsoft Research with Naval Group and marine partners",
+      "location": "Orkney / European Marine Energy Centre, Scotland",
+      "architecture_class": "subsea_pressure_module_research_pilot",
+      "status": "phase_two_retrieved_2020",
+      "timeline": {
+        "deployment": "2018-06",
+        "retrieval": "2020-07",
+        "operation_duration": "more than two years"
+      },
+      "evidence": [
+        {
+          "field": "server_failure_rate_ratio",
+          "value": 0.125,
+          "unit": "relative to land control",
+          "source": "Microsoft Research Phase 2 summary",
+          "url": "https://www.microsoft.com/en-us/research/project/natick/",
+          "evidence_class": "research_reported_result"
+        },
+        {
+          "field": "seabed_restoration",
+          "value": "Microsoft reports restoration to pre-deployment state",
+          "source": "Microsoft Research",
+          "url": "https://www.microsoft.com/en-us/research/project/natick/",
+          "evidence_class": "operator_reported_result"
+        }
+      ],
+      "limitations": [
+        "Research pilot, not current commercial capacity.",
+        "Failure ratio is specific to its module, sample and control; do not extrapolate to commercial systems.",
+        "The Phase 2 module was retrieved and analysed; later deployment is not established by the cited Microsoft page."
+      ],
+      "unknowns": {
+        "full_public_raw_failure_dataset": null,
+        "sample_confidence_interval": null,
+        "matched_workload_and_environment_control": null,
+        "commercial_lifecycle_cost": null,
+        "current_operating_capacity": null
+      }
+    },
+    {
+      "project_id": "nautilus-ecocore-liquid-cooling",
+      "operator_or_developer": "Nautilus Data Technologies",
+      "location": "Multiple facility contexts; not a submerged UDC comparator",
+      "architecture_class": "liquid_cooling_technology_adjacent_comparator",
+      "status": "commercial_product_performance_claim_reported_2026",
+      "source": {
+        "date": "2026-05-27",
+        "url": "https://nautilusdt.com/press-release/nautilus-data-technologies-facility-cooling-distribution-unit-exceeds-performance-benchmarks-for-next-generation-ai-gpu-workloads/"
+      },
+      "limitations": [
+        "Cooling distribution unit performance is not a subsea data-centre deployment.",
+        "Vendor performance claims require independent test boundaries and matched facility data."
+      ]
+    },
+    {
+      "project_id": "panthalassa-ocean-3",
+      "operator_or_developer": "Panthalassa",
+      "architecture_class": "floating_offshore_compute_platform_concept",
+      "status": "platform_unveiled_2026_reported_not_commercial_udc",
+      "source": {
+        "date": "2026-04",
+        "url": "https://www.datacenterdynamics.com/en/news/hiclouds-offshore-wind-powered-underwater-data-center-up-and-running-off-coast-of-shanghai-china/"
+      },
+      "limitations": [
+        "Floating platform concept is not a pressure-vessel subsea UDC; commercial operating evidence not established in this register."
+      ]
+    }
+  ],
+  "metric_contract": {
+    "compute": [
+      "useful_work_completed",
+      "workload_class",
+      "model_and_precision",
+      "accelerator_and_memory",
+      "p50_p95_p99_latency",
+      "on_time_completion",
+      "energy_per_useful_work",
+      "data_movement"
+    ],
+    "energy": [
+      "whole_facility_pue_boundary",
+      "facility_kwh",
+      "it_kwh",
+      "grid_import_kwh",
+      "renewable_fraction_hourly",
+      "curtailment",
+      "pcc_peak_and_ramp",
+      "storage_round_trip_efficiency"
+    ],
+    "water_and_heat": [
+      "wue_standard_boundary",
+      "freshwater_withdrawal_and_consumption",
+      "seawater_intake",
+      "seawater_discharge",
+      "pump_energy",
+      "temperature_and_heat_flux",
+      "useful_heat_delivered",
+      "heat_recovery_factor_or_equivalent",
+      "displaced_external_heat"
+    ],
+    "reliability": [
+      "availability",
+      "module_and_server_failure_rate",
+      "sample_size",
+      "confidence_interval",
+      "mttr",
+      "maintenance_window",
+      "module_exchange_time",
+      "repair_vessel_access",
+      "common_cause_outage"
+    ],
+    "environment": [
+      "bathymetry",
+      "current_profile",
+      "vertical_temperature_and_salinity",
+      "thermal_plume_validation",
+      "biofouling",
+      "chemical_treatment",
+      "habitat_and_protected_area",
+      "permit_and_monitoring"
+    ],
+    "lifecycle": [
+      "capex",
+      "opex",
+      "vessel_and_cable_cost",
+      "maintenance_labor",
+      "module_retrieval",
+      "decommissioning",
+      "material_recovery_and_reuse"
+    ]
+  },
+  "required_boundary_separation": [
+    "Module-level PUE is not whole-site PUE.",
+    "A reported PUE is not comparable until meter boundaries, time windows, loads and exclusions match.",
+    "Zero freshwater use is not zero seawater interaction or zero marine impact.",
+    "Renewable nameplate or annual matching is not hourly renewable supply or firmed power.",
+    "Server failure ratio is not service availability or MTTR.",
+    "A floating platform is not a subsea pressure module.",
+    "Construction complete is not commercial operation.",
+    "A proposed 500 MW programme is not installed capacity."
+  ],
+  "target_hypotheses": {
+    "whole_facility_pue_at_or_below": 1.15,
+    "next_research_target_pue_at_or_below": 1.1,
+    "no_hard_pcc_or_environmental_boundary_violation": true,
+    "service_equivalent_compute_comparison": true,
+    "target_whole_network_lifecycle_cost_improvement_percent": [
+      5,
+      10
+    ],
+    "caveat": "These are Luminous research targets, not achieved results. PUE target counts only with same facility boundary and independent interval metering."
+  }
+}
