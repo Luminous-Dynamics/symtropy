@@ -1,5 +1,5 @@
 #[path = "../multishift.rs"]
-mod multishift;
+pub mod multishift;
 
 use std::env;
 use std::fs;
