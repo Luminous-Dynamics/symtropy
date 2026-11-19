@@ -10,6 +10,11 @@
       "payload_path": "docs/research/geothermal-fusion/evidence/fixtures/synthetic-geothermal-source-interval-002.v0.1.json",
       "evidence_path": "docs/research/geothermal-fusion/evidence/fixtures/synthetic-source-interval-evidence-002.v0.1.json",
       "allocation_path": "docs/research/geothermal-fusion/evidence/fixtures/synthetic-source-allocation-receipt-002.v0.1.json"
+    },
+    {
+      "payload_path": "docs/research/geothermal-fusion/evidence/fixtures/synthetic-grid-electric-source-interval.v0.1.json",
+      "evidence_path": "docs/research/geothermal-fusion/evidence/fixtures/synthetic-grid-electric-source-interval-evidence.v0.1.json",
+      "allocation_path": "docs/research/geothermal-fusion/evidence/fixtures/synthetic-grid-electric-source-allocation-receipt.v0.1.json"
     }
   ]
 }
