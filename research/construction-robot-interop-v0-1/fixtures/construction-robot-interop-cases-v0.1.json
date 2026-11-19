@@ -1,0 +1,147 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "construction-robot-mixed-fleet-v0.1",
+  "fixture_class": "synthetic_reference_cases",
+  "cases": [
+    {
+      "id": "interop-001",
+      "category": "semantic_mapping",
+      "input": "Equivalent work contract sent through two independently implemented adapters",
+      "expected": "semantic_equivalence_or_typed_rejection",
+      "invariant": "No silent task-field loss."
+    },
+    {
+      "id": "interop-002",
+      "category": "capability",
+      "input": "Task requires payload or tool outside declared robot capability envelope",
+      "expected": "typed_rejection",
+      "invariant": "No best-effort capability coercion."
+    },
+    {
+      "id": "interop-003",
+      "category": "units",
+      "input": "Dimensional field has mm in one adapter and inches in another with no declared conversion rule",
+      "expected": "indeterminate_or_rejection",
+      "invariant": "No implicit unit conversion."
+    },
+    {
+      "id": "interop-004",
+      "category": "frame",
+      "input": "Task target uses a coordinate frame unknown to receiving adapter",
+      "expected": "typed_rejection",
+      "invariant": "No implicit frame substitution."
+    },
+    {
+      "id": "interop-005",
+      "category": "revision",
+      "input": "Design revision digest is stale at task start",
+      "expected": "revoked_or_stale",
+      "invariant": "Stale design cannot start."
+    },
+    {
+      "id": "interop-006",
+      "category": "epoch",
+      "input": "Site epoch changes while task is paused",
+      "expected": "revoked_or_stale",
+      "invariant": "Old qualification cannot resume."
+    },
+    {
+      "id": "interop-007",
+      "category": "deduplication",
+      "input": "Same message ID and same payload digest delivered twice",
+      "expected": "idempotent_no_second_transition",
+      "invariant": "Duplicate delivery cannot duplicate execution."
+    },
+    {
+      "id": "interop-008",
+      "category": "message_conflict",
+      "input": "Same message ID reused with a different payload digest",
+      "expected": "conflict_and_indeterminate",
+      "invariant": "Conflicting reuse cannot overwrite prior event."
+    },
+    {
+      "id": "interop-009",
+      "category": "ordering",
+      "input": "Older task event arrives after a newer accepted state transition",
+      "expected": "reject_stale_event",
+      "invariant": "Late event cannot roll state backward."
+    },
+    {
+      "id": "interop-010",
+      "category": "session",
+      "input": "Robot reboots and restarts sequence numbers under a new actor session",
+      "expected": "reconciliation_required",
+      "invariant": "Sequence reset is not silently treated as continuity."
+    },
+    {
+      "id": "interop-011",
+      "category": "resource",
+      "input": "Two robots request the same exclusive work-zone interval",
+      "expected": "one_reservation_granted_other_rejected",
+      "invariant": "No exclusive conflict admitted."
+    },
+    {
+      "id": "interop-012",
+      "category": "reservation_expiry",
+      "input": "Robot attempts to resume after its reservation expiry",
+      "expected": "blocked_pending_requalification",
+      "invariant": "Expired reservation cannot authorize resume."
+    },
+    {
+      "id": "interop-013",
+      "category": "completion",
+      "input": "Executor reports completed but supplies no required physical evidence",
+      "expected": "measurement_pending_or_indeterminate",
+      "invariant": "Completion is not acceptance."
+    },
+    {
+      "id": "interop-014",
+      "category": "acceptance",
+      "input": "Independent inspection rejects executor-completed work",
+      "expected": "independently_rejected",
+      "invariant": "Executor status cannot override inspection."
+    },
+    {
+      "id": "interop-015",
+      "category": "receipt_binding",
+      "input": "Acceptance receipt refers to a different task or design revision",
+      "expected": "evidence_inconsistent",
+      "invariant": "Acceptance reference must bind exact work identity."
+    },
+    {
+      "id": "interop-016",
+      "category": "network_partition",
+      "input": "Stale command backlog arrives after broker reconnect",
+      "expected": "stale_commands_suppressed_reconcile",
+      "invariant": "Reconnect does not restore old command authority."
+    },
+    {
+      "id": "interop-017",
+      "category": "manager_restart",
+      "input": "Fleet manager restarts and replays previously observed events",
+      "expected": "replay_safe_reconciliation",
+      "invariant": "Replay cannot duplicate execution or regress state."
+    },
+    {
+      "id": "interop-018",
+      "category": "safety_boundary",
+      "input": "External safety system asserts a safety hold while scheduler requests resume",
+      "expected": "resume_denied",
+      "invariant": "Scheduler cannot override safety hold."
+    },
+    {
+      "id": "interop-019",
+      "category": "resource_epoch",
+      "input": "Site epoch changes while multiple resource reservations are active",
+      "expected": "affected_reservations_invalidated",
+      "invariant": "Old reservations do not survive incompatible worksite changes."
+    },
+    {
+      "id": "interop-020",
+      "category": "privacy",
+      "input": "Worker collaboration record is included in task evidence",
+      "expected": "opaque_task_scoped_identifier_only",
+      "invariant": "No unnecessary personal or biometric data."
+    }
+  ]
+}
