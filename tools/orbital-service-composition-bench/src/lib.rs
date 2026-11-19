@@ -405,6 +405,9 @@ pub fn compose_receipt_bundle(
         return Err("fluid identity does not match service profile".to_owned());
     }
     let fluid_class = required_str(transfer, "fluid_class", "fluid scenario")?.to_owned();
+    if fluid_class != "storable_liquid" {
+        return Err("nominal service profile requires storable liquid".to_owned());
+    }
     let phase = required_str(transfer, "phase", "fluid scenario")?.to_owned();
     if phase != "liquid" {
         return Err("nominal storable-fluid profile requires liquid phase".to_owned());
