@@ -137,7 +137,7 @@ pub fn kaplan_meier(
         let mut events = 0usize;
         let mut right_censored = 0usize;
         for observation in &sorted[start..index] {
-            match observation.status {
+            match &observation.status {
                 ObservationStatus::Event { .. } => events += 1,
                 ObservationStatus::RightCensored => right_censored += 1,
             }
