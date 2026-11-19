@@ -1,0 +1,134 @@
+name: Power Fabric federation envelope conformance
+
+on:
+  pull_request:
+    paths:
+      - "docs/research/power-fabric-federation/**"
+      - ".github/workflows/power-fabric-federation.yml"
+  push:
+    paths:
+      - "docs/research/power-fabric-federation/**"
+      - ".github/workflows/power-fabric-federation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    name: Validate federation envelope and authority boundaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python for schema tests only
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+
+      - name: Validate schema, example and negative controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import copy
+          import json
+          from datetime import datetime
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("docs/research/power-fabric-federation")
+          schema = json.loads((root / "data/federation-envelope-v0.1.schema.json").read_text())
+          example = json.loads((root / "data/synthetic-household-capacity-offer-v0.1.json").read_text())
+
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER)
+
+          def valid(document):
+              errors = list(validator.iter_errors(document))
+              assert not errors, "\\n".join(f"{list(err.path)}: {err.message}" for err in errors)
+          
+          def semantic_errors(document):
+              errors = []
+              issued = instant(document["issuedAt"])
+              expires = instant(document["expiresAt"])
+              if expires <= issued:
+                  errors.append("message expiry must follow issue time")
+              payload = document["payload"]
+              if "timeWindow" in payload and instant(payload["timeWindow"]["start"]) >= instant(payload["timeWindow"]["end"]):
+                  errors.append("capacity window must be positive")
+              consent = document.get("consent")
+              if consent and "expiresAt" in consent and instant(consent["expiresAt"]) > expires:
+                  errors.append("consent outlives message envelope")
+              sender_scope = (document["sender"]["scopeLevel"], document["sender"]["scopeId"])
+              authority_scope = (document["authority"]["scopeLevel"], document["authority"]["scopeId"])
+              if sender_scope != authority_scope and not document["authority"].get("delegationRef"):
+                  errors.append("cross-scope authority lacks delegation reference")
+              return errors
+
+          def invalid(document, label):
+              errors = list(validator.iter_errors(document))
+              assert errors, f"negative control unexpectedly passed: {label}"
+
+          valid(example)
+
+          def instant(value):
+              parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+              assert parsed.tzinfo is not None
+              return parsed
+
+          assert not semantic_errors(example), "valid example failed semantic validation"
+
+          # Household capacity sharing must have opt-in, revocable consent.
+          no_consent = copy.deepcopy(example)
+          del no_consent["consent"]
+          invalid(no_consent, "household capacity offer without consent")
+
+          # An observed-available claim must have observed evidence and a current observation.
+          stale_observation = copy.deepcopy(example)
+          stale_observation["payload"]["claim"] = {"state": "observed_available", "evidenceClass": "observed", "quantity": 5}
+          stale_observation["payload"]["observation"] = {
+              "observedAt": "2030-01-01T07:59:00Z",
+              "sourceId": "synthetic-meter-001",
+              "freshness": "stale"
+          }
+          invalid(stale_observation, "stale observation claiming current availability")
+
+          # An observer cannot claim switching authority.
+          observer_switch = copy.deepcopy(example)
+          observer_switch["authority"]["authorityType"] = "observer"
+          observer_switch["authority"]["action"] = "switch"
+          invalid(observer_switch, "observer attempting to switch")
+
+          # A community capacity offer requires representation and a community mandate.
+          community_offer = copy.deepcopy(example)
+          community_offer["sender"]["actorType"] = "community_association"
+          community_offer["sender"]["scopeLevel"] = "organization_community"
+          community_offer["sender"]["scopeId"] = "community-001"
+          community_offer["consent"]["participationBasis"] = "community_mandate"
+          del community_offer["sender"]["representationRef"]
+          community_offer["authority"]["scopeLevel"] = "organization_community"
+          community_offer["authority"]["scopeId"] = "community-001"
+          invalid(community_offer, "community capacity offer without representation mandate")
+
+          # Expiry and cross-scope delegation require semantic validation beyond JSON Schema.
+          reversed_expiry = copy.deepcopy(example)
+          reversed_expiry["expiresAt"] = reversed_expiry["issuedAt"]
+          assert "message expiry must follow issue time" in semantic_errors(reversed_expiry)
+
+          delegated = copy.deepcopy(example)
+          delegated["authority"]["scopeLevel"] = "organization_community"
+          delegated["authority"]["scopeId"] = "cooperative-001"
+          assert "cross-scope authority lacks delegation reference" in semantic_errors(delegated)
+          delegated["authority"]["delegationRef"] = "synthetic-delegation:household-to-coop-v1"
+          assert not semantic_errors(delegated), "valid delegated authority example failed semantic validation"
+
+          print("PASS: Draft 2020-12 federation envelope and example")
+          print("PASS: household consent, community representation and authority action gates")
+          print("PASS: temporal expiry, offer window and cross-scope delegation semantics")
+          print("PASS: negative controls for stale availability, missing consent and observer switching")
+          PY
