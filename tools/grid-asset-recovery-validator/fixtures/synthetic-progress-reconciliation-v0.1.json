@@ -198,5 +198,7 @@
       "evidenceRef": "synthetic://progress/repair-pump/old",
       "interruptionCause": null
     }
-  ]
+  ],
+  "baselineEventManifestRef": "synthetic://baseline-event-manifest/progress-reconciliation-001/v1",
+  "baselineEventManifestSha256": "384d9b3a6807adf0bac474258b9f40a1862409410ec5ab73ac3f65cf1ba51e69"
 }
