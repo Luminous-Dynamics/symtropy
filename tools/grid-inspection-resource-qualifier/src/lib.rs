@@ -374,7 +374,7 @@ fn validate_case(case: &Case) -> Vec<String> {
     {
         errors.push("upstream policy/model/assumption references are required".to_string());
     }
-    let first = case.inspection_catalog.iter().find(|item| item.activity_id == policy.first_inspection_id);
+    let first = case.inspection_catalog.iter().find(|item| item.activity_id.as_str() == policy.first_inspection_id.as_str());
     let Some(first) = first else {
         errors.push("policy references a missing first inspection".to_string());
         return errors;
@@ -403,7 +403,7 @@ fn validate_case(case: &Case) -> Vec<String> {
                 if second_id == &policy.first_inspection_id {
                     errors.push("a policy branch cannot repeat its first inspection".to_string());
                 }
-                if let Some(second) = case.inspection_catalog.iter().find(|item| item.activity_id == *second_id) {
+                if let Some(second) = case.inspection_catalog.iter().find(|item| item.activity_id.as_str() == second_id.as_str()) {
                     if second.evidence_origin_ref == first.evidence_origin_ref {
                         errors.push("depth-two inspection reuses the first inspection evidence origin".to_string());
                     }
@@ -457,7 +457,7 @@ fn validate_case(case: &Case) -> Vec<String> {
 }
 
 fn resource_by_ref<'a>(manifest: &'a ResourceManifest, reference: &str) -> Option<&'a Resource> {
-    manifest.resources.iter().find(|resource| resource.resource_ref == reference)
+    manifest.resources.iter().find(|resource| resource.resource_ref.as_str() == reference)
 }
 
 fn reservation_load_is_feasible(resource: &Resource, start: f64, end: f64, requested_units: u32, capacity: u32) -> bool {
