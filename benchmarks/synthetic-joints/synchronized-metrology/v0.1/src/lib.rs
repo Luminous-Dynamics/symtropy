@@ -416,6 +416,11 @@ pub fn evaluate_mechanical_port_power(
     if torque.reference_clock_id != angular_velocity.reference_clock_id {
         return Ok(unknown("torque and angular velocity do not share a mapped reference clock"));
     }
+    if (torque.clock_mapping_digest == angular_velocity.clock_mapping_digest
+        && torque.reference_clock_id.trim().is_empty()
+    ) {
+        return Ok(unknown("clock mapping identity is invalid"));
+    }
     if (torque.reference_instant_s - angular_velocity.reference_instant_s).abs() > 1.0e-9 {
         return Ok(unknown("torque and angular velocity are not referenced to the same physical instant"));
     }
