@@ -427,6 +427,22 @@ pub fn align_as_of(request: &AlignmentRequest) -> Result<AlignmentReceipt, Repla
     Ok(receipt)
 }
 
+/// Replays the declared request and compares the complete deterministic receipt.
+/// This binds the receipt to the supplied source streams; SHA-256 still does not
+/// authenticate who supplied those streams or establish physical validity.
+pub fn verify_alignment_receipt_for_request(
+    request: &AlignmentRequest,
+    receipt: &AlignmentReceipt,
+) -> Result<(), ReplayError> {
+    let expected = align_as_of(request)?;
+    if &expected != receipt {
+        return Err(alignment_error(
+            "alignment receipt does not match deterministic replay of the supplied request",
+        ));
+    }
+    Ok(())
+}
+
 /// Checks receipt self-consistency and causal-time invariants. It does not
 /// authenticate input sources or establish physical measurement validity.
 pub fn verify_alignment_receipt(receipt: &AlignmentReceipt) -> Result<(), ReplayError> {
@@ -457,6 +473,8 @@ pub fn verify_alignment_receipt(receipt: &AlignmentReceipt) -> Result<(), Replay
                 if timestamp > body.decision_time_ns
                     || body.decision_time_ns.checked_sub(timestamp) != Some(age)
                     || entry.selected_sample_id.as_deref().is_none_or(str::is_empty)
+                    || entry.stream_id.as_deref().is_none_or(str::is_empty)
+                    || entry.evidence_state.is_none()
                 {
                     return Err(alignment_error("alignment receipt violates causal timestamp or age invariants"));
                 }
@@ -914,6 +932,9 @@ mod tests {
         let mut receipt = align_as_of(&req).expect("alignment");
         receipt.body.entries[0].value = Some(999.0);
         assert!(verify_alignment_receipt(&receipt).is_err());
+        receipt.receipt_sha256 = digest_serialized(&receipt.body).expect("tampered receipt digest");
+        assert!(verify_alignment_receipt(&receipt).is_ok());
+        assert!(verify_alignment_receipt_for_request(&req, &receipt).is_err());
 
         let mut wrong_clock = req;
         wrong_clock.streams[0].clock_domain = "different-clock".to_owned();
