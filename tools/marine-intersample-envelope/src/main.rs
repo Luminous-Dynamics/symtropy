@@ -89,16 +89,12 @@ fn parse_time(value: Option<&str>) -> Option<DateTime<FixedOffset>> {
 }
 
 fn duration_hours(start: &DateTime<FixedOffset>, end: &DateTime<FixedOffset>) -> Option<f64> {
-    let millis = end.signed_duration_since(*start).num_milliseconds();
+    let millis = end.signed_duration_since(start.clone()).num_milliseconds();
     if millis <= 0 {
         None
     } else {
         Some(millis as f64 / 3_600_000.0)
     }
-}
-
-fn close(left: f64, right: f64, tolerance: f64) -> bool {
-    (left - right).abs() <= tolerance.max(NUMERIC_TOLERANCE)
 }
 
 fn contract_canonical(contract: &Value, errors: &mut Vec<String>) -> Option<String> {
@@ -744,6 +740,37 @@ mod tests {
         validate(&raw, value)
     }
 
+    fn refresh_scenario_digest(scenario: &mut Value) {
+        let events = scenario["events"].clone();
+        scenario["event_manifest_sha256"] =
+            json!(sha256_hex(&serde_json::to_vec(&events).expect("events serialize")));
+        scenario["scenario_sha256"] = json!("");
+        let digest = canonical_json_digest(scenario, Some("scenario_sha256"))
+            .expect("scenario canonicalizes");
+        scenario["scenario_sha256"] = json!(digest);
+    }
+
+    fn refresh_initial_and_snapshot(value: &mut Value) {
+        let metrics = value["scenarios"][0]["samples"][0]["resource_metrics"]
+            .as_array().expect("initial metrics array");
+        let mut rows = metrics.iter().map(|metric| format!(
+            "{}|{}|{:.17}|{:.17}|{:.17}",
+            string_at(metric, "metric").expect("metric name"),
+            string_at(metric, "unit").expect("metric unit"),
+            number_at(metric, "value").expect("metric value"),
+            number_at(metric, "lower_bound").expect("lower bound"),
+            number_at(metric, "upper_bound").expect("upper bound")
+        )).collect::<Vec<_>>();
+        rows.sort();
+        value["mission_snapshot"]["initial_resource_state_sha256"] =
+            json!(sha256_hex(rows.join("\n").as_bytes()));
+        value["mission_snapshot"]["mission_snapshot_sha256"] = json!("");
+        let digest = canonical_json_digest(
+            &value["mission_snapshot"], Some("mission_snapshot_sha256")
+        ).expect("snapshot canonicalizes");
+        value["mission_snapshot"]["mission_snapshot_sha256"] = json!(digest);
+    }
+
     #[test]
     fn exact_two_cone_lower_and_upper_bounds_match_hand_calculation() {
         assert!((exact_lower_tube_min(90.0, 90.0, 4.0, 6.0) - 78.0).abs() < 1e-9);
@@ -796,7 +823,9 @@ mod tests {
                 metric["lower_bound"] = json!(11.7);
                 metric["upper_bound"] = json!(11.9);
             }
+            refresh_scenario_digest(scenario);
         }
+        refresh_initial_and_snapshot(&mut value);
         let report = audit(&value);
         assert_eq!(report["disposition"], "BLOCKED");
         let scenario = report["scenario_reports"].as_array().unwrap().iter()
@@ -810,6 +839,7 @@ mod tests {
     fn insufficient_endpoint_measurement_coverage_blocks() {
         let mut value = fixture();
         value["scenarios"][0]["samples"][1]["resource_metrics"][1]["coverage_fraction"] = json!(0.5);
+        refresh_scenario_digest(&mut value["scenarios"][0]);
         assert_eq!(audit(&value)["disposition"], "BLOCKED");
     }
 
@@ -887,7 +917,9 @@ mod tests {
         value["scenarios"][0]["samples"][1]["resource_metrics"][0]["value"] = json!(1.0);
         value["scenarios"][0]["samples"][1]["resource_metrics"][0]["lower_bound"] = json!(0.9);
         value["scenarios"][0]["samples"][1]["resource_metrics"][0]["upper_bound"] = json!(1.1);
-        assert_eq!(audit(&value)["disposition"], "INVALID");
+        refresh_scenario_digest(&mut value["scenarios"][0]);
+        assert_eq!(audit(&value)["findings"]["errors"].as_array().unwrap().iter()
+            .any(|error| error.as_str().unwrap_or("").contains("endpoint uncertainty sets are incompatible")), true);
     }
 
     #[test]
