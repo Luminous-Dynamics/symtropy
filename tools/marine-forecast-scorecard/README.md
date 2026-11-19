@@ -15,10 +15,10 @@ cargo run --manifest-path tools/marine-forecast-scorecard/Cargo.toml -- audit-sc
 
 Forecast skill and downstream decision value remain separate scorecards.
 
-- Deterministic scalar forecast diagnostics by variable and lead: bias, MAE and RMSE.
+- Deterministic scalar forecast diagnostics by holdout fold, variable and lead: bias, MAE and RMSE; environmental strata are retained with each row and no fold is pooled into another.
 - Empirical ensemble CRPS using the finite ensemble members included with each case.
 - Threshold-event Brier scores plus reliability-bin counts, mean forecast probability and observed frequency.
-- Paired mission outcomes using one shared matching-context identity for both candidate and baseline: purchased energy per occupied berth-day, mission-regret proxy, CVaR95 regret, hard-gate violations, service-floor breaches, comfort breaches and plan changes.
+- Paired mission outcomes are grouped by development/validation/test fold using one shared matching-context identity for both candidate and baseline: purchased energy per occupied berth-day, mission-regret proxy, CVaR95 regret, hard-gate violations, service-floor breaches, comfort breaches and plan changes.
 - SHA-256 identity for the complete scorecard input, source artifacts, first-availability receipts, dataset, split manifest, transforms and paired mission context.
 
 The validator rejects future-available forecasts, issue/lead/valid-time inconsistencies, forecast/verifier time mismatch, source self-verification, cross-fold voyage/weather-event reuse, missing or malformed digests, duplicated samples, unpaired cases, and candidate hard-gate/service/comfort regressions.
