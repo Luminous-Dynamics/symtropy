@@ -751,9 +751,23 @@ mod tests {
         let torque_result = report.torque_alignment.unwrap();
         assert_eq!(torque_result.raw_trace_digest, "raw-trace-digest-01");
         assert_eq!(torque_result.reference_clock_id, "ptp-clock-domain-01");
+        assert_eq!(torque_result.calibration_status, CalibrationStatus::InDate);
+        assert_eq!(torque_result.traceability_status, TraceabilityStatus::Established);
+        assert_eq!(torque_result.bound_representation, BoundRepresentation::ValidatedBound);
+        assert_eq!(torque_result.sample_time_offset_s, 0.0);
+        assert_eq!(torque_result.filter_group_delay_s, 0.0);
+        assert_eq!(torque_result.absolute_slew_bound_per_s, 0.0);
         assert_eq!(
             torque_result.calibration_certificate_reference,
             "https://example.invalid/calibration/cert-01"
+        );
+        assert_eq!(
+            torque_result.reference_standard_reference,
+            "https://example.invalid/reference/standard-01"
+        );
+        assert_eq!(
+            torque_result.calibration_chain_digest,
+            "traceability-chain-digest-01"
         );
         assert_eq!(
             torque_result.slew_bound_provenance_digest,
