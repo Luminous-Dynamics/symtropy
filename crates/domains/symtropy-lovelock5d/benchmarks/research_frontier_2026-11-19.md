@@ -68,6 +68,21 @@ Near extremality, use a horizon-adapted chart and pseudo-arclength continuation.
 
 Once a background passes independent qualification, add scalar/tensor perturbation operators and compute QNM shifts, absorption/response coefficients and invariant horizon observables. The late-2026 4D QNM papers show that high-spin corrections can grow sharply near extremality; our system must report mode-by-mode uncertainty and avoid interpreting a background fit as a stability result.
 
+## 2.6 Strong-coupling coordinate atlas: isotropic horizon compression
+
+The static BD areal/isotropic map reveals a nontrivial conditioning effect. For \(\lambda=\alpha/r_H^2\to\infty\), the areal horizon remains at \(\rho_H=1\), but its isotropic coordinate satisfies
+\[
+\xi_H\sim1.7923085278641586\sqrt\lambda\,e^{-\pi\sqrt\lambda/2}.
+\]
+This is coordinate compression, not a physical shrinking of the horizon or a curvature singularity. At \(\lambda=10^6\), the leading asymptotic already agrees with the high-precision integral to relative error \(3.92\times10^{-4}\).
+
+This motivates a further atlas chart
+\[
+\eta=\log(\xi/\xi_H),\quad
+d\eta/d\rho=1/(\rho\sqrt F),
+\]
+with optional compactification \(z=\eta/(1+\eta)\). A uniform isotropic-\(\xi\) grid should not be the only radial representation at strong coupling. Issue [#6206](https://github.com/Luminous-Dynamics/symtropy/issues/6206) owns endpoint transformations, interval Jacobians, and matched work-precision tests against areal/isotropic charts. The asymptotic script and fixture are research assets, not proof-grade remainder bounds.
+
 ## 3. Matched benchmark ladder
 
 | Level | Required case | Acceptance evidence |
