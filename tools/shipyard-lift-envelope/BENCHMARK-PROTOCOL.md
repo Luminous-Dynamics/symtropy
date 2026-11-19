@@ -111,7 +111,7 @@ The canonical plan and result JSON schemas are:
 - `schemas/lift-plan-v0.1.schema.json`
 - `schemas/preflight-report-v0.1.schema.json`
 
-The frozen 42-vector suite is `fixtures/conformance-vectors-v0.1.json`, with the envelope defined by `schemas/conformance-vectors-v0.1.schema.json`. Each vector is mapped to a named Rust test; CI checks unique IDs/test names and test-name presence. Evaluation vectors pin expected disposition and required diagnostics; arithmetic/metamorphic/serialization vectors pin invariants rather than a lift disposition.
+The frozen 43-vector suite is `fixtures/conformance-vectors-v0.1.json`, with the envelope defined by `schemas/conformance-vectors-v0.1.schema.json`. Each vector is mapped to a named Rust test; CI checks unique IDs/test names and test-name presence. Evaluation vectors pin expected disposition and required diagnostics; arithmetic/metamorphic/serialization vectors pin invariants rather than a lift disposition.
 
 The vector suite is entirely synthetic and tests the declared software contract only. JSON Schema shape validation does not verify source signatures, OEM chart authenticity, physical measurements or engineering approval.
 
