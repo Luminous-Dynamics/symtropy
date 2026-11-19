@@ -51,6 +51,7 @@ Evidence class is not a confidence score. A newer or more precise value does not
 18. Geothermal source outage + grid outage + depleted storage + fusion startup / recovery attempt.
 19. Shared substation / cooling / water / wellfield / controls common-cause failure.
 20. South African low-enthalpy evidence case; superhot resource values remain unknown until source-backed.
+21. Multi-service thermal co-product case: geothermal heat to thermal desalination and/or absorption cooling, geothermal electricity to RO / pumping, and future source-bounded fusion heat only where temperature grade permits. Match water quality, cooling duty, total energy, brine/residual streams and isolated thermal boundaries; facility cooling is not a substitute for fusion cryogenic refrigeration.
 
 ## First analytic fixture
 
