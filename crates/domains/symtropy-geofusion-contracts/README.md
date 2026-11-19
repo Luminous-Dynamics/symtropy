@@ -37,7 +37,7 @@ The `provider_units` module is an adapter contract, not an IF97 implementation:
 - Accepts pressure in Pa and temperature in K at a named state boundary.
 - Exposes distinct provider inputs: `VleSteamProviderInput` uses kPa absolute and K; `SeuiF97ProviderInput` uses MPa absolute and °C.
 - Converts absolute pressure Pa ↔ kPa or Pa → MPa with finite/positive/underflow/overflow checks.
-- Requires an explicit `PureWater` composition class before producing provider inputs.
+- Requires an explicit `PureWater` composition class and a non-empty composition-evidence artifact digest before producing either provider input.
 - Rejects saline brine, non-condensable-gas mixtures and unknown compositions before any water/steam provider call.
 - Preserves fluid-composition and state-boundary identity.
 
