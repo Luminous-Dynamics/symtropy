@@ -472,7 +472,12 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                     "candidate_lower_bound":cand.lower_bound,
                     "candidate_upper_bound":cand.upper_bound,
                     "candidate_minus_baseline":delta,
-                    "candidate_better_on_axis":candidate_better,
+                    "candidate_estimate_better_on_axis":candidate_better,
+                    "candidate_conservatively_better_on_axis":match spec.operator {
+                        "gte" => cand.lower_bound > base.upper_bound,
+                        "lte" => cand.upper_bound < base.lower_bound,
+                        _ => false
+                    },
                     "candidate_conservative_floor_margin":match spec.operator {
                         "gte" => cand.lower_bound - spec.floor,
                         "lte" => spec.floor - cand.upper_bound,
@@ -602,6 +607,7 @@ mod tests {
     #[test]
     fn candidate_hard_gate_violation_is_blocked() {
         let mut value = fixture();
+        value["policies"][2]["hard_gate_disposition"] = json!("fail");
         value["policies"][2]["hard_gate_violations"] = json!(1);
         assert_eq!(audit(&value)["disposition"], "BLOCKED");
     }
