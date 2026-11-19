@@ -1,0 +1,842 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Geothermal Fusion Evidence Envelope v0.1",
+  "description": "Evidence metadata for one source interval, solver result, derived stream or allocation. A verified digest establishes byte identity only, not physical truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_id",
+    "evidence_kind",
+    "evidence_class",
+    "subject",
+    "artifact",
+    "measurement",
+    "model",
+    "uncertainty",
+    "lineage",
+    "claims",
+    "validity",
+    "review"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "evidence_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "evidence_kind": {
+      "enum": [
+        "source_interval",
+        "solver_result",
+        "derived_stream",
+        "allocation"
+      ]
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "published_design",
+        "vendor_reported",
+        "measured",
+        "calibrated_model",
+        "independently_validated_model",
+        "audited_operation"
+      ]
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "subject_id",
+        "boundary_id",
+        "carrier"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "physical_asset",
+            "solver_run",
+            "derived_stream",
+            "allocation"
+          ]
+        },
+        "subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "boundary_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "carrier": {
+          "enum": [
+            "electricity",
+            "heat",
+            "not_applicable"
+          ]
+        },
+        "service_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        }
+      }
+    },
+    "time_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "bounded",
+            "not_applicable",
+            "unknown"
+          ]
+        },
+        "start_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "duration_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "clock_quality": {
+          "enum": [
+            "synchronized",
+            "estimated",
+            "synthetic",
+            "unknown",
+            "not_applicable"
+          ]
+        },
+        "clock_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "bounded"
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "required": [
+              "start_utc",
+              "duration_ns",
+              "clock_quality",
+              "clock_uncertainty_ns"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "not_applicable",
+                  "unknown"
+                ]
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "required": [
+              "reason"
+            ]
+          }
+        }
+      ]
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "availability",
+        "integrity_state"
+      ],
+      "properties": {
+        "availability": {
+          "enum": [
+            "available",
+            "not_provided",
+            "inaccessible"
+          ]
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "integrity_state": {
+          "enum": [
+            "not_checked",
+            "verified",
+            "mismatch",
+            "unavailable"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "availability": {
+                "const": "available"
+              }
+            },
+            "required": [
+              "availability"
+            ]
+          },
+          "then": {
+            "required": [
+              "locator",
+              "media_type",
+              "byte_length",
+              "digest"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "availability": {
+                "enum": [
+                  "not_provided",
+                  "inaccessible"
+                ]
+              }
+            },
+            "required": [
+              "availability"
+            ]
+          },
+          "then": {
+            "required": [
+              "reason"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "integrity_state": {
+                "const": "verified"
+              }
+            },
+            "required": [
+              "integrity_state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "availability": {
+                "const": "available"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "integrity_state": {
+                "const": "mismatch"
+              }
+            },
+            "required": [
+              "integrity_state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "availability": {
+                "const": "available"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "applicability"
+      ],
+      "properties": {
+        "applicability": {
+          "enum": [
+            "applicable",
+            "not_applicable",
+            "unknown"
+          ]
+        },
+        "instrument_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "calibration_certificate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_valid_from_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "calibration_valid_until_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "sampling_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "aggregation_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measured_quantity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "applicability": {
+                "const": "applicable"
+              }
+            },
+            "required": [
+              "applicability"
+            ]
+          },
+          "then": {
+            "required": [
+              "instrument_ids",
+              "calibration_certificate_id",
+              "calibration_valid_from_utc",
+              "calibration_valid_until_utc",
+              "sampling_method",
+              "aggregation_method",
+              "measured_quantity",
+              "unit",
+              "sample_count"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "applicability": {
+                "enum": [
+                  "not_applicable",
+                  "unknown"
+                ]
+              }
+            },
+            "required": [
+              "applicability"
+            ]
+          },
+          "then": {
+            "required": [
+              "reason"
+            ]
+          }
+        }
+      ]
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "applicability"
+      ],
+      "properties": {
+        "applicability": {
+          "enum": [
+            "applicable",
+            "not_applicable",
+            "unknown"
+          ]
+        },
+        "solver_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "solver_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executable_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "input_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "configuration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "property_model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "property_model_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "regime": {
+          "type": "string",
+          "minLength": 1
+        },
+        "validity_domain_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "convergence_state": {
+          "enum": [
+            "converged",
+            "non_converged",
+            "unsupported",
+            "not_run"
+          ]
+        },
+        "exit_code": {
+          "type": "integer"
+        },
+        "raw_output_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "applicability": {
+                "const": "applicable"
+              }
+            },
+            "required": [
+              "applicability"
+            ]
+          },
+          "then": {
+            "required": [
+              "solver_id",
+              "solver_version",
+              "executable_digest",
+              "input_manifest_digest",
+              "configuration_digest",
+              "regime",
+              "convergence_state"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "applicability": {
+                "enum": [
+                  "not_applicable",
+                  "unknown"
+                ]
+              }
+            },
+            "required": [
+              "applicability"
+            ]
+          },
+          "then": {
+            "required": [
+              "reason"
+            ]
+          }
+        }
+      ]
+    },
+    "uncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "quantified",
+            "unknown",
+            "not_assessed"
+          ]
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "standard_uncertainty": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expanded_uncertainty": {
+          "type": "number",
+          "minimum": 0
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage_probability": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "distribution_assumption": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dependency_group_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "covariance_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "quantified"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "method",
+              "standard_uncertainty",
+              "unit"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "unknown",
+                  "not_assessed"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "reason"
+            ]
+          }
+        }
+      ]
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parent_evidence_ids"
+      ],
+      "properties": {
+        "parent_evidence_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "transform_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transform_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transform_description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "code_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "claims": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supported",
+        "withheld",
+        "claim_ceiling"
+      ],
+      "properties": {
+        "supported": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "withheld": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "claim_ceiling": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "validity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "current",
+            "stale",
+            "unknown",
+            "not_applicable"
+          ]
+        },
+        "valid_until_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "stale",
+                  "unknown"
+                ]
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "required": [
+              "reason"
+            ]
+          }
+        }
+      ]
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "independent_review_status"
+      ],
+      "properties": {
+        "independent_review_status": {
+          "enum": [
+            "not_reviewed",
+            "pending",
+            "accepted",
+            "rejected"
+          ]
+        },
+        "reviewer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_record_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mycelix_approval_record_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "evidence_class": {
+            "enum": [
+              "measured",
+              "audited_operation"
+            ]
+          }
+        },
+        "required": [
+          "evidence_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "measurement": {
+            "properties": {
+              "applicability": {
+                "const": "applicable"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence_class": {
+            "enum": [
+              "calibrated_model",
+              "independently_validated_model"
+            ]
+          }
+        },
+        "required": [
+          "evidence_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "model": {
+            "properties": {
+              "applicability": {
+                "const": "applicable"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "value"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "sha256"
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    }
+  }
+}
