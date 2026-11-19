@@ -65,6 +65,8 @@ pub struct SignalMeasurement {
 #[derive(Debug, Clone, PartialEq)]
 pub struct TriggerSnapshot {
     pub snapshot_id: String,
+    /// Caller-supplied digest of the canonical snapshot bytes.
+    pub snapshot_digest: String,
     pub site_id: String,
     pub baseline_plan_id: String,
     pub sequence: u64,
@@ -104,6 +106,7 @@ impl TriggerPolicy {
 pub struct TriggerState {
     pub baseline_plan_id: Option<String>,
     pub last_snapshot_id: Option<String>,
+    pub last_snapshot_digest: Option<String>,
     pub last_snapshot_sequence: Option<u64>,
     pub last_decision_time_ms: Option<u64>,
     pub last_trigger_time_ms: Option<u64>,
@@ -303,6 +306,7 @@ fn update_snapshot_state(
     let mut next = state.clone();
     next.baseline_plan_id = Some(snapshot.baseline_plan_id.clone());
     next.last_snapshot_id = Some(snapshot.snapshot_id.clone());
+    next.last_snapshot_digest = Some(snapshot.snapshot_digest.clone());
     next.last_snapshot_sequence = Some(snapshot.sequence);
     next.last_decision_time_ms = Some(snapshot.decision_time_ms);
     if baseline_changed {
@@ -331,6 +335,7 @@ pub fn evaluate_trigger(
 ) -> Result<TriggerEvaluation, TriggerError> {
     policy.validate()?;
     require_id("snapshot ID", &snapshot.snapshot_id)?;
+    require_id("snapshot digest", &snapshot.snapshot_digest)?;
     require_id("site ID", &snapshot.site_id)?;
     require_id("baseline plan ID", &snapshot.baseline_plan_id)?;
     if snapshot.plan_generated_at_ms > snapshot.decision_time_ms {
@@ -357,6 +362,8 @@ pub fn evaluate_trigger(
                 == Some(snapshot.baseline_plan_id.as_str())
                 && previous_state.last_snapshot_id.as_deref()
                     == Some(snapshot.snapshot_id.as_str())
+                && previous_state.last_snapshot_digest.as_deref()
+                    == Some(snapshot.snapshot_digest.as_str())
             {
                 return Ok(TriggerEvaluation {
                     snapshot_id: snapshot.snapshot_id.clone(),
@@ -370,7 +377,7 @@ pub fn evaluate_trigger(
                 });
             }
             return Err(TriggerError::InvalidChronology(
-                "same sequence cannot identify different snapshot content or baseline",
+                "same sequence cannot identify different snapshot digest or baseline",
             ));
         }
     }
@@ -689,6 +696,7 @@ mod tests {
             .collect();
         TriggerSnapshot {
             snapshot_id: format!("snapshot-{sequence}"),
+            snapshot_digest: format!("sha256:synthetic-snapshot-{sequence}"),
             site_id: "synthetic-port".to_owned(),
             baseline_plan_id: "plan-v1".to_owned(),
             sequence,
@@ -908,7 +916,7 @@ mod tests {
         let first = snapshot(1, 100_000, &[]);
         let first_result = evaluate_trigger(&first, &definitions(), &policy(), &TriggerState::default()).unwrap();
         let mut second = snapshot(1, 100_000, &[]);
-        second.snapshot_id = "different-content".to_owned();
+        second.snapshot_digest = "sha256:different-content".to_owned();
         assert!(matches!(
             evaluate_trigger(&second, &definitions(), &policy(), &first_result.next_state),
             Err(TriggerError::InvalidChronology(_))
