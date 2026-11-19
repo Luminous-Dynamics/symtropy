@@ -264,7 +264,9 @@
                       "delta",
                       "unit",
                       "evidence_ref",
-                      "evidence_sha256"
+                      "evidence_sha256",
+                      "delta_lower_bound",
+                      "delta_upper_bound"
                     ],
                     "properties": {
                       "event_id": {
@@ -317,6 +319,12 @@
                       "evidence_sha256": {
                         "type": "string",
                         "pattern": "^[a-fA-F0-9]{64}$"
+                      },
+                      "delta_lower_bound": {
+                        "type": "number"
+                      },
+                      "delta_upper_bound": {
+                        "type": "number"
                       }
                     }
                   }
