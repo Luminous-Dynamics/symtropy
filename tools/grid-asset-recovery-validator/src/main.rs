@@ -641,6 +641,7 @@ struct ScheduleReport {
     optimality_status: String,
     exact_small_comparison: Option<ExactSmallComparison>,
     exact_small_service_comparison: Option<ExactSmallServiceComparison>,
+    total_calculated_unserved_energy_mwh: f64,
     events: Vec<EventScheduleReport>,
     scheduled_tasks: Vec<ScheduledTask>,
 }
@@ -721,7 +722,11 @@ fn build_report(
                 declared_unserved_energy_mwh: event.selected_plan.expected_unserved_energy_mwh,
             }
         })
-        .collect();
+        .collect::<Vec<_>>();
+    let total_calculated_unserved_energy_mwh = events
+        .iter()
+        .map(|event| event.calculated_unserved_energy_mwh)
+        .sum();
     ScheduleReport {
         case_id: case.case_id.clone(),
         case_maturity: case.case_maturity.clone(),
@@ -735,6 +740,7 @@ fn build_report(
         },
         exact_small_comparison,
         exact_small_service_comparison,
+        total_calculated_unserved_energy_mwh,
         events,
         scheduled_tasks,
     }
