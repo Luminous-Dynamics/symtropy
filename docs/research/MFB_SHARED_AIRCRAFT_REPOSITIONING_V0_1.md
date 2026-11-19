@@ -73,6 +73,7 @@ Each policy includes its own nonanticipative decisions. Every outcome, including
 It also reports:
 - truck-only baseline;
 - fixed-initial-region aircraft baseline;
+- best static regional assignment, selected by evaluating every constant-region policy over the same scenario tree;
 - aerial/road/unserved units;
 - aerial and reposition energy;
 - reposition cost, events and periods;
@@ -82,7 +83,7 @@ It also reports:
 - explicit zero unauthorized-dispatch and protected-reserve-violation invariants;
 - canonical SHA-256 input digest.
 
-An independent enumeration of this synthetic fixture produces expected cost 1,511 units for the exact policy, 1,576 for fixed initial-region assignment and 1,980 for truck-only. These figures merely pin fixture arithmetic; they are not operational cost estimates or savings claims.
+An independent enumeration of this synthetic fixture produces expected cost 1,511 units for the exact policy, 1,576 units for fixed initial-region assignment and 1,980 units for truck-only. The new best-static baseline evaluates every region as the constant target and must be no worse than the fixed-initial-region control; the exact adaptive policy must be no worse than the best static policy. These figures merely pin fixture arithmetic; they are not operational cost estimates or savings claims.
 
 ## Benchmark tournament
 
@@ -90,6 +91,7 @@ The immediate comparison is against the fixed-assignment and truck-only baseline
 - myopic best-current-region reposition heuristic;
 - greedy nearest-free aircraft / cheapest feasible region;
 - fixed one-aircraft-per-carrier assignment;
+- best static region placement (the aircraft may reposition once into the selected region, then remains assigned there for the horizon);
 - independent per-region capacity from MFB mode-options v0.1;
 - deterministic receding-horizon policy;
 - exact exhaustive oracle on small trees;

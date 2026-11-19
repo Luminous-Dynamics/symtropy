@@ -201,6 +201,8 @@ pub struct SharedFleetReport {
     pub service_robust_optimal_decisions: Vec<SharedFleetDecision>,
     pub truck_only_baseline: SharedFleetOutcome,
     pub fixed_initial_region_baseline: SharedFleetOutcome,
+    pub best_static_region_id: String,
+    pub best_static_region_baseline: SharedFleetOutcome,
     pub physical_dispatch_authorized: bool,
     pub dispatch_commands_emitted: bool,
     pub claim_ceiling: String,
@@ -695,6 +697,27 @@ fn outcome(evaluation: PolicyEvaluation) -> Result<SharedFleetOutcome, String> {
     })
 }
 
+fn constant_action_mask(
+    node_count: usize,
+    action: u64,
+    radix: u64,
+) -> Result<u64, String> {
+    let mut mask = 0_u64;
+    let mut multiplier = 1_u64;
+    for _ in 0..node_count {
+        let contribution = action
+            .checked_mul(multiplier)
+            .ok_or_else(|| "constant policy mask overflow".to_string())?;
+        mask = mask
+            .checked_add(contribution)
+            .ok_or_else(|| "constant policy mask overflow".to_string())?;
+        multiplier = multiplier
+            .checked_mul(radix)
+            .ok_or_else(|| "constant policy multiplier overflow".to_string())?;
+    }
+    Ok(mask)
+}
+
 fn decision_list(
     input: &SharedFleetInput,
     nodes: &[SharedDecisionNode],
@@ -785,18 +808,33 @@ pub fn evaluate_shared_fleet(
     let initial_action = canonical.regions.iter()
         .position(|region| region.region_id == canonical.initial_aircraft_region_id)
         .ok_or_else(|| vec!["initial aircraft region disappeared after validation".into()])? as u64;
-    let mut fixed_mask = 0_u64;
-    let mut multiplier = 1_u64;
-    for _ in 0..nodes.len() {
-        fixed_mask = fixed_mask.checked_add(initial_action.checked_mul(multiplier)
-            .ok_or_else(|| vec!["fixed baseline mask overflow".into()])?)
-            .ok_or_else(|| vec!["fixed baseline mask overflow".into()])?;
-        multiplier = multiplier.checked_mul(radix)
-            .ok_or_else(|| vec!["fixed baseline multiplier overflow".into()])?;
-    }
+    let fixed_mask = constant_action_mask(nodes.len(), initial_action, radix)
+        .map_err(|error| vec![error])?;
     let fixed = outcome(
         evaluate_mask(&canonical, &nodes, &indices, fixed_mask, true)
             .map_err(|error| vec![error])?,
+    )
+    .map_err(|error| vec![error])?;
+
+    // Best static placement is the strongest fixed-assignment control: the
+    // aircraft remains assigned to one region for the entire horizon.
+    let mut best_static_region_id = String::new();
+    let mut best_static_metrics: Option<WeightedMetrics> = None;
+    for (region_index, region) in canonical.regions.iter().enumerate() {
+        let static_mask = constant_action_mask(nodes.len(), region_index as u64, radix)
+            .map_err(|error| vec![error])?;
+        let metrics = evaluate_mask(&canonical, &nodes, &indices, static_mask, true)
+            .map_err(|error| vec![error])?;
+        if best_static_metrics
+            .as_ref()
+            .is_none_or(|best| metrics.total_cost < best.total_cost)
+        {
+            best_static_region_id = region.region_id.clone();
+            best_static_metrics = Some(metrics);
+        }
+    }
+    let best_static = outcome(
+        best_static_metrics.ok_or_else(|| vec!["no static region baseline available".into()])?,
     )
     .map_err(|error| vec![error])?;
 
@@ -819,6 +857,8 @@ pub fn evaluate_shared_fleet(
         service_robust_optimal_decisions: decision_list(&canonical, &nodes, best_service_robust_mask),
         truck_only_baseline: truck_only,
         fixed_initial_region_baseline: fixed,
+        best_static_region_id,
+        best_static_region_baseline: best_static,
         physical_dispatch_authorized: false,
         dispatch_commands_emitted: false,
         claim_ceiling: "Exact synthetic one-aircraft shared-region allocation and repositioning policy under supplied discrete travel, energy, cost and scenario assumptions; not a fleet-scale optimizer, flight-energy model, route/airspace authorization, physical dispatch or commercial result".into(),
@@ -1169,6 +1209,20 @@ mod tests {
     fn one_shared_aircraft_has_one_region_of_service_per_period() {
         let report = evaluate_shared_fleet(&input()).expect("valid input");
         assert!(report.optimized_policy.expected_aerial_deliveries <= 12);
+    }
+
+    #[test]
+    fn exact_policy_is_no_worse_than_best_static_regional_assignment() {
+        let report = evaluate_shared_fleet(&input()).expect("valid input");
+        assert!(
+            report.optimized_policy.expected_total_cost_units
+                <= report.best_static_region_baseline.expected_total_cost_units
+        );
+        assert!(
+            report.best_static_region_baseline.expected_total_cost_units
+                <= report.fixed_initial_region_baseline.expected_total_cost_units
+        );
+        assert!(matches!(report.best_static_region_id.as_str(), "urban" | "rural"));
     }
 
     #[test]

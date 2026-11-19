@@ -358,7 +358,7 @@ The broader activation/sharing/repositioning/withdrawal benchmark is tracked by 
 
 ## Shared aircraft repositioning (synthetic exact oracle)
 
-The `mfb-evaluate-shared-fleet` binary extends the independent per-region mode-options oracle with **one aircraft shared across multiple regions**. It enumerates a nonanticipative finite-horizon policy over region targets or idle/recharge actions and compares the exact policy with truck-only and fixed-initial-region baselines.
+The `mfb-evaluate-shared-fleet` binary extends the independent per-region mode-options oracle with **one aircraft shared across multiple regions**. It enumerates a nonanticipative finite-horizon policy over region targets or idle/recharge actions and compares the exact policy with truck-only, fixed-initial-region and best-static-region baselines.
 
 Run:
 
