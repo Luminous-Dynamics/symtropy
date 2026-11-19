@@ -6,33 +6,38 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+const USAGE: &str = concat!(
+    "usage: geofusion-evidence-verifier <raw-payload.json> ",
+    "<evidence-envelope.json> <allocation-receipt.json>"
+);
+
 fn read_json(path: &Path, label: &'static str) -> Result<Value, String> {
     let text = fs::read_to_string(path)
-        .map_err(|error| format!("{}: cannot read {}: {}", label, path.display(), error))?;
+        .map_err(|error| format!("{label}: cannot read {}: {error}", path.display()))?;
     serde_json::from_str(&text)
-        .map_err(|_| format!("{}: invalid JSON in {}", label, path.display()))
+        .map_err(|_| format!("{label}: invalid JSON in {}", path.display()))
 }
 
 fn run() -> Result<i32, String> {
     let mut args = env::args_os().skip(1);
-    let payload_path = args.next().map(PathBuf::from)
-        .ok_or_else(|| {
-            concat!(
-                "usage: geofusion-evidence-verifier <raw-payload.json> ",
-                "<evidence-envelope.json> <allocation-receipt.json>"
-            )
-            .to_owned()
-        })?;
-    let evidence_path = args.next().map(PathBuf::from)
+    let payload_path = args
+        .next()
+        .map(PathBuf::from)
+        .ok_or_else(|| USAGE.to_owned())?;
+    let evidence_path = args
+        .next()
+        .map(PathBuf::from)
         .ok_or_else(|| "missing evidence-envelope.json argument".to_owned())?;
-    let allocation_path = args.next().map(PathBuf::from)
+    let allocation_path = args
+        .next()
+        .map(PathBuf::from)
         .ok_or_else(|| "missing allocation-receipt.json argument".to_owned())?;
     if args.next().is_some() {
         return Err("too many arguments; expected exactly three file paths".to_owned());
     }
 
     let payload = fs::read(&payload_path)
-        .map_err(|error| format!("cannot read raw payload {}: {}", payload_path.display(), error))?;
+        .map_err(|error| format!("cannot read raw payload {}: {error}", payload_path.display()))?;
     let evidence = read_json(&evidence_path, "evidence envelope")?;
     let allocation = read_json(&allocation_path, "allocation receipt")?;
 
