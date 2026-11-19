@@ -46,27 +46,39 @@ jobs:
 
           root = Path("tools/grid-asset-recovery-validator/fixtures")
           schema = json.loads((root / "resumable-execution-v0.1.schema.json").read_text())
-          fixture = json.loads((root / "synthetic-resumable-execution-v0.1.json").read_text())
-
           Draft202012Validator.check_schema(schema)
           validator = Draft202012Validator(
               schema,
               format_checker=Draft202012Validator.FORMAT_CHECKER,
           )
-          errors = sorted(validator.iter_errors(fixture), key=lambda error: list(error.path))
-          assert not errors, "\\n".join(
-              f"{list(error.path)}: {error.message}" for error in errors
-          )
+          fixtures = sorted(root.glob("synthetic-*.json"))
+          assert len(fixtures) == 2, f"expected two synthetic execution fixtures, found {len(fixtures)}"
+          parsed = {}
+          for path in fixtures:
+              fixture = json.loads(path.read_text())
+              errors = sorted(validator.iter_errors(fixture), key=lambda error: list(error.path))
+              assert not errors, f"{path.name}: " + "\\n".join(
+                  f"{list(error.path)}: {error.message}" for error in errors
+              )
+              assert fixture["timeOriginUtc"].endswith("Z")
+              assert fixture["asOfHour"] < fixture["horizonEndHour"]
+              parsed[path.name] = fixture
 
-          assert fixture["timeOriginUtc"].endswith("Z")
-          assert fixture["asOfHour"] < fixture["horizonEndHour"]
-          assert fixture["baselineCommitments"] == fixture["proposedCommitments"]
-          assert len(fixture["events"]) == 1
-          assert fixture["events"][0]["eventType"] == "work_segment_completed"
-          assert fixture["plannedSegments"][0]["startHour"] > fixture["asOfHour"]
-          assert fixture["plannedSegments"][0]["interruptionCause"] is None
-          assert fixture["tasks"][0]["checkpointEffortHours"] == [4, 6]
-          print("PASS: Draft 2020-12 resumable execution schema and synthetic fixture")
+          planned = parsed["synthetic-resumable-execution-v0.1.json"]
+          assert planned["baselineCommitments"] == planned["proposedCommitments"]
+          assert len(planned["events"]) == 1
+          assert planned["events"][0]["eventType"] == "work_segment_completed"
+          assert planned["plannedSegments"][0]["startHour"] > planned["asOfHour"]
+          assert planned["plannedSegments"][0]["interruptionCause"] is None
+          assert planned["tasks"][0]["checkpointEffortHours"] == [4, 6]
+
+          progress = parsed["synthetic-progress-reconciliation-v0.1.json"]
+          assert progress["baselineCommitments"][0]["version"] == 1
+          assert progress["proposedCommitments"][0]["version"] == 2
+          assert progress["reconciliations"][0]["action"] == "progress_recorded"
+          assert progress["events"][-1]["evidenceStatus"] == "current"
+          assert any(event["evidenceStatus"] == "superseded" for event in progress["events"])
+          print("PASS: Draft 2020-12 schema validates planned-resume and versioned-progress fixtures")
           PY
 
       - name: Check Rust formatting
@@ -78,7 +90,7 @@ jobs:
       - name: Run all Rust tests
         run: cargo test --locked --manifest-path tools/grid-asset-recovery-validator/Cargo.toml --all-targets
 
-      - name: Replay the synthetic multi-shift execution ledger
+      - name: Replay the planned multi-shift execution ledger
         shell: bash
         run: |
           set -euo pipefail
@@ -93,4 +105,20 @@ jobs:
             and ([.tasks[] | select(.taskId == "repair-pump")][0].plannedEffortHours == 4.0)
             and ([.tasks[] | select(.taskId == "repair-pump")][0].remainingEffortHours == 0.0)
           ' /tmp/resumable-execution-report.json
+
+      - name: Replay the versioned progress reconciliation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --locked --manifest-path tools/grid-asset-recovery-validator/Cargo.toml \
+            --bin multishift-replay -- \
+            tools/grid-asset-recovery-validator/fixtures/synthetic-progress-reconciliation-v0.1.json \
+            | tee /tmp/progress-reconciliation-report.json
+          jq -e '
+            .resultStatus == "execution_ledger_and_candidate_schedule_consistent"
+            and (.tasks | length == 2)
+            and ([.tasks[] | select(.taskId == "repair-pump")][0].commitmentState == "in_progress")
+            and ([.tasks[] | select(.taskId == "repair-pump")][0].observedEffortHours == 7.0)
+            and ([.tasks[] | select(.taskId == "repair-pump")][0].remainingEffortHours == 1.0)
+          ' /tmp/progress-reconciliation-report.json
 
