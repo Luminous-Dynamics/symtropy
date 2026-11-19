@@ -103,7 +103,7 @@ pub enum CommitmentState {
     Completed,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ExecutionEvent {
     pub event_id: String,
@@ -124,14 +124,14 @@ pub struct ExecutionEvent {
     pub interruption_cause: Option<String>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecutionEventType {
     WorkSegmentCompleted,
     ProgressSnapshot,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum EvidenceStatus {
     Current,
@@ -141,7 +141,7 @@ pub enum EvidenceStatus {
     Unknown,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum EvidenceClass {
     Observed,
