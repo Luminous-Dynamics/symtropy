@@ -1,0 +1,67 @@
+{
+  "schema_version": "0.1.0",
+  "evidence_id": "GF-SYNTHETIC-SOURCE-INTERVAL-001",
+  "evidence_kind": "source_interval",
+  "evidence_class": "synthetic",
+  "subject": {
+    "kind": "physical_asset",
+    "subject_id": "synthetic-geothermal-wellfield-01",
+    "asset_id": "synthetic-geothermal-wellfield-01",
+    "boundary_id": "synthetic-wellhead-heat-meter-01",
+    "site_id": "not-a-real-site",
+    "carrier": "heat",
+    "service_id": "geothermal-source-availability"
+  },
+  "time_window": {
+    "state": "bounded",
+    "start_utc": "2026-01-01T00:00:00Z",
+    "duration_ns": 3600000000000,
+    "clock_quality": "synthetic",
+    "clock_uncertainty_ns": 0
+  },
+  "artifact": {
+    "availability": "available",
+    "locator": "fixtures/synthetic-geothermal-source-interval.v0.1.json",
+    "media_type": "application/json",
+    "byte_length": 523,
+    "digest": {
+      "algorithm": "sha256",
+      "value": "0cdcab2b9625b3669918761b7a4da378e9d344321301f2dd0bb48feb67b788c8"
+    },
+    "integrity_state": "verified"
+  },
+  "measurement": {
+    "applicability": "not_applicable",
+    "reason": "Synthetic fixture; no physical instrument, meter calibration or real wellfield exists."
+  },
+  "model": {
+    "applicability": "not_applicable",
+    "reason": "Declared analytic input; no reservoir, wellbore or property model is executed."
+  },
+  "uncertainty": {
+    "status": "unknown",
+    "reason": "Synthetic values are deterministic inputs, not a statistical representation of a measured resource."
+  },
+  "lineage": {
+    "parent_evidence_ids": []
+  },
+  "claims": {
+    "supported": [
+      "The raw synthetic payload bytes match the declared SHA-256 and byte length.",
+      "The payload contains a declared 10 MWhth source interval."
+    ],
+    "withheld": [
+      "Measured geothermal resource",
+      "Calibrated wellhead temperature or flow",
+      "Plant availability or power output"
+    ],
+    "claim_ceiling": "Synthetic artifact identity and declared-value fixture only."
+  },
+  "validity": {
+    "state": "not_applicable",
+    "reason": "Static synthetic test fixture; no physical validity interval."
+  },
+  "review": {
+    "independent_review_status": "not_reviewed"
+  }
+}
