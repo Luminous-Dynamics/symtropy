@@ -763,7 +763,7 @@ mod tests {
 
     #[test]
     fn ramp_limit_is_checked_even_when_peak_is_unchanged() {
-        let mut contract = AdmissionContract {
+        let contract = AdmissionContract {
             study_id: "ramp-study".to_owned(),
             pcc_boundary_id: "ramp-pcc".to_owned(),
             interval_hours: 1.0,
@@ -795,9 +795,6 @@ mod tests {
             job_id: "j1".to_owned(),
             start_slot: 4,
         }];
-        // Keep the contract mutable binding explicit: only the test's
-        // ramp-envelope values differ from the default fixture shape.
-        contract.require_no_new_peak = true;
         let report = verify_admission(&contract, &jobs, &baseline, &candidate)
             .expect("baseline ramp is within the declared limit");
         assert_eq!(report.baseline_peak_import_kw, 14.0);
@@ -836,6 +833,28 @@ mod tests {
             verify_admission(&contract, &jobs, &baseline, &placements([0, 0, 1, 5])),
             Err(VerificationError::InvalidJob { .. })
         ));
+    }
+
+    #[test]
+    fn negative_ramp_limit_is_invalid() {
+        let (mut contract, jobs, baseline) = fixture();
+        contract.pcc_max_abs_ramp_kw[0] = Some(-0.1);
+        assert!(matches!(
+            verify_admission(&contract, &jobs, &baseline, &placements([0, 0, 1, 5])),
+            Err(VerificationError::InvalidQuantity { .. })
+        ));
+    }
+
+    #[test]
+    fn candidate_outside_job_deadline_is_rejected() {
+        let (contract, jobs, baseline) = fixture();
+        let result = verify_admission(
+            &contract,
+            &jobs,
+            &baseline,
+            &placements([0, 0, 1, 8]),
+        );
+        assert!(matches!(result, Err(VerificationError::InvalidSchedule(_))));
     }
 
     #[test]
