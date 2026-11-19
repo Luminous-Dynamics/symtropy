@@ -1,0 +1,575 @@
+{
+  "schema_version": "luminous.plasma-multirate-alignment-benchmark.v0.1",
+  "benchmark_id": "PLASMA-MULTIRATE-ALIGN-001",
+  "evidence_class": "SOFTWARE_OBSERVATION_ALIGNMENT",
+  "physical_measurements": false,
+  "claim_ceiling": "TIMESTAMP_AND_PROVENANCE_INTEGRITY_ONLY_NO_PHYSICAL_VALIDITY_CLAIM",
+  "cases": [
+    {
+      "case_id": "heterogeneous-native-rates-and-future-exclusion",
+      "request": {
+        "schema_version": "luminous.plasma-multirate-alignment.v0.1",
+        "scenario_id": "synthetic-native-rates",
+        "clock_domain": "shot-relative-ns",
+        "decision_time_ns": 25,
+        "required_channels": [
+          "density",
+          "magnetics"
+        ],
+        "max_age_ns_by_channel": {
+          "density": 100,
+          "magnetics": 100
+        },
+        "streams": [
+          {
+            "stream_id": "density-stream",
+            "channel_id": "density",
+            "diagnostic_system_id": "diag-density",
+            "units": "synthetic-unit",
+            "clock_domain": "shot-relative-ns",
+            "native_sample_period_ns": 10,
+            "samples": [
+              {
+                "sample_id": "d0",
+                "timestamp_ns": 10,
+                "value": 1,
+                "evidence_state": "measured",
+                "lineage": {
+                  "source_id": "source-d0",
+                  "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "calibration_id": "calibration-1",
+                  "calibration_revision": "rev-1"
+                }
+              },
+              {
+                "sample_id": "d1",
+                "timestamp_ns": 20,
+                "value": 2,
+                "evidence_state": "measured",
+                "lineage": {
+                  "source_id": "source-d1",
+                  "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "calibration_id": "calibration-1",
+                  "calibration_revision": "rev-1"
+                }
+              },
+              {
+                "sample_id": "d2",
+                "timestamp_ns": 30,
+                "value": 3,
+                "evidence_state": "measured",
+                "lineage": {
+                  "source_id": "source-d2",
+                  "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "calibration_id": "calibration-1",
+                  "calibration_revision": "rev-1"
+                }
+              }
+            ]
+          },
+          {
+            "stream_id": "magnetics-stream",
+            "channel_id": "magnetics",
+            "diagnostic_system_id": "diag-magnetics",
+            "units": "synthetic-unit",
+            "clock_domain": "shot-relative-ns",
+            "native_sample_period_ns": null,
+            "samples": [
+              {
+                "sample_id": "m0",
+                "timestamp_ns": 15,
+                "value": 4,
+                "evidence_state": "measured",
+                "lineage": {
+                  "source_id": "source-m0",
+                  "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "calibration_id": "calibration-1",
+                  "calibration_revision": "rev-1"
+                }
+              },
+              {
+                "sample_id": "m1",
+                "timestamp_ns": 22,
+                "value": 5,
+                "evidence_state": "measured",
+                "lineage": {
+                  "source_id": "source-m1",
+                  "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "calibration_id": "calibration-1",
+                  "calibration_revision": "rev-1"
+                }
+              },
+              {
+                "sample_id": "m2",
+                "timestamp_ns": 35,
+                "value": 6,
+                "evidence_state": "measured",
+                "lineage": {
+                  "source_id": "source-m2",
+                  "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "calibration_id": "calibration-1",
+                  "calibration_revision": "rev-1"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expected_result": "COMPLETED",
+      "expected_entry_dispositions": [
+        "MEASUREDAVAILABLE",
+        "MEASUREDAVAILABLE"
+      ],
+      "expected_future_samples_excluded": 2
+    },
+    {
+      "case_id": "future-only-observations-never-enter-context",
+      "request": {
+        "schema_version": "luminous.plasma-multirate-alignment.v0.1",
+        "scenario_id": "synthetic-future-only",
+        "clock_domain": "shot-relative-ns",
+        "decision_time_ns": 20,
+        "required_channels": [
+          "density",
+          "magnetics"
+        ],
+        "max_age_ns_by_channel": {
+          "density": 100,
+          "magnetics": 100
+        },
+        "streams": [
+          {
+            "stream_id": "density-stream",
+            "channel_id": "density",
+            "diagnostic_system_id": "diag-density",
+            "units": "synthetic-unit",
+            "clock_domain": "shot-relative-ns",
+            "native_sample_period_ns": 10,
+            "samples": [
+              {
+                "sample_id": "d0",
+                "timestamp_ns": 30,
+                "value": 1,
+                "evidence_state": "measured",
+                "lineage": {
+                  "source_id": "source-d0",
+                  "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "calibration_id": "calibration-1",
+                  "calibration_revision": "rev-1"
+                }
+              }
+            ]
+          },
+          {
+            "stream_id": "magnetics-stream",
+            "channel_id": "magnetics",
+            "diagnostic_system_id": "diag-magnetics",
+            "units": "synthetic-unit",
+            "clock_domain": "shot-relative-ns",
+            "native_sample_period_ns": 10,
+            "samples": [
+              {
+                "sample_id": "m0",
+                "timestamp_ns": 40,
+                "value": 2,
+                "evidence_state": "measured",
+                "lineage": {
+                  "source_id": "source-m0",
+                  "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "calibration_id": "calibration-1",
+                  "calibration_revision": "rev-1"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expected_result": "COMPLETED",
+      "expected_entry_dispositions": [
+        "NOPASTSAMPLE",
+        "NOPASTSAMPLE"
+      ],
+      "expected_future_samples_excluded": 2
+    },
+    {
+      "case_id": "stale-channel-withholds-value-but-retains-lineage",
+      "request": {
+        "schema_version": "luminous.plasma-multirate-alignment.v0.1",
+        "scenario_id": "synthetic-stale",
+        "clock_domain": "shot-relative-ns",
+        "decision_time_ns": 100,
+        "required_channels": [
+          "density",
+          "magnetics"
+        ],
+        "max_age_ns_by_channel": {
+          "density": 49,
+          "magnetics": 0
+        },
+        "streams": [
+          {
+            "stream_id": "density-stream",
+            "channel_id": "density",
+            "diagnostic_system_id": "diag-density",
+            "units": "synthetic-unit",
+            "clock_domain": "shot-relative-ns",
+            "native_sample_period_ns": 10,
+            "samples": [
+              {
+                "sample_id": "d0",
+                "timestamp_ns": 50,
+                "value": 1,
+                "evidence_state": "measured",
+                "lineage": {
+                  "source_id": "source-d0",
+                  "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "calibration_id": "calibration-1",
+                  "calibration_revision": "rev-1"
+                }
+              }
+            ]
+          },
+          {
+            "stream_id": "magnetics-stream",
+            "channel_id": "magnetics",
+            "diagnostic_system_id": "diag-magnetics",
+            "units": "synthetic-unit",
+            "clock_domain": "shot-relative-ns",
+            "native_sample_period_ns": 10,
+            "samples": [
+              {
+                "sample_id": "m0",
+                "timestamp_ns": 100,
+                "value": 2,
+                "evidence_state": "measured",
+                "lineage": {
+                  "source_id": "source-m0",
+                  "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "calibration_id": "calibration-1",
+                  "calibration_revision": "rev-1"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expected_result": "COMPLETED",
+      "expected_entry_dispositions": [
+        "MEASUREDAVAILABLE",
+        "STALE"
+      ],
+      "expected_future_samples_excluded": 0
+    },
+    {
+      "case_id": "synthetic-and-reconstructed-evidence-remain_distinct",
+      "request": {
+        "schema_version": "luminous.plasma-multirate-alignment.v0.1",
+        "scenario_id": "synthetic-evidence-preservation",
+        "clock_domain": "shot-relative-ns",
+        "decision_time_ns": 20,
+        "required_channels": [
+          "density",
+          "magnetics"
+        ],
+        "max_age_ns_by_channel": {
+          "density": 100,
+          "magnetics": 100
+        },
+        "streams": [
+          {
+            "stream_id": "density-stream",
+            "channel_id": "density",
+            "diagnostic_system_id": "diag-density",
+            "units": "synthetic-unit",
+            "clock_domain": "shot-relative-ns",
+            "native_sample_period_ns": 10,
+            "samples": [
+              {
+                "sample_id": "synth-d",
+                "timestamp_ns": 10,
+                "value": 1,
+                "evidence_state": "synthetic",
+                "lineage": null
+              }
+            ]
+          },
+          {
+            "stream_id": "magnetics-stream",
+            "channel_id": "magnetics",
+            "diagnostic_system_id": "diag-magnetics",
+            "units": "synthetic-unit",
+            "clock_domain": "shot-relative-ns",
+            "native_sample_period_ns": 10,
+            "samples": [
+              {
+                "sample_id": "recon-m",
+                "timestamp_ns": 10,
+                "value": 2,
+                "evidence_state": "reconstructed",
+                "lineage": null
+              }
+            ]
+          }
+        ]
+      },
+      "expected_result": "COMPLETED",
+      "expected_entry_dispositions": [
+        "RECONSTRUCTEDONLY",
+        "SYNTHETICONLY"
+      ],
+      "expected_future_samples_excluded": 0
+    },
+    {
+      "case_id": "missing-required-stream-is-explicit",
+      "request": {
+        "schema_version": "luminous.plasma-multirate-alignment.v0.1",
+        "scenario_id": "synthetic-missing-stream",
+        "clock_domain": "shot-relative-ns",
+        "decision_time_ns": 20,
+        "required_channels": [
+          "density",
+          "magnetics"
+        ],
+        "max_age_ns_by_channel": {
+          "density": 100,
+          "magnetics": 100
+        },
+        "streams": [
+          {
+            "stream_id": "density-stream",
+            "channel_id": "density",
+            "diagnostic_system_id": "diag-density",
+            "units": "synthetic-unit",
+            "clock_domain": "shot-relative-ns",
+            "native_sample_period_ns": 10,
+            "samples": [
+              {
+                "sample_id": "d0",
+                "timestamp_ns": 10,
+                "value": 1,
+                "evidence_state": "measured",
+                "lineage": {
+                  "source_id": "source-d0",
+                  "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "calibration_id": "calibration-1",
+                  "calibration_revision": "rev-1"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expected_result": "COMPLETED",
+      "expected_entry_dispositions": [
+        "MEASUREDAVAILABLE",
+        "MISSINGSTREAM"
+      ],
+      "expected_future_samples_excluded": 0
+    },
+    {
+      "case_id": "non-monotonic-stream-timestamps-refused",
+      "request": {
+        "schema_version": "luminous.plasma-multirate-alignment.v0.1",
+        "scenario_id": "synthetic-nonmonotonic",
+        "clock_domain": "shot-relative-ns",
+        "decision_time_ns": 20,
+        "required_channels": [
+          "density",
+          "magnetics"
+        ],
+        "max_age_ns_by_channel": {
+          "density": 100,
+          "magnetics": 100
+        },
+        "streams": [
+          {
+            "stream_id": "density-stream",
+            "channel_id": "density",
+            "diagnostic_system_id": "diag-density",
+            "units": "synthetic-unit",
+            "clock_domain": "shot-relative-ns",
+            "native_sample_period_ns": 10,
+            "samples": [
+              {
+                "sample_id": "d1",
+                "timestamp_ns": 15,
+                "value": 1,
+                "evidence_state": "measured",
+                "lineage": {
+                  "source_id": "source-d1",
+                  "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "calibration_id": "calibration-1",
+                  "calibration_revision": "rev-1"
+                }
+              },
+              {
+                "sample_id": "d0",
+                "timestamp_ns": 10,
+                "value": 2,
+                "evidence_state": "measured",
+                "lineage": {
+                  "source_id": "source-d0",
+                  "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "calibration_id": "calibration-1",
+                  "calibration_revision": "rev-1"
+                }
+              }
+            ]
+          },
+          {
+            "stream_id": "magnetics-stream",
+            "channel_id": "magnetics",
+            "diagnostic_system_id": "diag-magnetics",
+            "units": "synthetic-unit",
+            "clock_domain": "shot-relative-ns",
+            "native_sample_period_ns": 10,
+            "samples": [
+              {
+                "sample_id": "m0",
+                "timestamp_ns": 10,
+                "value": 2,
+                "evidence_state": "measured",
+                "lineage": {
+                  "source_id": "source-m0",
+                  "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "calibration_id": "calibration-1",
+                  "calibration_revision": "rev-1"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expected_result": "REJECTED",
+      "expected_entry_dispositions": [],
+      "expected_future_samples_excluded": 0
+    },
+    {
+      "case_id": "measured-sample-without-calibration-lineage-refused",
+      "request": {
+        "schema_version": "luminous.plasma-multirate-alignment.v0.1",
+        "scenario_id": "synthetic-unattributed-measurement",
+        "clock_domain": "shot-relative-ns",
+        "decision_time_ns": 20,
+        "required_channels": [
+          "density",
+          "magnetics"
+        ],
+        "max_age_ns_by_channel": {
+          "density": 100,
+          "magnetics": 100
+        },
+        "streams": [
+          {
+            "stream_id": "density-stream",
+            "channel_id": "density",
+            "diagnostic_system_id": "diag-density",
+            "units": "synthetic-unit",
+            "clock_domain": "shot-relative-ns",
+            "native_sample_period_ns": 10,
+            "samples": [
+              {
+                "sample_id": "d0",
+                "timestamp_ns": 10,
+                "value": 1,
+                "evidence_state": "measured",
+                "lineage": null
+              }
+            ]
+          },
+          {
+            "stream_id": "magnetics-stream",
+            "channel_id": "magnetics",
+            "diagnostic_system_id": "diag-magnetics",
+            "units": "synthetic-unit",
+            "clock_domain": "shot-relative-ns",
+            "native_sample_period_ns": 10,
+            "samples": [
+              {
+                "sample_id": "m0",
+                "timestamp_ns": 10,
+                "value": 2,
+                "evidence_state": "measured",
+                "lineage": {
+                  "source_id": "source-m0",
+                  "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "calibration_id": "calibration-1",
+                  "calibration_revision": "rev-1"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expected_result": "REJECTED",
+      "expected_entry_dispositions": [],
+      "expected_future_samples_excluded": 0
+    },
+    {
+      "case_id": "cross-clock-stream-refused",
+      "request": {
+        "schema_version": "luminous.plasma-multirate-alignment.v0.1",
+        "scenario_id": "synthetic-cross-clock",
+        "clock_domain": "shot-relative-ns",
+        "decision_time_ns": 20,
+        "required_channels": [
+          "density",
+          "magnetics"
+        ],
+        "max_age_ns_by_channel": {
+          "density": 100,
+          "magnetics": 100
+        },
+        "streams": [
+          {
+            "stream_id": "density-stream",
+            "channel_id": "density",
+            "diagnostic_system_id": "diag-density",
+            "units": "synthetic-unit",
+            "clock_domain": "other-clock",
+            "native_sample_period_ns": 10,
+            "samples": [
+              {
+                "sample_id": "d0",
+                "timestamp_ns": 10,
+                "value": 1,
+                "evidence_state": "measured",
+                "lineage": {
+                  "source_id": "source-d0",
+                  "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "calibration_id": "calibration-1",
+                  "calibration_revision": "rev-1"
+                }
+              }
+            ]
+          },
+          {
+            "stream_id": "magnetics-stream",
+            "channel_id": "magnetics",
+            "diagnostic_system_id": "diag-magnetics",
+            "units": "synthetic-unit",
+            "clock_domain": "shot-relative-ns",
+            "native_sample_period_ns": 10,
+            "samples": [
+              {
+                "sample_id": "m0",
+                "timestamp_ns": 10,
+                "value": 2,
+                "evidence_state": "measured",
+                "lineage": {
+                  "source_id": "source-m0",
+                  "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "calibration_id": "calibration-1",
+                  "calibration_revision": "rev-1"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expected_result": "REJECTED",
+      "expected_entry_dispositions": [],
+      "expected_future_samples_excluded": 0
+    }
+  ]
+}
