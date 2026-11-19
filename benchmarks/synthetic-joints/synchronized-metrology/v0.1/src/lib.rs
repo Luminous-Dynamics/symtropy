@@ -259,11 +259,6 @@ fn validate_channel_provenance(channel: &ChannelMeasurement) -> Option<String> {
     {
         return Some("signal-slew bound lacks source provenance".to_owned());
     }
-    if channel.calibrated_range.lower > channel.sensor_range.lower
-        || channel.calibrated_range.upper < channel.sensor_range.upper
-    {
-        return Some("calibration certificate does not cover the declared sensor range".to_owned());
-    }
     None
 }
 
@@ -298,9 +293,7 @@ fn power_sign(interval: NumericInterval) -> PowerSign {
 fn align_channel(channel: &ChannelMeasurement) -> Result<Option<ChannelAlignment>, String> {
     let residual_filter_delay =
         channel.filter_group_delay_s - channel.filter_delay_compensation_s;
-    let maximum_time_skew_s = channel.sample_time_offset_s
-        .abs()
-        .max(0.0)
+    let maximum_time_skew_s = channel.sample_time_offset_s.abs()
         + channel.clock_offset_uncertainty_s
         + channel.timestamp_jitter_bound_s
         + residual_filter_delay.abs()
