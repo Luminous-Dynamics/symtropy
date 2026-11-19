@@ -1,0 +1,119 @@
+schema_version = "living-systems-lineage-benchmark-v0.1"
+benchmark_id = "BIO-ARCHAEA-PROTIST-ANCHORS-001"
+status = "LITERATURE_ANCHORED_PORTFOLIO_DATA_ADMISSION_PENDING"
+created_utc_date = "2026-11-18"
+parent_issue = "https://github.com/Luminous-Dynamics/symtropy/issues/5981"
+identity_pr = "https://github.com/Luminous-Dynamics/symtropy/pull/6076"
+crosswalk_pr = "https://github.com/Luminous-Dynamics/symtropy/pull/6088"
+comparison_policy = "MECHANISM_SPECIFIC_TASKS_SHARED_OBSERVATION_AND_EVIDENCE_CONTRACT"
+universal_locomotion_equation = false
+cross_species_parameter_transfer = "PROHIBITED_UNLESS_INDEPENDENTLY_VALIDATED"
+
+[benchmark_policy]
+split_unit = "INDEPENDENT_EXPERIMENTAL_RECORDING_OR_REPLICATE"
+observations_from_same_track_must_not_cross_splits = true
+track_or_frame_count_is_not_independent_sample_count = true
+finite_observation_window_is_primary = true
+long_time_extrapolation_must_be_separate = true
+unknown_and_unresolved_are_valid_outcomes = true
+article_license_does_not_imply_dataset_license = true
+source_version_and_file_sha256_required_before_admission = true
+
+[benchmarks.archaea_haloarchaea_environmental_isolates]
+taxon_display_name = "Haloferax sp. Boulby Mine; Haloarcula sp. Great Salt Lake"
+taxon_provider = "Catalogue of Life or NCBI Taxonomy"
+taxon_concept_id = "NOT_RESOLVED_PER_ISOLATE"
+lineage = "ARCHAEA_HALOPHILES"
+movement_mechanism = ["ARCHAELLUM_ROTARY_SWIMMING", "CHEMOTAXIS"]
+primary_reference_doi = "10.1038/s41467-020-18253-7"
+motility_reference_doi = "10.1038/nmicrobiol.2016.148"
+motility_reference_taxon = "Halobacterium salinarum"
+motility_reference_scope = "ARCHAELLUM_ROTARY_STEP_OBSERVATION_SEPARATE_FROM_ENVIRONMENTAL_ISOLATE_CHEMOTAXIS_ARCHIVE"
+data_doi = "10.15124/6b44e8e4-a22c-4a55-a2fc-b2976a06d2b4"
+data_repository = "University of York Research Database"
+data_record_date = "2020-07-16"
+data_recorded_size_mb = 9.07
+data_license_recorded = "CC-BY"
+data_license_status = "RECORD_LISTS_CC_BY_FILE_LEVEL_NOTICE_AND_ATTRIBUTION_TO_BE_REVIEWED"
+data_ingestion_status = "NOT_ADMITTED_PENDING_FILE_INVENTORY_CHECKSUM_SCHEMA_AND_EXPERIMENT_SIMULATION_SEPARATION"
+source_parameter_fit_status = "NOT_FIT"
+comparators = ["EMPIRICAL_TRAJECTORY_DISTRIBUTION", "SOURCE_AUTHORED_MOTILITY_MODEL", "ROTARY_ARCHAELLUM_STEP_OBSERVATION"]
+primary_metrics = ["SPEED_DISTRIBUTION", "ROTARY_RATE_WHERE_OBSERVED", "CHEMOTACTIC_EFFICIENCY", "PHOTOTAXIS_RESPONSE", "HELD_OUT_NUTRIENT_RESPONSE"]
+limitations = ["DO_NOT_REUSE_BACTERIAL_FLAGELLAR_PARAMETERS", "DO_NOT_CONFLATE_ARCHAELLUM_WITH_TYPE_IV_PILUS_MOTILITY", "SOURCE_ARCHIVE_CONTAINS_BOTH_EXPERIMENTAL_AND_SIMULATION_RESULTS"]
+
+[benchmarks.amoebozoa_dictyostelium]
+taxon_display_name = "Dictyostelium discoideum"
+taxon_provider = "Catalogue of Life or NCBI Taxonomy"
+taxon_concept_id = "NOT_RESOLVED"
+lineage = "EUKARYOTA_AMOEBOZOA"
+movement_mechanism = ["ACTIN_DRIVEN_PSEUDOPOD_EXTENSION", "AMOEBOID_CRAWLING", "CAMP_CHEMOTAXIS", "HYPOXIA_AEROTAXIS"]
+tracking_dataset_doi = "10.5061/dryad.b5mkkwhbd"
+tracking_dataset_repository = "Dryad"
+tracking_dataset_version = "2020-10-01"
+tracking_dataset_size_gb = 28.12
+tracking_frame_cadence_s = 1
+tracking_sequence_frame_counts = [500, 1000]
+tracking_image_shape_px = [512, 512]
+tracking_calibrated_fields_um = [[134.95, 134.95], [212.55, 212.55]]
+tracking_marker = "LifeAct-mRFP"
+tracking_data_license = "NOT_VISIBLE_IN_RETRIEVED_RECORD"
+tracking_data_ingestion_status = "NOT_ADMITTED_PENDING_EXACT_LICENSE_CHECKSUM_AND_FILE_METADATA"
+random_crawling_reference_doi = "10.1371/journal.pone.0201977"
+pseudopodium_tracking_reference_doi = "10.1038/s41598-017-12656-1"
+hypoxia_aerotaxis_reference_doi = "10.1186/s12860-025-00557-5"
+early_camp_development_reference_doi = "10.1038/s42003-026-09806-5"
+early_camp_geo_accession = "GSE305468"
+early_camp_data_doi = "10.5281/zenodo.18481907"
+early_camp_code_doi = "10.5281/zenodo.18481808"
+early_camp_dataset_license_status = "NOT_VERIFIED"
+source_parameter_fit_status = "NOT_FIT"
+comparators = ["CENTROID_ONLY_RANDOM_CRAWL", "SHAPE_AWARE_CRAWL", "PSEUDOPOD_POLARITY_MODEL", "CAMP_CHEMOTAXIS", "HYPOXIA_AEROTAXIS"]
+primary_metrics = ["CELL_CONTOUR_ERROR", "PSEUDOPOD_DIRECTION_STATISTICS", "CELL_SHAPE_DYNAMICS", "DIRECTIONAL_PERSISTENCE", "CHEMOTAXIS_INDEX", "AEROTAXIS_INDEX", "AGGREGATION_SYNCHRONY"]
+limitations = ["CAMP_CHEMOTAXIS_AND_OXYGEN_AEROTAXIS_ARE_DISTINCT", "SINGLE_CELL_MIGRATION_AND_MULTICELLULAR_DEVELOPMENT_ARE_SEPARATE_SCALES", "DO_NOT_INFER_AGGREGATION_FROM_SINGLE_CELL_TRACKS"]
+
+[benchmarks.ciliates_paramecium]
+taxon_display_name = "Paramecium tetraurelia"
+taxon_provider = "Catalogue of Life or NCBI Taxonomy"
+taxon_concept_id = "NOT_RESOLVED"
+lineage = "EUKARYOTA_ALVEOLATA_CILIATES"
+movement_mechanism = ["CILIARY_PROPULSION", "CALCIUM_DEPENDENT_AVOIDANCE", "BACKWARD_SWIM_AND_REORIENTATION"]
+primary_reference_doi = "10.1371/journal.pcbi.1010899"
+source_model_repository = "https://github.com/romainbrette/Paramecium-model"
+source_model_repository_license = "GPL-3.0"
+electrophysiology_piv_data_doi = "10.5281/zenodo.6074166"
+behavioral_data_doi = "10.5281/zenodo.6074480"
+electrophysiology_piv_record_size_gb = 23.9
+electrophysiology_data_license_status = "NOT_EXPOSED_IN_RETRIEVED_RECORD"
+behavioral_data_license_status = "NOT_EXPOSED_IN_RETRIEVED_RECORD"
+dataset_ingestion_status = "NOT_ADMITTED_PENDING_PER_RECORD_LICENSE_VERSION_FILE_MANIFEST_AND_CHECKSUM_REVIEW"
+article_license = "CC-BY"
+reported_selected_trajectories = 554
+source_parameter_fit_status = "NOT_REPRODUCED"
+comparators = ["EMPIRICAL_KINEMATIC_MODEL", "CALCIUM_TO_CILIARY_KINEMATICS", "NO_ACTION_POTENTIAL_CONTROL", "NO_AVOIDANCE_CONTROL", "PIV_AND_FREE_SWIMMING_MATCHED_MODEL"]
+primary_metrics = ["MEMBRANE_ACTION_POTENTIAL_ERROR", "CILIARY_BEAT_AND_PIV_ERROR", "FORWARD_BACKWARD_TRANSITION_TIMING", "AVOIDANCE_TURN_ANGLE", "SWIMMING_SPEED_AND_TURNING", "OBSTACLE_RESPONSE", "CHEMOTACTIC_RESPONSE"]
+limitations = ["DO_NOT_REDUCE_CILIARY_PHYSICS_TO_RUN_TUMBLE", "ELECTROPHYSIOLOGY_AND_FREE_SWIMMING_DATA_HAVE_DIFFERENT_OBSERVATION_MODES", "PAPER_LICENSE_DOES_NOT_AUTO_LICENSE_ZENODO_DATA"]
+
+
+[related_algal_motility_portfolio]
+issue = "https://github.com/Luminous-Dynamics/symtropy/issues/6122"
+benchmark_manifest = "benchmarks/living-systems/algal-motility/manifest.toml"
+benchmark_manifest = "benchmarks/living-systems/algal-motility/manifest.toml"
+diatom_raphe_gliding_doi = "10.1073/pnas.2506122123"
+chlamydomonas_phototaxis_doi = "10.3389/fphbi.2026.1800988"
+dataset_admission = "RIGHTS_AND_VERSION_REVIEW_PENDING_NO_RAW_DATA_INGESTED"
+
+[portfolio_coverage]
+bacteria = "ACTIVE_BENCHMARKS_EXIST_PUTIDA_AEROBRASILENSE_PAE_SURFACE_TWITCHING"
+archaea = "THIS_ISSUE_ADDS_HALOPHILE_ARCHAELLUM_ANCHOR"
+amoebozoa = "DICTYOSTELIUM_SINGLE_CELL_AND_PHYSARUM_PLASMODIAL_NETWORK_ANCHORS"
+alveolata_ciliates = "THIS_ISSUE_ADDS_PARAMECIUM_CILIARY_AND_AVOIDANCE_ANCHOR"
+fungi = "EXISTING_MYCO_OWNERS_5379_5413_5562"
+viridiplantae_motile_algae = "CHLAMYDOMONAS_FLAGELLAR_PHOTOTAXIS_ANCHOR_ISSUE_6122"
+animals = "EXISTING_ANIMAL_NEUROMECHANICS_OWNER_3313"
+stramenopiles = "DIATOM_RAPHE_GLIDING_ANCHOR_OPENED_IN_ISSUE_6122_DATA_RIGHTS_PENDING"
+viridiplantae_motile_algae = "CHLAMYDOMONAS_PHOTOTAXIS_ANCHOR_OPENED_IN_ISSUE_6122_DATA_RIGHTS_PENDING"
+rhizaria = "GAP_REQUIRES_A_MECHANISM_SPECIFIC_DATA_ADMITTED_CASE"
+haptista = "GAP_REQUIRES_A_MECHANISM_SPECIFIC_DATA_ADMITTED_CASE"
+cryptista = "GAP_REQUIRES_A_MECHANISM_SPECIFIC_DATA_ADMITTED_CASE"
+myxogastria = "PHYSARUM_PLASMODIAL_MIGRATION_NETWORK_REMODELLING_AND_CONTRACTILE_TRANSPORT_ANCHOR_ISSUE_6093"
+acellular_replicators = "VIRUSES_VIROIDS_PRIONS_TRACKED_SEPARATELY_NOT_AS_CELLULAR_KINGDOMS"
