@@ -912,6 +912,26 @@ mod tests {
     }
 
     #[test]
+    fn exact_same_snapshot_id_and_digest_is_idempotently_ignored() {
+        let first = snapshot(1, 100_000, &[]);
+        let first_result = evaluate_trigger(
+            &first,
+            &definitions(),
+            &policy(),
+            &TriggerState::default(),
+        ).unwrap();
+        let replay = snapshot(1, 100_000, &[]);
+        let replay_result = evaluate_trigger(
+            &replay,
+            &definitions(),
+            &policy(),
+            &first_result.next_state,
+        ).unwrap();
+        assert_eq!(replay_result.decision, TriggerDecision::DuplicateSnapshotIgnored);
+        assert_eq!(replay_result.next_state, first_result.next_state);
+    }
+
+    #[test]
     fn same_sequence_with_different_snapshot_id_is_invalid() {
         let first = snapshot(1, 100_000, &[]);
         let first_result = evaluate_trigger(&first, &definitions(), &policy(), &TriggerState::default()).unwrap();
