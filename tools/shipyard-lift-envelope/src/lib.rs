@@ -1185,7 +1185,7 @@ impl PreflightDependencies {
                 .iter()
                 .find(|dependency| {
                     dependency.source_record_id == *source_record_id
-
+                        && dependency.state != *new_state
                 })
                 .map(|dependency| InvalidationMatch {
                     reason: InvalidationReason::EvidenceStateChanged,
@@ -2174,6 +2174,42 @@ mod tests {
     }
 
     #[test]
+    fn no_op_dependency_events_do_not_invalidate_receipts() {
+        let receipt = synthetic_receipt(&baseline());
+        let events = [
+            InvalidationEvent::EvidenceStateChanged {
+                source_record_id: "mass-record-001".to_owned(),
+                new_state: EvidenceState::Current,
+            },
+            InvalidationEvent::EvidenceDigestChanged {
+                source_record_id: "mass-record-001".to_owned(),
+                new_sha256: "A".repeat(64),
+            },
+            InvalidationEvent::SubjectRevisionChanged {
+                kind: SubjectKind::Block,
+                subject_id: "block-001".to_owned(),
+                new_revision: "block-r7".to_owned(),
+            },
+            InvalidationEvent::OperatingWindowChanged {
+                new_start_tick: 100,
+                new_end_tick: 200,
+            },
+            InvalidationEvent::ClockDomainChanged {
+                new_clock_domain_id: "yard-monotonic-ms".to_owned(),
+            },
+        ];
+
+        for event in &events {
+            assert_eq!(
+                receipt.invalidation_for(event),
+                None,
+                "no-op event must not invalidate a receipt: {}",
+                event.canonical_json()
+            );
+        }
+    }
+
+    #[test]
     fn receipt_constructor_rejects_invalid_hashes_and_mismatched_report() {
         let plan = baseline();
         let report = evaluate(&plan);
@@ -2204,7 +2240,8 @@ mod tests {
     }
 
     #[test]
-    fn receipt_canonical_json_contains_sorted_evidence_and_subject_dependencies() {        let event = InvalidationEvent::EvidenceStateChanged {
+    fn receipt_canonical_json_contains_sorted_evidence_and_subject_dependencies() {
+        let event = InvalidationEvent::EvidenceStateChanged {
             source_record_id: "mass-record-001".to_owned(),
             new_state: EvidenceState::Revoked,
         };
