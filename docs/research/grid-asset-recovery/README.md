@@ -460,3 +460,33 @@ Primary sources:
 - For stochastic or disruption cases, use common random numbers and report expected objective, p50/p95/p99 and CVaR95; include schedule stability and reactive rescheduling churn.
 - Do not claim a win because a local heuristic beats one weak greedy baseline or because it passes a handful of synthetic fixtures.
 - Keep generic scheduling results separate from transmission domain validation. A better RCPSP score is not evidence of better grid reliability.
+
+
+### Tail-risk metric: CVaR95
+
+The scenario report also emits **CVaR95**, the probability-weighted mean outcome in the worst 5% of the declared discrete scenario probability mass. For the current illustrative scenario set this gives **102,290 MWh**, because the compound storm/supplier scenario occupies exactly the worst 5% tail.
+
+For clarity:
+- weighted p95 is the threshold value at the 95th percentile (95,680 MWh);
+- CVaR95 is the mean of the worst 5% tail (102,290 MWh);
+- the worst scenario is also 102,290 MWh.
+
+These values are mathematically reproducible for this four-point scenario distribution, but the probabilities are synthetic assumptions. CVaR95 here is not an estimate of real-world tail risk, and adding more hand-selected scenarios does not make it statistically calibrated.
+
+### CARM-Plus comparison boundary
+
+The CARM-Plus article is a particularly useful transfer corpus for first-class calendars and disruption scenario formats, but its own results section says its CP-SAT and MIP baseline models relaxed the non-contiguous calendar constraints. Those formulations are not calendar-exact comparators; their reported makespans must not be treated as fair solver-performance baselines against a model that enforces the calendar. The article describes the Max-Plus model as embedding calendar compliance by construction and explicitly cautions against drawing solver rankings from its descriptive comparison.
+
+Use the dataset for:
+- schema and input-format interoperability;
+- exact calendar parsing and conformance tests;
+- shift/lunch/holiday handling;
+- disruption encoding and common random-seed replay;
+- new calendar-exact CP-SAT/MIP formulation work.
+
+Do not claim a solver win from the article's relaxed CP-SAT/MIP baselines. The fair next experiment is to reproduce CARM-Plus's calendar-exact Max-Plus baseline and independently build CP-SAT/MIP models with identical calendar semantics, then disclose solver version, hardware, time limit, optimality bounds and infeasibility/timeout. The corpus is manufacturing-informed synthetic data from a single-facility context, not transmission repair data.
+
+Primary article and archive:
+- https://doi.org/10.1016/j.dib.2026.113256
+- https://doi.org/10.5281/zenodo.20553817
+- https://github.com/aftab-fr/carm-plus-dataset
