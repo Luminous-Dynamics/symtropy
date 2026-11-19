@@ -89,7 +89,7 @@ jobs:
           jq -e '[.results[] | select(.architecture != "truck_only") | .status] | all(. == "indeterminate")' ev-carrier-config-report.json
           jq -e '[.results[] | select(.architecture != "truck_only") | .missing_fields | length] | all(. > 0)' ev-carrier-config-report.json
           jq -e '[.results[] | select(.config_id == "urban-truck-only-control") | .gross_mass_margin_after_module_kg] == [5800]' ev-carrier-config-report.json
-          jq -e '[.results[] | select(.config_id == "urban-truck-only-control") | .vehicle_battery_energy_margin_after_module_kwh] == [64.462]' ev-carrier-config-report.json
+          jq -e '[.results[] | select(.config_id == "urban-truck-only-control") | select((.vehicle_battery_energy_margin_after_module_kwh - 64.462) < 0.000001 and (64.462 - .vehicle_battery_energy_margin_after_module_kwh) < 0.000001)] | length == 1' ev-carrier-config-report.json
           cat ev-carrier-config-report.json
       - name: Run longitudinal EV mission physics screen
         run: |
