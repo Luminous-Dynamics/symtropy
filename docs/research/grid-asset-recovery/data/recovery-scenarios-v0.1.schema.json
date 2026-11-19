@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/grid-asset-recovery-scenarios-v0.1.schema.json",
+  "title": "Grid Asset Recovery Scenario Set v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "scenarioSetId",
+    "baseCaseId",
+    "probabilityBasis",
+    "scenarios"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "scenarioSetId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "baseCaseId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "probabilityBasis": {
+      "enum": [
+        "synthetic_assumption",
+        "expert_elicitation",
+        "empirical_fit"
+      ]
+    },
+    "probabilitySource": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenarioId",
+          "description",
+          "probability",
+          "taskDurationOverrides",
+          "taskReleaseDelays",
+          "resourceOutages"
+        ],
+        "properties": {
+          "scenarioId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "taskDurationOverrides": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "eventId",
+                "taskId",
+                "durationHours"
+              ],
+              "properties": {
+                "eventId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "taskId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "durationHours": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              }
+            }
+          },
+          "taskReleaseDelays": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "eventId",
+                "taskId",
+                "delayHours"
+              ],
+              "properties": {
+                "eventId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "taskId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "delayHours": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "resourceOutages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "resourceId",
+                "startHour",
+                "endHour",
+                "unitsUnavailable",
+                "causeId",
+                "correlationGroupId"
+              ],
+              "properties": {
+                "resourceId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "startHour": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "endHour": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "unitsUnavailable": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "causeId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "correlationGroupId": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
