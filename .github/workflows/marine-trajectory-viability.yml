@@ -43,7 +43,7 @@ jobs:
       - name: Passing case must remain synthetic-only
         run: |
           cargo run --quiet --manifest-path tools/marine-trajectory-viability/Cargo.toml -- audit-trajectory tools/marine-trajectory-viability/fixtures/synthetic-trajectory-pass-0001.json > /tmp/trajectory-pass.json
-          jq -e '.disposition == "SYNTHETIC_ONLY" and .candidate_disposition == "SAMPLED_TRAJECTORY_FEASIBLE" and .scenario_count == 5 and .time_step_count == 3 and .aggregate_scalar_score == "NOT_COMPUTED"' /tmp/trajectory-pass.json
+          jq -e '.disposition == "SYNTHETIC_ONLY" and .candidate_disposition == "SAMPLED_TRAJECTORY_FEASIBLE" and .scenario_count == 5 and .scenario_class_coverage == ["adverse_forecast_error","common_cause_generation_watermaker_outage","main_generation_outage","nominal","watermaker_outage"] and .time_step_count == 3 and .aggregate_scalar_score == "NOT_COMPUTED" and ([.maximum_balance_residuals_across_scenarios[]] | length == 3)' /tmp/trajectory-pass.json
 
       - name: Arrival-safe intermediate breach must abstain
         run: |
