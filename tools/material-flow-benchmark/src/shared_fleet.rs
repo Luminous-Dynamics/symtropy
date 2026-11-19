@@ -1008,12 +1008,37 @@ mod tests {
     fn rejects_policy_tree_above_exact_search_budget() {
         let mut test = input();
         test.period_count = 6;
-        for scenario in &mut test.scenarios {
-            let source = scenario.periods[0].clone();
-            scenario.periods = vec![source.clone(), source.clone(), source.clone(), source.clone(), source.clone(), source];
+        test.scenarios.clear();
+        for scenario_index in 0..4_u32 {
+            let mut periods = Vec::new();
+            for period_index in 0..6_u32 {
+                periods.push(SharedFleetPeriod {
+                    observations: vec![
+                        SharedFleetObservation {
+                            region_id: "urban".into(),
+                            demand_units: 1 + scenario_index * 10 + period_index,
+                            weather: WeatherState::ClearFresh,
+                            permission: PermissionState::ApprovedFresh,
+                        },
+                        SharedFleetObservation {
+                            region_id: "rural".into(),
+                            demand_units: 2 + scenario_index * 10 + period_index,
+                            weather: WeatherState::ClearFresh,
+                            permission: PermissionState::ApprovedFresh,
+                        },
+                    ],
+                });
+            }
+            test.scenarios.push(SharedFleetScenario {
+                scenario_id: format!("branch-{scenario_index}"),
+                probability_bps: 2_500,
+                periods,
+            });
         }
-        // The identical prefixes keep the node count small; this is a schema check.
         assert!(validate_input(&test).is_ok());
+        let error = build_decision_nodes(&canonicalize(&test))
+            .expect_err("large nonanticipative tree must be rejected");
+        assert!(error.contains("nonanticipative nodes"));
     }
 
     #[test]
