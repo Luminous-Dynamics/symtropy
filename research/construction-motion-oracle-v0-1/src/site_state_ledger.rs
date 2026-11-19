@@ -2389,6 +2389,157 @@ mod tests {
         )
     }
 
+    fn publish_capacity_resource_catalog(ledger: &mut SiteStateLedger) {
+        let sequence = ledger.last_sequence() + 1;
+        let payload = SiteEventPayload::CapacityResourceCatalogPublished {
+            catalog_sha256: digest('2'),
+            resources: vec![CapacityResourceDefinition {
+                resource_id: "shared-hoist".into(),
+                capacity_owner_id: "capacity-owner-1".into(),
+                definition_sha256: digest('5'),
+                capacity_units: 3,
+                unit_label: "pallet-slots".into(),
+            }],
+        };
+        let event = event(
+            "capacity-resource-catalog",
+            sequence,
+            ledger.last_event_sha256().map(str::to_owned),
+            char::from_digit((sequence + 1) as u32, 16).unwrap(),
+            "resource-authority",
+            SiteActorRole::SiteResourceAuthority,
+            payload,
+        );
+        ledger.apply(event).unwrap();
+    }
+
+    fn publish_capacity_snapshot(
+        ledger: &mut SiteStateLedger,
+        availability_digest: char,
+        site_snapshot_digest: char,
+        lower: u64,
+        nominal: u64,
+        upper: u64,
+    ) {
+        let sequence = ledger.last_sequence() + 1;
+        let payload = SiteEventPayload::CapacityAvailabilitySnapshotPublished {
+            availability_snapshot_sha256: digest(availability_digest),
+            site_snapshot_sha256: digest(site_snapshot_digest),
+            site_clock_domain_id: "site-clock-1".into(),
+            windows: vec![CapacityAvailabilityWindow {
+                resource_id: "shared-hoist".into(),
+                resource_definition_sha256: digest('5'),
+                site_snapshot_sha256: digest(site_snapshot_digest),
+                site_clock_domain_id: "site-clock-1".into(),
+                capacity_owner_id: "capacity-owner-1".into(),
+                evidence_receipt_sha256: digest('6'),
+                start_tick: 0,
+                end_tick: 100,
+                lower_capacity_units: lower,
+                nominal_capacity_units: nominal,
+                upper_capacity_units: upper,
+            }],
+        };
+        let event = event(
+            format!("capacity-window-{availability_digest}").as_str(),
+            sequence,
+            ledger.last_event_sha256().map(str::to_owned),
+            char::from_digit((sequence + 1) as u32, 16).unwrap(),
+            "resource-authority",
+            SiteActorRole::SiteResourceAuthority,
+            payload,
+        );
+        ledger.apply(event).unwrap();
+    }
+
+    fn capacity_reservation_event(
+        ledger: &SiteStateLedger,
+        reservation_id: &str,
+        demand_units: u64,
+        start_tick: u64,
+        end_tick: u64,
+    ) -> SiteEventEnvelope {
+        let sequence = ledger.last_sequence() + 1;
+        let committed_at_tick = 10 + sequence;
+        let package_sha256 = ledger.active_package_sha256().unwrap().to_owned();
+        let package = ledger.work_package(&package_sha256).unwrap();
+        let commit = CapacityReservationCommit {
+            reservation: CapacityReservation {
+                reservation_id: reservation_id.into(),
+                reservation_receipt_sha256: digest('a'),
+                site_clock_domain_id: "site-clock-1".into(),
+                claims: vec![CapacityDemandClaim {
+                    resource_id: "shared-hoist".into(),
+                    resource_definition_sha256: digest('5'),
+                    start_tick,
+                    end_tick,
+                    demand_units,
+                }],
+            },
+            package_sha256,
+            design_revision_sha256: package.design_revision_sha256.clone(),
+            entity_id: "panel-1".into(),
+            robot_id: "robot-1".into(),
+            readiness_receipt_sha256: digest('b'),
+            occupancy_assessment_receipt_sha256: digest('c'),
+            occupancy_engine_build_sha256: digest('d'),
+            clearance_policy_sha256: digest('e'),
+            resource_catalog_sha256: digest('2'),
+            availability_snapshot_sha256: ledger
+                .capacity_availability_snapshot_sha256()
+                .unwrap()
+                .to_owned(),
+            site_snapshot_sha256: ledger
+                .capacity_site_snapshot_sha256
+                .as_ref()
+                .unwrap()
+                .clone(),
+            site_ledger_sequence: ledger.last_sequence(),
+            site_ledger_event_sha256: ledger.last_event_sha256().unwrap().to_owned(),
+            checked_at_tick: committed_at_tick - 1,
+            valid_until_tick: committed_at_tick + 10,
+            committed_at_tick,
+            lease_valid_until_tick: committed_at_tick + 100,
+        };
+        event(
+            format!("capacity-commit-{reservation_id}").as_str(),
+            sequence,
+            ledger.last_event_sha256().map(str::to_owned),
+            char::from_digit((sequence + 1) as u32, 16).unwrap(),
+            "dispatch-coordinator",
+            SiteActorRole::DispatchCoordinator,
+            SiteEventPayload::CapacityReservationCommitted { commit },
+        )
+    }
+
+    fn capacity_release_event(
+        ledger: &SiteStateLedger,
+        reservation_id: &str,
+    ) -> SiteEventEnvelope {
+        let sequence = ledger.last_sequence() + 1;
+        event(
+            format!("capacity-release-{reservation_id}").as_str(),
+            sequence,
+            ledger.last_event_sha256().map(str::to_owned),
+            char::from_digit((sequence + 1) as u32, 16).unwrap(),
+            "referee-1",
+            SiteActorRole::Referee,
+            SiteEventPayload::CapacityReservationReleased {
+                reservation_id: reservation_id.into(),
+                site_clock_domain_id: "site-clock-1".into(),
+                cleared_at_tick: 90,
+                site_snapshot_sha256: ledger
+                    .capacity_site_snapshot_sha256
+                    .as_ref()
+                    .unwrap()
+                    .clone(),
+                site_ledger_sequence: ledger.last_sequence(),
+                site_ledger_event_sha256: ledger.last_event_sha256().unwrap().to_owned(),
+                release_receipt_sha256: digest('f'),
+            },
+        )
+    }
+
     fn measurement(residual_x_mm: f64, u95_mm: f64) -> RefereeMeasurement {
         RefereeMeasurement {
             residual_x_mm,
