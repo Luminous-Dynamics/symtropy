@@ -118,6 +118,31 @@
       "max_age_ms": 3600000,
       "critical": true,
       "hard_bound": null
+    },
+    {
+      "signal_id": "ro_feedwater_heat_demand_kw",
+      "domain": "Water",
+      "unit": "kW",
+      "baseline_value": 6270,
+      "soft_absolute_threshold": 500,
+      "soft_relative_threshold": 0.1,
+      "max_age_ms": 300000,
+      "critical": true,
+      "hard_bound": null
+    },
+    {
+      "signal_id": "heat_sink_available_kw",
+      "domain": "Water",
+      "unit": "kW",
+      "baseline_value": 6270,
+      "soft_absolute_threshold": 500,
+      "soft_relative_threshold": 0.1,
+      "max_age_ms": 300000,
+      "critical": true,
+      "hard_bound": {
+        "kind": "lower",
+        "limit": 5000
+      }
     }
   ],
   "baseline_snapshot": {
@@ -132,7 +157,9 @@
       "compute_deadline_slack_min": 120,
       "cooling_discharge_margin_c": 6,
       "thermal_store_soc_pct": 80,
-      "marine_intake_temperature_c": 20
+      "marine_intake_temperature_c": 20,
+      "ro_feedwater_heat_demand_kw": 6270,
+      "heat_sink_available_kw": 6270
     },
     "evidence_quality": "Synthetic",
     "observation_age_ms": 1000,
@@ -298,6 +325,42 @@
       "expected_priority": null,
       "expected_reasons": [
         "MISSING_CRITICAL_SIGNAL:compute_deadline_slack_min"
+      ]
+    },
+    {
+      "case_id": "heat-sink-capacity-loss",
+      "sequence": 13,
+      "overrides": {
+        "heat_sink_available_kw": 4000
+      },
+      "expected_decision": "ReplanRequested",
+      "expected_priority": "Hard",
+      "expected_reasons": [
+        "HARD_BOUNDARY_BREACH:heat_sink_available_kw"
+      ]
+    },
+    {
+      "case_id": "ro-feedwater-heat-demand-shift",
+      "sequence": 14,
+      "overrides": {
+        "ro_feedwater_heat_demand_kw": 5500
+      },
+      "expected_decision": "ReplanRequested",
+      "expected_priority": "Normal",
+      "expected_reasons": [
+        "SOFT_DEVIATION:ro_feedwater_heat_demand_kw"
+      ]
+    },
+    {
+      "case_id": "missing-critical-heat-sink-signal",
+      "sequence": 15,
+      "missing_signals": [
+        "heat_sink_available_kw"
+      ],
+      "expected_decision": "DataIncomplete",
+      "expected_priority": null,
+      "expected_reasons": [
+        "MISSING_CRITICAL_SIGNAL:heat_sink_available_kw"
       ]
     }
   ],
