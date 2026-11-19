@@ -13,6 +13,7 @@ The strongest recent systems do not simply process more frames. They specialize 
 | Work | Main contribution | Published reference point | What CEGI must test |
 |---|---|---|---|
 | HERMES (ACL 2026) | Training-free hierarchical KV-cache memory for streaming video | Authors report 10× faster time-to-first-token, up to 68% fewer video tokens than uniform sampling, and up to 11.4% gain on streaming datasets | Match quality with lower cache/token cost; compare exact same backbone and input schedule |
+| StreamArena / StreamMind (2026) | Hour-scale open-ended interaction, historical recall, proactive monitoring and tools; two-tier frontend/backend workers | 243 full-length videos averaging 88.8 min and 3,646 open-ended tasks. Public StreamMind v2 mixed leaderboard: RTP 55.9, HR 49.1, Tool 70.2, Pro 23.3; paper/repo reports 66.2% lower pooled query-to-answer latency on same Qwen3.5-397B-A17B backbone | Must become our long-horizon flagship comparator; preserve visual evidence in memory, separate deadline-critical from background work, and score proactive task cancellation and evidence lineage |
 | StreamScout (arXiv 2609.00291) | Progressive retrieval depth: recent glance → uniform look-back → query-salient retrieval, with stop/escalate | StreamScout-S reports +14.65 OVO-Bench points over Qwen3-VL-8B with 59% fewer tokens and 1.04 s average answer time | Beat or match its quality-cost frontier while adding evidence lineage, decision-value accounting and historical source verification |
 | OASIS (CVPR 2026) | Query-conditioned hierarchical event memory / temporal routing | On the paper's StreamingBench experiment, Qwen3-VL-8B Real-Time All: 72.83 → 78.22; Misleading Context Understanding: 35.74 → 49.60 | Reproduce matched backbone uplift, then test if bitemporal/proof-aware evidence packets improve late contradiction and source-grounding tasks |
 | ProactiveBench / LiveProBench (arXiv 2609.12658) | One-second streaming evaluation without explicit response cue; response window, early/late, silence and duplicate behavior | Paper reports premature responses outnumber missed responses for four of six evaluated systems | Measure silence, false intervention, missed window and duplicate-trigger rates independently |
@@ -27,6 +28,7 @@ The strongest recent systems do not simply process more frames. They specialize 
 ## Sources
 
 - HERMES, ACL Anthology: https://aclanthology.org/2026.acl-long.381/
+- StreamArena / StreamMind paper: https://arxiv.org/abs/2608.05703 ; public benchmark and v2 leaderboard: https://github.com/JIA-Lab-research/StreamArena
 - StreamScout, arXiv: https://arxiv.org/abs/2609.00291
 - OASIS, CVPR Open Access: https://openaccess.thecvf.com/content/CVPR2026/html/Liang_OASIS_On-Demand_Hierarchical_Event_Memory_for_Streaming_Video_Reasoning_CVPR_2026_paper.html
 - LiveProBench / ProactiveBench, arXiv: https://arxiv.org/abs/2609.12658
@@ -48,6 +50,14 @@ The strongest recent systems do not simply process more frames. They specialize 
 - **DCASE Task 3** uses dense spatial acoustic maps (13 classes; 360×180 equirectangular output; 20° angular matching threshold for the matching metrics). The challenge reports 29 submissions from eight teams. Audio-only and audiovisual track values differ by metric; do not compare the best mAP from one track to the best Pearson correlation from another or assume that adding video always improves every score.
 
 ## The paradigm shifts these results imply
+
+### 0. From one streaming loop to deadline-isolated foreground and background cognition
+
+StreamArena/StreamMind makes the strongest architecture comparison more concrete: a latency-critical frontend can handle immediate interaction/proactive monitoring while asynchronous backend workers build persistent memory, search and recall. Its benchmark explicitly tests hour-scale video and long-horizon retrospection, rather than relying on short clips.
+
+For Symthaea, compose this with #5169 (floor/stop controller) and #3934/#10644/#9075/#9177 (visual and temporal memory) rather than making a second scheduler or memory engine. The research question becomes: can background memory consolidation and retrieval proceed without blocking a response deadline, while still returning the exact source interval and valid-time evidence behind a recalled claim?
+
+Benchmark a foreground-only baseline, a shared single-loop baseline, and the composed foreground/background architecture at matched compute, memory and stream budgets. Measure deadline misses and interference, not just mean answer latency.
 
 ### 1. From retaining more context to retaining decision-sufficient context
 
@@ -77,6 +87,7 @@ These are programme targets, **not achieved results**:
 - StreamScout: reproduce the reported OVO-Bench gain and cost reduction first. Then target a further 2-point improvement at the same or lower token budget, or a 10% cost reduction at non-inferior quality, on a held-out task subset. Declare the exact metric and split.
 - OASIS: reproduce the paper's matched StreamingBench result. Then target at least +2 absolute points over the reproduced temporal-routing baseline on a pre-registered long-horizon / misleading-context subset, with paired confidence intervals.
 - SPOT-Bench: reproduce Ctrl-SPOT T-F1@5 = 20.9 on the official protocol, then target 23 and later 25, while separately bounding false alarms, omissions and duplicate responses.
+- StreamArena: reproduce the published baseline on the same pinned backbone and task subsets. Then target (a) at least offline-parity on historical retrospection and proactive interaction, (b) lower pooled query-to-answer latency without losing source-frame/audio provenance, and (c) robust request modification/cancellation on source-family-disjoint episodes. Compare StreamMind v1/v2 only under their documented model composition and evaluation conditions.
 - OmniInteract: reproduce IA-QTF1 = 0.368 overall and 0.052 for 1QnA under the official protocol; initial targets 0.40 overall and 0.10 1QnA. Report component scores, not only aggregate F1.
 - DCASE Task 3: reproduce the official baseline and best challenge references under the official evaluator; target top-three performance in one declared track. Do not mix audio-only and audiovisual leaderboard claims.
 - South African ASR: establish per-language and per-domain reference results before setting improvement gates. Report code-switch boundaries and non-lexical acoustic perception separately from WER/CER.
