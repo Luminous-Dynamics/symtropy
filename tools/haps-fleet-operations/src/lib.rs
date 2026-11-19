@@ -557,10 +557,8 @@ pub fn evaluate_case(case: &FleetOperationsCase) -> Result<FleetOperationsReport
             .find(|period| period.start_hour <= hour && hour < period.end_hour)
             .ok_or_else(|| OperationsError::new(format!("no demand period for hour {hour}")))?;
         report.demand_weighted_total_hours += demand_period.demand_weight;
-        let capacity_fraction = service_capacity / case.required_service_capacity_units;
-        if capacity_fraction > 1.0 {
-            capacity_fraction = 1.0;
-        }
+        let capacity_fraction =
+            (service_capacity / case.required_service_capacity_units).min(1.0);
         report.demand_weighted_capacity_satisfaction_units_hours +=
             demand_period.demand_weight * capacity_fraction;
 
