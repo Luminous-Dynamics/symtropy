@@ -79,9 +79,11 @@ pub trait PhysicsCallback<const D: usize> {
     /// Called after each physics step to record energy dissipated.
     fn record_dissipation(&mut self, energy: f64);
 
-    /// Record mechanical work performed (or energy recovered) by an actuator.
-    /// Positive work = energy consumed (motor driving motion).
-    /// Negative work = energy recovered (regenerative braking).
+    /// Record signed mechanical-port work performed by an actuator.
+    /// Positive work means the actuator delivered mechanical energy to the
+    /// joint; negative work means the joint mechanically absorbed energy.
+    /// Negative mechanical work is not, by itself, proof that electrical
+    /// energy was captured by a DC bus or battery.
     fn record_work(&mut self, body: BodyHandle, work_joules: f64);
 
     /// Calculates and applies the long-term effect of a collision event
@@ -693,7 +695,39 @@ impl<const D: usize> PhysicsWorld<D> {
             }
         }
 
+        // 6a. Execute actuator commands once for this elapsed world step.
+        // Motorized joints must not integrate the full frame dt inside the
+        // iterative velocity-constraint relaxation loop below.
+        for &ci in &active_constraint_indices {
+            if ci >= self.constraints.len() {
+                continue;
+            }
+            let (ha, hb) = self.constraints[ci].bodies();
+            let (idx_a, idx_b) = self.find_body_indices(ha, hb);
+            if let (Some(a), Some(b)) = (idx_a, idx_b) {
+                if a < b {
+                    let (left, right) = self.bodies.split_at_mut(b);
+                    self.constraints[ci].solve_actuator_step(
+                        &mut left[a],
+                        &mut right[0],
+                        dt,
+                        callback,
+                    );
+                } else {
+                    let (left, right) = self.bodies.split_at_mut(a);
+                    self.constraints[ci].solve_actuator_step(
+                        &mut right[0],
+                        &mut left[b],
+                        dt,
+                        callback,
+                    );
+                }
+            }
+        }
+
         // 6b. Velocity-level constraint solve (active islands only)
+        // This is a relaxation loop: it may run multiple times, but it must
+        // not advance actuator time or emit additional actuator work receipts.
         for _ in 0..self.solver_iterations {
             for &ci in &active_constraint_indices {
                 if ci >= self.constraints.len() {
