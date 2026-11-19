@@ -52,6 +52,7 @@ Evidence class is not a confidence score. A newer or more precise value does not
 19. Shared substation / cooling / water / wellfield / controls common-cause failure.
 20. South African low-enthalpy evidence case; superhot resource values remain unknown until source-backed.
 21. Multi-service thermal co-product case: geothermal heat to thermal desalination and/or absorption cooling, geothermal electricity to RO / pumping, and future source-bounded fusion heat only where temperature grade permits. Match water quality, cooling duty, total energy, brine/residual streams and isolated thermal boundaries; facility cooling is not a substitute for fusion cryogenic refrigeration.
+22. Literature-reproduction case for geothermal polygeneration: reproduce a published ORC/flash + absorption refrigeration + Kalina + humidification-dehumidification desalination configuration. The 2024 Energy paper reports model outputs of 342.3 kW electricity, 301.7 kW cooling and 0.233 kg/s freshwater at 31.52% exergy efficiency; these are simulation outputs, not measurements. Reproduction is blocked until the complete source inputs, fluid properties, state points, boundary and component assumptions are frozen.
 
 ## First analytic fixture
 
@@ -79,6 +80,16 @@ Expected values, using the frozen inputs:
 | Electrical bus balance residual | <= 1e-9 MWh in this arithmetic fixture |
 
 The facility demand trace is a hypothetical synthetic profile, **not** a measured fusion device profile or a statement about a typical tokamak. The example does not include any fusion heat source, plasma heating physics, cryogenic plant model or net fusion generation.
+
+## Temperature-grade reference cases
+
+For absorption cooling, use equipment-specific heat-source maps. As a reference envelope, ASHRAE's equipment chapter reports:
+- Single-effect indirect-fired water/LiBr: typically 115–132 °C for steam-heated units; some larger waste-heat units can use lower-grade heat (reported as low as 88 °C).
+- Double-effect indirect-fired water/LiBr: typical hot-fluid input 160–188 °C.
+
+These are equipment examples, not universal thermodynamic limits or guaranteed operation at every ambient/cooling-water condition. The benchmark must pin the exact chiller model, generator inlet/outlet conditions, cooling-water temperature, chilled-water duty, electrical parasitics, COP basis and measured heat-source map. Source: [ASHRAE Handbook, Chapter 18, Absorption Equipment](https://handbook.ashrae.org/handbooks/R18/SI/R18_Ch18/r18_ch18_si.aspx).
+
+For desalination, compare RO and MED/HDH only at an identical feed, product-water quality, recovery, availability and residual/brine boundary. The 2026 desalination review finds modern seawater RO close to its practical thermodynamic minimum, and points to whole-train system losses, high-recovery configurations, pretreatment/cleaning/post-treatment and brine handling as major remaining levers ([Wang et al., 2026](https://doi.org/10.1038/s44359-026-00221-x)). Do not award an architecture efficiency gain by moving energy or brine treatment outside the system boundary.
 
 ## Required metrics
 
