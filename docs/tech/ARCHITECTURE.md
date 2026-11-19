@@ -47,7 +47,7 @@ symtropy-consciousness-physics (depends on: symtropy-physics, symthaea-conscious
 
 ## The PhysicsCallback Trait
 
-This is how integrated information enters the physics loop. The trait has 5 methods, called during collision resolution:
+This is the low-level extension point for experimental, application-defined state coupling in the rigid-body loop. It is not the general multiphysics port/federation API, and a callback-defined metric is not automatically an intrinsic material law. The trait has 5 methods, called during the physics step:
 
 ```rust
 pub trait PhysicsCallback<const D: usize> {
@@ -68,7 +68,7 @@ pub trait PhysicsCallback<const D: usize> {
 }
 ```
 
-`ConsciousnessField<D>` implements this trait. You can also implement it yourself for custom coupling metrics.
+`ConsciousnessField<D>` implements this trait. You can also implement it for custom policy or research metrics. Any physical interpretation of a callback's effect requires its own model definition, validation evidence and context-of-use boundary.
 
 ## Physics Step Data Flow
 
@@ -159,3 +159,29 @@ impl<const D: usize> Constraint<D> for MyJoint<D> {
 | `atlas` | symtropy (game) | Sol Atlas planetary globe view |
 | `live-audio` | symtropy (game) | Real-time Phi-driven music synthesis |
 | `net` | symtropy (game) | P2P networking (requires `world` feature) |
+
+
+## Reality-Physics Composition Boundary
+
+The native physics crates remain the N-dimensional rigid-body/contact substrate. Broader engineering simulation is composed through model-specific adapters and explicit typed coupling contracts, not by extending this callback into a universal PDE interface.
+
+Canonical planning documents:
+- [Reality Physics Platform](REALITY_PHYSICS_PLATFORM.md) defines the domain portfolio, model passports, specialist solver boundaries and work ownership.
+- [Reality Benchmark Portfolio](../ops/REALITY_BENCHMARK_PORTFOLIO.md) defines matched solver comparison, numerical verification, physical validation, uncertainty and qualification gates.
+- [Game Engine Component Gap Analysis](GAME_ENGINE_COMPONENTS.md) remains the game-engine feature checklist; it is not the complete engineering multiphysics census.
+
+### Composition responsibilities
+
+- **Native Symtropy physics:** deterministic scenario execution, supported body/contact/constraint paths, bounded synthetic disturbances, replay and run-health diagnostics.
+- **Domain solver:** owns the equations, constitutive laws, discretization, convergence and numerical solution within its supported regime.
+- **Typed port adapter:** owns explicit units, frames, sign conventions, event time, availability time, mapping, conversion, balance group and provenance.
+- **Fidelity admission:** checks exact capability and applicability, then admits, escalates or abstains under the current model-selection owner [#4487](https://github.com/Luminous-Dynamics/symtropy/issues/4487).
+- **Evidence/twin authority:** remains outside Symtropy's synthetic execution path; see [#1467](https://github.com/Luminous-Dynamics/symtropy/issues/1467).
+
+FMI 3.0.2 and SSP 2.0.1 are interoperability references where model semantics fit. Protocol conformance does not validate component physics or the coupling master algorithm. Every composed run must retain exact model, adapter, clock, configuration and raw-artifact identity.
+
+### Required separation
+
+`capability advertised` is not `capability exercised`; `execution completed` is not `numerically healthy`; `numerically healthy` is not `model validated`; and `model validated` is not `engineering authorization`.
+
+The same distinctions apply to synthetic scenario replay, physical observation, canonical twin state and design acceptance. A synthetic descendant of a measured initial state remains synthetic.
