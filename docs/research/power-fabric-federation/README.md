@@ -362,3 +362,14 @@ This document and its initial schema are research artifacts. They do not establi
 - U.S. DOE Community Microgrid Assistance Partnership: https://www.energy.gov/oe/community-microgrid-assistance-partnership
 - ENTSO-E Transmission Grid Investment and Supply Chain Assessment Report 2026: https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Position%20papers%20and%20reports/2026/entso-e_report_investment_supply_chain_assessment_2026_261030.pdf
 - NERSA SSEG clarification, 2 February 2026: https://www.nersa.org.za/
+
+
+## 12. Conditional v0.1 contract gates
+
+The envelope schema now adds conditional structural rules:
+- household/individual-site capacity offers require explicit opt-in consent, revocable consent, a non-zero quantity and a bounded time window;
+- community/neighbourhood group capacity or commitment messages require a representation reference and a community-mandate participation basis;
+- observed-available or locally-dispatchable claims require an observed evidence class and a current observation record;
+- observer or observation-only authority cannot be combined with dispatch, curtail, switch, disconnect or restore actions.
+
+Cross-record and temporal checks still require application-level validation: message expiry after issue time, actor/authority scope matching, delegation verification, jurisdiction applicability, key revocation, signature verification, duplicate/replay processing and conflict reconciliation. JSON Schema is not a cryptographic or legal authority verifier.
