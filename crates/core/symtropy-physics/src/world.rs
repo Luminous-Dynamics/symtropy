@@ -2692,7 +2692,8 @@ mod actuator_step_semantics_tests {
             world.solver_iterations = iterations;
             let anchor = static_anchor(&mut world, [0.0, 0.0, 0.0]);
             let rotor = world.add_sphere(Point::new([10.0, 0.0, 0.0]), 0.5, 1.0);
-            let motor = MotorDrive::new(0.0, 2.0).with_gains(2.0, 0.0);
+            let mut motor = MotorDrive::new(0.0, 2.0).with_gains(2.0, 0.0);
+            motor.target_vel = 1.0;
             let hinge = HingeJoint::with_anchors(
                 anchor,
                 rotor,
@@ -2703,17 +2704,6 @@ mod actuator_step_semantics_tests {
             )
             .with_motor(motor);
             world.add_constraint(Box::new(hinge));
-
-            // Hinge motor is velocity-controlled in the allowed (0,1) plane.
-            world
-                .constraints[0]
-                .as_any_mut()
-                .downcast_mut::<HingeJoint<3>>()
-                .unwrap()
-                .motor
-                .as_mut()
-                .unwrap()
-                .target_vel = 1.0;
 
             let mut callback = WorkRecorder::default();
             world.step_with_callback(0.01, &mut callback);
