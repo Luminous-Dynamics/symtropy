@@ -36,7 +36,8 @@
         },
         "notes": [
           "Synthetic values only."
-        ]
+        ],
+        "interpolation_error_bound_nm": 0
       },
       {
         "regime": "forward_motoring",
@@ -68,7 +69,8 @@
         },
         "notes": [
           "Synthetic values only."
-        ]
+        ],
+        "interpolation_error_bound_nm": 0
       },
       {
         "regime": "forward_regenerating",
@@ -100,7 +102,8 @@
         },
         "notes": [
           "Synthetic values only."
-        ]
+        ],
+        "interpolation_error_bound_nm": 0
       }
     ],
     "installed_mass": {
