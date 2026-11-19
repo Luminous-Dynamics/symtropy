@@ -1,4 +1,4 @@
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, Duration, FixedOffset};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
@@ -116,11 +116,13 @@ fn check_common_source_fields(source: &Value, id: &str, findings: &mut Vec<Findi
             &format!("source '{id}' has no immutable artifact digest.")),
     }
 
-    if let Some(raw) = string_at(source, &["retrieved_at"]) {
-        if parse_time(raw).is_none() {
-            add(findings, "INVALID_TIMESTAMP", "ERROR",
-                &format!("source '{id}' retrieved_at must be RFC 3339."));
-        }
+    let retrieved = match string_at(source, &["retrieved_at"]).and_then(parse_time) {
+        Some(value) => Some(value),
+        None => None,
+    };
+    if string_at(source, &["retrieved_at"]).is_some() && retrieved.is_none() {
+        add(findings, "INVALID_TIMESTAMP", "ERROR",
+            &format!("source '{id}' retrieved_at must be RFC 3339."));
     }
 
     let rights = source.get("rights").unwrap_or(&Value::Null);
@@ -199,11 +201,27 @@ fn check_forecast_source(
         add(findings, "FORECAST_CYCLE_METADATA_INCOMPLETE", "INCOMPLETE",
             &format!("source '{id}' needs exact cycle and parameter-set identity."));
     }
-    if source.get("forecast").and_then(|v| v.get("lead_hours"))
-        .and_then(Value::as_u64).is_none()
-    {
+    let lead_hours = source.get("forecast").and_then(|v| v.get("lead_hours"))
+        .and_then(Value::as_u64);
+    if lead_hours.is_none() {
         add(findings, "FORECAST_LEAD_MISSING", "INCOMPLETE",
             &format!("source '{id}' requires a non-negative forecast lead."));
+    }
+    if let (Some(issue), Some(valid), Some(lead)) = (
+        issue.as_ref(), valid.as_ref(), lead_hours
+    ) {
+        if *issue + Duration::hours(lead as i64) != *valid {
+            add(findings, "FORECAST_LEAD_VALID_TIME_MISMATCH", "ERROR",
+                &format!("source '{id}' cycle issue time + forecast lead does not equal valid_time."));
+        }
+    }
+    if let (Some(retrieved), Some(available)) = (
+        retrieved.as_ref(), available.as_ref()
+    ) {
+        if retrieved < available {
+            add(findings, "RETRIEVAL_PRECEDES_AVAILABILITY", "ERROR",
+                &format!("source '{id}' retrieval time precedes its declared first availability."));
+        }
     }
 
     let grid = source.get("grid").unwrap_or(&Value::Null);
@@ -321,6 +339,14 @@ fn audit_decision(
                         add(&mut findings, "NONREALIZED_EVALUATOR_CONTEXT", "ERROR",
                             &format!("source '{id}' is not a realized evaluator context."));
                     }
+                    let evaluator_time = time_at(
+                        source, &["evaluator", "valid_time"], "evaluator valid_time",
+                        &mut findings, "INCOMPLETE"
+                    );
+                    if evaluator_time.is_none_or(|value| Some(value) != target) {
+                        add(&mut findings, "EVALUATOR_VALID_TIME_MISMATCH", "INCOMPLETE",
+                            &format!("evaluator source '{id}' does not identify this decision's target valid time."));
+                    }
                     evaluator_inputs.push(id.to_owned());
                 }
                 "validation_observation_source_ids" => {
@@ -401,6 +427,11 @@ fn audit_bundle(raw: &[u8], bundle: &Value) -> Value {
             check_common_source_fields(source, id, &mut global_findings);
 
             let evidence_class = string_at(source, &["evidence_class"]).unwrap_or("unknown");
+            let allowed_evidence_classes = ["synthetic", "published", "measured", "validated_model", "derived"];
+            if !allowed_evidence_classes.contains(&evidence_class) {
+                add(&mut global_findings, "INVALID_SOURCE_EVIDENCE_CLASS", "ERROR",
+                    &format!("source '{id}' has an unsupported evidence class."));
+            }
             if record_status == "synthetic" && evidence_class != "synthetic" {
                 add(&mut global_findings, "SYNTHETIC_EVIDENCE_CLASS_MISMATCH", "ERROR",
                     &format!("synthetic bundle source '{id}' must be marked evidence_class=synthetic."));
@@ -408,6 +439,12 @@ fn audit_bundle(raw: &[u8], bundle: &Value) -> Value {
             if record_status != "synthetic" && evidence_class == "synthetic" {
                 add(&mut global_findings, "SYNTHETIC_EVIDENCE_NOT_PROMOTABLE", "BLOCKER",
                     &format!("non-synthetic bundle contains synthetic source '{id}'."));
+            }
+            if record_status != "synthetic"
+                && string_at(source, &["rights", "status"]) == Some("synthetic_only")
+            {
+                add(&mut global_findings, "SYNTHETIC_RIGHTS_NOT_PROMOTABLE", "BLOCKER",
+                    &format!("non-synthetic bundle source '{id}' carries synthetic-only rights status."));
             }
 
             let class = classes.get(id).map(String::as_str).unwrap_or("unknown");
