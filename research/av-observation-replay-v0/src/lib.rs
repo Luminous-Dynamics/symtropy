@@ -283,6 +283,14 @@ impl AgentObservationV1 {
             Self::AudioChunk(value) => &value.clock_domain,
         }
     }
+
+    /// Immutable artifact reference for this observation.
+    pub fn artifact_ref(&self) -> &ArtifactRefV1 {
+        match self {
+            Self::VideoFrame(value) => &value.artifact,
+            Self::AudioChunk(value) => &value.artifact,
+        }
+    }
 }
 
 /// How the transport layer handled one source observation.
@@ -749,12 +757,12 @@ mod tests {
         let video = include_bytes!("../fixtures/media/frame.gray8");
         let audio = include_bytes!("../fixtures/media/audio.s16le");
         verify_artifact_bytes_v1(
-            &bundle.observations[0].artifact(),
+            bundle.observations[0].artifact_ref(),
             video,
         )
         .unwrap();
         verify_artifact_bytes_v1(
-            &bundle.observations[1].artifact(),
+            bundle.observations[1].artifact_ref(),
             audio,
         )
         .unwrap();
@@ -833,7 +841,7 @@ mod tests {
     #[test]
     fn mismatched_artifact_digest_or_length_is_rejected() {
         let bundle = fixture();
-        let reference = bundle.observations[0].artifact();
+        let reference = bundle.observations[0].artifact_ref();
         assert_eq!(
             verify_artifact_bytes_v1(&reference, b"ABCE"),
             Err(ContractError::ArtifactIntegrityMismatch)
@@ -927,15 +935,3 @@ mod tests {
     }
 }
 
-trait ObservationArtifact {
-    fn artifact(&self) -> ArtifactRefV1;
-}
-
-impl ObservationArtifact for AgentObservationV1 {
-    fn artifact(&self) -> ArtifactRefV1 {
-        match self {
-            AgentObservationV1::VideoFrame(frame) => frame.artifact.clone(),
-            AgentObservationV1::AudioChunk(chunk) => chunk.artifact.clone(),
-        }
-    }
-}
