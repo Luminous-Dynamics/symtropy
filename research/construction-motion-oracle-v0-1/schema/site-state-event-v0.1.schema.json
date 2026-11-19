@@ -63,7 +63,9 @@
         {
           "$ref": "#/$defs/robot_observation_recorded"
         },
-        "{$ref:\"#/$defs/execution_interrupted\"}",
+        {
+          "$ref": "#/$defs/execution_interrupted"
+        },
         {
           "$ref": "#/$defs/referee_assessment_recorded"
         },
