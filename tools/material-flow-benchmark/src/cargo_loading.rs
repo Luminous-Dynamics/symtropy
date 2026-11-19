@@ -436,14 +436,8 @@ pub fn evaluate_cargo_loading(
         }
         match package.restraint_evidence {
             CargoEvidenceStatus::FreshInDomain => {}
-            CargoEvidenceStatus::Missing => {
-                known_infeasible = true;
-                findings.push(format!(
-                    "INFEASIBLE: package {} has no declared restraint evidence",
-                    package.package_id
-                ));
-            }
-            CargoEvidenceStatus::Unknown
+            CargoEvidenceStatus::Missing
+            | CargoEvidenceStatus::Unknown
             | CargoEvidenceStatus::Stale
             | CargoEvidenceStatus::Conflicted
             | CargoEvidenceStatus::Revoked
@@ -800,11 +794,11 @@ mod tests {
     }
 
     #[test]
-    fn missing_restraint_evidence_is_infeasible() {
+    fn missing_restraint_evidence_is_indeterminate() {
         let mut test = input();
         test.packages[0].restraint_evidence = CargoEvidenceStatus::Missing;
         let report = evaluate_cargo_loading(&test).expect("well-formed input");
-        assert_eq!(report.verdict, CargoFeasibilityVerdict::Infeasible);
+        assert_eq!(report.verdict, CargoFeasibilityVerdict::Indeterminate);
     }
 
     #[test]
