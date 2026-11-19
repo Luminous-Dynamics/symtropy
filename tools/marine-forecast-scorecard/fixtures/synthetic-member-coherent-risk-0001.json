@@ -11,7 +11,7 @@
     "decision_cutoff": "2025-03-01T00:30:00Z",
     "availability_receipt_ref": "SYNTHETIC-FORECAST-AVAILABILITY-0001",
     "availability_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-    "member_set_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "member_set_sha256": "633ee70aef12bc0f24e640b11f0e673e3d6baea221dbe0d0899dfa0f48083b5a",
     "members": [
       {
         "member_id": "member-01",
