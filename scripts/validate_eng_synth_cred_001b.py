@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-EXPECTED_COMMIT = "540a6097be6bc31b85f0e43e5f31947fa078c6f4"
+EXPECTED_COMMIT = "8b6a56fcee11f120a91adbf32fc7978286f84346"
 REFERENCE_PATH = Path("docs/release/evidence/eng-synth-cred-001b-engine-capability-reference-v1.json")
 EXPECTED_FIXTURE_COUNT = 30
 EXPECTED_STATUSES = {
