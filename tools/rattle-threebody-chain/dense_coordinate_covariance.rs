@@ -705,11 +705,7 @@ mod tests {
         let state = state_from_flat(&q0, &v0);
         let chain = super::super::CartesianRattleChain::new(masses, lengths).unwrap();
         let reference = chain
-            .step(
-                state,
-                0.0025,
-                super::super::SolverOptions::default(),
-            )
+            .step(state, 0.0025, super::super::SolverOptions::default())
             .unwrap();
 
         let (basis_i, inverse_i) = basis_pair(3);
@@ -773,11 +769,14 @@ mod tests {
         let (coarse_q, coarse_v) = flatten_state(&coarse);
         let (fine_q, fine_v) = flatten_state(&fine);
         let (reference_q, reference_v) = flatten_state(&reference);
-        let coarse_error = vector_max_abs(&coarse_q, &reference_q)
-            .max(vector_max_abs(&coarse_v, &reference_v));
-        let fine_error = vector_max_abs(&fine_q, &reference_q)
-            .max(vector_max_abs(&fine_v, &reference_v));
-        assert!(coarse_error > 1.0e-12, "refinement fixture must be nontrivial");
+        let coarse_error =
+            vector_max_abs(&coarse_q, &reference_q).max(vector_max_abs(&coarse_v, &reference_v));
+        let fine_error =
+            vector_max_abs(&fine_q, &reference_q).max(vector_max_abs(&fine_v, &reference_v));
+        assert!(
+            coarse_error > 1.0e-12,
+            "refinement fixture must be nontrivial"
+        );
         assert!(
             fine_error < coarse_error * 0.4,
             "expected second-order refinement: coarse={coarse_error:e}, fine={fine_error:e}"
@@ -800,10 +799,9 @@ mod tests {
 
             for _step in 0..64 {
                 let reference_step = chain.step(cartesian_state, dt, options).unwrap();
-                let (dense_q_next, dense_v_next, _, _, residuals) =
-                    dense_coordinate_rattle_step(
-                        &basis, &inverse, masses, lengths, &dense_q, &dense_v, dt,
-                    );
+                let (dense_q_next, dense_v_next, _, _, residuals) = dense_coordinate_rattle_step(
+                    &basis, &inverse, masses, lengths, &dense_q, &dense_v, dt,
+                );
                 let (reference_q, reference_v) = flatten_state(&reference_step.after);
                 maximum_position_error =
                     maximum_position_error.max(vector_max_abs(&dense_q_next, &reference_q));
@@ -814,8 +812,7 @@ mod tests {
                 }
                 let endpoint_jacobian = constraint_jacobian_at(&dense_q_next);
                 for tangent in jacobian_vec(&endpoint_jacobian, &dense_v_next) {
-                    maximum_endpoint_tangency =
-                        maximum_endpoint_tangency.max(tangent.abs());
+                    maximum_endpoint_tangency = maximum_endpoint_tangency.max(tangent.abs());
                 }
                 dense_q = dense_q_next;
                 dense_v = dense_v_next;
