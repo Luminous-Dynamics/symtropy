@@ -9,6 +9,7 @@
 //! CFD, neutronics, exergy, or plant-control solver. Numeric values are declared
 //! at explicit boundaries and must be independently sourced and qualified.
 
+use std::collections::BTreeSet;
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -128,6 +129,9 @@ pub enum ValidationError {
     EmptyEnergyBalance,
     NegativeEnergyTerm(&'static str),
     ArithmeticOverflow,
+    EmptySourceAllocationLedger,
+    DuplicateAllocationId,
+    SourceAllocationIdentityMissing(&'static str),
 }
 
 impl fmt::Display for ValidationError {
@@ -390,6 +394,143 @@ impl EnergyBalance {
     }
 }
 
+
+/// One use of energy leaving a single source boundary during one frozen interval.
+/// The carrier remains attached so heat and electricity are not silently confused.
+#[derive(Debug, Clone, PartialEq)]
+pub struct EnergyAllocation {
+    pub allocation_id: String,
+    pub destination_asset_id: String,
+    pub carrier: EnergyCarrier,
+    pub service: ServiceKind,
+    pub energy_mwh: f64,
+}
+
+/// Complete allocation of one source/carrier over one declared interval.
+///
+/// The ledger prevents a source energy quantity from being silently allocated
+/// more than once across multiple destinations. Curtailment is explicit.
+/// A positive residual means source energy remains unallocated; a negative
+/// residual means the requested allocations exceed the available source energy.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SourceAllocationLedger {
+    pub source_asset_id: String,
+    pub source_boundary_id: String,
+    pub source_interval_id: String,
+    pub carrier: EnergyCarrier,
+    pub available_energy_mwh: f64,
+    pub allocations: Vec<EnergyAllocation>,
+    pub curtailed_energy_mwh: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SourceAllocationReport {
+    pub allocated_energy_mwh: f64,
+    pub curtailed_energy_mwh: f64,
+    /// Positive = unallocated source energy; negative = over-allocation.
+    pub residual_energy_mwh: f64,
+    pub normalized_absolute_residual: f64,
+    pub within_tolerance: bool,
+}
+
+impl SourceAllocationLedger {
+    /// Validate a complete source interval allocation using a dimensionless
+    /// relative tolerance in [0, 1). This is an arithmetic anti-double-count
+    /// contract, not a meter authenticity or physical-source qualification.
+    pub fn evaluate(
+        &self,
+        relative_tolerance: f64,
+    ) -> Result<SourceAllocationReport, ValidationError> {
+        for (name, value) in [
+            ("source asset ID", self.source_asset_id.as_str()),
+            ("source boundary ID", self.source_boundary_id.as_str()),
+            ("source interval ID", self.source_interval_id.as_str()),
+        ] {
+            if value.trim().is_empty() {
+                return Err(ValidationError::SourceAllocationIdentityMissing(name));
+            }
+        }
+        if !relative_tolerance.is_finite() || !(0.0..1.0).contains(&relative_tolerance) {
+            return Err(ValidationError::InvalidTolerance);
+        }
+        if !self.available_energy_mwh.is_finite() || self.available_energy_mwh <= 0.0 {
+            return Err(ValidationError::NonFiniteOrNonPositive(
+                "available source energy MWh",
+            ));
+        }
+        if !self.curtailed_energy_mwh.is_finite() || self.curtailed_energy_mwh < 0.0 {
+            return Err(ValidationError::NegativeEnergyTerm(
+                "curtailed source energy MWh",
+            ));
+        }
+        if self.allocations.is_empty() && self.curtailed_energy_mwh == 0.0 {
+            return Err(ValidationError::EmptySourceAllocationLedger);
+        }
+
+        let mut allocation_ids = BTreeSet::new();
+        let mut terms = Vec::with_capacity(self.allocations.len());
+        for allocation in &self.allocations {
+            if allocation.allocation_id.trim().is_empty() {
+                return Err(ValidationError::SourceAllocationIdentityMissing(
+                    "allocation ID",
+                ));
+            }
+            if allocation.destination_asset_id.trim().is_empty() {
+                return Err(ValidationError::SourceAllocationIdentityMissing(
+                    "allocation destination asset ID",
+                ));
+            }
+            if !allocation_ids.insert(allocation.allocation_id.as_str()) {
+                return Err(ValidationError::DuplicateAllocationId);
+            }
+            if allocation.carrier != self.carrier {
+                return Err(ValidationError::SourceCarrierMismatch);
+            }
+            if !allocation.energy_mwh.is_finite() || allocation.energy_mwh <= 0.0 {
+                return Err(ValidationError::NonFiniteOrNonPositive(
+                    "allocated source energy MWh",
+                ));
+            }
+            terms.push(EnergyTerm {
+                carrier: allocation.carrier,
+                energy_mwh: allocation.energy_mwh,
+            });
+        }
+
+        let allocated = sum_energy_terms(&terms, "allocated source energy MWh", false)?;
+        let available = self.available_energy_mwh;
+        let curtailed = self.curtailed_energy_mwh;
+
+        // Scale before forming sums so a large allocation cannot overflow the
+        // normalization denominator and masquerade as a balanced source.
+        let scale = available
+            .abs()
+            .max(allocated.abs())
+            .max(curtailed.abs())
+            .max(f64::MIN_POSITIVE);
+        let scaled_residual = available / scale - allocated / scale - curtailed / scale;
+        let normalized_denominator =
+            available / scale + allocated / scale + curtailed / scale;
+        let normalized = if normalized_denominator == 0.0 {
+            0.0
+        } else {
+            scaled_residual.abs() / normalized_denominator
+        };
+        let residual = scaled_residual * scale;
+        if !scaled_residual.is_finite() || !normalized.is_finite() || !residual.is_finite() {
+            return Err(ValidationError::ArithmeticOverflow);
+        }
+
+        Ok(SourceAllocationReport {
+            allocated_energy_mwh: allocated,
+            curtailed_energy_mwh: curtailed,
+            residual_energy_mwh: residual,
+            normalized_absolute_residual: normalized,
+            within_tolerance: normalized <= relative_tolerance,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -439,6 +580,131 @@ mod tests {
             measurement_boundary_id: "hx-outlet-1".into(),
             evidence_class: EvidenceClass::Synthetic,
         }
+    }
+
+    fn allocation_ledger(
+        allocations: Vec<EnergyAllocation>,
+        curtailed_energy_mwh: f64,
+    ) -> SourceAllocationLedger {
+        SourceAllocationLedger {
+            source_asset_id: "geo-wellfield-1".into(),
+            source_boundary_id: "wellhead-hx-outlet-1".into(),
+            source_interval_id: "2026-01-hour-0001".into(),
+            carrier: EnergyCarrier::Heat,
+            available_energy_mwh: 10.0,
+            allocations,
+            curtailed_energy_mwh,
+        }
+    }
+
+    fn heat_allocation(
+        allocation_id: &str,
+        destination_asset_id: &str,
+        energy_mwh: f64,
+    ) -> EnergyAllocation {
+        EnergyAllocation {
+            allocation_id: allocation_id.into(),
+            destination_asset_id: destination_asset_id.into(),
+            carrier: EnergyCarrier::Heat,
+            service: ServiceKind::IndustrialProcessHeat,
+            energy_mwh,
+        }
+    }
+
+    #[test]
+    fn source_energy_can_be_split_across_heat_services_without_double_counting() {
+        let ledger = allocation_ledger(
+            vec![
+                heat_allocation("direct-heat-edge", "process-plant", 6.0),
+                heat_allocation("power-cycle-edge", "orc-evaporator", 3.0),
+            ],
+            1.0,
+        );
+        let result = ledger.evaluate(1e-12).unwrap();
+        assert!(result.within_tolerance);
+        assert_eq!(result.allocated_energy_mwh, 9.0);
+        assert_eq!(result.curtailed_energy_mwh, 1.0);
+        assert_eq!(result.residual_energy_mwh, 0.0);
+    }
+
+    #[test]
+    fn source_overallocation_is_visible_and_not_silently_closed() {
+        let ledger = allocation_ledger(
+            vec![
+                heat_allocation("direct-heat-edge", "process-plant", 6.0),
+                heat_allocation("power-cycle-edge", "orc-evaporator", 5.0),
+            ],
+            0.0,
+        );
+        let result = ledger.evaluate(1e-3).unwrap();
+        assert!(!result.within_tolerance);
+        assert!((result.residual_energy_mwh + 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn unallocated_source_energy_remains_visible() {
+        let ledger = allocation_ledger(
+            vec![heat_allocation("direct-heat-edge", "process-plant", 6.0)],
+            2.0,
+        );
+        let result = ledger.evaluate(1e-3).unwrap();
+        assert!(!result.within_tolerance);
+        assert!((result.residual_energy_mwh - 2.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn duplicate_allocation_ids_are_rejected() {
+        let ledger = allocation_ledger(
+            vec![
+                heat_allocation("same-edge", "process-plant", 4.0),
+                heat_allocation("same-edge", "water-plant", 3.0),
+            ],
+            3.0,
+        );
+        assert_eq!(
+            ledger.evaluate(1e-9),
+            Err(ValidationError::DuplicateAllocationId)
+        );
+    }
+
+    #[test]
+    fn source_allocation_carrier_mismatch_is_rejected() {
+        let mut allocation = heat_allocation("electric-edge", "facility-bus", 2.0);
+        allocation.carrier = EnergyCarrier::Electricity;
+        let ledger = allocation_ledger(vec![allocation], 8.0);
+        assert_eq!(
+            ledger.evaluate(1e-9),
+            Err(ValidationError::SourceCarrierMismatch)
+        );
+    }
+
+    #[test]
+    fn missing_source_interval_identity_is_rejected() {
+        let mut ledger = allocation_ledger(
+            vec![heat_allocation("direct-heat-edge", "process-plant", 10.0)],
+            0.0,
+        );
+        ledger.source_interval_id.clear();
+        assert_eq!(
+            ledger.evaluate(1e-9),
+            Err(ValidationError::SourceAllocationIdentityMissing(
+                "source interval ID"
+            ))
+        );
+    }
+
+    #[test]
+    fn negative_or_non_finite_allocation_is_rejected() {
+        let ledger = allocation_ledger(
+            vec![heat_allocation("bad-edge", "process-plant", f64::NAN)],
+            0.0,
+        );
+        assert_eq!(
+            ledger.evaluate(1e-9),
+            Err(ValidationError::NonFiniteOrNonPositive(
+                "allocated source energy MWh"
+            ))
+        );
     }
 
     #[test]
