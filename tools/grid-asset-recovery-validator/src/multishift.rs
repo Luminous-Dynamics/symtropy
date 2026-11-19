@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 const TOLERANCE: f64 = 1e-9;
@@ -16,6 +17,8 @@ pub struct ExecutionCase {
     pub resources: Vec<ExecutionResource>,
     pub baseline_commitments: Vec<Commitment>,
     pub proposed_commitments: Vec<Commitment>,
+    pub baseline_event_manifest_ref: String,
+    pub baseline_event_manifest_sha256: String,
     pub baseline_events: Vec<ExecutionEvent>,
     pub events: Vec<ExecutionEvent>,
     pub planned_segments: Vec<PlannedSegment>,
@@ -263,6 +266,13 @@ fn valid_time_origin(value: &str) -> bool {
         _ => return false,
     };
     (1..=max_day).contains(&day)
+}
+
+fn canonical_baseline_event_sha256(events: &[ExecutionEvent]) -> Result<String, serde_json::Error> {
+    let mut ordered: Vec<&ExecutionEvent> = events.iter().collect();
+    ordered.sort_by(|left, right| left.event_id.cmp(&right.event_id));
+    let bytes = serde_json::to_vec(&ordered)?;
+    Ok(format!("{:x}", Sha256::digest(bytes)))
 }
 
 fn validate_event_ledger(
@@ -996,6 +1006,18 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
     if !matches!(case.case_maturity.as_str(), "synthetic_fixture" | "field_observed") {
         errors.push("caseMaturity must be synthetic_fixture or field_observed".to_string());
     }
+    if case.baseline_event_manifest_ref.trim().is_empty()
+        || case.baseline_event_manifest_sha256.len() != 64
+        || !case.baseline_event_manifest_sha256.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        errors.push("baseline event manifest reference or lowercase SHA-256 digest is invalid".to_string());
+    } else {
+        match canonical_baseline_event_sha256(&case.baseline_events) {
+            Ok(actual) if actual == case.baseline_event_manifest_sha256 => {}
+            Ok(_) => errors.push("baseline event manifest SHA-256 does not match the canonical event snapshot".to_string()),
+            Err(error) => errors.push(format!("baseline event manifest serialization failed: {error}")),
+        }
+    }
     if !finite_nonnegative(case.as_of_hour)
         || !finite_nonnegative(case.horizon_end_hour)
         || case.horizon_end_hour <= case.as_of_hour
@@ -1516,6 +1538,8 @@ mod tests {
                     source_evidence_ref: "synthetic://commitment/repair-pump/v1".to_string(),
                 },
             ],
+            baseline_event_manifest_ref: "synthetic://baseline-event-manifest/multi-shift-recovery-001/v1".to_string(),
+            baseline_event_manifest_sha256: "f179e884fc445b1146d1b096bd9e0835822a330629c3cdcd90361f9aebcef8f3".to_string(),
             baseline_events: vec![
                 ExecutionEvent {
                     event_id: "seg-1-complete".to_string(),
