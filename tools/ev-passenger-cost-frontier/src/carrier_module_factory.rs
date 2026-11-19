@@ -32,7 +32,7 @@ enum Status {
 pub struct FactoryReport {
     pub schema_version: String,
     pub benchmark_id: String,
-    pub results: Vec<BaseFactoryScenario>,
+    results: Vec<BaseFactoryScenario>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -123,6 +123,7 @@ struct ScenarioResult {
     module_thermal_energy_kwh_per_good_module: Option<f64>,
     status: Status,
     base_factory_production_release_ready: bool,
+    base_factory_evidence_gaps: Vec<String>,
     module_production_release_ready: bool,
     missing_fields: Vec<String>,
     findings: Vec<String>,
@@ -136,7 +137,7 @@ pub struct Report {
     pub benchmark_id: String,
     base_factory_benchmark_id: String,
     scenario_count: usize,
-    pub results: Vec<ScenarioResult>,
+    results: Vec<ScenarioResult>,
     claim_ceiling: &'static str,
 }
 
@@ -203,6 +204,7 @@ fn validate_inputs(
         if scenario.site_id.trim().is_empty()
             || scenario.template_id.trim().is_empty()
             || scenario.target_good_vehicles_per_year == 0
+            || scenario.shifts_per_day == 0
             || !scenario.productive_minutes_per_cell_year.is_finite()
             || scenario.productive_minutes_per_cell_year <= 0.0
             || !scenario.good_vehicle_yield_fraction.is_finite()
@@ -256,7 +258,7 @@ fn validate_inputs(
                 ("thermal_energy_kwh_per_attempt", station.thermal_energy_kwh_per_attempt),
             ] {
                 if let Some(value) = value {
-                    if !value.is_finite() || value < 0.0 {
+                    if !value.is_finite() || value < 0.0 || value > 1_000_000.0 {
                         errors.push(format!("configurations[{index}].{field}: must be finite and nonnegative"));
                     }
                 }
@@ -483,6 +485,7 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
         module_thermal_energy_kwh_per_good_module: thermal_per_module,
         status,
         base_factory_production_release_ready: base.production_release_ready,
+        base_factory_evidence_gaps: base.evidence_gaps.clone(),
         module_production_release_ready: false,
         missing_fields,
         findings,
@@ -605,12 +608,12 @@ mod tests {
     }
 
     #[test]
-    fn base_factory_not_ready_prevents_module_release() {
-        let mut factory = base();
-        factory.production_release_ready = true;
+    fn module_process_screen_never_grants_production_release() {
+        let factory = base();
         let result = evaluate_pair(&factory, &config());
+        assert!(!result.base_factory_production_release_ready);
         assert!(!result.module_production_release_ready);
-        assert!(result.base_factory_production_release_ready);
+        assert!(!result.base_factory_evidence_gaps.is_empty());
     }
 
     #[test]
