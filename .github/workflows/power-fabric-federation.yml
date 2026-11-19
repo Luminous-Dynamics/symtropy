@@ -51,6 +51,24 @@ jobs:
           def valid(document):
               errors = list(validator.iter_errors(document))
               assert not errors, "\\n".join(f"{list(err.path)}: {err.message}" for err in errors)
+          
+          def semantic_errors(document):
+              errors = []
+              issued = instant(document["issuedAt"])
+              expires = instant(document["expiresAt"])
+              if expires <= issued:
+                  errors.append("message expiry must follow issue time")
+              payload = document["payload"]
+              if "timeWindow" in payload and instant(payload["timeWindow"]["start"]) >= instant(payload["timeWindow"]["end"]):
+                  errors.append("capacity window must be positive")
+              consent = document.get("consent")
+              if consent and "expiresAt" in consent and instant(consent["expiresAt"]) > expires:
+                  errors.append("consent outlives message envelope")
+              sender_scope = (document["sender"]["scopeLevel"], document["sender"]["scopeId"])
+              authority_scope = (document["authority"]["scopeLevel"], document["authority"]["scopeId"])
+              if sender_scope != authority_scope and not document["authority"].get("delegationRef"):
+                  errors.append("cross-scope authority lacks delegation reference")
+              return errors
 
           def invalid(document, label):
               errors = list(validator.iter_errors(document))
@@ -63,14 +81,7 @@ jobs:
               assert parsed.tzinfo is not None
               return parsed
 
-          assert instant(example["issuedAt"]) < instant(example["expiresAt"]), "message expiry must follow issue time"
-          assert instant(example["payload"]["timeWindow"]["start"]) < instant(example["payload"]["timeWindow"]["end"]), "capacity offer window is empty or reversed"
-          assert instant(example["consent"]["expiresAt"]) <= instant(example["expiresAt"]), "consent may not outlive the envelope"
-
-          sender = example["sender"]
-          authority = example["authority"]
-          if authority["scopeLevel"] != sender["scopeLevel"] or authority["scopeId"] != sender["scopeId"]:
-              assert authority.get("delegationRef"), "cross-scope authority requires an explicit delegation reference"
+          assert not semantic_errors(example), "valid example failed semantic validation"
 
           # Household capacity sharing must have opt-in, revocable consent.
           no_consent = copy.deepcopy(example)
@@ -99,22 +110,22 @@ jobs:
           community_offer["sender"]["scopeLevel"] = "organization_community"
           community_offer["sender"]["scopeId"] = "community-001"
           community_offer["consent"]["participationBasis"] = "community_mandate"
-          del community_offer["consent"]["revocable"]
           del community_offer["sender"]["representationRef"]
           community_offer["authority"]["scopeLevel"] = "organization_community"
           community_offer["authority"]["scopeId"] = "community-001"
           invalid(community_offer, "community capacity offer without representation mandate")
 
-          # Expired or reversed temporal intervals and cross-scope authority are semantic checks.
+          # Expiry and cross-scope delegation require semantic validation beyond JSON Schema.
           reversed_expiry = copy.deepcopy(example)
           reversed_expiry["expiresAt"] = reversed_expiry["issuedAt"]
-          assert not (instant(reversed_expiry["issuedAt"]) < instant(reversed_expiry["expiresAt"])), "expiry semantic control failed"
+          assert "message expiry must follow issue time" in semantic_errors(reversed_expiry)
 
           delegated = copy.deepcopy(example)
           delegated["authority"]["scopeLevel"] = "organization_community"
           delegated["authority"]["scopeId"] = "cooperative-001"
-          assert not (delegated["authority"]["scopeLevel"] == delegated["sender"]["scopeLevel"] and delegated["authority"]["scopeId"] == delegated["sender"]["scopeId"])
-          assert not delegated["authority"].get("delegationRef"), "cross-scope authority must not pass without delegation"
+          assert "cross-scope authority lacks delegation reference" in semantic_errors(delegated)
+          delegated["authority"]["delegationRef"] = "synthetic-delegation:household-to-coop-v1"
+          assert not semantic_errors(delegated), "valid delegated authority example failed semantic validation"
 
           print("PASS: Draft 2020-12 federation envelope and example")
           print("PASS: household consent, community representation and authority action gates")
