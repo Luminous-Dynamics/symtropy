@@ -1,6 +1,6 @@
 # Orbital Service Composition Benchmark v0.1
 
-Independent, Rust-first reference contract for [ORBITAL-SERVICE-CORPUS-001 #3258](https://github.com/Luminous-Dynamics/symtropy/issues/3258), composed with the existing launcher, capture and fluid benchmark owners.
+Independent, Rust-first reference contract for [ORBITAL-SERVICE-CORPUS-001 #3258](https://github.com/Luminous-Dynamics/symtropy/issues/3258), composed with the Earth-to-orbit delivery, capture and fluid benchmark owners.
 
 ## What it tests
 
