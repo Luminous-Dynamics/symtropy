@@ -7,9 +7,7 @@ use std::env;
 use std::fs;
 use std::process::ExitCode;
 
-use symtropy_earth_orbit_chain::{
-    CampaignDisposition, CampaignV1, evaluate_campaign,
-};
+use symtropy_earth_orbit_chain::{CampaignDisposition, CampaignV1, evaluate_campaign};
 
 fn is_valid_source_commit(value: &str) -> bool {
     value.len() == 40 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
