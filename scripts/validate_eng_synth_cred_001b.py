@@ -264,9 +264,13 @@ def qualify_manifest(reference: dict[str, Any]) -> None:
         fail("unsupported content identity algorithm")
     if len(reference.get("feature_profiles", [])) != 2:
         fail("expected native-float and deterministic-net feature profiles")
-    if not {"solver_iterations", "sleep enabled/threshold/ticks/velocity-zeroing semantics",
-            "compiled Cargo feature set", "callback API policy and caller-supplied callback build identity"}
-            .issubset(set(reference.get("profile_identity_fields", []))):
+    required_identity_fields = {
+        "solver_iterations",
+        "sleep enabled/threshold/ticks/velocity-zeroing semantics",
+        "compiled Cargo feature set",
+        "callback API policy and caller-supplied callback build identity",
+    }
+    if not required_identity_fields.issubset(set(reference.get("profile_identity_fields", []))):
         fail("profile identity fields omit claim-relevant configuration")
     actual_digest = canonical_digest(reference)
     if actual_digest != reference["content_identity"]["digest"]:
