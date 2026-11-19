@@ -53,7 +53,7 @@ The new machine-readable step vector is `fixtures/dense_coupled_chain_rattle_ste
 - At code head `c5ce8ba393e81e54d4d68125e06583ed75f2fa50`, pinned Rust 1.96 passed formatting, **30 warning-denied tests**, optimized deterministic RATTLE replay, and the rank-diagnostics workflow's **15 tests plus optimized replay**. This included the third-basis conditioning stress, 32-step recursive trajectory, 64-step dense-vs-Cartesian trajectory and timestep-refinement ladder.
 - A further regression now adds position- and velocity-multiplier comparisons at every step of the 64-step trajectory (commit `e962fd5`). That incremental strengthening needs its own exact-head run; no pass is claimed until it completes.
 
-The qualified scope at `c5ce8ba` is still force-free, three-body/two-link open-chain mechanics over a 0.32 s trajectory and the declared basis ladder. This is not a general long-horizon stability theorem. It does not qualify forced RATTLE, pHDAE equivalence, contact/friction, arbitrary charts, physical calibration or production performance.
+The qualified scope at `c5ce8ba` is still force-free, three-body/two-link open-chain mechanics over a 0.32 s trajectory and the declared basis ladder. The v0.4 constant-force extension is newly authored and awaits exact-head qualification. Neither result is a general long-horizon stability theorem. Neither qualifies pHDAE equivalence, contact/friction, arbitrary charts, physical calibration or production performance.
 
 ## Competitive benchmark ladder
 
@@ -79,6 +79,34 @@ The test records the maximum over all steps of:
 The frozen protocol is `fixtures/dense_coupled_chain_rattle_trajectory_case_v0.3.json` with its Draft 2020-12 schema. Thresholds are (2\times10^{-7}) for lifted state and multipliers, (2\times10^{-12}) for squared-link residual, and (2\times10^{-9}) for endpoint tangency.
 
 **This is a bounded 64-step metamorphic regression, not a long-horizon stability claim.** It does not establish energy drift bounds over thousands of steps, forced RATTLE, pHDAE equivalence, contact/friction, or physical calibration. The 64-step trajectory and third-basis stress are newly authored and remain unqualified until the latest exact-head Rust 1.96 workflow passes.
+
+
+
+## Constant-force dense-coordinate RATTLE step-map increment (v0.4)
+
+The force-free reference is now extended with a matched constant-force SHAKE/RATTLE step. The independent Cartesian baseline exposes `CartesianRattleChain::step_with_force`; the dense solver advances entirely in generalized coordinates and uses the force covector law
+
+`Q_y = S^T Q_q`.
+
+For constant applied force, the reference scheme applies:
+- a first half-force kick and the initial constraint impulse;
+- the force-aware SHAKE free drift and coupled position correction;
+- a second half-force kick followed by the endpoint RATTLE momentum projection.
+
+The dense solver forms `Q_y`, solves `M_y a_y = Q_y` directly in the dense metric, and applies both force half-kicks in the dense momentum equations. It does not reconstruct Cartesian state to call the original solver.
+
+The frozen load acts only on body 0, deliberately producing nonzero position and velocity multipliers. The test compares:
+- lifted positions and velocities;
+- both multiplier vectors;
+- per-edge squared-length residual and endpoint tangency;
+- the constant-force work and kinetic-energy work-balance residual;
+- canonical and transformed force power.
+
+The negative control treats force as a vector using `S^-1 Q_q`; its power pairing must differ from the physical covector pairing. The new fixture is `fixtures/dense_coupled_chain_forced_rattle_case_v0.4.json` with its Draft 2020-12 schema. It pins the force, solver profile, two dense transformations, expected Cartesian output, multiplier vectors and comparison tolerances.
+
+**Qualification status:** the forced step and its golden regression are newly authored. The existing force-free and 64-step results remain qualified only at their earlier recorded code heads. The forced path is not qualified until the current exact-head Rust 1.96 workflow passes formatting, the warning-denied tests and optimized replay.
+
+The force model here is constant over one timestep. Time-varying force, position-dependent force Jacobians, external potential-energy accounting, forced long-horizon trajectories and pHDAE force coupling are not yet covered.
 
 ## Algebraic preflight scope
 
