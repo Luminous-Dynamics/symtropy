@@ -592,7 +592,7 @@
           "bd_gauss_bonnet_scalar_independently_derived": true,
           "bd_source_balance_symbolically_checked": true,
           "bd_asymptotic_current_checked": true,
-          "rust_tests_authored": 14,
+          "rust_tests_authored": 16,
           "rust_tests_executed": false
         },
         "claim_ceiling": "A sourced radial identity and asymptotic endpoint, not a finite-alpha conserved charge and not a second independent Noether momentum."
@@ -616,8 +616,161 @@
           "finite_alpha_static_boulware_deser": "all five gauge-sliced residuals identically zero"
         },
         "known_transcription_gate": "The fourth Einstein-Hilbert term is b*g'*h'/h, not b*g'*h'/g; exact BD/MP controls reject the latter.",
-        "implementation_status": "Rust evaluator and four tests authored, not compiled or executed."
-      }
+        "implementation_status": "Rust evaluator and six tests authored, not compiled or executed.",
+        "tests_authored": 6
+      },
+      "implementation_status": "Rust exact-reference crate has 16 tests and action-derived ODE module has 6 tests; 22 authored total, none executed."
+    },
+    {
+      "case_id": "BH-5D-EGB-SLOW-ROTATION-001",
+      "status": "published_first_order_control_symbolically_reproduced_rust_tests_authored",
+      "theory_id": "5d_einstein_gauss_bonnet",
+      "spacetime_dimension": 5,
+      "symmetry": "stationary_equal_angular_momenta_cohomogeneity_one_RxU(2)",
+      "source": "Brihaye et al., JHEP 11 (2010) 089, arXiv:1010.0860, Eqs. (2.12), (2.20), (2.21), (3.8)",
+      "action_normalization": {
+        "alpha": "Gauss-Bonnet coupling in I=(16*pi*G)^-1 integral sqrt(-g)*(R+alpha*L_GB/4)",
+        "branch": "Einstein branch of Boulware-Deser"
+      },
+      "metric_ansatz": {
+        "line_element": "ds^2=-b(r)dt^2+dr^2/f(r)+g(r)*(xi^1*xi^1+xi_tilde^1*xi_tilde^1)+h(r)*(zeta-w(r)*dt)^2",
+        "radial_functions": [
+          "b",
+          "f",
+          "g",
+          "h",
+          "w"
+        ],
+        "gauge": "g(r)=r^2",
+        "invariant_frame": "Hopf frame on S^3; normalization and Maurer-Cartan data must be transcribed from source/supplement",
+        "coordinate_metric_2010": "ds^2=-b dt^2+dr^2/f+g dtheta^2+h sin(theta)^2(dphi_1-w dt)^2+h cos(theta)^2(dphi_2-w dt)^2+(g-h) sin(theta)^2 cos(theta)^2(dphi_1-dphi_2)^2",
+        "left_invariant_metric_2010": "ds^2=-b dt^2+dr^2/f+g/4*(sigma_1^2+sigma_2^2)+h/4*(sigma_3+2*w*dt)^2",
+        "left_invariant_one_forms": {
+          "sigma_1": "cos(psi)*d(bar_theta)+sin(psi)*sin(bar_theta)*d(phi)",
+          "sigma_2": "-sin(psi)*d(bar_theta)+cos(psi)*sin(bar_theta)*d(phi)",
+          "sigma_3": "d(psi)+cos(bar_theta)*d(phi)",
+          "coordinate_map": {
+            "bar_theta": "2*theta",
+            "phi": "phi_1-phi_2",
+            "psi": "phi_1+phi_2"
+          }
+        }
+      },
+      "expansion": {
+        "spin_parameter": "a",
+        "horizon_angular_velocity": "Omega_H=a/r_H^2",
+        "even_metric_functions": "b=f=F+O(a^2), h=r^2+O(a^2), g=r^2",
+        "rotational_function": "w=a*W_1(r)+O(a^3)"
+      },
+      "horizon": {
+        "radius": "1",
+        "angular_velocity": "a",
+        "nonextremal_static_background": true,
+        "conditions": [
+          "b(r_H)=f(r_H)=0",
+          "w(r_H)=Omega_H",
+          "Boulware-Deser background horizon derivative b1=f1=2*r_H/(r_H^2+alpha)"
+        ]
+      },
+      "parameter_sweep": {
+        "alpha": "[0,3]",
+        "dimensionless_gauss_bonnet": "lambda=alpha/r_H^2",
+        "dimensionless_spin": "chi=a/r_H^2",
+        "exploratory_spin_values": [
+          "0.001",
+          "0.005",
+          "0.01",
+          "0.02"
+        ],
+        "exact_control": {
+          "r_H": "1",
+          "alpha": "0.7",
+          "a": "0.02"
+        }
+      },
+      "radial_domain": {
+        "physical": "r in [r_H,infinity)",
+        "compactification": "r-r_H=tan(x)",
+        "x_domain": "[0,pi/2)"
+      },
+      "boundaries": {
+        "horizon": "w(r_H)=a/r_H^2; F(r_H)=0",
+        "infinity": "w=W/r^4+O(r^-8), W=a*(2*r_H^2+alpha)/2; asymptotically flat BD background"
+      },
+      "reference_solution": {
+        "C": "2*r_H^2+alpha",
+        "s": "sqrt(1+alpha*C/r^4)",
+        "F": "1-C/(r^2*(1+s))",
+        "b": "F+O(a^2)",
+        "f": "F+O(a^2)",
+        "h": "r^2+O(a^2)",
+        "w": "a*C/(r^4*(1+s))+O(a^3)",
+        "w_prime": "-2*a*C/(r^5*s)+O(a^3)",
+        "w_second": "w_prime*(-5/r+2*alpha*C/(s^2*r^5))+O(a^3)"
+      },
+      "first_integral": {
+        "source": "Brihaye et al. (2010), Eq. (2.12)",
+        "K": "r^2-alpha*(F-1)=r^2*s",
+        "exact_P_w": "-2*a*C",
+        "asymptotic_W": "a*C/2",
+        "identity": "P_w=-4*W",
+        "positive_alpha_bound": "K>=r^2>0 for r>0 and alpha>=0",
+        "quadrature": "w_prime=P_w/(r^3*K)"
+      },
+      "exact_mp_overlap": {
+        "alpha_zero": "linearized slow-rotation profile matches exact equal-spin Myers-Perry",
+        "spin_remainder": "w_MP-a*W_1=a^3/r_H^4*u^2*(1-u^2)/(1-q+q*u^2)",
+        "u": "(r_H/r)^2",
+        "q": "a^2/r_H^2",
+        "claim": "The cubic term is the expected omitted O(a^3) contribution, not a failure of the first-order solution."
+      },
+      "action_equation_oracle": {
+        "evaluator": "ReducedActionResiduals5D::evaluate",
+        "expected_at_first_order": "E_w=0; E_b,E_f,E_g,E_h have no O(a^0) or O(a^1) residual and begin at O(a^2)",
+        "validation_control": "finite-alpha slow-rotation profile at alpha=0.7, r_H=1, r=2; compare spin a=0.01 and 0.02; even-sector residual norm must scale by 4",
+        "independent_development_replay": {
+          "method": "Python 10-variable second-order jet reimplementation",
+          "executed": true,
+          "alpha": "0.7",
+          "r_H": "1",
+          "radius": "2",
+          "spin_0_01": {
+            "residuals": [
+              "-3.2063867676512814e-05",
+              "2.4932788861536936e-05",
+              "8.7629091576335583e-06",
+              "1.0809915261589254e-05",
+              "-2.7755575615628914e-17"
+            ],
+            "max_even_residual": "3.2063867676512814e-05",
+            "P_w": "-0.054"
+          },
+          "spin_0_02": {
+            "residuals": [
+              "-0.00012825547070960397",
+              "9.9731155450422104e-05",
+              "3.505163662942401e-05",
+              "4.3239661045357813e-05",
+              "-5.5511151231257827e-17"
+            ],
+            "max_even_residual": "0.00012825547070960397",
+            "P_w": "-0.108"
+          },
+          "even_residual_ratio": "4",
+          "claim_ceiling": "Independent numerical replay of the first-order profile in the action-derived residual; not a Rust execution."
+        }
+      },
+      "implementation": {
+        "crate": "crates/domains/symtropy-lovelock5d",
+        "type": "SlowRotationBoulwareDeser5D",
+        "reference_script": "crates/domains/symtropy-lovelock5d/benchmarks/derive_slow_rotation_reference.py",
+        "fixture": "crates/domains/symtropy-lovelock5d/benchmarks/slow_rotation_5d_reference_v1.json",
+        "rust_tests_authored": 2,
+        "action_tests_authored": 2,
+        "rust_tests_executed": false
+      },
+      "owner_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6169",
+      "claim_ceiling": "This is the published first-order slow-rotation solution and analytic angular flux. It does not provide the O(a^2) metric backreaction, prove a finite-spin nonzero-alpha solution, or claim uniform validity near extremality."
     }
   ],
   "fairness_rules": [
@@ -643,6 +796,8 @@
     "Only the angular P_w current is the conserved Noether current in this two-current discussion. Do not construct a dual-conserved-flux reduction.",
     "A source-balanced b-prime reconstruction must use the full alpha-dependent coefficient and the local P_t(r), not the asymptotic constant 2U at every radius.",
     "The 5D radial-action oracle must be varied before g=r² is substituted; retain E_g after gauge slicing and check all five residuals on exact MP and BD branches.",
-    "The fourth Einstein-Hilbert radial-action term is b*g'*h'/h; exact branch controls reject b*g'*h'/g."
+    "The fourth Einstein-Hilbert radial-action term is b*g'*h'/h; exact branch controls reject b*g'*h'/g.",
+    "Include the published finite-alpha 5D slow-rotation control as an intermediate validation rung between static BD and fully nonlinear rotating EGB.",
+    "For the slow-rotation background F=BD, the angular flux denominator K=r²-alpha(F-1)=r²*s is analytically positive and satisfies K>=r² for alpha>=0; this does not prove K stays nonzero for arbitrary nonlinear candidates."
   ]
 }
