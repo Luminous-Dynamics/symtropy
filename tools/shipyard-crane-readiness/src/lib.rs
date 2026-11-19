@@ -1657,7 +1657,7 @@ mod tests {
     #[test]
     fn frozen_conformance_fixture_maps_all_vectors_to_rust_tests() {
         const FIXTURE: &str = include_str!("../fixtures/conformance-vectors-v0.1.json");
-        let mappings: [(&str, &str); 15] = [
+        let mappings: [(&str, &str); 22] = [
             ("CRR-VERSION-001", stringify!(unsupported_readiness_contract_version_is_indeterminate)),
             ("CRR-BASE-001", stringify!(complete_current_evidence_is_ready_for_human_review_only)),
             ("CRR-INSP-001", stringify!(missing_crane_inspection_is_indeterminate)),
@@ -1673,8 +1673,15 @@ mod tests {
             ("CRR-META-001", stringify!(evidence_input_permutation_preserves_canonical_report_value)),
             ("CRR-DEVICE-002", stringify!(unknown_limiter_state_is_indeterminate_not_a_pass)),
             ("CRR-EVID-001", stringify!(evidence_record_id_conflict_is_indeterminate)),
+            ("CRR-REPLAY-001", stringify!(current_source_status_change_invalidates_readiness)),
+            ("CRR-REPLAY-002", stringify!(no_op_and_unrelated_events_do_not_invalidate_readiness)),
+            ("CRR-REPLAY-003", stringify!(newer_source_event_supersedes_stale_event_and_is_arrival_order_independent)),
+            ("CRR-REPLAY-004", stringify!(latest_fault_event_invalidates_regardless_of_arrival_order)),
+            ("CRR-REPLAY-005", stringify!(conflicting_payloads_at_the_same_source_sequence_are_indeterminate)),
+            ("CRR-REPLAY-006", stringify!(exact_duplicate_event_is_idempotent_and_counted_once)),
+            ("CRR-REPLAY-007", stringify!(event_source_identity_mismatch_is_indeterminate)),
         ];
-        assert_eq!(FIXTURE.matches(r#""id": "CRR-"#).count(), 15);
+        assert_eq!(FIXTURE.matches(r#""id": "CRR-"#).count(), 22);
         for (vector_id, test_name) in mappings {
             assert!(
                 FIXTURE.contains(&format!(r#""id": "{vector_id}""#)),
