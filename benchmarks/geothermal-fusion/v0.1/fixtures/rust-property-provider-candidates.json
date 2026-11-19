@@ -192,6 +192,7 @@
     "SI-only input boundary in Symtropy; explicitly convert Pa to kPa for vle-steam and verify round-trip conversion.",
     "Never infer phase from an unqualified region number alone; preserve saturation/two-phase state and quality.",
     "Require composition identity and refuse any declared saline brine in the IF97 adapter.",
+    "Require an explicit fluid-composition class and a non-empty composition-evidence artifact digest; the class is a traceable assertion, not chemical proof.",
     "Bind every output to exact (fluid, composition, p, T or other input pair, phase, formulation, release, provider commit and boundary).",
     "Run the 19 official known-answer points and independent cross-provider checks; distinguish reference precision from provider-to-provider agreement.",
     "Add region-edge, saturation, critical-neighborhood, out-of-domain, NaN/Inf, unit-confusion, and inverse-state tests.",
