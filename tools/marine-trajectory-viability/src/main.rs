@@ -869,6 +869,34 @@ mod tests {
     }
 
     #[test]
+    fn service_contract_digest_must_match_canonical_values() {
+        let mut value=fixture();
+        value["service_contract"][0]["floor_value"]=json!(75.0);
+        assert_eq!(audit(&value)["disposition"],"INVALID");
+    }
+
+    #[test]
+    fn time_grid_digest_must_match_ordered_timestamps() {
+        let mut value=fixture();
+        value["time_grid"][1]=json!("2026-03-01T07:00:00Z");
+        assert_eq!(audit(&value)["disposition"],"INVALID");
+    }
+
+    #[test]
+    fn initial_resource_digest_must_match_every_initial_axis() {
+        let mut value=fixture();
+        value["scenarios"][0]["states"][0]["resource_metrics"][0]["value"]=json!(19.0);
+        assert_eq!(audit(&value)["disposition"],"INVALID");
+    }
+
+    #[test]
+    fn mission_snapshot_digest_must_match_all_bound_artifacts() {
+        let mut value=fixture();
+        value["mission_snapshot"]["mission_plan_sha256"]=json!("f".repeat(64));
+        assert_eq!(audit(&value)["disposition"],"INVALID");
+    }
+
+    #[test]
     fn missing_required_disturbance_scenario_is_invalid() {
         let mut value=fixture();
         value["scenarios"].as_array_mut().unwrap().pop();
