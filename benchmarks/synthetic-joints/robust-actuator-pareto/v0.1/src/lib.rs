@@ -1098,7 +1098,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_026_calibrated_model_prediction_requires_receipt_on_every_metric() {
+    fn pareto_026_calibrated_model_torque_margin_requires_receipt() {
         let mut candidate = calibrated_model_candidate("missing-receipt");
         candidate.hard_constraints[1].calibration_receipt = None;
         assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
@@ -1138,7 +1138,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_032_stale_model_domain_boundary_or_mission_receipt_rejects() {
+    fn pareto_029_stale_model_domain_boundary_or_mission_receipt_rejects() {
         let mut candidate = calibrated_model_candidate("stale-model");
         candidate.model_digest = Some("different-model".to_owned());
         assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
@@ -1154,7 +1154,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_032_insufficient_or_malformed_calibration_receipt_rejects() {
+    fn pareto_030_insufficient_or_malformed_calibration_receipt_rejects() {
         let mut insufficient = calibrated_model_candidate("insufficient-calibration");
         let receipt = insufficient.objectives[0].calibration_receipt.as_mut().unwrap();
         receipt.order_statistic_rank = 4;
@@ -1169,7 +1169,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_032_calibrated_model_violation_receipt_retains_calibration_provenance() {
+    fn pareto_031_calibrated_model_violation_receipt_retains_calibration_provenance() {
         let mut candidate = calibrated_model_candidate("calibrated-violation");
         candidate.hard_constraints[1].minimum_robust_margin = Some(-0.25);
         let report = robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).unwrap();
