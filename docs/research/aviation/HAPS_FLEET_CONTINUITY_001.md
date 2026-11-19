@@ -78,6 +78,8 @@ Interpretation:
 - The critical-service outage remains six hours under every policy because the gateway/backhaul impairment is correlated with the weather event and defeats the finite fallback layer. Better airframe rotation alone cannot fix a shared network-layer failure.
 - These values are arithmetic results on a synthetic event trace. They are not probabilistic availability estimates, a 99.9% annual SLA, or measured fleet operations.
 
+The executable reference is [tools/haps-fleet-continuity](../../../tools/haps-fleet-continuity), an isolated Rust crate with a JSON replay CLI, schema/semantic guards and ten unit tests. The tests cover exact 720-hour oracle reproduction, reserve activation delay, staggered rotation, critical/full service separation, unknown platform rejection, common-cause event parentage, out-of-horizon and off-grid events, standby-state enforcement, and a subset-weather event against an already unavailable platform. The dedicated workflow runs rustfmt, Clippy, tests and the committed-fixture replay. Those Rust tests are authored but not yet executed at this revision; the independent 720-step hourly replay below is separate from the crate.
+
 ## 5. What to benchmark next
 
 ### Reliability models
@@ -122,6 +124,13 @@ Interpretation:
 - Zero avoidable maintenance overlaps that push service below its critical threshold when a feasible staggered schedule exists.
 - Zero availability claims that omit common-cause weather, ground-site, backhaul, crew or shared-configuration events.
 - Report worst-regime and confidence-interval results, not only a mean across random seeds.
+
+## 9. Validation and evidence status
+
+- Machine-readable schema and synthetic fixture parsed from the research branch.
+- Independent hourly event replay: 720 one-hour steps × three policies; every policy output matched the committed expected oracle.
+- Rust evaluator/CLI and ten unit tests are authored. They have **not been executed** because no local Rust toolchain is available in the authoring environment. The dedicated GitHub Actions workflow is committed but no CI pass is claimed here.
+- No full JSON Schema validator, stochastic/semi-Markov probability estimation, real weather trace, maintenance telemetry, measured aircraft availability, radio propagation, thermal simulation or physical operation is included.
 
 ## 8. Ownership boundaries
 
