@@ -1,0 +1,2031 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "yang-2026-mx106-paired-hip-roll-source-register-v0.1",
+  "assembly": {
+    "assembly_id": "mx106-paired-common-shaft-24-55",
+    "topology": "Two ROBOTIS Dynamixel MX-106 actuators driving a common shaft through a 24:55 external spur gear pair.",
+    "joint_or_axis": "Humanoid hip-roll bench assembly; lever arm 300 mm from axis to load centre.",
+    "reduction_ratio": 2.2916666666666665,
+    "system_boundary": {
+      "included_components": [
+        "two MX-106 actuators",
+        "common shaft",
+        "24:55 external spur gear pair",
+        "300 mm lever",
+        "interchangeable weight box and payload",
+        "600 W switched-mode supply"
+      ],
+      "excluded_components": [
+        "retired humanoid robot",
+        "robot leg structure",
+        "gait/control task load trajectory",
+        "instrumented per-actuator output torque sensors (not present)"
+      ],
+      "notes": "The tested actuators are different units of the same model and gear ratio as the retired deployed platform; the original robot was not on the bench."
+    },
+    "controller_sync": {
+      "bus_or_link": "Dynamixel Protocol 1.0 at 1 Mbps",
+      "command_mode": "Position control; one synchronized write to both actuators and one bulk read per record.",
+      "synchronized_command": "yes",
+      "firmware_config_state": "Both units reported model 320 and firmware 41. Post-test readback gave D=0, I=0, P=32; per-run gain history is not complete. Address 29 is undocumented for this model."
+    }
+  },
+  "test_conditions": {
+    "ambient_temperature_c": null,
+    "supply_voltage_v": 14.8,
+    "supply_current_limit_a": null,
+    "cooling_boundary": "Still laboratory air; ambient temperature not recorded. No separate forced cooling stated.",
+    "test_classes": [
+      "no_load",
+      "dynamic_load",
+      "static_hold"
+    ],
+    "initial_state_policy": "Static hold trials were predeclared to start below 40 degC; actual starts were 25-35 degC. Initial device-temperature matching target was 2 degC. The hot-start/cooldown sequence is recorded by run, not reduced to one common state.",
+    "sample_rate_hz": null,
+    "raw_trace_state": "available",
+    "conditions_notes": [
+      "Supply was set to 14.8 V and read 14.7-14.9 V unloaded; loaded runs show additional voltage variation.",
+      "Raw logging rates differ by experiment: 50 Hz for holds, 500 Hz for constant-rate traverses, and approximately 1000 Hz for maximum-speed runs.",
+      "Temperature is the internal device reading at register address 43; no external surface/winding sensor was fitted.",
+      "Static holds stop if either actuator reports 70 degC or the angle-abort criterion is met. The 600 s target, 1.0 deg tolerance, 0.5 s dwell and 40 degC start ceiling were prespecified 2026-09-19.",
+      "Downhill tests caused regenerative bus overvoltage on a supply that could not sink current; such attempts were excluded and are retained in the run ledger."
+    ]
+  },
+  "actuators": [
+    {
+      "actuator_id": "9",
+      "model": "ROBOTIS Dynamixel MX-106",
+      "revision_state": "partially_known",
+      "firmware": "model 320 / firmware 41",
+      "instrumented_channels": [
+        "position",
+        "speed",
+        "load/current-related register",
+        "bus voltage",
+        "internal device temperature address 43"
+      ],
+      "torque_constant_status": "assumed_equal",
+      "individual_output_torque_sensor": "no",
+      "temperature_sensor_location": "internal device sensor (address 43), not winding sensor"
+    },
+    {
+      "actuator_id": "48",
+      "model": "ROBOTIS Dynamixel MX-106",
+      "revision_state": "partially_known",
+      "firmware": "model 320 / firmware 41",
+      "instrumented_channels": [
+        "position",
+        "speed",
+        "load/current-related register",
+        "bus voltage",
+        "internal device temperature address 43"
+      ],
+      "torque_constant_status": "assumed_equal",
+      "individual_output_torque_sensor": "no",
+      "temperature_sensor_location": "internal device sensor (address 43), not winding sensor"
+    }
+  ],
+  "run_ledger_summary": {
+    "attempted_runs": 49,
+    "included_runs": 26,
+    "excluded_or_invalid_runs": 23,
+    "raw_log_files_available": 48,
+    "missing_or_deleted_logs": 1,
+    "scope_notes": [
+      "Run ledger breakdown: static 16 attempted / 11 included / 5 excluded; max-speed 9 / 4 / 5; dynamic 18 / 9 / 9; tuning 3 / 0 / 3; no-load 3 / 2 / 1.",
+      "The author repository README reports 49 attempted runs and 48 raw logs. One excluded high-load static run group refers to a deleted source file.",
+      "Validity/inclusion is not equivalent to task pass: thermal-stop runs are retained as valid measured outcomes."
+    ]
+  },
+  "mechanical_share_observability": {
+    "mechanical_share_status": "not_identifiable",
+    "electrical_share_status": "derived_from_current",
+    "thermal_share_status": "reported_internal_sensors",
+    "identified_parameter_groups": [
+      "common-shaft output speed at sampled loads",
+      "applied gravity moment from weighed masses and lever arm",
+      "per-actuator internal temperature and electrical register observations",
+      "lumped torque-speed fit parameter combination"
+    ],
+    "confounded_parameter_groups": [
+      "individual actuator torque constant and torque output",
+      "per-actuator transmission efficiency",
+      "gear mesh efficiency",
+      "mechanical load sharing",
+      "static gear-train friction",
+      "controller sharing behavior"
+    ],
+    "identifiability_method": "The two actuators drive one common shaft, but no independent torque transducer is fitted to each path. The four-point loaded-speed fit identifies only n_a * beta * eta * tau_s = 21.22 N m; it cannot separate actuator stall torque, efficiency and load sharing. A 0.68-0.70 current fraction does not identify torque share.",
+    "reason": "The paper explicitly states that inferring beta approximately 0.71-0.74 assumes equal torque constants, equal individual allowable outputs, and persistence of the current split at the relevant operating point. Those assumptions were not independently verified."
+  },
+  "runs": [
+    {
+      "run_id": "HEALTH-1",
+      "test_class": "dynamic_load",
+      "analysis_inclusion": "included",
+      "load_torque_nm": 1.1454,
+      "output_speed_rad_s": 2.5781,
+      "repetitions": 3,
+      "outcome": "completed",
+      "duration_s": null,
+      "first_limit_event": {
+        "status": "not_reached",
+        "actuator_id": null,
+        "limit_type": null,
+        "time_s": null,
+        "temperature_c": null,
+        "reason": "The reported test ended without reaching the declared temperature stop criterion."
+      },
+      "per_actuator_observations": [
+        {
+          "actuator_id": "9",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "unknown",
+            "value": null,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Per-unit terminal value not available in this run-log row."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        },
+        {
+          "actuator_id": "48",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "unknown",
+            "value": null,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Per-unit terminal value not available in this run-log row."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        }
+      ],
+      "pair_observations": [
+        {
+          "metric_id": "maximum_joint_speed_mean",
+          "value": 2.5781,
+          "unit": "rad/s",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Three encoder-derived repetitions in |q|<=8 deg window."
+        },
+        {
+          "metric_id": "maximum_joint_speed_between_run_sd",
+          "value": 0.0031,
+          "unit": "rad/s",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Source run ledger reports SD."
+        }
+      ],
+      "mechanical_share": {
+        "status": "not_identifiable",
+        "actuator_shares": [],
+        "pair_total_torque_nm": null,
+        "loss_torque_nm": null,
+        "model_or_assumption": "No independent per-path torque measurements. The external applied gravity moment is known, but the common-shaft drive contribution cannot be split between the two actuators from current alone.",
+        "reason": "Pair-level output is measured/calculated at the common shaft. Individual torque constants, transmission losses, static friction and load share are confounded."
+      },
+      "raw_trace_refs": [
+        "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/data/exp2b_HEALTH-1_20260927_151621.csv"
+      ],
+      "notes": [
+        "Empty-lever health check; the lever itself applies 1.1454 N m. Raw file was independently reprocessed using OLS angle-vs-time slope within |q|<=8 deg; reconstructed mean 2.57813 rad/s."
+      ]
+    },
+    {
+      "run_id": "C-A-1",
+      "test_class": "dynamic_load",
+      "analysis_inclusion": "included",
+      "load_torque_nm": 11.7275,
+      "output_speed_rad_s": 1.9688,
+      "repetitions": 3,
+      "outcome": "completed",
+      "duration_s": null,
+      "first_limit_event": {
+        "status": "not_reached",
+        "actuator_id": null,
+        "limit_type": null,
+        "time_s": null,
+        "temperature_c": null,
+        "reason": "The reported test ended without reaching the declared temperature stop criterion."
+      },
+      "per_actuator_observations": [
+        {
+          "actuator_id": "9",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "unknown",
+            "value": null,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Per-unit terminal value not available in this run-log row."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        },
+        {
+          "actuator_id": "48",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "unknown",
+            "value": null,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Per-unit terminal value not available in this run-log row."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        }
+      ],
+      "pair_observations": [
+        {
+          "metric_id": "maximum_joint_speed_mean",
+          "value": 1.9688,
+          "unit": "rad/s",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Three encoder-derived repetitions in |q|<=8 deg window."
+        },
+        {
+          "metric_id": "maximum_joint_speed_between_run_sd",
+          "value": 0.0097,
+          "unit": "rad/s",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Source run ledger reports SD."
+        },
+        {
+          "metric_id": "speed_below_no_load_upper_bound",
+          "value": 24.8,
+          "unit": "percent",
+          "status": "derived",
+          "uncertainty": null,
+          "reason": "Source paper comparison against 2.618 rad/s no-load upper bound."
+        }
+      ],
+      "mechanical_share": {
+        "status": "not_identifiable",
+        "actuator_shares": [],
+        "pair_total_torque_nm": null,
+        "loss_torque_nm": null,
+        "model_or_assumption": "No independent per-path torque measurements. The external applied gravity moment is known, but the common-shaft drive contribution cannot be split between the two actuators from current alone.",
+        "reason": "Pair-level output is measured/calculated at the common shaft. Individual torque constants, transmission losses, static friction and load share are confounded."
+      },
+      "raw_trace_refs": [
+        "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/data/exp2b_C-A-1_20260921_203519.csv"
+      ],
+      "notes": [
+        "Raw file independently reprocessed using OLS angle-vs-time slope within |q|<=8 deg; reconstructed mean 1.968757 rad/s."
+      ]
+    },
+    {
+      "run_id": "C-B-1",
+      "test_class": "dynamic_load",
+      "analysis_inclusion": "included",
+      "load_torque_nm": 17.5904,
+      "output_speed_rad_s": 1.6719,
+      "repetitions": 3,
+      "outcome": "completed",
+      "duration_s": null,
+      "first_limit_event": {
+        "status": "not_reached",
+        "actuator_id": null,
+        "limit_type": null,
+        "time_s": null,
+        "temperature_c": null,
+        "reason": "The reported test ended without reaching the declared temperature stop criterion."
+      },
+      "per_actuator_observations": [
+        {
+          "actuator_id": "9",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "unknown",
+            "value": null,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Per-unit terminal value not available in this run-log row."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        },
+        {
+          "actuator_id": "48",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "unknown",
+            "value": null,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Per-unit terminal value not available in this run-log row."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        }
+      ],
+      "pair_observations": [
+        {
+          "metric_id": "maximum_joint_speed_mean",
+          "value": 1.6719,
+          "unit": "rad/s",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Three encoder-derived repetitions in |q|<=8 deg window."
+        },
+        {
+          "metric_id": "maximum_joint_speed_between_run_sd",
+          "value": 0.0094,
+          "unit": "rad/s",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Source run ledger reports SD."
+        },
+        {
+          "metric_id": "speed_below_no_load_upper_bound",
+          "value": 36.1,
+          "unit": "percent",
+          "status": "derived",
+          "uncertainty": null,
+          "reason": "Source paper comparison against 2.618 rad/s no-load upper bound."
+        }
+      ],
+      "mechanical_share": {
+        "status": "not_identifiable",
+        "actuator_shares": [],
+        "pair_total_torque_nm": null,
+        "loss_torque_nm": null,
+        "model_or_assumption": "No independent per-path torque measurements. The external applied gravity moment is known, but the common-shaft drive contribution cannot be split between the two actuators from current alone.",
+        "reason": "Pair-level output is measured/calculated at the common shaft. Individual torque constants, transmission losses, static friction and load share are confounded."
+      },
+      "raw_trace_refs": [
+        "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/data/exp2b_C-B-1_20260923_184203.csv"
+      ],
+      "notes": [
+        "Raw file independently reprocessed using OLS angle-vs-time slope within |q|<=8 deg; reconstructed mean 1.671876 rad/s."
+      ]
+    },
+    {
+      "run_id": "C-C-1",
+      "test_class": "dynamic_load",
+      "analysis_inclusion": "included",
+      "load_torque_nm": 23.3934,
+      "output_speed_rad_s": 1.3653,
+      "repetitions": 3,
+      "outcome": "completed",
+      "duration_s": null,
+      "first_limit_event": {
+        "status": "not_reached",
+        "actuator_id": null,
+        "limit_type": null,
+        "time_s": null,
+        "temperature_c": null,
+        "reason": "The reported test ended without reaching the declared temperature stop criterion."
+      },
+      "per_actuator_observations": [
+        {
+          "actuator_id": "9",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "unknown",
+            "value": null,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Per-unit terminal value not available in this run-log row."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        },
+        {
+          "actuator_id": "48",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "unknown",
+            "value": null,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Per-unit terminal value not available in this run-log row."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        }
+      ],
+      "pair_observations": [
+        {
+          "metric_id": "maximum_joint_speed_mean",
+          "value": 1.3653,
+          "unit": "rad/s",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Three encoder-derived repetitions in |q|<=8 deg window."
+        },
+        {
+          "metric_id": "maximum_joint_speed_between_run_sd",
+          "value": 0.0165,
+          "unit": "rad/s",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Source table/run ledger reports SD."
+        },
+        {
+          "metric_id": "speed_below_no_load_upper_bound",
+          "value": 47.8,
+          "unit": "percent",
+          "status": "derived",
+          "uncertainty": null,
+          "reason": "Source paper comparison against 2.618 rad/s no-load upper bound."
+        },
+        {
+          "metric_id": "independent_raw_log_reconstruction_mean",
+          "value": 1.3653467243,
+          "unit": "rad/s",
+          "status": "derived",
+          "uncertainty": null,
+          "reason": "Recomputed by OLS on each of three repetitions in |q|<=8 deg using logged timestamps; same raw data, not physical replication."
+        }
+      ],
+      "mechanical_share": {
+        "status": "not_identifiable",
+        "actuator_shares": [],
+        "pair_total_torque_nm": null,
+        "loss_torque_nm": null,
+        "model_or_assumption": "No independent per-path torque measurements. The external applied gravity moment is known, but the common-shaft drive contribution cannot be split between the two actuators from current alone.",
+        "reason": "Pair-level output is measured/calculated at the common shaft. Individual torque constants, transmission losses, static friction and load share are confounded."
+      },
+      "raw_trace_refs": [
+        "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/data/exp2b_C-C-1_20260925_160329.csv"
+      ],
+      "notes": [
+        "Raw file SHA-256 not computed; Git blob SHA at source revision: c5086fc2d0934623aeeda97802f434d8cf99bd9e. Per-repetition reanalysis: 1.386610, 1.363176 and 1.346254 rad/s; reconstructed mean matches the published 1.3653 to displayed precision."
+      ]
+    },
+    {
+      "run_id": "A-A-1",
+      "test_class": "static_hold",
+      "analysis_inclusion": "included",
+      "load_torque_nm": 11.7275,
+      "output_speed_rad_s": null,
+      "repetitions": 1,
+      "outcome": "completed",
+      "duration_s": 600,
+      "first_limit_event": {
+        "status": "not_reached",
+        "actuator_id": null,
+        "limit_type": null,
+        "time_s": null,
+        "temperature_c": null,
+        "reason": "The reported test ended without reaching the declared temperature stop criterion."
+      },
+      "per_actuator_observations": [
+        {
+          "actuator_id": "9",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "reported",
+            "value": 36,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Internal actuator temperature register; not winding temperature."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        },
+        {
+          "actuator_id": "48",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "reported",
+            "value": 39,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Internal actuator temperature register; not winding temperature."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        }
+      ],
+      "pair_observations": [
+        {
+          "metric_id": "starting_temperature_actuator_9",
+          "value": 26,
+          "unit": "degC",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Internal device temperature at start."
+        },
+        {
+          "metric_id": "starting_temperature_actuator_48",
+          "value": 25,
+          "unit": "degC",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Internal device temperature at start."
+        },
+        {
+          "metric_id": "maximum_joint_angle_error",
+          "value": 0.345,
+          "unit": "deg",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Source run ledger."
+        }
+      ],
+      "mechanical_share": {
+        "status": "not_identifiable",
+        "actuator_shares": [],
+        "pair_total_torque_nm": null,
+        "loss_torque_nm": null,
+        "model_or_assumption": "No independent per-path torque measurements. The external applied gravity moment is known, but the common-shaft drive contribution cannot be split between the two actuators from current alone.",
+        "reason": "Pair-level output is measured/calculated at the common shaft. Individual torque constants, transmission losses, static friction and load share are confounded."
+      },
+      "raw_trace_refs": [
+        "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/data/exp1_A-A-1_20260920_181747.csv"
+      ],
+      "notes": [
+        "Completed 600 s static hold.",
+        "Source box/load stratum A."
+      ]
+    },
+    {
+      "run_id": "A-A-2",
+      "test_class": "static_hold",
+      "analysis_inclusion": "included",
+      "load_torque_nm": 11.7275,
+      "output_speed_rad_s": null,
+      "repetitions": 1,
+      "outcome": "completed",
+      "duration_s": 600,
+      "first_limit_event": {
+        "status": "not_reached",
+        "actuator_id": null,
+        "limit_type": null,
+        "time_s": null,
+        "temperature_c": null,
+        "reason": "The reported test ended without reaching the declared temperature stop criterion."
+      },
+      "per_actuator_observations": [
+        {
+          "actuator_id": "9",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "reported",
+            "value": 38,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Internal actuator temperature register; not winding temperature."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        },
+        {
+          "actuator_id": "48",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "reported",
+            "value": 42,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Internal actuator temperature register; not winding temperature."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        }
+      ],
+      "pair_observations": [
+        {
+          "metric_id": "starting_temperature_actuator_9",
+          "value": 30,
+          "unit": "degC",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Internal device temperature at start."
+        },
+        {
+          "metric_id": "starting_temperature_actuator_48",
+          "value": 31,
+          "unit": "degC",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Internal device temperature at start."
+        },
+        {
+          "metric_id": "maximum_joint_angle_error",
+          "value": 0.345,
+          "unit": "deg",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Source run ledger."
+        }
+      ],
+      "mechanical_share": {
+        "status": "not_identifiable",
+        "actuator_shares": [],
+        "pair_total_torque_nm": null,
+        "loss_torque_nm": null,
+        "model_or_assumption": "No independent per-path torque measurements. The external applied gravity moment is known, but the common-shaft drive contribution cannot be split between the two actuators from current alone.",
+        "reason": "Pair-level output is measured/calculated at the common shaft. Individual torque constants, transmission losses, static friction and load share are confounded."
+      },
+      "raw_trace_refs": [
+        "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/data/exp1_A-A-2_20260920_183712.csv"
+      ],
+      "notes": [
+        "Completed 600 s; actuator 48 reportedly peaked at 47 degC during the run.",
+        "Source box/load stratum A."
+      ]
+    },
+    {
+      "run_id": "A-A-3",
+      "test_class": "static_hold",
+      "analysis_inclusion": "included",
+      "load_torque_nm": 11.7275,
+      "output_speed_rad_s": null,
+      "repetitions": 1,
+      "outcome": "completed",
+      "duration_s": 600,
+      "first_limit_event": {
+        "status": "not_reached",
+        "actuator_id": null,
+        "limit_type": null,
+        "time_s": null,
+        "temperature_c": null,
+        "reason": "The reported test ended without reaching the declared temperature stop criterion."
+      },
+      "per_actuator_observations": [
+        {
+          "actuator_id": "9",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "reported",
+            "value": 40,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Internal actuator temperature register; not winding temperature."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        },
+        {
+          "actuator_id": "48",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "reported",
+            "value": 43,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Internal actuator temperature register; not winding temperature."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        }
+      ],
+      "pair_observations": [
+        {
+          "metric_id": "starting_temperature_actuator_9",
+          "value": 32,
+          "unit": "degC",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Internal device temperature at start."
+        },
+        {
+          "metric_id": "starting_temperature_actuator_48",
+          "value": 33,
+          "unit": "degC",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Internal device temperature at start."
+        },
+        {
+          "metric_id": "maximum_joint_angle_error",
+          "value": 0.345,
+          "unit": "deg",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Source run ledger."
+        }
+      ],
+      "mechanical_share": {
+        "status": "not_identifiable",
+        "actuator_shares": [],
+        "pair_total_torque_nm": null,
+        "loss_torque_nm": null,
+        "model_or_assumption": "No independent per-path torque measurements. The external applied gravity moment is known, but the common-shaft drive contribution cannot be split between the two actuators from current alone.",
+        "reason": "Pair-level output is measured/calculated at the common shaft. Individual torque constants, transmission losses, static friction and load share are confounded."
+      },
+      "raw_trace_refs": [
+        "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/data/exp1_A-A-3_20260920_185526.csv"
+      ],
+      "notes": [
+        "Completed 600 s static hold.",
+        "Source box/load stratum A."
+      ]
+    },
+    {
+      "run_id": "A-B-1",
+      "test_class": "static_hold",
+      "analysis_inclusion": "included",
+      "load_torque_nm": 17.5904,
+      "output_speed_rad_s": null,
+      "repetitions": 1,
+      "outcome": "completed",
+      "duration_s": 600,
+      "first_limit_event": {
+        "status": "not_reached",
+        "actuator_id": null,
+        "limit_type": null,
+        "time_s": null,
+        "temperature_c": null,
+        "reason": "The reported test ended without reaching the declared temperature stop criterion."
+      },
+      "per_actuator_observations": [
+        {
+          "actuator_id": "9",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "reported",
+            "value": 48,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Internal actuator temperature register; not winding temperature."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        },
+        {
+          "actuator_id": "48",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "reported",
+            "value": 59,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Internal actuator temperature register; not winding temperature."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        }
+      ],
+      "pair_observations": [
+        {
+          "metric_id": "starting_temperature_actuator_9",
+          "value": 26,
+          "unit": "degC",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Internal device temperature at start."
+        },
+        {
+          "metric_id": "starting_temperature_actuator_48",
+          "value": 26,
+          "unit": "degC",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Internal device temperature at start."
+        },
+        {
+          "metric_id": "maximum_joint_angle_error",
+          "value": 0.729,
+          "unit": "deg",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Source run ledger."
+        }
+      ],
+      "mechanical_share": {
+        "status": "not_identifiable",
+        "actuator_shares": [],
+        "pair_total_torque_nm": null,
+        "loss_torque_nm": null,
+        "model_or_assumption": "No independent per-path torque measurements. The external applied gravity moment is known, but the common-shaft drive contribution cannot be split between the two actuators from current alone.",
+        "reason": "Pair-level output is measured/calculated at the common shaft. Individual torque constants, transmission losses, static friction and load share are confounded."
+      },
+      "raw_trace_refs": [
+        "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/data/exp1_A-B-1_20260923_184531.csv"
+      ],
+      "notes": [
+        "Completed 600 s; actuator 48 reached 59 degC.",
+        "Source box/load stratum B."
+      ]
+    },
+    {
+      "run_id": "A-B-2",
+      "test_class": "static_hold",
+      "analysis_inclusion": "included",
+      "load_torque_nm": 17.5904,
+      "output_speed_rad_s": null,
+      "repetitions": 1,
+      "outcome": "completed",
+      "duration_s": 600,
+      "first_limit_event": {
+        "status": "not_reached",
+        "actuator_id": null,
+        "limit_type": null,
+        "time_s": null,
+        "temperature_c": null,
+        "reason": "The reported test ended without reaching the declared temperature stop criterion."
+      },
+      "per_actuator_observations": [
+        {
+          "actuator_id": "9",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "reported",
+            "value": 44,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Internal actuator temperature register; not winding temperature."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        },
+        {
+          "actuator_id": "48",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "reported",
+            "value": 51,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Internal actuator temperature register; not winding temperature."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        }
+      ],
+      "pair_observations": [
+        {
+          "metric_id": "starting_temperature_actuator_9",
+          "value": 35,
+          "unit": "degC",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Internal device temperature at start."
+        },
+        {
+          "metric_id": "starting_temperature_actuator_48",
+          "value": 35,
+          "unit": "degC",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Internal device temperature at start."
+        },
+        {
+          "metric_id": "maximum_joint_angle_error",
+          "value": 0.537,
+          "unit": "deg",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Source run ledger."
+        }
+      ],
+      "mechanical_share": {
+        "status": "not_identifiable",
+        "actuator_shares": [],
+        "pair_total_torque_nm": null,
+        "loss_torque_nm": null,
+        "model_or_assumption": "No independent per-path torque measurements. The external applied gravity moment is known, but the common-shaft drive contribution cannot be split between the two actuators from current alone.",
+        "reason": "Pair-level output is measured/calculated at the common shaft. Individual torque constants, transmission losses, static friction and load share are confounded."
+      },
+      "raw_trace_refs": [
+        "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/data/exp1_A-B-2_20260923_191649.csv"
+      ],
+      "notes": [
+        "Completed 600 s static hold.",
+        "Source box/load stratum B."
+      ]
+    },
+    {
+      "run_id": "A-B-3",
+      "test_class": "static_hold",
+      "analysis_inclusion": "included",
+      "load_torque_nm": 17.5904,
+      "output_speed_rad_s": null,
+      "repetitions": 1,
+      "outcome": "completed",
+      "duration_s": 600,
+      "first_limit_event": {
+        "status": "not_reached",
+        "actuator_id": null,
+        "limit_type": null,
+        "time_s": null,
+        "temperature_c": null,
+        "reason": "The reported test ended without reaching the declared temperature stop criterion."
+      },
+      "per_actuator_observations": [
+        {
+          "actuator_id": "9",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "reported",
+            "value": 43,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Internal actuator temperature register; not winding temperature."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        },
+        {
+          "actuator_id": "48",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "reported",
+            "value": 51,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Internal actuator temperature register; not winding temperature."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        }
+      ],
+      "pair_observations": [
+        {
+          "metric_id": "starting_temperature_actuator_9",
+          "value": 30,
+          "unit": "degC",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Internal device temperature at start."
+        },
+        {
+          "metric_id": "starting_temperature_actuator_48",
+          "value": 32,
+          "unit": "degC",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Internal device temperature at start."
+        },
+        {
+          "metric_id": "maximum_joint_angle_error",
+          "value": 0.537,
+          "unit": "deg",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Source run ledger."
+        }
+      ],
+      "mechanical_share": {
+        "status": "not_identifiable",
+        "actuator_shares": [],
+        "pair_total_torque_nm": null,
+        "loss_torque_nm": null,
+        "model_or_assumption": "No independent per-path torque measurements. The external applied gravity moment is known, but the common-shaft drive contribution cannot be split between the two actuators from current alone.",
+        "reason": "Pair-level output is measured/calculated at the common shaft. Individual torque constants, transmission losses, static friction and load share are confounded."
+      },
+      "raw_trace_refs": [
+        "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/data/exp1_A-B-3_20260923_193219.csv"
+      ],
+      "notes": [
+        "Completed 600 s static hold.",
+        "Source box/load stratum B."
+      ]
+    },
+    {
+      "run_id": "A-C-2",
+      "test_class": "static_hold",
+      "analysis_inclusion": "included",
+      "load_torque_nm": 23.3934,
+      "output_speed_rad_s": null,
+      "repetitions": 1,
+      "outcome": "thermal_stop",
+      "duration_s": 350.6,
+      "first_limit_event": {
+        "status": "observed",
+        "actuator_id": "48",
+        "limit_type": "internal device temperature >= 70 degC",
+        "time_s": 350.6,
+        "temperature_c": 70,
+        "reason": "First reported device to meet predeclared 70 degC stop threshold."
+      },
+      "per_actuator_observations": [
+        {
+          "actuator_id": "9",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "unknown",
+            "value": null,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Per-unit terminal value not available in this run-log row."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        },
+        {
+          "actuator_id": "48",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "reported",
+            "value": 70,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Internal actuator temperature register; not winding temperature."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        }
+      ],
+      "pair_observations": [
+        {
+          "metric_id": "starting_temperature_actuator_9",
+          "value": 28,
+          "unit": "degC",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Internal device temperature at start."
+        },
+        {
+          "metric_id": "starting_temperature_actuator_48",
+          "value": 28,
+          "unit": "degC",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Internal device temperature at start."
+        },
+        {
+          "metric_id": "maximum_joint_angle_error",
+          "value": 1.036,
+          "unit": "deg",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Source run ledger."
+        }
+      ],
+      "mechanical_share": {
+        "status": "not_identifiable",
+        "actuator_shares": [],
+        "pair_total_torque_nm": null,
+        "loss_torque_nm": null,
+        "model_or_assumption": "No independent per-path torque measurements. The external applied gravity moment is known, but the common-shaft drive contribution cannot be split between the two actuators from current alone.",
+        "reason": "Pair-level output is measured/calculated at the common shaft. Individual torque constants, transmission losses, static friction and load share are confounded."
+      },
+      "raw_trace_refs": [
+        "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/data/exp1_A-C-2_20260927_155011.csv"
+      ],
+      "notes": [
+        "Thermal stop at 70 degC on actuator 48; per-run other-unit terminal temperature is missing.",
+        "Source box/load stratum C."
+      ]
+    },
+    {
+      "run_id": "A-C-3",
+      "test_class": "static_hold",
+      "analysis_inclusion": "included",
+      "load_torque_nm": 23.3934,
+      "output_speed_rad_s": null,
+      "repetitions": 1,
+      "outcome": "thermal_stop",
+      "duration_s": 394.3,
+      "first_limit_event": {
+        "status": "observed",
+        "actuator_id": "48",
+        "limit_type": "internal device temperature >= 70 degC",
+        "time_s": 394.3,
+        "temperature_c": 70,
+        "reason": "First reported device to meet predeclared 70 degC stop threshold."
+      },
+      "per_actuator_observations": [
+        {
+          "actuator_id": "9",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "unknown",
+            "value": null,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Per-unit terminal value not available in this run-log row."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        },
+        {
+          "actuator_id": "48",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "reported",
+            "value": 70,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Internal actuator temperature register; not winding temperature."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        }
+      ],
+      "pair_observations": [
+        {
+          "metric_id": "starting_temperature_actuator_9",
+          "value": 30,
+          "unit": "degC",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Internal device temperature at start."
+        },
+        {
+          "metric_id": "starting_temperature_actuator_48",
+          "value": 31,
+          "unit": "degC",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Internal device temperature at start."
+        },
+        {
+          "metric_id": "maximum_joint_angle_error",
+          "value": 0.92,
+          "unit": "deg",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Source run ledger."
+        }
+      ],
+      "mechanical_share": {
+        "status": "not_identifiable",
+        "actuator_shares": [],
+        "pair_total_torque_nm": null,
+        "loss_torque_nm": null,
+        "model_or_assumption": "No independent per-path torque measurements. The external applied gravity moment is known, but the common-shaft drive contribution cannot be split between the two actuators from current alone.",
+        "reason": "Pair-level output is measured/calculated at the common shaft. Individual torque constants, transmission losses, static friction and load share are confounded."
+      },
+      "raw_trace_refs": [
+        "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/data/exp1_A-C-3_20260927_161804.csv"
+      ],
+      "notes": [
+        "Thermal stop at 70 degC on actuator 48; per-run other-unit terminal temperature is missing.",
+        "Source box/load stratum C."
+      ]
+    },
+    {
+      "run_id": "A-C-4",
+      "test_class": "static_hold",
+      "analysis_inclusion": "included",
+      "load_torque_nm": 23.3934,
+      "output_speed_rad_s": null,
+      "repetitions": 1,
+      "outcome": "thermal_stop",
+      "duration_s": 332.9,
+      "first_limit_event": {
+        "status": "observed",
+        "actuator_id": "48",
+        "limit_type": "internal device temperature >= 70 degC",
+        "time_s": 332.9,
+        "temperature_c": 70,
+        "reason": "First reported device to meet predeclared 70 degC stop threshold."
+      },
+      "per_actuator_observations": [
+        {
+          "actuator_id": "9",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "reported",
+            "value": 52,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Internal actuator temperature register; not winding temperature."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        },
+        {
+          "actuator_id": "48",
+          "current_a": {
+            "status": "unknown",
+            "value": null,
+            "unit": "A",
+            "uncertainty": null,
+            "reason": "No per-unit current value recorded in the summarized run ledger."
+          },
+          "voltage_v": {
+            "status": "unknown",
+            "value": null,
+            "unit": "V",
+            "uncertainty": null,
+            "reason": "Only assembly-level voltage range is given for this run."
+          },
+          "temperature_c": {
+            "status": "reported",
+            "value": 70,
+            "unit": "degC",
+            "uncertainty": null,
+            "reason": "Internal actuator temperature register; not winding temperature."
+          },
+          "temperature_location": "internal device sensor, address 43",
+          "electrical_effort_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "Per-run electrical share not disclosed."
+          },
+          "torque_share": {
+            "status": "unknown",
+            "value": null,
+            "unit": "fraction",
+            "uncertainty": null,
+            "reason": "No independent torque transducer per actuator path; mechanical contribution is not identifiable."
+          }
+        }
+      ],
+      "pair_observations": [
+        {
+          "metric_id": "starting_temperature_actuator_9",
+          "value": 30,
+          "unit": "degC",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Internal device temperature at start."
+        },
+        {
+          "metric_id": "starting_temperature_actuator_48",
+          "value": 32,
+          "unit": "degC",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Internal device temperature at start."
+        },
+        {
+          "metric_id": "maximum_joint_angle_error",
+          "value": 1.036,
+          "unit": "deg",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "Source run ledger."
+        }
+      ],
+      "mechanical_share": {
+        "status": "not_identifiable",
+        "actuator_shares": [],
+        "pair_total_torque_nm": null,
+        "loss_torque_nm": null,
+        "model_or_assumption": "No independent per-path torque measurements. The external applied gravity moment is known, but the common-shaft drive contribution cannot be split between the two actuators from current alone.",
+        "reason": "Pair-level output is measured/calculated at the common shaft. Individual torque constants, transmission losses, static friction and load share are confounded."
+      },
+      "raw_trace_refs": [
+        "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/data/exp1_A-C-4_20260927_164132.csv"
+      ],
+      "notes": [
+        "Thermal stop; actuator 9 was 52 degC while actuator 48 reached 70 degC (18 degC difference).",
+        "Source box/load stratum C."
+      ]
+    },
+    {
+      "run_id": "A-C-1-del (aggregate exclusion)",
+      "test_class": "static_hold",
+      "analysis_inclusion": "excluded",
+      "load_torque_nm": 23.3934,
+      "output_speed_rad_s": null,
+      "repetitions": 6,
+      "outcome": "indeterminate",
+      "duration_s": null,
+      "first_limit_event": {
+        "status": "unknown",
+        "actuator_id": null,
+        "limit_type": null,
+        "time_s": null,
+        "temperature_c": null,
+        "reason": "The source groups six attempts across dates/configurations; no single stop event applies to the aggregate."
+      },
+      "per_actuator_observations": [],
+      "pair_observations": [
+        {
+          "metric_id": "one_excluded_attempt_duration",
+          "value": 600,
+          "unit": "s",
+          "status": "reported",
+          "uncertainty": null,
+          "reason": "One 2026-09-27 hold in the group completed 600 s; source says it settled at the low end of the static-friction band."
+        },
+        {
+          "metric_id": "per_actuator_mechanical_share",
+          "value": null,
+          "unit": "fraction",
+          "status": "unknown",
+          "uncertainty": null,
+          "reason": "No independent path torque; lower static-friction contribution meant motors carried less of the load."
+        }
+      ],
+      "mechanical_share": {
+        "status": "not_identifiable",
+        "actuator_shares": [],
+        "pair_total_torque_nm": null,
+        "loss_torque_nm": null,
+        "model_or_assumption": "No independent per-path torque measurements. The external applied gravity moment is known, but the common-shaft drive contribution cannot be split between the two actuators from current alone.",
+        "reason": "Pair-level output is measured/calculated at the common shaft. Individual torque constants, transmission losses, static friction and load share are confounded."
+      },
+      "raw_trace_refs": [],
+      "notes": [
+        "Source run ledger states two attempts on 2026-09-25 with angle abort at 0.5 s, two further attempts at gain 128 with actuator 48 dropout, and two attempts on 2026-09-27. A 600 s 2026-09-27 hold with 0.575 deg droop and 21.9% Load2 was excluded by the author because it settled at the low end of the static-friction band. The associated file was deleted; this is an aggregate exclusion record, not six separately reconstructed runs."
+      ]
+    }
+  ],
+  "thermal_limits": [
+    {
+      "actuator_id": "9",
+      "location": "internal device temperature sensor (address 43)",
+      "limit_temperature_c": 70,
+      "status": "known",
+      "source": "Prespecified stop criterion; reported internal register, not winding temperature."
+    },
+    {
+      "actuator_id": "48",
+      "location": "internal device temperature sensor (address 43)",
+      "limit_temperature_c": 70,
+      "status": "known",
+      "source": "Prespecified stop criterion; reported internal register, not winding temperature."
+    }
+  ],
+  "evidence": [
+    {
+      "reference": "https://doi.org/10.3390/app162010145",
+      "source_class": "paper_reported_physical_measurement",
+      "method": "Published methods/results and the paper's reported loaded-speed and static-hold tables.",
+      "date": "2026-10-13",
+      "independence": "not_assessed"
+    },
+    {
+      "reference": "https://github.com/yjh-mcut/redesign-methodology",
+      "source_class": "other",
+      "method": "Public source repository containing bench acquisition/analysis code, run ledger, setup record and 48 raw logs under MIT license.",
+      "date": null,
+      "independence": "not_assessed"
+    },
+    {
+      "reference": "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/sheet_B_runlog.csv",
+      "source_class": "other",
+      "method": "Run-by-run ledger parsed independently: 49 rows, 26 marked valid/included and 23 invalid/excluded.",
+      "date": null,
+      "independence": "not_assessed"
+    },
+    {
+      "reference": "https://github.com/yjh-mcut/redesign-methodology/blob/main/bench/data/exp2b_C-C-1_20260925_160329.csv",
+      "source_class": "other",
+      "method": "Raw maximum-speed trace; independently reprocessed by OLS encoder angle versus logged timestamp over |q|<=8 deg for three repetitions. Git blob SHA c5086fc2d0934623aeeda97802f434d8cf99bd9e.",
+      "date": null,
+      "independence": "not_assessed"
+    }
+  ],
+  "claim_ceiling": "Source-derived bench characterization of one MX-106 actuator pair on a 24:55 common-shaft hip-roll rig. Independently recomputed speed means use the same author's raw logs and are not an independent physical replication. Per-actuator mechanical torque share is not identifiable. Static-hold performance includes static gear-train friction. Not gait performance, universal actuator capacity, pair-level safety qualification, or a transferable beta correction factor.",
+  "notes": [
+    "The 300 mm lever has an equivalent mass of 0.3622/0.3874/0.3892 kg for boxes A/B/C. Applied moments are 11.7275, 17.5904 and 23.3934 N m; empty lever is 1.1454 N m.",
+    "A single-direction static resisting torque of 0.61 N m was measured for the mounted gear train. It is not a bidirectional running-friction or hysteresis map.",
+    "The no-load upper speed was estimated as 2.618 rad/s. Maximum loaded speeds were 1.9688, 1.6719 and 1.3653 rad/s at 11.7275, 17.5904 and 23.3934 N m; high-load result is 47.8% below the no-load bound.",
+    "At the heaviest load, thermal-stop runs ended at 332.9, 350.6 and 394.3 s when actuator 48 reported 70 degC; in the run with both terminal values, actuator 9 was 52 degC (18 degC difference). The paper reports the partner was 51-52 degC and the delta 18-19 degC.",
+    "Across SF 1.52 and 2.02 holds, the hotter unit's median share of measured pair current was 0.68-0.70. Store this as electrical effort evidence only, not mechanical torque sharing.",
+    "A-C-1-del is retained as an aggregate exclusion note. The author says the file was deleted because the 600 s run settled at the low end of the static-friction band and the motors carried less of the load.",
+    "Independent raw-log reconstruction rule: per repetition, regress joint angle (radians) on logged timestamps within |q|<=8 deg and take absolute slope. Reconstructed means: A=1.9687573674 rad/s, B=1.6718757964 rad/s, C=1.3653467243 rad/s, empty=2.5781276294 rad/s. These agree with the paper's displayed means; computation is independent, underlying measurement is not."
+  ]
+}
