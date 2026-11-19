@@ -151,6 +151,8 @@ pub struct FaultScenarioV1 {
 #[serde(deny_unknown_fields)]
 pub struct CampaignV1 {
     pub id: String,
+    pub evidence_class: String,
+    pub claim_ceiling: String,
     pub cargo_lots: Vec<CargoLotV1>,
     pub nodes: Vec<ChainNodeV1>,
     pub resource_qualifications: Vec<ResourceQualificationV1>,
@@ -194,6 +196,8 @@ pub enum FindingCode {
     DuplicateDependency,
     UnknownFailureDomain,
     DuplicateFaultScenario,
+    EvidenceClassMissing,
+    ClaimCeilingMissing,
 }
 
 /// One deterministic validation finding.
@@ -247,6 +251,8 @@ pub struct CargoDeliveryV1 {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct CampaignReportV1 {
     pub schema_version: &'static str,
+    pub evidence_class: String,
+    pub claim_ceiling: String,
     pub disposition: CampaignDisposition,
     pub total_cargo_mass_grams: u64,
     /// Zero unless the entire baseline campaign is Ready.
@@ -266,6 +272,12 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
         || !valid_id(&campaign.orbit_service.destination_node_id)
     {
         push_finding(&mut findings, FindingCode::InvalidIdentifier, &campaign.id);
+    }
+    if campaign.evidence_class.trim().is_empty() {
+        push_finding(&mut findings, FindingCode::EvidenceClassMissing, &campaign.id);
+    }
+    if campaign.claim_ceiling.trim().is_empty() {
+        push_finding(&mut findings, FindingCode::ClaimCeilingMissing, &campaign.id);
     }
     if campaign.cargo_lots.is_empty() {
         push_finding(&mut findings, FindingCode::EmptyCampaign, &campaign.id);
@@ -565,6 +577,8 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
 
     CampaignReportV1 {
         schema_version: SCHEMA_VERSION,
+        evidence_class: campaign.evidence_class.clone(),
+        claim_ceiling: campaign.claim_ceiling.clone(),
         disposition,
         total_cargo_mass_grams,
         accepted_delivered_cargo_mass_grams,
@@ -723,6 +737,8 @@ fn is_evidence_finding(code: FindingCode) -> bool {
             | FindingCode::MalformedReceiptDigest
             | FindingCode::EvidenceUnknown
             | FindingCode::EvidenceUnsupported
+            | FindingCode::EvidenceClassMissing
+            | FindingCode::ClaimCeilingMissing
     )
 }
 
@@ -767,6 +783,8 @@ mod tests {
     fn baseline() -> CampaignV1 {
         CampaignV1 {
             id: "campaign-1".to_owned(),
+            evidence_class: "synthetic".to_owned(),
+            claim_ceiling: "Synthetic chain fixture only; no physical launch or service claim.".to_owned(),
             cargo_lots: vec![CargoLotV1 {
                 id: "payload-1".to_owned(),
                 mass_grams: 1_000,
@@ -945,6 +963,21 @@ mod tests {
         let delivery = &report.cargo_deliveries[0];
         assert_eq!(delivery.arrival_epoch_seconds, Some(50));
         assert_eq!(delivery.status, CargoDeliveryStatus::NotAccepted);
+    }
+
+    #[test]
+    fn missing_evidence_class_or_claim_ceiling_never_passes() {
+        let mut campaign = baseline();
+        campaign.evidence_class.clear();
+        let report = evaluate_campaign(&campaign);
+        assert_eq!(report.disposition, CampaignDisposition::NeedsEvidence);
+        assert!(has_finding(&report, FindingCode::EvidenceClassMissing));
+
+        let mut campaign = baseline();
+        campaign.claim_ceiling.clear();
+        let report = evaluate_campaign(&campaign);
+        assert_eq!(report.disposition, CampaignDisposition::NeedsEvidence);
+        assert!(has_finding(&report, FindingCode::ClaimCeilingMissing));
     }
 
     #[test]
