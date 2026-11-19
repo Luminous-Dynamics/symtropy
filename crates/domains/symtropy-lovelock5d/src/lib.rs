@@ -1103,8 +1103,28 @@ mod tests {
         for radius in [1.1, 1.5, 2.0, 3.0, 5.0, 10.0] {
             let slow_profile = slow.evaluate(radius).unwrap();
             let mp_profile = mp.evaluate(radius).unwrap();
-            close(slow_profile.sample.w, mp_profile.w, 2e-6 * a.powi(3));
-            close(slow_profile.sample.w_prime, mp_profile.w_prime, 2e-6 * a.powi(3));
+            let u = (r_h / radius).powi(2);
+            let q = r_h.powi(2) * (a / r_h.powi(2)).powi(2);
+            let denominator = 1.0 - q + q * u.powi(2);
+            let predicted_difference = a.powi(3) / r_h.powi(4)
+                * u.powi(2) * (1.0 - u.powi(2)) / denominator;
+            let u_prime = -2.0 * u / radius;
+            let d_difference_du =
+                (2.0 * u - 4.0 * u.powi(3)) / denominator
+                - (u.powi(2) - u.powi(4)) * (2.0 * q * u)
+                    / denominator.powi(2);
+            let predicted_derivative_difference =
+                a.powi(3) / r_h.powi(4) * d_difference_du * u_prime;
+            close(
+                mp_profile.w - slow_profile.sample.w,
+                predicted_difference,
+                2e-15,
+            );
+            close(
+                mp_profile.w_prime - slow_profile.sample.w_prime,
+                predicted_derivative_difference,
+                2e-15,
+            );
         }
     }
 
