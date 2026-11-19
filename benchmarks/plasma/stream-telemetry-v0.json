@@ -9,7 +9,8 @@
     "max_source_age_ns": 500000,
     "deadline_from_acquisition_ns": 250000,
     "max_clock_uncertainty_ns": 1000,
-    "max_queue_depth": 8
+    "max_queue_depth": 8,
+    "max_source_period_deviation_ns": 100000
   },
   "calibrations": [
     {
@@ -43,30 +44,115 @@
       "sample_id": "bes-001",
       "sequence_number": 1,
       "ingress": "received",
-      "source_time": {"time_ns": 1000000000, "clock_domain_id": "digitizer", "calibration_id": "digitizer-to-tai", "uncertainty_ns": 10},
-      "acquisition_time": {"time_ns": 1000000010, "clock_domain_id": "digitizer", "calibration_id": "digitizer-to-tai", "uncertainty_ns": 10},
-      "receive_time": {"time_ns": 1000000050, "clock_domain_id": "host", "calibration_id": "host-to-tai", "uncertainty_ns": 10},
-      "processing_start_time": {"time_ns": 1000000070, "clock_domain_id": "host", "calibration_id": "host-to-tai", "uncertainty_ns": 10},
-      "processing_end_time": {"time_ns": 1000000120, "clock_domain_id": "host", "calibration_id": "host-to-tai", "uncertainty_ns": 10},
-      "decision_time": {"time_ns": 1000000150, "clock_domain_id": "host", "calibration_id": "host-to-tai", "uncertainty_ns": 10},
+      "source_time": {
+        "time_ns": 1000000000,
+        "clock_domain_id": "digitizer",
+        "calibration_id": "digitizer-to-tai",
+        "uncertainty_ns": 10
+      },
+      "acquisition_time": {
+        "time_ns": 1000000010,
+        "clock_domain_id": "digitizer",
+        "calibration_id": "digitizer-to-tai",
+        "uncertainty_ns": 10
+      },
+      "receive_time": {
+        "time_ns": 1000000050,
+        "clock_domain_id": "host",
+        "calibration_id": "host-to-tai",
+        "uncertainty_ns": 10
+      },
+      "processing_start_time": {
+        "time_ns": 1000000070,
+        "clock_domain_id": "host",
+        "calibration_id": "host-to-tai",
+        "uncertainty_ns": 10
+      },
+      "processing_end_time": {
+        "time_ns": 1000000120,
+        "clock_domain_id": "host",
+        "calibration_id": "host-to-tai",
+        "uncertainty_ns": 10
+      },
+      "decision_time": {
+        "time_ns": 1000000150,
+        "clock_domain_id": "host",
+        "calibration_id": "host-to-tai",
+        "uncertainty_ns": 10
+      },
       "queue_depth": 2,
-      "model": {"artifact_id": "elm-model", "revision": "sha-pinned-v1", "artifact_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "runtime_id": "cpu-replay", "verification_evidence_sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"},
-      "acknowledgement": {"acknowledgement_id": "ack-001", "state": "acknowledged", "timestamp": {"time_ns": 1000000180, "clock_domain_id": "host", "calibration_id": "host-to-tai", "uncertainty_ns": 10}}
+      "model": {
+        "artifact_id": "elm-model",
+        "revision": "sha-pinned-v1",
+        "artifact_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "runtime_id": "cpu-replay",
+        "verification_evidence_sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+      },
+      "acknowledgement": {
+        "acknowledgement_id": "ack-001",
+        "state": "acknowledged",
+        "timestamp": {
+          "time_ns": 1000000180,
+          "clock_domain_id": "host",
+          "calibration_id": "host-to-tai",
+          "uncertainty_ns": 10
+        }
+      }
     },
     {
       "event_id": "evt-002",
       "sample_id": "bes-002",
       "sequence_number": 3,
       "ingress": "received",
-      "source_time": {"time_ns": 1001000000, "clock_domain_id": "digitizer", "calibration_id": "digitizer-to-tai", "uncertainty_ns": 10},
-      "acquisition_time": {"time_ns": 1001000010, "clock_domain_id": "digitizer", "calibration_id": "digitizer-to-tai", "uncertainty_ns": 10},
-      "receive_time": {"time_ns": 1001000050, "clock_domain_id": "host", "calibration_id": "host-to-tai", "uncertainty_ns": 10},
-      "processing_start_time": {"time_ns": 1001000070, "clock_domain_id": "host", "calibration_id": "host-to-tai", "uncertainty_ns": 10},
-      "processing_end_time": {"time_ns": 1001000120, "clock_domain_id": "host", "calibration_id": "host-to-tai", "uncertainty_ns": 10},
-      "decision_time": {"time_ns": 1001000150, "clock_domain_id": "host", "calibration_id": "host-to-tai", "uncertainty_ns": 10},
+      "source_time": {
+        "time_ns": 1001000000,
+        "clock_domain_id": "digitizer",
+        "calibration_id": "digitizer-to-tai",
+        "uncertainty_ns": 10
+      },
+      "acquisition_time": {
+        "time_ns": 1001000010,
+        "clock_domain_id": "digitizer",
+        "calibration_id": "digitizer-to-tai",
+        "uncertainty_ns": 10
+      },
+      "receive_time": {
+        "time_ns": 1001000050,
+        "clock_domain_id": "host",
+        "calibration_id": "host-to-tai",
+        "uncertainty_ns": 10
+      },
+      "processing_start_time": {
+        "time_ns": 1001000070,
+        "clock_domain_id": "host",
+        "calibration_id": "host-to-tai",
+        "uncertainty_ns": 10
+      },
+      "processing_end_time": {
+        "time_ns": 1001000120,
+        "clock_domain_id": "host",
+        "calibration_id": "host-to-tai",
+        "uncertainty_ns": 10
+      },
+      "decision_time": {
+        "time_ns": 1001000150,
+        "clock_domain_id": "host",
+        "calibration_id": "host-to-tai",
+        "uncertainty_ns": 10
+      },
       "queue_depth": 3,
-      "model": {"artifact_id": "elm-model", "revision": "sha-pinned-v1", "artifact_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "runtime_id": "cpu-replay", "verification_evidence_sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"},
-      "acknowledgement": {"acknowledgement_id": "ack-002", "state": "unknown", "timestamp": null}
+      "model": {
+        "artifact_id": "elm-model",
+        "revision": "sha-pinned-v1",
+        "artifact_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "runtime_id": "cpu-replay",
+        "verification_evidence_sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+      },
+      "acknowledgement": {
+        "acknowledgement_id": "ack-002",
+        "state": "unknown",
+        "timestamp": null
+      }
     }
   ]
 }
