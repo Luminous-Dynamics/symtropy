@@ -45,11 +45,27 @@ jobs:
           root = Path("docs/research/power-fabric-restoration-bridge/data")
           schema = json.loads((root / "restoration-bridge-v0.1.schema.json").read_text())
           fixture = json.loads((root / "synthetic-delayed-restoration-v0.1.json").read_text())
+          register_schema = json.loads((root / "external-benchmark-register-v0.1.schema.json").read_text())
+          register = json.loads((root / "external-benchmark-register-v0.1.json").read_text())
 
           Draft202012Validator.check_schema(schema)
           validator = Draft202012Validator(schema)
           errors = sorted(validator.iter_errors(fixture), key=lambda err: list(err.path))
           assert not errors, "\\n".join(f"{list(err.path)}: {err.message}" for err in errors)
+
+          Draft202012Validator.check_schema(register_schema)
+          register_validator = Draft202012Validator(register_schema)
+          register_errors = sorted(register_validator.iter_errors(register), key=lambda err: list(err.path))
+          assert not register_errors, "\\n".join(f"{list(err.path)}: {err.message}" for err in register_errors)
+          record_ids = [record["recordId"] for record in register["records"]]
+          assert len(record_ids) == len(set(record_ids)), "duplicate external benchmark register identity"
+          for record in register["records"]:
+              if record["category"] == "active_standards_project":
+                  assert record["status"] == "active_par"
+                  assert "not a published replacement" in record["limitations"]
+              if record["category"] == "restoration_dataset_and_method":
+                  assert record["importStatus"] == "metadata_registered_not_imported"
+                  assert record["licenseStatus"] == "dataset_license_and_redistribution_review_required"
 
           def instant(value: str) -> datetime:
               parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
@@ -133,7 +149,9 @@ jobs:
           assert not list(validator.iter_errors(schedule_only)), "schedule-only record should remain valid without a service assertion"
           assert not schedule_only["serviceStreams"]
 
-          print("PASS: Draft 2020-12 schema, fixture references, temporal order, normalization and source accounting")
+          print("PASS: Draft 2020-12 bridge schema and external register schemas")
+          print("PASS: external register IDs and status/licensing claim boundaries")
+          print("PASS: fixture references, temporal order, normalization and source accounting")
           print("PASS: planned schedule cannot create service availability")
           print("PASS: stale service, false measured evidence and schedule-only cases are handled")
           PY
