@@ -25,6 +25,7 @@ Each objective and constraint carries one evidence class:
 - **SourceAuthorPhysical:** physical test reported by the source authors;
 - **VendorPhysical:** vendor-run physical test/specification, not independent;
 - **ModelDerived:** analytically or numerically derived, not an independent physical result;
+- **CalibratedModelPrediction:** a model prediction carrying a valid specimen-grouped calibration receipt. It remains Conditional, never IndependentPhysical;
 - **Unknown:** source/method/evidence state is unavailable or not established.
 
 The candidate is classified using its weakest evidence:
@@ -34,6 +35,14 @@ The candidate is classified using its weakest evidence:
 - **Unknown:** any required field, metric value, margin or evidence classification is missing/unknown.
 
 No Pareto dominance crosses these lanes. These are disclosure/qualification lanes, not universal quality scores. A vendor result may be carefully measured and valuable, but it is not relabelled as independent.
+
+### Calibration-bound model predictions
+
+A CalibratedModelPrediction record must carry a typed specimen-group calibration receipt linked to [ACTUATOR-SURROGATE-CALIBRATION-001 #6262](https://github.com/Luminous-Dynamics/symtropy/issues/6262) / [PR #6263](https://github.com/Luminous-Dynamics/symtropy/pull/6263). The receipt retains the calibration report digest, model and train/calibration/test split digests, system-boundary/condition/mission/domain identities, finite-sample rank and correction, independent specimen counts, held-out in-domain/covered/uncovered/OOD counts, empirical group coverage, Wilson interval and underlying physical measurement evidence class.
+
+The receipt must match the candidate's model, prediction domain, complete system boundary, operating conditions and mission. It is rejected if the split identities overlap, the conformal rank is insufficient, the held-out in-domain denominator is empty, coverage counts are inconsistent, or the Wilson interval is invalid.
+
+**This reference's current conformal calibration is for output torque only.** It can qualify an N·m torque-margin prediction; it cannot be reused to claim calibrated mass, thermal margin or energy. A calibrated torque prediction remains a model prediction and is deliberately retained in the Conditional evidence lane. A receipt attached to IndependentPhysical or another uncalibrated class is rejected rather than used to launder the claim.
 
 ## 3. Cohort identity: what must match before ranking
 
@@ -135,7 +144,7 @@ cargo clippy --manifest-path benchmarks/synthetic-joints/robust-actuator-pareto/
 
 Dedicated workflow: `.github/workflows/robust-actuator-pareto.yml`. The authoring environment has no local Cargo/rustc/rustfmt; exact-head CI is required before compilation, formatting or Clippy is reported as passing.
 
-Twenty-four Rust tests cover mixed objective directions, trade-off preservation, evidence-lane isolation, hard violation, unknown margin/evidence, known violation with unrelated unknowns, duplicate IDs, shape/unit/non-finite validation, equal objective vectors, missing objectives/source, stale configuration/conditions, metric names, mission/stress/system-boundary cohort isolation, explicit violation receipts and complete candidate retention.
+Thirty-two Rust tests cover mixed objective directions, trade-off preservation, evidence-lane isolation, hard violation, unknown margin/evidence, known violation with unrelated unknowns, duplicate IDs, shape/unit/non-finite validation, equal objective vectors, missing objectives/source, stale configuration/conditions, metric names, mission/stress/system-boundary cohort isolation, explicit violation receipts, complete candidate retention, calibrated predictions remaining Conditional, no cross-lane dominance, missing/stale/insufficient calibration rejection, torque-only receipt use and calibration provenance in violation receipts.
 
 ## 9. M1–M5 roadmap
 
