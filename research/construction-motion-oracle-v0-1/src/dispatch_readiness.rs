@@ -460,14 +460,23 @@ fn is_sha256(value: &str) -> bool {
 mod tests {
     use super::*;
     use crate::field_layout_acceptance::{DesignIntentEntity, FieldAcceptanceProfile, FieldLayoutEntityType};
-    use crate::site_state_ledger::{SiteActorRole, SiteEventEnvelope, SiteEventPayload, SiteWorkPackage};
+    use crate::site_state_ledger::{
+        SiteActorRegistry, SiteActorRole, SiteEventEnvelope, SiteEventPayload, SiteWorkPackage,
+    };
 
     fn digest(value: char) -> String {
         std::iter::repeat_n(value, 64).collect()
     }
 
     fn site_ledger() -> SiteStateLedger {
-        let mut ledger = SiteStateLedger::new();
+        let mut actors = SiteActorRegistry::new();
+        actors
+            .grant("design-authority", SiteActorRole::DesignAuthority)
+            .unwrap();
+        actors.grant("surveyor", SiteActorRole::Surveyor).unwrap();
+        actors.grant("robot-01", SiteActorRole::Robot).unwrap();
+        actors.grant("referee", SiteActorRole::Referee).unwrap();
+        let mut ledger = SiteStateLedger::with_actor_registry(actors);
         let package = SiteWorkPackage {
             package_sha256: digest('a'),
             source_model_sha256: digest('b'),
@@ -989,6 +998,67 @@ mod tests {
             check_dispatch_readiness(&ledger, &request),
             Err(DispatchReadinessFailure::UnsupportedSchemaVersion)
         );
+    }
+
+
+    #[test]
+    fn dispatch_requires_robot_identity_registered_for_robot_role() {
+        let ledger = site_ledger();
+        let mut request = make_request(&ledger);
+        request.envelope.robot_id = "unregistered-robot".into();
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &request),
+            Err(DispatchReadinessFailure::RobotIdentityNotRegistered)
+        );
+    }
+
+    #[test]
+    fn readiness_receipt_preserves_full_execution_and_occupancy_context() {
+        let ledger = site_ledger();
+        let request = make_request(&ledger);
+        let receipt = check_dispatch_readiness(&ledger, &request).unwrap();
+        assert_eq!(receipt.frame_sha256, request.envelope.frame_sha256);
+        assert_eq!(receipt.transform_sha256, request.envelope.transform_sha256);
+        assert_eq!(
+            receipt.robot_configuration_sha256,
+            request.envelope.robot_configuration_sha256
+        );
+        assert_eq!(
+            receipt.tool_configuration_sha256,
+            request.envelope.tool_configuration_sha256
+        );
+        assert_eq!(
+            receipt.payload_configuration_sha256,
+            request.envelope.payload_configuration_sha256
+        );
+        assert_eq!(
+            receipt.primitive_manifest_sha256,
+            request.envelope.primitive_manifest_sha256
+        );
+        assert_eq!(receipt.trajectory_sha256, request.envelope.trajectory_sha256);
+        assert_eq!(
+            receipt.dynamic_occupancy_manifest_sha256,
+            request.occupancy.dynamic_occupancy_manifest_sha256
+        );
+        assert_eq!(receipt.actor_manifest_sha256, request.occupancy.actor_manifest_sha256);
+        assert_eq!(receipt.candidate_pair_count, request.occupancy.candidate_pair_count);
+        assert_eq!(
+            receipt.narrowphase_evaluated_pair_count,
+            request.occupancy.narrowphase_evaluated_pair_count
+        );
+    }
+
+    #[test]
+    fn modified_readiness_context_is_detected_by_the_signed_receipt_comparison_layer() {
+        let ledger = site_ledger();
+        let request = make_request(&ledger);
+        let receipt = check_dispatch_readiness(&ledger, &request).unwrap();
+        let mut changed = receipt.clone();
+        changed.robot_configuration_sha256 = digest('0');
+        assert_ne!(changed, receipt);
+        // This module intentionally does not authenticate the receipt. The
+        // caller's canonical digest/signature must cover every field, and the
+        // changed payload must therefore have a different signed byte string.
     }
 
 }
