@@ -7,7 +7,8 @@ This tool does not download or decode GRIB/NetCDF, generate forecasts, interpola
 ## Commands
 
     cargo test --manifest-path tools/marine-forecast-replay-audit/Cargo.toml
-    cargo run --manifest-path tools/marine-forecast-replay-audit/Cargo.toml -- tools/marine-forecast-replay-audit/fixtures/synthetic-replay-bundle-0001.json
+    cargo run --manifest-path tools/marine-forecast-replay-audit/Cargo.toml -- audit-bundle tools/marine-forecast-replay-audit/fixtures/synthetic-replay-bundle-0001.json
+    cargo run --manifest-path tools/marine-forecast-replay-audit/Cargo.toml -- validate-splits tools/marine-forecast-replay-audit/fixtures/synthetic-episode-split-manifest-0001.json
     cargo clippy --manifest-path tools/marine-forecast-replay-audit/Cargo.toml --all-targets -- -D warnings
 
 ## Information-set rules
@@ -23,3 +24,10 @@ This tool does not download or decode GRIB/NetCDF, generate forecasts, interpola
 - A syntactically valid SHA-256 digest identifies bytes but does not authenticate a publisher or prove measurement quality.
 
 The fixture is synthetic and must remain SYNTHETIC_ONLY. No real NOAA/ECMWF/Copernicus/NDBC or vendor objects are included.
+
+
+## Grouped holdout splits
+
+The validate-splits command checks a preregistered episode manifest before any benchmark score is calculated. It keeps complete voyages and weather-event groups within one fold, rejects reused replay-bundle digests across folds, rejects overlapping episodes within a voyage, requires unique decision IDs and chronological samples, and requires at least three declared strata in the held-out test fold.
+
+Random row-level or adjacent-timestep splits are not admissible for claims about forecast-regret or generalization. A valid split manifest proves only partition integrity; it does not establish statistical power, environmental independence or benchmark superiority. The included nine-episode fixture is synthetic and must remain SYNTHETIC_ONLY.
