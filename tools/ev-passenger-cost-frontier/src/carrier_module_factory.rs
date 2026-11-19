@@ -454,7 +454,7 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
 
     let target_good_modules = target_good_modules;
     let attempts = attempts;
-    let all_cells_known = station_results.iter().all(|station| station.parallel_cells_required.is_some());
+    let all_cells_known = station_results.iter().all(|station| station.parallel_cells_sized.is_some());
     let cells_total = all_cells_known.then_some(total_cells);
     let operators_total = station_results.iter().all(|station| station.operators_per_shift.is_some())
         .then_some(total_operators);
