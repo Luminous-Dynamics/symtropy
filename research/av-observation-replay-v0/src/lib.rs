@@ -593,25 +593,24 @@ pub fn validate_bundle_v1(bundle: &AgentObservationBundleV1) -> Result<(), Contr
                 let (sensor_id, source_sequence) = observation_by_id
                     .get(id)
                     .ok_or(ContractError::MissingObservationReference)?;
-                if *sensor_id != event.sensor_id || *source_sequence != event.source_sequence {
+                if *sensor_id != event.sensor_id.as_str() || *source_sequence != event.source_sequence {
                     return Err(ContractError::ObservationReferenceMismatch);
                 }
                 if delivered_ids.contains_key(id) {
                     return Err(ContractError::InvalidTransportSemantics);
                 }
                 let high = high_water.get(&event.sensor_id).copied();
-                match event.disposition {
+                let valid_first_delivery = match event.disposition {
                     TransportDispositionV1::Delivered => {
-                        if high.is_some_and(|previous| event.source_sequence <= previous) {
-                            return Err(ContractError::InvalidTransportSemantics);
-                        }
+                        !high.is_some_and(|previous| event.source_sequence <= previous)
                     }
                     TransportDispositionV1::Reordered => {
-                        if high.is_none_or(|previous| event.source_sequence >= previous) {
-                            return Err(ContractError::InvalidTransportSemantics);
-                        }
+                        high.is_some_and(|previous| event.source_sequence < previous)
                     }
-                    _ => unreachable!("matched first-delivery dispositions"),
+                    _ => false,
+                };
+                if !valid_first_delivery {
+                    return Err(ContractError::InvalidTransportSemantics);
                 }
                 high_water
                     .entry(event.sensor_id.clone())
