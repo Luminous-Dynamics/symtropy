@@ -153,6 +153,7 @@ pub struct PlannedSegment {
     pub start_hour: f64,
     pub end_hour: f64,
     pub productive_effort_hours: f64,
+    pub interruption_cause: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -420,7 +421,8 @@ fn validate_reconciliations(
 
         let changed = old.version != new.version
             || old.state != new.state
-            || old.active_segment_id != new.active_segment_id;
+            || old.active_segment_id != new.active_segment_id
+            || old.source_evidence_ref != new.source_evidence_ref;
         let reconciliation = reconciliation_by_commitment.get(commitment_id);
 
         if !changed {
@@ -932,6 +934,15 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
         {
             errors.push(format!("checkpointed task {key} must declare at least one legal checkpoint"));
         }
+        let mut required_resource_ids = BTreeSet::new();
+        for requirement in &task.resource_requirements {
+            if requirement.resource_id.trim().is_empty()
+                || requirement.units == 0
+                || !required_resource_ids.insert(requirement.resource_id.as_str())
+            {
+                errors.push(format!("task {key} has an empty, zero-unit or duplicate resource requirement"));
+            }
+        }
         let mut dependency_ids = BTreeSet::new();
         for dependency in &task.depends_on {
             if !dependency_ids.insert(dependency) {
@@ -1019,10 +1030,20 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
         errors.push("proposed plan must retain all baseline commitment IDs".to_string());
     }
     let reconciliation_by_commitment = validate_reconciliations(case, &tasks_by_key, &mut errors);
+    let work_event_ids: BTreeSet<_> = events.iter().map(|event| event.event_id.as_str()).collect();
+    for reconciliation in &case.reconciliations {
+        if work_event_ids.contains(reconciliation.event_id.as_str()) {
+            errors.push(format!("reconciliation event ID {} collides with a work event", reconciliation.event_id));
+        }
+    }
 
     let segment_views = build_segment_views(&events, &mut errors);
     let mut planned_by_task: BTreeMap<String, Vec<&PlannedSegment>> = BTreeMap::new();
     let mut planned_ids = BTreeSet::new();
+    let historical_segment_ids: BTreeSet<String> = segment_views
+        .values()
+        .flat_map(|views| views.iter().map(|view| view.segment_id.clone()))
+        .collect();
 
     for segment in &case.planned_segments {
         let key = task_key(&segment.event_id, &segment.task_id);
@@ -1031,6 +1052,7 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
             continue;
         }
         if segment.segment_id.trim().is_empty()
+            || historical_segment_ids.contains(&segment.segment_id)
             || !planned_ids.insert(segment.segment_id.as_str())
             || !finite_nonnegative(segment.start_hour)
             || !finite_nonnegative(segment.end_hour)
@@ -1057,7 +1079,7 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
     for (key, task) in &tasks_by_key {
         let views = segment_views.get(key).cloned().unwrap_or_default();
         let planned = planned_by_task.get(key).cloned().unwrap_or_default();
-        let mut all_segments: Vec<(u32, f64, f64, f64, bool, Option<String>, String)> = Vec::new();
+        let mut all_segments: Vec<(u32, f64, f64, f64, bool, bool, Option<String>, String)> = Vec::new();
 
         for view in &views {
             all_segments.push((
@@ -1066,6 +1088,7 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
                 view.end_hour,
                 view.effort_hours,
                 view.completed,
+                false,
                 view.interruption_cause.clone(),
                 view.segment_id.clone(),
             ));
@@ -1077,7 +1100,8 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
                 segment.end_hour,
                 segment.productive_effort_hours,
                 false,
-                None,
+                true,
+                segment.interruption_cause.clone(),
                 segment.segment_id.clone(),
             ));
         }
@@ -1090,7 +1114,7 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
         let mut interruption_count = 0usize;
         let mut checkpoint_effort = 0.0;
 
-        for (index, (sequence, start, end, effort, completed, interruption, segment_id)) in
+        for (index, (sequence, start, end, effort, completed, planned_flag, interruption, segment_id)) in
             all_segments.iter().enumerate()
         {
             if !sequence_ids.insert(*sequence) {
@@ -1105,15 +1129,13 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
             {
                 errors.push(format!("task {key} has overlapping, unordered or pre-release segment {segment_id}"));
             }
-            if *start + TOLERANCE < case.as_of_hour && !*completed {
+            if *planned_flag && *start + TOLERANCE < case.as_of_hour {
                 errors.push(format!("planned segment {segment_id} starts before the as-of boundary"));
             }
-            if *completed {
-                observed_effort += *effort;
-            } else if views.iter().any(|view| view.segment_id == *segment_id && !view.completed) {
-                observed_effort += *effort;
-            } else {
+            if *planned_flag {
                 planned_effort += *effort;
+            } else {
+                observed_effort += *effort;
             }
             prior_end = *end;
             checkpoint_effort += *effort;
@@ -1121,8 +1143,11 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
             let is_final = index + 1 == all_segments.len();
             if !is_final {
                 interruption_count += 1;
-                if !*completed || interruption.as_deref().is_none_or(str::is_empty) {
+                if interruption.as_deref().is_none_or(str::is_empty) {
                     errors.push(format!("task {key} has an unrecorded interruption after segment {segment_id}"));
+                }
+                if !*completed && !*planned_flag {
+                    errors.push(format!("active segment {segment_id} cannot be followed by another segment before a pause is observed"));
                 }
                 if task.preemption_mode == PreemptionMode::Checkpointed
                     && !task.checkpoint_effort_hours.iter().any(|value| approximately_equal(*value, checkpoint_effort))
@@ -1130,15 +1155,11 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
                     errors.push(format!("task {key} paused after {checkpoint_effort} effort hours outside a legal checkpoint"));
                 }
             }
-            if *completed && *effort + TOLERANCE < task.minimum_segment_effort_hours
+            if (*completed || *planned_flag)
+                && *effort + TOLERANCE < task.minimum_segment_effort_hours
                 && !approximately_equal(observed_effort + planned_effort, task.required_effort_hours)
             {
-                errors.push(format!("completed segment {segment_id} is shorter than the minimum segment effort"));
-            }
-            if !*completed && task.preemption_mode == PreemptionMode::Checkpointed
-                && !is_final
-            {
-                errors.push(format!("active or planned segment {segment_id} cannot be an interruption boundary"));
+                errors.push(format!("segment {segment_id} is shorter than the minimum segment effort"));
             }
         }
 
