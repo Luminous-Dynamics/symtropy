@@ -41,6 +41,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ];
     let snapshot = TriggerSnapshot {
         snapshot_id: "synthetic-port-15m-004".to_owned(),
+        snapshot_digest: "sha256:synthetic-port-15m-004".to_owned(),
         site_id: "synthetic-port-nexus".to_owned(),
         baseline_plan_id: "day-ahead-plan-v1".to_owned(),
         sequence: 4,
