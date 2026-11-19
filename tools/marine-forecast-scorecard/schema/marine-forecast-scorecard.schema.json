@@ -286,7 +286,8 @@
           "compute_budget_sha256",
           "hard_gate_roster_sha256",
           "candidate",
-          "baseline"
+          "baseline",
+          "weather_blind_reference"
         ],
         "properties": {
           "pair_id": {
@@ -353,6 +354,9 @@
           },
           "baseline": {
             "$ref": "#/$defs/policy_result"
+          },
+          "weather_blind_reference": {
+            "$ref": "#/$defs/policy_result"
           }
         }
       }
@@ -369,7 +373,8 @@
         "hard_gate_violations",
         "service_floor_breaches",
         "comfort_breaches",
-        "plan_changes"
+        "plan_changes",
+        "forecast_use"
       ],
       "properties": {
         "policy_id": {
@@ -399,6 +404,9 @@
         "plan_changes": {
           "type": "integer",
           "minimum": 0
+        },
+        "forecast_use": {
+          "type": "boolean"
         }
       }
     }
