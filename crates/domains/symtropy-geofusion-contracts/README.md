@@ -29,3 +29,16 @@ cargo clippy -p symtropy-geofusion-contracts --all-targets -- -D warnings
 ```
 
 The crate is part of the public Symtropy workspace. See the programme architecture and system-level benchmark at [docs/research/geothermal-fusion](../../../docs/research/geothermal-fusion/README.md) on the integration documentation branch and [GEOFUSION-INTEGRATION-001](https://github.com/Luminous-Dynamics/symtropy/issues/6142).
+
+## Superhot wellhead state boundary
+
+The `superhot_well` module adds a source-bounded reservoir-to-wellhead case contract:
+
+- Reservoir pressure, absolute temperature and permeability-thickness (mD·m) are distinct from hydraulic transmissivity (m²/s).
+- Wellhead pressure, temperature, mass flow and casing inner diameter are retained at an explicit boundary.
+- Fluid density and enthalpy must be linked to a named property formulation/database, version, composition, reference state, output digest and the exact pressure / temperature / phase state.
+- Single-phase bulk volumetric flow and average casing velocity are computed from the declared density, mass flow and casing ID.
+- Two-phase and unknown-phase flows are refused; they require a qualified multiphase hydraulics model.
+- An optional velocity comparison requires a named external threshold basis. The comparison is a screening flag, not a universal erosion or safety limit.
+
+The module computes no reservoir productivity, wellbore pressure drop, flashing, phase slip, corrosion, scaling, casing erosion, power-cycle output or net MW. Its synthetic test case is arithmetic only and is not an IDDP-1 reproduction or a real well prediction.
