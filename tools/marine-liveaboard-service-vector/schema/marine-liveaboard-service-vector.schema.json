@@ -11,6 +11,7 @@
     "claim_ceiling",
     "mission_snapshot",
     "service_floor_contract",
+    "constraint_registry",
     "comparison",
     "policies"
   ],
@@ -46,7 +47,8 @@
         "forecast_information_set_sha256",
         "hard_gate_roster_sha256",
         "operating_envelope_sha256",
-        "service_floor_contract_sha256"
+        "service_floor_contract_sha256",
+        "constraint_registry_sha256"
       ],
       "properties": {
         "mission_id": {
@@ -86,6 +88,10 @@
           "pattern": "^[a-fA-F0-9]{64}$"
         },
         "service_floor_contract_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "constraint_registry_sha256": {
           "type": "string",
           "pattern": "^[a-fA-F0-9]{64}$"
         }
@@ -334,6 +340,50 @@
           "hard_gate_evidence_sha256": {
             "type": "string",
             "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        }
+      }
+    },
+    "constraint_registry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hard_gate_ids",
+        "soft_constraints"
+      ],
+      "properties": {
+        "hard_gate_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "soft_constraints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "constraint_id",
+              "unit",
+              "baseline_limit"
+            ],
+            "properties": {
+              "constraint_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "baseline_limit": {
+                "type": "number"
+              }
+            }
           }
         }
       }
