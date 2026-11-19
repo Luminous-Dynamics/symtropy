@@ -150,7 +150,48 @@
     {
       "id": "ssp_2_0_1",
       "url": "https://ssp-standard.org/docs/2.0.1/"
+    },
+    {
+      "id": "sundials_arkode_mristep_extsts",
+      "url": "https://computing.llnl.gov/projects/sundials/sundials-software"
+    },
+    {
+      "id": "precice_coupling_schemes",
+      "url": "https://precice.org/docs/configuration/basics/coupling/"
     }
   ],
-  "claim_ceiling": ""
+  "claim_ceiling": "",
+  "adjacent_method_references": [
+    {
+      "id": "sundials_arkode_mristep_extsts",
+      "project": "SUNDIALS / ARKODE",
+      "version": "7.9.0",
+      "released": "2026-09-03",
+      "role": "multirate_component_integrator",
+      "direct_fmi_master_comparator": false,
+      "expected_use": "matched analytic stiff/parabolic component integration reference; compare trajectory error, stability, CPU and step cost",
+      "not_equivalent_because": "A component time integrator, not an FMI importer or co-simulation master.",
+      "evidence_url": "https://computing.llnl.gov/projects/sundials/sundials-software"
+    },
+    {
+      "id": "precice_implicit_iqn",
+      "project": "preCICE",
+      "version": "pin_exact_release_or_commit_at_run",
+      "role": "partitioned_multiphysics_coupling_library",
+      "direct_fmi_master_comparator": false,
+      "expected_use": "matched interface-coupling reference for explicit/implicit schemes, convergence measures, iteration and checkpoint/rollback overhead; include IQN-ILS only when configured comparably",
+      "not_equivalent_because": "A coupling library and participant adapter, not an FMI importer/master baseline.",
+      "evidence_url": "https://precice.org/docs/configuration/basics/coupling/"
+    },
+    {
+      "id": "openmodelica_fmi_3_0_2",
+      "project": "OpenModelica / OMSimulator",
+      "version": "pin_exact_release_commit_at_run",
+      "role": "fmi_importer_and_master_stack",
+      "direct_fmi_master_comparator": true,
+      "expected_use": "direct co-simulation master and FMI importer baseline; FMI 3.0.2 support is documented as experimental in the 2026 User Guide",
+      "not_equivalent_because": "Capability support may vary by tool release and each FMU's advertised flags; report unsupported as not evaluable.",
+      "evidence_url": "https://openmodelica.org/doc/OpenModelicaUsersGuide/OpenModelicaUsersGuide-latest.pdf"
+    }
+  ]
 }
