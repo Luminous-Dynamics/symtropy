@@ -139,3 +139,10 @@ Do not duplicate the recovery scheduler, CivDyn service cascade (#3894/#3896), r
 ## 10. Qualification boundary
 
 This is a schema and synthetic contract fixture. No production procurement integration, supplier booking, real supplier capacity, South African lead-time distribution, physical logistics, field performance, commercial forecast or SOTA result is established. No contract, purchase order, payment, reservation or dispatch action is authorized.
+
+
+## Qualification-aware supplier selection
+
+Supplier slot capacity and supplier qualification are independent checks. A supplier may expose a free factory window but remain unqualified for the required asset family or interface profile. In v0.1, only a `qualified` record with non-expired validity can support a held/confirmed reservation for that project's asset family. A `conditional`, `expired`, `not_qualified` or `unknown` profile cannot be treated as a compatible confirmed source.
+
+The expanded synthetic fixture includes a second supplier with unknown qualification and a proposed factory option. It is visible for future investigation but is not eligible for a held/confirmed assignment. A negative control promotes it to confirmed and must fail qualification semantics, even though that supplier has an otherwise free capacity window.
