@@ -31,6 +31,11 @@ Do not create a parallel engine, validator, reference runner, scenario identity 
 - [#4275 — fluid-structure coupling and rollback](https://github.com/Luminous-Dynamics/symtropy/issues/4275);
 - [#5779 — typed ports, units, clocks and conservation semantics](https://github.com/Luminous-Dynamics/symtropy/issues/5779);
 - [#6156 — FMI co-simulation boundary/time/conservation benchmark](https://github.com/Luminous-Dynamics/symtropy/issues/6156);
+- [PR #6198 — bounded FMI clock/step/retry/barrier trace verifier](https://github.com/Luminous-Dynamics/symtropy/pull/6198), a software-contract sub-slice only; not an FMU importer or physics-validation result.
+- [#6142 / PR #6143 — geothermal–fusion integration architecture and 27-case analytic benchmark](https://github.com/Luminous-Dynamics/symtropy/pull/6143);
+- [PR #6154 — typed heat/electricity stream, source-allocation and wellhead contracts](https://github.com/Luminous-Dynamics/symtropy/pull/6154);
+- [PR #6162 — evidence-envelope and source-allocation schemas](https://github.com/Luminous-Dynamics/symtropy/pull/6162);
+- [#6172 — water/steam property provider qualification](https://github.com/Luminous-Dynamics/symtropy/issues/6172), which does not qualify saline-brine properties by implication.
 - [#1685 — solver-neutral plasma scenario contract](https://github.com/Luminous-Dynamics/symtropy/issues/1685).
 
 This document owns only the cross-domain index, comparison rules and recommended benchmark families. Domain issues own domain-specific equations, datasets, runners and acceptance criteria.
