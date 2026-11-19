@@ -96,7 +96,8 @@
           "clock_domain_id": "host",
           "calibration_id": "host-to-tai",
           "uncertainty_ns": 10
-        }
+        },
+        "evidence_sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
       }
     },
     {
@@ -151,7 +152,8 @@
       "acknowledgement": {
         "acknowledgement_id": "ack-002",
         "state": "unknown",
-        "timestamp": null
+        "timestamp": null,
+        "evidence_sha256": null
       }
     }
   ]
