@@ -1,0 +1,408 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "construction-layout-benchmark-v0.1",
+  "owner_issue": 3719,
+  "parent_plugfest_issue": 3706,
+  "status": "research_benchmark_profile_not_standard",
+  "benchmark_intent": "Compare construction-layout methods on matched approved work using independent physical measurement and total-workflow accounting.",
+  "task_scope": {
+    "initial_domain": "bounded_interior_construction_layout",
+    "task_families": [
+      {
+        "id": "line_layout",
+        "examples": [
+          "partition_lines",
+          "grid_lines",
+          "centerlines",
+          "offsets"
+        ],
+        "primary_measurements": [
+          "normal_offset",
+          "angular_deviation",
+          "straightness",
+          "continuity",
+          "line_width"
+        ]
+      },
+      {
+        "id": "point_layout",
+        "examples": [
+          "anchors",
+          "sleeves",
+          "penetrations",
+          "fixtures",
+          "hanger_locations"
+        ],
+        "primary_measurements": [
+          "radial_position_error",
+          "orientation_error_if_applicable",
+          "omission_count",
+          "duplicate_count"
+        ]
+      },
+      {
+        "id": "curve_layout",
+        "examples": [
+          "arcs",
+          "curves",
+          "intersections"
+        ],
+        "primary_measurements": [
+          "radial_or_normal_error",
+          "curve_deviation",
+          "intersection_error"
+        ]
+      },
+      {
+        "id": "annotation_layout",
+        "examples": [
+          "text",
+          "symbols",
+          "labels"
+        ],
+        "primary_measurements": [
+          "position_error",
+          "legibility",
+          "orientation",
+          "completeness"
+        ]
+      },
+      {
+        "id": "multi_trade_overlay",
+        "examples": [
+          "coordinated_trade_layout",
+          "clash_avoidance"
+        ],
+        "primary_measurements": [
+          "conflict_detection",
+          "explicit_unresolved_conflicts",
+          "accepted_scope_coverage"
+        ]
+      }
+    ],
+    "excluded_initially": [
+      "structural_setting_out_without_engineer_approval",
+      "safety_critical_robot_motion",
+      "unverified_underground_services",
+      "generic_outdoor_civil_setout"
+    ],
+    "denominator_policy": "All planned features remain in the project denominator. Accessible-scope and total-scope coverage are reported separately. Blocked, deferred, conflicting and unattempted features retain explicit reason codes."
+  },
+  "canonical_context": {
+    "required_fields": [
+      "work_package_id",
+      "task_id",
+      "design_revision_digest",
+      "site_epoch",
+      "target_frame_id",
+      "transform_bundle_digest",
+      "control_network_digest",
+      "robot_configuration_digest",
+      "capability_profile_digest",
+      "work_zone_id",
+      "acceptance_profile_id",
+      "acceptance_profile_digest"
+    ],
+    "rule": "Any missing, mismatched, stale or unsupported required field results in typed rejection or indeterminate admission; never infer a substitute.",
+    "acceptance_authority": "Independent project-appointed referee or authorized inspector; the executing robot and its vendor cannot self-accept."
+  },
+  "reference_system": {
+    "coordinate_frame": {
+      "required": true,
+      "fields": [
+        "frame_id",
+        "datum",
+        "axis_convention",
+        "units",
+        "transform_bundle_digest",
+        "site_epoch",
+        "control_network_digest"
+      ],
+      "rule": "Every robot and measurement output is transformed into the same approved project frame using the same versioned transform bundle."
+    },
+    "control_network": {
+      "independent_checkpoints_required": true,
+      "checkpoints_used_for_robot_registration_must_be_identified": true,
+      "acceptance_checkpoints_independent_of_registration": true,
+      "calibration_certificates_required": true,
+      "raw_observations_retained": true
+    },
+    "metrology": {
+      "measurement_method": "independent_traceable_survey_or_measurement_method_selected_for_feature_and_tolerance",
+      "uncertainty_reporting": "per-feature or justified feature-class uncertainty budget; report expanded uncertainty U with coverage factor k and confidence assumptions",
+      "stretch_uncertainty_ratio": "U_k2 <= 0.3333333333 * governing_project_tolerance",
+      "decision_rule": {
+        "name": "guard_banded_acceptance",
+        "pass": "abs(measured_error) + expanded_uncertainty <= governing_tolerance",
+        "fail": "abs(measured_error) - expanded_uncertainty > governing_tolerance",
+        "otherwise": "indeterminate_and_requires_review"
+      },
+      "note": "The U<=T/3 ratio is a proposed measurement-capability target, not a universal legal requirement. The project acceptance plan governs."
+    }
+  },
+  "experimental_design": {
+    "stage_0": "Qualify approved geometry, exports, control network, frames, instruments, marking substrate/material, tolerances, and measurement uncertainty before comparing production methods.",
+    "stage_1": "Matched randomized blocks or crossover cells with equivalent geometry, feature density, access and surface conditions. Randomize method order and cell assignment. Keep the exact design revision, transform and acceptance profile constant.",
+    "stage_2": "Replicate across shifts, operators, serial units, floors and sites; include changed revisions, changed site epochs, reconnects and recovery scenarios.",
+    "participants_minimum_research_design": {
+      "method_classes": [
+        "manual_survey_layout_crew",
+        "robotic_layout_vendor_A",
+        "robotic_layout_vendor_B"
+      ],
+      "recommended_serial_units_per_robot_vendor": "more than one when available; record single-unit limits if not",
+      "operator_crossing": "multiple trained operators across methods where training and safety conditions permit",
+      "sample_size": "estimate from pilot variance and predeclared minimum meaningful effect; power analysis before confirmatory trial"
+    },
+    "controls": [
+      "same approved work geometry",
+      "same design revision and digest",
+      "same target frame and transformation bundle",
+      "same control network and independently checked control",
+      "same feature definitions and project acceptance tolerances",
+      "same accessible work zones and documented obstruction conditions",
+      "same inclusion and exclusion rules",
+      "blind independent measurement where practical"
+    ],
+    "nuisance_factors_to_record": [
+      "surface_material",
+      "surface_flatness",
+      "moisture",
+      "temperature",
+      "lighting",
+      "obstructions",
+      "line_of_sight",
+      "trade_conflicts",
+      "floor_level",
+      "operator_experience",
+      "robot_configuration",
+      "instrument_configuration",
+      "weather_if_relevant"
+    ]
+  },
+  "scorecard": {
+    "metrics": [
+      {
+        "id": "position_error",
+        "name": "Feature position error",
+        "unit": "mm",
+        "report": [
+          "p50",
+          "p95",
+          "p99",
+          "maximum",
+          "signed_bias",
+          "sample_count",
+          "confidence_interval"
+        ],
+        "stratify_by": [
+          "feature_type",
+          "site",
+          "vendor",
+          "serial_unit",
+          "operator",
+          "surface",
+          "setup"
+        ]
+      },
+      {
+        "id": "line_geometry",
+        "name": "Line geometry",
+        "unit": "mm_and_degrees",
+        "report": [
+          "normal_offset_p50_p95_p99",
+          "angular_deviation",
+          "straightness",
+          "continuity_gaps",
+          "printed_width_distribution"
+        ]
+      },
+      {
+        "id": "point_completeness",
+        "name": "Point placement completeness",
+        "unit": "count_and_percent",
+        "report": [
+          "correct_points",
+          "omitted_points",
+          "duplicate_points",
+          "misidentified_points",
+          "orientation_errors"
+        ]
+      },
+      {
+        "id": "uncertainty",
+        "name": "Metrology uncertainty",
+        "unit": "mm",
+        "report": [
+          "standard_uncertainty_components",
+          "expanded_uncertainty_k",
+          "coverage_factor",
+          "calibration_status",
+          "control_residuals"
+        ]
+      },
+      {
+        "id": "accessible_scope_coverage",
+        "name": "Accessible planned scope accepted",
+        "unit": "percent",
+        "formula": "independently_accepted_accessible_features / planned_accessible_features"
+      },
+      {
+        "id": "total_scope_coverage",
+        "name": "Total planned scope accepted",
+        "unit": "percent",
+        "formula": "independently_accepted_features / all_planned_features",
+        "note": "Blocked and deferred features stay in the total denominator."
+      },
+      {
+        "id": "rework",
+        "name": "Rework",
+        "unit": "hours_and_features",
+        "report": [
+          "rejected_features",
+          "rework_events",
+          "rework_crew_hours",
+          "repeat_measurements",
+          "root_cause"
+        ]
+      },
+      {
+        "id": "robot_productivity",
+        "name": "Robot-only productivity",
+        "unit": "accepted_features_per_robot_hour",
+        "formula": "independently_accepted_features / robot_active_hours"
+      },
+      {
+        "id": "workflow_productivity",
+        "name": "Total-workflow productivity",
+        "unit": "accepted_features_per_total_crew_hour",
+        "formula": "independently_accepted_features / (design_prep_hours + conversion_hours + setup_hours + operation_hours + spotter_hours + inspection_hours + rework_hours + recovery_hours)"
+      },
+      {
+        "id": "utilization",
+        "name": "Operational utilization",
+        "unit": "percent_and_hours",
+        "report": [
+          "scheduled_hours",
+          "productive_hours",
+          "setup_hours",
+          "waiting_hours",
+          "obstruction_hours",
+          "downtime_hours",
+          "maintenance_hours"
+        ]
+      },
+      {
+        "id": "interop",
+        "name": "Semantic interoperability",
+        "unit": "pass_reject_counts",
+        "report": [
+          "required_fields_preserved",
+          "typed_rejections",
+          "silent_substitutions",
+          "stale_context_dispatches",
+          "false_acceptance_promotions",
+          "integration_hours",
+          "time_to_first_valid_task",
+          "recovery_time"
+        ]
+      },
+      {
+        "id": "lifecycle_cost",
+        "name": "Fully scoped lifecycle cost",
+        "unit": "currency_per_accepted_feature_or_unit",
+        "report": [
+          "acquisition",
+          "financing",
+          "integration",
+          "software",
+          "training",
+          "energy",
+          "marking_consumables",
+          "maintenance",
+          "service",
+          "labour",
+          "inspection",
+          "downtime",
+          "rework",
+          "replacement",
+          "useful_life_assumptions"
+        ]
+      }
+    ],
+    "hard_software_gates": {
+      "required_field_preservation_or_typed_rejection": "100_percent",
+      "silent_semantic_substitution": 0,
+      "stale_context_dispatch": 0,
+      "executor_completion_promoted_to_acceptance": 0,
+      "traffic_zone_promoted_to_safety_authority": 0,
+      "frozen_adversarial_cases_false_passes": 0
+    },
+    "stretch_hypotheses_not_standards": {
+      "controlled_indoor_position_error_p95_mm": 1,
+      "controlled_indoor_position_error_p99_mm": 2,
+      "expanded_measurement_uncertainty_k2_over_tolerance_max_ratio": 0.3333333333,
+      "total_workflow_crew_hours_improvement_vs_matched_baseline_min_percent": 30,
+      "rework_crew_hours_reduction_vs_matched_baseline_min_percent": 50,
+      "accessible_scope_accepted_min_percent": 95,
+      "fully_scoped_lifecycle_cost_reduction_min_percent": 20,
+      "sota_challenge_total_workflow_crew_hours_reduction_vs_directly_measured_manual_baseline_min_percent": 70,
+      "sota_challenge_total_duration_reduction_vs_matched_baseline_min_percent": 20,
+      "sota_challenge_rework_crew_hours_reduction_vs_directly_measured_manual_baseline_min_percent": 90
+    },
+    "target_interpretation": "These are hypotheses for controlled trials, not attained results, standards, legal requirements, or pre-declared pass thresholds for all field conditions. Results outside the hypotheses remain reportable and useful. SOTA challenge hypotheses aim to exceed the published single-project figures (70% total workflow crew-hour reduction vs its 68%; 20% elapsed-layout-duration reduction vs its 18%; 90% rework-hour reduction). A confirmatory study must directly measure the manual comparator rather than estimate it, and must include all VDC coordination, file preparation, setup, inspection, blocked work and rework. These values are research challenges, not universal pass/fail standards."
+  },
+  "total_workflow_cost_accounting": [
+    "design_coordination_and_model_preparation",
+    "export_and_conversion",
+    "unit_frame_and_revision_reconciliation",
+    "file_quality_assurance",
+    "control_network_survey",
+    "instrument_robot_registration_and_setup",
+    "mobilization_and_daily_checks",
+    "operators_and_spotters",
+    "robot_operation_energy_and_consumables",
+    "obstacle_clearing_and_trade_coordination",
+    "waiting_and_line_of_sight_interruption",
+    "independent_survey_and_inspection",
+    "correction_and_rework",
+    "integration_licenses_training_and_financing",
+    "maintenance_service_wear_and_replacement",
+    "downtime_and_recovery"
+  ],
+  "vendor_claim_register": [
+    {
+      "supplier": "Dusty Robotics",
+      "product": "FieldPrinter 2",
+      "published_claim": "2026-09-21 manufacturer specification: ±1/16 in (±1.6 mm) print accuracy given accurate surveyed control; 0.75 m/s continuous line print speed; Leica Absolute Laser Tracker with surveyed control points. This is a product claim, not an independently matched result.",
+      "claim_type": "manufacturer_specification",
+      "status": "not_independently_matched_by_this_benchmark",
+      "source": "https://support.dustyrobotics.com/hc/en-us/articles/52682349645851-FieldPrinter-Specs"
+    },
+    {
+      "supplier": "HP",
+      "product": "SitePrint",
+      "published_claim": "HP currently publishes layout accuracy tolerance ±3/32 in (±2 mm); floor-level accuracy ±1/32 in (±0.8 mm) on average only in the stated high-accuracy configuration (SMR prism, High Accuracy Print Mode and a 1-inch total station at 5–30 m). Its up-to-30% productivity figure is versus its prior software version; the official footnote lists 8% for interior-wall layouts. Do not present this as a 30% manual-baseline improvement.",
+      "claim_type": "manufacturer_specification",
+      "status": "not_independently_matched_by_this_benchmark",
+      "source": "https://www.hp.com/us-en/printers/site-print/layout-robot.html"
+    },
+    {
+      "supplier": "Published research",
+      "product": "2025 Dusty Robotics versus traditional layout case study",
+      "published_claim": "2025 peer-reviewed single-project study of an 8-floor medical office building reported 68% fewer total labour hours, 18% fewer layout days, 99% less physically straining work and rework estimates of 6.42% vs 0.25%. Manual process impacts were estimated rather than directly observed; robotic deployment added 204 hours of VDC coordination and file preparation. Valuable site-based evidence, not a randomized or matched multi-vendor trial.",
+      "claim_type": "peer_reviewed_single_project_case_study",
+      "status": "contextual_evidence_not_universal_causal_estimate",
+      "source": "https://doi.org/10.1007/s41693-025-00162-6"
+    }
+  ],
+  "south_africa": {
+    "rule": "Use the project contract and the responsible engineer/registered survey professional's approved set-out, datum, control, instrument and tolerance plan. Check applicable national, provincial, municipal and client requirements for the actual work class.",
+    "caution": "Road/civil survey guidance and a municipal specification should not be generalized to all interior building layout.",
+    "contextual_sources": [
+      "https://www.transport.gov.za/",
+      "https://www.sagi.co.za/"
+    ]
+  },
+  "claim_ceiling": "This profile and its fixtures define a proposed benchmark only. Vendor numbers remain manufacturer claims; synthetic validation does not establish physical accuracy, productivity, safety qualification, field interoperability, cost reduction or superiority over the state of the art."
+}
