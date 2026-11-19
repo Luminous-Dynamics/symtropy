@@ -20,7 +20,8 @@
       "external_site_peak_coincident_with_vehicle_charging": false,
       "notes": [
         "Synthetic control only; not an actual truck specification."
-      ]
+      ],
+      "incremental_external_site_charging_window_hours": 0
     },
     {
       "config_id": "light-commercial-van-only-control",
@@ -39,7 +40,8 @@
       "external_site_peak_coincident_with_vehicle_charging": false,
       "notes": [
         "Synthetic control only; not an actual van specification."
-      ]
+      ],
+      "incremental_external_site_charging_window_hours": 0
     },
     {
       "config_id": "urban-truck-integrated-enclosed-drone-bay",
@@ -61,7 +63,8 @@
         "Require phase/duty-cycle battery-terminal energy and HV-bus power.",
         "Require independent site-meter energy and time-resolved coincident peak data.",
         "Require qualified cargo, retention, axle/CG, thermal/fire, EMC and service evidence."
-      ]
+      ],
+      "incremental_external_site_charging_window_hours": null
     },
     {
       "config_id": "urban-truck-detachable-drone-pod",
@@ -82,7 +85,8 @@
         "Require pod mass/CG and detachable mounting/retention evidence.",
         "Require transfer, charging, maintenance and replenishment energy data.",
         "Compare pod sharing and idle/repositioning costs in LOGISTICS-MODE-OPTIONS-001."
-      ]
+      ],
+      "incremental_external_site_charging_window_hours": null
     },
     {
       "config_id": "urban-truck-mobile-drone-station-trailer",
@@ -103,7 +107,8 @@
         "Require trailer gross/axle/coupling/braking and stability envelope.",
         "Require trailer battery/charger/site meter and aircraft service data.",
         "Do not claim novelty from mobile trailer deployment alone."
-      ]
+      ],
+      "incremental_external_site_charging_window_hours": null
     },
     {
       "config_id": "urban-truck-amr-handoff-module",
@@ -123,7 +128,8 @@
       "notes": [
         "Require AMR and handling module mass, access, duty and charging profiles.",
         "AMR fleet scheduling and handoff remain separate qualified owners."
-      ]
+      ],
+      "incremental_external_site_charging_window_hours": null
     }
   ]
 }
