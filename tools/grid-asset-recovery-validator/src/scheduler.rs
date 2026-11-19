@@ -42,6 +42,12 @@ pub struct ScheduledTask {
     pub end_hour: f64,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SchedulePolicy {
+    EarliestFeasibleStart,
+    ServiceWeightedCriticalPath,
+}
+
 #[derive(Clone, Debug)]
 struct ResourceInterval {
     start: f64,
@@ -199,6 +205,37 @@ pub fn schedule(
     tasks: &[TaskSpec],
     profiles: &BTreeMap<String, ResourceProfile>,
 ) -> Result<Vec<ScheduledTask>, Vec<String>> {
+    schedule_with_policy(tasks, profiles, SchedulePolicy::EarliestFeasibleStart)
+}
+
+fn remaining_critical_path_hours(
+    task_key: &str,
+    task_by_key: &BTreeMap<String, &TaskSpec>,
+    successors: &BTreeMap<String, Vec<String>>,
+    cache: &mut BTreeMap<String, f64>,
+) -> f64 {
+    if let Some(value) = cache.get(task_key) {
+        return *value;
+    }
+    let task = task_by_key[task_key];
+    let downstream = successors
+        .get(task_key)
+        .map(|next| {
+            next.iter()
+                .map(|next_key| remaining_critical_path_hours(next_key, task_by_key, successors, cache))
+                .fold(0.0, f64::max)
+        })
+        .unwrap_or(0.0);
+    let value = task.duration_hours + downstream;
+    cache.insert(task_key.to_string(), value);
+    value
+}
+
+pub fn schedule_with_policy(
+    tasks: &[TaskSpec],
+    profiles: &BTreeMap<String, ResourceProfile>,
+    policy: SchedulePolicy,
+) -> Result<Vec<ScheduledTask>, Vec<String>> {
     let mut errors = Vec::new();
     for (resource_id, profile) in profiles {
         if profile.available_units == 0
@@ -299,12 +336,23 @@ pub fn schedule(
         return Err(errors);
     }
 
+    let mut successors: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for (task_key, task) in &task_by_key {
+        for dependency in &task.depends_on {
+            successors
+                .entry(key(&task.event_id, dependency))
+                .or_default()
+                .push(task_key.clone());
+        }
+    }
+    let mut critical_path_cache = BTreeMap::new();
+
     let mut unscheduled: BTreeSet<String> = task_by_key.keys().cloned().collect();
     let mut scheduled_by_key: BTreeMap<String, ScheduledTask> = BTreeMap::new();
     let mut resource_allocations: BTreeMap<String, Vec<ResourceInterval>> = BTreeMap::new();
 
     while !unscheduled.is_empty() {
-        let mut candidates: Vec<(f64, String)> = Vec::new();
+        let mut candidates: Vec<(f64, f64, String)> = Vec::new();
 
         for task_key in &unscheduled {
             let task = task_by_key[task_key];
@@ -333,7 +381,25 @@ pub fn schedule(
                 &resource_allocations,
             );
             match feasible_start {
-                Ok(start) => candidates.push((start, task_key.clone())),
+                Ok(start) => {
+                    let priority = match policy {
+                        SchedulePolicy::EarliestFeasibleStart => 0.0,
+                        SchedulePolicy::ServiceWeightedCriticalPath => {
+                            let critical_path = remaining_critical_path_hours(
+                                task_key,
+                                &task_by_key,
+                                &successors,
+                                &mut critical_path_cache,
+                            );
+                            if critical_path > 0.0 {
+                                task.service_weight_mw / critical_path
+                            } else {
+                                0.0
+                            }
+                        }
+                    };
+                    candidates.push((start, priority, task_key.clone()));
+                }
                 Err(error) => errors.push(error),
             }
         }
@@ -351,9 +417,10 @@ pub fn schedule(
         candidates.sort_by(|left, right| {
             left.0
                 .total_cmp(&right.0)
-                .then_with(|| left.1.cmp(&right.1))
+                .then_with(|| right.1.total_cmp(&left.1))
+                .then_with(|| left.2.cmp(&right.2))
         });
-        let (start_hour, selected_key) = candidates.remove(0);
+        let (start_hour, _, selected_key) = candidates.remove(0);
         let task = task_by_key[&selected_key];
         let end_hour = start_hour + task.duration_hours;
 
@@ -766,7 +833,11 @@ pub fn exact_small_service_schedule(
         )]);
     }
 
-    let greedy = schedule(tasks, profiles)?;
+    let greedy = schedule_with_policy(
+        tasks,
+        profiles,
+        SchedulePolicy::ServiceWeightedCriticalPath,
+    )?;
     let greedy_objective = weighted_unserved_energy_mwh(tasks, &greedy)?;
     let greedy_makespan = greedy
         .iter()
