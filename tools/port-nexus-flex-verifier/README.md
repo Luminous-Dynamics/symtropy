@@ -1,6 +1,6 @@
 # Port Nexus Flexibility Admission Verifier
 
-A small, standalone Rust verifier for the first port-compute workload-shifting experiment.
+A small, standalone Rust verifier for AI-compute workload placement and aggregate grid-impact screening in the Port Nexus experiment.
 
 ## Why this exists
 
@@ -20,6 +20,19 @@ cargo run --manifest-path tools/port-nexus-flex-verifier/Cargo.toml
 The tool is std-only and has its own nested Cargo workspace so it does not alter the main Symtropy workspace membership or dependency graph.
 
 The package has no third-party Rust dependencies. A minimal Cargo.lock is committed for the standalone executable.
+
+
+## Relationship to existing port schedule ownership
+
+This tool is a **compute-workload-specific research companion**, not the canonical port energy schedule verifier.
+
+Symtropy [PORT-ENERGY-SCHEDULE-VERIFIER-001 #4582](https://github.com/Luminous-Dynamics/symtropy/issues/4582) remains the owner for joint berth/terminal/shore-energy schedule verification, including:
+- simultaneous physical power capacity (W);
+- cumulative energy quotas (Wh);
+- ship/berth compatibility, commissioning and readiness;
+- provider commitments and exact tiny-instance schedule oracle.
+
+The verifier in this directory only tests whether a fixed AI job manifest can be repositioned while preserving job identity, deadlines and useful-work obligations under a declared simplified PCC/feeder envelope. Its PCC/feeder arithmetic is a local screening guard, not a second port-energy authority. A future integrated harness should project these job profiles into #4582's canonical port schedule case and reuse its W/Wh and connection-readiness oracle.
 
 ## v0.1 checks
 
