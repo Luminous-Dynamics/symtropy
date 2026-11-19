@@ -10,3 +10,7 @@ description = "Evidence-bound marine forecast skill and paired mission decision 
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 serde_json = "1.0"
 sha2 = "0.10"
+
+[[bin]]
+name = "member-coherent-risk"
+path = "src/bin/member_coherent_risk.rs"
