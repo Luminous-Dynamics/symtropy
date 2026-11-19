@@ -63,12 +63,17 @@
         {
           "$ref": "#/$defs/robot_observation_recorded"
         },
-        "{$ref:\"#/$defs/execution_interrupted\"}",
+        {
+          "$ref": "#/$defs/execution_interrupted"
+        },
         {
           "$ref": "#/$defs/referee_assessment_recorded"
         },
         {
           "$ref": "#/$defs/human_waiver_issued"
+        },
+        {
+          "$ref": "#/$defs/robot_protocol_observation_recorded"
         }
       ]
     }
@@ -585,6 +590,191 @@
         },
         "interruption_receipt_sha256": {
           "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "robot_protocol_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_id",
+        "protocol_version",
+        "message_kind",
+        "external_order_id",
+        "external_order_update_id",
+        "source_header_id",
+        "last_node_id",
+        "last_node_sequence_id",
+        "action_id",
+        "action_status",
+        "source_timestamp",
+        "reported_manufacturer",
+        "reported_serial_number",
+        "topic_sha256",
+        "raw_payload_sha256",
+        "adapter_build_sha256"
+      ],
+      "properties": {
+        "protocol_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "protocol_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "external_order_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "external_order_update_id": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_header_id": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_node_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_node_sequence_id": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "action_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "action_status": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_timestamp": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reported_manufacturer": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reported_serial_number": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "topic_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "raw_payload_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "adapter_build_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "robot_protocol_observation_recorded": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "package_sha256",
+        "entity_id",
+        "attempt_id",
+        "observation"
+      ],
+      "properties": {
+        "kind": {
+          "const": "robot_protocol_observation_recorded"
+        },
+        "package_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "entity_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "attempt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation": {
+          "$ref": "#/$defs/robot_protocol_observation"
         }
       }
     }

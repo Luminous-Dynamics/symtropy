@@ -137,3 +137,25 @@ The benchmark should separately measure readiness-check p50/p95/p99, stale-snaps
 
 
 The dispatch-readiness receipt is a typed assessment result, not yet a cryptographically signed authorization token. Before handing it to an authorization authority, the consuming application must bind the *entire expanded receipt* to canonical bytes and a digest/signature or authenticated Mycelix attestation, verify that proof, and call verify_dispatch_readiness_receipt_current against the current ledger, registered robot identity, and approved engine/policy identities. The helper checks logical currentness and digest syntax; it does not authenticate the receipt, prove the occupancy engine mathematically correct, or independently derive the site snapshot digest. A rejected physical mark is intentionally not eligible for ordinary dispatch: the ledger must first record a specific remediation disposition or referee-confirmed physical absence. No actuator API is exposed by this crate.
+
+
+### Vendor protocol observations are not construction verdicts
+
+The site ledger now accepts \`RobotProtocolObservationRecorded\` as an append-only, history-only event. Its typed \`RobotProtocolObservation\` preserves protocol ID/version, message kind, external order/update identity, reported header/route/action fields, source timestamp, manufacturer/serial claims and digests of the topic, exact raw payload and adapter build.
+
+This is the bridge to the existing standalone read-only VDA 5050 v3.0.0 observer at \`research/construction-vda5050-observer-v0-1\`. A caller can map the observer's \`DecodedMessage::payload_sha256\`, \`VdaHeader\`, and \`Observation::RobotStateReported\` fields into the ledger record. If a state message contains multiple action states, preserve each action ID/status as a separate observation event with its source payload digest. The observer crate is intentionally not imported as a runtime dependency here; parsing and canonical-byte verification stay at the adapter boundary.
+
+**No protocol field is promoted into local authority:**
+- VDA \`orderId\` / \`orderUpdateId\` remain transport identifiers, not IFC GlobalIds, construction task IDs or design revisions.
+- A VDA action status such as \`FINISHED\` is an executor report, not proof that the physical output exists, is in tolerance or passed inspection.
+- Route node/edge progress is not a conservative space-time occupancy envelope.
+- Factsheet capability data is not independently qualified tool/payload geometry or a safety certificate.
+- Zone requests, zone responses or zone sets are fleet-protocol observations, not local permits, site occupancy clearance or safety authorization.
+- Connection state is not a validated robot-health assessment.
+- Protocol timestamps never order the append-only ledger; the ledger sequence and event hash chain do.
+
+The reducer validates the protocol record's required identities and digest syntax, binds it to the same robot identity and execution attempt, and appends it to immutable history. It deliberately does not change \`ExecutionInProgress\`, \`AwaitingIndependentMeasurement\`, \`Accepted\`, reservation state or dispatch readiness. A late observation for an earlier, superseded work package remains historical and cannot mutate the current package. Adding any event advances the ledger head, so previously issued readiness snapshots must be rechecked.
+
+The wire form is part of \`schema/site-state-event-v0.1.schema.json\`; the synthetic replay stream now includes a late VDA state observation with action status \`FINISHED\` after the original package has been superseded. Its digest strings are synthetic placeholders and are not signed/authenticated evidence. The tests prove that \`FINISHED\` leaves the entity executing and unaccepted, a different robot cannot submit the attempt's protocol observation, malformed source digests are rejected, and the event survives deterministic ledger replay.
+
+**Authentication boundary:** the protocol header's manufacturer/serial values are claims, not publisher authentication. The upstream integration must authenticate the MQTT/session participant, bind that authenticated identity to the ledger's \`actor_id\`, verify the original payload/topic hashes and adapter build receipt, and canonicalize/sign the outer site event. The site reducer checks the typed identity linkage and digest format; it does not establish cryptographic identity from VDA fields.
