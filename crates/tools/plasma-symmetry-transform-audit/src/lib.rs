@@ -495,6 +495,7 @@ pub fn verify_receipt(
     request: &RotationRequest,
     receipt: &RotationReceipt,
 ) -> Result<(), TransformError> {
+    validate_request(request)?;
     let body = &receipt.body;
     if body.schema_version != SCHEMA_VERSION
         || body.profile_id != SO3_PROFILE_ID
@@ -749,6 +750,51 @@ mod tests {
         assert!(metrics.tensor_trace_invariance_max_abs < OUTPUT_TOLERANCE);
         assert!(metrics.tensor_frobenius_invariance_max_abs < OUTPUT_TOLERANCE);
         assert!(metrics.tensor_determinant_invariance_max_abs < OUTPUT_TOLERANCE);
+    }
+
+    #[test]
+    fn composed_rotation_matches_sequential_application_and_inverse_recovers_state() {
+        let rz = z_quarter_turn();
+        let rx: Mat3 = [
+            [1.0, 0.0, 0.0],
+            [0.0, 0.0, -1.0],
+            [0.0, 1.0, 0.0],
+        ];
+        let first_request = request(rz);
+        let first = apply_so3_rotation(&first_request).expect("first rotation");
+        let second_request = RotationRequest {
+            schema_version: SCHEMA_VERSION.to_owned(),
+            scenario_id: "synthetic-so3-second-step".to_owned(),
+            profile_id: SO3_PROFILE_ID.to_owned(),
+            rotation_matrix: rx,
+            input: first.body.output.clone(),
+        };
+        let second = apply_so3_rotation(&second_request).expect("second rotation");
+
+        let composed = mat_mul(&rx, &rz);
+        let direct = apply_so3_rotation(&request(composed)).expect("composed rotation");
+        assert_eq!(second.body.output, direct.body.output);
+
+        let inverse_request = RotationRequest {
+            schema_version: SCHEMA_VERSION.to_owned(),
+            scenario_id: "synthetic-so3-inverse".to_owned(),
+            profile_id: SO3_PROFILE_ID.to_owned(),
+            rotation_matrix: transpose(&composed),
+            input: direct.body.output.clone(),
+        };
+        let recovered = apply_so3_rotation(&inverse_request).expect("inverse rotation");
+        assert_eq!(recovered.body.output, base_state());
+    }
+
+    #[test]
+    fn non_finite_fields_are_rejected_before_transform() {
+        let mut req = request(z_quarter_turn());
+        req.input.scalars[0].value = f64::NAN;
+        assert!(apply_so3_rotation(&req).is_err());
+
+        let mut bad_matrix = request(z_quarter_turn());
+        bad_matrix.rotation_matrix[0][0] = f64::INFINITY;
+        assert!(apply_so3_rotation(&bad_matrix).is_err());
     }
 
     #[test]
