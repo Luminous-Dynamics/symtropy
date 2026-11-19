@@ -170,6 +170,73 @@
       ],
       "assertion": "Conflicting metadata under one source record ID is indeterminate.",
       "synthetic_only": true
+    },
+    {
+      "id": "CRR-REPLAY-001",
+      "mode": "metamorphic",
+      "test_name": "current_source_status_change_invalidates_readiness",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [
+        "EvidenceStatusChanged"
+      ],
+      "assertion": "Changed inspection evidence status invalidates the current readiness dependency closure.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-REPLAY-002",
+      "mode": "metamorphic",
+      "test_name": "no_op_and_unrelated_events_do_not_invalidate_readiness",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Exact no-op and unrelated source events leave readiness current.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-REPLAY-003",
+      "mode": "metamorphic",
+      "test_name": "newer_source_event_supersedes_stale_event_and_is_arrival_order_independent",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Highest per-source sequence wins; superseded stale events do not affect final state.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-REPLAY-004",
+      "mode": "metamorphic",
+      "test_name": "latest_fault_event_invalidates_regardless_of_arrival_order",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [
+        "DeviceStateChanged"
+      ],
+      "assertion": "A latest protective-device fault invalidates readiness independent of event arrival order.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-REPLAY-005",
+      "mode": "metamorphic",
+      "test_name": "conflicting_payloads_at_the_same_source_sequence_are_indeterminate",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Different payloads at one source sequence make replay indeterminate.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-REPLAY-006",
+      "mode": "metamorphic",
+      "test_name": "exact_duplicate_event_is_idempotent_and_counted_once",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "An exact duplicate event ID/payload is counted once and does not duplicate effects.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-REPLAY-007",
+      "mode": "metamorphic",
+      "test_name": "event_source_identity_mismatch_is_indeterminate",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "An event cannot claim a source ID different from the dependency it mutates.",
+      "synthetic_only": true
     }
   ]
 }
