@@ -635,7 +635,7 @@
               ]
             },
             "required": [
-              "sender"
+              "actor"
             ]
           }
         },
@@ -720,7 +720,7 @@
               ]
             },
             "required": [
-              "sender"
+              "actor"
             ]
           }
         },
