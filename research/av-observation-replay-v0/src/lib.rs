@@ -746,8 +746,8 @@ mod tests {
         let bundle = fixture();
         validate_bundle_v1(&bundle).unwrap();
 
-        let video = b"ABCD";
-        let audio = b"12345678";
+        let video = include_bytes!("../fixtures/media/frame.gray8");
+        let audio = include_bytes!("../fixtures/media/audio.s16le");
         verify_artifact_bytes_v1(
             &bundle.observations[0].artifact(),
             video,
@@ -870,10 +870,10 @@ mod tests {
         assert!(at_four[0].observation.is_none());
         assert_eq!(cursor.pending_event_count(), 0);
 
-        assert_eq!(
+        assert!(matches!(
             cursor.advance_to(3),
             Err(ContractError::ReplayTimeRegression)
-        );
+        ));
     }
 
     #[test]
