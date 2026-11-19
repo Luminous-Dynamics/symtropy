@@ -13,6 +13,27 @@ pub const DISPATCH_READINESS_REQUEST_SCHEMA_VERSION: &str =
 pub const DISPATCH_READINESS_RECEIPT_SCHEMA_VERSION: &str =
     "construction-dispatch-readiness-receipt/0.1";
 
+/// Caller-authenticated snapshot from the qualified site time authority.
+///
+/// The caller verifies the authority signature and canonical receipt bytes.
+/// current_tick is a site-clock reading with a conservative absolute error
+/// bound. epoch_sha256 changes whenever the monotonic clock origin is reset;
+/// mapping_sha256 binds the clock source's offset/drift mapping into the site
+/// timebase. valid_until_tick is the qualification/holdover expiry.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct QualifiedSiteClockSnapshot {
+    pub site_clock_domain_id: String,
+    pub epoch_sha256: String,
+    pub mapping_sha256: String,
+    pub authority_id: String,
+    pub source_id: String,
+    pub sample_sequence: u64,
+    pub current_tick: u64,
+    pub uncertainty_bound_ticks: u64,
+    pub valid_until_tick: u64,
+    pub receipt_sha256: String,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DispatchEnvelopeBinding {
     pub package_sha256: String,
@@ -29,7 +50,10 @@ pub struct DispatchEnvelopeBinding {
     pub envelope_sha256: String,
     /// The envelope's site-clock domain, after any cross-clock mapping.
     pub site_clock_domain_id: String,
+    pub site_clock_epoch_sha256: String,
+    pub clock_mapping_sha256: String,
     pub generated_at_tick: u64,
+    pub generated_at_uncertainty_ticks: u64,
     pub valid_until_tick: u64,
 }
 
@@ -46,7 +70,10 @@ pub struct OccupancyAssessmentReceipt {
     pub occupancy_engine_build_sha256: String,
     pub clearance_policy_sha256: String,
     pub site_clock_domain_id: String,
+    pub site_clock_epoch_sha256: String,
+    pub clock_mapping_sha256: String,
     pub checked_at_tick: u64,
+    pub checked_at_uncertainty_ticks: u64,
     pub valid_until_tick: u64,
     /// These are independent completeness assertions made by the occupancy
     /// adapter and bound to the assessment receipt digest.
@@ -74,9 +101,11 @@ pub struct DispatchReadinessRequest {
     pub trusted_occupancy_engine_build_sha256: String,
     pub required_clearance_policy_sha256: String,
     pub occupancy: OccupancyAssessmentReceipt,
-    /// Current tick in the declared site clock domain, from a qualified
-    /// clock source. This is not a wall-clock timestamp.
-    pub now_tick: u64,
+    /// Authenticated current site-clock sample. Its uncertainty interval must
+    /// lie wholly inside the envelope and occupancy validity intervals.
+    pub qualified_clock: QualifiedSiteClockSnapshot,
+    /// Owner-approved maximum absolute current clock error in site ticks.
+    pub trusted_max_clock_uncertainty_ticks: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -105,7 +134,15 @@ pub struct DispatchReadinessReceipt {
     pub site_ledger_sequence: u64,
     pub site_ledger_event_sha256: String,
     pub site_clock_domain_id: String,
+    pub site_clock_epoch_sha256: String,
+    pub clock_mapping_sha256: String,
+    pub clock_authority_id: String,
+    pub clock_source_id: String,
+    pub clock_sample_sequence: u64,
     pub checked_at_tick: u64,
+    pub checked_at_uncertainty_ticks: u64,
+    pub clock_qualification_valid_until_tick: u64,
+    pub clock_receipt_sha256: String,
     pub valid_until_tick: u64,
 }
 
@@ -130,6 +167,14 @@ pub enum DispatchReadinessFailure {
     ClearancePolicyMismatch,
     RobotIdentityNotRegistered,
     OccupancyClockDomainMismatch,
+    ClockAuthorityNotRegistered,
+    InvalidClockEvidence,
+    ClockEpochMismatch,
+    ClockMappingMismatch,
+    ClockUncertaintyExceedsPolicy,
+    ClockQualificationExpired,
+    ClockUncertaintyStraddlesBoundary,
+    ClockIntervalOverflow,
     SiteSnapshotSequenceMismatch,
     SiteSnapshotHeadMismatch,
     OccupancyTimeWindowInvalid,
