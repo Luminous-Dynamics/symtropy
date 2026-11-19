@@ -539,7 +539,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
+            "source_commit": "0000000000000000000000000000000000000000",
             "reference": "synthetic://orbital_fluid/fluid-old",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
