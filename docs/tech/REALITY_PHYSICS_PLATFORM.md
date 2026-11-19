@@ -137,6 +137,19 @@ Important current limitations:
 - The plasma adapter [#1685](https://github.com/Luminous-Dynamics/symtropy/issues/1685) is a solver-neutral scenario/evidence boundary. It does not implement PIC, MHD, plasma chemistry or fusion physics.
 - The physics callback used by the research coupling layer is not the general-purpose multiphysics port API. Application metrics and agency policies must not be treated as intrinsic material laws without a separately evidenced mechanism.
 
+## 3A. First composed engineering vertical slice: geothermal–fusion
+
+The public GeoFusion work is a concrete example of the proposed architecture and should be treated as the first composed energy-system slice, not a claim of a functioning geothermal/fusion plant or validated multi-physics solver:
+
+- [#6142 — GEOFUSION-INTEGRATION-001](https://github.com/Luminous-Dynamics/symtropy/issues/6142) owns the integration question and architecture.
+- [PR #6143](https://github.com/Luminous-Dynamics/symtropy/pull/6143) supplies the system architecture, 27-case benchmark plan and analytic/synthetic energy scenarios.
+- [PR #6154](https://github.com/Luminous-Dynamics/symtropy/pull/6154) adds dependency-free Rust contracts for typed heat/electricity streams, source allocation, first-law arithmetic and source-bound wellhead property state.
+- [PR #6162](https://github.com/Luminous-Dynamics/symtropy/pull/6162) adds evidence-envelope and source-allocation receipt schemas and synthetic fixtures.
+- [#6172 — GEOTHERMAL-PROPERTY-VV](https://github.com/Luminous-Dynamics/symtropy/issues/6172) owns qualification of water/steam property providers against IAPWS; pure-water IF97 must not silently stand in for saline brine.
+- [#6156 — GEOFUSION-BENCH-001](https://github.com/Luminous-Dynamics/symtropy/issues/6156) owns FMI time synchronization and multi-component co-simulation qualification. [PR #6198](https://github.com/Luminous-Dynamics/symtropy/pull/6198) begins a bounded clock/step/retry/barrier trace-verifier sub-slice.
+
+This separation is intentional: stream arithmetic, property-state validity, co-simulation clocks, FMU physics, geothermal reservoir behavior and plasma physics are distinct model/evidence obligations. The current contracts and synthetic fixtures do not calculate reservoir productivity, wellbore two-phase flow, fusion plasma, net fusion generation or plant operation.
+
 ## 4. Paradigm shifts worth pursuing
 
 ### 4.1 From one fidelity slider to a model-admission vector
