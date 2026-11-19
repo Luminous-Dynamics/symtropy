@@ -47,7 +47,9 @@ pub struct SharedFleetObservation {
     pub region_id: String,
     pub demand_units: u32,
     pub weather: WeatherState,
+    pub weather_evidence_reference: String,
     pub permission: PermissionState,
+    pub permission_evidence_reference: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -75,6 +77,7 @@ pub struct SharedRepositionLink {
     pub energy_units: u64,
     pub cost_units: u64,
     pub evidence_status: SharedEvidenceStatus,
+    pub evidence_reference: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -291,6 +294,9 @@ fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
         {
             errors.push(format!("reposition_links[{index}]: invalid from/to region"));
         }
+        if link.evidence_reference.trim().is_empty() {
+            errors.push(format!("reposition_links[{index}]: evidence reference is required"));
+        }
         if link.travel_periods != 1 || link.energy_units == 0 {
             errors.push(format!(
                 "reposition_links[{index}]: v0.1 requires exactly one discrete travel period and positive energy"
@@ -324,6 +330,13 @@ fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
                     || !seen.insert(observation.region_id.as_str())
                 {
                     errors.push(format!("scenarios[{scenario_index}].periods[{period_index}]: unknown or duplicate region observation"));
+                }
+                if observation.weather_evidence_reference.trim().is_empty()
+                    || observation.permission_evidence_reference.trim().is_empty()
+                {
+                    errors.push(format!(
+                        "scenarios[{scenario_index}].periods[{period_index}]: weather and permission evidence references are required"
+                    ));
                 }
                 if observation.demand_units > 1_000_000 {
                     errors.push(format!("scenarios[{scenario_index}].periods[{period_index}]: demand exceeds v1 limit"));
@@ -702,13 +715,17 @@ mod tests {
                     region_id: "urban".into(),
                     demand_units: urban_demand,
                     weather: urban_weather,
+                    weather_evidence_reference: "synthetic://weather/urban".into(),
                     permission: PermissionState::ApprovedFresh,
+                    permission_evidence_reference: "synthetic://permission/urban".into(),
                 },
                 SharedFleetObservation {
                     region_id: "rural".into(),
                     demand_units: rural_demand,
                     weather: rural_weather,
+                    weather_evidence_reference: "synthetic://weather/rural".into(),
                     permission: PermissionState::ApprovedFresh,
+                    permission_evidence_reference: "synthetic://permission/rural".into(),
                 },
             ],
         }
@@ -752,6 +769,7 @@ mod tests {
                     energy_units: 4,
                     cost_units: 3,
                     evidence_status: SharedEvidenceStatus::FreshInDomain,
+                    evidence_reference: "synthetic://reposition/urban-rural".into(),
                 },
                 SharedRepositionLink {
                     from_region_id: "rural".into(),
@@ -760,6 +778,7 @@ mod tests {
                     energy_units: 4,
                     cost_units: 3,
                     evidence_status: SharedEvidenceStatus::FreshInDomain,
+                    evidence_reference: "synthetic://reposition/rural-urban".into(),
                 },
             ],
             scenarios: vec![
@@ -1051,13 +1070,17 @@ mod tests {
                             region_id: "urban".into(),
                             demand_units: 1 + scenario_index * 10 + period_index,
                             weather: WeatherState::ClearFresh,
+                            weather_evidence_reference: "synthetic://weather/policy-tree/urban".into(),
                             permission: PermissionState::ApprovedFresh,
+                            permission_evidence_reference: "synthetic://permission/policy-tree/urban".into(),
                         },
                         SharedFleetObservation {
                             region_id: "rural".into(),
                             demand_units: 2 + scenario_index * 10 + period_index,
                             weather: WeatherState::ClearFresh,
+                            weather_evidence_reference: "synthetic://weather/policy-tree/rural".into(),
                             permission: PermissionState::ApprovedFresh,
+                            permission_evidence_reference: "synthetic://permission/policy-tree/rural".into(),
                         },
                     ],
                 });
