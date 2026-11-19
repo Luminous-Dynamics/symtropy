@@ -11,7 +11,7 @@ Offline Rust replay auditor for high-rate plasma diagnostic stream timing, clock
 
 ## Time semantics
 
-Every timestamp identifies its source clock domain and calibration ID. A calibration maps one device clock into the trace's declared reference clock using an anchor pair, drift in ppb, a validity interval and explicit uncertainty. The auditor never subtracts timestamps from different clocks directly.
+Every timestamp identifies its source clock domain and calibration ID. A calibration maps one device clock into the trace's declared reference clock using an anchor pair (which must lie inside its validity interval), drift in ppb, a validity interval and explicit uncertainty. The auditor never subtracts timestamps from different clocks directly.
 
 Stage latency is emitted only when both stamps map to the same reference and combined uncertainty remains within the declared budget. Invalid, expired, missing or incompatible clock calibrations produce CLOCK_UNQUALIFIED and no fabricated latency.
 
@@ -31,10 +31,11 @@ The report separates:
 - processing latency = processing end - processing start;
 - acquisition-to-decision latency;
 - source-event age at decision;
+- source inter-arrival versus expected sample period, scaled by sequence-number delta, with an explicit cadence-deviation budget;
 - acquisition-relative deadline status;
 - source sample period, clock uncertainty, queue depth, sequence gaps and optional downstream acknowledgement state.
 
-A late historical sample can remain valid evidence while being stale for the live decision. Model identity requires an artifact digest and a digest reference to separately retained verification evidence; a caller-supplied boolean cannot certify itself. The evidence digest is an integrity reference, not a signature or proof that the verifier is trusted. An unknown downstream acknowledgement remains unknown and never becomes success.
+A late historical sample can remain valid evidence while being stale for the live decision. Model identity requires an artifact digest and a digest reference to separately retained verification evidence; a caller-supplied boolean cannot certify itself. The evidence digest is an integrity reference, not a signature or proof that the verifier is trusted. Acknowledged outcomes require a calibrated acknowledgement timestamp and report decision-to-ack latency. Rejected or unknown acknowledgements downgrade an otherwise on-time event to DEGRADED; an unknown acknowledgement is never treated as success.
 
 ## Boundaries
 
