@@ -93,7 +93,10 @@
     "max_inverse_radius_absolute_error": "1.0129874e-90",
     "max_derivative_relative_defect": "2.4545467e-91",
     "max_radial_metric_relative_defect": "4.9090935e-91",
-    "max_alpha_zero_closed_form_absolute_error": "1.2272734e-91"
+    "max_alpha_zero_closed_form_absolute_error": "1.2272734e-91",
+    "fail_closed_assertions_passed": true,
+    "absolute_defect_tolerance": "1.0e-80",
+    "max_isotropic_reconstruction_relative_defect": "2.4545467e-91"
   },
   "claim_ceiling": "High-precision research reference for the static 5D Einstein-branch BD map and its linear-spin coordinate transform. It is not interval-certified, does not derive an independent isotropic-gauge EGB residual, and does not compare a nonlinear rotating solution."
 }
