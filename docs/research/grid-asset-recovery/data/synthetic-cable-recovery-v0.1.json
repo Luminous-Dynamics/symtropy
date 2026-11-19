@@ -150,8 +150,8 @@
         "logisticsRouteId": "PORT-TO-SUBSEA-FAULT",
         "transportMassKg": 220000,
         "alternativeFirmCapacityMw": 50,
-        "claimedRestorationHours": 78,
-        "expectedUnservedEnergyMwh": 23400,
+        "claimedRestorationHours": 110,
+        "expectedUnservedEnergyMwh": 33000,
         "tasks": [
           {
             "taskId": "detect",
