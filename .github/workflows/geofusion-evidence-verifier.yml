@@ -1,0 +1,56 @@
+name: GeoFusion Evidence Verifier
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/geofusion-evidence-verifier/**"
+      - "docs/research/geothermal-fusion/evidence/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/geofusion-evidence-verifier.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "research/geofusion-evidence-verifier/**"
+      - "docs/research/geothermal-fusion/evidence/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/geofusion-evidence-verifier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: geofusion-evidence-verifier-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify evidence receipt runtime
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --package geofusion-evidence-verifier -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --package geofusion-evidence-verifier --all-targets --locked -- -D warnings
+
+      - name: Run tests
+        run: cargo test --package geofusion-evidence-verifier --all-targets --locked
+
+      - name: Exercise synthetic receipt CLI
+        run: |
+          cargo run --locked --package geofusion-evidence-verifier -- \
+            docs/research/geothermal-fusion/evidence/fixtures/synthetic-geothermal-source-interval.v0.1.json \
+            docs/research/geothermal-fusion/evidence/fixtures/synthetic-source-interval-evidence.v0.1.json \
+            docs/research/geothermal-fusion/evidence/fixtures/synthetic-source-allocation-receipt.v0.1.json
