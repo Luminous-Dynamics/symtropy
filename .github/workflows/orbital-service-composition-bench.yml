@@ -55,7 +55,7 @@ jobs:
           source_commit="$(git rev-parse HEAD)"
           test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
           cargo run --locked --quiet --manifest-path tools/orbital-service-composition-bench/Cargo.toml -- \
-            tools/orbital-service-composition-bench/fixtures/v0.1/cases.json \
+            fixture tools/orbital-service-composition-bench/fixtures/v0.1/cases.json \
             --source-commit "$source_commit" > orbital-service-composition-receipt.json
           jq -e '
             .result == "pass"
