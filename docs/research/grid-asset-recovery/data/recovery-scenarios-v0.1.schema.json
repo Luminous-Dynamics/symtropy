@@ -9,6 +9,7 @@
     "scenarioSetId",
     "baseCaseId",
     "probabilityBasis",
+    "probabilitySource",
     "scenarios"
   ],
   "properties": {
@@ -31,10 +32,8 @@
       ]
     },
     "probabilitySource": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": "string",
+      "minLength": 1
     },
     "scenarios": {
       "type": "array",
