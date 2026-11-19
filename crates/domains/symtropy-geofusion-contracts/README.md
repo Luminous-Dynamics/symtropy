@@ -35,12 +35,13 @@ The crate is part of the public Symtropy workspace. See the [system architecture
 The `provider_units` module is an adapter contract, not an IF97 implementation:
 
 - Accepts pressure in Pa and temperature in K at a named state boundary.
-- Converts absolute pressure Pa ↔ kPa with finite/positive/underflow/overflow checks.
+- Exposes distinct provider inputs: `VleSteamProviderInput` uses kPa absolute and K; `SeuiF97ProviderInput` uses MPa absolute and °C.
+- Converts absolute pressure Pa ↔ kPa or Pa → MPa with finite/positive/underflow/overflow checks.
 - Requires an explicit `PureWater` composition class before producing provider inputs.
 - Rejects saline brine, non-condensable-gas mixtures and unknown compositions before any water/steam provider call.
 - Preserves fluid-composition and state-boundary identity.
 
-The provider-specific `VleSteamProviderInput` uses K and kPa absolute for `vle-steam` v0.20.1; `seuif97` requires a distinct MPa/°C adapter. No third-party property crate is a production dependency in this PR. See [property-provider reconnaissance #6172](https://github.com/Luminous-Dynamics/symtropy/issues/6172) and the machine-readable comparison record in the benchmark documentation PR.
+No third-party property crate is a production dependency in this PR. The two unit APIs remain intentionally separate; any later provider requires its own adapter and tests. See [property-provider reconnaissance #6172](https://github.com/Luminous-Dynamics/symtropy/issues/6172) and the machine-readable comparison record in the benchmark documentation PR.
 
 ## Superhot wellhead state boundary
 
