@@ -595,6 +595,8 @@ mod tests {
             split_digest: TEST.to_owned(),
             model_digest: MODEL.to_owned(),
             mission_set_digest: MISSION.to_owned(),
+            system_boundary_digest: "installed-joint-boundary-v1".to_owned(),
+            operating_condition_digest: "48V-25C-cooling-A".to_owned(),
             domain_digest: DOMAIN.to_owned(),
             specimens: groups,
         }
@@ -742,7 +744,7 @@ mod tests {
     }
 
     #[test]
-    fn calibration_021_prediction_bounds_must_be_ordered_and_finite() {
+    fn calibration_015_prediction_bounds_must_be_ordered_and_finite() {
         let mut calibration = known_calibration();
         calibration.specimens[0].observations[0].predicted_lower_torque_nm = 20.0;
         calibration.specimens[0].observations[0].predicted_upper_torque_nm = 10.0;
@@ -754,7 +756,7 @@ mod tests {
     }
 
     #[test]
-    fn calibration_021_observation_indices_and_group_lengths_must_match() {
+    fn calibration_016_observation_indices_and_group_lengths_must_match() {
         let mut calibration = known_calibration();
         calibration.specimens[0].observations[1].sample_index = 0;
         assert!(calibrate_grouped_intervals(&plan(0.25), &calibration, &known_test()).is_err());
@@ -765,7 +767,7 @@ mod tests {
     }
 
     #[test]
-    fn calibration_021_empty_in_domain_test_cohort_has_no_fake_zero_coverage() {
+    fn calibration_017_empty_in_domain_test_cohort_has_no_fake_zero_coverage() {
         let mut test = known_test();
         for specimen in &mut test.specimens {
             for observation in &mut specimen.observations {
@@ -780,7 +782,7 @@ mod tests {
     }
 
     #[test]
-    fn calibration_021_wilson_interval_contains_observed_group_coverage() {
+    fn calibration_018_wilson_interval_contains_observed_group_coverage() {
         let report = calibrate_grouped_intervals(&plan(0.25), &known_calibration(), &known_test()).unwrap();
         assert!(report.wilson_95_lower.unwrap() <= 0.5);
         assert!(report.wilson_95_upper.unwrap() >= 0.5);
@@ -789,14 +791,14 @@ mod tests {
     }
 
     #[test]
-    fn calibration_021_invalid_alpha_rejects() {
+    fn calibration_019_invalid_alpha_rejects() {
         assert!(calibrate_grouped_intervals(&plan(0.0), &known_calibration(), &known_test()).is_err());
         assert!(calibrate_grouped_intervals(&plan(1.0), &known_calibration(), &known_test()).is_err());
         assert!(calibrate_grouped_intervals(&plan(f64::NAN), &known_calibration(), &known_test()).is_err());
     }
 
     #[test]
-    fn calibration_021_sample_id_overlap_between_calibration_and_test_rejects() {
+    fn calibration_020_sample_id_overlap_between_calibration_and_test_rejects() {
         let calibration = known_calibration();
         let mut test = known_test();
         test.specimens[0].observations[0].sample_id =
