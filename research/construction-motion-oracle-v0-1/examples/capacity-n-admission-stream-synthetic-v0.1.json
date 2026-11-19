@@ -1,0 +1,238 @@
+[
+  {
+    "event_id": "work-package-v1",
+    "sequence": 1,
+    "previous_event_sha256": null,
+    "event_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "actor_id": "design-authority",
+    "actor_role": "design_authority",
+    "payload": {
+      "kind": "work_package_published",
+      "package": {
+        "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_model_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "source_schema_release": "IFC4X3_ADD2",
+        "ids_spec_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "ids_version": "1.0",
+        "ids_engine_build_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "design_revision_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "frame_id": "site-level-02",
+        "frame_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "transform_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "entity_manifest_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "acceptance_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "entities": [
+          {
+            "design_entity_id": "ifc:2XQ$n5SLP5MBCLz4P3d4W",
+            "entity_type": "line"
+          }
+        ],
+        "acceptance_profile": {
+          "max_abs_xy_residual_mm": 1,
+          "max_reference_u95_xy_mm": 0.25,
+          "max_abs_endpoint_residual_mm": 1
+        }
+      }
+    }
+  },
+  {
+    "event_id": "capacity-catalog-v1",
+    "sequence": 2,
+    "previous_event_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "event_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "actor_id": "resource-authority",
+    "actor_role": "site_resource_authority",
+    "payload": {
+      "kind": "capacity_resource_catalog_published",
+      "catalog_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "resources": [
+        {
+          "resource_id": "shared-hoist",
+          "capacity_owner_id": "capacity-owner-1",
+          "definition_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "capacity_units": 3,
+          "unit_label": "pallet-slots"
+        }
+      ]
+    }
+  },
+  {
+    "event_id": "capacity-window-v1",
+    "sequence": 3,
+    "previous_event_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "event_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "actor_id": "resource-authority",
+    "actor_role": "site_resource_authority",
+    "payload": {
+      "kind": "capacity_availability_snapshot_published",
+      "availability_snapshot_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "site_snapshot_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "site_clock_domain_id": "site-clock-1",
+      "windows": [
+        {
+          "resource_id": "shared-hoist",
+          "resource_definition_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "site_snapshot_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "site_clock_domain_id": "site-clock-1",
+          "capacity_owner_id": "capacity-owner-1",
+          "evidence_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "start_tick": 0,
+          "end_tick": 100,
+          "lower_capacity_units": 2,
+          "nominal_capacity_units": 2,
+          "upper_capacity_units": 3
+        }
+      ]
+    }
+  },
+  {
+    "event_id": "capacity-reservation-v1",
+    "sequence": 4,
+    "previous_event_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "event_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "actor_id": "dispatch-coordinator",
+    "actor_role": "dispatch_coordinator",
+    "payload": {
+      "kind": "capacity_reservation_committed",
+      "commit": {
+        "reservation": {
+          "reservation_id": "capacity-reservation-1",
+          "reservation_receipt_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "site_clock_domain_id": "site-clock-1",
+          "claims": [
+            {
+              "resource_id": "shared-hoist",
+              "resource_definition_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+              "start_tick": 20,
+              "end_tick": 50,
+              "demand_units": 1
+            }
+          ]
+        },
+        "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "design_revision_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "entity_id": "ifc:2XQ$n5SLP5MBCLz4P3d4W",
+        "robot_id": "robot-1",
+        "readiness_receipt_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+        "occupancy_assessment_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "occupancy_engine_build_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "clearance_policy_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "resource_catalog_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "availability_snapshot_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "site_snapshot_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "site_ledger_sequence": 3,
+        "site_ledger_event_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "checked_at_tick": 1,
+        "valid_until_tick": 100,
+        "committed_at_tick": 2,
+        "lease_valid_until_tick": 90
+      }
+    }
+  },
+  {
+    "event_id": "capacity-reservation-v2",
+    "sequence": 5,
+    "previous_event_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "event_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "actor_id": "dispatch-coordinator",
+    "actor_role": "dispatch_coordinator",
+    "payload": {
+      "kind": "capacity_reservation_committed",
+      "commit": {
+        "reservation": {
+          "reservation_id": "capacity-reservation-2",
+          "reservation_receipt_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "site_clock_domain_id": "site-clock-1",
+          "claims": [
+            {
+              "resource_id": "shared-hoist",
+              "resource_definition_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+              "start_tick": 20,
+              "end_tick": 50,
+              "demand_units": 1
+            }
+          ]
+        },
+        "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "design_revision_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "entity_id": "ifc:2XQ$n5SLP5MBCLz4P3d4W",
+        "robot_id": "robot-1",
+        "readiness_receipt_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+        "occupancy_assessment_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "occupancy_engine_build_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "clearance_policy_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "resource_catalog_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "availability_snapshot_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "site_snapshot_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "site_ledger_sequence": 4,
+        "site_ledger_event_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "checked_at_tick": 1,
+        "valid_until_tick": 100,
+        "committed_at_tick": 2,
+        "lease_valid_until_tick": 90
+      }
+    }
+  },
+  {
+    "event_id": "capacity-release-v1",
+    "sequence": 6,
+    "previous_event_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "event_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "actor_id": "referee-1",
+    "actor_role": "referee",
+    "payload": {
+      "kind": "capacity_reservation_released",
+      "reservation_id": "capacity-reservation-1",
+      "site_clock_domain_id": "site-clock-1",
+      "cleared_at_tick": 60,
+      "site_snapshot_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "site_ledger_sequence": 5,
+      "site_ledger_event_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "release_receipt_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+    }
+  },
+  {
+    "event_id": "capacity-reservation-v3",
+    "sequence": 7,
+    "previous_event_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "event_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "actor_id": "dispatch-coordinator",
+    "actor_role": "dispatch_coordinator",
+    "payload": {
+      "kind": "capacity_reservation_committed",
+      "commit": {
+        "reservation": {
+          "reservation_id": "capacity-reservation-3",
+          "reservation_receipt_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "site_clock_domain_id": "site-clock-1",
+          "claims": [
+            {
+              "resource_id": "shared-hoist",
+              "resource_definition_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+              "start_tick": 20,
+              "end_tick": 50,
+              "demand_units": 1
+            }
+          ]
+        },
+        "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "design_revision_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "entity_id": "ifc:2XQ$n5SLP5MBCLz4P3d4W",
+        "robot_id": "robot-1",
+        "readiness_receipt_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+        "occupancy_assessment_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "occupancy_engine_build_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "clearance_policy_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "resource_catalog_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "availability_snapshot_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "site_snapshot_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "site_ledger_sequence": 6,
+        "site_ledger_event_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "checked_at_tick": 1,
+        "valid_until_tick": 100,
+        "committed_at_tick": 2,
+        "lease_valid_until_tick": 90
+      }
+    }
+  }
+]
