@@ -186,7 +186,10 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
         } else {
             0.0
         };
-        if inverse_inertia_a + inverse_inertia_b <= 0.0 {
+        if !inverse_inertia_a.is_finite()
+            || !inverse_inertia_b.is_finite()
+            || inverse_inertia_a + inverse_inertia_b <= 0.0
+        {
             return;
         }
 
