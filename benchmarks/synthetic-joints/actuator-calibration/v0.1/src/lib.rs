@@ -76,6 +76,9 @@ pub struct SpecimenPredictions {
 pub struct PredictionDataset {
     pub split_digest: String,
     pub model_digest: String,
+    pub training_split_digest: String,
+    pub calibration_split_digest: String,
+    pub test_split_digest: String,
     pub mission_set_digest: String,
     pub system_boundary_digest: String,
     pub operating_condition_digest: String,
@@ -86,7 +89,14 @@ pub struct PredictionDataset {
 #[derive(Debug, Clone, PartialEq)]
 pub struct CalibrationScore {
     pub specimen_id: String,
+    pub manufacturer_id: String,
+    pub actuator_model_id: String,
+    pub architecture_id: String,
     pub maximum_interval_miss_nm: f64,
+    pub evidence_class: MeasurementEvidenceClass,
+    pub evidence_reference: String,
+    pub measurement_method: String,
+    pub calibration_digest: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -348,7 +358,14 @@ pub fn calibrate_grouped_intervals(
         .iter()
         .map(|specimen| CalibrationScore {
             specimen_id: specimen.specimen_id.clone(),
+            manufacturer_id: specimen.manufacturer_id.clone(),
+            actuator_model_id: specimen.actuator_model_id.clone(),
+            architecture_id: specimen.architecture_id.clone(),
             maximum_interval_miss_nm: specimen_nonconformity(specimen),
+            evidence_class: specimen.evidence_class,
+            evidence_reference: specimen.evidence_reference.clone(),
+            measurement_method: specimen.measurement_method.clone(),
+            calibration_digest: specimen.calibration_digest.clone(),
         })
         .collect();
     calibration_scores.sort_by(|left, right| {
@@ -382,6 +399,9 @@ pub fn calibrate_grouped_intervals(
         return Ok(CalibrationReport {
             status: CalibrationStatus::InsufficientCalibrationGroups,
             model_digest: plan.model_digest.clone(),
+            training_split_digest: plan.training_split_digest.clone(),
+            calibration_split_digest: plan.calibration_split_digest.clone(),
+            test_split_digest: plan.test_split_digest.clone(),
             mission_set_digest: plan.mission_set_digest.clone(),
             system_boundary_digest: plan.system_boundary_digest.clone(),
             operating_condition_digest: plan.operating_condition_digest.clone(),
@@ -498,6 +518,9 @@ pub fn calibrate_grouped_intervals(
     Ok(CalibrationReport {
         status: CalibrationStatus::Calibrated,
         model_digest: plan.model_digest.clone(),
+        training_split_digest: plan.training_split_digest.clone(),
+        calibration_split_digest: plan.calibration_split_digest.clone(),
+        test_split_digest: plan.test_split_digest.clone(),
         mission_set_digest: plan.mission_set_digest.clone(),
         system_boundary_digest: plan.system_boundary_digest.clone(),
         operating_condition_digest: plan.operating_condition_digest.clone(),
@@ -809,7 +832,18 @@ mod tests {
     }
 
     #[test]
-    fn calibration_021_empty_dataset_or_specimen_group_rejects() {
+    fn calibration_021_calibration_score_receipts_preserve_provenance_and_split_identity() {
+        let report = calibrate_grouped_intervals(&plan(0.25), &known_calibration(), &known_test()).unwrap();
+        assert_eq!(report.training_split_digest, TRAIN);
+        assert_eq!(report.calibration_split_digest, CAL);
+        assert_eq!(report.test_split_digest, TEST);
+        assert_eq!(report.calibration_scores[0].evidence_class, MeasurementEvidenceClass::IndependentPhysical);
+        assert!(report.calibration_scores[0].evidence_reference.starts_with("https://"));
+        assert!(!report.calibration_scores[0].calibration_digest.is_empty());
+    }
+
+    #[test]
+    fn calibration_022_empty_dataset_or_specimen_group_rejects() {
         let mut calibration = known_calibration();
         calibration.specimens.clear();
         assert!(calibrate_grouped_intervals(&plan(0.25), &calibration, &known_test()).is_err());
