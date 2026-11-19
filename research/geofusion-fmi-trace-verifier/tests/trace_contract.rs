@@ -237,6 +237,8 @@ fn frozen_adversarial_corpus() {
                 trace.attempts[5].outcome = StepOutcome::Rejected;
                 trace.attempts[5].local_returned_end_tick = 2;
                 trace.attempts[5].master_returned_end_ns = 2_000_000_000;
+                trace.attempts[5].state_after_digest =
+                    trace.attempts[5].state_before_digest.clone();
             }
             "missing_barrier_participant" => {
                 trace.barriers[0].participant_attempt_ids.pop();
