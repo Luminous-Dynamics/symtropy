@@ -3,9 +3,7 @@
 
 use std::{env, fs, process::ExitCode};
 
-use symtropy_material_flow_benchmark::cargo_loading::{
-    CargoLoadingInput, evaluate_cargo_loading,
-};
+use symtropy_material_flow_benchmark::cargo_loading::{CargoLoadingInput, evaluate_cargo_loading};
 
 fn main() -> ExitCode {
     let mut args = env::args_os();
