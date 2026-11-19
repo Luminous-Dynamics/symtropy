@@ -909,6 +909,37 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn artifact_symlink_cannot_escape_fixture_root() {
+        use std::os::unix::fs::symlink;
+
+        let temp = std::env::temp_dir();
+        let root = temp.join(format!("av-observation-root-{}", std::process::id()));
+        let outside = temp.join(format!("av-observation-outside-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&outside);
+        fs::create_dir_all(&root).unwrap();
+        fs::create_dir_all(&outside).unwrap();
+
+        let outside_file = outside.join("truth.gray8");
+        fs::write(&outside_file, b"ABCD").unwrap();
+        symlink(&outside_file, root.join("escape.gray8")).unwrap();
+
+        let reference = ArtifactRefV1 {
+            relative_path: "escape.gray8".to_owned(),
+            sha256: sha256_hex_v1(b"ABCD"),
+            byte_len: 4,
+        };
+        assert_eq!(
+            read_verified_artifact_under_root_v1(&root, &reference),
+            Err(ContractError::InvalidArtifactPath)
+        );
+
+        fs::remove_dir_all(&root).unwrap();
+        fs::remove_dir_all(&outside).unwrap();
+    }
+
     #[test]
     fn unsafe_paths_and_bad_shapes_fail_closed() {
         let mut bundle = fixture();
