@@ -56,3 +56,23 @@ The overlay inherits productive minutes/cell-year, shifts, target good-carrier t
 This is an incremental capacity/resource overlay, not a second factory costing engine. Base building, general overhead, site labor/energy rates and vehicle assembly costs remain with `ev_factory_frontier`. Module production release remains false in v0.1, including synthetic-screen passes.
 
 Research dossier: [EV Carrier Module Manufacturing Screen v0.1](../../docs/research/EV_CARRIER_MODULE_MANUFACTURING_SCREEN_V0_1.md).
+
+
+## EV carrier evidence-bound qualification chain
+
+The `ev_carrier_qualification_screen` binary joins the carrier engineering report, module factory capacity report and a configuration-bound requirement/evidence matrix. It verifies configuration identity, checks whether the upstream engineering and manufacturing screens are evidence-backed, and classifies each case as `blocked`, `indeterminate` or `evidence_complete_for_human_review`.
+
+Run:
+
+```bash
+cargo run --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_carrier_qualification_screen -- \
+  carrier-engineering-report.json \
+  ev-carrier-module-factory-report.json \
+  tools/ev-passenger-cost-frontier/fixtures/ev_carrier_qualification_v0_1.json
+```
+
+The report binds SHA-256 digests of all three exact input files and requires qualified evidence to name the exact configuration digest it supports. Synthetic evidence cannot satisfy an independent-test or external-authority requirement. Missing evidence remains indeterminate; explicit failed gates block.
+
+The tool **never** grants release authority or sets production release ready. The current workflow uses an explicitly synthetic carrier-report fixture, real factory-screen output, and 67 unknown qualification gates across six architectures. It expects all six cases to remain indeterminate.
+
+Detailed formulation, ownership, SOTA/standards alignment and limits: [EV carrier qualification chain v0.1](../../docs/research/EV_CARRIER_QUALIFICATION_CHAIN_V0_1.md).
