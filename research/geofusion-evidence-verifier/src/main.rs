@@ -61,6 +61,9 @@ fn run_batch(manifest_path: &Path) -> Result<i32, String> {
         .get("items")
         .and_then(Value::as_array)
         .ok_or_else(|| "batch manifest: items must be an array".to_owned())?;
+    if items.len() > 256 {
+        return Err("batch manifest: maximum 256 source intervals".to_owned());
+    }
 
     let mut payloads = Vec::<Vec<u8>>::with_capacity(items.len());
     let mut evidences = Vec::<Value>::with_capacity(items.len());
