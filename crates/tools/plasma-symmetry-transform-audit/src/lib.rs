@@ -565,7 +565,7 @@ pub fn verify_receipt(
         (body.metrics.tensor_determinant_invariance_max_abs, expected_metrics.tensor_determinant_invariance_max_abs),
     ];
     if metric_values.iter().any(|(actual, expected)| {
-        !actual.is_finite() || (actual - expected).abs() > OUTPUT_TOLERANCE
+        !actual.is_finite() || (*actual - *expected).abs() > OUTPUT_TOLERANCE
     }) {
         return Err(TransformError::new("receipt audit metrics do not match independently recomputed values"));
     }
@@ -870,6 +870,9 @@ mod tests {
         let req = request(z_quarter_turn());
         let mut receipt = apply_so3_rotation(&req).expect("rotation");
         receipt.body.output.vectors[0].value[0] += 1.0;
+        // Recompute the unkeyed digest to prove verification checks the
+        // declared transformation, not merely self-consistent hashing.
+        receipt.receipt_sha256 = digest_serialized(&receipt.body).expect("tampered receipt digest");
         assert!(verify_receipt(&req, &receipt).is_err());
     }
 
