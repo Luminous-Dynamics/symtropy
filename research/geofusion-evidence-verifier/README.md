@@ -43,14 +43,16 @@ Exit codes:
 
 ## Adversarial and positive test coverage
 
-The 13 current unit tests cover exact fixture success, byte tampering, declared byte-length mismatch, interval-ID mismatch, boundary mismatch, synthetic-to-measured evidence-class promotion, duplicate allocation IDs, service/carrier mismatch, over-allocation and negative residual, forged reported balance, allocation digest mismatch, rejected integrity state and zero tolerance.
+The 17 current unit tests cover exact fixture success, byte tampering, declared byte-length mismatch, interval-ID mismatch, boundary mismatch, synthetic-to-measured evidence-class promotion, duplicate allocation IDs, service/carrier mismatch, over-allocation and negative residual, forged reported balance, allocation digest mismatch, rejected integrity state, zero tolerance, stale/unknown validity, mismatched time windows, unsupported digest algorithms and malformed digests.
 
 ## Explicit limitations
 
 - Only `source_interval` envelopes and one allocation receipt are currently supported.
 - The verifier performs runtime semantic checks on the fields it consumes; it does not execute the complete JSON Schema Draft 2020-12 specification.
 - It cannot detect reuse of the same source interval across separate receipts without a batch-level registry / ledger input.
-- It does not validate calibration certificate authenticity or interval coverage, meter accuracy, clock synchronization, covariance, solver convergence, model validity, physical source truth or operational authorization.
+- For measured/audited classes it requires the declared measurement and calibration fields; it does not authenticate certificates or prove that a calibration covers the observation interval.
+- For calibrated/independently validated model classes it requires a declared applicable, converged solver record; it does not reproduce the solver or validate its physics.
+- It does not prove meter accuracy, clock synchronization, covariance, model-domain validity, physical source truth or operational authorization.
 - A matching SHA-256 proves byte identity, not the truth or quality of the data.
 
 All fixtures are synthetic. No production provider, measurement system, geothermal site or fusion plant is qualified by this verifier.
