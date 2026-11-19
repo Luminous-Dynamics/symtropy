@@ -753,4 +753,93 @@ fn force_poly_008_minimum_tendon_tension_is_preserved_as_pretension() {
         "coverage with nonzero minimum tendon tensions",
     );
 }
+#[test]
+fn force_poly_009_oblique_tetrahedron_volume_is_one_sixth() {
+    // T = {x >= 0, y >= 0, z >= 0, x+y+z <= 1}.
+    let tetrahedron = vec![
+        Halfspace3 { normal: [-1.0, 0.0, 0.0], bound: 0.0 },
+        Halfspace3 { normal: [0.0, -1.0, 0.0], bound: 0.0 },
+        Halfspace3 { normal: [0.0, 0.0, -1.0], bound: 0.0 },
+        Halfspace3 { normal: [1.0, 1.0, 1.0], bound: 1.0 },
+    ];
+    assert_close(
+        polytope_volume(&tetrahedron).unwrap(),
+        1.0 / 6.0,
+        "unit-coordinate tetrahedron volume",
+    );
+}
+
+#[test]
+fn force_poly_010_rotated_cube_volume_and_coverage_are_invariant() {
+    // Rotate a [-1,1]^3 cube by an orthonormal 3-4-5 basis in the xy plane.
+    let rotated_cube = vec![
+        Halfspace3 { normal: [0.6, 0.8, 0.0], bound: 1.0 },
+        Halfspace3 { normal: [-0.6, -0.8, 0.0], bound: 1.0 },
+        Halfspace3 { normal: [-0.8, 0.6, 0.0], bound: 1.0 },
+        Halfspace3 { normal: [0.8, -0.6, 0.0], bound: 1.0 },
+        Halfspace3 { normal: [0.0, 0.0, 1.0], bound: 1.0 },
+        Halfspace3 { normal: [0.0, 0.0, -1.0], bound: 1.0 },
+    ];
+    let enclosing = required_box_halfspaces([-2.0; 3], [2.0; 3]).unwrap();
+    assert_close(
+        polytope_volume(&rotated_cube).unwrap(),
+        8.0,
+        "rotated cube volume",
+    );
+    assert_close(
+        force_region_coverage(&rotated_cube, &enclosing).unwrap(),
+        0.125,
+        "rotated cube coverage inside enclosing [-2,2]^3",
+    );
+}
+
+#[test]
+fn force_poly_011_nonuniform_scaling_has_expected_volume() {
+    let box_polytope = required_box_halfspaces([0.0, 0.0, 0.0], [2.0, 3.0, 4.0]).unwrap();
+    assert_close(
+        polytope_volume(&box_polytope).unwrap(),
+        24.0,
+        "2x3x4 box volume",
+    );
+
+    let scaled_force = required_box_halfspaces([0.0; 3], [3.0; 3]).unwrap();
+    let scaled_required = required_box_halfspaces([0.0; 3], [6.0; 3]).unwrap();
+    assert_close(
+        force_region_coverage(&scaled_force, &scaled_required).unwrap(),
+        0.125,
+        "coverage remains dimensionless under uniform scale",
+    );
+}
+
+#[test]
+fn force_poly_012_parallel_redundant_halfspaces_do_not_double_count_faces() {
+    let mut box_polytope = required_box_halfspaces([0.0; 3], [2.0, 3.0, 4.0]).unwrap();
+    box_polytope.push(Halfspace3 {
+        normal: [2.0, 0.0, 0.0],
+        bound: 4.0,
+    });
+    box_polytope.push(Halfspace3 {
+        normal: [1.0, 0.0, 0.0],
+        bound: 2.0,
+    });
+    assert_close(
+        polytope_volume(&box_polytope).unwrap(),
+        24.0,
+        "duplicate and scaled parallel constraints",
+    );
+}
+
+#[test]
+fn force_poly_013_oblique_lineality_cone_is_rejected_as_unbounded() {
+    // The feasible recession directions include both +z and -z, which are
+    // not coordinate axes of the original force frame after an oblique basis
+    // change in x-y. The intersection is therefore unbounded.
+    let unbounded = vec![
+        Halfspace3 { normal: [0.6, 0.8, 0.0], bound: 1.0 },
+        Halfspace3 { normal: [-0.6, -0.8, 0.0], bound: 1.0 },
+        Halfspace3 { normal: [0.8, -0.6, 0.0], bound: 1.0 },
+        Halfspace3 { normal: [-0.8, 0.6, 0.0], bound: 1.0 },
+    ];
+    assert!(polytope_volume(&unbounded).is_none());
+}
 
