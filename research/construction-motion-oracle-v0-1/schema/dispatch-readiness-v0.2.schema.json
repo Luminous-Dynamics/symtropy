@@ -1,0 +1,473 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-dispatch-readiness-v0.2.json",
+  "title": "Construction Space-Time Dispatch Readiness v0.2",
+  "description": "Timebase-qualified, non-actuating readiness evidence. Trust policy is supplied out-of-band; this contract is not a safety permit or motion authorization.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/request"
+    },
+    {
+      "$ref": "#/$defs/receipt"
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "site_clock_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "envelope",
+        "occupancy",
+        "qualified_clock"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "construction-dispatch-readiness-request/0.2"
+        },
+        "envelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "package_sha256",
+            "design_revision_sha256",
+            "entity_id",
+            "frame_sha256",
+            "transform_sha256",
+            "robot_id",
+            "robot_configuration_sha256",
+            "tool_configuration_sha256",
+            "payload_configuration_sha256",
+            "primitive_manifest_sha256",
+            "trajectory_sha256",
+            "envelope_sha256",
+            "site_clock_domain_id",
+            "generated_at_tick",
+            "valid_until_tick",
+            "site_clock_epoch_sha256",
+            "clock_mapping_sha256",
+            "generated_at_uncertainty_ticks"
+          ],
+          "properties": {
+            "package_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "design_revision_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "entity_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "frame_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "transform_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "robot_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "robot_configuration_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "tool_configuration_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "payload_configuration_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "primitive_manifest_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "trajectory_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "envelope_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "site_clock_domain_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "generated_at_tick": {
+              "$ref": "#/$defs/site_clock_tick"
+            },
+            "valid_until_tick": {
+              "$ref": "#/$defs/site_clock_tick"
+            },
+            "site_clock_epoch_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "clock_mapping_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "generated_at_uncertainty_ticks": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "occupancy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "assessed_envelope_sha256",
+            "primitive_manifest_sha256",
+            "site_snapshot_sha256",
+            "site_ledger_sequence",
+            "site_ledger_event_sha256",
+            "dynamic_occupancy_manifest_sha256",
+            "actor_manifest_sha256",
+            "occupancy_engine_build_sha256",
+            "clearance_policy_sha256",
+            "site_clock_domain_id",
+            "checked_at_tick",
+            "valid_until_tick",
+            "primitive_coverage_complete",
+            "dynamic_actor_coverage_complete",
+            "broadphase_pair_coverage_complete",
+            "narrowphase_coverage_complete",
+            "candidate_pair_count",
+            "narrowphase_evaluated_pair_count",
+            "conflict_count",
+            "unresolved_pair_count",
+            "invalid_bound_count",
+            "unqualified_bound_count",
+            "stale_actor_count",
+            "unmodelled_occupant_count",
+            "assessment_receipt_sha256",
+            "site_clock_epoch_sha256",
+            "clock_mapping_sha256",
+            "checked_at_uncertainty_ticks"
+          ],
+          "properties": {
+            "assessed_envelope_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "primitive_manifest_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "site_snapshot_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "site_ledger_sequence": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "site_ledger_event_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "dynamic_occupancy_manifest_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "actor_manifest_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "occupancy_engine_build_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "clearance_policy_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "site_clock_domain_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "checked_at_tick": {
+              "$ref": "#/$defs/site_clock_tick"
+            },
+            "valid_until_tick": {
+              "$ref": "#/$defs/site_clock_tick"
+            },
+            "primitive_coverage_complete": {
+              "type": "boolean"
+            },
+            "dynamic_actor_coverage_complete": {
+              "type": "boolean"
+            },
+            "broadphase_pair_coverage_complete": {
+              "type": "boolean"
+            },
+            "narrowphase_coverage_complete": {
+              "type": "boolean"
+            },
+            "candidate_pair_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "conflict_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unresolved_pair_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "invalid_bound_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "stale_actor_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unmodelled_occupant_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "assessment_receipt_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "narrowphase_evaluated_pair_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unqualified_bound_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "site_clock_epoch_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "clock_mapping_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "checked_at_uncertainty_ticks": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "qualified_clock": {
+          "$ref": "#/$defs/qualified_clock"
+        }
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "package_sha256",
+        "design_revision_sha256",
+        "entity_id",
+        "robot_id",
+        "frame_sha256",
+        "transform_sha256",
+        "robot_configuration_sha256",
+        "tool_configuration_sha256",
+        "payload_configuration_sha256",
+        "primitive_manifest_sha256",
+        "trajectory_sha256",
+        "dynamic_occupancy_manifest_sha256",
+        "actor_manifest_sha256",
+        "candidate_pair_count",
+        "narrowphase_evaluated_pair_count",
+        "envelope_sha256",
+        "site_snapshot_sha256",
+        "occupancy_assessment_receipt_sha256",
+        "occupancy_engine_build_sha256",
+        "clearance_policy_sha256",
+        "site_ledger_sequence",
+        "site_ledger_event_sha256",
+        "site_clock_domain_id",
+        "checked_at_tick",
+        "valid_until_tick",
+        "clock_uncertainty_policy_sha256",
+        "max_clock_uncertainty_ticks",
+        "site_clock_epoch_sha256",
+        "clock_mapping_sha256",
+        "clock_authority_id",
+        "clock_source_id",
+        "clock_sample_sequence",
+        "checked_at_uncertainty_ticks",
+        "clock_qualification_valid_until_tick",
+        "clock_receipt_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "construction-dispatch-readiness-receipt/0.2"
+        },
+        "package_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "design_revision_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "entity_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "robot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "envelope_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "occupancy_assessment_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_ledger_sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "site_ledger_event_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checked_at_tick": {
+          "$ref": "#/$defs/site_clock_tick"
+        },
+        "valid_until_tick": {
+          "$ref": "#/$defs/site_clock_tick"
+        },
+        "occupancy_engine_build_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "clearance_policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "frame_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "transform_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "robot_configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "tool_configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "payload_configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "primitive_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "trajectory_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "dynamic_occupancy_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "actor_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "candidate_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "narrowphase_evaluated_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "clock_uncertainty_policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "max_clock_uncertainty_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "site_clock_epoch_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "clock_mapping_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "clock_authority_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_sample_sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "checked_at_uncertainty_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "clock_qualification_valid_until_tick": {
+          "$ref": "#/$defs/site_clock_tick"
+        },
+        "clock_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "qualified_clock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "site_clock_domain_id",
+        "epoch_sha256",
+        "mapping_sha256",
+        "authority_id",
+        "source_id",
+        "sample_sequence",
+        "current_tick",
+        "uncertainty_bound_ticks",
+        "valid_until_tick",
+        "receipt_sha256"
+      ],
+      "properties": {
+        "site_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "epoch_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "mapping_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "authority_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sample_sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "current_tick": {
+          "$ref": "#/$defs/site_clock_tick"
+        },
+        "uncertainty_bound_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_tick": {
+          "$ref": "#/$defs/site_clock_tick"
+        },
+        "receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}
