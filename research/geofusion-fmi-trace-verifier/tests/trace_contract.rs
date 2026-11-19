@@ -1,6 +1,6 @@
 use geofusion_fmi_trace_verifier::{
     validate_trace, ClockBinding, CommitBarrier, FederateProfile, RunTrace, StepAttempt,
-    StepOutcome, TraceError,
+    StepOutcome,
 };
 
 fn profile(
@@ -202,6 +202,10 @@ fn frozen_adversarial_corpus() {
             "retry_start_mismatch" => {
                 trace.attempts[5].local_start_tick = 3;
                 trace.attempts[5].master_start_ns = 3_000_000_000;
+                trace.attempts[5].local_requested_end_tick = 4;
+                trace.attempts[5].master_requested_end_ns = 4_000_000_000;
+                trace.attempts[5].local_returned_end_tick = 4;
+                trace.attempts[5].master_returned_end_ns = 4_000_000_000;
             }
             "retry_target_widened" => {
                 trace.attempts[5].local_requested_end_tick = 4;
