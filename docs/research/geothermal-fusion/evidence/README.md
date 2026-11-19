@@ -12,15 +12,17 @@ Bind every geothermal / fusion / storage energy stream to exact raw source bytes
 
 ## Files
 
-- `schemas/evidence-envelope-v0.1.schema.json`: common receipt for source intervals, solver results, derived streams and allocations. Source-interval envelopes require explicit `subject.asset_id` and `subject.interval_id`, matching the raw payload and source-allocation receipt rather than relying on time-window inference.
+- `schemas/raw-source-interval-v0.1.schema.json`: heat source-interval payload with thermal power and temperature grade.
+- `schemas/raw-electrical-source-interval-v0.1.schema.json`: electrical source-interval payload with electrical power.
+- `schemas/evidence-envelope-v0.1.schema.json`: common receipt for source intervals, solver results, derived streams and allocations. Source-interval envelopes require explicit `subject.asset_id` and `subject.interval_id`.
 - `schemas/source-allocation-receipt-v0.1.schema.json`: evidence-bound, single-source/single-carrier/single-interval allocation report.
-- `fixtures/synthetic-geothermal-source-interval.v0.1.json`: raw synthetic meter-like payload used only for schema/digest tests.
-- `fixtures/synthetic-source-interval-evidence.v0.1.json`: source interval evidence envelope, including SHA-256 and exact byte count.
-- `fixtures/synthetic-source-allocation-receipt.v0.1.json`: allocation receipt referencing the source interval evidence.
+- `schemas/source-interval-batch-manifest-v0.1.schema.json`: bounded manifest for up to 256 source-interval bundles.
+- `fixtures/`: two adjacent synthetic heat intervals plus one independent same-clock electricity interval, each with raw payload, evidence envelope and source-allocation receipt; also a batch manifest and null-asset negative schema control.
+- `STANDARDS_INTEROPERABILITY.md` and `STANDARDS_INTEROPERABILITY_MATRIX.v0.1.json`: external-standard layer crosswalk and pinned machine-readable owner/claim boundaries.
 
 ## Integrity and truth are separate axes
 
-- `artifact.integrity_state = verified` means the verifier fetched the available payload bytes, recomputed SHA-256 and byte length, and matched the declaration.
+- `artifact.integrity_state = verified` means the runtime verifier was supplied the raw payload bytes, recomputed SHA-256 and byte length, and matched the declaration. The CLI reads local files; it does not resolve or authenticate remote artifact locators.
 - `evidence_class = measured` means the source claims a physical measurement; it still requires meter/instrument identity, calibration validity, aggregation method and timebase.
 - `model.applicability = applicable` records a solver identity/version, exact input/configuration manifests, property model, convergence state and raw output digest.
 - `uncertainty.status = unknown` is valid and carries a reason. Unknown covariance must not silently become zero.
@@ -47,10 +49,10 @@ Those are runtime verifier / independent arithmetic duties. Do not treat `format
 
 ## Validation performed
 
-- All four Draft 2020-12 schema documents, the batch manifest and all six source/evidence/allocation fixture files were fetched back from the exact branch and parsed as JSON.
+- All five Draft 2020-12 schema documents, the batch manifest, nine source/evidence/allocation fixture files, the null-asset negative fixture and the standards matrix were fetched back from the exact branch and parsed as JSON.
 - The raw payload fixture is 523 bytes. SHA-256 was recomputed over the exact fetched payload bytes and matched the evidence envelope and allocation receipt: `0cdcab2b9625b3669918761b7a4da378e9d344321301f2dd0bb48feb67b788c8`.
 - Manually checked required time-window, artifact, uncertainty, lineage and claim-ceiling fields, plus source digest linkage and the 10 MWh allocation total.
-- The Rust runtime verifier implements exact-byte hashing before parsing, source asset/boundary/interval/carrier/time joins, heat/electric power-duration-energy consistency, allocation identity checks, first-law arithmetic replay and batch-scoped duplicate/overlap prevention. It now has 39 authored unit tests and single-record plus batch CLI modes (maximum 256 source intervals per batch). The batch key canonicalizes strict UTC timestamps to integer nanoseconds; it rejects both duplicate and overlapping intervals for the same source asset, boundary and carrier, while allowing adjacent intervals. CI checks all four Draft 2020-12 schemas, positive source/evidence/allocation fixtures, a two-interval batch manifest and a null-asset negative control using pinned `check-jsonschema` 0.39.0, then runs Rust 1.96 formatting, Clippy, tests, single CLI and batch CLI. These checks are queued and have not passed yet; no local Cargo run is claimed. The raw-payload schemas now cover separate heat and electricity profiles with carrier-specific power fields; other carriers remain future work. The schemas remain v0.1 drafts and need validator-backed tests before production use.
+- The Rust runtime verifier implements exact-byte hashing before parsing, source asset/boundary/interval/carrier/time joins, heat/electric power-duration-energy consistency, allocation identity checks, first-law arithmetic replay and batch-scoped duplicate/overlap prevention. It now has 43 authored unit tests and single-record plus batch CLI modes (maximum 256 source intervals per batch). The batch key canonicalizes strict UTC timestamps to integer nanoseconds; it rejects both duplicate and overlapping intervals for the same source asset, boundary and carrier, while allowing adjacent intervals. CI checks all five Draft 2020-12 schemas, positive heat/electric source/evidence/allocation fixtures, a three-item mixed-carrier batch manifest and a null-asset negative control using pinned `check-jsonschema` 0.39.0, then runs Rust 1.96 formatting, Clippy, tests, single CLI and batch CLI. These checks are queued and have not passed yet; no local Cargo run is claimed. The raw-payload schemas now cover separate heat and electricity profiles with carrier-specific power fields; other carriers remain future work. The schemas remain v0.1 drafts and need validator-backed tests before production use.
 
 A PASS in this fixture means only that the synthetic artifact can be bound to the declared bytes and arithmetic. No source values represent a real geothermal site or fusion plant.
 
