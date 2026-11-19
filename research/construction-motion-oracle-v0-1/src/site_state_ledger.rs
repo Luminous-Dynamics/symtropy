@@ -93,6 +93,8 @@ pub struct SiteWorkPackage {
     pub ids_spec_sha256: String,
     pub ids_version: String,
     pub ids_engine_build_sha256: String,
+    /// Digest of CRS, vertical datum, model units, map scale and model-to-site transform.
+    pub coordinate_context_sha256: String,
     pub design_revision_sha256: String,
     pub frame_id: String,
     pub frame_sha256: String,
@@ -251,6 +253,14 @@ pub enum SiteLedgerError {
 pub enum SiteApplyOutcome {
     Applied,
     DuplicateIgnored,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SiteLedgerTip {
+    pub sequence: u64,
+    pub event_sha256: Option<String>,
+    pub active_package_sha256: Option<String>,
+    pub event_count: u64,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -415,6 +425,32 @@ impl SiteStateLedger {
 
     pub fn event_count(&self) -> usize {
         self.events.len()
+    }
+
+    /// Return the immutable event suffix strictly after last_seen_sequence.
+    ///
+    /// None means the caller's cursor is ahead of this ledger. The sequence
+    /// is a 1-based contiguous ledger index, never a wall-clock timestamp.
+    pub fn events_after_sequence(
+        &self,
+        last_seen_sequence: u64,
+    ) -> Option<&[SiteEventEnvelope]> {
+        if last_seen_sequence > self.last_sequence {
+            return None;
+        }
+        let start = usize::try_from(last_seen_sequence).ok()?;
+        self.events.get(start..)
+    }
+
+    /// A compact durable checkpoint cursor. Persist the event stream as well;
+    /// this tip is not a substitute for replayable source events.
+    pub fn tip(&self) -> SiteLedgerTip {
+        SiteLedgerTip {
+            sequence: self.last_sequence,
+            event_sha256: self.last_event_sha256.clone(),
+            active_package_sha256: self.active_package_sha256.clone(),
+            event_count: self.events.len() as u64,
+        }
     }
 
     pub fn package_is_current(&self, package_sha256: &str) -> Option<bool> {
@@ -1090,6 +1126,7 @@ fn validate_work_package(package: &SiteWorkPackage) -> Result<(), SiteLedgerErro
         package.source_model_sha256.as_str(),
         package.ids_spec_sha256.as_str(),
         package.ids_engine_build_sha256.as_str(),
+        package.coordinate_context_sha256.as_str(),
         package.design_revision_sha256.as_str(),
         package.frame_sha256.as_str(),
         package.transform_sha256.as_str(),
@@ -1196,6 +1233,7 @@ mod tests {
             ids_spec_sha256: digest('d'),
             ids_version: "1.0".into(),
             ids_engine_build_sha256: digest('9'),
+            coordinate_context_sha256: digest('a'),
             design_revision_sha256: digest('b'),
             frame_id: "site-frame".into(),
             frame_sha256: digest('c'),
@@ -2347,6 +2385,26 @@ mod tests {
         registry.grant("robot-1", SiteActorRole::Robot).unwrap();
         assert!(registry.allows("robot-1", SiteActorRole::Robot));
         assert!(!registry.allows("robot-1", SiteActorRole::Referee));
+    }
+
+
+    #[test]
+    fn public_event_export_and_incremental_cursor_are_replayable() {
+        let mut ledger = test_ledger();
+        publish_package(&mut ledger, package('a', &["point-1"]));
+        let first_export = ledger.event_history().to_vec();
+        assert_eq!(first_export.len(), 1);
+        assert_eq!(ledger.events_after_sequence(0).unwrap(), first_export.as_slice());
+        assert!(ledger.events_after_sequence(1).unwrap().is_empty());
+        assert!(ledger.events_after_sequence(2).is_none());
+        let tip = ledger.tip();
+        assert_eq!(tip.sequence, 1);
+        assert_eq!(tip.event_count, 1);
+        assert_eq!(tip.event_sha256.as_deref(), ledger.last_event_sha256());
+        let replayed =
+            SiteStateLedger::replay(&first_export, ledger.actor_registry().clone()).unwrap();
+        assert_eq!(replayed, ledger);
+        assert_eq!(replayed.tip(), tip);
     }
 
 }
