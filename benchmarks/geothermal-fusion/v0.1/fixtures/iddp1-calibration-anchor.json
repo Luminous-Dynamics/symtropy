@@ -1,0 +1,46 @@
+{
+  "schema_version": "0.1.0",
+  "case_id": "PUBLISHED-IDDP1-SUPERHOT-CALIBRATION-ANCHOR-001",
+  "evidence_class": "published_model_calibration",
+  "claim_ceiling": "in_sample_calibration_anchor_not_blind_validation",
+  "source": {
+    "title": "Thermo-hydraulic drivers of superhot geothermal well performance",
+    "author": "Samuel W. Scott",
+    "journal": "Geothermics",
+    "publication_date": "2026-11",
+    "doi": "10.1016/j.geothermics.2026.103784",
+    "url": "https://doi.org/10.1016/j.geothermics.2026.103784"
+  },
+  "calibration_anchor": {
+    "well_id": "IDDP-1",
+    "reservoir_pressure_mpa_approx": 16.1,
+    "reservoir_temperature_c_approx": 500.0,
+    "effective_permeability_thickness_md_m_approx": 5300.0,
+    "observed_wellhead_temperature_c_range": [380.0, 440.0],
+    "modelled_wellhead_temperature_c_range": [390.0, 450.0],
+    "wellhead_temperature_unit": "degC",
+    "interpretation": "The article reports calibration against IDDP-1 discharge data. The displayed ranges overlap, but the ranges alone do not permit a pointwise error, RMSE, bias or predictive-coverage calculation."
+  },
+  "not_supplied_by_this_fixture": [
+    "raw_IDDP1_timeseries",
+    "original_solver_input_deck",
+    "digitized_pressure_mass_flow_observations",
+    "pointwise_model_residuals",
+    "uncertainty_covariance",
+    "complete_fluid_composition",
+    "exact_property_database_version",
+    "wellbore_geometry_revision",
+    "calibration_holdout"
+  ],
+  "required_reproduction_outputs": [
+    "pressure_vs_mass_flow_curve",
+    "wellhead_pressure_temperature_enthalpy_and_phase",
+    "downhole_pressure_temperature_enthalpy_profiles",
+    "property_model_identity_and_validity_domain",
+    "casing_inner_diameter_and_velocity",
+    "binary_or_flash_power_cycle_selection",
+    "per_well_gross_and_net_power_with_parasitics",
+    "uncertainty_and_model_discrepancy"
+  ],
+  "reproduction_rule": "Do not claim quantitative reproduction until the article tables/figures or source data are captured with digitization method, pixel/axis calibration, point uncertainty and source artifact digest. Do not treat calibration targets as an independent validation set."
+}
