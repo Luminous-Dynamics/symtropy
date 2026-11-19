@@ -65,7 +65,7 @@ A channel record must include:
 - common reference-clock identity and clock-mapping digest;
 - reference instant, estimated sample time offset and clock-offset uncertainty;
 - timestamp-jitter bound;
-- measured filter group delay, applied compensation and residual delay uncertainty;
+- measured signed filter group delay, applied compensation and residual delay uncertainty;
 - validated absolute signal-slew bound, with source and provenance digest.
 
 Calibration must cover the actual operating interval and the full interval after timing expansion. The calibration certificate need not cover unused portions of the sensor's entire hardware range.
@@ -106,6 +106,8 @@ tau_upper * omega_upper
 \`\`\`
 
 The minimum and maximum of those four values give the conservative product interval over the Cartesian product of the two declared component intervals. This is deterministic interval arithmetic, not a probabilistic independence assumption. Known dependence could support a tighter joint set, but the rectangular interval remains an enclosure when only marginal hard bounds are available. It handles negative values and sign crossings without relying on nominal centres.
+
+The aligned per-channel receipt retains the original and expanded intervals, sensor/calibration ranges, calibration/traceability status, timing offset, clock/jitter/filter-delay inputs, slew bound, and calibration/source/raw-trace provenance.
 
 The result reports:
 - pre-time-alignment power interval;
@@ -158,7 +160,7 @@ cargo clippy --manifest-path benchmarks/synthetic-joints/synchronized-metrology/
 
 Dedicated workflow: .github/workflows/actuator-synchronized-metrology.yml. The local authoring environment has no Cargo/rustc/rustfmt; exact-head CI is the compilation/format/Clippy gate.
 
-Twenty-three Rust tests cover rectangular interval multiplication, negative and zero-crossing power, clock/slew expansion, filter-delay compensation, expired calibration, serial mismatch, incomplete traceability, different clocks/instants, uncertainty-vs-bound semantics, boundary/condition mismatch, missing slew provenance, calibration range limits, preserved vendor evidence, wrong channel kinds, invalid intervals, traceability/clock-map abstention, raw-trace receipt preservation and timing overflow.
+Twenty-four Rust tests cover rectangular interval multiplication, negative and zero-crossing power, clock/slew expansion, filter-delay compensation, expired calibration, serial mismatch, incomplete traceability, different clocks/instants, uncertainty-vs-bound semantics, boundary/condition mismatch, missing slew provenance, calibration range limits, preserved vendor evidence, wrong channel kinds, invalid intervals, traceability/clock-map abstention, raw-trace receipt preservation, signed filter group delay and timing overflow.
 
 ## 8. M0–M5 promotion
 
