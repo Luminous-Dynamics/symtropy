@@ -123,6 +123,7 @@ struct MetricValue {
 struct PolicyReport {
     policy_id: String,
     role: String,
+    operating_envelope: String,
     feasible: bool,
     metrics: BTreeMap<String, MetricValue>,
     relaxation_count: usize,
@@ -148,7 +149,7 @@ fn policy_report(
     }
     let expected_forecast_use = match role.as_str() {
         "weather_blind_reference" => Some(false),
-        "weather_informed_resource_blind" | "integrated_candidate" => Some(true),
+        "weather_informed_resource_blind" | "integrated_candidate" | "authorized_soft_relaxation" => Some(true),
         _ => None,
     };
     if expected_forecast_use.is_none() {
@@ -174,8 +175,11 @@ fn policy_report(
     let policy_envelope = string_at(policy, "operating_envelope_sha256").unwrap_or("");
     if let Some(relaxations) = relaxations {
         for (index, relaxation) in relaxations.iter().enumerate() {
+            let constraint_id = string_at(relaxation, "constraint_id").unwrap_or("");
+            let service_floor_relaxation = METRICS.iter().any(|spec| spec.metric == constraint_id);
             if string_at(relaxation, "constraint_class") != Some("soft")
-                || string_at(relaxation, "constraint_id").is_none_or(str::is_empty)
+                || service_floor_relaxation
+                || constraint_id.is_empty()
                 || string_at(relaxation, "unit").is_none_or(str::is_empty)
                 || number_at(relaxation, "prior_limit").is_none()
                 || number_at(relaxation, "new_limit").is_none()
@@ -256,13 +260,25 @@ fn policy_report(
             blockers.push(format!("candidate policy '{policy_id}' has non-passing hard-gate disposition"));
         }
     }
-    if !relaxations.is_some_and(Vec::is_empty) {
+    if relaxation_count > 0 && role != "authorized_soft_relaxation" {
         feasible = false;
         if role == "integrated_candidate" {
-            blockers.push(format!("candidate policy '{policy_id}' changes a service/soft constraint envelope and must be evaluated as a distinct policy arm"));
+            blockers.push(format!("candidate policy '{policy_id}' changes a soft constraint and must be evaluated as a distinct authorized policy arm"));
+        } else {
+            errors.push(format!("policy '{policy_id}' contains a relaxation but is not the authorized_soft_relaxation role"));
         }
     }
-    Some(PolicyReport { policy_id, role, feasible, metrics: values, relaxation_count })
+    if role == "authorized_soft_relaxation" && relaxation_count == 0 {
+        errors.push(format!("authorized soft-relaxation policy '{policy_id}' must include at least one authority-bound relaxation"));
+    }
+    Some(PolicyReport {
+        policy_id,
+        role,
+        operating_envelope: policy_envelope.to_owned(),
+        feasible,
+        metrics: values,
+        relaxation_count,
+    })
 }
 
 fn dominates(left: &PolicyReport, right: &PolicyReport) -> bool {
@@ -421,6 +437,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         "policies":policy_reports.values().map(|policy| json!({
             "policy_id":policy.policy_id,
             "role":policy.role,
+            "operating_envelope_sha256":policy.operating_envelope,
             "feasible":policy.feasible,
             "relaxation_count":policy.relaxation_count
         })).collect::<Vec<_>>(),
@@ -534,11 +551,11 @@ mod tests {
     }
 
     #[test]
-    fn declared_soft_relaxation_requires_new_envelope_and_authority_receipt() {
+    fn relaxation_on_integrated_candidate_requires_a_distinct_policy_arm() {
         let mut value = fixture();
         value["policies"][2]["soft_constraint_relaxations"] = json!([{
             "constraint_class":"soft",
-            "constraint_id":"comfort-target",
+            "constraint_id":"optional-comfort-preference",
             "prior_limit":45.0,
             "new_limit":60.0,
             "unit":"min",
@@ -549,6 +566,55 @@ mod tests {
         value["policies"][2]["operating_envelope_sha256"] =
             json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
         assert_eq!(audit(&value)["disposition"], "BLOCKED");
+    }
+
+    #[test]
+    fn explicitly_authorized_soft_relaxation_is_a_separate_policy_arm() {
+        let mut value = fixture();
+        let mut policy = value["policies"][2].clone();
+        policy["policy_id"] = json!("authorized-soft-relaxation-arm");
+        policy["role"] = json!("authorized_soft_relaxation");
+        policy["decision_output_sha256"] = json!("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+        policy["operating_envelope_sha256"] = json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        policy["soft_constraint_relaxations"] = json!([{
+            "constraint_class":"soft",
+            "constraint_id":"optional-comfort-preference",
+            "prior_limit":45.0,
+            "new_limit":60.0,
+            "unit":"min",
+            "authority_receipt_ref":"SYNTHETIC-AUTHORITY-RECEIPT",
+            "authority_receipt_sha256":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "new_operating_envelope_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }]);
+        value["policies"].as_array_mut().unwrap().push(policy);
+        let report = audit(&value);
+        assert_eq!(report["disposition"], "SYNTHETIC_ONLY");
+        assert_eq!(report["policy_count"], 4);
+        assert_eq!(report["policies"].as_array().unwrap().iter()
+            .find(|policy| policy["policy_id"] == "authorized-soft-relaxation-arm").unwrap()["operating_envelope_sha256"],
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    }
+
+    #[test]
+    fn authorized_soft_relaxation_cannot_modify_a_service_floor() {
+        let mut value = fixture();
+        let mut policy = value["policies"][2].clone();
+        policy["policy_id"] = json!("authorized-soft-relaxation-arm");
+        policy["role"] = json!("authorized_soft_relaxation");
+        policy["decision_output_sha256"] = json!("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+        policy["operating_envelope_sha256"] = json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        policy["soft_constraint_relaxations"] = json!([{
+            "constraint_class":"soft",
+            "constraint_id":"freshwater_reserve_days_at_arrival",
+            "prior_limit":3.0,
+            "new_limit":2.0,
+            "unit":"day",
+            "authority_receipt_ref":"SYNTHETIC-AUTHORITY-RECEIPT",
+            "authority_receipt_sha256":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "new_operating_envelope_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }]);
+        value["policies"].as_array_mut().unwrap().push(policy);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
     }
 
     #[test]
