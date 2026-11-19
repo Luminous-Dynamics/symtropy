@@ -336,7 +336,8 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
 
         let mut current_state = asset.initial_state;
         let mut last_tick = 0_u64;
-        let mut active_flight: Option<(String, u64)> = None;
+        let mut active_flight: Option<String> = None;
+        let mut last_recovery_tick: Option<u64> = None;
         let mut cycles = 0_u64;
 
         for event in &asset.events {
@@ -383,21 +384,32 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
                     {
                         return Err(format!("duplicate or overlapping flight ID: {flight_id}"));
                     }
-                    active_flight = Some((flight_id.clone(), event.tick));
+                    if cycles > 0 {
+                        let recovered_tick = last_recovery_tick.take().ok_or_else(|| {
+                            format!(
+                                "asset {} attempted a reflight without a recorded recovery",
+                                asset.serial
+                            )
+                        })?;
+                        turnaround_ticks.push(event.tick - recovered_tick);
+                    }
+                    active_flight = Some(flight_id.clone());
                     cycles = checked_add(cycles, 1, "flight cycles")?;
                 }
                 AssetState::Recovered => {
                     let flight_id = event.flight_id.as_ref().expect("checked above");
-                    if active_flight.as_ref().map(|(id, _)| id) != Some(flight_id) {
+                    if active_flight.as_ref() != Some(flight_id) {
                         return Err(format!("recovery references non-active flight {flight_id}"));
                     }
                     if !recovered_ids.insert(flight_id.clone()) {
                         return Err(format!("duplicate recovery event for flight {flight_id}"));
                     }
+                    active_flight = None;
+                    last_recovery_tick = Some(event.tick);
                 }
                 AssetState::Failed | AssetState::Lost => {
                     let flight_id = event.flight_id.as_ref().expect("checked above");
-                    if active_flight.as_ref().map(|(id, _)| id) != Some(flight_id) {
+                    if active_flight.as_ref() != Some(flight_id) {
                         return Err(format!(
                             "terminal event references non-active flight {flight_id}"
                         ));
@@ -406,15 +418,16 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
                         return Err(format!("duplicate terminal failure for flight {flight_id}"));
                     }
                     match event.to_state {
-                        AssetState::Failed => { failed_ids.insert(flight_id.clone()); }
-                        AssetState::Lost => { lost_ids.insert(flight_id.clone()); }
+                        AssetState::Failed => {
+                            failed_ids.insert(flight_id.clone());
+                        }
+                        AssetState::Lost => {
+                            lost_ids.insert(flight_id.clone());
+                        }
                         _ => unreachable!("matched only failed or lost states"),
                     }
-                }
-                AssetState::Ready if event.from_state == AssetState::Requalified => {
-                    if let Some((_, flown_tick)) = active_flight.take() {
-                        turnaround_ticks.push(event.tick - flown_tick);
-                    }
+                    active_flight = None;
+                    last_recovery_tick = None;
                 }
                 _ => {}
             }
@@ -437,7 +450,6 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
     let mut lost_count = 0_u64;
     let mut accepted_count = 0_u64;
     let mut accepted_payload_kg = 0_u64;
-    let mut lost_count = 0_u64;
 
     for flight in &fixture.flights {
         non_empty(&flight.flight_id, "flight_id")?;
@@ -657,19 +669,22 @@ mod tests {
     fn frozen_fixture_replays_expected_accounting() {
         let report = evaluate(&fixture()).expect("fixture should pass");
         assert_eq!(report.metrics.asset_count, 3);
-        assert_eq!(report.metrics.flight_attempts, 3);
-        assert_eq!(report.metrics.mission_successes, 2);
-        assert_eq!(report.metrics.recovered_stages, 2);
+        assert_eq!(report.metrics.flight_attempts, 4);
+        assert_eq!(report.metrics.mission_successes, 3);
+        assert_eq!(report.metrics.recovered_stages, 3);
         assert_eq!(report.metrics.failed_flights, 0);
         assert_eq!(report.metrics.lost_stages, 1);
-        assert_eq!(report.metrics.payload_acceptances, 2);
-        assert_eq!(report.metrics.accepted_payload_kg, 18_000);
+        assert_eq!(report.metrics.payload_acceptances, 3);
+        assert_eq!(report.metrics.accepted_payload_kg, 23_000);
         assert_eq!(report.metrics.completed_reflight_cycles, 1);
-        assert_eq!(report.metrics.turnaround_total_ticks, 10);
+        assert_eq!(report.metrics.turnaround_sample_count, 1);
+        assert_eq!(report.metrics.turnaround_total_ticks, 14);
+        assert_eq!(report.metrics.turnaround_max_ticks, 14);
+        assert_eq!(report.metrics.maintenance_task_count, 5);
         assert_eq!(report.metrics.maintenance_total_wait_ticks, 1);
         assert_eq!(report.metrics.maintenance_max_wait_ticks, 1);
-        assert_eq!(report.metrics.costs.total_lifecycle_scu, 444);
-        assert_eq!(report.metrics.costs.cost_per_accepted_kg_microscu, Some(24_666));
+        assert_eq!(report.metrics.costs.total_lifecycle_scu, 482);
+        assert_eq!(report.metrics.costs.cost_per_accepted_kg_microscu, Some(20_956));
     }
 
     #[test]
@@ -679,6 +694,13 @@ mod tests {
         assert_eq!(asset.final_state, AssetState::Quarantined);
         assert_eq!(asset.flight_cycles, 1);
         assert_eq!(report.metrics.completed_reflight_cycles, 1);
+        let reusable = report
+            .assets
+            .iter()
+            .find(|asset| asset.serial == "STAGE-001")
+            .unwrap();
+        assert_eq!(reusable.flight_cycles, 2);
+        assert_eq!(reusable.final_state, AssetState::Ready);
     }
 
     #[test]
@@ -748,13 +770,16 @@ mod tests {
             .iter()
             .filter(|task| task.station == "inspection")
             .collect::<Vec<_>>();
-        assert_eq!(inspection.len(), 2);
+        assert_eq!(inspection.len(), 3);
         assert_eq!(inspection[0].task_id, "inspect-stage-001");
         assert_eq!(inspection[0].start_tick, 12);
         assert_eq!(inspection[0].finish_tick, 15);
         assert_eq!(inspection[1].task_id, "inspect-stage-002");
         assert_eq!(inspection[1].start_tick, 15);
         assert_eq!(inspection[1].finish_tick, 17);
+        assert_eq!(inspection[2].task_id, "inspect-stage-001-second");
+        assert_eq!(inspection[2].start_tick, 27);
+        assert_eq!(inspection[2].finish_tick, 30);
     }
 
     #[test]
