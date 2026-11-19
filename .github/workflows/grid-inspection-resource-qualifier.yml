@@ -88,8 +88,10 @@ jobs:
             and .expectedCandidateActionCompletionHour > 18.0
             and .worstCaseCandidateActionCompletionHour == 18.25
             and (.expectedResourceHours | length == 4)
-            and ([.expectedResourceHours[] | select(.resourceRef == "synthetic://resource/specialist-crew-01")][0].expectedUnitHours == 9.05)
-            and ([.expectedResourceHours[] | select(.resourceRef == "synthetic://resource/portable-test-set-01")][0].expectedUnitHours == 3.05)
-            and ([.branches[] | select(.recoveryAction.activityId == "repair-bushing")][0].branchResourceHours[] | select(.resourceRef == "synthetic://resource/specialist-crew-01").unitHours) == 9.5
+            and ([.expectedResourceHours[] | select(.resourceRef == "synthetic://resource/specialist-crew-01")][0].expectedUnitHours > 9.04999)
+            and ([.expectedResourceHours[] | select(.resourceRef == "synthetic://resource/specialist-crew-01")][0].expectedUnitHours < 9.05001)
+            and ([.expectedResourceHours[] | select(.resourceRef == "synthetic://resource/portable-test-set-01")][0].expectedUnitHours > 3.04999)
+            and ([.expectedResourceHours[] | select(.resourceRef == "synthetic://resource/portable-test-set-01")][0].expectedUnitHours < 3.05001)
+            and ([.branches[] | select(.recoveryAction.activityId == "repair-bushing") | .branchResourceHours[] | select(.resourceRef == "synthetic://resource/specialist-crew-01") | .unitHours][0] == 9.5)
             and (.claimBoundary | contains("not service restoration"))
           ' /tmp/grid-inspection-resource-report.json
