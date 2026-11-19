@@ -1460,13 +1460,48 @@ mod tests {
     #[test]
     fn protocol_observation_after_new_package_revision_is_historical_only() {
         let (mut ledger, old_package, attempt_id) = setup_started_attempt();
+
+        let robot = event(
+            "event-robot-finished",
+            4,
+            ledger.last_event_sha256().map(str::to_owned),
+            '5',
+            "robot-1",
+            SiteActorRole::Robot,
+            SiteEventPayload::RobotObservationRecorded {
+                package_sha256: old_package.clone(),
+                entity_id: "line-1".into(),
+                attempt_id: attempt_id.clone(),
+                disposition: RobotExecutionDisposition::Printed,
+                robot_receipt_sha256: digest('7'),
+            },
+        );
+        ledger.apply(robot).unwrap();
+
+        let referee = event(
+            "event-referee-accepted",
+            5,
+            ledger.last_event_sha256().map(str::to_owned),
+            '6',
+            "referee-1",
+            SiteActorRole::Referee,
+            SiteEventPayload::RefereeAssessmentRecorded {
+                package_sha256: old_package.clone(),
+                entity_id: "line-1".into(),
+                attempt_id: attempt_id.clone(),
+                assessment: SiteRefereeAssessment::Measured(measurement(0.2, 0.1)),
+            },
+        );
+        ledger.apply(referee).unwrap();
+        assert_eq!(ledger.accepted_count(&old_package), Some(1));
+
         let new_package = package('f', &["line-1", "point-1"]);
         let new_digest = new_package.package_sha256.clone();
         let published = event(
             "event-publish-v2",
-            4,
+            6,
             ledger.last_event_sha256().map(str::to_owned),
-            '5',
+            '7',
             "design-authority",
             SiteActorRole::DesignAuthority,
             SiteEventPayload::WorkPackagePublished {
@@ -1477,9 +1512,9 @@ mod tests {
 
         let telemetry = event(
             "event-vda-late-state",
-            5,
+            7,
             ledger.last_event_sha256().map(str::to_owned),
-            '6',
+            '8',
             "robot-1",
             SiteActorRole::Robot,
             SiteEventPayload::RobotProtocolObservationRecorded {
@@ -1490,6 +1525,7 @@ mod tests {
             },
         );
         ledger.apply(telemetry).unwrap();
+
         assert_eq!(ledger.active_package_sha256(), Some(new_digest.as_str()));
         assert_eq!(
             ledger.entity_state(&new_digest, "line-1"),
@@ -1497,9 +1533,10 @@ mod tests {
         );
         assert!(matches!(
             ledger.entity_state(&old_package, "line-1"),
-            Some(SiteEntityState::ExecutionInProgress { .. })
+            Some(SiteEntityState::Accepted { .. })
         ));
-        assert_eq!(ledger.accepted_count(&old_package), Some(0));
+        assert_eq!(ledger.accepted_count(&old_package), Some(1));
+        assert_eq!(ledger.accepted_count(&new_digest), Some(0));
     }
 
     #[test]
