@@ -1,0 +1,65 @@
+name: Grid resilience rebuild decision contract
+
+on:
+  pull_request:
+    paths:
+      - "tools/grid-resilience-rebuild-benchmark/**"
+      - ".github/workflows/grid-resilience-rebuild-benchmark.yml"
+  push:
+    paths:
+      - "tools/grid-resilience-rebuild-benchmark/**"
+      - ".github/workflows/grid-resilience-rebuild-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Validate two-horizon repair and rebuild decision
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate schema, scenario manifest and horizon separation
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("tools/grid-resilience-rebuild-benchmark")
+          schema = json.loads((root / "grid-resilience-rebuild-case-v0.1.schema.json").read_text())
+          fixture = json.loads((root / "fixtures/synthetic-two-horizon-rebuild-v0.1.json").read_text())
+          hazard_manifest = json.loads((root / "fixtures/synthetic-hazard-manifest-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER)
+          errors = sorted(validator.iter_errors(fixture), key=lambda error: list(error.path))
+          assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
+
+          payload = json.dumps(hazard_manifest, separators=(",", ":"), sort_keys=True, ensure_ascii=False).encode()
+          assert hashlib.sha256(payload).hexdigest() == fixture["hazardScenarioManifest"]["manifestSha256"]
+          scenario_refs = {item["scenarioRef"] for item in hazard_manifest["scenarios"]}
+          assert set(fixture["hazardScenarioManifest"]["scenarioRefs"]) == scenario_refs
+          assert all(item["probabilityStatus"] == "not_assigned" for item in hazard_manifest["scenarios"])
+          assert fixture["emergencyHorizon"]["decisionCutoffHour"] == fixture["asOfHour"]
+          assert fixture["separationRules"] == {
+              "emergencyPlanMustNotWaitForCapitalReview": True,
+              "capitalExecutionRequiresEmergencyAcceptance": True,
+              "capitalExecutionRequiresSeparateApproval": True,
+              "serviceFloorIsHardConstraint": True,
+          }
+          assert all(option["executionState"] == "candidate_only" for option in fixture["emergencyHorizon"]["candidateOptions"])
+          assert all(option["executionState"] == "candidate_only" and option["dependsOnEmergencyAcceptance"] for option in fixture["capitalHorizon"]["capitalOptions"])
+          assert fixture["capitalHorizon"]["currency"] == "ZAR"
+          assert fixture["capitalHorizon"]["lifecycleYears"] >= 20
+          assert len(fixture["capitalHorizon"]["capitalOptions"]) >= 3
+          assert "probability" not in json.dumps(hazard_manifest).lower().replace("probabilitystatus", "")
+          print("PASS: schema, hazard manifest digest, scenario provenance and two-horizon separation")
+          PY
