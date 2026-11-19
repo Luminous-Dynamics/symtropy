@@ -17,7 +17,7 @@ This is a deliberately bounded Rust runtime slice. It is not a full Draft 2020-1
 3. Recomputes and checks payload byte length, then parses the payload and checks its version.
 4. For the thermal profile, recomputes `average_thermal_power_mw × duration_ns / 3.6e12` and rejects a source payload whose energy value does not agree with its power and interval duration.
 5. Joins evidence class, source asset, measurement boundary, explicit source interval ID, carrier and bounded time window across the raw payload, evidence envelope and allocation receipt.
-6. Parses strict UTC `Z` timestamps into integer nanoseconds and enforces the declared clock-quality profile.
+6. Parses strict UTC `Z` timestamps into integer nanoseconds, enforces the declared clock-quality profile, and checks calibration-window coverage for measured/audited evidence.
 7. Joins the allocation receipt to the exact evidence ID and recomputed payload digest.
 8. Rejects duplicate allocation edge IDs, invalid energy terms and service/carrier mismatches.
 9. Recomputes allocated energy, curtailment, residual and normalized absolute residual using the same scale-normalized formula as the GeoFusion Rust source-allocation ledger.
@@ -58,7 +58,7 @@ Exit codes:
 
 ## Adversarial and positive test coverage
 
-The 33 current unit tests cover exact fixture success, byte tampering (including malformed tampered JSON), declared byte-length mismatch, interval-ID mismatch, boundary mismatch, synthetic-to-measured evidence-class promotion, duplicate allocation IDs, service/carrier mismatch, over-allocation and negative residual, forged reported balance, allocation digest mismatch, rejected integrity state, zero tolerance, stale/unknown validity, clock-quality refusal, mismatched and non-UTC time windows, unsupported digest algorithms, malformed digests, relative comparisons at tiny energy scales, duplicate source intervals across batches (including fractional-second spellings), overlapping intervals, invalid calendar dates, duplicate evidence/receipt IDs, source power-duration mismatch and zero-duration rejection.
+The 39 current unit tests cover exact fixture success, byte tampering (including malformed tampered JSON), declared byte-length mismatch, interval-ID mismatch, boundary mismatch, synthetic-to-measured evidence-class promotion, duplicate allocation IDs, service/carrier mismatch, over-allocation and negative residual, forged reported balance, allocation digest mismatch, rejected integrity state, zero tolerance, stale/unknown validity, clock-quality refusal, mismatched and non-UTC time windows, unsupported digest algorithms, malformed digests, relative comparisons at tiny energy scales, duplicate source intervals across batches (including fractional-second spellings), overlapping intervals, invalid calendar dates, duplicate evidence/receipt IDs, source power-duration mismatch and zero-duration rejection.
 
 ## Batch uniqueness
 
@@ -72,7 +72,7 @@ The check is **batch-scoped**. It parses canonical UTC `Z` timestamps into integ
 - The batch API prevents duplicate and overlapping interval reuse within one supplied batch, using a canonical UTC nanosecond start key.
 - The verifier performs runtime semantic checks on the fields it consumes; it does not execute the complete JSON Schema Draft 2020-12 specification.
 - It cannot detect reuse of the same source interval across separately verified batches; a persistent cross-campaign ledger is not implemented.
-- For measured/audited classes it requires the declared measurement and calibration fields; it does not authenticate certificates or prove that a calibration covers the observation interval.
+- For measured/audited classes it requires unique instrument IDs and declared calibration metadata, and verifies that the declared calibration time window covers the full source interval. This is a timestamp consistency check only; it does not authenticate the certificate or prove the instrument's accuracy.
 - For calibrated/independently validated model classes it requires a declared applicable, converged solver record; it does not reproduce the solver or validate its physics.
 - It does not prove meter accuracy, clock synchronization, covariance, model-domain validity, physical source truth or operational authorization.
 - A matching SHA-256 proves byte identity, not the truth or quality of the data.
