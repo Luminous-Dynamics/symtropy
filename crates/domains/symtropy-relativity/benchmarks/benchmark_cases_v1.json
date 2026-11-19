@@ -632,7 +632,7 @@
           "static Boulware-Deser while increasing Omega_H"
         ],
         "matching_requirement": "Recompute common observables/residual norms from matched profiles; paper-reported relative accuracy is not directly the same as a pointwise field-residual norm.",
-        "cross_gauge_check": "The source explicitly reports repeating some runs in isotropic and g=r^2 gauges with excellent agreement in physical parameters; reproduce this."
+        "cross_gauge_check": "The source explicitly reports repeating some runs in isotropic and g=r^2 gauges with excellent agreement in physical parameters; reproduce this. Compare T_H, A_H, S_Wald, E, J and the first-law defect; require convergence with radial mesh refinement."
       },
       "additional_methodological_comparator": {
         "citation": "Lam, Chung and Yunes, Phys. Rev. D 113, 024030 (2026), DOI 10.1103/txxb-z8bx",
@@ -656,7 +656,15 @@
           "reported_spectral_metric_accuracy": "below machine precision for a<=0.9; approximately 1e-8 for a<=0.999",
           "applicability": "methodological comparator only: 4D Kerr-based leading-coupling quadratic EFTs, not 5D pure EGB",
           "objective": "measure our own chi-lambda-observable tolerance envelope; do not inherit their spin threshold"
-        }
+        },
+        "thermodynamic_observables": [
+          "E",
+          "J",
+          "T_H",
+          "A_H",
+          "S_Wald",
+          "first-law defect"
+        ]
       },
       "interval_quadrature_gate": {
         "module": "crates/domains/symtropy-lovelock5d/src/interval.rs",
@@ -678,6 +686,16 @@
           "python_fraction_inclusion_check": "5000 random binary64 input pairs; 15000 exact-rational inclusion checks on add/multiply/divide"
         },
         "proof_boundary": "Fast binary64 screening only, not proof-grade solution certification. Require IEEE-1788 differential tests and independent FLINT Arb replay (issue #6013) before qualified use."
+      },
+      "thermodynamic_invariants": {
+        "horizon_temperature": "T_H=sqrt(b1*f1)/(4*pi)",
+        "horizon_area": "A_H=2*pi^2*r_H^2*sqrt(h_H)",
+        "wald_entropy": "S=(2*pi^2/(4*G))*sqrt(h_H)*(r_H^2+alpha*(4-h_H/r_H^2))",
+        "asymptotic_energy": "E=-3*(2*pi^2)*U/(16*pi*G)",
+        "equal_angular_momentum_each_plane": "J=(2*pi^2)*W/(8*pi*G)",
+        "first_law_fixed_alpha": "dE=T_H*dS_Wald+2*Omega_H*dJ",
+        "benchmark_gate": "finite-difference or branch-tangent first-law defect must converge under step/refinement; compare the same invariants in both radial gauges",
+        "source": "Brihaye et al. (2010), Eqs. (3.6)-(3.11), (4.3)"
       }
     },
     {
