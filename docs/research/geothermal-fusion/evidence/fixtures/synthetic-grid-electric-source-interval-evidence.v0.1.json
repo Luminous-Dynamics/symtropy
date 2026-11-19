@@ -24,10 +24,10 @@
     "availability": "available",
     "locator": "docs/research/geothermal-fusion/evidence/fixtures/synthetic-grid-electric-source-interval.v0.1.json",
     "media_type": "application/json",
-    "byte_length": 511,
+    "byte_length": 509,
     "digest": {
       "algorithm": "sha256",
-      "value": "42a4909f982fd68c583024df090e36fd85909a878055e7e3ad59f239b1c096cf"
+      "value": "2630c420ddb096e2a763ff2a096acad3eb554b441adbb3bc5eb1d14edfae9c72"
     },
     "integrity_state": "verified"
   },
