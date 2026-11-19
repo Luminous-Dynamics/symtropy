@@ -24,6 +24,7 @@ The five radial functions are \(b,f,g,h,w\). The gauge \(g(r)=r^2\) is imposed o
 - A binary64 outward-rounded angular-quadrature pre-screen that fails closed when the metric or denominator is unresolved. This is a fast screening layer, not a proof-grade interval solver.
 - Exact MP and BD fixtures, the \(O(a^2)\) spin-response equation derivation, and solver-comparison protocols.
 - An executed high-precision reference for the areal-to-isotropic map of the static BD exterior and its linear-spin transformation.
+- A matched-asymptotic strong-coupling reference for the isotropic horizon coordinate, showing exponential chart compression and motivating a horizon-relative logarithmic radial chart.
 
 The finite-\(\alpha\) first-order angular mode obeys
 \[
@@ -47,6 +48,15 @@ The time-sector expression from the 2010 source is a **sourced radial balance** 
 P_t'=\frac{\alpha}{6}r^2\sqrt{\frac{bh}{f}}\mathcal L_{GB}.
 \]
 It is not a second conserved Noether flux. Do not replace it with a constant at finite \(\alpha\).
+
+
+## Strong-coupling coordinate conditioning
+
+For the static BD exterior, the isotropic horizon coordinate has the leading large-coupling behavior
+
+    xi_H ~ 1.7923085278641586 * sqrt(lambda) * exp(-pi*sqrt(lambda)/2)
+
+with lambda=alpha/r_H^2. A 90-dps numerical grid from lambda=100 through 1,000,000 approaches this matched asymptotic. This is coordinate compression, not a shrinking physical horizon. The proposed remedy is a horizon-relative chart eta=log(xi/xi_H), owned by issue #6206. Neither the asymptotic remainder nor a generic rotating chart transition is interval-certified yet.
 
 ## Evidence and implementation status
 
