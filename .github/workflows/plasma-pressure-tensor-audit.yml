@@ -7,7 +7,7 @@ on:
     paths:
       - "crates/tools/plasma-pressure-tensor-audit/**"
       - "benchmarks/plasma/pressure-tensor-audit-*.json"
-      - "benchmarks/plasma/pressure-grid-audit-v0.json"
+      - "benchmarks/plasma/pressure-grid-*.json"
       - ".github/workflows/plasma-pressure-tensor-audit.yml"
   pull_request:
     paths:
@@ -39,6 +39,8 @@ jobs:
         run: cargo run --locked --manifest-path crates/tools/plasma-pressure-tensor-audit/Cargo.toml -- benchmarks/plasma/pressure-tensor-audit-v0.json
       - name: Audit frozen periodic pressure-grid fixture
         run: cargo run --locked --manifest-path crates/tools/plasma-pressure-tensor-audit/Cargo.toml --bin pressure-grid-audit -- benchmarks/plasma/pressure-grid-audit-v0.json
+      - name: Compare reference and predicted pressure-grid fixtures
+        run: cargo run --locked --manifest-path crates/tools/plasma-pressure-tensor-audit/Cargo.toml --bin pressure-divergence-compare -- benchmarks/plasma/pressure-grid-reference-v0.json benchmarks/plasma/pressure-grid-predicted-v0.json
       - name: Confirm rejected tensors fail the process boundary
         shell: bash
         run: |
