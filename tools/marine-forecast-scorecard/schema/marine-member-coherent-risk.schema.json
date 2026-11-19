@@ -12,11 +12,12 @@
     "claim_ceiling": {"const":"member_coherent_route_risk_only"},
     "forecast": {
       "type":"object","additionalProperties":false,
-      "required":["source_id","cycle_id","artifact_sha256","first_available_at","decision_cutoff","availability_receipt_ref","availability_receipt_sha256","member_set_sha256","members"],
+      "required":["source_id","cycle_id","artifact_sha256","forecast_issue_time","first_available_at","decision_cutoff","availability_receipt_ref","availability_receipt_sha256","member_set_sha256","members"],
       "properties": {
         "source_id":{"type":"string","minLength":1},
         "cycle_id":{"type":"string","minLength":1},
         "artifact_sha256":{"type":"string","pattern":"^[a-fA-F0-9]{64}$"},
+        "forecast_issue_time":{"type":"string","format":"date-time"},
         "first_available_at":{"type":"string","format":"date-time"},
         "decision_cutoff":{"type":"string","format":"date-time"},
         "availability_receipt_ref":{"type":"string","minLength":1},
