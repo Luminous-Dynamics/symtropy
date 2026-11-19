@@ -161,3 +161,13 @@ All entries are metadata-registered only; no external benchmark dataset is claim
 ### Publication-date correction — rolling-horizon restoration paper
 
 The publisher's current record assigns Qiu et al., DOI 10.1016/j.ress.2026.113531, to *Reliability Engineering & System Safety*, Volume 278 Part 2, **February 2027**. The DOI's 2026 suffix is not the journal issue date. The abstract reports 23.7% and 15.1% restoration-time reductions on modified IEEE 33-node and 123-node feeders relative to the paper's own best-performing benchmark. As of the 2026-11-19 benchmark snapshot, this is recorded as a forthcoming issue assignment, not a formally published 2026 issue article. These percentages are not directly comparable to our synthetic recovery fixtures.
+
+
+### Supply-chain portfolio implication — ENTSO-E 2026
+
+The European TSO report adds concrete reasons to move beyond single-event procurement:
+- 245–420 kV transformer procurement is typically at least 36 months; phase-shifting transformers are highly customised with lead times above four years.
+- For HVDC, leading European suppliers are reported booked through 2030; raw materials, factories, cable-laying vessels, ports and specialist installation crews all constrain delivery, with lead times of three to five years or more.
+- A parallel survey of 12 TSOs reports nine submissions identifying skilled-workforce availability as a key challenge.
+
+This evidence supports [GRID-RECOVERY-SUPPLY-CHAIN-001 #6237](https://github.com/Luminous-Dynamics/symtropy/issues/6237): shared factory slots, materials, vessels, ports and qualified crews must be modelled as portfolio resources across competing projects. These figures are European survey observations only, not global or South African distributions and not enough to calibrate probability models.
