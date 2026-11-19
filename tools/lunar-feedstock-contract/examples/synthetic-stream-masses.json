@@ -1,0 +1,13 @@
+{
+  "evidence_class": "synthetic_fixture_only",
+  "streams_kg": {
+    "S0-RAW": 100,
+    "S1-MAG-OUTPUT": 80,
+    "S2-IRON-REJECT": 20,
+    "S3-ANORTHITE-PRODUCT": 60,
+    "S4-BASALT-REJECT": 20,
+    "S5-REACTOR-INLET": 59,
+    "S6-TRANSFER-LOSS": 1
+  },
+  "notes": "Illustrative stream masses only; no physical process campaign performed."
+}
