@@ -337,13 +337,40 @@ pub fn schedule_with_policy(
     }
 
     let mut successors: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut indegree: BTreeMap<String, usize> =
+        task_by_key.keys().map(|task_key| (task_key.clone(), 0)).collect();
     for (task_key, task) in &task_by_key {
         for dependency in &task.depends_on {
+            let dependency_key = key(&task.event_id, dependency);
             successors
-                .entry(key(&task.event_id, dependency))
+                .entry(dependency_key.clone())
                 .or_default()
                 .push(task_key.clone());
+            *indegree.get_mut(task_key).expect("task key is indexed") += 1;
         }
+    }
+    let mut topological_ready: BTreeSet<String> = indegree
+        .iter()
+        .filter(|(_, degree)| **degree == 0)
+        .map(|(task_key, _)| task_key.clone())
+        .collect();
+    let mut visited_count = 0usize;
+    while let Some(task_key) = topological_ready.pop_first() {
+        visited_count += 1;
+        if let Some(next_tasks) = successors.get(&task_key) {
+            for next_task in next_tasks {
+                let degree = indegree.get_mut(next_task).expect("successor is indexed");
+                *degree -= 1;
+                if *degree == 0 {
+                    topological_ready.insert(next_task.clone());
+                }
+            }
+        }
+    }
+    if visited_count != task_by_key.len() {
+        return Err(vec![
+            "task dependency graph contains a cycle or unresolved dependency".to_string(),
+        ]);
     }
     let mut critical_path_cache = BTreeMap::new();
 
