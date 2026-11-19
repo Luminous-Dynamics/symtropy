@@ -54,7 +54,7 @@ available_lower = measured_or_reported_torque - envelope_uncertainty
 robust_margin = available_lower - required_upper
 ```
 
-Interpolation is piecewise linear and only allowed between supplied knots. No extrapolation is permitted. The branch-level peak-duration limit must be a conservative lower bound applicable across that branch's declared speed/condition range; a single catalog peak torque is not a duration envelope.
+Interpolation is piecewise linear and only allowed between supplied knots. No extrapolation is permitted. Crucially, endpoint uncertainty alone does not make the interpolated curve conservative: every off-knot value additionally requires a validated upper bound on interpolation/model error, which is subtracted from the interpolated available torque. If that bound is missing, the off-knot sample is Unknown. Exact measured knots remain usable. The branch-level peak-duration limit must be a conservative lower bound applicable across that branch's declared speed/condition range; a single catalog peak torque is not a duration envelope.
 
 ## 4. Decisions
 
@@ -107,7 +107,7 @@ A vendor result can support a vendor-evidence comparison, but is never promoted 
 
 `examples/mission-capability-known-answer.json` contains a synthetic Hold → forward-motoring → forward-regenerating mission with three direction-specific model-derived envelopes. The mass and volume are explicitly unknown. No hardware data are included.
 
-Nineteen Rust test definitions cover:
+Twenty-one Rust test definitions cover:
 1. in-domain interpolation and robust continuous margin;
 2. uncertainty-driven peak classification;
 3. peak-duration overrun;
@@ -125,8 +125,10 @@ Nineteen Rust test definitions cover:
 15. unknown evidence cannot create a feasible result;
 16. vendor provenance remains vendor provenance;
 17. coast-only tasks do not claim torque-envelope coverage;
-18. candidate/operating-condition digests and evidence references/methods survive into results;
-19. duplicate regimes and evidence-configuration mismatch.
+18. off-knot interpolation is Unknown without a validated error bound;
+19. interpolation-error bound is subtracted from available torque;
+20. candidate/operating-condition digests and evidence references/methods survive into results;
+21. duplicate regimes and evidence-configuration mismatch.
 
 These are synthetic software tests, not physical actuator experiments.
 
