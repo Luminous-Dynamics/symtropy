@@ -48,6 +48,40 @@ fn close(left: f64, right: f64) -> bool {
     (left - right).abs() <= TOLERANCE
 }
 
+const AGENT_FORBIDDEN_KEYS: &[&str] = &[
+    "world_truth",
+    "evaluator_truth",
+    "realized_hypothesis_id",
+    "realized_outcomes",
+    "actual_dependency_groups",
+    "actual_arrival_tick",
+    "reference_transcript",
+    "oracle_label",
+    "hidden_state",
+    "future_frames",
+    "future_observations",
+];
+
+fn reject_agent_truth_fields(value: &Value, path: &str) -> Result<(), String> {
+    match value {
+        Value::Object(object) => {
+            for (key, child) in object {
+                if AGENT_FORBIDDEN_KEYS.contains(&key.as_str()) {
+                    return Err(format!("evaluator-only field {key:?} leaked into agent data at {path}"));
+                }
+                reject_agent_truth_fields(child, &format!("{path}.{key}"))?;
+            }
+        }
+        Value::Array(items) => {
+            for (index, child) in items.iter().enumerate() {
+                reject_agent_truth_fields(child, &format!("{path}[{index}]"))?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
 fn entropy(probabilities: impl Iterator<Item = f64>) -> f64 {
     probabilities
         .filter(|p| *p > 0.0)
@@ -465,6 +499,9 @@ pub fn audit_fixtures(
         }
     }
 
+    reject_agent_truth_fields(agent, "agent")?;
+    reject_agent_truth_fields(expected, "expected")?;
+
     let agent_episodes = array(required(agent, "episodes")?, "agent.episodes")?;
     let oracle_episodes = array(required(oracle, "episodes")?, "oracle.episodes")?;
     let expected_episodes = array(required(expected, "episodes")?, "expected.episodes")?;
@@ -757,6 +794,17 @@ mod tests {
         assert!(agent["episodes"][0].get("realized_hypothesis_id").is_none());
         assert!(expected["episodes"][0].get("realized_hypothesis_id").is_none());
         audit_fixtures(&agent, &oracle, &expected).unwrap();
+    }
+
+    #[test]
+    fn evaluator_only_fields_are_rejected_from_agent_and_expected_fixtures() {
+        let (mut agent, oracle, expected) = fixtures();
+        agent["episodes"][0]["realized_hypothesis_id"] = Value::String("H1".to_owned());
+        assert!(audit_fixtures(&agent, &oracle, &expected).is_err());
+
+        let (agent, oracle, mut expected) = fixtures();
+        expected["episodes"][0]["world_truth"] = json!({"entity_id":"hidden-entity"});
+        assert!(audit_fixtures(&agent, &oracle, &expected).is_err());
     }
 
     #[test]
