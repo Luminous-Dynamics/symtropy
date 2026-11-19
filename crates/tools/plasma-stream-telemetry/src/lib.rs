@@ -126,6 +126,7 @@ pub enum EventDisposition {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct LatencyMetrics {
+    pub source_to_acquisition_latency_ns: Option<u64>,
     pub transport_latency_ns: Option<u64>,
     pub queue_wait_ns: Option<u64>,
     pub processing_latency_ns: Option<u64>,
@@ -340,6 +341,7 @@ fn validate_request(request: &ReplayRequest) -> Result<(), String> {
 
 fn empty_metrics(spec: &StreamSpec, sequence_gap: bool) -> LatencyMetrics {
     LatencyMetrics {
+        source_to_acquisition_latency_ns: None,
         transport_latency_ns: None,
         queue_wait_ns: None,
         processing_latency_ns: None,
@@ -396,33 +398,48 @@ fn report_event(
                 let decision = map_optional(&event.decision_time, calibrations, &spec.reference_clock_domain_id);
 
                 match (source, acquisition, receive, start, end, decision) {
-                    (Ok(source), Ok(acquisition), Ok(Some(receive)), Ok(Some(start)), Ok(Some(end)), Ok(Some(decision))) => {
+                    (
+                        Ok(source),
+                        Ok(acquisition),
+                        Ok(Some(receive)),
+                        Ok(Some(start)),
+                        Ok(Some(end)),
+                        Ok(Some(decision)),
+                    ) => {
                         let mapped = [source, acquisition, receive, start, end, decision];
                         let max_uncertainty = mapped.iter().map(|stamp| stamp.uncertainty_ns).max().unwrap_or(0);
+                        let source_to_acquisition =
+                            interval(source, acquisition, spec.max_clock_uncertainty_ns);
                         let transport = interval(acquisition, receive, spec.max_clock_uncertainty_ns);
                         let queue = interval(receive, start, spec.max_clock_uncertainty_ns);
                         let processing = interval(start, end, spec.max_clock_uncertainty_ns);
                         let total = interval(acquisition, decision, spec.max_clock_uncertainty_ns);
                         let age = interval(source, decision, spec.max_clock_uncertainty_ns);
 
-                        let all_intervals_valid = transport.is_ok()
+                        let total_uncertainty = mapped.iter().try_fold(
+                            0_u64,
+                            |sum, stamp| sum.checked_add(stamp.uncertainty_ns),
+                        );
+                        let all_intervals_valid = source_to_acquisition.is_ok()
+                            && transport.is_ok()
                             && queue.is_ok()
                             && processing.is_ok()
                             && total.is_ok()
-                            && age.is_ok();
+                            && age.is_ok()
+                            && total_uncertainty.is_some();
                         if !all_intervals_valid {
                             findings.push("clock mapping, ordering or interval uncertainty is unqualified".to_owned());
                             metrics.clock_uncertainty_bound_ns = Some(max_uncertainty);
                             EventDisposition::ClockUnqualified
                         } else {
+                            metrics.source_to_acquisition_latency_ns =
+                                source_to_acquisition.as_ref().ok().map(|item| item.0);
                             metrics.transport_latency_ns = transport.as_ref().ok().map(|item| item.0);
                             metrics.queue_wait_ns = queue.as_ref().ok().map(|item| item.0);
                             metrics.processing_latency_ns = processing.as_ref().ok().map(|item| item.0);
                             metrics.acquisition_to_decision_ns = total.as_ref().ok().map(|item| item.0);
                             metrics.source_age_at_decision_ns = age.as_ref().ok().map(|item| item.0);
-                            metrics.clock_uncertainty_bound_ns = mapped
-                                .iter()
-                                .try_fold(0_u64, |sum, stamp| sum.checked_add(stamp.uncertainty_ns));
+                            metrics.clock_uncertainty_bound_ns = total_uncertainty;
 
                             let total_latency = metrics.acquisition_to_decision_ns.unwrap_or(0);
                             let source_age = metrics.source_age_at_decision_ns.unwrap_or(0);
@@ -436,7 +453,10 @@ fn report_event(
                                 findings.push("decision completed after the acquisition-relative deadline".to_owned());
                                 EventDisposition::DeadlineMissed
                             } else if source_age > spec.max_source_age_ns {
-                                findings.push("sample is valid historical evidence but stale for this decision".to_owned());
+                                findings.push(
+                                    "sample is valid historical evidence but stale for this decision"
+                                        .to_owned(),
+                                );
                                 EventDisposition::LateValidButStaleForDecision
                             } else if sequence_gap {
                                 EventDisposition::Degraded
@@ -642,9 +662,10 @@ mod tests {
         let report = replay_trace(&request(vec![event(1, 900, 1000)])).expect("replay");
         let row = &report.body.reports[0];
         assert_eq!(row.disposition, EventDisposition::OnTimeValid);
-        assert_eq!(row.metrics.transport_latency_ns, Some(10));
-        assert_eq!(row.metrics.queue_wait_ns, Some(10));
-        assert_eq!(row.metrics.processing_latency_ns, Some(10));
+        assert_eq!(row.metrics.source_to_acquisition_latency_ns, Some(10));
+        assert_eq!(row.metrics.transport_latency_ns, Some(40));
+        assert_eq!(row.metrics.queue_wait_ns, Some(20));
+        assert_eq!(row.metrics.processing_latency_ns, Some(50));
         assert_eq!(row.metrics.acquisition_to_decision_ns, Some(40));
         assert_eq!(row.metrics.source_age_at_decision_ns, Some(140));
     }
