@@ -60,6 +60,15 @@ Evidence class is not a confidence score. A newer or more precise value does not
 27. Transient well-integrity case: simulate circulation interruption, shut-in, restart, cold-water injection and production ramp across phase transitions; track local pressure/temperature/chemistry, cement/casing/elastomer degradation and subcritical exposure near 300–350 °C. Do not infer lifetime from steady-state peak-temperature qualification.
 28. IAPWS-IF97 provider conformance: run the 19 official R7-97(2012) known-answer points in `fixtures/iapws-if97-official-known-answer.json`, including Regions 1–5, saturation and the B23 boundary; compare source-pinned `vle-steam` v0.20.1 and `seuif97` 2.3.8, with IAPWS-95 as a distinct-formulation cross-check. Test domain/phase refusal, Pa↔kPa conversion, round trips and hostile inputs. Do not claim brine coverage or complete IF97 validation from these points alone.
 
+## Rust property-provider candidate matrix
+
+See [rust-property-provider-candidates.json](fixtures/rust-property-provider-candidates.json). It records a source-pinned shortlist:
+- `vle-steam` v0.20.1, signed tag and upstream successful CI, as the first IF97 adapter candidate;
+- `seuif97` 2.3.8 as the independent IF97 differential candidate;
+- `iapws95` 0.2.5 as a distinct-formulation cross-check.
+
+The record includes upstream source identities, license/API observations, unit boundaries, upstream test/CI evidence and unresolved integration risks. Candidate evidence is not approval: no production dependency is selected. The first adapter contract remains SI-native and explicitly converts Pa to kPa absolute for the first candidate, while refusing brine and non-condensable-gas compositions.
+
 ## IAPWS-IF97 official known-answer fixtures
 
 See [iapws-if97-official-known-answer.json](fixtures/iapws-if97-official-known-answer.json). It transcribes 19 IAPWS R7-97(2012) computer-program verification points across Regions 1, 2, 3, 4 and 5, plus the B23 region-boundary check. The source tables explicitly recommend eight-byte real values. The fixture records the published decimal precision and table/page attribution; the provider qualification issue must set and document per-property comparison tolerances before scoring. These are standard reference values, not field measurements and not brine properties.
