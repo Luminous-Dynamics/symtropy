@@ -59,6 +59,12 @@ Evidence class is not a confidence score. A newer or more precise value does not
 23. Superhot wellhead state / casing envelope: vary wellhead pressure, phase state, casing diameter and mass flow together; measure net power against single-phase margin, erosion velocity, silica scaling and corrosion exposure. The Scott (2026) calibrated steady-state model identifies >15 MPa wellhead pressure as a single-phase-preserving lever in some cases, while its 9 5/8-inch casing cases exceed a 50 m/s erosional-velocity reference above roughly 30 MPa reservoir pressure for 450–550 °C. These are model-specific bounds, not general design limits.
 24. Transient well-integrity case: simulate circulation interruption, shut-in, restart, cold-water injection and production ramp across phase transitions; track local pressure/temperature/chemistry, cement/casing/elastomer degradation and subcritical exposure near 300–350 °C. Do not infer lifetime from steady-state peak-temperature qualification.
 
+## Published superhot calibration anchor
+
+See [iddp1-calibration-anchor.json](fixtures/iddp1-calibration-anchor.json). It records the approximate IDDP-1 calibration values and observed/modelled wellhead-temperature ranges reported by Scott (2026). The ranges overlap, but the source excerpt does not provide pointwise residuals or raw time series in this fixture. Therefore it is a source-pinned calibration anchor, not a blind holdout and not a completed quantitative reproduction.
+
+Required next evidence: source tables/figure points with a declared digitization method and uncertainty, or rights-cleared raw IDDP-1 traces. The model reproduction must then preserve exact fluid-property implementation, wellbore geometry, wellhead-pressure boundary, phase/cycle selection, and source digest.
+
 ## First analytic fixture
 
 See [analytic-geothermal-buffer.json](fixtures/analytic-geothermal-buffer.json) and [source-allocation-heat-cascade.json](fixtures/source-allocation-heat-cascade.json). The second fixture proves a single source interval can be split across useful services and curtailment only once; its over-allocation and under-allocation cases must remain visibly unbalanced.
