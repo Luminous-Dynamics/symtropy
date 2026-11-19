@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_slow_rotation_second_order_radial_system",
+  "status": "symbolic_O_a2_coefficients_derived_and_MP_control_checked_in_development_session",
+  "source": {
+    "paper": "Brihaye et al., JHEP 11 (2010) 089, arXiv:1010.0860",
+    "equations": [
+      "(2.8)",
+      "(2.10)",
+      "(2.11)",
+      "(2.12)",
+      "(2.21)"
+    ]
+  },
+  "conventions": {
+    "dimension": 5,
+    "signature": "(-++++)",
+    "radial_gauge": "g(r)=r^2 imposed only after varying b,f,g,h,w",
+    "spin_parameter": "Omega_H=a/r_H^2",
+    "action": "I=(16*pi*G)^-1 integral sqrt(-g)*(R+alpha*L_GB/4)"
+  },
+  "expansion": {
+    "b": "F+a^2*B2+O(a^4)",
+    "f": "F+a^2*F2+O(a^4)",
+    "g": "r^2",
+    "h": "r^2+a^2*H2+O(a^4)",
+    "w": "a*W1+O(a^3)",
+    "C": "2*r_H^2+alpha",
+    "s": "sqrt(1+alpha*C/r^4)",
+    "F": "1-C/(r^2*(1+s))",
+    "W1": "C/(r^4*(1+s))",
+    "W1_prime": "-2*C/(r^5*s)"
+  },
+  "equation_system": {
+    "equations": [
+      "E_b^(2)=0",
+      "E_f^(2)=0",
+      "E_g^(2)=0",
+      "E_h^(2)=0"
+    ],
+    "source_split": "E_q^(2)=L_q[B2,F2,H2]+S_q[W1^2]",
+    "g_constraint_retained": true,
+    "extraction_method": "coefficient = (1/2)*d^2/d(epsilon)^2 E_q(F+epsilon^2*delta_metric, epsilon*W1) at epsilon=0",
+    "exact_mp_control": {
+      "u": "(r_H/r)^2",
+      "B2": "-u*(1-u^2)/r_H^2",
+      "F2": "-u*(1-u)/r_H^2",
+      "H2": "u",
+      "all_four_equation_residuals": {
+        "b": "0",
+        "f": "0",
+        "g": "0",
+        "h": "0"
+      },
+      "passed": true
+    },
+    "equation_fingerprints": {
+      "b": {
+        "expression_chars": 8805,
+        "sha256": "b7df661c03650bb9eb61522e6c57d3232ba3269c8a4d28c97578c13ef4745e79",
+        "source_chars": 437,
+        "source_sha256": "0d7a711957729ff95509cf4272e890581141258b2365815c7841fedc0ba04dc4",
+        "linear_operator_chars": 9246,
+        "linear_operator_sha256": "0e805826a6529ef80749987968b7916d8df5d81c3c02304e145ab0e8a2538ba3"
+      },
+      "f": {
+        "expression_chars": 7521,
+        "sha256": "b93eb7ab1ac8273736dd22fda41f3f798bc78b67479c4461583c5e8110a257d8",
+        "source_chars": 440,
+        "source_sha256": "6e5d1bb71f88e11ed83d58cf4b644743c8ef070c6c78c55fc024f1848a553c34",
+        "linear_operator_chars": 7965,
+        "linear_operator_sha256": "c296c92db16d4e9ba8c4bc04120517db52d8bdb132b43e6b1cea4ec997957220"
+      },
+      "g": {
+        "expression_chars": 22985,
+        "sha256": "f96826babf48579e0b406199368c3e69d2fd59118164f0f5b04d43f977fe8b41",
+        "source_chars": 1712,
+        "source_sha256": "94af40e41f9dec39d7f0c9e91868046457a2a0a57107701e4ea9914187f89284",
+        "linear_operator_chars": 24701,
+        "linear_operator_sha256": "20b1af39d33b1d594fae4bbc0ba14b9c0a8551496bdd8738897f9ce1e5680136"
+      },
+      "h": {
+        "expression_chars": 17494,
+        "sha256": "d77f1a8a7c797602830c8e4479066a9f8e53650727c12b4ab1c0fcbd64b1c314",
+        "source_chars": 418,
+        "source_sha256": "2fc60780870d998916eb7cea44d19c42a3e9d0e5907b9e12de7f4d2c4212fbb9",
+        "linear_operator_chars": 17915,
+        "linear_operator_sha256": "331fb51dee6f19ae01ace256c44da7c4163a258749d679df61b8f2883927fc1f"
+      }
+    }
+  },
+  "angular_noether": {
+    "K": "r^2-alpha*(F-1)=r^2*s",
+    "P_w": "-2*a*(2*r_H^2+alpha)",
+    "W_asymptotic": "a*(2*r_H^2+alpha)/2",
+    "identity": "P_w=-4*W",
+    "E_w_linear_order": "-dP_w/dr=0",
+    "K_positive_bound": "K>=r^2>0 for alpha>=0"
+  },
+  "validation": {
+    "symbolic_coefficient_extraction_executed": true,
+    "exact_myers_perry_alpha_zero_substitution_executed": true,
+    "all_four_even_equations_vanish": true,
+    "slow_rotation_angular_noether_identity_executed": true,
+    "committed_script_clean_checkout_replay": false,
+    "rust_equations_or_solver_implemented": false,
+    "finite_alpha_B2_F2_H2_boundary_value_solved": false
+  },
+  "next_gates": [
+    "derive horizon Taylor data for B2,F2,H2 from the O(a^2) equations",
+    "derive asymptotic homogeneous-mode basis and parameter-family zero modes",
+    "solve the finite-alpha linear BVP on a lambda grid",
+    "compare perturbative and nonlinear branches in the overlap region",
+    "estimate the chi-dependent perturbative error envelope"
+  ],
+  "claim_ceiling": "The O(a^2) equations have been symbolically extracted in development, and the exact alpha=0 Myers-Perry coefficients satisfy all four even equations. The finite-alpha inhomogeneous BVP has not been solved; no finite-spin branch, near-extremal uniformity or stability is claimed."
+}
