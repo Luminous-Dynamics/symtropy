@@ -474,7 +474,7 @@ fn evaluate_configuration(
     };
 
     let external_site_recharge_lower_bound = match (external_site_energy, external_site_peak) {
-        (Some(0.0), Some(_)) => Some(0.0),
+        (Some(energy), Some(_)) if energy == 0.0 => Some(0.0),
         (Some(energy), Some(peak)) if peak > 0.0 => Some(energy / peak),
         _ => None,
     };
@@ -565,7 +565,7 @@ fn evaluate_configuration(
         || peak_power_margin.is_some_and(|margin| margin < -1e-9)
         || remaining_charge_window.is_some_and(|margin| margin < -1e-9)
         || site_peak_margin.is_some_and(|margin| margin < -1e-9)
-        || matches!((external_site_energy, external_site_peak), (Some(energy), Some(0.0)) if energy > 0.0)
+        || matches!((external_site_energy, external_site_peak), (Some(energy), Some(peak)) if energy > 0.0 && peak == 0.0)
         || external_site_window_margin_lower_bound.is_some_and(|margin| margin < -1e-9);
     let base_indeterminate = base.status == BaseStatus::Indeterminate;
     let unknown_evidence = configuration.evidence_class == "unknown";
