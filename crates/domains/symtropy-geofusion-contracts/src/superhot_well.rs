@@ -362,7 +362,7 @@ mod tests {
 
         value = case();
         value.wellhead.property_provenance.evaluated_phase =
-            WellheadPhase::SinglePhaseVapor;
+            WellheadPhase::SinglePhaseLiquid;
         assert_eq!(
             value.evaluate(),
             Err(WellheadValidationError::PropertyStateMismatch)
