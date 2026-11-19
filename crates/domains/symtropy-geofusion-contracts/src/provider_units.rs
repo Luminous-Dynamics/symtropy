@@ -26,10 +26,10 @@ pub struct If97AdapterRequest {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct If97ProviderInput {
+pub struct VleSteamProviderInput {
     pub fluid_composition_id: String,
     pub state_boundary_id: String,
-    /// Absolute pressure in kPa, matching the selected provider API.
+    /// Absolute pressure in kPa, matching the vle-steam v0.20.1 public API.
     pub pressure_kpa_abs: f64,
     /// Absolute temperature in K.
     pub temperature_k: f64,
@@ -84,9 +84,9 @@ pub fn kilopascals_to_pascals_abs(kpa: f64) -> Result<f64, If97AdapterError> {
 }
 
 impl If97AdapterRequest {
-    /// Create provider-specific inputs only for an explicitly identified
+    /// Create vle-steam-specific inputs only for an explicitly identified
     /// pure-water composition. IF97 is not a saline-brine mixture model.
-    pub fn to_provider_input(&self) -> Result<If97ProviderInput, If97AdapterError> {
+    pub fn to_vle_steam_input(&self) -> Result<VleSteamProviderInput, If97AdapterError> {
         for (name, value) in [
             ("fluid composition ID", self.fluid_composition_id.as_str()),
             ("state boundary ID", self.state_boundary_id.as_str()),
@@ -106,7 +106,7 @@ impl If97AdapterRequest {
             ));
         }
         let pressure_kpa_abs = pascals_to_kilopascals_abs(self.pressure_pa)?;
-        Ok(If97ProviderInput {
+        Ok(VleSteamProviderInput {
             fluid_composition_id: self.fluid_composition_id.clone(),
             state_boundary_id: self.state_boundary_id.clone(),
             pressure_kpa_abs,
@@ -143,7 +143,7 @@ mod tests {
 
     #[test]
     fn provider_input_preserves_fluid_and_boundary_identity() {
-        let input = pure_water_request().to_provider_input().unwrap();
+        let input = pure_water_request().to_vle_steam_input().unwrap();
         assert_eq!(input.pressure_kpa_abs, 10_000.0);
         assert_eq!(input.temperature_k, 648.15);
         assert_eq!(input.fluid_composition_id, "pure-water-v1");
@@ -155,7 +155,7 @@ mod tests {
         let mut request = pure_water_request();
         request.composition = WaterCompositionClass::SalineBrine;
         assert_eq!(
-            request.to_provider_input(),
+            request.to_vle_steam_input(),
             Err(If97AdapterError::UnsupportedComposition(
                 WaterCompositionClass::SalineBrine
             ))
@@ -171,7 +171,7 @@ mod tests {
             let mut request = pure_water_request();
             request.composition = composition;
             assert_eq!(
-                request.to_provider_input(),
+                request.to_vle_steam_input(),
                 Err(If97AdapterError::UnsupportedComposition(composition))
             );
         }
@@ -194,7 +194,7 @@ mod tests {
         let mut request = pure_water_request();
         request.temperature_k = f64::INFINITY;
         assert_eq!(
-            request.to_provider_input(),
+            request.to_vle_steam_input(),
             Err(If97AdapterError::NonFiniteOrNonPositive(
                 "absolute temperature K"
             ))
@@ -217,7 +217,7 @@ mod tests {
     fn provider_input_does_not_confuse_gauge_and_absolute_pressure() {
         let mut request = pure_water_request();
         request.pressure_pa = 101_325.0;
-        let input = request.to_provider_input().unwrap();
+        let input = request.to_vle_steam_input().unwrap();
         assert_eq!(input.pressure_kpa_abs, 101.325);
     }
 
@@ -226,7 +226,7 @@ mod tests {
         let mut request = pure_water_request();
         request.state_boundary_id.clear();
         assert_eq!(
-            request.to_provider_input(),
+            request.to_vle_steam_input(),
             Err(If97AdapterError::EmptyIdentity("state boundary ID"))
         );
     }
