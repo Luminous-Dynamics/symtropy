@@ -2,7 +2,8 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
-    AnalyticPath, DesignIntentEntity, FieldAcceptanceProfile, FieldLayoutEntityType,
+    AnalyticPath, DesignIntentEntity, EvidenceDependency, EvidenceDependencyGraph, EvidenceNode,
+    EvidenceNodeKind, EvidenceRevisionChange, FieldAcceptanceProfile, FieldLayoutEntityType,
     SiteActorRole, SiteEventEnvelope, SiteEventPayload, SiteStateLedger, SiteWorkPackage, Vec3,
     chord_collision, endpoints_only_collision,
 };
@@ -121,6 +122,7 @@ fn main() {
         );
     });
     run_site_ledger_append_scaling_benchmarks();
+    run_dependency_invalidation_scaling_benchmarks();
 }
 
 
@@ -210,6 +212,108 @@ fn run_site_ledger_append_scaling_benchmarks() {
             p50.as_nanos() / u128::from(event_count),
             p95.as_nanos() / u128::from(event_count),
             p99.as_nanos() / u128::from(event_count),
+        );
+    }
+}
+
+
+fn build_dependency_forest(node_count: usize, component_count: usize) -> EvidenceDependencyGraph {
+    assert!(component_count > 0);
+    assert!(node_count >= component_count);
+    assert_eq!(node_count % component_count, 0);
+    let component_size = node_count / component_count;
+    let mut nodes = Vec::with_capacity(node_count);
+    let mut dependencies = Vec::with_capacity(node_count - component_count);
+
+    for component in 0..component_count {
+        for offset in 0..component_size {
+            let kind = match offset {
+                0 => EvidenceNodeKind::SourceModel,
+                1 => EvidenceNodeKind::SourceEntity,
+                2 => EvidenceNodeKind::IdsEvaluation,
+                3 => EvidenceNodeKind::WorkPackage,
+                4 => EvidenceNodeKind::TaskPlan,
+                5 => EvidenceNodeKind::MotionEnvelope,
+                6 => EvidenceNodeKind::ExecutionEvidence,
+                7 => EvidenceNodeKind::InspectionEvidence,
+                _ => EvidenceNodeKind::AcceptedOutput,
+            };
+            let node_id = format!("component-{component:02}-node-{offset:06}");
+            nodes.push(EvidenceNode {
+                node_id: node_id.clone(),
+                kind,
+                version_sha256: format!("{:064x}", component * component_size + offset + 1),
+            });
+            if offset > 0 {
+                dependencies.push(EvidenceDependency {
+                    dependent_node_id: node_id,
+                    prerequisite_node_id: format!("component-{component:02}-node-{:06}", offset - 1),
+                });
+            }
+        }
+    }
+
+    EvidenceDependencyGraph::new(nodes, dependencies)
+        .expect("synthetic benchmark dependency forest must be valid")
+}
+
+fn run_dependency_invalidation_scaling_benchmarks() {
+    println!(
+        "dependency_invalidation,topology,nodes,components,changed_roots,affected_dependents,unaffected_nodes,global_invalidation_baseline,scoped_vs_global_pct,plan_p50_us,plan_p95_us,plan_p99_us"
+    );
+
+    for node_count in [128_usize, 512, 2_048, 8_192] {
+        const COMPONENTS: usize = 8;
+        let mut graph_build_durations = Vec::with_capacity(31);
+        for _ in 0..31 {
+            let start = Instant::now();
+            black_box(build_dependency_forest(node_count, COMPONENTS));
+            graph_build_durations.push(start.elapsed());
+        }
+        graph_build_durations.sort_unstable();
+
+        let graph = build_dependency_forest(node_count, COMPONENTS);
+        let change = EvidenceRevisionChange {
+            node_id: "component-00-node-000000".into(),
+            new_version_sha256: "f".repeat(64),
+            reason: "synthetic source-model revision".into(),
+        };
+        let mut plan_durations = Vec::with_capacity(101);
+        let mut affected_count = 0_usize;
+        let mut unaffected_count = 0_usize;
+
+        for _ in 0..101 {
+            let start = Instant::now();
+            let plan = graph
+                .plan_revision(std::slice::from_ref(&change))
+                .expect("synthetic revision must yield an invalidation plan");
+            plan_durations.push(start.elapsed());
+            affected_count = plan.requalification_order.len();
+            unaffected_count = plan.unaffected_nodes.len();
+            black_box(plan);
+        }
+
+        plan_durations.sort_unstable();
+        let p50 = percentile(&plan_durations, 50);
+        let p95 = percentile(&plan_durations, 95);
+        let p99 = percentile(&plan_durations, 99);
+        let global_baseline = node_count - 1;
+        let scoped_percentage = (affected_count as f64 / global_baseline as f64) * 100.0;
+        let build_p50 = percentile(&graph_build_durations, 50);
+        println!(
+            "forest,{},{},{},{},{},{},{},{:.2},{},{},{},graph_build_p50_us={}",
+            "8-independent-work-packages",
+            node_count,
+            COMPONENTS,
+            1,
+            affected_count,
+            unaffected_count,
+            global_baseline,
+            scoped_percentage,
+            p50.as_micros(),
+            p95.as_micros(),
+            p99.as_micros(),
+            build_p50.as_micros()
         );
     }
 }
