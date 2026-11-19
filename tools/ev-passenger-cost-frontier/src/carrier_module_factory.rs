@@ -656,6 +656,19 @@ mod tests {
     }
 
     #[test]
+    fn unknown_available_cell_count_withholds_sized_capacity() {
+        let mut test = config();
+        test.station_processes[0].maximum_parallel_cells_available = None;
+        let result = evaluate_pair(&base(), &test);
+        assert_eq!(result.status, Status::Indeterminate);
+        assert_eq!(result.equivalent_good_vehicle_capacity_per_year, None);
+        assert_eq!(result.additional_parallel_cells, None);
+        assert!(result.missing_fields.iter().any(|field| {
+            field == "assembly:maximum_parallel_cells_available"
+        }));
+    }
+
+    #[test]
     fn unknown_process_fields_are_reported_per_station() {
         let mut test = config();
         test.station_processes[0].equipment_capex_usd_per_cell = None;
