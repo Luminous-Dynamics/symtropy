@@ -178,7 +178,7 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
         // For each bivector plane that is NOT the allowed plane,
         // damp the relative angular velocity.
         let num_bivector_components = D * (D - 1) / 2;
-        if num_bivector_components <= 1 && self.motor.is_none() {
+        if num_bivector_components <= 1 {
             return; // 2D: only one rotation plane, hinge is trivially satisfied
         }
 
