@@ -129,7 +129,6 @@ pub enum ValidationError {
     EmptyEnergyBalance,
     NegativeEnergyTerm(&'static str),
     ArithmeticOverflow,
-    EmptySourceAllocationLedger,
     DuplicateAllocationId,
     SourceAllocationIdentityMissing(&'static str),
 }
@@ -463,10 +462,6 @@ impl SourceAllocationLedger {
                 "curtailed source energy MWh",
             ));
         }
-        if self.allocations.is_empty() && self.curtailed_energy_mwh == 0.0 {
-            return Err(ValidationError::EmptySourceAllocationLedger);
-        }
-
         let mut allocation_ids = BTreeSet::new();
         let mut terms = Vec::with_capacity(self.allocations.len());
         for allocation in &self.allocations {
@@ -650,6 +645,14 @@ mod tests {
         let result = ledger.evaluate(1e-3).unwrap();
         assert!(!result.within_tolerance);
         assert!((result.residual_energy_mwh - 2.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn no_allocations_remains_an_explicit_unallocated_residual() {
+        let ledger = allocation_ledger(vec![], 0.0);
+        let result = ledger.evaluate(1e-3).unwrap();
+        assert!(!result.within_tolerance);
+        assert!((result.residual_energy_mwh - 10.0).abs() < 1e-12);
     }
 
     #[test]
