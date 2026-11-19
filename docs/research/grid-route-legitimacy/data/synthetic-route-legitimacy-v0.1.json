@@ -142,7 +142,8 @@
       "accountableRole": "synthetic_research_fixture",
       "evidenceIds": [
         "EV-JURISDICTION"
-      ]
+      ],
+      "dependsOnGateIds": []
     },
     {
       "gateId": "GATE-RIGHTS-HOLDERS",
@@ -151,6 +152,9 @@
       "accountableRole": "land_tenure_review",
       "evidenceIds": [
         "EV-RIGHTS-REGISTER"
+      ],
+      "dependsOnGateIds": [
+        "GATE-JURISDICTION"
       ]
     },
     {
@@ -162,6 +166,10 @@
       "decisionId": "DEC-CONSULT-01",
       "evidenceIds": [
         "EV-ENGAGEMENT-NOTICE"
+      ],
+      "dependsOnGateIds": [
+        "GATE-JURISDICTION",
+        "GATE-RIGHTS-HOLDERS"
       ]
     },
     {
@@ -173,6 +181,10 @@
       "decisionId": "DEC-ENV-01",
       "evidenceIds": [
         "EV-ENV-SCREEN"
+      ],
+      "dependsOnGateIds": [
+        "GATE-JURISDICTION",
+        "GATE-RIGHTS-HOLDERS"
       ]
     },
     {
@@ -182,7 +194,11 @@
       "accountableRole": "land_access_legal_team",
       "requiredDecisionType": "servitude",
       "decisionId": "DEC-SERVITUDE-01",
-      "evidenceIds": []
+      "evidenceIds": [],
+      "dependsOnGateIds": [
+        "GATE-RIGHTS-HOLDERS",
+        "GATE-ENVIRONMENT"
+      ]
     }
   ],
   "engagements": [
