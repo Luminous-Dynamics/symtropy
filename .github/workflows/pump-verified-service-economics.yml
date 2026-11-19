@@ -1,0 +1,64 @@
+name: Pump Cost per Verified Service
+
+on:
+  pull_request:
+    paths:
+      - "tools/pump-verified-service-economics/**"
+      - "docs/research/PUMP_COST_PER_VERIFIED_SERVICE_V0_1.md"
+      - ".github/workflows/pump-verified-service-economics.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stage0:
+    name: Synthetic cost-per-verified-service qualification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/pump-verified-service-economics/Cargo.toml -- --check
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/pump-verified-service-economics/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run tests
+        run: cargo test --locked --manifest-path tools/pump-verified-service-economics/Cargo.toml --all-targets
+
+      - name: Emit report and evidence manifest
+        run: |
+          mkdir -p stage0-evidence
+          cargo run --locked --manifest-path tools/pump-verified-service-economics/Cargo.toml -- --report > stage0-evidence/report.tsv
+          test "$(wc -l < stage0-evidence/report.tsv)" -eq 34
+          {
+            echo "workflow_run_id=${GITHUB_RUN_ID}"
+            echo "workflow_attempt=${GITHUB_RUN_ATTEMPT}"
+            echo "checkout_sha=$(git rev-parse HEAD)"
+            echo "source_head_sha=${{ github.event.pull_request.head.sha || github.sha }}"
+            echo "rustc=$(rustc --version)"
+            echo "cargo=$(cargo --version)"
+            echo "case_count=$(($(wc -l < tools/pump-verified-service-economics/fixtures/cases-v0.1.tsv) - 1))"
+            echo "service_area_count=$(($(wc -l < tools/pump-verified-service-economics/fixtures/service-areas-v0.1.tsv) - 1))"
+            echo "report_line_count=$(wc -l < stage0-evidence/report.tsv)"
+          } > stage0-evidence/manifest.txt
+          sha256sum \
+            tools/pump-verified-service-economics/fixtures/cases-v0.1.tsv \
+            tools/pump-verified-service-economics/fixtures/service-areas-v0.1.tsv \
+            tools/pump-verified-service-economics/fixtures/expected-v0.1.tsv \
+            stage0-evidence/report.tsv >> stage0-evidence/manifest.txt
+
+      - name: Upload exact-run evidence bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: pump-verified-service-economics-stage0-${{ github.sha }}
+          path: stage0-evidence/
+          if-no-files-found: error
+          retention-days: 30
