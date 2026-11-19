@@ -216,6 +216,9 @@ fn schedule_tasks(fixture: &Fixture, asset_ids: &BTreeSet<String>) -> Result<Vec
         }
         let slots = usize::try_from(capacity.parallel_slots)
             .map_err(|_| format!("station {} slot count exceeds platform limits", capacity.station))?;
+        if slots > 64 {
+            return Err(format!("station {} exceeds the v0.1 limit of 64 parallel slots", capacity.station));
+        }
         if capacities.insert(capacity.station.clone(), slots).is_some() {
             return Err(format!("duplicate station capacity: {}", capacity.station));
         }
@@ -545,8 +548,14 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
 }
 
 pub fn sha256_hex(bytes: &[u8]) -> String {
+    use std::fmt::Write as _;
+
     let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+    let mut hexadecimal = String::with_capacity(64);
+    for byte in digest {
+        write!(&mut hexadecimal, "{byte:02x}").expect("writing to String is infallible");
+    }
+    hexadecimal
 }
 
 pub fn is_valid_source_commit(value: &str) -> bool {
