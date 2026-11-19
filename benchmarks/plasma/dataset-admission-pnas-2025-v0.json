@@ -1,0 +1,31 @@
+{
+  "schema_version": "luminous.plasma-dataset-admission.v0.1",
+  "source_id": "pnas-2025-landau-vlasov-training-data",
+  "record_doi": "10.5281/zenodo.14915239",
+  "record_uri": "https://zenodo.org/records/14915239",
+  "version": "v1",
+  "metadata_captured_at": "2026-11-19",
+  "license_review": null,
+  "artifacts": [
+    {
+      "artifact_id": "linear-landau-damping-training-data",
+      "file_name": "Linear_Landau_Damping_training_data.mat",
+      "reported_size": "41.0 MB",
+      "expected_size_bytes": null,
+      "remote_md5": "6370e709ce0a825148917fabc8638a2a",
+      "remote_sha256": null,
+      "observed_size_bytes": null,
+      "observed_sha256": null
+    },
+    {
+      "artifact_id": "nonlinear-landau-damping-training-data",
+      "file_name": "Noninear_Landau_Damping_training_data.mat",
+      "reported_size": "41.0 MB",
+      "expected_size_bytes": null,
+      "remote_md5": "6370e709ce0a825148917fabc8638a2a",
+      "remote_sha256": null,
+      "observed_size_bytes": null,
+      "observed_sha256": null
+    }
+  ]
+}
