@@ -18,6 +18,8 @@ use sha2::{Digest, Sha256};
 /// Current schema version admitted by this crate.
 pub const SCHEMA_VERSION_V1: u32 = 1;
 
+type SourceSequenceKeyV1 = (String, String, u64, String);
+
 /// Immutable reference to one raw or derived sensor artifact.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -583,7 +585,7 @@ pub fn validate_bundle_v1(bundle: &AgentObservationBundleV1) -> Result<(), Contr
     ordered_events.sort_by_key(|event| event.arrival_order);
 
     let mut prior_availability = None;
-    let mut high_water: BTreeMap<(String, String, u64, String), u64> = BTreeMap::new();
+    let mut high_water: BTreeMap<SourceSequenceKeyV1, u64> = BTreeMap::new();
     let mut first_deliveries = BTreeSet::new();
     let mut delivered_ids = BTreeSet::new();
 
@@ -633,7 +635,7 @@ pub fn validate_bundle_v1(bundle: &AgentObservationBundleV1) -> Result<(), Contr
                 let high = high_water.get(&clock_key).copied();
                 let valid_first_delivery = match event.disposition {
                     TransportDispositionV1::Delivered => {
-                        !high.is_some_and(|previous| event.source_sequence <= previous)
+                        high.is_none_or(|previous| event.source_sequence > previous)
                     }
                     TransportDispositionV1::Reordered => {
                         high.is_some_and(|previous| event.source_sequence < previous)
