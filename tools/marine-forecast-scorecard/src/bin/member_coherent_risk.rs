@@ -167,7 +167,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             let mut coherent_losses = Vec::<f64>::new();
             let mut edge_distributions = vec![Vec::<f64>::new(); edge_ids.len()];
             let mut route_valid = true;
-            for (member_index, member) in route_members.iter().enumerate() {
+            for member in route_members {
                 let member_id = string_at(member, "member_id").unwrap_or("").to_owned();
                 if member_id.is_empty() || !seen_members.insert(member_id.clone()) {
                     errors.push(format!("route '{route_id}' has a missing or duplicated member ID"));
@@ -213,7 +213,6 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                 if route_valid {
                     coherent_losses.push(total);
                 }
-                let _ = member_index;
             }
             if seen_members != expected_members {
                 blockers.push(format!("route '{route_id}' ensemble member set differs from the forecast member set"));
@@ -333,6 +332,20 @@ mod tests {
         assert_eq!(report["best_route_by_member_coherent_cvar95"], "route-correlated-alternating");
         assert_eq!(report["best_route_by_independent_edge_marginal_resampling"], "route-correlated-high-low");
         assert_eq!(report["route_ranking_changes_when_member_coherence_is_destroyed"], true);
+    }
+
+    #[test]
+    fn first_availability_cannot_precede_forecast_issue_time() {
+        let mut value = fixture();
+        value["forecast"]["first_available_at"] = json!("2025-02-28T23:50:00Z");
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn member_set_digest_is_bound_to_sorted_member_identities() {
+        let mut value = fixture();
+        value["forecast"]["member_set_sha256"] = json!("e".repeat(64));
+        assert_eq!(audit(&value)["disposition"], "INVALID");
     }
 
     #[test]
