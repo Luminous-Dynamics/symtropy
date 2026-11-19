@@ -171,9 +171,16 @@ pub struct BranchSchedule {
     pub probability_basis_points: u32,
     pub second_inspection: Option<ActivitySchedule>,
     pub recovery_action: ActivitySchedule,
-    pub branch_resource_hours: Vec<ExpectedResourceHours>,
+    pub branch_resource_hours: Vec<ResourceHours>,
     pub service_model_ref: String,
     pub service_trajectory_ref: String,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ResourceHours {
+    pub resource_ref: String,
+    pub unit_hours: f64,
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq)]
@@ -579,7 +586,13 @@ fn add_expected_resource_hours(
     }
 }
 
-fn resource_hours_from_map(totals: BTreeMap<String, f64>) -> Vec<ExpectedResourceHours> {
+fn resource_hours_from_map(totals: BTreeMap<String, f64>) -> Vec<ResourceHours> {
+    totals.into_iter()
+        .map(|(resource_ref, unit_hours)| ResourceHours { resource_ref, unit_hours })
+        .collect()
+}
+
+fn expected_resource_hours_from_map(totals: BTreeMap<String, f64>) -> Vec<ExpectedResourceHours> {
     totals.into_iter()
         .map(|(resource_ref, expected_unit_hours)| ExpectedResourceHours { resource_ref, expected_unit_hours })
         .collect()
@@ -669,7 +682,7 @@ pub fn qualify(case: &Case) -> Result<QualificationReport, Vec<String>> {
         left.first_outcome.cmp(&right.first_outcome)
             .then_with(|| left.second_outcome.cmp(&right.second_outcome))
     });
-    let expected_resource_hours = resource_hours_from_map(expected_resource_hours);
+    let expected_resource_hours = expected_resource_hours_from_map(expected_resource_hours);
 
     Ok(QualificationReport {
         case_id: case.case_id.clone(),
@@ -760,7 +773,7 @@ mod tests {
         let repair = report.branches.iter().find(|branch| branch.recovery_action.activity_id == "repair-bushing").unwrap();
         let crew = repair.branch_resource_hours.iter()
             .find(|item| item.resource_ref == "synthetic://resource/specialist-crew-01").unwrap();
-        assert!((crew.expected_unit_hours - 9.5).abs() <= TOLERANCE);
+        assert!((crew.unit_hours - 9.5).abs() <= TOLERANCE);
         assert_eq!(repair.service_model_ref, "symtropy://6235/service-model/transformer-17/repair");
     }
 
