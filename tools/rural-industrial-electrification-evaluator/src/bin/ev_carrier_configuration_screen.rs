@@ -262,7 +262,7 @@ fn validate_inputs(base: &BaseReport, overlay: &CarrierCorpus) -> Result<(), Str
             ("charger_rating_kw", design.charger_rating_kw),
             ("site_power_budget_kw", design.site_power_budget_kw),
             ("charging_efficiency_fraction", design.charging_efficiency_fraction),
-            ("base_peak_site_input_power_kw", design.base_peak_site_input_power_kw),
+            ("base_peak_site_input_power_kw_upper_bound", design.base_peak_site_input_power_kw_upper_bound),
             ("effective_charger_power_kw", design.effective_charger_power_kw),
             ("estimated_recharge_hours", design.estimated_recharge_hours),
             ("available_window_hours", design.available_window_hours),
