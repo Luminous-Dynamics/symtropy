@@ -20,7 +20,16 @@ use crate::field_layout_acceptance::{
     RefereeMeasurement, RobotClaimedEntityState, score_field_layout_run,
 };
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+use crate::cumulative_resource_capacity::{
+    CapacityDemandClaim, CapacityReservation, CapacityResourceDefinition,
+    CumulativeCapacityScenario,
+};
+use crate::robust_capacity_profile::{
+    CapacityAvailabilityWindow, RobustCapacityError, RobustCumulativeCapacityScenario,
+    RobustCumulativeCapacityReport, evaluate_robust_cumulative_resource_capacity,
+};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SiteActorRole {
     DesignAuthority,
     Surveyor,
@@ -29,6 +38,42 @@ pub enum SiteActorRole {
     SiteQualityAuthority,
     SiteResourceAuthority,
     DispatchCoordinator,
+}
+
+/// Actor-to-role policy supplied by an authenticated identity source.
+///
+/// Role membership is checked for every event. This in-memory registry is a
+/// projection input; production callers must load it from an authenticated,
+/// versioned authority source and ensure revocations are reflected before
+/// event ingestion.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct SiteActorRegistry {
+    roles_by_actor: BTreeMap<String, BTreeSet<SiteActorRole>>,
+}
+
+impl SiteActorRegistry {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn grant(
+        &mut self,
+        actor_id: impl Into<String>,
+        role: SiteActorRole,
+    ) -> Result<(), SiteLedgerError> {
+        let actor_id = actor_id.into();
+        if actor_id.trim().is_empty() {
+            return Err(SiteLedgerError::EmptyActorRegistration);
+        }
+        self.roles_by_actor.entry(actor_id).or_default().insert(role);
+        Ok(())
+    }
+
+    pub fn allows(&self, actor_id: &str, role: SiteActorRole) -> bool {
+        self.roles_by_actor
+            .get(actor_id)
+            .is_some_and(|roles| roles.contains(&role))
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -129,6 +174,61 @@ impl SpaceTimeReservationRecord {
     }
 }
 
+/// An aggregate capacity-N admission. The wrapped reservation contains
+/// weighted half-open claims; this context binds it to the exact readiness,
+/// occupancy, resource catalog, capacity snapshot and pre-append ledger head.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CapacityReservationCommit {
+    pub reservation: CapacityReservation,
+    pub package_sha256: String,
+    pub design_revision_sha256: String,
+    pub entity_id: String,
+    pub robot_id: String,
+    pub readiness_receipt_sha256: String,
+    pub occupancy_assessment_receipt_sha256: String,
+    pub occupancy_engine_build_sha256: String,
+    pub clearance_policy_sha256: String,
+    pub resource_catalog_sha256: String,
+    pub availability_snapshot_sha256: String,
+    pub site_snapshot_sha256: String,
+    pub site_ledger_sequence: u64,
+    pub site_ledger_event_sha256: String,
+    pub checked_at_tick: u64,
+    pub valid_until_tick: u64,
+    pub committed_at_tick: u64,
+    /// Lease expiry prevents reuse of a stale commit receipt. It never frees
+    /// physical capacity without a separate referee-authored release event.
+    pub lease_valid_until_tick: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CapacityReservationRecord {
+    pub commit: CapacityReservationCommit,
+    pub committed_event_id: String,
+    pub committed_sequence: u64,
+    pub released_event_id: Option<String>,
+    pub released_at_tick: Option<u64>,
+    pub release_receipt_sha256: Option<String>,
+}
+
+impl CapacityReservationRecord {
+    pub fn is_active(&self) -> bool {
+        self.released_event_id.is_none()
+    }
+}
+
+/// Read-only capacity admission preview bound to the exact current ledger head.
+/// A positive result is advisory only: the event commit must re-evaluate under
+/// the same serializable append transaction, because another event may arrive.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CapacityAdmissionPreview {
+    pub reservation_id: String,
+    pub site_ledger_sequence: u64,
+    pub site_ledger_event_sha256: String,
+    pub is_admissible: bool,
+    pub report: RobustCumulativeCapacityReport,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum SiteEventPayload {
     WorkPackagePublished {
@@ -137,6 +237,34 @@ pub enum SiteEventPayload {
     ResourceCatalogPublished {
         catalog_sha256: String,
         resources: Vec<SiteResourceDefinition>,
+    },
+    /// Separate namespace from exclusive capacity-one resources. A resource
+    /// must exist in exactly one catalog so the two admission models cannot
+    /// double-book or silently share different capacity semantics.
+    CapacityResourceCatalogPublished {
+        catalog_sha256: String,
+        resources: Vec<CapacityResourceDefinition>,
+    },
+    /// One coherent owner-attested capacity snapshot. An adverse derating
+    /// update is recorded even when existing reservations become non-robust;
+    /// it blocks future admissions but never releases active physical claims.
+    CapacityAvailabilitySnapshotPublished {
+        availability_snapshot_sha256: String,
+        site_snapshot_sha256: String,
+        site_clock_domain_id: String,
+        windows: Vec<CapacityAvailabilityWindow>,
+    },
+    CapacityReservationCommitted {
+        commit: CapacityReservationCommit,
+    },
+    CapacityReservationReleased {
+        reservation_id: String,
+        site_clock_domain_id: String,
+        cleared_at_tick: u64,
+        site_snapshot_sha256: String,
+        site_ledger_sequence: u64,
+        site_ledger_event_sha256: String,
+        release_receipt_sha256: String,
     },
     SpaceTimeReservationCommitted {
         reservation: SpaceTimeReservation,
@@ -259,6 +387,7 @@ pub enum SiteLedgerError {
     EventIndexCorrupt,
     EventHistoryContainsDuplicate(String),
     ActorRoleDenied,
+    EmptyActorRegistration,
     EmptyPackageIdentity,
     InvalidPackageDigest,
     InvalidIdsEngineBuildDigest,
@@ -294,6 +423,7 @@ pub enum SiteLedgerError {
     ResourceCatalogWouldOrphanReservation(String),
     ResourceCatalogMismatch,
     PackageHasActiveSpaceTimeReservations(String),
+    PackageHasActiveCapacityReservations(String),
     ReservationSnapshotMismatch,
     InvalidSpaceTimeReservation(String),
     DuplicateSpaceTimeReservation(String),
@@ -304,6 +434,30 @@ pub enum SiteLedgerError {
         conflicting_reservation_id: String,
     },
     ReservationReleaseContextMismatch(String),
+    InvalidCapacityResourceCatalogDigest,
+    EmptyCapacityResourceCatalog,
+    InvalidCapacityResourceDefinition(String),
+    DuplicateCapacityResourceId(String),
+    CapacityResourceCatalogDigestContentMismatch,
+    CapacityResourceCatalogWouldOrphanReservation(String),
+    CapacityCatalogNamespaceCollision(String),
+    InvalidCapacityAvailabilitySnapshot,
+    InvalidCapacityWindow(String),
+    CapacityAvailabilitySnapshotWouldOrphanReservation(String),
+    CapacityResourceCatalogMismatch,
+    CapacityAvailabilitySnapshotMismatch,
+    DuplicateCapacityReservation(String),
+    UnknownCapacityReservation(String),
+    UnknownCapacityReservationResource(String),
+    CapacityResourceDefinitionMismatch(String),
+    CapacityReservationAlreadyReleased(String),
+    InvalidCapacityReservation(String),
+    CapacityReservationSnapshotMismatch,
+    CapacityAdmissionUnqualified(Vec<RobustCapacityError>),
+    CapacityAdmissionNotRobust {
+        impacted_reservation_ids: Vec<String>,
+    },
+    CapacityReservationReleaseContextMismatch(String),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -338,6 +492,7 @@ struct PackageProjection {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SiteStateLedger {
+    actor_registry: SiteActorRegistry,
     last_sequence: u64,
     last_event_sha256: Option<String>,
     events: Vec<SiteEventEnvelope>,
@@ -349,6 +504,13 @@ pub struct SiteStateLedger {
     resource_catalog_sha256: Option<String>,
     resource_catalog: BTreeMap<String, String>,
     space_time_reservations: BTreeMap<String, SpaceTimeReservationRecord>,
+    capacity_resource_catalog_sha256: Option<String>,
+    capacity_resources: BTreeMap<String, CapacityResourceDefinition>,
+    capacity_availability_snapshot_sha256: Option<String>,
+    capacity_site_snapshot_sha256: Option<String>,
+    capacity_site_clock_domain_id: Option<String>,
+    capacity_windows: Vec<CapacityAvailabilityWindow>,
+    capacity_reservations: BTreeMap<String, CapacityReservationRecord>,
     /// One non-overlapping interval index per exclusive resource. Since
     /// committed intervals cannot overlap, predecessor/successor checks are
     /// sufficient for O(log n) conflict detection on each claim.
@@ -356,16 +518,30 @@ pub struct SiteStateLedger {
 }
 
 impl SiteStateLedger {
+    /// Create an unconfigured ledger. All event ingestion is denied until the
+    /// caller supplies an authenticated actor-role registry.
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Reconstruct the projection from an ordered, caller-preverified event
-    /// history. The input must contain each committed event exactly once.
-    /// Sequence and previous-digest links are validated by apply; a duplicate
-    /// record in a persisted history is corruption, not an idempotent replay.
-    pub fn replay(events: &[SiteEventEnvelope]) -> Result<Self, SiteLedgerError> {
-        let mut ledger = Self::new();
+    pub fn with_actor_registry(actor_registry: SiteActorRegistry) -> Self {
+        Self {
+            actor_registry,
+            ..Self::default()
+        }
+    }
+
+    pub fn actor_registry(&self) -> &SiteActorRegistry {
+        &self.actor_registry
+    }
+
+    /// Reconstruct the projection from caller-preverified history and the
+    /// same authenticated actor-role registry used by the original reducer.
+    pub fn replay(
+        events: &[SiteEventEnvelope],
+        actor_registry: SiteActorRegistry,
+    ) -> Result<Self, SiteLedgerError> {
+        let mut ledger = Self::with_actor_registry(actor_registry);
         for event in events {
             if ledger.apply(event.clone())? == SiteApplyOutcome::DuplicateIgnored {
                 return Err(SiteLedgerError::EventHistoryContainsDuplicate(
@@ -384,6 +560,9 @@ impl SiteStateLedger {
     /// unchanged.
     pub fn apply(&mut self, event: SiteEventEnvelope) -> Result<SiteApplyOutcome, SiteLedgerError> {
         validate_event_envelope(&event)?;
+        if !self.actor_registry.allows(&event.actor_id, event.actor_role) {
+            return Err(SiteLedgerError::ActorRoleDenied);
+        }
 
         if let Some(index) = self.events_by_id.get(&event.event_id) {
             let existing = self
@@ -524,6 +703,135 @@ impl SiteStateLedger {
         self.active_resource_windows.len()
     }
 
+    pub fn capacity_resource_catalog_sha256(&self) -> Option<&str> {
+        self.capacity_resource_catalog_sha256.as_deref()
+    }
+
+    pub fn capacity_availability_snapshot_sha256(&self) -> Option<&str> {
+        self.capacity_availability_snapshot_sha256.as_deref()
+    }
+
+    pub fn capacity_reservation(
+        &self,
+        reservation_id: &str,
+    ) -> Option<&CapacityReservationRecord> {
+        self.capacity_reservations.get(reservation_id)
+    }
+
+    pub fn active_capacity_reservations(
+        &self,
+    ) -> impl Iterator<Item = &CapacityReservationRecord> {
+        self.capacity_reservations
+            .values()
+            .filter(|record| record.is_active())
+    }
+
+    pub fn active_capacity_reservation_count(&self) -> usize {
+        self.active_capacity_reservations().count()
+    }
+
+    pub fn capacity_resource_count(&self) -> usize {
+        self.capacity_resources.len()
+    }
+
+    /// Evaluate a proposed weighted reservation without mutating the site
+    /// ledger. The returned preview is bound to the current sequence/head and
+    /// becomes stale after any subsequent ledger event. The commit reducer
+    /// calls this same owner before appending the event.
+    pub fn preview_capacity_reservation(
+        &self,
+        commit: &CapacityReservationCommit,
+    ) -> Result<CapacityAdmissionPreview, SiteLedgerError> {
+        validate_capacity_reservation_commit(self, commit)?;
+        if self
+            .capacity_reservations
+            .contains_key(&commit.reservation.reservation_id)
+        {
+            return Err(SiteLedgerError::DuplicateCapacityReservation(
+                commit.reservation.reservation_id.clone(),
+            ));
+        }
+        let catalog_sha256 = self
+            .capacity_resource_catalog_sha256
+            .as_ref()
+            .ok_or(SiteLedgerError::CapacityResourceCatalogMismatch)?;
+        let site_snapshot_sha256 = self
+            .capacity_site_snapshot_sha256
+            .as_ref()
+            .ok_or(SiteLedgerError::CapacityAvailabilitySnapshotMismatch)?;
+        let site_clock_domain_id = self
+            .capacity_site_clock_domain_id
+            .as_ref()
+            .ok_or(SiteLedgerError::CapacityAvailabilitySnapshotMismatch)?;
+        let mut reservations: Vec<CapacityReservation> = self
+            .active_capacity_reservations()
+            .map(|record| record.commit.reservation.clone())
+            .collect();
+        reservations.push(commit.reservation.clone());
+        let scenario = RobustCumulativeCapacityScenario {
+            base: CumulativeCapacityScenario {
+                scenario_id: format!(
+                    "capacity-preview-{}-{}",
+                    self.last_sequence, commit.reservation.reservation_id
+                ),
+                resource_catalog_sha256: catalog_sha256.clone(),
+                site_snapshot_sha256: site_snapshot_sha256.clone(),
+                site_clock_domain_id: site_clock_domain_id.clone(),
+                resources: self.capacity_resources.values().cloned().collect(),
+                reservations,
+            },
+            availability_windows: self.capacity_windows.clone(),
+        };
+        let report = evaluate_robust_cumulative_resource_capacity(&scenario)
+            .map_err(SiteLedgerError::CapacityAdmissionUnqualified)?;
+        let is_admissible = report.is_robustly_feasible
+            && report.indeterminate_segment_count == 0
+            && report.definitely_over_capacity_segment_count == 0;
+        Ok(CapacityAdmissionPreview {
+            reservation_id: commit.reservation.reservation_id.clone(),
+            site_ledger_sequence: self.last_sequence,
+            site_ledger_event_sha256: self.last_event_sha256.clone().unwrap_or_default(),
+            is_admissible,
+            report,
+        })
+    }
+
+    /// Assess all currently active capacity-N commitments against the latest
+    /// owner-attested capacity windows. A non-robust report is evidence of a
+    /// changed constraint, not permission to erase or auto-release claims.
+    pub fn assess_current_capacity(
+        &self,
+    ) -> Result<RobustCumulativeCapacityReport, SiteLedgerError> {
+        let catalog_sha256 = self
+            .capacity_resource_catalog_sha256
+            .as_ref()
+            .ok_or(SiteLedgerError::CapacityResourceCatalogMismatch)?;
+        let site_snapshot_sha256 = self
+            .capacity_site_snapshot_sha256
+            .as_ref()
+            .ok_or(SiteLedgerError::CapacityAvailabilitySnapshotMismatch)?;
+        let site_clock_domain_id = self
+            .capacity_site_clock_domain_id
+            .as_ref()
+            .ok_or(SiteLedgerError::CapacityAvailabilitySnapshotMismatch)?;
+        let scenario = RobustCumulativeCapacityScenario {
+            base: CumulativeCapacityScenario {
+                scenario_id: format!("site-ledger-sequence-{}", self.last_sequence),
+                resource_catalog_sha256: catalog_sha256.clone(),
+                site_snapshot_sha256: site_snapshot_sha256.clone(),
+                site_clock_domain_id: site_clock_domain_id.clone(),
+                resources: self.capacity_resources.values().cloned().collect(),
+                reservations: self
+                    .active_capacity_reservations()
+                    .map(|record| record.commit.reservation.clone())
+                    .collect(),
+            },
+            availability_windows: self.capacity_windows.clone(),
+        };
+        evaluate_robust_cumulative_resource_capacity(&scenario)
+            .map_err(SiteLedgerError::CapacityAdmissionUnqualified)
+    }
+
     pub fn event_history(&self) -> &[SiteEventEnvelope] {
         &self.events
     }
@@ -546,6 +854,13 @@ impl SiteStateLedger {
                         record.reservation.package_sha256 == *previous
                     }) {
                         return Err(SiteLedgerError::PackageHasActiveSpaceTimeReservations(
+                            previous.clone(),
+                        ));
+                    }
+                    if self.active_capacity_reservations().any(|record| {
+                        record.commit.package_sha256 == *previous
+                    }) {
+                        return Err(SiteLedgerError::PackageHasActiveCapacityReservations(
                             previous.clone(),
                         ));
                     }
@@ -612,6 +927,11 @@ impl SiteStateLedger {
                     if resource.resource_id.trim().is_empty() {
                         return Err(SiteLedgerError::EmptyResourceId);
                     }
+                    if self.capacity_resources.contains_key(&resource.resource_id) {
+                        return Err(SiteLedgerError::CapacityCatalogNamespaceCollision(
+                            resource.resource_id.clone(),
+                        ));
+                    }
                     if !is_sha256(&resource.definition_sha256) {
                         return Err(SiteLedgerError::InvalidReceiptDigest);
                     }
@@ -646,6 +966,229 @@ impl SiteStateLedger {
                 Ok(PreparedSiteMutation::PublishResourceCatalog {
                     catalog_sha256: catalog_sha256.clone(),
                     definitions,
+                })
+            }
+            SiteEventPayload::CapacityResourceCatalogPublished {
+                catalog_sha256,
+                resources,
+            } => {
+                require_role(event.actor_role, SiteActorRole::SiteResourceAuthority)?;
+                if !is_sha256(catalog_sha256) {
+                    return Err(SiteLedgerError::InvalidCapacityResourceCatalogDigest);
+                }
+                if resources.is_empty() {
+                    return Err(SiteLedgerError::EmptyCapacityResourceCatalog);
+                }
+                if self.active_capacity_reservations().next().is_some()
+                    && self.capacity_resource_catalog_sha256.as_deref()
+                        != Some(catalog_sha256.as_str())
+                {
+                    return Err(SiteLedgerError::CapacityResourceCatalogWouldOrphanReservation(
+                        "capacity-resource-catalog-version".into(),
+                    ));
+                }
+
+                let mut definitions = BTreeMap::<String, CapacityResourceDefinition>::new();
+                for resource in resources {
+                    if resource.resource_id.trim().is_empty()
+                        || resource.capacity_owner_id.trim().is_empty()
+                        || resource.unit_label.trim().is_empty()
+                        || resource.capacity_units == 0
+                        || !is_sha256(&resource.definition_sha256)
+                    {
+                        return Err(SiteLedgerError::InvalidCapacityResourceDefinition(
+                            resource.resource_id.clone(),
+                        ));
+                    }
+                    if !self
+                        .actor_registry
+                        .allows(&resource.capacity_owner_id, SiteActorRole::SiteResourceAuthority)
+                    {
+                        return Err(SiteLedgerError::ActorRoleDenied);
+                    }
+                    if self.resource_catalog.contains_key(&resource.resource_id) {
+                        return Err(SiteLedgerError::CapacityCatalogNamespaceCollision(
+                            resource.resource_id.clone(),
+                        ));
+                    }
+                    if definitions
+                        .insert(resource.resource_id.clone(), resource.clone())
+                        .is_some()
+                    {
+                        return Err(SiteLedgerError::DuplicateCapacityResourceId(
+                            resource.resource_id.clone(),
+                        ));
+                    }
+                }
+                if self.capacity_resource_catalog_sha256.as_deref()
+                    == Some(catalog_sha256.as_str())
+                    && self.capacity_resources != definitions
+                {
+                    return Err(SiteLedgerError::CapacityResourceCatalogDigestContentMismatch);
+                }
+                for record in self.active_capacity_reservations() {
+                    for claim in &record.commit.reservation.claims {
+                        if definitions
+                            .get(&claim.resource_id)
+                            .is_none_or(|definition| {
+                                definition.definition_sha256 != claim.resource_definition_sha256
+                            })
+                        {
+                            return Err(
+                                SiteLedgerError::CapacityResourceCatalogWouldOrphanReservation(
+                                    claim.resource_id.clone(),
+                                ),
+                            );
+                        }
+                    }
+                }
+                Ok(PreparedSiteMutation::PublishCapacityResourceCatalog {
+                    catalog_sha256: catalog_sha256.clone(),
+                    definitions,
+                })
+            }
+            SiteEventPayload::CapacityAvailabilitySnapshotPublished {
+                availability_snapshot_sha256,
+                site_snapshot_sha256,
+                site_clock_domain_id,
+                windows,
+            } => {
+                require_role(event.actor_role, SiteActorRole::SiteResourceAuthority)?;
+                if !is_sha256(availability_snapshot_sha256)
+                    || !is_sha256(site_snapshot_sha256)
+                    || site_clock_domain_id.trim().is_empty()
+                    || windows.is_empty()
+                {
+                    return Err(SiteLedgerError::InvalidCapacityAvailabilitySnapshot);
+                }
+                let catalog_sha256 = self
+                    .capacity_resource_catalog_sha256
+                    .as_ref()
+                    .ok_or(SiteLedgerError::CapacityResourceCatalogMismatch)?;
+                for window in windows {
+                    if !self
+                        .actor_registry
+                        .allows(&window.capacity_owner_id, SiteActorRole::SiteResourceAuthority)
+                    {
+                        return Err(SiteLedgerError::ActorRoleDenied);
+                    }
+                }
+                let scenario = RobustCumulativeCapacityScenario {
+                    base: CumulativeCapacityScenario {
+                        scenario_id: format!(
+                            "capacity-window-validation-{}",
+                            event.event_id
+                        ),
+                        resource_catalog_sha256: catalog_sha256.clone(),
+                        site_snapshot_sha256: site_snapshot_sha256.clone(),
+                        site_clock_domain_id: site_clock_domain_id.clone(),
+                        resources: self.capacity_resources.values().cloned().collect(),
+                        reservations: Vec::new(),
+                    },
+                    availability_windows: windows.clone(),
+                };
+                // This validates each owner's window identity, definition,
+                // site snapshot, clock, interval, capacity ordering and
+                // non-overlap. Coverage of active reservations is deliberately
+                // evaluated separately: an adverse derating update must still
+                // be recorded, even if it makes existing commitments non-robust.
+                evaluate_robust_cumulative_resource_capacity(&scenario)
+                    .map_err(SiteLedgerError::CapacityAdmissionUnqualified)?;
+
+                if self.capacity_availability_snapshot_sha256.as_deref()
+                    == Some(availability_snapshot_sha256.as_str())
+                    && (self.capacity_site_snapshot_sha256.as_deref()
+                        != Some(site_snapshot_sha256.as_str())
+                        || self.capacity_site_clock_domain_id.as_deref()
+                            != Some(site_clock_domain_id.as_str())
+                        || self.capacity_windows != *windows)
+                {
+                    return Err(
+                        SiteLedgerError::CapacityAvailabilitySnapshotWouldOrphanReservation(
+                            "capacity-availability-snapshot-digest-content-mismatch".into(),
+                        ),
+                    );
+                }
+                Ok(PreparedSiteMutation::PublishCapacityAvailabilitySnapshot {
+                    availability_snapshot_sha256: availability_snapshot_sha256.clone(),
+                    site_snapshot_sha256: site_snapshot_sha256.clone(),
+                    site_clock_domain_id: site_clock_domain_id.clone(),
+                    windows: windows.clone(),
+                })
+            }
+            SiteEventPayload::CapacityReservationCommitted { commit } => {
+                require_role(event.actor_role, SiteActorRole::DispatchCoordinator)?;
+                validate_capacity_reservation_commit(self, commit)?;
+                if self
+                    .capacity_reservations
+                    .contains_key(&commit.reservation.reservation_id)
+                {
+                    return Err(SiteLedgerError::DuplicateCapacityReservation(
+                        commit.reservation.reservation_id.clone(),
+                    ));
+                }
+
+                let preview = self.preview_capacity_reservation(commit)?;
+                if !preview.is_admissible {
+                    return Err(SiteLedgerError::CapacityAdmissionNotRobust {
+                        impacted_reservation_ids: preview.report.impacted_reservation_ids(),
+                    });
+                }
+                Ok(PreparedSiteMutation::CommitCapacityReservation {
+                    commit: commit.clone(),
+                    committed_event_id: event.event_id.clone(),
+                    committed_sequence: event.sequence,
+                })
+            }
+            SiteEventPayload::CapacityReservationReleased {
+                reservation_id,
+                site_clock_domain_id,
+                cleared_at_tick,
+                site_snapshot_sha256,
+                site_ledger_sequence,
+                site_ledger_event_sha256,
+                release_receipt_sha256,
+            } => {
+                require_role(event.actor_role, SiteActorRole::Referee)?;
+                if !is_sha256(site_snapshot_sha256) || !is_sha256(release_receipt_sha256) {
+                    return Err(SiteLedgerError::InvalidReceiptDigest);
+                }
+                if !is_sha256(site_ledger_event_sha256)
+                    || *site_ledger_sequence != self.last_sequence
+                    || self.last_event_sha256.as_deref()
+                        != Some(site_ledger_event_sha256.as_str())
+                    || self.capacity_site_snapshot_sha256.as_deref()
+                        != Some(site_snapshot_sha256.as_str())
+                {
+                    return Err(SiteLedgerError::ReservationSnapshotMismatch);
+                }
+                let record = self
+                    .capacity_reservations
+                    .get(reservation_id)
+                    .ok_or_else(|| {
+                        SiteLedgerError::UnknownCapacityReservation(reservation_id.clone())
+                    })?;
+                if !record.is_active() {
+                    return Err(SiteLedgerError::CapacityReservationAlreadyReleased(
+                        reservation_id.clone(),
+                    ));
+                }
+                if site_clock_domain_id != &record.commit.reservation.site_clock_domain_id
+                    || self.capacity_site_clock_domain_id.as_deref()
+                        != Some(site_clock_domain_id.as_str())
+                    || *cleared_at_tick < record.commit.committed_at_tick
+                {
+                    return Err(
+                        SiteLedgerError::CapacityReservationReleaseContextMismatch(
+                            reservation_id.clone(),
+                        ),
+                    );
+                }
+                Ok(PreparedSiteMutation::ReleaseCapacityReservation {
+                    reservation_id: reservation_id.clone(),
+                    released_event_id: event.event_id.clone(),
+                    cleared_at_tick: *cleared_at_tick,
+                    release_receipt_sha256: release_receipt_sha256.clone(),
                 })
             }
             SiteEventPayload::SpaceTimeReservationCommitted { reservation } => {
@@ -1014,6 +1557,56 @@ impl SiteStateLedger {
                 self.resource_catalog_sha256 = Some(catalog_sha256);
                 self.resource_catalog = definitions;
             }
+            PreparedSiteMutation::PublishCapacityResourceCatalog {
+                catalog_sha256,
+                definitions,
+            } => {
+                self.capacity_resource_catalog_sha256 = Some(catalog_sha256);
+                self.capacity_resources = definitions;
+            }
+            PreparedSiteMutation::PublishCapacityAvailabilitySnapshot {
+                availability_snapshot_sha256,
+                site_snapshot_sha256,
+                site_clock_domain_id,
+                windows,
+            } => {
+                self.capacity_availability_snapshot_sha256 =
+                    Some(availability_snapshot_sha256);
+                self.capacity_site_snapshot_sha256 = Some(site_snapshot_sha256);
+                self.capacity_site_clock_domain_id = Some(site_clock_domain_id);
+                self.capacity_windows = windows;
+            }
+            PreparedSiteMutation::CommitCapacityReservation {
+                commit,
+                committed_event_id,
+                committed_sequence,
+            } => {
+                self.capacity_reservations.insert(
+                    commit.reservation.reservation_id.clone(),
+                    CapacityReservationRecord {
+                        commit,
+                        committed_event_id,
+                        committed_sequence,
+                        released_event_id: None,
+                        released_at_tick: None,
+                        release_receipt_sha256: None,
+                    },
+                );
+            }
+            PreparedSiteMutation::ReleaseCapacityReservation {
+                reservation_id,
+                released_event_id,
+                cleared_at_tick,
+                release_receipt_sha256,
+            } => {
+                let record = self
+                    .capacity_reservations
+                    .get_mut(&reservation_id)
+                    .expect("prepared capacity reservation remains present");
+                record.released_event_id = Some(released_event_id);
+                record.released_at_tick = Some(cleared_at_tick);
+                record.release_receipt_sha256 = Some(release_receipt_sha256);
+            }
             PreparedSiteMutation::CommitSpaceTimeReservation {
                 reservation,
                 committed_event_id,
@@ -1279,6 +1872,27 @@ enum PreparedSiteMutation {
         catalog_sha256: String,
         definitions: BTreeMap<String, String>,
     },
+    PublishCapacityResourceCatalog {
+        catalog_sha256: String,
+        definitions: BTreeMap<String, CapacityResourceDefinition>,
+    },
+    PublishCapacityAvailabilitySnapshot {
+        availability_snapshot_sha256: String,
+        site_snapshot_sha256: String,
+        site_clock_domain_id: String,
+        windows: Vec<CapacityAvailabilityWindow>,
+    },
+    CommitCapacityReservation {
+        commit: CapacityReservationCommit,
+        committed_event_id: String,
+        committed_sequence: u64,
+    },
+    ReleaseCapacityReservation {
+        reservation_id: String,
+        released_event_id: String,
+        cleared_at_tick: u64,
+        release_receipt_sha256: String,
+    },
     CommitSpaceTimeReservation {
         reservation: SpaceTimeReservation,
         committed_event_id: String,
@@ -1379,6 +1993,114 @@ fn ensure_attempt_is_awaiting_measurement(
     }
 }
 
+
+fn validate_capacity_reservation_commit(
+    ledger: &SiteStateLedger,
+    commit: &CapacityReservationCommit,
+) -> Result<(), SiteLedgerError> {
+    let reservation = &commit.reservation;
+    if [
+        reservation.reservation_receipt_sha256.as_str(),
+        commit.package_sha256.as_str(),
+        commit.design_revision_sha256.as_str(),
+        commit.readiness_receipt_sha256.as_str(),
+        commit.occupancy_assessment_receipt_sha256.as_str(),
+        commit.occupancy_engine_build_sha256.as_str(),
+        commit.clearance_policy_sha256.as_str(),
+        commit.resource_catalog_sha256.as_str(),
+        commit.availability_snapshot_sha256.as_str(),
+        commit.site_snapshot_sha256.as_str(),
+        commit.site_ledger_event_sha256.as_str(),
+    ]
+    .into_iter()
+    .any(|digest| !is_sha256(digest))
+    {
+        return Err(SiteLedgerError::InvalidCapacityReservation(
+            reservation.reservation_id.clone(),
+        ));
+    }
+    if reservation.reservation_id.trim().is_empty()
+        || reservation.site_clock_domain_id.trim().is_empty()
+        || commit.entity_id.trim().is_empty()
+        || commit.robot_id.trim().is_empty()
+        || reservation.claims.is_empty()
+        || commit.checked_at_tick > commit.committed_at_tick
+        || commit.valid_until_tick <= commit.checked_at_tick
+        || commit.committed_at_tick >= commit.valid_until_tick
+        || commit.lease_valid_until_tick <= commit.committed_at_tick
+        || commit.committed_at_tick > commit.valid_until_tick
+    {
+        return Err(SiteLedgerError::InvalidCapacityReservation(
+            reservation.reservation_id.clone(),
+        ));
+    }
+
+    if !ledger
+        .actor_registry
+        .allows(&commit.robot_id, SiteActorRole::Robot)
+    {
+        return Err(SiteLedgerError::ActorRoleDenied);
+    }
+    if ledger.capacity_resource_catalog_sha256.as_deref()
+        != Some(commit.resource_catalog_sha256.as_str())
+    {
+        return Err(SiteLedgerError::CapacityResourceCatalogMismatch);
+    }
+    if ledger.capacity_availability_snapshot_sha256.as_deref()
+        != Some(commit.availability_snapshot_sha256.as_str())
+        || ledger.capacity_site_snapshot_sha256.as_deref()
+            != Some(commit.site_snapshot_sha256.as_str())
+        || ledger.capacity_site_clock_domain_id.as_deref()
+            != Some(reservation.site_clock_domain_id.as_str())
+    {
+        return Err(SiteLedgerError::CapacityAvailabilitySnapshotMismatch);
+    }
+
+    if commit.site_ledger_sequence != ledger.last_sequence
+        || ledger.last_event_sha256.as_deref()
+            != Some(commit.site_ledger_event_sha256.as_str())
+    {
+        return Err(SiteLedgerError::CapacityReservationSnapshotMismatch);
+    }
+
+    let package = ledger.current_package(&commit.package_sha256)?;
+    if package.package.design_revision_sha256 != commit.design_revision_sha256 {
+        return Err(SiteLedgerError::InactivePackage(commit.package_sha256.clone()));
+    }
+    match package.entity_states.get(&commit.entity_id) {
+        Some(SiteEntityState::NotAttempted | SiteEntityState::PhysicallyAbsent { .. }) => {}
+        _ => {
+            return Err(SiteLedgerError::EntityTransitionDenied(
+                commit.entity_id.clone(),
+            ));
+        }
+    }
+
+    for claim in &reservation.claims {
+        if claim.resource_id.trim().is_empty()
+            || !is_sha256(&claim.resource_definition_sha256)
+            || claim.start_tick < commit.committed_at_tick
+            || claim.end_tick <= claim.start_tick
+            || claim.demand_units == 0
+        {
+            return Err(SiteLedgerError::InvalidCapacityReservation(
+                reservation.reservation_id.clone(),
+            ));
+        }
+        let Some(definition) = ledger.capacity_resources.get(&claim.resource_id) else {
+            return Err(SiteLedgerError::UnknownCapacityReservationResource(
+                claim.resource_id.clone(),
+            ));
+        };
+        if definition.definition_sha256 != claim.resource_definition_sha256 {
+            return Err(SiteLedgerError::CapacityResourceDefinitionMismatch(
+                claim.resource_id.clone(),
+            ));
+        }
+    }
+
+    Ok(())
+}
 
 fn validate_space_time_reservation(
     ledger: &SiteStateLedger,
@@ -1588,6 +2310,31 @@ mod tests {
     use super::*;
     use crate::field_layout_acceptance::FieldLayoutEntityType;
 
+    fn test_actor_registry() -> SiteActorRegistry {
+        let mut registry = SiteActorRegistry::new();
+        registry
+            .grant("design-authority", SiteActorRole::DesignAuthority)
+            .unwrap();
+        registry.grant("surveyor", SiteActorRole::Surveyor).unwrap();
+        registry.grant("robot-1", SiteActorRole::Robot).unwrap();
+        registry.grant("robot-2", SiteActorRole::Robot).unwrap();
+        registry.grant("referee-1", SiteActorRole::Referee).unwrap();
+        registry.grant("referee-01", SiteActorRole::Referee).unwrap();
+        registry
+            .grant("quality-lead", SiteActorRole::SiteQualityAuthority)
+            .unwrap();
+        registry
+            .grant("resource-authority", SiteActorRole::SiteResourceAuthority)
+            .unwrap();
+        registry
+            .grant("capacity-owner-1", SiteActorRole::SiteResourceAuthority)
+            .unwrap();
+        registry
+            .grant("dispatch-coordinator", SiteActorRole::DispatchCoordinator)
+            .unwrap();
+        registry
+    }
+
     fn digest(byte: char) -> String {
         std::iter::repeat_n(byte, 64).collect()
     }
@@ -1681,6 +2428,438 @@ mod tests {
         )
     }
 
+    fn publish_capacity_resource_catalog(ledger: &mut SiteStateLedger) {
+        let sequence = ledger.last_sequence() + 1;
+        let payload = SiteEventPayload::CapacityResourceCatalogPublished {
+            catalog_sha256: digest('2'),
+            resources: vec![CapacityResourceDefinition {
+                resource_id: "shared-hoist".into(),
+                capacity_owner_id: "capacity-owner-1".into(),
+                definition_sha256: digest('5'),
+                capacity_units: 3,
+                unit_label: "pallet-slots".into(),
+            }],
+        };
+        let event = event(
+            "capacity-resource-catalog",
+            sequence,
+            ledger.last_event_sha256().map(str::to_owned),
+            char::from_digit((sequence + 1) as u32, 16).unwrap(),
+            "resource-authority",
+            SiteActorRole::SiteResourceAuthority,
+            payload,
+        );
+        ledger.apply(event).unwrap();
+    }
+
+    fn publish_capacity_snapshot(
+        ledger: &mut SiteStateLedger,
+        availability_digest: char,
+        site_snapshot_digest: char,
+        lower: u64,
+        nominal: u64,
+        upper: u64,
+    ) {
+        let sequence = ledger.last_sequence() + 1;
+        let payload = SiteEventPayload::CapacityAvailabilitySnapshotPublished {
+            availability_snapshot_sha256: digest(availability_digest),
+            site_snapshot_sha256: digest(site_snapshot_digest),
+            site_clock_domain_id: "site-clock-1".into(),
+            windows: vec![CapacityAvailabilityWindow {
+                resource_id: "shared-hoist".into(),
+                resource_definition_sha256: digest('5'),
+                site_snapshot_sha256: digest(site_snapshot_digest),
+                site_clock_domain_id: "site-clock-1".into(),
+                capacity_owner_id: "capacity-owner-1".into(),
+                evidence_receipt_sha256: digest('6'),
+                start_tick: 0,
+                end_tick: 100,
+                lower_capacity_units: lower,
+                nominal_capacity_units: nominal,
+                upper_capacity_units: upper,
+            }],
+        };
+        let event = event(
+            format!("capacity-window-{availability_digest}").as_str(),
+            sequence,
+            ledger.last_event_sha256().map(str::to_owned),
+            char::from_digit((sequence + 1) as u32, 16).unwrap(),
+            "resource-authority",
+            SiteActorRole::SiteResourceAuthority,
+            payload,
+        );
+        ledger.apply(event).unwrap();
+    }
+
+    fn capacity_reservation_event(
+        ledger: &SiteStateLedger,
+        reservation_id: &str,
+        demand_units: u64,
+        start_tick: u64,
+        end_tick: u64,
+    ) -> SiteEventEnvelope {
+        let sequence = ledger.last_sequence() + 1;
+        let committed_at_tick = 10 + sequence;
+        let package_sha256 = ledger.active_package_sha256().unwrap().to_owned();
+        let package = ledger.work_package(&package_sha256).unwrap();
+        let commit = CapacityReservationCommit {
+            reservation: CapacityReservation {
+                reservation_id: reservation_id.into(),
+                reservation_receipt_sha256: digest('a'),
+                site_clock_domain_id: "site-clock-1".into(),
+                claims: vec![CapacityDemandClaim {
+                    resource_id: "shared-hoist".into(),
+                    resource_definition_sha256: digest('5'),
+                    start_tick,
+                    end_tick,
+                    demand_units,
+                }],
+            },
+            package_sha256,
+            design_revision_sha256: package.design_revision_sha256.clone(),
+            entity_id: "panel-1".into(),
+            robot_id: "robot-1".into(),
+            readiness_receipt_sha256: digest('b'),
+            occupancy_assessment_receipt_sha256: digest('c'),
+            occupancy_engine_build_sha256: digest('d'),
+            clearance_policy_sha256: digest('e'),
+            resource_catalog_sha256: digest('2'),
+            availability_snapshot_sha256: ledger
+                .capacity_availability_snapshot_sha256()
+                .unwrap()
+                .to_owned(),
+            site_snapshot_sha256: ledger
+                .capacity_site_snapshot_sha256
+                .as_ref()
+                .unwrap()
+                .clone(),
+            site_ledger_sequence: ledger.last_sequence(),
+            site_ledger_event_sha256: ledger.last_event_sha256().unwrap().to_owned(),
+            checked_at_tick: committed_at_tick - 1,
+            valid_until_tick: committed_at_tick + 10,
+            committed_at_tick,
+            lease_valid_until_tick: committed_at_tick + 100,
+        };
+        event(
+            format!("capacity-commit-{reservation_id}").as_str(),
+            sequence,
+            ledger.last_event_sha256().map(str::to_owned),
+            char::from_digit((sequence + 1) as u32, 16).unwrap(),
+            "dispatch-coordinator",
+            SiteActorRole::DispatchCoordinator,
+            SiteEventPayload::CapacityReservationCommitted { commit },
+        )
+    }
+
+    fn capacity_release_event(
+        ledger: &SiteStateLedger,
+        reservation_id: &str,
+    ) -> SiteEventEnvelope {
+        let sequence = ledger.last_sequence() + 1;
+        event(
+            format!("capacity-release-{reservation_id}").as_str(),
+            sequence,
+            ledger.last_event_sha256().map(str::to_owned),
+            char::from_digit((sequence + 1) as u32, 16).unwrap(),
+            "referee-1",
+            SiteActorRole::Referee,
+            SiteEventPayload::CapacityReservationReleased {
+                reservation_id: reservation_id.into(),
+                site_clock_domain_id: "site-clock-1".into(),
+                cleared_at_tick: 90,
+                site_snapshot_sha256: ledger
+                    .capacity_site_snapshot_sha256
+                    .as_ref()
+                    .unwrap()
+                    .clone(),
+                site_ledger_sequence: ledger.last_sequence(),
+                site_ledger_event_sha256: ledger.last_event_sha256().unwrap().to_owned(),
+                release_receipt_sha256: digest('f'),
+            },
+        )
+    }
+
+    fn setup_capacity_ledger() -> SiteStateLedger {
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
+        publish_package(&mut ledger, package('a', &["panel-1"]));
+        publish_capacity_resource_catalog(&mut ledger);
+        publish_capacity_snapshot(&mut ledger, '3', '4', 2, 2, 3);
+        ledger
+    }
+
+    #[test]
+    fn capacity_n_commit_admits_lower_bound_rejects_third_and_referee_release_frees_capacity() {
+        let mut ledger = setup_capacity_ledger();
+        let first = capacity_reservation_event(&ledger, "capacity-res-1", 1, 20, 50);
+        ledger.apply(first).unwrap();
+        let second = capacity_reservation_event(&ledger, "capacity-res-2", 1, 20, 50);
+        ledger.apply(second).unwrap();
+
+        assert_eq!(ledger.active_capacity_reservation_count(), 2);
+        let report = ledger.assess_current_capacity().unwrap();
+        assert!(report.is_robustly_feasible);
+        assert_eq!(report.indeterminate_segment_count, 0);
+        assert_eq!(report.definitely_over_capacity_segment_count, 0);
+
+        let sequence_before_rejection = ledger.last_sequence();
+        let event_count_before_rejection = ledger.event_count();
+        let third = capacity_reservation_event(&ledger, "capacity-res-3", 1, 20, 50);
+        assert!(matches!(
+            ledger.apply(third),
+            Err(SiteLedgerError::CapacityAdmissionNotRobust { .. })
+        ));
+        assert_eq!(ledger.last_sequence(), sequence_before_rejection);
+        assert_eq!(ledger.event_count(), event_count_before_rejection);
+        assert_eq!(ledger.active_capacity_reservation_count(), 2);
+
+        let release = capacity_release_event(&ledger, "capacity-res-1");
+        ledger.apply(release).unwrap();
+        assert_eq!(ledger.active_capacity_reservation_count(), 1);
+        assert!(
+            !ledger
+                .capacity_reservation("capacity-res-1")
+                .unwrap()
+                .is_active()
+        );
+        assert!(ledger.assess_current_capacity().unwrap().is_robustly_feasible);
+
+        let replacement =
+            capacity_reservation_event(&ledger, "capacity-res-3-after-release", 1, 20, 50);
+        ledger.apply(replacement).unwrap();
+        assert_eq!(ledger.active_capacity_reservation_count(), 2);
+        assert!(ledger.assess_current_capacity().unwrap().is_robustly_feasible);
+    }
+
+    #[test]
+    fn adverse_capacity_snapshot_is_recorded_without_auto_releasing_existing_claims() {
+        let mut ledger = setup_capacity_ledger();
+        let first = capacity_reservation_event(&ledger, "capacity-res-1", 1, 20, 50);
+        ledger.apply(first).unwrap();
+        let second = capacity_reservation_event(&ledger, "capacity-res-2", 1, 20, 50);
+        ledger.apply(second).unwrap();
+
+        // The owner reports a capacity reduction below existing active load.
+        // This adverse fact must be appended; rejecting it would hide the
+        // derating. The existing reservations remain physically active.
+        publish_capacity_snapshot(&mut ledger, '8', '9', 1, 1, 1);
+        assert_eq!(ledger.active_capacity_reservation_count(), 2);
+        let assessment = ledger.assess_current_capacity().unwrap();
+        assert!(!assessment.is_robustly_feasible);
+        assert!(assessment.definitely_over_capacity_segment_count > 0);
+        assert_eq!(ledger.active_capacity_reservation_count(), 2);
+
+        let sequence_before_rejection = ledger.last_sequence();
+        let third = capacity_reservation_event(&ledger, "capacity-res-3", 1, 20, 50);
+        assert!(matches!(
+            ledger.apply(third),
+            Err(SiteLedgerError::CapacityAdmissionNotRobust { .. })
+        ));
+        assert_eq!(ledger.last_sequence(), sequence_before_rejection);
+        assert_eq!(ledger.active_capacity_reservation_count(), 2);
+    }
+
+    #[test]
+    fn read_only_capacity_preview_reports_feasibility_without_mutation() {
+        let mut ledger = setup_capacity_ledger();
+        let first_event = capacity_reservation_event(&ledger, "capacity-res-1", 1, 20, 50);
+        let SiteEventPayload::CapacityReservationCommitted { commit: first_commit } =
+            &first_event.payload
+        else {
+            panic!("capacity reservation fixture must contain a commit");
+        };
+        let sequence_before_preview = ledger.last_sequence();
+        let events_before_preview = ledger.event_count();
+        let first_preview = ledger.preview_capacity_reservation(first_commit).unwrap();
+        assert!(first_preview.is_admissible);
+        assert_eq!(first_preview.site_ledger_sequence, sequence_before_preview);
+        assert_eq!(ledger.last_sequence(), sequence_before_preview);
+        assert_eq!(ledger.event_count(), events_before_preview);
+        assert_eq!(ledger.active_capacity_reservation_count(), 0);
+
+        ledger.apply(first_event).unwrap();
+        let second_event = capacity_reservation_event(&ledger, "capacity-res-2", 1, 20, 50);
+        let SiteEventPayload::CapacityReservationCommitted { commit: second_commit } =
+            &second_event.payload
+        else {
+            panic!("capacity reservation fixture must contain a commit");
+        };
+        let second_preview = ledger.preview_capacity_reservation(second_commit).unwrap();
+        assert!(second_preview.is_admissible);
+        ledger.apply(second_event).unwrap();
+
+        let third_event = capacity_reservation_event(&ledger, "capacity-res-3", 1, 20, 50);
+        let SiteEventPayload::CapacityReservationCommitted { commit: third_commit } =
+            &third_event.payload
+        else {
+            panic!("capacity reservation fixture must contain a commit");
+        };
+        let third_preview = ledger.preview_capacity_reservation(third_commit).unwrap();
+        assert!(!third_preview.is_admissible);
+        assert!(third_preview.report.indeterminate_segment_count > 0);
+        assert_eq!(ledger.active_capacity_reservation_count(), 2);
+        assert_eq!(ledger.last_sequence(), 5);
+    }
+
+    #[test]
+    fn capacity_admission_binds_current_site_ledger_head_and_snapshot() {
+        let mut ledger = setup_capacity_ledger();
+        let mut stale = capacity_reservation_event(&ledger, "capacity-res-stale", 1, 20, 50);
+        if let SiteEventPayload::CapacityReservationCommitted { commit } = &mut stale.payload {
+            commit.site_ledger_sequence = 1;
+            commit.site_ledger_event_sha256 = digest('0');
+        }
+        assert_eq!(
+            ledger.apply(stale),
+            Err(SiteLedgerError::CapacityReservationSnapshotMismatch)
+        );
+        assert_eq!(ledger.last_sequence(), 3);
+
+        let mut wrong_snapshot =
+            capacity_reservation_event(&ledger, "capacity-res-wrong-snapshot", 1, 20, 50);
+        if let SiteEventPayload::CapacityReservationCommitted { commit } =
+            &mut wrong_snapshot.payload
+        {
+            commit.site_snapshot_sha256 = digest('0');
+        }
+        assert_eq!(
+            ledger.apply(wrong_snapshot),
+            Err(SiteLedgerError::CapacityAvailabilitySnapshotMismatch)
+        );
+        assert_eq!(ledger.last_sequence(), 3);
+    }
+
+    #[test]
+    fn capacity_owner_must_be_registered_and_capacity_namespaces_cannot_overlap() {
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
+        publish_package(&mut ledger, package('a', &["panel-1"]));
+        let unregistered = event(
+            "capacity-catalog-unregistered-owner",
+            2,
+            ledger.last_event_sha256().map(str::to_owned),
+            '3',
+            "resource-authority",
+            SiteActorRole::SiteResourceAuthority,
+            SiteEventPayload::CapacityResourceCatalogPublished {
+                catalog_sha256: digest('2'),
+                resources: vec![CapacityResourceDefinition {
+                    resource_id: "shared-hoist".into(),
+                    capacity_owner_id: "unknown-capacity-owner".into(),
+                    definition_sha256: digest('5'),
+                    capacity_units: 3,
+                    unit_label: "pallet-slots".into(),
+                }],
+            },
+        );
+        assert_eq!(
+            ledger.apply(unregistered),
+            Err(SiteLedgerError::ActorRoleDenied)
+        );
+        assert_eq!(ledger.last_sequence(), 1);
+
+        let exclusive = event(
+            "exclusive-resource-catalog",
+            2,
+            ledger.last_event_sha256().map(str::to_owned),
+            '3',
+            "resource-authority",
+            SiteActorRole::SiteResourceAuthority,
+            SiteEventPayload::ResourceCatalogPublished {
+                catalog_sha256: digest('6'),
+                resources: vec![SiteResourceDefinition {
+                    resource_id: "shared-hoist".into(),
+                    definition_sha256: digest('7'),
+                }],
+            },
+        );
+        ledger.apply(exclusive).unwrap();
+        let overlapping_capacity_catalog = event(
+            "capacity-catalog-namespace-collision",
+            3,
+            ledger.last_event_sha256().map(str::to_owned),
+            '4',
+            "resource-authority",
+            SiteActorRole::SiteResourceAuthority,
+            SiteEventPayload::CapacityResourceCatalogPublished {
+                catalog_sha256: digest('8'),
+                resources: vec![CapacityResourceDefinition {
+                    resource_id: "shared-hoist".into(),
+                    capacity_owner_id: "capacity-owner-1".into(),
+                    definition_sha256: digest('5'),
+                    capacity_units: 3,
+                    unit_label: "pallet-slots".into(),
+                }],
+            },
+        );
+        assert_eq!(
+            ledger.apply(overlapping_capacity_catalog),
+            Err(SiteLedgerError::CapacityCatalogNamespaceCollision(
+                "shared-hoist".into()
+            ))
+        );
+        assert_eq!(ledger.last_sequence(), 2);
+    }
+
+    #[test]
+    fn catalog_revision_cannot_orphan_active_capacity_reservations() {
+        let mut ledger = setup_capacity_ledger();
+        let commit = capacity_reservation_event(&ledger, "capacity-res-1", 1, 20, 50);
+        ledger.apply(commit).unwrap();
+        let event = event(
+            "capacity-catalog-v2",
+            ledger.last_sequence() + 1,
+            ledger.last_event_sha256().map(str::to_owned),
+            '8',
+            "resource-authority",
+            SiteActorRole::SiteResourceAuthority,
+            SiteEventPayload::CapacityResourceCatalogPublished {
+                catalog_sha256: digest('9'),
+                resources: vec![CapacityResourceDefinition {
+                    resource_id: "shared-hoist".into(),
+                    capacity_owner_id: "capacity-owner-1".into(),
+                    definition_sha256: digest('5'),
+                    capacity_units: 4,
+                    unit_label: "pallet-slots".into(),
+                }],
+            },
+        );
+        assert!(matches!(
+            ledger.apply(event),
+            Err(SiteLedgerError::CapacityResourceCatalogWouldOrphanReservation(_))
+        ));
+        assert_eq!(ledger.active_capacity_reservation_count(), 1);
+        let expected_catalog = digest('2');
+        assert_eq!(
+            ledger.capacity_resource_catalog_sha256(),
+            Some(expected_catalog.as_str())
+        );
+    }
+
+    #[test]
+    fn weighted_capacity_reservations_and_referee_releases_replay_deterministically() {
+        let mut ledger = setup_capacity_ledger();
+        ledger
+            .apply(capacity_reservation_event(
+                &ledger,
+                "capacity-res-1",
+                1,
+                20,
+                50,
+            ))
+            .unwrap();
+        ledger
+            .apply(capacity_release_event(&ledger, "capacity-res-1"))
+            .unwrap();
+        let history = ledger.event_history().to_vec();
+        let replayed =
+            SiteStateLedger::replay(&history, ledger.actor_registry().clone()).unwrap();
+        assert_eq!(replayed, ledger);
+        assert_eq!(replayed.active_capacity_reservation_count(), 0);
+        assert!(!replayed
+            .capacity_reservation("capacity-res-1")
+            .unwrap()
+            .is_active());
+    }
+
     fn measurement(residual_x_mm: f64, u95_mm: f64) -> RefereeMeasurement {
         RefereeMeasurement {
             residual_x_mm,
@@ -1696,7 +2875,7 @@ mod tests {
     }
 
     fn setup_started_attempt() -> (SiteStateLedger, String, String) {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         let package_digest = publish_package(&mut ledger, package('a', &["line-1", "point-1"]));
         let station = station_event(&ledger, 2, "event-station");
         ledger.apply(station).unwrap();
@@ -1869,7 +3048,7 @@ mod tests {
 
     #[test]
     fn stale_station_transform_and_wrong_actor_are_rejected_atomically() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         let package_digest = publish_package(&mut ledger, package('a', &["line-1"]));
         let mut invalid = station_event(&ledger, 2, "event-station");
         if let SiteEventPayload::StationQualified {
@@ -1908,7 +3087,7 @@ mod tests {
 
     #[test]
     fn exact_duplicate_event_is_idempotent_but_conflicting_reuse_is_rejected() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         let package = package('a', &["point-1"]);
         let original = event(
             "event-publish",
@@ -1947,7 +3126,7 @@ mod tests {
 
     #[test]
     fn sequence_gap_and_previous_digest_mismatch_fail_closed() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         let gap = event(
             "event-gap",
             2,
@@ -2034,7 +3213,7 @@ mod tests {
 
     #[test]
     fn waiver_requires_quality_authority_and_does_not_increment_acceptance() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         let package_digest = publish_package(&mut ledger, package('a', &["point-1"]));
         let waiver = HumanWaiver {
             design_entity_id: "point-1".into(),
@@ -2096,7 +3275,7 @@ mod tests {
 
     #[test]
     fn previous_event_digest_mismatch_fails_closed_without_advancing_state() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         let package_digest = publish_package(&mut ledger, package('a', &["point-1"]));
         let mut event = station_event(&ledger, 2, "event-station");
         event.previous_event_sha256 = Some(digest('0'));
@@ -2567,7 +3746,7 @@ mod tests {
 
     #[test]
     fn event_identity_index_remains_stable_after_long_append_history() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         let package = package('a', &["point-1"]);
         let package_event = event(
             "event-publish",
@@ -2649,19 +3828,19 @@ mod tests {
         );
         ledger.apply(referee).unwrap();
 
-        let replayed = SiteStateLedger::replay(ledger.event_history()).unwrap();
+        let replayed = SiteStateLedger::replay(ledger.event_history(), ledger.actor_registry().clone()).unwrap();
         assert_eq!(replayed, ledger);
         assert_eq!(replayed.accepted_count(&package_digest), Some(1));
     }
 
     #[test]
     fn persisted_duplicate_or_broken_chain_is_not_valid_replay_history() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         let first = ledger.event_history()[0].clone();
         let duplicate_history = vec![first.clone(), first];
         assert_eq!(
-            SiteStateLedger::replay(&duplicate_history),
+            SiteStateLedger::replay(&duplicate_history, test_actor_registry()),
             Err(SiteLedgerError::EventHistoryContainsDuplicate(
                 "event-publish".into()
             ))
@@ -2673,7 +3852,7 @@ mod tests {
         next.event_sha256 = digest('2');
         broken.push(next);
         assert_eq!(
-            SiteStateLedger::replay(&broken),
+            SiteStateLedger::replay(&broken, test_actor_registry()),
             Err(SiteLedgerError::PreviousEventDigestMismatch)
         );
     }
@@ -2681,7 +3860,7 @@ mod tests {
 
     #[test]
     fn malformed_ids_engine_build_cannot_be_published_to_the_site_ledger() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         let mut invalid = package('a', &["point-1"]);
         invalid.ids_engine_build_sha256 = "unknown-engine-build".into();
         let publication = event(
@@ -2781,7 +3960,7 @@ mod tests {
 
     #[test]
     fn overlapping_exclusive_resource_claims_are_rejected_atomically() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let first = reservation_for(&ledger, "reservation-1", 130, 300, 120, 100, 450);
@@ -2814,7 +3993,7 @@ mod tests {
 
     #[test]
     fn adjacent_half_open_resource_claims_do_not_conflict() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let first_reservation =
@@ -2840,7 +4019,7 @@ mod tests {
 
     #[test]
     fn lease_expiry_does_not_automatically_release_physical_resource() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let first_reservation =
@@ -2878,7 +4057,7 @@ mod tests {
 
     #[test]
     fn referee_clearance_releases_a_reservation_and_replay_preserves_projection() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let first_reservation =
@@ -2912,7 +4091,7 @@ mod tests {
         assert!(!released.is_active());
         assert_eq!(released.released_at_tick, Some(220));
 
-        let replay = SiteStateLedger::replay(ledger.event_history()).unwrap();
+        let replay = SiteStateLedger::replay(ledger.event_history(), ledger.actor_registry().clone()).unwrap();
         assert_eq!(replay, ledger);
         assert_eq!(replay.active_space_time_reservations().count(), 0);
 
@@ -2931,7 +4110,7 @@ mod tests {
 
     #[test]
     fn resource_catalog_cannot_remove_a_resource_held_by_an_active_reservation() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let first_reservation =
@@ -2975,7 +4154,7 @@ mod tests {
 
     #[test]
     fn stale_release_snapshot_and_wrong_release_role_fail_closed() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let first_reservation =
@@ -3017,7 +4196,7 @@ mod tests {
 
     #[test]
     fn indexed_conflict_decisions_match_brute_force_oracle_over_generated_windows() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let mut seed = 0x51_7e_2026_u64;
@@ -3079,7 +4258,7 @@ mod tests {
 
     #[test]
     fn resource_catalog_version_cannot_change_while_a_reservation_is_active() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let reservation =
@@ -3117,7 +4296,7 @@ mod tests {
 
     #[test]
     fn work_package_revision_cannot_supersede_an_active_resource_reservation() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         let package_digest = publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let reservation = reservation_for(
@@ -3156,7 +4335,7 @@ mod tests {
 
     #[test]
     fn identical_catalog_digest_cannot_be_reused_for_changed_definitions() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let before_sequence = ledger.last_sequence();
@@ -3184,6 +4363,40 @@ mod tests {
         assert_eq!(
             ledger.resource_definition_sha256("crane-zone-1"),
             Some(expected_definition.as_str())
+        );
+    }
+
+
+    #[test]
+    fn empty_actor_registry_denies_all_event_ingestion() {
+        let mut ledger = SiteStateLedger::new();
+        let event = event(
+            "untrusted-package-event",
+            1,
+            None,
+            '1',
+            "design-authority",
+            SiteActorRole::DesignAuthority,
+            SiteEventPayload::WorkPackagePublished {
+                package: package('a', &["point-1"]),
+            },
+        );
+        assert_eq!(ledger.apply(event), Err(SiteLedgerError::ActorRoleDenied));
+        assert_eq!(ledger.last_sequence(), 0);
+        assert_eq!(ledger.event_count(), 0);
+    }
+
+    #[test]
+    fn replay_requires_the_same_actor_authority_registry() {
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
+        publish_package(&mut ledger, package('a', &["point-1"]));
+        assert_eq!(
+            SiteStateLedger::replay(ledger.event_history(), ledger.actor_registry().clone()).unwrap(),
+            ledger
+        );
+        assert_eq!(
+            SiteStateLedger::replay(ledger.event_history(), SiteActorRegistry::new()),
+            Err(SiteLedgerError::ActorRoleDenied)
         );
     }
 

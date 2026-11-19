@@ -79,6 +79,18 @@
         },
         {
           "$ref": "#/$defs/space_time_reservation_released"
+        },
+        {
+          "$ref": "#/$defs/capacity_resource_catalog_published"
+        },
+        {
+          "$ref": "#/$defs/capacity_availability_snapshot_published"
+        },
+        {
+          "$ref": "#/$defs/capacity_reservation_committed"
+        },
+        {
+          "$ref": "#/$defs/capacity_reservation_released"
         }
       ]
     }
@@ -813,6 +825,364 @@
       "properties": {
         "kind": {
           "const": "space_time_reservation_released"
+        },
+        "reservation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cleared_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "site_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_ledger_sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "site_ledger_event_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "release_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "capacity_resource_definition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_id",
+        "capacity_owner_id",
+        "definition_sha256",
+        "capacity_units",
+        "unit_label"
+      ],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capacity_owner_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definition_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "capacity_units": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "unit_label": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "capacity_demand_claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_id",
+        "resource_definition_sha256",
+        "start_tick",
+        "end_tick",
+        "demand_units"
+      ],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_definition_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "start_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "demand_units": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "capacity_reservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reservation_id",
+        "reservation_receipt_sha256",
+        "site_clock_domain_id",
+        "claims"
+      ],
+      "properties": {
+        "reservation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reservation_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claims": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/capacity_demand_claim"
+          }
+        }
+      }
+    },
+    "capacity_availability_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_id",
+        "resource_definition_sha256",
+        "site_snapshot_sha256",
+        "site_clock_domain_id",
+        "capacity_owner_id",
+        "evidence_receipt_sha256",
+        "start_tick",
+        "end_tick",
+        "lower_capacity_units",
+        "nominal_capacity_units",
+        "upper_capacity_units"
+      ],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_definition_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capacity_owner_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "start_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lower_capacity_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "nominal_capacity_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "upper_capacity_units": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "capacity_reservation_commit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reservation",
+        "package_sha256",
+        "design_revision_sha256",
+        "entity_id",
+        "robot_id",
+        "readiness_receipt_sha256",
+        "occupancy_assessment_receipt_sha256",
+        "occupancy_engine_build_sha256",
+        "clearance_policy_sha256",
+        "resource_catalog_sha256",
+        "availability_snapshot_sha256",
+        "site_snapshot_sha256",
+        "site_ledger_sequence",
+        "site_ledger_event_sha256",
+        "checked_at_tick",
+        "valid_until_tick",
+        "committed_at_tick",
+        "lease_valid_until_tick"
+      ],
+      "properties": {
+        "reservation": {
+          "$ref": "#/$defs/capacity_reservation"
+        },
+        "package_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "design_revision_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "entity_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "robot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "readiness_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "occupancy_assessment_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "occupancy_engine_build_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "clearance_policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "resource_catalog_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "availability_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_ledger_sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "site_ledger_event_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "checked_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "committed_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lease_valid_until_tick": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "capacity_resource_catalog_published": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "catalog_sha256",
+        "resources"
+      ],
+      "properties": {
+        "kind": {
+          "const": "capacity_resource_catalog_published"
+        },
+        "catalog_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "resources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/capacity_resource_definition"
+          }
+        }
+      }
+    },
+    "capacity_availability_snapshot_published": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "availability_snapshot_sha256",
+        "site_snapshot_sha256",
+        "site_clock_domain_id",
+        "windows"
+      ],
+      "properties": {
+        "kind": {
+          "const": "capacity_availability_snapshot_published"
+        },
+        "availability_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "windows": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/capacity_availability_window"
+          }
+        }
+      }
+    },
+    "capacity_reservation_committed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "commit"
+      ],
+      "properties": {
+        "kind": {
+          "const": "capacity_reservation_committed"
+        },
+        "commit": {
+          "$ref": "#/$defs/capacity_reservation_commit"
+        }
+      }
+    },
+    "capacity_reservation_released": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "reservation_id",
+        "site_clock_domain_id",
+        "cleared_at_tick",
+        "site_snapshot_sha256",
+        "site_ledger_sequence",
+        "site_ledger_event_sha256",
+        "release_receipt_sha256"
+      ],
+      "properties": {
+        "kind": {
+          "const": "capacity_reservation_released"
         },
         "reservation_id": {
           "type": "string",

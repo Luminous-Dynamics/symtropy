@@ -225,3 +225,44 @@ The Linux microbenchmark evaluates robust windows across 10 resources and 100/1,
 schema/robust-capacity-scenario-v0.1.schema.json defines the versioned input shape for capacity resources, weighted reservations and owner-attested availability windows. examples/robust-capacity-scenario-synthetic-v0.1.json demonstrates two resources: a temporary hoist derated enough to be definitely over its upper bound, and a power feed whose demand falls between lower and upper capacity, therefore indeterminate. The hashes and receipts are synthetic placeholders. Cross-field constraints such as window non-overlap, resource-definition binding, snapshot binding and upper capacity not exceeding installed capacity are checked by the Rust evaluator, not all expressible in JSON Schema.
 
 The robust evaluator is exported by the oracle crate and its Linux benchmark compares four sizes (100, 1,000, 10,000 and 100,000 claims) against ten resources with three time-varying windows per resource. The output separates indeterminate windows from definite overloads; a single boolean is not used to collapse those categories.
+
+
+### Atomic capacity-N reservation admission v0.1
+
+The next integration step reuses the fixed-capacity and robust capacity-sweep oracles inside the append-only site ledger. It deliberately keeps **capacity-one exclusive reservations** and **capacity-N weighted reservations** in separate resource namespaces. A resource ID cannot be published in both catalogs, preventing the same hoist, passage, workface or staging resource from being governed simultaneously as both a mutex and a weighted pool.
+
+A capacity-N resource definition includes the canonical definition digest, named capacity owner, installed capacity units and an explicit unit label (for example pallet positions, kW or parallel bays). The resource owner publishes a separate availability snapshot with non-overlapping half-open time windows. Each window binds the same resource-definition digest, owner ID, site snapshot, site clock domain and evidence receipt, and supplies lower/nominal/upper capacity bounds.
+
+The commit event is a single append-only ledger mutation. In its prepare phase the reducer:
+1. requires a registered DispatchCoordinator actor and a registered Robot identity for the claimed robot;
+2. checks the exact current work package, design revision, entity, resource catalog, availability snapshot, site snapshot, site clock and ledger sequence/head;
+3. checks readiness, occupancy, engine and clearance-policy receipt digests and every weighted claim's resource definition, interval and positive demand;
+4. assembles the complete active reservation set plus the proposed reservation;
+5. calls the independent robust capacity oracle and admits only when every loaded interval is **WithinLowerBound**.
+
+An indeterminate segment (load above lower but no more than upper capacity) is not admitted. A definitely overloaded segment is not admitted. The decision includes every overlapping claim, across every active reservation, at the exact shared time boundaries. The half-open interval rule remains: a claim ending at tick t does not overlap another claim beginning at t.
+
+Capacity updates are treated differently from reservation commits. A new owner-attested capacity snapshot may report an adverse derating even when existing active claims now exceed the new lower/upper capacity. The update is recorded; the old reservations are **not** silently deleted or expired. The public assess_current_capacity() API reports the resulting robust feasibility and affected reservation IDs. New admissions are blocked while the snapshot is indeterminate, overloaded or unqualified. Only an explicit referee-authored release event marks a physical reservation released; release history is retained. Lease expiry never releases physical capacity.
+
+The Rust API is exported as CapacityReservationCommit, CapacityReservationRecord, and the capacity-N event variants in SiteEventPayload. The wire contract is included in schema/site-state-event-v0.1.schema.json; examples/capacity-n-admission-stream-synthetic-v0.1.json is a seven-event synthetic replay shape: package publication, owner-qualified resource catalog, lower/nominal/upper capacity snapshot, two overlapping unit reservations, one referee release and a replacement reservation. Its digest values are synthetic placeholders and are not signed evidence.
+
+#### Verification targets and current claim ceiling
+
+The new ledger tests exercise:
+- two one-unit overlapping reservations admitted under a lower capacity of two;
+- a third overlapping unit claim rejected even though it remains below nominal/upper installed capacity;
+- rejection atomicity (no sequence, event or index update on failed admission);
+- referee release followed by successful replacement admission;
+- an adverse capacity update recorded without automatic release of active claims;
+- new admissions blocked against that adverse capacity;
+- stale ledger-head and site-snapshot rejection;
+- unregistered capacity-owner and robot rejection;
+- no capacity-one/capacity-N resource namespace collision;
+- catalog revision protection while active weighted reservations exist;
+- deterministic replay of weighted commits and referee releases.
+
+These are software-level tests, not field capacity measurements. The caller must verify canonical source/catalog/window/receipt bytes, owner authorization, robot identity, signatures and the actual site-clock provenance. The reducer validates the event chain and digest format but does not itself calculate SHA-256, authenticate signatures, measure hoist capacity, infer power derating, calculate structural floor capacity or issue a safety/actuation permit.
+
+**Performance limitation:** this first commit path deliberately recomputes the robust sweep over all active reservations on every admission. That gives a transparent independent reference for correctness, but repeated commits are not yet a production high-throughput admission index. The next performance increment should build a per-resource incremental load index (for example a coordinate-compressed interval segment tree with checked wide sums and versioned capacity-window boundaries), while retaining this full-sweep oracle as the differential reference. Benchmark commit p50/p95/p99, update/release cost, memory, active claim count, number of distinct boundaries, number of resources and derating-window changes at 100/1K/10K/100K/1M claims. Require exact agreement of robust feasible/indeterminate/overloaded segments and contributing reservation IDs with the full sweep before reporting speedup.
+
+Do not merge weighted capacity semantics into the capacity-one predecessor/successor index, and do not silently treat all resources as interchangeable. Resource units and owner scope are part of the resource definition and must be consistently normalized before claims are combined.

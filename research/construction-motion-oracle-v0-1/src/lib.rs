@@ -34,7 +34,8 @@ pub use dispatch_readiness::{
     verify_dispatch_readiness_receipt_current,
 };
 pub use site_state_ledger::{
-    ExclusiveResourceClaim, SiteResourceDefinition, SpaceTimeReservation,
+    CapacityAdmissionPreview, CapacityReservationCommit, CapacityReservationRecord,
+    ExclusiveResourceClaim, SiteActorRegistry, SiteResourceDefinition, SpaceTimeReservation,
     SpaceTimeReservationRecord,
 };
 pub use field_layout_acceptance::{

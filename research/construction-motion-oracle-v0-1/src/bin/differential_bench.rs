@@ -4,13 +4,12 @@ use std::time::{Duration, Instant};
 use construction_motion_oracle::{
     AnalyticPath, CapacityAvailabilityWindow, CapacityDemandClaim, CapacityReservation,
     CapacityResourceDefinition, CumulativeCapacityScenario, DesignIntentEntity,
-    DispatchEnvelopeBinding,
-    DispatchReadinessRequest, ExclusiveResourceClaim, FieldAcceptanceProfile,
-    FieldLayoutEntityType, OccupancyAssessmentReceipt, SiteActorRole, SiteEventEnvelope,
-    RobustCumulativeCapacityScenario, SiteEventPayload, SiteResourceDefinition, SiteStateLedger,
-    SiteWorkPackage, SpaceTimeReservation, Vec3, evaluate_cumulative_resource_capacity,
-    evaluate_robust_cumulative_resource_capacity,
-    chord_collision, check_dispatch_readiness, endpoints_only_collision,
+    DispatchEnvelopeBinding, DispatchReadinessRequest, ExclusiveResourceClaim,
+    FieldAcceptanceProfile, FieldLayoutEntityType, OccupancyAssessmentReceipt,
+    RobustCumulativeCapacityScenario, SiteActorRole, SiteEventEnvelope, SiteEventPayload,
+    SiteResourceDefinition, SiteStateLedger, SiteWorkPackage, SpaceTimeReservation, Vec3,
+    check_dispatch_readiness, chord_collision, endpoints_only_collision,
+    evaluate_cumulative_resource_capacity, evaluate_robust_cumulative_resource_capacity,
     verify_dispatch_readiness_receipt_current,
 };
 
@@ -134,9 +133,10 @@ fn main() {
     run_robust_capacity_derating_benchmarks();
 }
 
-
 fn run_site_ledger_append_scaling_benchmarks() {
-    println!("site_ledger_append_scaling,event_count,rounds,total_p50_us,total_p95_us,total_p99_us,ns_per_event_p50,ns_per_event_p95,ns_per_event_p99");
+    println!(
+        "site_ledger_append_scaling,event_count,rounds,total_p50_us,total_p95_us,total_p99_us,ns_per_event_p50,ns_per_event_p95,ns_per_event_p99"
+    );
     for event_count in [100_u64, 1_000, 10_000] {
         let mut round_durations = Vec::with_capacity(31);
         for _round in 0..31 {
@@ -224,7 +224,6 @@ fn run_site_ledger_append_scaling_benchmarks() {
         );
     }
 }
-
 
 fn run_site_dispatch_readiness_benchmarks() {
     let package_sha256 = "a".repeat(64);
@@ -339,7 +338,6 @@ fn run_site_dispatch_readiness_benchmarks() {
         );
     });
 }
-
 
 fn benchmark_digest(value: u64) -> String {
     format!("{value:064x}")
@@ -541,9 +539,9 @@ fn run_exclusive_resource_reservation_index_benchmarks() {
             conflict_durations.push(start.elapsed());
             assert!(matches!(
                 result,
-                Err(construction_motion_oracle::SiteLedgerError::SpaceTimeReservationConflict {
-                    ..
-                })
+                Err(
+                    construction_motion_oracle::SiteLedgerError::SpaceTimeReservationConflict { .. }
+                )
             ));
         }
 
@@ -562,7 +560,6 @@ fn run_exclusive_resource_reservation_index_benchmarks() {
         );
     }
 }
-
 
 fn build_cumulative_capacity_benchmark_scenario(claim_count: u64) -> CumulativeCapacityScenario {
     let resources: Vec<CapacityResourceDefinition> = (0..10_u64)
@@ -610,9 +607,7 @@ fn build_cumulative_capacity_benchmark_scenario(claim_count: u64) -> CumulativeC
     }
 }
 
-fn build_robust_capacity_benchmark_scenario(
-    claim_count: u64,
-) -> RobustCumulativeCapacityScenario {
+fn build_robust_capacity_benchmark_scenario(claim_count: u64) -> RobustCumulativeCapacityScenario {
     let base = build_cumulative_capacity_benchmark_scenario(claim_count);
     let mut availability_windows = Vec::with_capacity(base.resources.len() * 3);
     for (resource_index, definition) in base.resources.iter().enumerate() {
