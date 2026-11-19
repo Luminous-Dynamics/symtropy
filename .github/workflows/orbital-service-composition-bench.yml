@@ -63,10 +63,10 @@ jobs:
             and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
             and .report.result == "pass"
             and .report.evidence_class == "synthetic"
-            and .report.summary.case_count == 14
+            and .report.summary.case_count == 17
             and .report.summary.accepted_for_synthetic_composition == 1
-            and .report.summary.rejected == 7
-            and .report.summary.indeterminate == 6
+            and .report.summary.rejected == 8
+            and .report.summary.indeterminate == 8
             and .report.summary.expected_result_mismatches == 0
             and .report.summary.operational_authority_grants == 0
           ' orbital-service-composition-receipt.json
