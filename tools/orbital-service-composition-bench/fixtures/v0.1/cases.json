@@ -26,7 +26,7 @@
       "expected_status": "accepted_for_synthetic_composition",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -39,7 +39,7 @@
           "sequence": 10,
           "kind": "payload_delivery_accepted",
           "subject_id": "serviced-client-001",
-          "target_orbit_id": "leo-550-km",
+          "target_orbit_id": "leo-550km",
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
@@ -107,7 +107,7 @@
       "expected_status": "indeterminate",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -127,7 +127,7 @@
       "expected_status": "indeterminate",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -140,7 +140,7 @@
           "sequence": 10,
           "kind": "payload_delivery_accepted",
           "subject_id": "serviced-client-001",
-          "target_orbit_id": "leo-550-km",
+          "target_orbit_id": "leo-550km",
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
@@ -168,7 +168,7 @@
       "expected_status": "rejected",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -181,7 +181,7 @@
           "sequence": 10,
           "kind": "payload_delivery_accepted",
           "subject_id": "serviced-client-001",
-          "target_orbit_id": "leo-550-km",
+          "target_orbit_id": "leo-550km",
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
@@ -249,7 +249,7 @@
       "expected_status": "rejected",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -262,7 +262,7 @@
           "sequence": 10,
           "kind": "payload_delivery_accepted",
           "subject_id": "serviced-client-001",
-          "target_orbit_id": "leo-550-km",
+          "target_orbit_id": "leo-550km",
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
@@ -330,7 +330,7 @@
       "expected_status": "indeterminate",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -343,7 +343,7 @@
           "sequence": 10,
           "kind": "payload_delivery_accepted",
           "subject_id": "serviced-client-001",
-          "target_orbit_id": "leo-550-km",
+          "target_orbit_id": "leo-550km",
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
@@ -411,7 +411,7 @@
       "expected_status": "rejected",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -424,7 +424,7 @@
           "sequence": 10,
           "kind": "payload_delivery_accepted",
           "subject_id": "serviced-client-001",
-          "target_orbit_id": "leo-550-km",
+          "target_orbit_id": "leo-550km",
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
@@ -492,7 +492,7 @@
       "expected_status": "rejected",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -505,7 +505,7 @@
           "sequence": 10,
           "kind": "payload_delivery_accepted",
           "subject_id": "serviced-client-001",
-          "target_orbit_id": "leo-550-km",
+          "target_orbit_id": "leo-550km",
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
@@ -573,7 +573,7 @@
       "expected_status": "rejected",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -586,7 +586,7 @@
           "sequence": 10,
           "kind": "payload_delivery_accepted",
           "subject_id": "serviced-client-001",
-          "target_orbit_id": "leo-550-km",
+          "target_orbit_id": "leo-550km",
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
@@ -654,7 +654,7 @@
       "expected_status": "indeterminate",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -674,7 +674,7 @@
       "expected_status": "rejected",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -687,7 +687,7 @@
           "sequence": 10,
           "kind": "payload_delivery_accepted",
           "subject_id": "serviced-client-001",
-          "target_orbit_id": "leo-550-km",
+          "target_orbit_id": "leo-550km",
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
@@ -755,7 +755,7 @@
       "expected_status": "indeterminate",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -768,7 +768,7 @@
           "sequence": 10,
           "kind": "payload_delivery_accepted",
           "subject_id": "serviced-client-001",
-          "target_orbit_id": "leo-550-km",
+          "target_orbit_id": "leo-550km",
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
@@ -823,7 +823,7 @@
       "expected_status": "rejected",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -904,7 +904,7 @@
       "expected_status": "indeterminate",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -969,7 +969,7 @@
       "expected_status": "indeterminate",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -982,7 +982,7 @@
           "sequence": 10,
           "kind": "payload_delivery_accepted",
           "subject_id": "serviced-client-001",
-          "target_orbit_id": "leo-550-km",
+          "target_orbit_id": "leo-550km",
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
@@ -1050,7 +1050,7 @@
       "expected_status": "indeterminate",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -1063,7 +1063,7 @@
           "sequence": 10,
           "kind": "payload_delivery_accepted",
           "subject_id": "serviced-client-001",
-          "target_orbit_id": "leo-550-km",
+          "target_orbit_id": "leo-550km",
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
@@ -1131,7 +1131,7 @@
       "expected_status": "rejected",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -1144,7 +1144,7 @@
           "sequence": 10,
           "kind": "payload_delivery_accepted",
           "subject_id": "serviced-client-001",
-          "target_orbit_id": "leo-550-km",
+          "target_orbit_id": "leo-550km",
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
@@ -1212,7 +1212,7 @@
       "expected_status": "indeterminate",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -1225,7 +1225,7 @@
           "sequence": 10,
           "kind": "payload_delivery_accepted",
           "subject_id": "serviced-client-001",
-          "target_orbit_id": "leo-550-km",
+          "target_orbit_id": "leo-550km",
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
@@ -1293,7 +1293,7 @@
       "expected_status": "rejected",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -1306,7 +1306,7 @@
           "sequence": 10,
           "kind": "payload_delivery_accepted",
           "subject_id": "serviced-client-001",
-          "target_orbit_id": "leo-550-km",
+          "target_orbit_id": "leo-550km",
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
@@ -1374,7 +1374,7 @@
       "expected_status": "rejected",
       "profile": {
         "subject_id": "serviced-client-001",
-        "target_orbit_id": "leo-550-km",
+        "target_orbit_id": "leo-550km",
         "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
         "fluid_id": "synthetic-hydrazine-analogue",
@@ -1387,7 +1387,7 @@
           "sequence": 10,
           "kind": "payload_delivery_accepted",
           "subject_id": "serviced-client-001",
-          "target_orbit_id": "leo-550-km",
+          "target_orbit_id": "leo-550km",
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
