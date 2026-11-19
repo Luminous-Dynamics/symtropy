@@ -649,6 +649,34 @@ mod tests {
         assert_eq!(result.residual_energy_mwh, 0.0);
     }
 
+
+    #[test]
+    fn source_allocation_cross_bucket_overflow_cannot_hide_overallocation() {
+        let mut ledger = allocation_ledger(
+            vec![heat_allocation("large-allocation", "process-plant", f64::MAX)],
+            f64::MAX,
+        );
+        ledger.available_energy_mwh = f64::MAX;
+
+        let result = ledger.evaluate(1e-9).unwrap();
+        assert!(!result.within_tolerance);
+        assert!((result.normalized_absolute_residual - (1.0 / 3.0)).abs() < 1e-12);
+    }
+
+    #[test]
+    fn source_allocation_unrepresentable_residual_is_rejected() {
+        let mut ledger = allocation_ledger(
+            vec![heat_allocation("large-allocation", "process-plant", f64::MAX)],
+            f64::MAX,
+        );
+        ledger.available_energy_mwh = 1.0;
+
+        assert_eq!(
+            ledger.evaluate(1e-9),
+            Err(ValidationError::ArithmeticOverflow)
+        );
+    }
+
     #[test]
     fn source_overallocation_is_visible_and_not_silently_closed() {
         let ledger = allocation_ledger(
