@@ -34,4 +34,4 @@ jobs:
       - name: Tests
         run: cargo test --all-targets
       - name: Replay committed fixture
-        run: cargo run -- examples/haps_fleet_continuity_30day_v1.json
+        run: cargo run -- ../../docs/research/aviation/examples/synthetic_haps_fleet_continuity_30day_v1.json
