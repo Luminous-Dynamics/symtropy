@@ -10,6 +10,7 @@ const TOTAL_BASIS_POINTS: u32 = 10_000;
 pub struct Case {
     pub schema_version: String,
     pub case_id: String,
+    pub case_maturity: String,
     pub as_of_hour: f64,
     pub resource_manifest_ref: String,
     pub resource_manifest_sha256: String,
@@ -194,10 +195,12 @@ pub struct ExpectedResourceHours {
 #[serde(rename_all = "camelCase")]
 pub struct QualificationReport {
     pub case_id: String,
+    pub case_maturity: String,
     pub result_status: String,
     pub source_policy_ref: String,
     pub resource_manifest_ref: String,
     pub resource_manifest_sha256: String,
+    pub policy_certificate_sha256: String,
     pub first_inspection: ActivitySchedule,
     pub branches: Vec<BranchSchedule>,
     pub expected_candidate_action_completion_hour: f64,
@@ -339,6 +342,7 @@ fn validate_case(case: &Case) -> Vec<String> {
     let mut errors = Vec::new();
     if case.schema_version != "0.1.0"
         || case.case_id.trim().is_empty()
+        || !matches!(case.case_maturity.as_str(), "synthetic_fixture" | "historical_replay")
         || !finite_nonnegative(case.as_of_hour)
     {
         errors.push("case identity, schema version or as-of hour is invalid".to_string());
@@ -686,10 +690,12 @@ pub fn qualify(case: &Case) -> Result<QualificationReport, Vec<String>> {
 
     Ok(QualificationReport {
         case_id: case.case_id.clone(),
+        case_maturity: case.case_maturity.clone(),
         result_status: "resource_time_certificate_consistent".to_string(),
         source_policy_ref: policy.source_policy_ref.clone(),
         resource_manifest_ref: case.resource_manifest_ref.clone(),
         resource_manifest_sha256: case.resource_manifest_sha256.clone(),
+        policy_certificate_sha256: case.policy_certificate_sha256.clone(),
         first_inspection: first_schedule,
         branches,
         expected_candidate_action_completion_hour: expected_completion,
