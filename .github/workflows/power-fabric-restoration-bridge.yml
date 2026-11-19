@@ -1,0 +1,139 @@
+name: Power Fabric restoration bridge conformance
+
+on:
+  pull_request:
+    paths:
+      - "docs/research/power-fabric-restoration-bridge/**"
+      - ".github/workflows/power-fabric-restoration-bridge.yml"
+  push:
+    paths:
+      - "docs/research/power-fabric-restoration-bridge/**"
+      - ".github/workflows/power-fabric-restoration-bridge.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    name: Validate bridge schema, fixture and semantic boundaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python for schema tests only
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+
+      - name: Validate schema and synthetic bridge fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import copy
+          import json
+          from datetime import datetime
+          from pathlib import Path
+
+          from jsonschema import Draft202012Validator
+
+          root = Path("docs/research/power-fabric-restoration-bridge/data")
+          schema = json.loads((root / "restoration-bridge-v0.1.schema.json").read_text())
+          fixture = json.loads((root / "synthetic-delayed-restoration-v0.1.json").read_text())
+
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema)
+          errors = sorted(validator.iter_errors(fixture), key=lambda err: list(err.path))
+          assert not errors, "\\n".join(f"{list(err.path)}: {err.message}" for err in errors)
+
+          def instant(value: str) -> datetime:
+              parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+              assert parsed.tzinfo is not None, f"timestamp lacks offset: {value}"
+              return parsed
+
+          artifact_ids = [item["artifactId"] for item in fixture["sourceArtifacts"]]
+          assert len(artifact_ids) == len(set(artifact_ids)), "duplicate source artifact identity"
+          artifacts = set(artifact_ids)
+
+          stream_ids = [stream["streamId"] for stream in fixture["restorationStreams"]]
+          stream_ids += [stream["streamId"] for stream in fixture["serviceStreams"]]
+          assert len(stream_ids) == len(set(stream_ids)), "duplicate stream identity"
+
+          for stream in fixture["restorationStreams"]:
+              assert stream["sourceArtifactId"] in artifacts
+              for item in stream["items"]:
+                  if stream["streamKind"] == "planned_forecast":
+                      assert item["status"] == "planned"
+                      assert item["evidenceClass"] == "simulated"
+                      assert "plannedAt" in item and "observedAt" not in item
+                  else:
+                      assert item["status"] in {"in_progress", "completed", "failed", "unknown", "conflicted"}
+                      if item["status"] in {"in_progress", "completed", "failed"}:
+                          assert item["evidenceClass"] in {"observed", "unknown"}
+                          assert item.get("evidenceRefs"), "observed work milestone lacks evidence reference"
+
+          service_streams = {stream["streamId"]: stream for stream in fixture["serviceStreams"]}
+          for stream in service_streams.values():
+              assert stream["sourceArtifactId"] in artifacts
+              previous_end = None
+              for row in stream["series"]:
+                  start, end = instant(row["start"]), instant(row["end"])
+                  assert start < end, "empty or reversed service interval"
+                  if previous_end is not None:
+                      assert start >= previous_end, "overlapping or out-of-order service intervals"
+                  previous_end = end
+                  if row["status"] == "valid":
+                      assert "functionalAvailability" in row
+                      ratio = row["nativeDelivered"] / row["nativeDemand"]
+                      expected = min(1.0, max(0.0, ratio))
+                      assert abs(row["functionalAvailability"] - expected) <= 1e-9, "normalization does not match declared native values"
+              if stream["streamKind"] == "measured_service":
+                  assert all(row["evidenceClass"] == "observed" for row in stream["series"])
+              else:
+                  assert all(row["evidenceClass"] in {"simulated", "inferred"} for row in stream["series"])
+
+          for receipt in fixture["mappingReceipts"]:
+              assert receipt["serviceStreamId"] in service_streams, "mapping cannot target a planned-work stream"
+              assert receipt["targetNodeId"] == service_streams[receipt["serviceStreamId"]]["cascadeNodeId"]
+              accounted = receipt["acceptedRows"] + receipt["rejectedRows"] + receipt["unsupportedRows"] + receipt["unknownRows"]
+              assert receipt["sourceRows"] == accounted, "source-row accounting does not reconcile"
+              if receipt["mappingStatus"] == "complete":
+                  assert receipt["acceptedRows"] == receipt["sourceRows"]
+                  assert receipt["mappedTicks"] == receipt["targetTicks"]
+
+          # Negative control: moving a planned repair milestone earlier must not alter the
+          # independently sourced service trajectory.
+          moved_plan = copy.deepcopy(fixture)
+          planned = next(s for s in moved_plan["restorationStreams"] if s["streamKind"] == "planned_forecast")
+          planned["items"][0]["plannedAt"] = "2030-01-01T02:00:00Z"
+          assert moved_plan["serviceStreams"][0]["series"][0]["functionalAvailability"] == 0.0
+          assert moved_plan["serviceStreams"][0]["series"][1]["start"] == "2030-01-01T14:00:00Z"
+
+          # Negative control: stale/unknown/conflicted rows cannot carry a functionality value.
+          stale = copy.deepcopy(fixture)
+          stale["serviceStreams"][0]["series"][0]["status"] = "stale"
+          stale_errors = list(validator.iter_errors(stale))
+          assert stale_errors, "stale service row with functionalAvailability should fail schema"
+
+          # Negative control: a modelled stream cannot claim observed evidence.
+          forged_measured = copy.deepcopy(fixture)
+          forged_measured["serviceStreams"][0]["streamKind"] = "measured_service"
+          measured_errors = list(validator.iter_errors(forged_measured))
+          assert measured_errors, "measured service with simulated evidence must fail schema"
+
+          # Negative control: schedule-only data has no service stream and therefore no service claim.
+          schedule_only = copy.deepcopy(fixture)
+          schedule_only["serviceStreams"] = []
+          schedule_only["mappingReceipts"] = []
+          assert not list(validator.iter_errors(schedule_only)), "schedule-only record should remain valid without a service assertion"
+          assert not schedule_only["serviceStreams"]
+
+          print("PASS: Draft 2020-12 schema, fixture references, temporal order, normalization and source accounting")
+          print("PASS: planned schedule cannot create service availability")
+          print("PASS: stale service, false measured evidence and schedule-only cases are handled")
+          PY
