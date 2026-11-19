@@ -1,0 +1,808 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/synthetic-joints/paired-actuator-observability/v0.1/paired_actuator_profile.schema.json",
+  "title": "Paired Actuator Observability Profile v0.1",
+  "description": "Evidence-bound record for paired/multi-actuator load-sharing, identifiability and first-to-derate behavior. It does not certify safety or truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "assembly",
+    "test_conditions",
+    "actuators",
+    "mechanical_share_observability",
+    "runs",
+    "thermal_limits",
+    "evidence",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assembly": {
+      "$ref": "#/$defs/assembly"
+    },
+    "test_conditions": {
+      "$ref": "#/$defs/conditions"
+    },
+    "actuators": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/actuator"
+      }
+    },
+    "mechanical_share_observability": {
+      "$ref": "#/$defs/observability"
+    },
+    "runs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/run"
+      }
+    },
+    "thermal_limits": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/thermal_limit"
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "assembly": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assembly_id",
+        "topology",
+        "joint_or_axis",
+        "reduction_ratio",
+        "system_boundary",
+        "controller_sync"
+      ],
+      "properties": {
+        "assembly_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "topology": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joint_or_axis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reduction_ratio": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "system_boundary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "included_components",
+            "excluded_components",
+            "notes"
+          ],
+          "properties": {
+            "included_components": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "excluded_components": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "notes": {
+              "type": "string"
+            }
+          }
+        },
+        "controller_sync": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "bus_or_link",
+            "command_mode",
+            "synchronized_command",
+            "firmware_config_state"
+          ],
+          "properties": {
+            "bus_or_link": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "command_mode": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "synchronized_command": {
+              "enum": [
+                "yes",
+                "no",
+                "not_disclosed",
+                "unknown"
+              ]
+            },
+            "firmware_config_state": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ambient_temperature_c",
+        "supply_voltage_v",
+        "cooling_boundary",
+        "test_classes",
+        "initial_state_policy",
+        "sample_rate_hz",
+        "raw_trace_state"
+      ],
+      "properties": {
+        "ambient_temperature_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "supply_voltage_v": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "supply_current_limit_a": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "cooling_boundary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "test_classes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "no_load",
+              "dynamic_load",
+              "static_hold",
+              "mission_cycle",
+              "direction_reversal",
+              "derating_response"
+            ]
+          }
+        },
+        "initial_state_policy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sample_rate_hz": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "raw_trace_state": {
+          "enum": [
+            "available",
+            "partial",
+            "not_available",
+            "not_disclosed"
+          ]
+        },
+        "conditions_notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "actuator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actuator_id",
+        "model",
+        "revision_state",
+        "firmware",
+        "instrumented_channels"
+      ],
+      "properties": {
+        "actuator_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision_state": {
+          "enum": [
+            "exact",
+            "partially_known",
+            "not_disclosed",
+            "unknown"
+          ]
+        },
+        "firmware": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "instrumented_channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "torque_constant_status": {
+          "enum": [
+            "independently_calibrated",
+            "manufacturer_reported",
+            "assumed_equal",
+            "unknown",
+            "not_applicable"
+          ]
+        },
+        "individual_output_torque_sensor": {
+          "enum": [
+            "yes",
+            "no",
+            "unknown"
+          ]
+        },
+        "temperature_sensor_location": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "observability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mechanical_share_status",
+        "electrical_share_status",
+        "thermal_share_status",
+        "identified_parameter_groups",
+        "confounded_parameter_groups",
+        "identifiability_method",
+        "reason"
+      ],
+      "properties": {
+        "mechanical_share_status": {
+          "enum": [
+            "independently_measured",
+            "model_estimated",
+            "bounded_only",
+            "not_identifiable",
+            "not_measured"
+          ]
+        },
+        "electrical_share_status": {
+          "enum": [
+            "independently_measured",
+            "derived_from_current",
+            "bounded_only",
+            "not_measured"
+          ]
+        },
+        "thermal_share_status": {
+          "enum": [
+            "independently_measured",
+            "reported_internal_sensors",
+            "bounded_only",
+            "not_measured"
+          ]
+        },
+        "identified_parameter_groups": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confounded_parameter_groups": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "identifiability_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rank": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "condition_number": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "test_class",
+        "load_torque_nm",
+        "output_speed_rad_s",
+        "repetitions",
+        "outcome",
+        "duration_s",
+        "first_limit_event",
+        "per_actuator_observations",
+        "pair_observations",
+        "mechanical_share",
+        "notes"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "test_class": {
+          "enum": [
+            "no_load",
+            "dynamic_load",
+            "static_hold",
+            "mission_cycle",
+            "direction_reversal",
+            "derating_response"
+          ]
+        },
+        "load_torque_nm": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "output_speed_rad_s": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "repetitions": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "outcome": {
+          "enum": [
+            "completed",
+            "derated",
+            "thermal_stop",
+            "mechanical_stop",
+            "aborted",
+            "censored",
+            "indeterminate",
+            "not_applicable"
+          ]
+        },
+        "duration_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "first_limit_event": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "actuator_id",
+            "limit_type",
+            "time_s",
+            "temperature_c",
+            "reason"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "observed",
+                "not_reached",
+                "not_disclosed",
+                "unknown",
+                "not_applicable"
+              ]
+            },
+            "actuator_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "limit_type": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "time_s": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "temperature_c": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "reason": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "per_actuator_observations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/actuator_observation"
+          }
+        },
+        "pair_observations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/metric"
+          }
+        },
+        "mechanical_share": {
+          "$ref": "#/$defs/mechanical_share"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "actuator_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actuator_id",
+        "current_a",
+        "voltage_v",
+        "temperature_c",
+        "temperature_location",
+        "electrical_effort_share",
+        "torque_share"
+      ],
+      "properties": {
+        "actuator_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_a": {
+          "$ref": "#/$defs/measurement"
+        },
+        "voltage_v": {
+          "$ref": "#/$defs/measurement"
+        },
+        "temperature_c": {
+          "$ref": "#/$defs/measurement"
+        },
+        "temperature_location": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "electrical_effort_share": {
+          "$ref": "#/$defs/measurement"
+        },
+        "torque_share": {
+          "$ref": "#/$defs/measurement"
+        }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "value",
+        "unit",
+        "uncertainty",
+        "reason"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "measured",
+            "reported",
+            "derived",
+            "estimated",
+            "assumed",
+            "unknown",
+            "not_disclosed",
+            "not_applicable"
+          ]
+        },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uncertainty": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_id",
+        "value",
+        "unit",
+        "status",
+        "uncertainty",
+        "reason"
+      ],
+      "properties": {
+        "metric_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "measured",
+            "reported",
+            "derived",
+            "estimated",
+            "assumed",
+            "unknown",
+            "not_disclosed",
+            "not_applicable"
+          ]
+        },
+        "uncertainty": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "mechanical_share": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "actuator_shares",
+        "pair_total_torque_nm",
+        "loss_torque_nm",
+        "model_or_assumption",
+        "reason"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "independently_measured",
+            "model_estimated",
+            "bounded_only",
+            "not_identifiable",
+            "not_measured"
+          ]
+        },
+        "actuator_shares": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/metric"
+          }
+        },
+        "pair_total_torque_nm": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "loss_torque_nm": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "model_or_assumption": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "thermal_limit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actuator_id",
+        "location",
+        "limit_temperature_c",
+        "status",
+        "source"
+      ],
+      "properties": {
+        "actuator_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "location": {
+          "type": "string",
+          "minLength": 1
+        },
+        "limit_temperature_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "known",
+            "unknown",
+            "not_disclosed"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference",
+        "source_class",
+        "method",
+        "date",
+        "independence"
+      ],
+      "properties": {
+        "reference": {
+          "type": "string",
+          "format": "uri"
+        },
+        "source_class": {
+          "enum": [
+            "paper_reported_physical_measurement",
+            "manufacturer_claim",
+            "vendor_measurement",
+            "independent_lab_measurement",
+            "derived_arithmetic",
+            "other"
+          ]
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "independence": {
+          "enum": [
+            "independent",
+            "vendor",
+            "not_assessed",
+            "unknown"
+          ]
+        }
+      }
+    }
+  }
+}
