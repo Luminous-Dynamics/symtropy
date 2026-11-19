@@ -121,7 +121,8 @@ impl VerificationReport {
             "within_tolerance": self.within_tolerance,
             "qualified": self.qualified,
             "claim_ceiling": concat!(
-                "Byte identity, declared source identity and one source-interval allocation arithmetic only; ",
+                "Byte identity, declared source identity and one source-interval ",
+                "allocation arithmetic only; ",
                 "not physical truth or operational authorization."
             )
         })
@@ -585,15 +586,18 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    const PAYLOAD: &[u8] = include_bytes!(
-        "../../../docs/research/geothermal-fusion/evidence/fixtures/synthetic-geothermal-source-interval.v0.1.json"
-    );
-    const EVIDENCE: &str = include_str!(
-        "../../../docs/research/geothermal-fusion/evidence/fixtures/synthetic-source-interval-evidence.v0.1.json"
-    );
-    const ALLOCATION: &str = include_str!(
-        "../../../docs/research/geothermal-fusion/evidence/fixtures/synthetic-source-allocation-receipt.v0.1.json"
-    );
+    const PAYLOAD: &[u8] = include_bytes!(concat!(
+        "../../../docs/research/geothermal-fusion/evidence/fixtures/",
+        "synthetic-geothermal-source-interval.v0.1.json"
+    ));
+    const EVIDENCE: &str = include_str!(concat!(
+        "../../../docs/research/geothermal-fusion/evidence/fixtures/",
+        "synthetic-source-interval-evidence.v0.1.json"
+    ));
+    const ALLOCATION: &str = include_str!(concat!(
+        "../../../docs/research/geothermal-fusion/evidence/fixtures/",
+        "synthetic-source-allocation-receipt.v0.1.json"
+    ));
 
     fn evidence() -> Value {
         serde_json::from_str(EVIDENCE).expect("evidence fixture JSON")
