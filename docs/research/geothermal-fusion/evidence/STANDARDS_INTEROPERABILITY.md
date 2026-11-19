@@ -36,13 +36,17 @@ The Modelica Association's SSP 2.0.1 standard (5 May 2026) is the tool-independe
 
 ### SSP Layered Standard for Traceability 1.0.0 — simulation process and credibility records
 
-The Modelica Association released SSP-LS-Traceability 1.0.0 on 29 August 2025. It is a layered standard on SSP 2.0 for exchanging simulation traceability and credibility information alongside simulation artifacts in an SSP package. The SSP project also identifies its traceability layer as supporting information for calibration and measurement.
+The Modelica Association released SSP-LS-Traceability 1.0.0 on 29 August 2025. It is a layered standard on SSP 2.0 for exchanging process-relevant metadata for credible decision and simulation processes, plus simulation-resource metadata, alongside system descriptions, models and other resources. Its task records structure inputs, procedures, outputs and rationale; its derivation chain records prior traceability-file identities using globally unique GUIDs; SRMD records metadata about simulation resources. The specification does **not** define a meter-calibration certificate or prove measurement coverage.
 
 - [SSP-LS-Traceability 1.0.0 specification](https://ssp-standard.org/ssp-ls-traceability/1.0.0/)
 - [Release announcement](https://ssp-standard.org/news/2025-08-29-ssp-ls-traceability-v1.0.0/)
 - [Project repository](https://github.com/modelica/ssp-ls-traceability)
 
-**GeoFusion decision:** treat SSP-LS-Traceability as the preferred companion for simulation-process traceability, credibility records and measurement/calibration context associated with the SSP model. Map the profile's source-interval evidence to the appropriate traceability resources only after a field-level crosswalk. Do not assume the layered standard authenticates calibration certificates, validates a physical instrument, or proves that a calibration interval covers a particular energy observation. Keep GeoFusion's carrier, physical-boundary, source-interval and source-allocation semantics in this domain profile.
+**GeoFusion decision:** use SSP-LS-Traceability as the preferred companion for simulation-task process metadata, simulation-resource metadata and derivation-chain snapshots. Map solver runs, SSP revisions, FMUs, parameter sets and outputs into STMD/SRMD resources after a field-level crosswalk. Keep instrument identity, calibration-certificate identity and validity interval, measurement uncertainty, source-interval coverage and physical boundary/carrier allocation in the GeoFusion evidence profile; SSP-LS-Traceability is not a calibration authority.
+
+A further useful distinction is that the SRMD resource metadata supports an optional checksum and declares `SHA3-256` as its current checksum type over raw resource bytes. That identifier is an SSP-LS resource identity check, not a replacement for the GeoFusion receipt's SHA-256 or the outer BagIt SHA-512 manifest. Keep the three scopes explicit: SSP-LS resource checksum, source-receipt payload digest and BagIt package manifest.
+
+The standard's `DerivationChain` records GUIDs of prior STMD/DTMD files and their ordering. Those GUIDs identify traceability-document revisions; they are not cryptographic digests. Use them to trace workflow snapshots, while PROV-O records evidence entities/activities/agents and content hashes establish byte identity.
 
 SSP 2.0.1 also integrates the SSP `MetaData` element and digital-signature-related metadata support into its file formats. That is useful package metadata, but it must not replace the DSSE/in-toto trust-policy owner (#5560) or be treated as independent signature verification.
 
