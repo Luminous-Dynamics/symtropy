@@ -9,6 +9,7 @@ pub struct ExecutionCase {
     pub schema_version: String,
     pub case_id: String,
     pub time_origin_utc: String,
+    pub case_maturity: String,
     pub as_of_hour: f64,
     pub horizon_end_hour: f64,
     pub tasks: Vec<ExecutionTask>,
@@ -235,7 +236,32 @@ fn approximately_equal(left: f64, right: f64) -> bool {
 }
 
 fn valid_time_origin(value: &str) -> bool {
-    value.ends_with('Z') && value.contains('T') && value.len() >= 20
+    let bytes = value.as_bytes();
+    if bytes.len() != 20 || bytes[4] != b'-' || bytes[7] != b'-'
+        || bytes[10] != b'T' || bytes[13] != b':' || bytes[16] != b':' || bytes[19] != b'Z'
+    {
+        return false;
+    }
+    let parse = |range: std::ops::Range<usize>| -> Option<u32> {
+        let slice = bytes.get(range)?;
+        if !slice.iter().all(u8::is_ascii_digit) { return None; }
+        std::str::from_utf8(slice).ok()?.parse().ok()
+    };
+    let (Some(year), Some(month), Some(day), Some(hour), Some(minute), Some(second)) =
+        (parse(0..4), parse(5..7), parse(8..10), parse(11..13), parse(14..16), parse(17..19))
+    else { return false; };
+    if year == 0 || !(1..=12).contains(&month) || hour > 23 || minute > 59 || second > 59 {
+        return false;
+    }
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let max_day = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap => 29,
+        2 => 28,
+        _ => return false,
+    };
+    (1..=max_day).contains(&day)
 }
 
 fn validate_event_ledger(
@@ -295,6 +321,18 @@ fn validate_event_ledger(
             || event.effective_hour > case.as_of_hour + TOLERANCE
         {
             errors.push(format!("event {} has invalid time or effort values", event.event_id));
+        }
+
+        let evidence_class_matches = match case.case_maturity.as_str() {
+            "synthetic_fixture" => event.evidence_class == EvidenceClass::SyntheticFixture,
+            "field_observed" => event.evidence_class == EvidenceClass::Observed,
+            _ => false,
+        };
+        if !evidence_class_matches {
+            errors.push(format!(
+                "event {} evidence class does not match declared case maturity {}",
+                event.event_id, case.case_maturity
+            ));
         }
 
         if !matches!(event.evidence_status, EvidenceStatus::Current | EvidenceStatus::Superseded) {
@@ -821,7 +859,16 @@ fn validate_resource_usage(
                 .iter()
                 .find(|item| item.event_id == task.event_id && item.task_id == task.task_id)
                 .map(|item| item.state);
-            if task.paused_resource_policy == PausedResourcePolicy::Retain && !intervals.is_empty() {
+            if commitment_state == Some(CommitmentState::InProgress) {
+                if let Some(first) = intervals.first() {
+                    uses.push(ResourceUse {
+                        start_hour: first.0,
+                        end_hour: case.horizon_end_hour,
+                        units: requirement.units,
+                        task_key: key.clone(),
+                    });
+                }
+            } else if task.paused_resource_policy == PausedResourcePolicy::Retain && !intervals.is_empty() {
                 if let Some(first) = intervals.first() {
                     let retained_end = if intervals.len() > 1 {
                         intervals.last().map(|item| item.1).unwrap_or(first.1)
@@ -908,7 +955,10 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
         errors.push("unsupported execution schemaVersion".to_string());
     }
     if case.case_id.trim().is_empty() || !valid_time_origin(&case.time_origin_utc) {
-        errors.push("caseId and UTC timeOriginUtc are required".to_string());
+        errors.push("caseId and canonical UTC timeOriginUtc are required".to_string());
+    }
+    if !matches!(case.case_maturity.as_str(), "synthetic_fixture" | "field_observed") {
+        errors.push("caseMaturity must be synthetic_fixture or field_observed".to_string());
     }
     if !finite_nonnegative(case.as_of_hour)
         || !finite_nonnegative(case.horizon_end_hour)
@@ -950,9 +1000,9 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
             previous_checkpoint = *checkpoint;
         }
         if task.preemption_mode == PreemptionMode::Checkpointed
-            && task.checkpoint_effort_hours.is_empty()
+            && (task.checkpoint_effort_hours.is_empty() || task.maximum_interruptions == 0)
         {
-            errors.push(format!("checkpointed task {key} must declare at least one legal checkpoint"));
+            errors.push(format!("checkpointed task {key} must declare checkpoints and permit an interruption"));
         }
         let mut required_resource_ids = BTreeSet::new();
         for requirement in &task.resource_requirements {
@@ -981,20 +1031,11 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
     }
     validate_resource_windows(&resources_by_id, &mut errors);
 
-    let mut event_by_idempotency = BTreeMap::new();
     let (events, deduplicated) = validate_event_ledger(case, &mut errors);
     for event in &events {
         let key = task_key(&event.event_id_ref, &event.task_id);
         if !tasks_by_key.contains_key(&key) {
             errors.push(format!("event {} references unknown task {key}", event.event_id));
-        }
-        if event.sequence > 0 && event.event_type == ExecutionEventType::ProgressSnapshot {
-            // A current progress snapshot may follow any number of completed segments.
-        }
-        if let Some(previous) = event_by_idempotency.insert(event.idempotency_key.as_str(), event.event_id.as_str()) {
-            if previous != event.event_id.as_str() {
-                errors.push(format!("event idempotency key {} is reused", event.idempotency_key));
-            }
         }
     }
 
@@ -1191,7 +1232,7 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
             }
             if (*completed || *planned_flag)
                 && *effort + TOLERANCE < task.minimum_segment_effort_hours
-                && !approximately_equal(observed_effort + planned_effort, task.required_effort_hours)
+                && !approximately_equal(checkpoint_effort, task.required_effort_hours)
             {
                 errors.push(format!("segment {segment_id} is shorter than the minimum segment effort"));
             }
@@ -1204,6 +1245,9 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
             errors.push(format!("task {key} exceeds its maximum interruption count"));
         }
         let total = observed_effort + planned_effort;
+        if !total.is_finite() {
+            errors.push(format!("task {key} effort accumulation overflowed"));
+        }
         if total > task.required_effort_hours + TOLERANCE {
             errors.push(format!("task {key} over-delivers effort: {total} > {}", task.required_effort_hours));
         }
@@ -1341,6 +1385,7 @@ mod tests {
             schema_version: "0.1.0".to_string(),
             case_id: "synthetic-multi-shift-recovery-001".to_string(),
             time_origin_utc: "2030-01-01T00:00:00Z".to_string(),
+            case_maturity: "synthetic_fixture".to_string(),
             as_of_hour: 8.0,
             horizon_end_hour: 24.0,
             tasks: vec![
