@@ -41,6 +41,28 @@ The v0.1 fixture pins those source commits to make version assumptions explicit.
 
 Consequently, the complete positive control is a *hypothetical adapter-shape test*. It is not evidence that the three current PRs already integrate. A cargo aggregate without a per-cargo qualified delivery record, a proximity-only result, a storage-only cryogenic record or a receiver transfer without the matching capture/interface lineage correctly remains Indeterminate.
 
+## Industry baseline and better-than-SOTA test
+
+The v0.1 contract is not a launch-vehicle performance comparison. The current public benchmarks set separate bars:
+
+- **Reusable launch operations:** SpaceX's June 2026 EU prospectus reports 165 Falcon 9 launches in 2025, including 157 launches using flight-proven boosters; it reports 40 Falcon launches in Q1 2026, 39 of them on flight-proven boosters, and a company-stated mission success rate above 99% as of 31 March 2026. This is a company disclosure and an operational/cadence baseline, not a matched comparison to this software contract. Source: https://content.spacex.com/cms-assets/FINAL_Documents%20and%20Updates/SpaceX%20-%20EU%20Prospectus%20%28Approved%20by%20Bafin%29%20-%20June%205%2C%202026.pdf
+- **ISAM maturity:** NASA's 2026 State of Play records 621 capability-area entries, 61 facility descriptions and 169 developer profiles. NASA's entry threshold requires existing hardware as a ground prototype or flight demonstration; a concept presentation alone is insufficient. Inventory counts are not a quality leaderboard. Sources: https://www.nasa.gov/isam/ and https://www.nasa.gov/humans-in-space/commercial-space/nasas-isam-state-of-play-the-industry-standard-for-space-servicing-assembly-and-manufacturing/
+- **Automated structural assembly:** on 5 November 2026 DARPA reported the Caltech NOM4D/ASTRA payload had assembled a truss in orbit using a three-axis gantry, composite members, custom joints and a reflective mesh. The hundreds-of-metres/kilometres scale is a future goal, not a demonstrated result. Source: https://www.darpa.mil/news/2026/nom4d-program-demonstrates-automated-in-space-assembly
+- **Sustainable operations:** ESA's 2026 space environment report counts more than 300 launches and more than 4,000 payloads placed in orbit during 2025, and highlights debris growth, end-of-life removal and standardised servicing/removal interfaces. Sources: https://www.esa.int/articles/esa-space-environment-report-2026 and https://www.esa.int/media/payloads-and-objects-2026-space-environment-report
+
+### What would count as superiority
+
+Do not claim to outperform SpaceX, NASA, DARPA or a solver suite on one aggregate score. Demonstrate superiority on aligned, independently checked subproblems:
+
+1. **Acceptance correctness:** 100% agreement with the independent oracle on bounded exact cases; zero false acceptance across all frozen critical negative controls; report false rejection and indeterminate rates separately.
+2. **Identity and evidence continuity:** 100% exact payload/cargo, destination orbit, receiver, interface revision, fluid/batch and source-receipt lineage across every required handoff. Missing identity or an unauthenticated receipt stays Indeterminate.
+3. **Planning quality:** on small instances, match exhaustive enumeration exactly. On larger cases, compare the same input against a transparent greedy baseline and MILP/CP-SAT or time-expanded flow. Publish optimality gap, wall time, memory, hardware and constraint feasibility under equal budgets.
+4. **Service economics:** compare lifecycle cost, time, energy and unserved demand per receiver-accepted service unit—not cost per launch or gross kg. Keep safety, service quality, reliability and environmental limits as hard constraints, not weighted penalties.
+5. **Resilience:** publish N-1 and common-cause fault outcomes, recovery time, stranded mass and lower-tail service. Do not invent failure probabilities; use measured distributions only when their source population and censoring are declared.
+6. **Physical progression:** after synthetic qualification, run a ground demonstrator with calibrated metrology, an inert-fluid transfer loop, a mechanically captured interface and a modular truss test article. Each result is limited to its tested hardware/configuration/environment; it does not inherit orbital qualification.
+
+**Proposed research target, not an achieved result:** seek at least a 10% lifecycle-cost-per-accepted-service improvement over the strongest matched baseline on a held-out campaign, while maintaining zero critical false accepts and no degradation of hard service/reliability constraints. Do not use that target until the baseline, corpus, resource budget and acceptance criteria are frozen.
+
 ## Paradigm shifts and next qualification steps
 
 1. **Service-first economics:** optimize cost, time, energy and risk per receiver-accepted service unit, not launch count or gross kilograms moved.
