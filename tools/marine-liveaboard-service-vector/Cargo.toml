@@ -1,3 +1,5 @@
+[workspace]
+
 [package]
 name = "marine-liveaboard-service-vector"
 version = "0.1.0"
