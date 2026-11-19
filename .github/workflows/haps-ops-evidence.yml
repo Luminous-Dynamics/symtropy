@@ -1,0 +1,33 @@
+name: HAPS Operations Evidence Ledger
+on:
+  pull_request:
+    paths:
+      - 'tools/haps-ops-evidence/**'
+      - 'docs/research/aviation/schemas/haps_ops_evidence_ledger_v1.schema.json'
+      - 'docs/research/aviation/examples/synthetic_haps_maintenance_lifecycle_v1.json'
+      - '.github/workflows/haps-ops-evidence.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tools/haps-ops-evidence/**'
+      - 'docs/research/aviation/schemas/haps_ops_evidence_ledger_v1.schema.json'
+      - 'docs/research/aviation/examples/synthetic_haps_maintenance_lifecycle_v1.json'
+      - '.github/workflows/haps-ops-evidence.yml'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/haps-ops-evidence/Cargo.toml --all -- --check
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/haps-ops-evidence/Cargo.toml --all-targets -- -D warnings
+      - name: Run unit tests
+        run: cargo test --manifest-path tools/haps-ops-evidence/Cargo.toml --all-targets
+      - name: Validate checked-in evidence ledger
+        run: cargo run --quiet --manifest-path tools/haps-ops-evidence/Cargo.toml -- docs/research/aviation/examples/synthetic_haps_maintenance_lifecycle_v1.json
