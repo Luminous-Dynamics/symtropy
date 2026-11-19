@@ -49,12 +49,12 @@ jobs:
           register = json.loads((root / "external-benchmark-register-v0.1.json").read_text())
 
           Draft202012Validator.check_schema(schema)
-          validator = Draft202012Validator(schema)
+          validator = Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER)
           errors = sorted(validator.iter_errors(fixture), key=lambda err: list(err.path))
           assert not errors, "\\n".join(f"{list(err.path)}: {err.message}" for err in errors)
 
           Draft202012Validator.check_schema(register_schema)
-          register_validator = Draft202012Validator(register_schema)
+          register_validator = Draft202012Validator(register_schema, format_checker=Draft202012Validator.FORMAT_CHECKER)
           register_errors = sorted(register_validator.iter_errors(register), key=lambda err: list(err.path))
           assert not register_errors, "\\n".join(f"{list(err.path)}: {err.message}" for err in register_errors)
           record_ids = [record["recordId"] for record in register["records"]]
@@ -71,6 +71,9 @@ jobs:
               parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
               assert parsed.tzinfo is not None, f"timestamp lacks offset: {value}"
               return parsed
+
+          grid_start, grid_end = instant(fixture["timeGrid"]["start"]), instant(fixture["timeGrid"]["end"])
+          assert grid_start < grid_end, "invalid evaluation horizon"
 
           artifact_ids = [item["artifactId"] for item in fixture["sourceArtifacts"]]
           assert len(artifact_ids) == len(set(artifact_ids)), "duplicate source artifact identity"
@@ -100,6 +103,7 @@ jobs:
               for row in stream["series"]:
                   start, end = instant(row["start"]), instant(row["end"])
                   assert start < end, "empty or reversed service interval"
+                  assert grid_start <= start and end <= grid_end, "service interval outside declared evaluation horizon"
                   if previous_end is not None:
                       assert start >= previous_end, "overlapping or out-of-order service intervals"
                   previous_end = end
