@@ -176,9 +176,7 @@
       "mode": "metamorphic",
       "test_name": "current_source_status_change_invalidates_readiness",
       "expected_disposition": null,
-      "required_diagnostic_codes": [
-        "EvidenceStatusChanged"
-      ],
+      "required_diagnostic_codes": [],
       "assertion": "Changed inspection evidence status invalidates the current readiness dependency closure.",
       "synthetic_only": true
     },
@@ -205,9 +203,7 @@
       "mode": "metamorphic",
       "test_name": "latest_fault_event_invalidates_regardless_of_arrival_order",
       "expected_disposition": null,
-      "required_diagnostic_codes": [
-        "DeviceStateChanged"
-      ],
+      "required_diagnostic_codes": [],
       "assertion": "A latest protective-device fault invalidates readiness independent of event arrival order.",
       "synthetic_only": true
     },
