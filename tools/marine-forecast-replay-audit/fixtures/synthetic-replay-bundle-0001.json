@@ -24,7 +24,7 @@
         "cycle_id": "2026-11-19T06:00:00Z",
         "source_issue_time": "2026-11-19T06:00:00Z",
         "first_available_at": "2026-11-19T06:20:00Z",
-        "availability_evidence": "operational_distribution_log",
+        "availability_evidence": "synthetic_fixture",
         "lead_hours": 3,
         "valid_time": "2026-11-19T09:00:00Z",
         "parameter_set": "pgrb2b"
