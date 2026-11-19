@@ -83,10 +83,17 @@ pub struct Fixture {
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct ScenarioReport {
     pub scenario_id: String,
+    pub transfer_event_id: String,
     pub status: ScenarioStatus,
+    pub fluid_class: FluidClass,
+    pub fluid_id: String,
     pub receiver_id: String,
     pub interface_id: String,
     pub interface_revision: u64,
+    pub phase: Phase,
+    pub final_temperature_mk: u64,
+    pub final_pressure_pa: u64,
+    pub measurement_uncertainty_g: u64,
     pub source_initial_g: u64,
     pub source_remaining_g: u64,
     pub gross_transferred_g: u64,
@@ -223,10 +230,17 @@ fn evaluate_scenario(scenario: &Scenario) -> Result<ScenarioReport, String> {
         }
         return Ok(ScenarioReport {
             scenario_id: scenario.scenario_id.clone(),
+            transfer_event_id: scenario.transfer_event_id.clone(),
             status: ScenarioStatus::StorageOnlyNotTransferEvidence,
+            fluid_class: scenario.fluid_class,
+            fluid_id: scenario.fluid_id.clone(),
             receiver_id: scenario.receiver_id.clone(),
             interface_id: scenario.interface_id.clone(),
             interface_revision: scenario.interface_revision,
+            phase: scenario.phase,
+            final_temperature_mk: scenario.final_temperature_mk,
+            final_pressure_pa: scenario.final_pressure_pa,
+            measurement_uncertainty_g: scenario.measurement_uncertainty_g,
             source_initial_g: scenario.source_initial_g,
             source_remaining_g: scenario.source_remaining_g,
             gross_transferred_g,
@@ -280,10 +294,17 @@ fn evaluate_scenario(scenario: &Scenario) -> Result<ScenarioReport, String> {
 
     Ok(ScenarioReport {
         scenario_id: scenario.scenario_id.clone(),
+        transfer_event_id: scenario.transfer_event_id.clone(),
         status: ScenarioStatus::TransferAccepted,
+        fluid_class: scenario.fluid_class,
+        fluid_id: scenario.fluid_id.clone(),
         receiver_id: scenario.receiver_id.clone(),
         interface_id: scenario.interface_id.clone(),
         interface_revision: scenario.interface_revision,
+        phase: scenario.phase,
+        final_temperature_mk: scenario.final_temperature_mk,
+        final_pressure_pa: scenario.final_pressure_pa,
+        measurement_uncertainty_g: scenario.measurement_uncertainty_g,
         source_initial_g: scenario.source_initial_g,
         source_remaining_g: scenario.source_remaining_g,
         gross_transferred_g,
@@ -366,6 +387,19 @@ mod tests {
         assert_eq!(report.scenarios[0].receiver_accepted_g, 390_000);
         assert_eq!(report.scenarios[1].status, ScenarioStatus::StorageOnlyNotTransferEvidence);
         assert_eq!(report.scenarios[2].status, ScenarioStatus::TransferAccepted);
+    }
+
+    #[test]
+    fn transfer_report_preserves_fluid_identity_and_final_receiver_state() {
+        let report = evaluate(&fixture()).expect("fixture should pass");
+        let transfer = &report.scenarios[0];
+        assert_eq!(transfer.transfer_event_id, "transfer-storable-001");
+        assert_eq!(transfer.fluid_class, FluidClass::StorableLiquid);
+        assert_eq!(transfer.fluid_id, "synthetic-hydrazine-analogue");
+        assert_eq!(transfer.phase, Phase::Liquid);
+        assert_eq!(transfer.final_temperature_mk, 293_150);
+        assert_eq!(transfer.final_pressure_pa, 250_000);
+        assert_eq!(transfer.measurement_uncertainty_g, 1_000);
     }
 
     #[test]
