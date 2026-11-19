@@ -121,6 +121,7 @@ struct CarrierResult {
     incremental_external_site_meter_energy_kwh: Option<f64>,
     external_site_recharge_hours_lower_bound: Option<f64>,
     external_site_charge_window_margin_hours_lower_bound: Option<f64>,
+    external_site_recharge_is_peak_power_lower_bound: bool,
     combined_site_meter_energy_kwh: Option<f64>,
     total_vehicle_recharge_hours: Option<f64>,
     remaining_vehicle_charge_window_hours: Option<f64>,
@@ -508,10 +509,6 @@ fn evaluate_configuration(
             findings.push(
                 "external_site_recharge_peak_power_lower_bound_exceeds_declared_window".into(),
             );
-        } else if external_site_energy.unwrap_or(0.0) > 0.0 {
-            findings.push(
-                "external_site_recharge_time_is_only_a_constant_peak_power_lower_bound".into(),
-            );
         }
     }
     let known_blocker = !findings.is_empty();
@@ -685,7 +682,20 @@ mod tests {
         let result = evaluate_configuration(&config, &base_design("urban-distribution-truck"));
         assert_eq!(result.external_site_recharge_hours_lower_bound, Some(2.0));
         assert_eq!(result.external_site_charge_window_margin_hours_lower_bound, Some(1.0));
-        assert!(result.findings.iter().any(|finding| finding.contains("lower_bound")));
+        assert!(result.external_site_recharge_is_peak_power_lower_bound);
+        assert_eq!(result.status, Status::PassesSyntheticScreen);
+    }
+
+    #[test]
+    fn external_site_peak_power_lower_bound_outside_window_is_blocked() {
+        let mut config = known_zero_config();
+        config.incremental_external_site_meter_energy_kwh = Some(20.0);
+        config.incremental_external_site_peak_power_kw = Some(10.0);
+        config.incremental_external_site_charging_window_hours = Some(1.0);
+        config.external_site_peak_coincident_with_vehicle_charging = Some(false);
+        let result = evaluate_configuration(&config, &base_design("urban-distribution-truck"));
+        assert_eq!(result.status, Status::Blocked);
+        assert_eq!(result.external_site_charge_window_margin_hours_lower_bound, Some(-1.0));
     }
 
     #[test]
