@@ -28,7 +28,6 @@ enum Status {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct FactoryReport {
     pub schema_version: String,
     pub benchmark_id: String,
@@ -204,7 +203,9 @@ fn validate_inputs(
         if scenario.site_id.trim().is_empty()
             || scenario.template_id.trim().is_empty()
             || scenario.target_good_vehicles_per_year == 0
+            || scenario.target_good_vehicles_per_year > 10_000_000
             || scenario.shifts_per_day == 0
+            || scenario.shifts_per_day > 4
             || !scenario.productive_minutes_per_cell_year.is_finite()
             || scenario.productive_minutes_per_cell_year <= 0.0
             || !scenario.good_vehicle_yield_fraction.is_finite()
@@ -262,6 +263,9 @@ fn validate_inputs(
                         errors.push(format!("configurations[{index}].{field}: must be finite and nonnegative"));
                     }
                 }
+            }
+            if station.operators_per_cell_per_shift.is_some_and(|value| value > 10_000) {
+                errors.push(format!("configurations[{index}].operators_per_cell_per_shift: exceeds v1 limit"));
             }
             if station.cycle_minutes_per_attempt.is_some_and(|value| value <= 0.0) {
                 errors.push(format!("configurations[{index}].cycle_minutes_per_attempt: must be positive"));
@@ -380,7 +384,8 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
                 .map(|(capacity, yield_fraction)| (capacity as f64 * yield_fraction).floor() as u64),
             equipment_capex_usd: capex,
             operators_per_shift: station_operators,
-            active_positions_across_shifts: station_operators,
+            active_positions_across_shifts: station_operators
+                .map(|positions| positions.saturating_mul(u64::from(base.shifts_per_day))),
             footprint_sqm: area,
             energy_kwh_per_attempt: station.energy_kwh_per_attempt,
             thermal_energy_kwh_per_attempt: station.thermal_energy_kwh_per_attempt,
