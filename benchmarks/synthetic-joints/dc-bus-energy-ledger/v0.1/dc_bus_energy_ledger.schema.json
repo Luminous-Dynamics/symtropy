@@ -94,6 +94,7 @@
       "additionalProperties": false,
       "required": [
         "port_id",
+        "physical_port_digest",
         "energy_j",
         "unit",
         "bound_representation",
@@ -197,6 +198,10 @@
           "minLength": 1
         },
         "raw_trace_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "physical_port_digest": {
           "type": "string",
           "minLength": 1
         }
