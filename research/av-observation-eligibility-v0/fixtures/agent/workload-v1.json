@@ -1,0 +1,376 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-observation-eligibility-v0",
+  "episodes": [
+    {
+      "episode_id": "elig-001-reordered-fresh",
+      "now": {
+        "tick": 300,
+        "clock_domain": {
+          "domain_id": "camera-clock",
+          "generation": 0,
+          "time_scale_id": "monotonic-us"
+        }
+      },
+      "freshness_policy": {
+        "policy_id": "camera-max-age-v1",
+        "maximum_age_us": 500
+      },
+      "task": {
+        "deadline_tick": 400,
+        "query_cutoff_tick": 500
+      },
+      "delivered_history": [
+        {
+          "observation_id": "frame-2",
+          "sensor_id": "front-camera",
+          "source_sequence": 2,
+          "capture_time_us": 200,
+          "availability_tick": 250,
+          "clock_domain": {
+            "domain_id": "camera-clock",
+            "generation": 0,
+            "time_scale_id": "monotonic-us"
+          },
+          "transport": "Delivered"
+        }
+      ],
+      "current_delivery": {
+        "observation_id": "frame-1",
+        "sensor_id": "front-camera",
+        "source_sequence": 1,
+        "capture_time_us": 100,
+        "availability_tick": 300,
+        "arrival_order": 2,
+        "clock_domain": {
+          "domain_id": "camera-clock",
+          "generation": 0,
+          "time_scale_id": "monotonic-us"
+        }
+      }
+    },
+    {
+      "episode_id": "elig-002-in-order-stale",
+      "now": {
+        "tick": 900,
+        "clock_domain": {
+          "domain_id": "camera-clock",
+          "generation": 0,
+          "time_scale_id": "monotonic-us"
+        }
+      },
+      "freshness_policy": {
+        "policy_id": "camera-max-age-v1",
+        "maximum_age_us": 300
+      },
+      "task": {
+        "deadline_tick": 950,
+        "query_cutoff_tick": 1000
+      },
+      "delivered_history": [
+        {
+          "observation_id": "frame-2",
+          "sensor_id": "front-camera",
+          "source_sequence": 2,
+          "capture_time_us": 500,
+          "availability_tick": 700,
+          "clock_domain": {
+            "domain_id": "camera-clock",
+            "generation": 0,
+            "time_scale_id": "monotonic-us"
+          },
+          "transport": "Delivered"
+        }
+      ],
+      "current_delivery": {
+        "observation_id": "frame-3",
+        "sensor_id": "front-camera",
+        "source_sequence": 3,
+        "capture_time_us": 100,
+        "availability_tick": 900,
+        "arrival_order": 3,
+        "clock_domain": {
+          "domain_id": "camera-clock",
+          "generation": 0,
+          "time_scale_id": "monotonic-us"
+        }
+      }
+    },
+    {
+      "episode_id": "elig-003-duplicate-no-refresh",
+      "now": {
+        "tick": 900,
+        "clock_domain": {
+          "domain_id": "mic-clock",
+          "generation": 0,
+          "time_scale_id": "monotonic-us"
+        }
+      },
+      "freshness_policy": {
+        "policy_id": "microphone-max-age-v1",
+        "maximum_age_us": 300
+      },
+      "task": {
+        "deadline_tick": 950,
+        "query_cutoff_tick": 1000
+      },
+      "delivered_history": [
+        {
+          "observation_id": "chunk-1",
+          "sensor_id": "mic-array",
+          "source_sequence": 1,
+          "capture_start_sample": 100,
+          "capture_end_sample": 200,
+          "source_capture_time_us": 100,
+          "availability_tick": 150,
+          "clock_domain": {
+            "domain_id": "mic-clock",
+            "generation": 0,
+            "time_scale_id": "monotonic-us"
+          },
+          "transport": "Delivered"
+        }
+      ],
+      "current_delivery": {
+        "observation_id": "chunk-1",
+        "sensor_id": "mic-array",
+        "source_sequence": 1,
+        "capture_start_sample": 100,
+        "capture_end_sample": 200,
+        "source_capture_time_us": 100,
+        "availability_tick": 900,
+        "arrival_order": 2,
+        "clock_domain": {
+          "domain_id": "mic-clock",
+          "generation": 0,
+          "time_scale_id": "monotonic-us"
+        }
+      }
+    },
+    {
+      "episode_id": "elig-004-stale-replay",
+      "now": {
+        "tick": 1200,
+        "clock_domain": {
+          "domain_id": "mic-clock",
+          "generation": 0,
+          "time_scale_id": "monotonic-us"
+        }
+      },
+      "freshness_policy": {
+        "policy_id": "microphone-max-age-v1",
+        "maximum_age_us": 300
+      },
+      "task": {
+        "deadline_tick": 1250,
+        "query_cutoff_tick": 1300
+      },
+      "delivered_history": [
+        {
+          "observation_id": "chunk-8",
+          "sensor_id": "mic-array",
+          "source_sequence": 8,
+          "capture_start_sample": 800,
+          "capture_end_sample": 900,
+          "source_capture_time_us": 200,
+          "availability_tick": 250,
+          "clock_domain": {
+            "domain_id": "mic-clock",
+            "generation": 0,
+            "time_scale_id": "monotonic-us"
+          },
+          "transport": "Delivered"
+        }
+      ],
+      "current_delivery": {
+        "observation_id": "chunk-8",
+        "sensor_id": "mic-array",
+        "source_sequence": 8,
+        "capture_start_sample": 800,
+        "capture_end_sample": 900,
+        "source_capture_time_us": 200,
+        "availability_tick": 1200,
+        "arrival_order": 9,
+        "clock_domain": {
+          "domain_id": "mic-clock",
+          "generation": 0,
+          "time_scale_id": "monotonic-us"
+        }
+      }
+    },
+    {
+      "episode_id": "elig-005-late-live-historical-valid",
+      "now": {
+        "tick": 300,
+        "clock_domain": {
+          "domain_id": "camera-clock",
+          "generation": 0,
+          "time_scale_id": "monotonic-us"
+        }
+      },
+      "freshness_policy": {
+        "policy_id": "camera-max-age-v1",
+        "maximum_age_us": 500
+      },
+      "task": {
+        "deadline_tick": 200,
+        "query_cutoff_tick": 400,
+        "request_revision": 1
+      },
+      "delivered_history": [],
+      "current_delivery": {
+        "observation_id": "frame-5",
+        "sensor_id": "front-camera",
+        "source_sequence": 5,
+        "capture_time_us": 100,
+        "availability_tick": 300,
+        "arrival_order": 5,
+        "clock_domain": {
+          "domain_id": "camera-clock",
+          "generation": 0,
+          "time_scale_id": "monotonic-us"
+        }
+      }
+    },
+    {
+      "episode_id": "elig-006-clock-reset-incomparable",
+      "now": {
+        "tick": 900,
+        "clock_domain": {
+          "domain_id": "camera-clock",
+          "generation": 1,
+          "time_scale_id": "monotonic-us"
+        }
+      },
+      "freshness_policy": {
+        "policy_id": "camera-max-age-v1",
+        "maximum_age_us": 300
+      },
+      "task": {
+        "deadline_tick": 950,
+        "query_cutoff_tick": 1000
+      },
+      "delivered_history": [
+        {
+          "observation_id": "frame-old",
+          "sensor_id": "front-camera",
+          "source_sequence": 9,
+          "capture_time_us": 200,
+          "availability_tick": 500,
+          "clock_domain": {
+            "domain_id": "camera-clock",
+            "generation": 0,
+            "time_scale_id": "monotonic-us"
+          },
+          "transport": "Delivered"
+        }
+      ],
+      "current_delivery": {
+        "observation_id": "frame-new",
+        "sensor_id": "front-camera",
+        "source_sequence": 1,
+        "capture_time_us": 10,
+        "availability_tick": 900,
+        "arrival_order": 1,
+        "clock_domain": {
+          "domain_id": "camera-clock",
+          "generation": 1,
+          "time_scale_id": "monotonic-us"
+        }
+      },
+      "qualified_clock_transform": null
+    },
+    {
+      "episode_id": "elig-007-dropped-audio-gap",
+      "now": {
+        "tick": 500,
+        "clock_domain": {
+          "domain_id": "mic-clock",
+          "generation": 0,
+          "time_scale_id": "monotonic-us"
+        }
+      },
+      "freshness_policy": {
+        "policy_id": "microphone-max-age-v1",
+        "maximum_age_us": 300
+      },
+      "task": {
+        "deadline_tick": 550,
+        "query_cutoff_tick": 600
+      },
+      "delivered_history": [
+        {
+          "observation_id": "chunk-10",
+          "sensor_id": "mic-array",
+          "source_sequence": 10,
+          "capture_start_sample": 1000,
+          "capture_end_sample": 1100,
+          "source_capture_time_us": 200,
+          "availability_tick": 250,
+          "clock_domain": {
+            "domain_id": "mic-clock",
+            "generation": 0,
+            "time_scale_id": "monotonic-us"
+          },
+          "transport": "Delivered"
+        }
+      ],
+      "current_delivery": {
+        "observation_id": null,
+        "sensor_id": "mic-array",
+        "source_sequence": 11,
+        "capture_start_sample": 1100,
+        "capture_end_sample": 1200,
+        "availability_tick": 500,
+        "arrival_order": 11,
+        "clock_domain": {
+          "domain_id": "mic-clock",
+          "generation": 0,
+          "time_scale_id": "monotonic-us"
+        },
+        "transport": "Dropped"
+      }
+    },
+    {
+      "episode_id": "elig-008-superseded-request",
+      "now": {
+        "tick": 800,
+        "clock_domain": {
+          "domain_id": "camera-clock",
+          "generation": 0,
+          "time_scale_id": "monotonic-us"
+        }
+      },
+      "freshness_policy": {
+        "policy_id": "camera-max-age-v1",
+        "maximum_age_us": 500
+      },
+      "task": {
+        "deadline_tick": 850,
+        "query_cutoff_tick": 900,
+        "request_revision": 2
+      },
+      "superseded_requests": [
+        {
+          "request_revision": 1,
+          "cancelled_tick": 700
+        }
+      ],
+      "delivered_history": [],
+      "current_delivery": {
+        "observation_id": "frame-12",
+        "sensor_id": "front-camera",
+        "source_sequence": 12,
+        "capture_time_us": 750,
+        "availability_tick": 800,
+        "arrival_order": 12,
+        "clock_domain": {
+          "domain_id": "camera-clock",
+          "generation": 0,
+          "time_scale_id": "monotonic-us"
+        },
+        "request_revision": 1
+      }
+    }
+  ]
+}
