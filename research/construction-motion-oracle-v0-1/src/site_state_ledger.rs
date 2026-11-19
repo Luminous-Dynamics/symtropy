@@ -410,6 +410,7 @@ pub enum SiteLedgerError {
     ResourceCatalogWouldOrphanReservation(String),
     ResourceCatalogMismatch,
     PackageHasActiveSpaceTimeReservations(String),
+    PackageHasActiveCapacityReservations(String),
     ReservationSnapshotMismatch,
     InvalidSpaceTimeReservation(String),
     DuplicateSpaceTimeReservation(String),
@@ -434,6 +435,8 @@ pub enum SiteLedgerError {
     CapacityAvailabilitySnapshotMismatch,
     DuplicateCapacityReservation(String),
     UnknownCapacityReservation(String),
+    UnknownCapacityReservationResource(String),
+    CapacityResourceDefinitionMismatch(String),
     CapacityReservationAlreadyReleased(String),
     InvalidCapacityReservation(String),
     CapacityReservationSnapshotMismatch,
@@ -715,6 +718,14 @@ impl SiteStateLedger {
         self.capacity_reservations
             .values()
             .filter(|record| record.is_active())
+    }
+
+    pub fn active_capacity_reservation_count(&self) -> usize {
+        self.active_capacity_reservations().count()
+    }
+
+    pub fn capacity_resource_count(&self) -> usize {
+        self.capacity_resources.len()
     }
 
     /// Assess all currently active capacity-N commitments against the latest
