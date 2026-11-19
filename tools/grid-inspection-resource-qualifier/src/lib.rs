@@ -13,6 +13,7 @@ pub struct Case {
     pub as_of_hour: f64,
     pub resource_manifest_ref: String,
     pub resource_manifest_sha256: String,
+    pub policy_certificate_sha256: String,
     pub resource_manifest: ResourceManifest,
     pub inspection_catalog: Vec<Activity>,
     pub recovery_action_catalog: Vec<Activity>,
@@ -203,6 +204,12 @@ pub fn canonical_manifest_sha256(manifest: &ResourceManifest) -> Result<String, 
     Ok(format!("{:x}", Sha256::digest(bytes)))
 }
 
+pub fn canonical_policy_certificate_sha256(policy: &PolicyCertificate) -> Result<String, serde_json::Error> {
+    let canonical_value = serde_json::to_value(policy)?;
+    let bytes = serde_json::to_vec(&canonical_value)?;
+    Ok(format!("{:x}", Sha256::digest(bytes)))
+}
+
 fn finite_nonnegative(value: f64) -> bool {
     value.is_finite() && value >= 0.0
 }
@@ -268,6 +275,17 @@ fn validate_manifest(case: &Case, errors: &mut Vec<String>) {
             Ok(actual) if actual == case.resource_manifest_sha256 => {}
             Ok(_) => errors.push("resource manifest SHA-256 does not match canonical manifest content".to_string()),
             Err(error) => errors.push(format!("resource manifest serialization failed: {error}")),
+        }
+    }
+    if case.policy_certificate_sha256.len() != 64
+        || !case.policy_certificate_sha256.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        errors.push("policy certificate SHA-256 must be 64 lowercase hexadecimal characters".to_string());
+    } else {
+        match canonical_policy_certificate_sha256(&case.policy_certificate) {
+            Ok(actual) if actual == case.policy_certificate_sha256 => {}
+            Ok(_) => errors.push("policy certificate SHA-256 does not match canonical policy content".to_string()),
+            Err(error) => errors.push(format!("policy certificate serialization failed: {error}")),
         }
     }
 
@@ -356,9 +374,9 @@ fn validate_case(case: &Case) -> Vec<String> {
         errors.push("a depth-two certificate must contain exactly positive and negative first-outcome branches".to_string());
     }
     let mut first_outcomes = BTreeSet::new();
-    let first_weight_sum: u32 = policy.first_outcome_branches.iter().map(|branch| branch.probability_basis_points).sum();
-    if first_weight_sum != TOTAL_BASIS_POINTS
-        || policy.first_outcome_branches.iter().any(|branch| branch.probability_basis_points == 0)
+    let first_weight_sum: u64 = policy.first_outcome_branches.iter().map(|branch| branch.probability_basis_points as u64).sum();
+    if first_weight_sum != TOTAL_BASIS_POINTS as u64
+        || policy.first_outcome_branches.iter().any(|branch| branch.probability_basis_points == 0 || branch.probability_basis_points > TOTAL_BASIS_POINTS)
     {
         errors.push("first-outcome branch weights must be positive and sum to 10,000 basis points".to_string());
     }
@@ -383,9 +401,9 @@ fn validate_case(case: &Case) -> Vec<String> {
                     errors.push("a second inspection must contain exactly positive and negative outcome branches".to_string());
                 }
                 let mut second_outcomes = BTreeSet::new();
-                let second_weight_sum: u32 = second_branches.iter().map(|item| item.probability_basis_points).sum();
-                if second_weight_sum != TOTAL_BASIS_POINTS
-                    || second_branches.iter().any(|item| item.probability_basis_points == 0)
+                let second_weight_sum: u64 = second_branches.iter().map(|item| item.probability_basis_points as u64).sum();
+                if second_weight_sum != TOTAL_BASIS_POINTS as u64
+                    || second_branches.iter().any(|item| item.probability_basis_points == 0 || item.probability_basis_points > TOTAL_BASIS_POINTS)
                 {
                     errors.push("conditional second-outcome branch weights must be positive and sum to 10,000".to_string());
                 }
@@ -403,6 +421,9 @@ fn validate_case(case: &Case) -> Vec<String> {
                     if product % TOTAL_BASIS_POINTS as u64 != 0 {
                         errors.push("nested branch probability cannot be represented exactly in integer basis points".to_string());
                     }
+                }
+                if second_outcomes != BTreeSet::from([ObservationOutcome::Positive, ObservationOutcome::Negative]) {
+                    errors.push("second-outcome branches must contain exactly positive and negative outcomes".to_string());
                 }
             }
             (None, None, Some(action_id), Some(service_ref)) => {
@@ -445,13 +466,13 @@ fn reservation_load_is_feasible(resource: &Resource, start: f64, end: f64, reque
             continue;
         }
         let midpoint = (pair[0] + pair[1]) / 2.0;
-        let committed_units: u32 = resource.reservations.iter()
+        let committed_units: u64 = resource.reservations.iter()
             .filter(|reservation| reservation.state == ReservationState::Confirmed
                 && reservation.start_hour <= midpoint
                 && reservation.end_hour > midpoint)
-            .map(|reservation| reservation.units)
+            .map(|reservation| reservation.units as u64)
             .sum();
-        if committed_units.saturating_add(requested_units) > capacity {
+        if committed_units + requested_units as u64 > capacity as u64 {
             return false;
         }
     }
@@ -714,6 +735,14 @@ mod tests {
     fn manifest_digest_mismatch_is_rejected() {
         let mut case = fixture();
         case.resource_manifest_sha256.replace_range(0..1, "0");
+        assert!(qualify(&case).is_err());
+    }
+
+    #[test]
+    fn policy_certificate_payload_tampering_is_rejected() {
+        let mut case = fixture();
+        case.policy_certificate.first_outcome_branches[0].recovery_action_id =
+            Some("repair-bushing".to_string());
         assert!(qualify(&case).is_err());
     }
 
