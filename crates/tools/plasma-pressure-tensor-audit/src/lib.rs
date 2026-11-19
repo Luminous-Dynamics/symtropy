@@ -748,6 +748,19 @@ pub fn verify_pressure_grid_report(
 }
 
 
+/// Verify a pressure-divergence comparison by independently recomputing both fields.
+pub fn verify_pressure_divergence_comparison(
+    reference: &PressureGridRequest,
+    predicted: &PressureGridRequest,
+    report: &PressureDivergenceComparisonReport,
+) -> Result<(), String> {
+    let expected = compare_periodic_pressure_divergence(reference, predicted)?;
+    if expected != *report {
+        return Err("replayed pressure-divergence comparison differs from supplied report".to_owned());
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1176,6 +1189,23 @@ mod tests {
             compare_periodic_pressure_divergence(&reference, &predicted).expect("compare");
         assert!(report.body.component_errors[0].rmse > 0.0);
         assert!(report.body.component_errors[1].rmse > 0.0);
+    }
+
+    #[test]
+    fn pressure_divergence_comparison_verifier_rejects_tampering() {
+        let reference = grid_request(&[0.0, 2.0, 4.0, 2.0, 0.0, 2.0, 4.0, 2.0]);
+        let predicted = reference.clone();
+        let mut report =
+            compare_periodic_pressure_divergence(&reference, &predicted).expect("compare");
+        verify_pressure_divergence_comparison(&reference, &predicted, &report)
+            .expect("valid comparison receipt");
+
+        report.body.component_errors[0].rmse = 42.0;
+        let bytes = serde_json::to_vec(&report.body).expect("serialize report");
+        report.receipt_sha256 = sha256_hex(&bytes);
+        assert!(
+            verify_pressure_divergence_comparison(&reference, &predicted, &report).is_err()
+        );
     }
 
     #[test]
