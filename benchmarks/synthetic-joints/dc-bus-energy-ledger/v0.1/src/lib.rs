@@ -914,7 +914,7 @@ mod tests {
         let mut actuator = actuator_motoring();
         actuator[0].energy_j = NumericInterval { lower: 100.0, upper: 100.0 };
         let bus = vec![
-            term("external_source_in", 10.0),
+            term("external_source_in", 150.0),
             term("drive_draw_signed", 100.0),
             term("storage_draw_signed", 20.0),
             term("other_loads", 15.0),
@@ -937,6 +937,7 @@ mod tests {
     #[test]
     fn ledger_024_drive_energy_mismatch_is_a_boundary_coupling_violation() {
         let (actuator, mut bus, storage) = complete_motoring_case();
+        bus[0].energy_j = NumericInterval { lower: 140.0, upper: 140.0 };
         bus[1].energy_j = NumericInterval { lower: 90.0, upper: 90.0 };
         let report = assess_complete_energy_ledger(&actuator, &bus, &storage).unwrap();
         assert_eq!(report.actuator_module.disposition, BalanceDisposition::ConsistentWithDeclaredBounds);
