@@ -8,6 +8,7 @@ const CLAIM_CEILING: &str = "Synthetic module-process capacity screen only; not 
 const MAX_CONFIGS: usize = 32;
 const MAX_STATIONS: usize = 32;
 const MAX_MODULES_PER_VEHICLE: u32 = 16;
+const MAX_CELLS_PER_STATION: f64 = 100_000.0;
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -267,6 +268,9 @@ fn validate_inputs(
                     }
                 }
             }
+            if station.maximum_parallel_cells_available.is_some_and(|value| value > 1_000_000) {
+                errors.push(format!("configurations[{index}].maximum_parallel_cells_available: exceeds v1 limit"));
+            }
             if station.operators_per_cell_per_shift.is_some_and(|value| value > 10_000) {
                 errors.push(format!("configurations[{index}].operators_per_cell_per_shift: exceeds v1 limit"));
             }
@@ -291,7 +295,7 @@ fn required_cells(
     productive_minutes: f64,
 ) -> Option<u64> {
     let ratio = cycle_minutes * attempts as f64 / productive_minutes;
-    if !ratio.is_finite() || ratio > u64::MAX as f64 {
+    if !ratio.is_finite() || ratio > MAX_CELLS_PER_STATION {
         return None;
     }
     Some(ratio.ceil().max(1.0) as u64)
