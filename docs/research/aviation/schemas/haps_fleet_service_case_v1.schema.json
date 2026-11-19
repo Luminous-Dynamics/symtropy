@@ -200,7 +200,8 @@
               "rotating_spares",
               "rotating_spares_plus_independent_fallback",
               "condition_based_maintenance",
-              "other"
+              "other",
+              "rotating_spares_with_delayed_deployment"
             ]
           },
           "fleet_platform_ids": {
@@ -353,7 +354,8 @@
               "common_cause_grounded_platform_hours",
               "reserve_platform_hours",
               "handover_count",
-              "alternate_layer_service_zone_hours"
+              "alternate_layer_service_zone_hours",
+              "launch_recovery_platform_hours"
             ],
             "properties": {
               "service_availability_fraction": {
@@ -399,6 +401,10 @@
                 "minimum": 0
               },
               "alternate_layer_service_zone_hours": {
+                "type": "number",
+                "minimum": 0
+              },
+              "launch_recovery_platform_hours": {
                 "type": "number",
                 "minimum": 0
               }
@@ -470,5 +476,5 @@
       "uniqueItems": true
     }
   },
-  "$comment": "Semantic invariants: policy fleet IDs and reserve IDs are subsets of platform inventory; each interval contains exactly one state for each policy fleet platform; active states have a declared zone and non-active states have null zone; intervals begin at zero, are contiguous and sum exactly to service_window.duration_s; event cause IDs are consistent across impacted platforms; all zone IDs are declared; alternate-service capacity is bounded/attributed and only counted where available; delivered capacity per zone is min(required, active HAPS capacity + alternate layer capacity); demand-weighted delivered fraction is sum(zone demand weight × served fraction)/sum(weights); service availability counts intervals where this fraction meets threshold; below-threshold adjacent intervals accumulate into a contiguous service gap; state-hours and handover counts are derived from event receipts, not manually asserted. A 'common_cause_independence' label is a scenario assumption requiring evidence in non-synthetic cases."
+  "$comment": "Semantic invariants: policy fleet IDs and reserve IDs are subsets of platform inventory; each interval contains exactly one state for each policy fleet platform; active states have a declared zone and non-active states have null zone; intervals begin at zero, are contiguous and sum exactly to service_window.duration_s; event cause IDs are consistent across impacted platforms; all zone IDs are declared; alternate-service capacity is bounded/attributed and only counted where available; delivered capacity per zone is min(required, active HAPS capacity + alternate layer capacity); demand-weighted delivered fraction is sum(zone demand weight × served fraction)/sum(weights); service availability counts intervals where this fraction meets threshold; below-threshold adjacent intervals accumulate into a contiguous service gap; state-hours and handover counts are derived from event receipts, not manually asserted. A 'common_cause_independence' label is a scenario assumption requiring evidence in non-synthetic cases. launch_recovery_platform_hours is derived by summing the duration of each fleet platform in launch_recovery state."
 }
