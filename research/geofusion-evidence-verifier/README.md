@@ -24,7 +24,7 @@ This is a deliberately bounded Rust runtime slice. It is not a full Draft 2020-1
 
 ## Schema validation
 
-The CI workflow uses `check-jsonschema==0.39.0` **as a CI-only tool** to validate the three Draft 2020-12 schemas against their declared metaschemas, check the positive source/evidence/allocation fixtures, and assert that the null-asset negative control is rejected. The runtime library and CLI remain Rust-only; the external CLI is not a production dependency. The raw payload schema is currently the first heat-only profile; it is not yet an electrical source-payload schema.
+The CI workflow uses `check-jsonschema==0.39.0` **as a CI-only tool** to validate the four Draft 2020-12 schemas against their declared metaschemas, check positive source/evidence/allocation and batch-manifest fixtures, and assert that the null-asset negative control is rejected. The runtime library and CLI remain Rust-only; the external CLI is not a production dependency. The raw payload schema is currently the first heat-only profile; it is not yet an electrical source-payload schema.
 
 ## Run
 
@@ -54,7 +54,7 @@ The 33 current unit tests cover exact fixture success, byte tampering (including
 
 ## Batch uniqueness
 
-`verify_source_interval_batch` verifies a set of source-interval bundles and enforces one receipt per physical source interval in that batch. Its duplicate key is source asset + measurement boundary + carrier + exact UTC start representation + duration. It also rejects duplicate evidence IDs and allocation receipt IDs. Renaming an interval/evidence/receipt ID cannot make the same source interval allocatable twice in one batch.
+`verify_source_interval_batch` verifies a set of source-interval bundles and enforces one receipt per physical source interval in that batch. Its duplicate key is source asset + measurement boundary + carrier + canonical UTC start instant in integer nanoseconds + duration. It also rejects duplicate evidence IDs and allocation receipt IDs. Renaming an interval/evidence/receipt ID cannot make the same source interval allocatable twice in one batch.
 
 The check is **batch-scoped**. It parses canonical UTC `Z` timestamps into integer nanoseconds, so equivalent fractional-second spellings cannot bypass duplicate detection. It also rejects overlapping windows for the same source asset, measurement boundary and carrier. It is capped at 256 intervals per call. It is not a persistent cross-campaign registry; a future archive-level ledger should retain committed source intervals across independent batches.
 
