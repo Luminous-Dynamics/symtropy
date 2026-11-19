@@ -1,0 +1,81 @@
+name: AV foreground-background isolation fixture integrity
+
+on:
+  push:
+    branches:
+      - research/av-foreground-background-isolation-v0
+    paths:
+      - "research/av-foreground-background-isolation-v0/**"
+      - ".github/workflows/av-foreground-background-isolation.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/av-foreground-background-isolation-v0/**"
+      - ".github/workflows/av-foreground-background-isolation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: av-foreground-background-isolation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  fixture-integrity:
+    name: Exact-head JSON and evidence-plane integrity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+
+      - name: Assert exact checkout
+        run: test "$(git rev-parse HEAD)" = "${QUALIFIED_SHA}"
+
+      - name: Validate agent workload schema
+        run: |
+          jq -e '
+            .schema_version == 1
+            and .benchmark_id == "av-foreground-background-isolation-v0"
+            and (.episodes | length == 5)
+            and ([.episodes[].episode_id] | unique | length == 5)
+          ' research/av-foreground-background-isolation-v0/fixtures/agent/workload-v1.json
+
+      - name: Validate evaluator oracle schema
+        run: |
+          jq -e '
+            .schema_version == 1
+            and .benchmark_id == "av-foreground-background-isolation-v0"
+            and (.episodes | length == 5)
+            and ([.episodes[].episode_id] | unique | length == 5)
+          ' research/av-foreground-background-isolation-v0/fixtures/evaluator-only/scheduler-oracle-v1.json
+
+      - name: Validate known-answer scorecard schema
+        run: |
+          jq -e '
+            .schema_version == 1
+            and .benchmark_id == "av-foreground-background-isolation-v0"
+            and (.episodes | length == 5)
+            and ([.episodes[].episode_id] | unique | length == 5)
+          ' research/av-foreground-background-isolation-v0/fixtures/expected/known-answer-v1.json
+
+      - name: Assert episode identity alignment
+        run: |
+          diff \
+            <(jq -r '.episodes[].episode_id' research/av-foreground-background-isolation-v0/fixtures/agent/workload-v1.json) \
+            <(jq -r '.episodes[].episode_id' research/av-foreground-background-isolation-v0/fixtures/evaluator-only/scheduler-oracle-v1.json)
+          diff \
+            <(jq -r '.episodes[].episode_id' research/av-foreground-background-isolation-v0/fixtures/agent/workload-v1.json) \
+            <(jq -r '.episodes[].episode_id' research/av-foreground-background-isolation-v0/fixtures/expected/known-answer-v1.json)
+
+      - name: Reject evaluator-only fields in public workload
+        run: |
+          ! grep -Eq '"(source_truth|actual_index_ready_tick|actual_retrieval_finish_tick|realized_hypothesis_id|hidden_state|future_observations)"' \
+            research/av-foreground-background-isolation-v0/fixtures/agent/workload-v1.json
