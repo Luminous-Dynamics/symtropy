@@ -19,6 +19,7 @@ pub const MAX_SHARED_PERIODS: usize = 6;
 pub const MAX_SHARED_SCENARIOS: usize = 8;
 pub const MAX_SHARED_POLICY_NODES: usize = 10;
 pub const MAX_SHARED_POLICY_COUNT: u64 = 1_048_576;
+pub const SHARED_CVAR_TAIL_PROBABILITY_BPS: u32 = 1_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -148,6 +149,8 @@ struct WeightedMetrics {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct SharedFleetOutcome {
     pub expected_total_cost_units: u64,
+    pub cvar90_total_cost_units: u64,
+    pub worst_case_total_cost_units: u64,
     pub expected_road_deliveries: u64,
     pub expected_aerial_deliveries: u64,
     pub expected_unserved_units: u64,
@@ -182,8 +185,15 @@ pub struct SharedFleetReport {
     pub scenario_count: usize,
     pub nonanticipative_policy_node_count: usize,
     pub exact_policy_count_evaluated: u64,
+    /// Policy minimizing expected total cost.
     pub optimized_policy: SharedFleetOutcome,
     pub optimized_decisions: Vec<SharedFleetDecision>,
+    /// Policy minimizing expected cost in the worst 10% probability tail.
+    pub cvar90_optimal_policy: SharedFleetOutcome,
+    pub cvar90_optimal_decisions: Vec<SharedFleetDecision>,
+    /// Policy minimizing the maximum scenario cost.
+    pub worst_case_optimal_policy: SharedFleetOutcome,
+    pub worst_case_optimal_decisions: Vec<SharedFleetDecision>,
     pub truck_only_baseline: SharedFleetOutcome,
     pub fixed_initial_region_baseline: SharedFleetOutcome,
     pub physical_dispatch_authorized: bool,
@@ -579,24 +589,79 @@ fn add_weighted_metrics(
     Ok(())
 }
 
+#[derive(Debug, Clone)]
+struct PolicyEvaluation {
+    weighted: WeightedMetrics,
+    scenario_costs: Vec<(u128, u16)>,
+}
+
 fn evaluate_mask(
     input: &SharedFleetInput,
     nodes: &[SharedDecisionNode],
     indices: &BTreeMap<SharedDecisionKey, usize>,
     mask: u64,
     aircraft_enabled: bool,
-) -> Result<WeightedMetrics, String> {
-    let mut result = WeightedMetrics::default();
+) -> Result<PolicyEvaluation, String> {
+    let mut weighted = WeightedMetrics::default();
+    let mut scenario_costs = Vec::with_capacity(input.scenarios.len());
     for scenario in &input.scenarios {
         let metrics = simulate_scenario(input, scenario, indices, mask, aircraft_enabled)?;
-        add_weighted_metrics(&mut result, metrics, scenario.probability_bps)?;
+        scenario_costs.push((metrics.total_cost, scenario.probability_bps));
+        add_weighted_metrics(&mut weighted, metrics, scenario.probability_bps)?;
     }
-    Ok(result)
+    Ok(PolicyEvaluation {
+        weighted,
+        scenario_costs,
+    })
 }
 
-fn outcome(metrics: WeightedMetrics) -> Result<SharedFleetOutcome, String> {
+fn upper_tail_cvar90(scenario_costs: &[(u128, u16)]) -> Result<u128, String> {
+    if scenario_costs.is_empty() {
+        return Err("CVaR requires at least one scenario".into());
+    }
+    let mut ordered = scenario_costs.to_vec();
+    ordered.sort_by(|left, right| right.0.cmp(&left.0));
+    let mut remaining = SHARED_CVAR_TAIL_PROBABILITY_BPS;
+    let mut weighted_tail_cost = 0_u128;
+    for (cost, probability_bps) in ordered {
+        if remaining == 0 {
+            break;
+        }
+        let take = remaining.min(u32::from(probability_bps));
+        let contribution = cost
+            .checked_mul(u128::from(take))
+            .ok_or_else(|| "CVaR weighted tail cost overflow".to_string())?;
+        checked_add(&mut weighted_tail_cost, contribution, "CVaR weighted tail cost")?;
+        remaining -= take;
+    }
+    if remaining != 0 {
+        return Err("scenario probability mass does not cover CVaR tail".into());
+    }
+    let divisor = u128::from(SHARED_CVAR_TAIL_PROBABILITY_BPS);
+    weighted_tail_cost
+        .checked_add(divisor / 2)
+        .map(|value| value / divisor)
+        .ok_or_else(|| "CVaR rounding overflow".into())
+}
+
+fn worst_case_cost(scenario_costs: &[(u128, u16)]) -> Result<u128, String> {
+    scenario_costs
+        .iter()
+        .map(|(cost, _)| *cost)
+        .max()
+        .ok_or_else(|| "worst-case cost requires at least one scenario".into())
+}
+
+fn outcome(evaluation: PolicyEvaluation) -> Result<SharedFleetOutcome, String> {
+    let cvar90 = upper_tail_cvar90(&evaluation.scenario_costs)?;
+    let worst_case = worst_case_cost(&evaluation.scenario_costs)?;
+    let metrics = evaluation.weighted;
     Ok(SharedFleetOutcome {
         expected_total_cost_units: weighted_average(metrics.total_cost, "expected cost")?,
+        cvar90_total_cost_units: u64::try_from(cvar90)
+            .map_err(|_| "CVaR90 exceeds report range".to_string())?,
+        worst_case_total_cost_units: u64::try_from(worst_case)
+            .map_err(|_| "worst-case cost exceeds report range".to_string())?,
         expected_road_deliveries: weighted_average(metrics.road_deliveries, "expected road deliveries")?,
         expected_aerial_deliveries: weighted_average(metrics.aerial_deliveries, "expected aerial deliveries")?,
         expected_unserved_units: weighted_average(metrics.unserved_units, "expected unserved")?,
@@ -647,21 +712,46 @@ pub fn evaluate_shared_fleet(
         return Err(vec![format!("shared-fleet policy count {policy_count} exceeds v1 limit")]);
     }
 
-    let mut best_mask = 0_u64;
-    let mut best_metrics = evaluate_mask(&canonical, &nodes, &indices, 0, true)
+    let mut best_expected_mask = 0_u64;
+    let mut best_cvar90_mask = 0_u64;
+    let mut best_worst_case_mask = 0_u64;
+    let mut best_expected = evaluate_mask(&canonical, &nodes, &indices, 0, true)
         .map_err(|error| vec![error])?;
+    let mut best_cvar90 = best_expected.clone();
+    let mut best_worst_case = best_expected.clone();
+    let mut best_cvar90_value = upper_tail_cvar90(&best_cvar90.scenario_costs)
+        .map_err(|error| vec![error])?;
+    let mut best_worst_case_value = worst_case_cost(&best_worst_case.scenario_costs)
+        .map_err(|error| vec![error])?;
+
     for mask in 1..policy_count {
-        let metrics = evaluate_mask(&canonical, &nodes, &indices, mask, true)
+        let evaluation = evaluate_mask(&canonical, &nodes, &indices, mask, true)
             .map_err(|error| vec![error])?;
-        if metrics.total_cost < best_metrics.total_cost {
-            best_mask = mask;
-            best_metrics = metrics;
+        if evaluation.weighted.total_cost < best_expected.weighted.total_cost {
+            best_expected_mask = mask;
+            best_expected = evaluation.clone();
+        }
+        let cvar90 = upper_tail_cvar90(&evaluation.scenario_costs)
+            .map_err(|error| vec![error])?;
+        if cvar90 < best_cvar90_value {
+            best_cvar90_mask = mask;
+            best_cvar90_value = cvar90;
+            best_cvar90 = evaluation.clone();
+        }
+        let worst_case = worst_case_cost(&evaluation.scenario_costs)
+            .map_err(|error| vec![error])?;
+        if worst_case < best_worst_case_value {
+            best_worst_case_mask = mask;
+            best_worst_case_value = worst_case;
+            best_worst_case = evaluation;
         }
     }
 
     let truck_only = outcome(
-        evaluate_mask(&canonical, &nodes, &indices, 0, false).map_err(|error| vec![error])?,
-    ).map_err(|error| vec![error])?;
+        evaluate_mask(&canonical, &nodes, &indices, 0, false)
+            .map_err(|error| vec![error])?,
+    )
+    .map_err(|error| vec![error])?;
 
     let initial_action = canonical.regions.iter()
         .position(|region| region.region_id == canonical.initial_aircraft_region_id)
@@ -678,7 +768,8 @@ pub fn evaluate_shared_fleet(
     let fixed = outcome(
         evaluate_mask(&canonical, &nodes, &indices, fixed_mask, true)
             .map_err(|error| vec![error])?,
-    ).map_err(|error| vec![error])?;
+    )
+    .map_err(|error| vec![error])?;
 
     Ok(SharedFleetReport {
         schema_version: SHARED_FLEET_SCHEMA_VERSION,
@@ -689,8 +780,12 @@ pub fn evaluate_shared_fleet(
         scenario_count: canonical.scenarios.len(),
         nonanticipative_policy_node_count: nodes.len(),
         exact_policy_count_evaluated: policy_count,
-        optimized_policy: outcome(best_metrics).map_err(|error| vec![error])?,
-        optimized_decisions: decision_list(&canonical, &nodes, best_mask),
+        optimized_policy: outcome(best_expected).map_err(|error| vec![error])?,
+        optimized_decisions: decision_list(&canonical, &nodes, best_expected_mask),
+        cvar90_optimal_policy: outcome(best_cvar90).map_err(|error| vec![error])?,
+        cvar90_optimal_decisions: decision_list(&canonical, &nodes, best_cvar90_mask),
+        worst_case_optimal_policy: outcome(best_worst_case).map_err(|error| vec![error])?,
+        worst_case_optimal_decisions: decision_list(&canonical, &nodes, best_worst_case_mask),
         truck_only_baseline: truck_only,
         fixed_initial_region_baseline: fixed,
         physical_dispatch_authorized: false,
