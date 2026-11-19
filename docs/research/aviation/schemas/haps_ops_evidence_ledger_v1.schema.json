@@ -1,0 +1,515 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminousdynamics:aero:haps-ops-evidence-ledger:v1",
+  "title": "HAPS operations and maintenance evidence ledger v1",
+  "description": "Provenance-bound event and exposure records for HAPS sorties, defects, maintenance, inspection, verification and authorized release. This contract records evidence; it does not grant operational or airworthiness authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "ledger_id",
+    "revision",
+    "evidence_class",
+    "claim_ceiling",
+    "observation_window",
+    "assets",
+    "events",
+    "exposure_records",
+    "authorization_boundary",
+    "assumptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "haps-ops-evidence-ledger/v1"
+    },
+    "ledger_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "measured_operations",
+        "replayed_operations_records"
+      ]
+    },
+    "claim_ceiling": {
+      "enum": [
+        "synthetic_maintenance_lifecycle",
+        "offline_ops_evidence_replay",
+        "measured_ops_evidence"
+      ]
+    },
+    "observation_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start_utc",
+        "end_utc",
+        "time_basis"
+      ],
+      "properties": {
+        "start_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "time_basis": {
+          "enum": [
+            "utc",
+            "other_declared"
+          ]
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "asset_ref",
+          "lift_class",
+          "configuration_ref",
+          "configuration_revision"
+        ],
+        "properties": {
+          "asset_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "lift_class": {
+            "enum": [
+              "solar_fixed_wing",
+              "buoyant_free_balloon",
+              "buoyant_airship",
+              "other_declared"
+            ]
+          },
+          "configuration_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "configuration_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "component_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event_id",
+          "event_sequence",
+          "previous_event_id",
+          "asset_ref",
+          "configuration_ref",
+          "event_type",
+          "occurred_at_utc",
+          "observed_at_utc",
+          "recorded_at_utc",
+          "clock_uncertainty_s",
+          "from_state",
+          "to_state",
+          "onset_knowledge",
+          "onset_interval_earliest_utc",
+          "onset_interval_latest_utc",
+          "component_refs",
+          "producer",
+          "source_evidence_refs",
+          "event_digest",
+          "release_authority_ref",
+          "payload"
+        ],
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "event_sequence": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "previous_event_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "asset_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "configuration_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "event_type": {
+            "enum": [
+              "sortie_planned",
+              "sortie_launched",
+              "service_started",
+              "service_ended",
+              "recovered",
+              "postflight_inspection_started",
+              "anomaly_detected",
+              "discrepancy_recorded",
+              "aircraft_grounded",
+              "work_order_opened",
+              "diagnosis_completed",
+              "parts_requested",
+              "parts_received",
+              "repair_started",
+              "repair_completed",
+              "inspection_completed",
+              "functional_test_completed",
+              "verification_passed",
+              "verification_failed",
+              "awaiting_authorized_release",
+              "return_to_service_authorized",
+              "maintenance_deferred",
+              "configuration_changed",
+              "instrument_calibrated"
+            ]
+          },
+          "occurred_at_utc": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "observed_at_utc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recorded_at_utc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "clock_uncertainty_s": {
+            "type": "number",
+            "minimum": 0
+          },
+          "from_state": {
+            "enum": [
+              "ready_for_dispatch",
+              "launch_recovery",
+              "in_service",
+              "postflight_inspection",
+              "grounded",
+              "maintenance_queued",
+              "maintenance_in_progress",
+              "verification_hold",
+              "awaiting_authorized_release",
+              "ready_for_dispatch_pending_authorized_release",
+              "retired"
+            ]
+          },
+          "to_state": {
+            "enum": [
+              "ready_for_dispatch",
+              "launch_recovery",
+              "in_service",
+              "postflight_inspection",
+              "grounded",
+              "maintenance_queued",
+              "maintenance_in_progress",
+              "verification_hold",
+              "awaiting_authorized_release",
+              "ready_for_dispatch_pending_authorized_release",
+              "retired"
+            ]
+          },
+          "onset_knowledge": {
+            "enum": [
+              "known",
+              "interval_censored",
+              "unknown",
+              "not_applicable"
+            ]
+          },
+          "onset_interval_earliest_utc": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "onset_interval_latest_utc": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "component_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "producer": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "organization_ref",
+              "role",
+              "source_system_ref"
+            ],
+            "properties": {
+              "organization_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "role": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_system_ref": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "source_evidence_refs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "evidence_ref",
+                "evidence_kind",
+                "content_digest",
+                "source_uri",
+                "rights_ref"
+              ],
+              "properties": {
+                "evidence_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "evidence_kind": {
+                  "enum": [
+                    "flight_recorder",
+                    "sensor_measurement",
+                    "inspection_report",
+                    "work_order",
+                    "parts_record",
+                    "test_result",
+                    "operator_log",
+                    "synthetic_fixture",
+                    "other_declared"
+                  ]
+                },
+                "content_digest": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source_uri": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uri"
+                },
+                "rights_ref": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "event_digest": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "release_authority_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "payload": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "exposure_records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "exposure_id",
+          "asset_ref",
+          "configuration_ref",
+          "exposure_type",
+          "start_utc",
+          "end_utc",
+          "exposure_seconds",
+          "failure_observation",
+          "censoring_status",
+          "event_time_lower_bound_utc",
+          "event_time_upper_bound_utc",
+          "source_evidence_refs"
+        ],
+        "properties": {
+          "exposure_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "configuration_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "exposure_type": {
+            "enum": [
+              "flight",
+              "service_on_station",
+              "ground_ready",
+              "maintenance",
+              "recovery",
+              "other_declared"
+            ]
+          },
+          "start_utc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end_utc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "exposure_seconds": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "failure_observation": {
+            "enum": [
+              "no_failure_observed",
+              "failure_or_defect_detected",
+              "competing_event",
+              "unknown"
+            ]
+          },
+          "censoring_status": {
+            "enum": [
+              "right_censored",
+              "left_truncated",
+              "interval_censored",
+              "uncensored_event",
+              "competing_event",
+              "not_assessed"
+            ]
+          },
+          "event_time_lower_bound_utc": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "event_time_upper_bound_utc": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "source_evidence_refs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "authorization_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release_status",
+        "return_to_service_authorized",
+        "release_authority_ref",
+        "release_scope"
+      ],
+      "properties": {
+        "release_status": {
+          "enum": [
+            "not_authorized",
+            "awaiting_authorized_release",
+            "authorized_by_external_authority",
+            "unknown"
+          ]
+        },
+        "return_to_service_authorized": {
+          "type": "boolean"
+        },
+        "release_authority_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "release_scope": {
+          "enum": [
+            "none",
+            "specific_configuration_and_scope",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "source_evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  },
+  "$comment": "Semantic invariants: event IDs unique; event_sequence is contiguous; previous_event_id links to the prior record; each event asset/configuration exists in assets; configuration_ref matches the relevant asset configuration; observed_at_utc and recorded_at_utc are distinct concepts and recorded_at_utc must not precede observed_at_utc unless a declared clock/correction rule applies; occurred_at_utc may be null when true occurrence is unknown; interval-censored onset requires a lower and upper bound and no fabricated point onset; exposure_seconds must equal end-start after declared clock normalization; right-censored exposure has no failure event/bounds and represents a platform observed operating through end_utc without a detected failure; no release_status other than authorized_by_external_authority may set return_to_service_authorized=true; even that state requires a non-null release_authority_ref and explicit scope. Content digests and signatures are not verified by this schema. Synthetic records do not constitute real maintenance, inspection or operational evidence."
+}
