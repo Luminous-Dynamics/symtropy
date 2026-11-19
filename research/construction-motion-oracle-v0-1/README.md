@@ -121,3 +121,13 @@ SiteStateLedger now requires a caller-supplied SiteActorRegistry. The default co
 
 
 The immutable event log is publicly exportable through event_history(); events_after_sequence(cursor) returns an incremental suffix, and tip() exposes a compact sequence/event-digest/active-package/event-count checkpoint. The event history remains the replay source: the tip is not a substitute for signed, canonical event records. The replay method accepts an ordered persisted history and the same trusted actor registry, validates sequence/previous-digest linkage, rejects duplicate records in persisted history and reconstructs the same projection. The caller must still verify event canonicalization, SHA-256 and signatures before ingestion/replay.
+
+
+### Current v0.1 benchmark run contract
+
+The Linux differential benchmark now has two separate scaling sections:
+
+- site_ledger_scaling: the same immutable event stream is appended to a fresh actor-authorized ledger and replayed from persisted history. It checks that both produce identical projections and event histories before reporting p50/p95/p99 wall time and median ns/event at 101, 1,001 and 10,001 total events.
+- ifc_ids_preflight_scaling: prebuilt typed IFC/IDS source inputs are cloned before timing, then the preflight compiler is measured at 100, 1,000 and 10,000 in-scope entities. Report p50/p95/p99 and entities/second. This isolates preflight validation from source fixture construction.
+
+Neither lane includes cryptographic signature verification, canonical digest recomputation, actual IFC STEP parsing, IDS XML interpretation, external geometry/clash engine runtime, storage I/O or network consensus. The synthetic receipts are accepted as preverified inputs solely to measure the reducer/compiler layer; their digest strings are not signed proof. Results are one-host engineering baselines, never robot-safety or field-productivity evidence.
