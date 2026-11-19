@@ -173,8 +173,11 @@ pub struct StepAttempt {
     pub retry_of: Option<String>,
     pub local_start_tick: i64,
     pub local_requested_end_tick: i64,
+    /// Actual FMI `lastSuccessfulTime` for Accepted/EarlyReturn; canonical start
+    /// marker for Rejected (never copied from undefined `fmi3Discard` outputs).
     pub local_returned_end_tick: i64,
     /// Exact mapped times, retained for audit and checked against the binding.
+    /// For Rejected, returned-end is the normalized no-advance marker at start.
     pub master_start_ns: i64,
     pub master_requested_end_ns: i64,
     pub master_returned_end_ns: i64,
