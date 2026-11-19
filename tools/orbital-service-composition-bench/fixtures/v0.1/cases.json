@@ -1401,7 +1401,7 @@
             "context_of_use": "orbital_service_composition_v0_1",
             "claim_ceiling": "synthetic_contract_only"
           },
-          "destination_node_id": "orbit"
+          "destination_node_id": "wrong-node"
         },
         {
           "event_id": "evt-capture",
