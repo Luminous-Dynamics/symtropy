@@ -44,8 +44,8 @@ jobs:
           cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-evaluate-mode-options -- tools/material-flow-benchmark/fixtures/synthetic-two-region-mode-options.json > mfb-l1-evidence/mode-options-report.json
           grep -q '"physical_dispatch_authorized": false' mfb-l1-evidence/mode-options-report.json
           grep -q '"dispatch_commands_emitted": false' mfb-l1-evidence/mode-options-report.json
-          grep -q '"nonanticipative_policy_node_count": 11' mfb-l1-evidence/mode-options-report.json
-          grep -q '"exact_policy_count_evaluated": 2048' mfb-l1-evidence/mode-options-report.json
+          grep -q '"nonanticipative_policy_node_count": 13' mfb-l1-evidence/mode-options-report.json
+          grep -q '"exact_policy_count_evaluated": 8192' mfb-l1-evidence/mode-options-report.json
           grep -q '"unauthorized_aerial_dispatches": 0' mfb-l1-evidence/mode-options-report.json
           cat mfb-l1-evidence/mode-options-report.json
       - name: Validate synthetic 3D cargo-bay loading
