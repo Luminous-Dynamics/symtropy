@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://luminousdynamics.io/schemas/geofusion-raw-source-interval-v0.1.schema.json",
-  "title": "GeoFusion Raw Source Interval Payload v0.1",
-  "description": "Typed synthetic or sourced energy interval payload. A valid instance is not a measurement truth or calibration claim.",
+  "$id": "https://luminousdynamics.io/schemas/geofusion-heat-source-interval-v0.1.schema.json",
+  "title": "GeoFusion Heat Source Interval Payload v0.1",
+  "description": "First thermal source-interval payload profile. It binds a declared heat interval and explicit measurement boundary. A valid instance is not a measurement truth or calibration claim.",
   "type": "object",
   "additionalProperties": false,
   "required": [
