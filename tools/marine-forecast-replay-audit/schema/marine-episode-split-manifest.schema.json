@@ -15,7 +15,8 @@
     "split_algorithm",
     "split_seed",
     "folds",
-    "episodes"
+    "episodes",
+    "split_strategy"
   ],
   "properties": {
     "schema_version": {
@@ -162,6 +163,9 @@
           }
         }
       }
+    },
+    "split_strategy": {
+      "const": "forward_chaining_joint_grouped"
     }
   },
   "allOf": [
