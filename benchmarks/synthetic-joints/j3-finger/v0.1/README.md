@@ -57,18 +57,32 @@ The package also checks tendon kinematic rates and power conjugacy:
 
 The identity fixture tests the sign convention and power balance.
 
+## Full 3D force-polytope reference extension
+
+The same M1 package now includes a generic 3D force-polytope and coverage reference in `src/force_polytope.rs`:
+
+1. Construct the bounded set in augmented coordinates `(f_x, f_y, f_z, tau_AA)` from the complete joint equilibrium, per-tendon lower/upper tension bounds, and bidirectional A/A torque bound.
+2. Eliminate the scalar auxiliary torque using Fourier–Motzkin projection to obtain a three-dimensional half-space (H-polytope) representation in fingertip force space.
+3. Enumerate feasible intersections of triples of boundary planes to obtain candidate vertices, reject invalid/unbounded regions, and triangulate each convex face to compute volume.
+4. Compute required-force-region coverage as `volume(force_set intersect required_region) / volume(required_region)`.
+
+The synthetic fixtures check exact cube volumes, identical and partial intersections, an empty intersection, invalid/unbounded regions, rank-deficient Jacobians, and nonzero minimum tendon tension (pretension). These are generic analytic geometry tests; they are not PACT's source task-force regions.
+
+The projection retains per-tendon minimum and maximum tensions. This is useful for future antagonistic/pretension models: a signed joint-torque interval is not substituted for the physical tendon tension bounds.
+
 ## Deliberate non-claims
 
+- The generic H-polytope/volume machinery does **not** yet reproduce PACT's reported eight-pose force-region coverage; source-specific pose Jacobians and the exact required-force-region halfspaces still need extraction and independent review.
 - A directional force maximum is not PACT's full required-force-region volume coverage.
-- The synthetic identity routing/Jacobian fixture is not the PACT prototype.
-- The source routing matrix is transcribed and checked for rank/invertibility, but the source's pose-dependent Jacobian and motor/control system are not reconstructed here.
-- This M1 oracle does not model tendon friction, pretension, backlash, slack, compliance, capstan losses, actuator torque-speed maps, thermal duty, controller dynamics, contact patch changes or whole-hand grasp force closure.
+- The synthetic identity routing/Jacobian fixtures are not the PACT prototype.
+- The source routing matrix is transcribed and checked for rank/invertibility, but the source's pose-dependent Jacobians and motor/control system are not reconstructed here.
+- This M1 oracle does not model tendon friction, backlash, slack dynamics, elastic compliance, capstan losses, actuator torque-speed maps, thermal duty, controller dynamics, contact-patch changes or whole-hand grasp force closure.
 - The PACT prototype residual (24.5% force magnitude deviation / 14.82° direction error) is recorded as a source observation, not represented as a result from this package.
 
 ## Next benchmark tiers
 
 - **M0 source:** verify all table values, signs, units, geometry, pose coordinates and test protocol against source version and supplemental material.
-- **M1 analytic:** exact force-direction LP and virtual-work reference (this package).
+- **M1 analytic:** direction-constrained force LP, generic 3D H-polytope projection/volume coverage, virtual-work identity and synthetic positive/negative controls (this package).
 - **M2 simulation:** reconstruct fingertip Jacobian at all eight poses, calculate exact feasible force polytopes and source-equivalent region coverage; implement PACT's 5 Hz isolated-joint drivetrain bandwidth equations. Add direction-dependent tendon efficiency and compare frictionless and loss-aware predictions without retuning away the reported errors.
 - **M3 instrumented finger/gripper:** measure external 3D fingertip wrench, individual tendon force, tendon length/strain, joint pose, current/voltage, speed and temperature. Test all poses, directions, force limits and sustained loading, not one representative pose.
 - **M4 lifecycle and system:** wear/creep, remount, friction drift, cable damage, sensor ablation, disturbance recovery, held-out objects, multi-finger grasp and service requalification.
