@@ -89,7 +89,7 @@ fn parse_time(value: Option<&str>) -> Option<DateTime<FixedOffset>> {
 }
 
 fn duration_hours(start: &DateTime<FixedOffset>, end: &DateTime<FixedOffset>) -> Option<f64> {
-    let millis = end.signed_duration_since(start.clone()).num_milliseconds();
+    let millis = end.timestamp_millis() - start.timestamp_millis();
     if millis <= 0 {
         None
     } else {
