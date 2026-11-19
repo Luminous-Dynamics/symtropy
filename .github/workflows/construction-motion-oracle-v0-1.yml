@@ -12,6 +12,38 @@ permissions:
   contents: read
 
 jobs:
+  schema:
+    name: Timebase-qualified dispatch schema and fixtures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check "jsonschema==4.26.0"
+      - name: Validate v0.2 request and receipt contracts
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/construction-motion-oracle-v0.1")
+          schema = json.loads((root / "schema/dispatch-readiness-v0.2.schema.json").read_text())
+          request = json.loads((root / "examples/dispatch-readiness-request-synthetic-v0.2.json").read_text())
+          receipt = json.loads((root / "examples/dispatch-readiness-receipt-synthetic-v0.2.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema)
+          validator.validate(request)
+          validator.validate(receipt)
+          assert request["schema_version"] == "construction-dispatch-readiness-request/0.2"
+          assert request["qualified_clock"]["uncertainty_bound_ticks"] <= 2
+          assert request["qualified_clock"]["epoch_sha256"] == request["envelope"]["site_clock_epoch_sha256"]
+          assert request["qualified_clock"]["mapping_sha256"] == request["occupancy"]["clock_mapping_sha256"]
+          assert "trusted_occupancy_engine_build_sha256" not in request
+          assert "required_clearance_policy_sha256" not in request
+          assert receipt["clock_uncertainty_policy_sha256"]
+          print("PASS: Draft 2020-12 v0.2 schema, request and receipt fixtures")
+          print("LIMIT: fixture digests are synthetic; this does not verify real clock authority signatures or realized synchronization error")
+          PY
   rust:
     runs-on: ${{ matrix.os }}
     strategy:
