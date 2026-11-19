@@ -108,6 +108,8 @@ pub struct CalibrationReport {
     pub status: CalibrationStatus,
     pub model_digest: String,
     pub mission_set_digest: String,
+    pub system_boundary_digest: String,
+    pub operating_condition_digest: String,
     pub domain_digest: String,
     pub target_miscoverage_alpha: f64,
     pub calibration_specimen_count: usize,
