@@ -80,6 +80,12 @@ fn gate_requires_decision(gate_type: &str) -> bool {
     )
 }
 
+fn gate_satisfied(gate: &Value) -> bool {
+    string(gate, "status") == "complete"
+        || (string(gate, "status") == "not_applicable"
+            && !string(gate, "applicabilityRationale").trim().is_empty())
+}
+
 fn validate(case: &Value) -> Vec<String> {
     let mut errors = Vec::new();
     let maturity = string(case, "caseMaturity");
@@ -109,6 +115,10 @@ fn validate(case: &Value) -> Vec<String> {
     let evidence_ids = ids(evidence, "evidenceId", "evidence", &mut errors);
     let decision_ids = ids(decisions, "decisionId", "decision", &mut errors);
     let gate_ids = ids(gates, "gateId", "gate", &mut errors);
+    let gates_by_id: BTreeMap<String, &Value> = gates
+        .iter()
+        .map(|gate| (string(gate, "gateId").to_string(), gate))
+        .collect();
     let engagement_ids = ids(engagements, "engagementId", "engagement", &mut errors);
     let impact_ids = ids(impacts, "impactId", "impact", &mut errors);
     let workfront_ids = ids(workfronts, "workfrontId", "workfront", &mut errors);
@@ -194,6 +204,49 @@ fn validate(case: &Value) -> Vec<String> {
         }
     }
 
+    let mut gate_successors: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut gate_indegree: BTreeMap<String, usize> =
+        gate_ids.iter().map(|gate_id| (gate_id.clone(), 0)).collect();
+
+    for gate in gates {
+        let id = string(gate, "gateId");
+        for dependency in strings(gate, "dependsOnGateIds") {
+            if dependency == id {
+                errors.push(format!("{id} cannot depend on itself"));
+            } else if !gate_ids.contains(dependency) {
+                errors.push(format!("{id} references unknown prerequisite gate {dependency}"));
+            } else {
+                gate_successors
+                    .entry(dependency.to_string())
+                    .or_default()
+                    .push(id.to_string());
+                *gate_indegree.get_mut(id).expect("gate id is indexed") += 1;
+            }
+        }
+    }
+
+    let mut gate_ready: BTreeSet<String> = gate_indegree
+        .iter()
+        .filter(|(_, degree)| **degree == 0)
+        .map(|(gate_id, _)| gate_id.clone())
+        .collect();
+    let mut visited_gates = 0usize;
+    while let Some(gate_id) = gate_ready.pop_first() {
+        visited_gates += 1;
+        if let Some(successors) = gate_successors.get(&gate_id) {
+            for successor in successors {
+                let degree = gate_indegree.get_mut(successor).expect("successor gate is indexed");
+                *degree -= 1;
+                if *degree == 0 {
+                    gate_ready.insert(successor.clone());
+                }
+            }
+        }
+    }
+    if visited_gates != gate_ids.len() {
+        errors.push("route gate dependency graph contains a cycle".to_string());
+    }
+
     for gate in gates {
         let id = string(gate, "gateId");
         let status = string(gate, "status");
@@ -210,6 +263,15 @@ fn validate(case: &Value) -> Vec<String> {
             }
             if string(gate, "accountableRole").trim().is_empty() {
                 errors.push(format!("{id} is complete without accountableRole"));
+            }
+            for dependency in strings(gate, "dependsOnGateIds") {
+                if let Some(prerequisite) = gates_by_id.get(dependency) {
+                    if !gate_satisfied(prerequisite) {
+                        errors.push(format!(
+                            "{id} cannot be complete while prerequisite gate {dependency} is not satisfied"
+                        ));
+                    }
+                }
             }
         }
         if status == "not_applicable"
@@ -339,11 +401,10 @@ fn validate(case: &Value) -> Vec<String> {
 
         if string(workfront, "status") == "released" {
             for gate_id in strings(workfront, "requiredGateIds") {
-                let complete = gates.iter().any(|gate| {
-                    string(gate, "gateId") == gate_id
-                        && string(gate, "status") == "complete"
-                });
-                if !complete {
+                let satisfied = gates_by_id
+                    .get(gate_id)
+                    .is_some_and(|gate| gate_satisfied(gate));
+                if !satisfied {
                     errors.push(format!(
                         "{id} is released while required gate {gate_id} is not complete"
                     ));
@@ -496,6 +557,37 @@ mod tests {
         assert!(validate(&case)
             .iter()
             .any(|x| x.contains("response state without response evidence")));
+    }
+
+    #[test]
+    fn rejects_complete_gate_with_open_prerequisite() {
+        let mut case = fixture();
+        case["gates"][1]["status"] = Value::String("complete".to_string());
+        assert!(validate(&case)
+            .iter()
+            .any(|x| x.contains("cannot be complete while prerequisite gate GATE-JURISDICTION is not satisfied")));
+    }
+
+    #[test]
+    fn rejects_gate_dependency_cycle() {
+        let mut case = fixture();
+        case["gates"][0]["dependsOnGateIds"] = serde_json::json!(["GATE-RIGHTS-HOLDERS"]);
+        assert!(validate(&case)
+            .iter()
+            .any(|x| x.contains("route gate dependency graph contains a cycle")));
+    }
+
+    #[test]
+    fn accepts_not_applicable_gate_only_with_rationale() {
+        let mut case = fixture();
+        case["gates"][0]["status"] = Value::String("not_applicable".to_string());
+        case["gates"][0]["applicabilityRationale"] =
+            Value::String("Synthetic test: competent authority gate is verified not applicable for this fixture scope.".to_string());
+        assert!(validate(&case).is_empty());
+        case["gates"][0]["applicabilityRationale"] = Value::String(String::new());
+        assert!(validate(&case)
+            .iter()
+            .any(|x| x.contains("is not_applicable without rationale")));
     }
 
     #[test]
