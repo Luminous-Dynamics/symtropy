@@ -53,6 +53,7 @@ enum BaseStatus {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct CarrierCorpus {
     schema_version: String,
     programme_id: String,
@@ -382,6 +383,7 @@ fn evaluate_configuration(
         ("incremental_vehicle_bus_peak_power_kw", configuration.incremental_vehicle_bus_peak_power_kw),
         ("incremental_external_site_meter_energy_kwh", configuration.incremental_external_site_meter_energy_kwh),
         ("incremental_external_site_peak_power_kw", configuration.incremental_external_site_peak_power_kw),
+        ("incremental_external_site_charging_window_hours", configuration.incremental_external_site_charging_window_hours),
     ] {
         if value.is_none() {
             missing_fields.push(field.to_string());
