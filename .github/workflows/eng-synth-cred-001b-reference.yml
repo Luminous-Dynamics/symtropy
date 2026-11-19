@@ -1,0 +1,45 @@
+name: ENG-SYNTH-CRED-001B Capability Reference
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "docs/release/evidence/eng-synth-cred-001b-engine-capability-reference-v1.json"
+      - "docs/engineering/ENG_SYNTH_CRED_001B_ENGINE_CAPABILITY_CENSUS.md"
+      - "scripts/validate_eng_synth_cred_001b.py"
+      - ".github/workflows/eng-synth-cred-001b-reference.yml"
+      - "crates/core/symtropy-physics/**"
+      - "crates/core/symtropy-math/**"
+  push:
+    branches: ["main"]
+    paths:
+      - "docs/release/evidence/eng-synth-cred-001b-engine-capability-reference-v1.json"
+      - "docs/engineering/ENG_SYNTH_CRED_001B_ENGINE_CAPABILITY_CENSUS.md"
+      - "scripts/validate_eng_synth_cred_001b.py"
+      - ".github/workflows/eng-synth-cred-001b-reference.yml"
+      - "crates/core/symtropy-physics/**"
+      - "crates/core/symtropy-math/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eng-synth-cred-001b-reference-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-reference:
+    name: Independently qualify frozen source reference
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Qualify exact source blobs and reference semantics
+        run: python3 scripts/validate_eng_synth_cred_001b.py --repo-root .
