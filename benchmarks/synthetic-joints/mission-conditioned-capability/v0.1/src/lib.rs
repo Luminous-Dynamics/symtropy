@@ -785,7 +785,7 @@ mod tests {
         ).unwrap();
         assert_eq!(result.decision, MechanicalEnvelopeDecision::Unknown);
         assert_eq!(result.metrics.unknown_sample_count, 2);
-        assert_eq!(result.metrics.torque_sample_coverage, 0.0);
+        assert_eq!(result.metrics.torque_envelope_sample_coverage, Some(0.0));
     }
 
     #[test]
@@ -931,7 +931,37 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_017_duplicate_regime_and_inconsistent_evidence_reject() {
+    fn mcjce_017_coast_only_mission_does_not_claim_torque_envelope_coverage() {
+        let result = evaluate_mission(
+            &candidate(),
+            &mission(vec![sample(0.0, 0.0, 0.0, 2.0), sample(1.0, 0.0, 0.0, 3.0)]),
+        ).unwrap();
+        assert_eq!(result.decision, MechanicalEnvelopeDecision::Feasible);
+        assert_eq!(result.metrics.torque_demand_sample_count, 0);
+        assert_eq!(result.metrics.coast_sample_count, 2);
+        assert_eq!(result.metrics.torque_envelope_sample_coverage, None);
+    }
+
+    #[test]
+    fn mcjce_018_evidence_references_and_scope_digests_survive_evaluation() {
+        let result = evaluate_mission(
+            &candidate(),
+            &mission(vec![sample(0.0, 2.0, 0.0, 0.0), sample(0.1, 2.0, 0.0, 0.0)]),
+        ).unwrap();
+        assert_eq!(result.candidate_configuration_digest, CONFIG);
+        assert_eq!(result.operating_condition_digest, CONDITIONS);
+        assert_eq!(
+            result.samples[0].evidence_reference.as_deref(),
+            Some("https://example.invalid/test-fixture")
+        );
+        assert_eq!(
+            result.samples[0].evidence_method.as_deref(),
+            Some("synthetic known-answer fixture")
+        );
+    }
+
+    #[test]
+    fn mcjce_019_duplicate_regime_and_inconsistent_evidence_reject() {
         let mut duplicate = candidate();
         duplicate.regimes.push(duplicate.regimes[0].clone());
         assert!(evaluate_mission(
