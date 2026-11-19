@@ -235,7 +235,7 @@ def qualify_source(root: Path, reference: dict[str, Any]) -> None:
     if "motor.target_pos" in hinge_motor_code:
         fail("hinge target_pos appears in executable solver path; refresh reference")
     solve_text = hinge[hinge_motor_start:]
-    solve_code = "\\n".join(line.split("//", 1)[0] for line in solve_text.splitlines())
+    solve_code = "\n".join(line.split("//", 1)[0] for line in solve_text.splitlines())
     if "self.angle_limits" in solve_code:
         fail("hinge solver now consumes angle_limits; refresh reference")
 
