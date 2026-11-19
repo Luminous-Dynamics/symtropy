@@ -147,7 +147,7 @@
   },
   "implementation": {
     "crate": "crates/domains/symtropy-lovelock5d",
-    "rust_tests_authored": 22,
+    "rust_tests_authored": 31,
     "rust_tests_executed": false,
     "sympy_script": "benchmarks/akribiea_5d_mp_exact_reference.py",
     "sympy_script_executed_in_clean_checkout": false,
@@ -241,9 +241,36 @@
       "tests_executed": false,
       "reference_script": "benchmarks/derive_slow_rotation_reference.py",
       "exact_fixture": "benchmarks/slow_rotation_5d_reference_v1.json"
+    },
+    "profile_tests_authored": 18,
+    "interval_tests_authored": 7,
+    "interval_pre_screen": {
+      "path": "src/interval.rs",
+      "arithmetic": "binary64 adjacent-float outward rounding for add/subtract/multiply/divide/sqrt",
+      "api": "certify_angular_quadrature(radius,b,f,h,alpha,P_w)",
+      "output": [
+        "K interval",
+        "h*sqrt(fh/b)*K denominator interval",
+        "reconstructed w' interval"
+      ],
+      "fail_closed": [
+        "K interval contains zero",
+        "nonpositive metric interval",
+        "division interval contains zero",
+        "non-finite/overflow arithmetic"
+      ],
+      "exact_family_bound": "Boulware-Deser/linear-spin family K=r^2*sqrt(1+alpha*(alpha+2*r_H^2)/r^4)>=r^2 for alpha>=0",
+      "local_independent_arithmetic_check": {
+        "language": "Python translation with Fraction exact-rational inclusion checks",
+        "random_cases": 5000,
+        "exact_checks": 15000,
+        "executed": true,
+        "rust_module_executed": false
+      },
+      "proof_status": "pre-screen only; requires valid input function enclosures, IEEE-1788 differential tests and independent FLINT Arb replay from issue #6013; not a solution certificate"
     }
   },
-  "claim_ceiling": "Exact analytic MP/BD references, exact first-order slow-rotation EGB profile and action-level ODE residuals. A separate Python Hessian-jet replay gives ~1e-14 on exact MP/BD branches and confirms O(a^2) even-sector residual scaling on the slow branch. Rust has 22 authored tests, not compiled or executed. No arbitrary-coordinate 5D tensor verification, second-order spin backreaction, fully nonlinear finite-alpha rotating branch, interval enclosure, radii-polynomial proof or stability claim.",
+  "claim_ceiling": "Exact analytic MP/BD references, exact first-order slow-rotation EGB profile and action-level ODE residuals. A separate Python Hessian-jet replay gives ~1e-14 on exact MP/BD branches and confirms O(a^2) even-sector residual scaling on the slow branch. Rust has 22 authored tests, not compiled or executed. No arbitrary-coordinate 5D tensor verification, second-order spin backreaction, fully nonlinear finite-alpha rotating branch, interval enclosure, radii-polynomial proof or stability claim. The binary64 interval module is a preliminary outward-rounded quadrature screen only; no interval solution certificate or Arb replay is claimed.",
   "time_sector_radial_identity": {
     "source": "Brihaye et al. (2010), Eq. (2.14), full right-hand side including alpha corrections",
     "current": "P_t(r)=sqrt(f*h/b)*(r^2*(h*w*w'-b')+alpha*((f-4+h/r^2+r*f*h'/h)*b'+(4-3*h/r^2-f)*h*w*w'+r*f*h*w'^2))",
