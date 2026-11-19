@@ -293,11 +293,32 @@ fn frozen_adversarial_corpus() {
                 future.master_returned_end_ns = 4_000_000_000;
                 trace.attempts.insert(5, future);
             }
+            "early_return_at_requested_endpoint" => {
+                trace.attempts[2].local_returned_end_tick = 3;
+                trace.attempts[2].master_returned_end_ns = 3_000_000_000;
+            }
+            "clock_binding_identity_mismatch" => {
+                trace.attempts[0].clock_binding_id = "stale-clock-binding".to_owned();
+            }
+            "invalid_negative_clock_scale" => {
+                trace.federates[0].clock.nanoseconds_per_tick_numerator = -1;
+            }
+            "clock_mapping_exceeds_master_range" => {
+                trace.federates[0].clock.local_epoch_tick = i64::MIN;
+                trace.federates[0].initial_local_tick = i64::MAX;
+                trace.federates[0].clock.nanoseconds_per_tick_numerator = i64::MAX;
+            }
+            "missing_state_snapshot_digest" => {
+                trace.attempts[0].state_after_digest.clear();
+            }
+            "barrier_sequence_skipped" => {
+                trace.barriers[1].sequence = 2;
+            }
             other => panic!("unknown mutation in frozen corpus: {other}"),
         }
 
         assert_code(&trace, expected);
     }
 
-    assert_eq!(seen.len(), 19);
+    assert_eq!(seen.len(), 25);
 }
