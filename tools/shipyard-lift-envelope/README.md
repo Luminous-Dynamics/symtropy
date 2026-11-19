@@ -91,11 +91,11 @@ The canonical JSON output shapes are specified in:
 - `schemas/lift-plan-v0.1.schema.json`
 - `schemas/preflight-report-v0.1.schema.json`
 
-The frozen synthetic conformance suite is in `fixtures/conformance-vectors-v0.1.json`, described by `schemas/conformance-vectors-v0.1.schema.json`. It maps 33 named vectors to deterministic Rust tests. The Rust suite checks the fixture-to-test mapping, while CI checks vector uniqueness, expected-outcome metadata and the presence of every mapped test name. The JSON Schemas describe shape; they do not authenticate the evidence references or prove engineering assumptions.
+The frozen synthetic conformance suite is in `fixtures/conformance-vectors-v0.1.json`, described by `schemas/conformance-vectors-v0.1.schema.json`. It maps 43 named vectors to deterministic Rust tests. The Rust suite checks the fixture-to-test mapping, while CI checks vector uniqueness, expected-outcome metadata and the presence of every mapped test name. The JSON Schemas describe shape; they do not authenticate the evidence references or prove engineering assumptions.
 
 ## Tests
 
-The dependency-free unit suite currently contains 43 tests (42 frozen conformance vectors plus one fixture-to-test mapping check) and covers:
+The dependency-free unit suite currently contains 44 tests (43 frozen conformance vectors plus one fixture-to-test mapping check) and covers:
 
 - nominal arithmetic and human-review-only disposition;
 - crane chart capacity and exact-cell mismatch/no interpolation;
