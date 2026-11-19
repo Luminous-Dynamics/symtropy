@@ -864,4 +864,117 @@ mod tests {
         assert!(!rewired.snapshot_is_current(&snapshot).unwrap());
     }
 
+
+    #[test]
+    fn generated_dags_match_an_independent_exhaustive_invalidation_oracle() {
+        for initial_seed in 0..24_u64 {
+            let node_count = 48_usize;
+            let mut seed = 0x9e37_79b9_u64.wrapping_add(initial_seed);
+            let mut next = || {
+                seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+                seed >> 32
+            };
+            let nodes: Vec<_> = (0..node_count)
+                .map(|index| {
+                    let kind = match index % 8 {
+                        0 => EvidenceNodeKind::SourceModel,
+                        1 => EvidenceNodeKind::IdsEvaluation,
+                        2 => EvidenceNodeKind::WorkPackage,
+                        3 => EvidenceNodeKind::TaskPlan,
+                        4 => EvidenceNodeKind::MotionEnvelope,
+                        5 => EvidenceNodeKind::ExecutionEvidence,
+                        6 => EvidenceNodeKind::InspectionEvidence,
+                        _ => EvidenceNodeKind::AcceptedOutput,
+                    };
+                    node(&format!("generated-{index:03}"), kind, '1')
+                })
+                .collect();
+            let mut edge_set = BTreeSet::new();
+            for index in 1..node_count {
+                // A mandatory predecessor keeps the generated DAG connected
+                // along one spine; the seeded edges add branches and joins.
+                edge_set.insert(edge(
+                    &format!("generated-{index:03}"),
+                    &format!("generated-{:03}", index - 1),
+                ));
+                for prerequisite in 0..index.saturating_sub(1) {
+                    if next().is_multiple_of(11) {
+                        edge_set.insert(edge(
+                            &format!("generated-{index:03}"),
+                            &format!("generated-{prerequisite:03}"),
+                        ));
+                    }
+                }
+            }
+            let edges: Vec<_> = edge_set.into_iter().collect();
+            let graph = EvidenceDependencyGraph::new(nodes.clone(), edges.clone()).unwrap();
+
+            let mut changes = vec![
+                EvidenceRevisionChange {
+                    node_id: "generated-000".into(),
+                    new_version_sha256: digest('a'),
+                    reason: format!("seed {initial_seed} source update"),
+                },
+                EvidenceRevisionChange {
+                    node_id: "generated-017".into(),
+                    new_version_sha256: digest('b'),
+                    reason: format!("seed {initial_seed} shared survey update"),
+                },
+            ];
+            let plan = graph.plan_revision(&changes).unwrap();
+
+            // Independent fixed-point oracle over the raw edge list. This does
+            // not call the graph's reverse adjacency or closure implementation.
+            let mut expected = BTreeSet::from([
+                "generated-000".to_owned(),
+                "generated-017".to_owned(),
+            ]);
+            loop {
+                let before = expected.len();
+                for dependency in &edges {
+                    if expected.contains(&dependency.prerequisite_node_id) {
+                        expected.insert(dependency.dependent_node_id.clone());
+                    }
+                }
+                if expected.len() == before {
+                    break;
+                }
+            }
+            let changed: BTreeSet<_> = changes.iter().map(|item| item.node_id.clone()).collect();
+            let expected_dependents: BTreeSet<_> = expected.difference(&changed).cloned().collect();
+            let actual_dependents: BTreeSet<_> = plan
+                .requalification_order
+                .iter()
+                .map(|item| item.node_id.clone())
+                .collect();
+            assert_eq!(
+                actual_dependents, expected_dependents,
+                "closure mismatch for deterministic seed {initial_seed}"
+            );
+
+            let expected_unaffected: Vec<_> = nodes
+                .iter()
+                .map(|item| item.node_id.clone())
+                .filter(|id| !expected.contains(id))
+                .collect();
+            assert_eq!(plan.unaffected_nodes, expected_unaffected);
+
+            // Input order must not change the plan.
+            changes.reverse();
+            let mut reversed_nodes = nodes.clone();
+            reversed_nodes.reverse();
+            let mut reversed_edges = edges.clone();
+            reversed_edges.reverse();
+            let permuted = EvidenceDependencyGraph::new(reversed_nodes, reversed_edges).unwrap();
+            assert_eq!(permuted.plan_revision(&changes).unwrap(), plan);
+
+            // A snapshot of a downstream output must become stale when one of
+            // its transitive ancestors changes, not merely when its parent does.
+            let mut current_graph = graph.clone();
+            let old_snapshot = current_graph.capture_snapshot("generated-047").unwrap();
+            current_graph.apply_revision(&changes).unwrap();
+            assert!(!current_graph.snapshot_is_current(&old_snapshot).unwrap());
+        }
+    }
+
 }
