@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-decision-sufficient-observation-v0",
+  "warning": "Evaluator-only file. Never mount in the agent process.",
+  "episodes": [
+    {
+      "episode_id": "av-dso-001-high-eig-zero-evsi-vs-lower-eig-positive-evsi",
+      "realized_hypothesis_id": "H1",
+      "realized_outcomes": {
+        "subtype_detail": "signature_a",
+        "hazard_cue": "alarm"
+      },
+      "evaluator_truth": "hazard",
+      "actual_dependency_groups": {
+        "subtype_detail": "mic-array-root-1",
+        "hazard_cue": "mic-array-root-1"
+      }
+    },
+    {
+      "episode_id": "av-dso-002-robust-stop",
+      "realized_hypothesis_id": "H2",
+      "realized_outcomes": {
+        "identify_subtype": "type_b"
+      },
+      "evaluator_truth": "terminal_decision_invariant",
+      "actual_dependency_groups": {
+        "identify_subtype": "camera-root-1"
+      }
+    },
+    {
+      "episode_id": "av-dso-003-observation-arrives-after-decision-deadline",
+      "realized_hypothesis_id": "H1",
+      "realized_outcomes": {
+        "high_rate_audio": "cue"
+      },
+      "actual_arrival_tick": {
+        "high_rate_audio": 13
+      },
+      "evaluator_truth": "event_requires_response_by_tick_10"
+    },
+    {
+      "episode_id": "av-dso-004-budget-excludes-best-information-request",
+      "realized_hypothesis_id": "H2",
+      "realized_outcomes": {
+        "highres_multi_frame": "different",
+        "single_crop": "unclear"
+      },
+      "actual_dependency_groups": {
+        "highres_multi_frame": "camera-root-1",
+        "single_crop": "camera-root-1"
+      }
+    },
+    {
+      "episode_id": "av-dso-005-permission-excludes-private-sensor-request",
+      "realized_hypothesis_id": "H1",
+      "realized_outcomes": {
+        "private_room_camera": "private_event",
+        "public_area_crop": "unclear"
+      },
+      "permission_truth": {
+        "private_room_camera": "not_permitted",
+        "public_area_crop": "permitted"
+      }
+    },
+    {
+      "episode_id": "av-dso-006-correlated-observations-not-independent",
+      "realized_hypothesis_id": "H1",
+      "realized_outcomes": {
+        "audio-caption-derived-view": "mentions_event"
+      },
+      "actual_dependency_groups": {
+        "obs:audio-spectrum:12": "capture-chain-7",
+        "audio-caption-derived-view": "capture-chain-7"
+      },
+      "evaluator_truth": "derived_view_is_not_independent_evidence"
+    },
+    {
+      "episode_id": "av-dso-007-uncalibrated-incomplete-outcome-partition",
+      "realized_hypothesis_id": "open_world_other",
+      "realized_outcomes": {
+        "unvalidated_array_measurement": "unmodeled_outcome"
+      },
+      "evaluator_truth": "open_world_hypothesis_not_explained"
+    }
+  ]
+}
