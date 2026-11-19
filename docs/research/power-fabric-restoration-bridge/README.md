@@ -182,3 +182,8 @@ The external register now includes:
 - Chen & Xie, assigned to the February 2027 issue, topology-aware substation repair sequencing using minimum repair sets and bottleneck-first interleaving with spare allocation. Its abstract reports 4,000 seismic scenarios and 25.0%–36.3% median resilience-index improvements over Global-Greedy, but those metrics are specific to its own substation case. Crucially, it notes that resilience index and final restoration time can diverge. Treat it as forthcoming as of this snapshot.
 
 These method papers are comparators, not public datasets. Reproduce their exact problem semantics, model, solver, objective and compute budgets before claiming parity or superiority. Keep restoration time, time-dependent functionality, unserved service, and final completion as separate metrics.
+
+
+### Delayed commissioning/service fixture correction
+
+The synthetic timeline is now internally consistent: planned repair completion is 10:00; observed repair completion is 14:00; commissioning is observed passed at 14:30; the independent electrical service model reports 20% functionality from 15:00 and 90% from 16:00. The dedicated workflow has a fixture-specific negative control for an earlier service pickup. This scenario has no declared alternate supply; other future fixtures may legitimately preserve service before repair through independent redundancy, but must model that path explicitly.
