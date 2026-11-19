@@ -110,6 +110,7 @@ pub struct DispatchReadinessRequest {
 pub struct DispatchReadinessPolicy {
     pub occupancy_engine_build_sha256: String,
     pub clearance_policy_sha256: String,
+    pub clock_uncertainty_policy_sha256: String,
     pub max_clock_uncertainty_ticks: u64,
 }
 
@@ -134,6 +135,8 @@ pub struct DispatchReadinessReceipt {
     pub occupancy_assessment_receipt_sha256: String,
     pub occupancy_engine_build_sha256: String,
     pub clearance_policy_sha256: String,
+    pub clock_uncertainty_policy_sha256: String,
+    pub max_clock_uncertainty_ticks: u64,
     pub candidate_pair_count: u64,
     pub narrowphase_evaluated_pair_count: u64,
     pub site_ledger_sequence: u64,
@@ -241,6 +244,7 @@ pub fn check_dispatch_readiness(
         ("assessment receipt", occupancy.assessment_receipt_sha256.as_str()),
         ("trusted occupancy engine build", policy.occupancy_engine_build_sha256.as_str()),
         ("required clearance policy", policy.clearance_policy_sha256.as_str()),
+        ("clock uncertainty policy", policy.clock_uncertainty_policy_sha256.as_str()),
         ("clock epoch", clock.epoch_sha256.as_str()),
         ("clock mapping", clock.mapping_sha256.as_str()),
         ("clock qualification receipt", clock.receipt_sha256.as_str()),
@@ -457,6 +461,8 @@ pub fn check_dispatch_readiness(
         occupancy_assessment_receipt_sha256: occupancy.assessment_receipt_sha256.clone(),
         occupancy_engine_build_sha256: occupancy.occupancy_engine_build_sha256.clone(),
         clearance_policy_sha256: occupancy.clearance_policy_sha256.clone(),
+        clock_uncertainty_policy_sha256: policy.clock_uncertainty_policy_sha256.clone(),
+        max_clock_uncertainty_ticks: policy.max_clock_uncertainty_ticks,
         candidate_pair_count: occupancy.candidate_pair_count,
         narrowphase_evaluated_pair_count: occupancy.narrowphase_evaluated_pair_count,
         site_ledger_sequence: ledger.last_sequence(),
@@ -506,6 +512,7 @@ pub fn verify_dispatch_readiness_receipt_current(
         ("occupancy assessment receipt", receipt.occupancy_assessment_receipt_sha256.as_str()),
         ("occupancy engine build", receipt.occupancy_engine_build_sha256.as_str()),
         ("clearance policy", receipt.clearance_policy_sha256.as_str()),
+        ("clock uncertainty policy", receipt.clock_uncertainty_policy_sha256.as_str()),
         ("site ledger head", receipt.site_ledger_event_sha256.as_str()),
         ("clock epoch", receipt.site_clock_epoch_sha256.as_str()),
         ("clock mapping", receipt.clock_mapping_sha256.as_str()),
@@ -543,6 +550,9 @@ pub fn verify_dispatch_readiness_receipt_current(
     }
     if !is_sha256(&policy.clearance_policy_sha256) {
         return Err(DispatchReadinessFailure::InvalidDigest("required clearance policy"));
+    }
+    if !is_sha256(&policy.clock_uncertainty_policy_sha256) {
+        return Err(DispatchReadinessFailure::InvalidDigest("clock uncertainty policy"));
     }
     if !is_sha256(&qualified_clock.epoch_sha256)
         || !is_sha256(&qualified_clock.mapping_sha256)
@@ -606,6 +616,11 @@ pub fn verify_dispatch_readiness_receipt_current(
     }
     if receipt.clearance_policy_sha256 != policy.clearance_policy_sha256 {
         return Err(DispatchReadinessFailure::ClearancePolicyMismatch);
+    }
+    if receipt.clock_uncertainty_policy_sha256 != policy.clock_uncertainty_policy_sha256
+        || receipt.max_clock_uncertainty_ticks != policy.max_clock_uncertainty_ticks
+    {
+        return Err(DispatchReadinessFailure::ClockUncertaintyExceedsPolicy);
     }
     if ledger.active_package_sha256() != Some(receipt.package_sha256.as_str())
         || ledger.package_is_current(&receipt.package_sha256) != Some(true)
@@ -693,6 +708,7 @@ mod tests {
         DispatchReadinessPolicy {
             occupancy_engine_build_sha256: digest('e'),
             clearance_policy_sha256: digest('f'),
+            clock_uncertainty_policy_sha256: digest('g'),
             max_clock_uncertainty_ticks: 2,
         }
     }
@@ -819,7 +835,9 @@ mod tests {
         assert_eq!(receipt.clock_mapping_sha256, digest('b'));
         assert_eq!(receipt.clock_sample_sequence, 1);
         assert_eq!(receipt.checked_at_uncertainty_ticks, 1);
-        assert_eq!(receipt.valid_until_tick, 350);
+        assert_eq!(receipt.clock_uncertainty_policy_sha256, digest('g'));
+        assert_eq!(receipt.max_clock_uncertainty_ticks, 2);
+        assert_eq!(receipt.valid_until_tick, 400);
     }
 
     #[test]
@@ -1069,7 +1087,7 @@ mod tests {
                 &ledger,
                 &receipt,
                 &policy(),
-                &clock_sample(2, 400),
+                &clock_sample(2, 402),
             ),
             Err(DispatchReadinessFailure::ReadinessReceiptExpired)
         );
