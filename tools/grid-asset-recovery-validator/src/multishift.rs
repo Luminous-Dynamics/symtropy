@@ -866,9 +866,20 @@ fn validate_resource_usage(
                 .find(|item| item.event_id == task.event_id && item.task_id == task.task_id)
                 .map(|item| item.state);
             if commitment_state == Some(CommitmentState::InProgress) {
-                if let Some(first) = intervals.first() {
+                let retained_start = if task.paused_resource_policy == PausedResourcePolicy::Retain {
+                    intervals.first().map(|item| item.0)
+                } else {
+                    segment_views
+                        .get(key)
+                        .into_iter()
+                        .flatten()
+                        .filter(|segment| !segment.completed)
+                        .map(|segment| segment.start_hour)
+                        .min_by(f64::total_cmp)
+                };
+                if let Some(start_hour) = retained_start {
                     uses.push(ResourceUse {
-                        start_hour: first.0,
+                        start_hour,
                         end_hour: case.horizon_end_hour,
                         units: requirement.units,
                         task_key: key.clone(),
