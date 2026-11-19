@@ -6,7 +6,7 @@
 //! safety-rated protective system. The caller must verify canonical receipt
 //! bytes and actor signatures before constructing these typed records.
 
-use crate::site_state_ledger::{SiteEntityState, SiteStateLedger};
+use crate::site_state_ledger::{SiteActorRole, SiteEntityState, SiteStateLedger};
 
 pub const DISPATCH_READINESS_REQUEST_SCHEMA_VERSION: &str =
     "construction-dispatch-readiness-request/0.1";
@@ -85,12 +85,23 @@ pub struct DispatchReadinessReceipt {
     pub package_sha256: String,
     pub design_revision_sha256: String,
     pub entity_id: String,
+    pub frame_sha256: String,
+    pub transform_sha256: String,
     pub robot_id: String,
+    pub robot_configuration_sha256: String,
+    pub tool_configuration_sha256: String,
+    pub payload_configuration_sha256: String,
+    pub primitive_manifest_sha256: String,
+    pub trajectory_sha256: String,
     pub envelope_sha256: String,
     pub site_snapshot_sha256: String,
+    pub dynamic_occupancy_manifest_sha256: String,
+    pub actor_manifest_sha256: String,
     pub occupancy_assessment_receipt_sha256: String,
     pub occupancy_engine_build_sha256: String,
     pub clearance_policy_sha256: String,
+    pub candidate_pair_count: u64,
+    pub narrowphase_evaluated_pair_count: u64,
     pub site_ledger_sequence: u64,
     pub site_ledger_event_sha256: String,
     pub site_clock_domain_id: String,
@@ -117,6 +128,7 @@ pub enum DispatchReadinessFailure {
     OccupancyPrimitiveManifestMismatch,
     OccupancyEngineBuildMismatch,
     ClearancePolicyMismatch,
+    RobotIdentityNotRegistered,
     OccupancyClockDomainMismatch,
     SiteSnapshotSequenceMismatch,
     SiteSnapshotHeadMismatch,
@@ -182,6 +194,12 @@ pub fn check_dispatch_readiness(
         || occupancy.site_clock_domain_id.trim().is_empty()
     {
         return Err(DispatchReadinessFailure::OccupancyClockDomainMismatch);
+    }
+    if !ledger
+        .actor_registry()
+        .allows(&envelope.robot_id, SiteActorRole::Robot)
+    {
+        return Err(DispatchReadinessFailure::RobotIdentityNotRegistered);
     }
 
     if ledger.active_package_sha256() != Some(envelope.package_sha256.as_str())
@@ -296,12 +314,23 @@ pub fn check_dispatch_readiness(
         package_sha256: envelope.package_sha256.clone(),
         design_revision_sha256: envelope.design_revision_sha256.clone(),
         entity_id: envelope.entity_id.clone(),
+        frame_sha256: envelope.frame_sha256.clone(),
+        transform_sha256: envelope.transform_sha256.clone(),
         robot_id: envelope.robot_id.clone(),
+        robot_configuration_sha256: envelope.robot_configuration_sha256.clone(),
+        tool_configuration_sha256: envelope.tool_configuration_sha256.clone(),
+        payload_configuration_sha256: envelope.payload_configuration_sha256.clone(),
+        primitive_manifest_sha256: envelope.primitive_manifest_sha256.clone(),
+        trajectory_sha256: envelope.trajectory_sha256.clone(),
         envelope_sha256: envelope.envelope_sha256.clone(),
         site_snapshot_sha256: occupancy.site_snapshot_sha256.clone(),
+        dynamic_occupancy_manifest_sha256: occupancy.dynamic_occupancy_manifest_sha256.clone(),
+        actor_manifest_sha256: occupancy.actor_manifest_sha256.clone(),
         occupancy_assessment_receipt_sha256: occupancy.assessment_receipt_sha256.clone(),
         occupancy_engine_build_sha256: occupancy.occupancy_engine_build_sha256.clone(),
         clearance_policy_sha256: occupancy.clearance_policy_sha256.clone(),
+        candidate_pair_count: occupancy.candidate_pair_count,
+        narrowphase_evaluated_pair_count: occupancy.narrowphase_evaluated_pair_count,
         site_ledger_sequence: ledger.last_sequence(),
         site_ledger_event_sha256: ledger
             .last_event_sha256()
@@ -329,8 +358,17 @@ pub fn verify_dispatch_readiness_receipt_current(
     for (label, digest) in [
         ("package", receipt.package_sha256.as_str()),
         ("design revision", receipt.design_revision_sha256.as_str()),
+        ("frame", receipt.frame_sha256.as_str()),
+        ("transform", receipt.transform_sha256.as_str()),
+        ("robot configuration", receipt.robot_configuration_sha256.as_str()),
+        ("tool configuration", receipt.tool_configuration_sha256.as_str()),
+        ("payload configuration", receipt.payload_configuration_sha256.as_str()),
+        ("primitive manifest", receipt.primitive_manifest_sha256.as_str()),
+        ("trajectory", receipt.trajectory_sha256.as_str()),
         ("motion envelope", receipt.envelope_sha256.as_str()),
         ("site snapshot", receipt.site_snapshot_sha256.as_str()),
+        ("dynamic occupancy manifest", receipt.dynamic_occupancy_manifest_sha256.as_str()),
+        ("actor manifest", receipt.actor_manifest_sha256.as_str()),
         (
             "occupancy assessment receipt",
             receipt.occupancy_assessment_receipt_sha256.as_str(),
@@ -348,6 +386,12 @@ pub fn verify_dispatch_readiness_receipt_current(
         || receipt.site_clock_domain_id.trim().is_empty()
     {
         return Err(DispatchReadinessFailure::OccupancyClockDomainMismatch);
+    }
+    if !ledger
+        .actor_registry()
+        .allows(&receipt.robot_id, SiteActorRole::Robot)
+    {
+        return Err(DispatchReadinessFailure::RobotIdentityNotRegistered);
     }
     if !is_sha256(trusted_occupancy_engine_build_sha256) {
         return Err(DispatchReadinessFailure::InvalidDigest(
