@@ -47,7 +47,19 @@
         "recovery_loss_to_seawater_w": 0,
         "recovery_loss_to_ambient_w": 0,
         "heat_sink_id": null,
-        "heat_delivery_observation_id": null
+        "heat_delivery_observation_id": null,
+        "configuration_id": "direct-seawater-configuration-v0",
+        "meter_boundary_id": "direct-seawater-cooling-boundary",
+        "intake_observation_id": "direct-seawater-intake-observation",
+        "discharge_observation_id": "direct-seawater-discharge-observation",
+        "pump_heat_fraction_to_seawater": 1,
+        "interval_duration_seconds": 900,
+        "heat_balance_tolerance_w": 0.000001,
+        "site_limits": {
+          "maximum_discharge_temperature_c": null,
+          "maximum_temperature_rise_c": null,
+          "temperature_tolerance_c": 1e-9
+        }
       },
       "expected": {
         "it_heat_balance_residual_w": 0,
@@ -86,7 +98,19 @@
         "recovery_loss_to_seawater_w": 0,
         "recovery_loss_to_ambient_w": 0,
         "heat_sink_id": null,
-        "heat_delivery_observation_id": null
+        "heat_delivery_observation_id": null,
+        "configuration_id": "partial-economiser-plus-chiller-configuration-v0",
+        "meter_boundary_id": "partial-economiser-plus-chiller-cooling-boundary",
+        "intake_observation_id": "partial-economiser-plus-chiller-intake-observation",
+        "discharge_observation_id": "partial-economiser-plus-chiller-discharge-observation",
+        "pump_heat_fraction_to_seawater": 1,
+        "interval_duration_seconds": 900,
+        "heat_balance_tolerance_w": 0.000001,
+        "site_limits": {
+          "maximum_discharge_temperature_c": null,
+          "maximum_temperature_rise_c": null,
+          "temperature_tolerance_c": 1e-9
+        }
       },
       "expected": {
         "it_heat_balance_residual_w": 0,
@@ -125,7 +149,19 @@
         "recovery_loss_to_seawater_w": 0,
         "recovery_loss_to_ambient_w": 0,
         "heat_sink_id": null,
-        "heat_delivery_observation_id": null
+        "heat_delivery_observation_id": null,
+        "configuration_id": "chiller-only-configuration-v0",
+        "meter_boundary_id": "chiller-only-cooling-boundary",
+        "intake_observation_id": "chiller-only-intake-observation",
+        "discharge_observation_id": "chiller-only-discharge-observation",
+        "pump_heat_fraction_to_seawater": 1,
+        "interval_duration_seconds": 900,
+        "heat_balance_tolerance_w": 0.000001,
+        "site_limits": {
+          "maximum_discharge_temperature_c": null,
+          "maximum_temperature_rise_c": null,
+          "temperature_tolerance_c": 1e-9
+        }
       },
       "expected": {
         "it_heat_balance_residual_w": 0,
@@ -167,7 +203,16 @@
         "seawater_intake_temperature_c": 20,
         "seawater_discharge_temperature_c": 21.784688995215312,
         "interval_duration_seconds": 900,
-        "heat_balance_tolerance_w": 0.000001
+        "heat_balance_tolerance_w": 0.000001,
+        "configuration_id": "direct-heat-recovery-to-ro-feed-sink-configuration-v0",
+        "meter_boundary_id": "direct-heat-recovery-to-ro-feed-sink-cooling-boundary",
+        "intake_observation_id": "direct-heat-recovery-to-ro-feed-sink-intake-observation",
+        "discharge_observation_id": "direct-heat-recovery-to-ro-feed-sink-discharge-observation",
+        "site_limits": {
+          "maximum_discharge_temperature_c": null,
+          "maximum_temperature_rise_c": null,
+          "temperature_tolerance_c": 1e-9
+        }
       },
       "expected": {
         "it_heat_balance_residual_w": 0,
