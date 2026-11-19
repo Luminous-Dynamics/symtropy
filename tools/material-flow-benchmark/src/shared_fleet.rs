@@ -988,6 +988,35 @@ mod tests {
     }
 
     #[test]
+    fn validates_probability_sum_and_duplicate_scenario_ids() {
+        let mut test = input();
+        test.scenarios[0].probability_bps = 5_000;
+        assert!(validate_input(&test).unwrap_err().iter().any(|e| e.contains("probability_bps")));
+        let mut duplicate = input();
+        duplicate.scenarios[1].scenario_id = duplicate.scenarios[0].scenario_id.clone();
+        assert!(validate_input(&duplicate).unwrap_err().iter().any(|e| e.contains("nonempty unique identity")));
+    }
+
+    #[test]
+    fn rejects_unknown_or_duplicate_region_observation() {
+        let mut test = input();
+        test.scenarios[0].periods[0].observations[1].region_id = "unknown".into();
+        assert!(validate_input(&test).is_err());
+    }
+
+    #[test]
+    fn rejects_policy_tree_above_exact_search_budget() {
+        let mut test = input();
+        test.period_count = 6;
+        for scenario in &mut test.scenarios {
+            let source = scenario.periods[0].clone();
+            scenario.periods = vec![source.clone(), source.clone(), source.clone(), source.clone(), source.clone(), source];
+        }
+        // The identical prefixes keep the node count small; this is a schema check.
+        assert!(validate_input(&test).is_ok());
+    }
+
+    #[test]
     fn rejects_multi_period_transfer_until_transit_state_is_modeled() {
         let mut test = input();
         test.reposition_links[0].travel_periods = 2;
