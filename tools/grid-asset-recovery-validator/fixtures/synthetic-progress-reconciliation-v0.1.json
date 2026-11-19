@@ -1,6 +1,6 @@
 {
   "schemaVersion": "0.1.0",
-  "caseId": "synthetic-multi-shift-recovery-001",
+  "caseId": "synthetic-progress-reconciliation-001",
   "timeOriginUtc": "2030-01-01T00:00:00Z",
   "asOfHour": 8,
   "horizonEndHour": 24,
