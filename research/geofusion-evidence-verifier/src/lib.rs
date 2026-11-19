@@ -113,6 +113,7 @@ pub struct VerificationReport {
     pub source_interval_start_utc: String,
     pub source_interval_start_unix_ns: i128,
     pub source_interval_duration_ns: u64,
+    pub declared_calibration_window_disposition: String,
     pub carrier: String,
     pub payload_sha256: String,
     pub payload_byte_length: u64,
@@ -138,6 +139,7 @@ impl VerificationReport {
             "source_interval_start_utc": self.source_interval_start_utc,
             "source_interval_start_unix_ns": self.source_interval_start_unix_ns.to_string(),
             "source_interval_duration_ns": self.source_interval_duration_ns,
+            "declared_calibration_window_disposition": self.declared_calibration_window_disposition,
             "carrier": self.carrier,
             "payload_sha256": self.payload_sha256,
             "payload_byte_length": self.payload_byte_length,
@@ -554,6 +556,7 @@ pub fn verify_source_interval(
     let source_interval_end_unix_ns = source_interval_start_unix_ns
         .checked_add(i128::from(source_interval_duration_ns))
         .ok_or(VerificationError::ArithmeticOverflow)?;
+    let mut declared_calibration_window_disposition = "not_applicable";
     if let Some((valid_from_utc, valid_until_utc)) = calibration_window_utc {
         let calibration_start_ns = parse_utc_timestamp_ns(&valid_from_utc)
             .map_err(|_| VerificationError::CalibrationWindowInvalid)?;
@@ -567,6 +570,8 @@ pub fn verify_source_interval(
         {
             return Err(VerificationError::CalibrationDoesNotCoverSourceInterval);
         }
+        declared_calibration_window_disposition =
+            "declared_calibration_window_covers_source_interval";
     }
 
     let evidence_id = string_field(evidence, "evidence_id", "evidence envelope")?;
@@ -768,6 +773,7 @@ pub fn verify_source_interval(
         source_interval_start_utc,
         source_interval_start_unix_ns,
         source_interval_duration_ns,
+        declared_calibration_window_disposition: declared_calibration_window_disposition.to_owned(),
         carrier: carrier.to_owned(),
         payload_sha256: actual_digest,
         payload_byte_length: actual_length,
@@ -1074,6 +1080,10 @@ mod tests {
         let report = verify_source_interval(&bytes, &e, &a).unwrap();
         assert!(report.qualified);
         assert!(report.integrity_verified);
+        assert_eq!(
+            report.declared_calibration_window_disposition,
+            "declared_calibration_window_covers_source_interval"
+        );
     }
 
     #[test]
