@@ -1,0 +1,58 @@
+name: Plasma pressure tensor audit
+
+on:
+  push:
+    branches:
+      - research/plasma-pressure-tensor-audit-v0-1-2026-11-19
+    paths:
+      - "crates/tools/plasma-pressure-tensor-audit/**"
+      - "benchmarks/plasma/pressure-tensor-audit-v0.json"
+      - ".github/workflows/plasma-pressure-tensor-audit.yml"
+  pull_request:
+    paths:
+      - "crates/tools/plasma-pressure-tensor-audit/**"
+      - "benchmarks/plasma/pressure-tensor-audit-v0.json"
+      - ".github/workflows/plasma-pressure-tensor-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+      - name: Install Rust 1.96 toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Strict format check
+        run: cargo fmt --manifest-path crates/tools/plasma-pressure-tensor-audit/Cargo.toml -- --check
+      - name: Unit tests
+        run: cargo test --locked --manifest-path crates/tools/plasma-pressure-tensor-audit/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path crates/tools/plasma-pressure-tensor-audit/Cargo.toml --all-targets -- -D warnings
+      - name: Audit frozen known-answer request
+        run: cargo run --locked --manifest-path crates/tools/plasma-pressure-tensor-audit/Cargo.toml -- benchmarks/plasma/pressure-tensor-audit-v0.json
+      - name: Confirm rejected tensors fail the process boundary
+        shell: bash
+        run: |
+          report="$(mktemp)"
+          if cargo run --locked --manifest-path crates/tools/plasma-pressure-tensor-audit/Cargo.toml -- benchmarks/plasma/pressure-tensor-audit-indefinite-v0.json >"$report"; then
+            echo "indefinite tensor unexpectedly returned exit 0"
+            exit 1
+          fi
+          python - "$report" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          report = json.loads(Path(sys.argv[1]).read_text())
+          if report["body"]["disposition"] != "rejected":
+              raise SystemExit("negative control did not emit a rejected disposition")
+          if not any(item["code"] == "pressure_tensor_not_positive_semidefinite"
+                     for item in report["body"]["findings"]):
+              raise SystemExit("negative control did not preserve the PSD finding")
+          PY

@@ -1,0 +1,23 @@
+{
+  "schema_version": "luminous.plasma-pressure-tensor-audit.v0.1",
+  "request_id": "synthetic-indefinite-negative-control",
+  "source_id": "synthetic-analytical-fixture",
+  "coordinate_frame_id": "cartesian-xyz-lab-frame",
+  "pressure_units": "normalized_pressure",
+  "gradient_units": "inverse_normalized_time",
+  "pressure_tensor": [
+    [1.0, 0.0, 0.0],
+    [0.0, 1.0, 0.0],
+    [0.0, 0.0, -0.1]
+  ],
+  "velocity_gradient": [
+    [0.0, 0.0, 0.0],
+    [0.0, 0.0, 0.0],
+    [0.0, 0.0, 0.0]
+  ],
+  "tolerances": {
+    "symmetry_relative": 1e-12,
+    "psd_relative": 1e-12,
+    "energy_identity_relative": 1e-12
+  }
+}
