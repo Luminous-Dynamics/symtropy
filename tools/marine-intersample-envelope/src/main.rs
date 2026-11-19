@@ -772,7 +772,10 @@ mod tests {
             .find(|item| item["scenario_class"] == "adverse_forecast_error").unwrap();
         let breach = scenario["first_inter_sample_breach"].as_object().unwrap();
         assert_eq!(breach["metric"], "freshwater_usable_l");
-        assert_eq!(breach["inter_sample_conservative_bound"], 77.9);
+        assert_eq!(breach["inter_sample_conservative_bound"], 53.9);
+        assert!(report["scenario_reports"].as_array().unwrap().iter()
+            .filter(|item| item["inter_sample_feasible"] == false)
+            .all(|item| item["scenario_class"] == "adverse_forecast_error"));
     }
 
     #[test]
