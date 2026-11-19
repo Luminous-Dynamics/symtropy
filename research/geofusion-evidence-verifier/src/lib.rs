@@ -18,6 +18,7 @@ pub enum VerificationError {
     DuplicateSourceInterval,
     DuplicateEvidenceId,
     DuplicateAllocationReceiptId,
+    OverlappingSourceIntervals,
     MissingField(&'static str),
     InvalidField(&'static str),
     UnsupportedSchemaVersion,
@@ -48,6 +49,7 @@ impl VerificationError {
             Self::DuplicateSourceInterval => "DUPLICATE_SOURCE_INTERVAL",
             Self::DuplicateEvidenceId => "DUPLICATE_EVIDENCE_ID",
             Self::DuplicateAllocationReceiptId => "DUPLICATE_ALLOCATION_RECEIPT_ID",
+            Self::OverlappingSourceIntervals => "OVERLAPPING_SOURCE_INTERVALS",
             Self::MissingField(_) => "MISSING_FIELD",
             Self::InvalidField(_) => "INVALID_FIELD",
             Self::UnsupportedSchemaVersion => "UNSUPPORTED_SCHEMA_VERSION",
@@ -99,6 +101,7 @@ pub struct VerificationReport {
     pub source_boundary_id: String,
     pub source_interval_id: String,
     pub source_interval_start_utc: String,
+    pub source_interval_start_unix_ns: i128,
     pub source_interval_duration_ns: u64,
     pub carrier: String,
     pub payload_sha256: String,
@@ -123,6 +126,7 @@ impl VerificationReport {
             "source_boundary_id": self.source_boundary_id,
             "source_interval_id": self.source_interval_id,
             "source_interval_start_utc": self.source_interval_start_utc,
+            "source_interval_start_unix_ns": self.source_interval_start_unix_ns,
             "source_interval_duration_ns": self.source_interval_duration_ns,
             "carrier": self.carrier,
             "payload_sha256": self.payload_sha256,
@@ -237,6 +241,79 @@ fn service_matches_carrier(service: &str, carrier: &str) -> bool {
     }
 }
 
+fn parse_utc_timestamp_ns(value: &str) -> Result<i128, VerificationError> {
+    let invalid = || VerificationError::TimeWindowMismatch("start_utc must be canonical RFC 3339 UTC");
+    let bytes = value.as_bytes();
+    if bytes.len() < 20 || bytes.last() != Some(&b'Z') {
+        return Err(invalid());
+    }
+    if bytes.get(4) != Some(&b'-')
+        || bytes.get(7) != Some(&b'-')
+        || bytes.get(10) != Some(&b'T')
+        || bytes.get(13) != Some(&b':')
+        || bytes.get(16) != Some(&b':')
+    {
+        return Err(invalid());
+    }
+    let parse_digits = |start: usize, end: usize| -> Result<i64, VerificationError> {
+        let slice = bytes.get(start..end).ok_or_else(invalid)?;
+        if slice.is_empty() || !slice.iter().all(u8::is_ascii_digit) {
+            return Err(invalid());
+        }
+        let text = std::str::from_utf8(slice).map_err(|_| invalid())?;
+        text.parse::<i64>().map_err(|_| invalid())
+    };
+    let year = parse_digits(0, 4)?;
+    let month = parse_digits(5, 7)?;
+    let day = parse_digits(8, 10)?;
+    let hour = parse_digits(11, 13)?;
+    let minute = parse_digits(14, 16)?;
+    let second = parse_digits(17, 19)?;
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let days_in_month = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap => 29,
+        2 => 28,
+        _ => return Err(invalid()),
+    };
+    if day < 1 || day > days_in_month || hour > 23 || minute > 59 || second > 59 {
+        return Err(invalid());
+    }
+
+    // Proleptic Gregorian civil date to days since 1970-01-01.
+    let adjusted_year = year - i64::from(month <= 2);
+    let era = adjusted_year.div_euclid(400);
+    let year_of_era = adjusted_year - era * 400;
+    let shifted_month = month + if month > 2 { -3 } else { 9 };
+    let day_of_year = (153 * shifted_month + 2) / 5 + day - 1;
+    let day_of_era =
+        year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+    let days_since_epoch = i128::from(era * 146_097 + day_of_era - 719_468);
+    let seconds = days_since_epoch * 86_400
+        + i128::from(hour * 3_600 + minute * 60 + second);
+
+    let fraction_ns = match bytes.get(19) {
+        None => 0_i128,
+        Some(b'.') => {
+            let fractional_digits = &bytes[20..bytes.len() - 1];
+            if fractional_digits.is_empty()
+                || fractional_digits.len() > 9
+                || !fractional_digits.iter().all(u8::is_ascii_digit)
+            {
+                return Err(invalid());
+            }
+            let digits = std::str::from_utf8(fractional_digits)
+                .map_err(|_| invalid())?
+                .parse::<i128>()
+                .map_err(|_| invalid())?;
+            digits * 10_i128.pow((9 - fractional_digits.len()) as u32)
+        }
+        _ => return Err(invalid()),
+    };
+    Ok(seconds * 1_000_000_000 + fraction_ns)
+}
+
 fn digest_hex(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
@@ -250,9 +327,6 @@ pub fn verify_source_interval(
     evidence: &Value,
     allocation: &Value,
 ) -> Result<VerificationReport, VerificationError> {
-    let payload: Value = serde_json::from_slice(payload_bytes)
-        .map_err(|_| VerificationError::InvalidJson("source payload"))?;
-
     if string_field(evidence, "schema_version", "evidence envelope")? != "0.1.0"
         || string_field(allocation, "schema_version", "allocation receipt")? != "0.1.0"
     {
@@ -362,6 +436,13 @@ pub fn verify_source_interval(
         return Err(VerificationError::ByteLengthMismatch);
     }
 
+    // Verify byte identity before parsing untrusted payload contents.
+    let payload: Value = serde_json::from_slice(payload_bytes)
+        .map_err(|_| VerificationError::InvalidJson("source payload"))?;
+    if string_field(&payload, "schema_version", "source payload")? != "0.1.0" {
+        return Err(VerificationError::UnsupportedSchemaVersion);
+    }
+
     let subject = required(evidence, "subject", "evidence envelope")?;
     if string_field(subject, "kind", "subject")? != "physical_asset" {
         return Err(VerificationError::InvalidField("subject.kind"));
@@ -405,23 +486,29 @@ pub fn verify_source_interval(
     if string_field(time_window, "state", "time_window")? != "bounded" {
         return Err(VerificationError::TimeWindowMismatch("state must be bounded"));
     }
-    if !matches!(
-        string_field(time_window, "clock_quality", "time_window")?,
-        "synchronized" | "estimated" | "synthetic" | "unknown" | "not_applicable"
-    ) {
-        return Err(VerificationError::InvalidField("time_window.clock_quality"));
+    let clock_quality = string_field(time_window, "clock_quality", "time_window")?;
+    let clock_quality_allowed = match evidence_class {
+        "synthetic" => clock_quality == "synthetic",
+        "measured" | "audited_operation" => clock_quality == "synchronized",
+        _ => matches!(clock_quality, "synchronized" | "estimated"),
+    };
+    if !clock_quality_allowed {
+        return Err(VerificationError::TimeWindowMismatch(
+            "clock quality is insufficient for this evidence class",
+        ));
     }
     let _clock_uncertainty_ns = unsigned_field(
         time_window,
         "clock_uncertainty_ns",
         "time_window",
     )?;
-    same_text(
-        string_field(time_window, "start_utc", "time_window")?,
-        string_field(&payload, "start_utc", "source payload")?,
-        "time_window.start_utc",
-    )
-    .map_err(|_| VerificationError::TimeWindowMismatch("start_utc"))?;
+    let start_utc = string_field(&payload, "start_utc", "source payload")?;
+    let envelope_start_utc = string_field(time_window, "start_utc", "time_window")?;
+    let source_interval_start_unix_ns = parse_utc_timestamp_ns(start_utc)?;
+    let envelope_start_unix_ns = parse_utc_timestamp_ns(envelope_start_utc)?;
+    if source_interval_start_unix_ns != envelope_start_unix_ns {
+        return Err(VerificationError::TimeWindowMismatch("start_utc"));
+    }
     let source_interval_duration_ns =
         unsigned_field(&payload, "duration_ns", "source payload")?;
     if source_interval_duration_ns == 0 {
@@ -623,8 +710,7 @@ pub fn verify_source_interval(
         VerificationError::DeclaredEvaluationMismatch("disposition")
     })?;
 
-    let source_interval_start_utc =
-        string_field(time_window, "start_utc", "time_window")?.to_owned();
+    let source_interval_start_utc = start_utc.to_owned();
     let receipt_id = string_field(allocation, "receipt_id", "allocation receipt")?;
     Ok(VerificationReport {
         evidence_id: evidence_id.to_owned(),
@@ -633,6 +719,7 @@ pub fn verify_source_interval(
         source_boundary_id: boundary_id.to_owned(),
         source_interval_id: interval_id.to_owned(),
         source_interval_start_utc,
+        source_interval_start_unix_ns,
         source_interval_duration_ns,
         carrier: carrier.to_owned(),
         payload_sha256: actual_digest,
@@ -662,6 +749,7 @@ pub fn verify_source_interval_batch(
     }
 
     let mut source_intervals = BTreeSet::new();
+    let mut intervals_by_source = std::collections::BTreeMap::<(String, String, String), Vec<(i128, i128)>>::new();
     let mut evidence_ids = BTreeSet::new();
     let mut receipt_ids = BTreeSet::new();
     let mut reports = Vec::with_capacity(inputs.len());
@@ -677,12 +765,29 @@ pub fn verify_source_interval_batch(
             report.source_asset_id.clone(),
             report.source_boundary_id.clone(),
             report.carrier.clone(),
-            report.source_interval_start_utc.clone(),
+            report.source_interval_start_unix_ns,
             report.source_interval_duration_ns,
         );
         if !source_intervals.insert(source_key) {
             return Err(VerificationError::DuplicateSourceInterval);
         }
+        let source_group = (
+            report.source_asset_id.clone(),
+            report.source_boundary_id.clone(),
+            report.carrier.clone(),
+        );
+        let start = report.source_interval_start_unix_ns;
+        let end = start
+            .checked_add(i128::from(report.source_interval_duration_ns))
+            .ok_or(VerificationError::ArithmeticOverflow)?;
+        let group_intervals = intervals_by_source.entry(source_group).or_default();
+        if group_intervals
+            .iter()
+            .any(|(other_start, other_end)| start < *other_end && *other_start < end)
+        {
+            return Err(VerificationError::OverlappingSourceIntervals);
+        }
+        group_intervals.push((start, end));
         if !evidence_ids.insert(report.evidence_id.clone()) {
             return Err(VerificationError::DuplicateEvidenceId);
         }
@@ -770,6 +875,14 @@ mod tests {
     fn mutated_payload_bytes_are_rejected() {
         let mut bytes = PAYLOAD.to_vec();
         bytes.push(b' ');
+        let error = verify_source_interval(&bytes, &evidence(), &allocation()).unwrap_err();
+        assert_eq!(error.code(), "DIGEST_MISMATCH");
+    }
+
+    #[test]
+    fn malformed_tampered_payload_is_hashed_before_json_parsing() {
+        let mut bytes = PAYLOAD.to_vec();
+        bytes.push(b'!');
         let error = verify_source_interval(&bytes, &evidence(), &allocation()).unwrap_err();
         assert_eq!(error.code(), "DIGEST_MISMATCH");
     }
@@ -967,6 +1080,71 @@ mod tests {
         ];
         let error = verify_source_interval_batch(&inputs).unwrap_err();
         assert_eq!(error.code(), "DUPLICATE_SOURCE_INTERVAL");
+    }
+
+    #[test]
+    fn equivalent_fractional_utc_timestamp_cannot_bypass_duplicate_detection() {
+        let e1 = evidence();
+        let a1 = allocation();
+        let (bytes2, e2, a2) = interval_fixture(
+            "renamed-interval-id",
+            "2026-01-01T00:00:00.000Z",
+            "GF-SECOND-EVIDENCE",
+            "GF-SECOND-ALLOCATION",
+        );
+        let inputs = [
+            SourceIntervalInput {
+                payload_bytes: PAYLOAD,
+                evidence: &e1,
+                allocation: &a1,
+            },
+            SourceIntervalInput {
+                payload_bytes: &bytes2,
+                evidence: &e2,
+                allocation: &a2,
+            },
+        ];
+        let error = verify_source_interval_batch(&inputs).unwrap_err();
+        assert_eq!(error.code(), "DUPLICATE_SOURCE_INTERVAL");
+    }
+
+    #[test]
+    fn overlapping_source_intervals_with_different_starts_are_rejected() {
+        let e1 = evidence();
+        let a1 = allocation();
+        let (bytes2, e2, a2) = interval_fixture(
+            "synthetic-hour-overlap",
+            "2026-01-01T00:30:00Z",
+            "GF-OVERLAP-EVIDENCE",
+            "GF-OVERLAP-ALLOCATION",
+        );
+        let inputs = [
+            SourceIntervalInput {
+                payload_bytes: PAYLOAD,
+                evidence: &e1,
+                allocation: &a1,
+            },
+            SourceIntervalInput {
+                payload_bytes: &bytes2,
+                evidence: &e2,
+                allocation: &a2,
+            },
+        ];
+        let error = verify_source_interval_batch(&inputs).unwrap_err();
+        assert_eq!(error.code(), "OVERLAPPING_SOURCE_INTERVALS");
+    }
+
+    #[test]
+    fn invalid_utc_timestamp_is_rejected() {
+        let (bytes, mut e, a) = interval_fixture(
+            "invalid-date",
+            "2026-02-30T00:00:00Z",
+            "GF-INVALID-DATE",
+            "GF-INVALID-DATE-ALLOCATION",
+        );
+        e["time_window"]["start_utc"] = json!("2026-02-30T00:00:00Z");
+        let error = verify_source_interval(&bytes, &e, &a).unwrap_err();
+        assert_eq!(error.code(), "TIME_WINDOW_MISMATCH");
     }
 
     #[test]
