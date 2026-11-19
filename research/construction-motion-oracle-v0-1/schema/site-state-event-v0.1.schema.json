@@ -171,6 +171,7 @@
         "ids_spec_sha256",
         "ids_version",
         "ids_engine_build_sha256",
+        "coordinate_context_sha256",
         "design_revision_sha256",
         "frame_id",
         "frame_sha256",
@@ -228,6 +229,9 @@
           "minLength": 1
         },
         "ids_engine_build_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "coordinate_context_sha256": {
           "$ref": "#/$defs/sha256"
         }
       }
@@ -590,5 +594,168 @@
         }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "kind": {
+                "const": "work_package_published"
+              }
+            }
+          }
+        },
+        "required": [
+          "payload"
+        ]
+      },
+      "then": {
+        "properties": {
+          "actor_role": {
+            "const": "design_authority"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "kind": {
+                "const": "station_qualified"
+              }
+            }
+          }
+        },
+        "required": [
+          "payload"
+        ]
+      },
+      "then": {
+        "properties": {
+          "actor_role": {
+            "const": "surveyor"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "kind": {
+                "const": "execution_started"
+              }
+            }
+          }
+        },
+        "required": [
+          "payload"
+        ]
+      },
+      "then": {
+        "properties": {
+          "actor_role": {
+            "const": "robot"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "kind": {
+                "const": "robot_observation_recorded"
+              }
+            }
+          }
+        },
+        "required": [
+          "payload"
+        ]
+      },
+      "then": {
+        "properties": {
+          "actor_role": {
+            "const": "robot"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "kind": {
+                "const": "execution_interrupted"
+              }
+            }
+          }
+        },
+        "required": [
+          "payload"
+        ]
+      },
+      "then": {
+        "properties": {
+          "actor_role": {
+            "const": "robot"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "kind": {
+                "const": "referee_assessment_recorded"
+              }
+            }
+          }
+        },
+        "required": [
+          "payload"
+        ]
+      },
+      "then": {
+        "properties": {
+          "actor_role": {
+            "const": "referee"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "kind": {
+                "const": "human_waiver_issued"
+              }
+            }
+          }
+        },
+        "required": [
+          "payload"
+        ]
+      },
+      "then": {
+        "properties": {
+          "actor_role": {
+            "const": "site_quality_authority"
+          }
+        }
+      }
+    }
+  ]
 }
