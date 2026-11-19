@@ -131,6 +131,43 @@ pub struct EnergyBalanceReport {
     pub interpretation: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BoundaryCouplingDisposition {
+    ConsistentWithDeclaredBounds,
+    InconsistentWithDeclaredBounds,
+    Unknown,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BoundaryCouplingReport {
+    pub from_balance: BalanceKind,
+    pub from_port: String,
+    pub to_balance: BalanceKind,
+    pub to_port: String,
+    /// Difference interval: energy at the upstream boundary minus energy at
+    /// the downstream boundary, after both integration-error expansions.
+    pub difference_j: Option<NumericInterval>,
+    pub difference_interval_width_j: Option<f64>,
+    pub maximum_absolute_difference_j: Option<f64>,
+    pub disposition: BoundaryCouplingDisposition,
+    pub from_evidence_class: Option<EvidenceClass>,
+    pub to_evidence_class: Option<EvidenceClass>,
+    pub from_source_reference: Option<String>,
+    pub to_source_reference: Option<String>,
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CompleteEnergyLedgerReport {
+    pub actuator_module: EnergyBalanceReport,
+    pub shared_dc_bus: EnergyBalanceReport,
+    pub storage_system: EnergyBalanceReport,
+    pub actuator_to_bus: BoundaryCouplingReport,
+    pub bus_to_storage: BoundaryCouplingReport,
+    pub overall_disposition: BalanceDisposition,
+    pub interpretation: String,
+}
+
 #[derive(Debug, Clone, Copy)]
 struct PortTermSpec {
     name: &'static str,
@@ -449,6 +486,147 @@ pub fn assess_storage_balance(
     assess(BalanceSpec { kind: BalanceKind::StorageSystem, ports: &STORAGE_PORTS }, terms)
 }
 
+fn coupling(
+    from: &EnergyBalanceReport,
+    from_port: &str,
+    to: &EnergyBalanceReport,
+    to_port: &str,
+) -> BoundaryCouplingReport {
+    let mut result = BoundaryCouplingReport {
+        from_balance: from.kind,
+        from_port: from_port.to_owned(),
+        to_balance: to.kind,
+        to_port: to_port.to_owned(),
+        difference_j: None,
+        difference_interval_width_j: None,
+        maximum_absolute_difference_j: None,
+        disposition: BoundaryCouplingDisposition::Unknown,
+        from_evidence_class: None,
+        to_evidence_class: None,
+        from_source_reference: None,
+        to_source_reference: None,
+        reason: None,
+    };
+
+    if from.disposition == BalanceDisposition::Unknown
+        || to.disposition == BalanceDisposition::Unknown
+    {
+        result.reason = Some("one or both control-volume balances are Unknown".to_owned());
+        return result;
+    }
+    if from.mission_interval_digest != to.mission_interval_digest
+        || from.operating_condition_digest != to.operating_condition_digest
+        || from.time_alignment_digest != to.time_alignment_digest
+    {
+        result.reason = Some("boundary coupling records do not share mission interval, operating conditions and time alignment".to_owned());
+        return result;
+    }
+
+    let Some(from_term) = from.term_receipts.iter().find(|term| term.port_id == from_port) else {
+        result.reason = Some(format!("upstream port {from_port:?} is missing from its receipt"));
+        return result;
+    };
+    let Some(to_term) = to.term_receipts.iter().find(|term| term.port_id == to_port) else {
+        result.reason = Some(format!("downstream port {to_port:?} is missing from its receipt"));
+        return result;
+    };
+
+    let difference = NumericInterval {
+        lower: from_term.qualified_energy_j.lower - to_term.qualified_energy_j.upper,
+        upper: from_term.qualified_energy_j.upper - to_term.qualified_energy_j.lower,
+    };
+    if !finite_interval(difference) {
+        result.reason = Some("boundary-coupling residual is non-finite or inverted".to_owned());
+        return result;
+    }
+    let width = difference.upper - difference.lower;
+    let max_abs = difference.lower.abs().max(difference.upper.abs());
+    if !width.is_finite() || !max_abs.is_finite() {
+        result.reason = Some("boundary-coupling width or magnitude is non-finite".to_owned());
+        return result;
+    }
+    result.difference_j = Some(difference);
+    result.difference_interval_width_j = Some(width);
+    result.maximum_absolute_difference_j = Some(max_abs);
+    result.from_evidence_class = Some(from_term.evidence_class);
+    result.to_evidence_class = Some(to_term.evidence_class);
+    result.from_source_reference = Some(from_term.source_reference.clone());
+    result.to_source_reference = Some(to_term.source_reference.clone());
+    result.disposition = if difference.lower <= 0.0 && difference.upper >= 0.0 {
+        BoundaryCouplingDisposition::ConsistentWithDeclaredBounds
+    } else {
+        BoundaryCouplingDisposition::InconsistentWithDeclaredBounds
+    };
+    result
+}
+
+/// Evaluates all three control volumes and checks their shared physical ports.
+///
+/// The actuator module's signed DC-terminal energy must reconcile with the
+/// corresponding drive port on the shared bus. The shared-bus storage port
+/// must reconcile with the storage terminal. Both checks use already-expanded
+/// intervals and require identical mission/condition/time-alignment digests.
+/// System-boundary digests intentionally differ because each control volume
+/// is a different boundary.
+pub fn assess_complete_energy_ledger(
+    actuator_terms: &[IntegratedEnergyTerm],
+    bus_terms: &[IntegratedEnergyTerm],
+    storage_terms: &[IntegratedEnergyTerm],
+) -> Result<CompleteEnergyLedgerReport, String> {
+    let actuator_module = assess_actuator_module_balance(actuator_terms)?;
+    let shared_dc_bus = assess_shared_dc_bus_balance(bus_terms)?;
+    let storage_system = assess_storage_balance(storage_terms)?;
+
+    let actuator_to_bus = coupling(
+        &actuator_module,
+        "dc_terminal_in",
+        &shared_dc_bus,
+        "drive_draw_signed",
+    );
+    let bus_to_storage = coupling(
+        &shared_dc_bus,
+        "storage_draw_signed",
+        &storage_system,
+        "storage_terminal_in",
+    );
+
+    let component_dispositions = [
+        actuator_module.disposition,
+        shared_dc_bus.disposition,
+        storage_system.disposition,
+    ];
+    let coupling_dispositions = [actuator_to_bus.disposition, bus_to_storage.disposition];
+    let all_consistent = component_dispositions
+        .iter()
+        .all(|value| *value == BalanceDisposition::ConsistentWithDeclaredBounds)
+        && coupling_dispositions.iter().all(|value| {
+            *value == BoundaryCouplingDisposition::ConsistentWithDeclaredBounds
+        });
+    let any_inconsistent = component_dispositions
+        .iter()
+        .any(|value| *value == BalanceDisposition::InconsistentWithDeclaredBounds)
+        || coupling_dispositions.iter().any(|value| {
+            *value == BoundaryCouplingDisposition::InconsistentWithDeclaredBounds
+        });
+    let overall_disposition = if all_consistent {
+        BalanceDisposition::ConsistentWithDeclaredBounds
+    } else if any_inconsistent {
+        BalanceDisposition::InconsistentWithDeclaredBounds
+    } else {
+        BalanceDisposition::Unknown
+    };
+
+    Ok(CompleteEnergyLedgerReport {
+        actuator_module,
+        shared_dc_bus,
+        storage_system,
+        actuator_to_bus,
+        bus_to_storage,
+        overall_disposition,
+        interpretation: "The complete ledger checks each control-volume balance and both inter-boundary energy couplings. Consistency with declared intervals is not proof of a correct physical model, calibrated instrument, electrical regeneration path or safe system.".to_owned(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -732,8 +910,67 @@ mod tests {
         assert_eq!(heat.qualified_energy_j.upper, 0.5);
     }
 
+    fn complete_motoring_case() -> (Vec<IntegratedEnergyTerm>, Vec<IntegratedEnergyTerm>, Vec<IntegratedEnergyTerm>) {
+        let mut actuator = actuator_motoring();
+        actuator[0].energy_j = NumericInterval { lower: 100.0, upper: 100.0 };
+        let bus = vec![
+            term("external_source_in", 10.0),
+            term("drive_draw_signed", 100.0),
+            term("storage_draw_signed", 20.0),
+            term("other_loads", 15.0),
+            term("brake_dissipated", 15.0),
+            term("delta_bus_cap", 0.0),
+        ];
+        let storage = storage_flow();
+        (actuator, bus, storage)
+    }
+
     #[test]
-    fn ledger_023_unknown_evidence_is_unknown_not_a_balance_pass() {
+    fn ledger_023_boundary_couplings_reconcile_for_a_complete_mission() {
+        let (actuator, bus, storage) = complete_motoring_case();
+        let report = assess_complete_energy_ledger(&actuator, &bus, &storage).unwrap();
+        assert_eq!(report.overall_disposition, BalanceDisposition::ConsistentWithDeclaredBounds);
+        assert_eq!(report.actuator_to_bus.disposition, BoundaryCouplingDisposition::ConsistentWithDeclaredBounds);
+        assert_eq!(report.bus_to_storage.disposition, BoundaryCouplingDisposition::ConsistentWithDeclaredBounds);
+    }
+
+    #[test]
+    fn ledger_024_drive_energy_mismatch_is_a_boundary_coupling_violation() {
+        let (actuator, mut bus, storage) = complete_motoring_case();
+        bus[1].energy_j = NumericInterval { lower: 90.0, upper: 90.0 };
+        let report = assess_complete_energy_ledger(&actuator, &bus, &storage).unwrap();
+        assert_eq!(report.actuator_module.disposition, BalanceDisposition::ConsistentWithDeclaredBounds);
+        assert_eq!(report.shared_dc_bus.disposition, BalanceDisposition::ConsistentWithDeclaredBounds);
+        assert_eq!(report.actuator_to_bus.disposition, BoundaryCouplingDisposition::InconsistentWithDeclaredBounds);
+        assert_eq!(report.overall_disposition, BalanceDisposition::InconsistentWithDeclaredBounds);
+    }
+
+    #[test]
+    fn ledger_025_storage_terminal_mismatch_is_a_boundary_coupling_violation() {
+        let (actuator, bus, mut storage) = complete_motoring_case();
+        storage[0].energy_j = NumericInterval { lower: 18.0, upper: 18.0 };
+        let report = assess_complete_energy_ledger(&actuator, &bus, &storage).unwrap();
+        assert_eq!(report.storage_system.disposition, BalanceDisposition::InconsistentWithDeclaredBounds);
+        assert_eq!(report.bus_to_storage.disposition, BoundaryCouplingDisposition::InconsistentWithDeclaredBounds);
+        assert_eq!(report.overall_disposition, BalanceDisposition::InconsistentWithDeclaredBounds);
+    }
+
+    #[test]
+    fn ledger_026_boundary_couplings_reject_mismatched_mission_clock() {
+        let (actuator, mut bus, storage) = complete_motoring_case();
+        bus[1].time_alignment_digest = "different-clock".to_owned();
+        // Restore internal bus consistency while retaining the different
+        // alignment from the actuator boundary.
+        for term in &mut bus {
+            term.time_alignment_digest = "different-clock".to_owned();
+        }
+        let report = assess_complete_energy_ledger(&actuator, &bus, &storage).unwrap();
+        assert_eq!(report.actuator_to_bus.disposition, BoundaryCouplingDisposition::Unknown);
+        assert_eq!(report.overall_disposition, BalanceDisposition::Unknown);
+    }
+
+    #[test]
+    fn ledger_027_unknown_evidence_is_unknown_not_a_balance_pass() {
         let mut terms = actuator_motoring();
         terms[0].evidence_class = EvidenceClass::Unknown;
         let report = assess_actuator_module_balance(&terms).unwrap();
