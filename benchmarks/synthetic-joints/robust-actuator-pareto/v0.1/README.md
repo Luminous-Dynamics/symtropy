@@ -86,6 +86,20 @@ Huang, Dong and Zhao, *Task-Oriented Co-Design and Optimization of Geared Actuat
 
 This is a stronger comparator than a catalog-only selection process. It combines surrogate modeling, hierarchical mixed discrete/continuous design exploration and torque-profile co-design, and reports a fabricated two-DoF jumping-leg demonstration. The paper reports 35.7 N·m/kg nominal rated output torque density and 12% greater jump height under its matched twice-rated bench command. Those results are task- and prototype-specific. The open gap for our programme is not “we also optimize for a task”; it is robust multi-mission qualification with frozen stress/validation sets, lifecycle evidence and explicit provenance lanes.
 
+### Multi-task actuation design and real component selection (ICRA 2026)
+
+*Towards the best robot for the job: Optimising actuation design through multi-task co-design and component selection*, IEEE ICRA 2026, DOI https://doi.org/10.1109/ICRA57385.2026.11697232.
+
+The abstract describes task-trajectory-based motor-size/gear-ratio co-design over a representative task set, followed by selection from a finite catalogue of real components. The reported motivation and result are important: the selected design can execute a set of tasks at efficiency comparable to task-specific co-design. This is a stronger baseline than one-task optimization. It still motivates a separate validation layer for measured torque/thermal envelopes, model uncertainty and evidence provenance.
+
+### Task-aware actuator allocation across full-body missions (RA-L 2026)
+
+Nasonov et al., *Task-Aware Actuator Parameter Allocation for Multibody Robots*, IEEE Robotics and Automation Letters (2026), DOI https://doi.org/10.1109/LRA.2026.3674006. Project/source page: https://mkakanov.github.io/actorob/
+
+The published project page describes regression models fit to manufacturer data for 119 motors and 58 gearboxes, a continuous CMA-ES search with population 100 over 100 iterations, and inner constrained full-order trajectory optimization. It evaluates jump, five-step stair ascent with a 10 kg payload and whole-body manipulation with 5 kg in each hand. Its ablation shows the expected tension between electrical energy and gearbox friction/backdrivability: changing scalar objective weights changes gear ratio and joint allocation. The project page reports these result figures: friction-only case 57.47 kg total mass and 43.1 kJ electrical energy; electrical-focus case 48.93 kg and 20.2 kJ; combined case 51.34 kg and 26.7 kJ. These are author/project-page results, not independent lab replications.
+
+The M1 filter here complements these optimizers; it does not replace them. It prevents candidates from different mission sets, stress sets, operating conditions, complete system boundaries or evidence classes from being presented as one comparable Pareto front.
+
 ### Multiphysics gear-ratio design
 
 *Gear-Ratio Spectrum for Robotic Joint Motor Drive Systems: Multiphysics Coupling and Design Trade-Offs*, Electronics 15(17), 3834 (2026): https://doi.org/10.3390/electronics15173834.
