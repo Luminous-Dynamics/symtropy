@@ -1,34 +1,96 @@
 use serde::{Deserialize, Serialize};
 use std::{collections::{BTreeMap, BTreeSet}, env, fs, process};
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct WorkloadFixture {
     schema_version: String,
     fixture_id: String,
+    as_of: String,
     synthetic_only: bool,
+    claim_ceiling: String,
+    energy_accounting_boundary: String,
+    units: WorkloadUnits,
     profiles: Vec<WorkloadProfile>,
+    scenarios: Vec<WorkloadScenario>,
 }
 
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct WorkloadUnits {
+    energy: String,
+    input_volume: String,
+    time: String,
+    service_unit: String,
+}
+
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct WorkloadProfile {
     id: String,
+    service_family: String,
+    service_unit: String,
     service_units_per_batch: u64,
+    synthetic_input_bytes: u64,
     latency_budget_seconds: u64,
     deadline_seconds: u64,
+    maximum_deferral_seconds: u64,
+    flexibility_class: String,
     allowed_placement_strata: Vec<String>,
     local_fallback_required: bool,
     safety_critical_control_dependency: bool,
+    rights_state: String,
+    energy_wh: ProfileEnergy,
+    synthetic_quality_gate: String,
 }
 
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ProfileEnergy {
+    compute: u64,
+    network: u64,
+    cooling: u64,
+    total: u64,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct WorkloadScenario {
+    id: String,
+    fault_or_stressor: String,
+    expected_disposition: String,
+    required_assertions: Vec<String>,
+}
+
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct PlacementFixture {
     schema_version: String,
     fixture_id: String,
+    as_of: String,
     synthetic_only: bool,
+    claim_ceiling: String,
+    measurement_boundary: String,
+    units: PlacementUnits,
     candidates: Vec<PlacementCandidate>,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PlacementUnits {
+    energy: String,
+    power: String,
+    latency: String,
+    completion: String,
+    carbon_factor: String,
+    electricity_cost: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -176,10 +238,7 @@ fn dominates(a: &Scored, b: &Scored) -> bool {
     no_worse && strictly_better
 }
 
-fn score_candidate(
-    profile: &WorkloadProfile,
-    candidate: &PlacementCandidate,
-) -> Scored {
+fn score_candidate(profile: &WorkloadProfile, candidate: &PlacementCandidate) -> Scored {
     let mut blockers = Vec::new();
 
     if !profile.allowed_placement_strata.iter().any(|s| s == &candidate.placement_stratum) {
@@ -223,7 +282,7 @@ fn score_candidate(
     }
 
     let eligible = blockers.is_empty();
-    let units = profile.service_units_per_batch.max(1) as f64;
+    let units = profile.service_units_per_batch as f64;
     let total_wh = candidate.energy.total as f64;
     let energy_per_unit = total_wh / units;
     let carbon_g_per_unit =
