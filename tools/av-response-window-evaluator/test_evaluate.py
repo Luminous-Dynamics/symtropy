@@ -27,6 +27,24 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
             submission if submission is not None else self.submission,
         )
 
+    def synthetic_response(self, response_id, episode_id, trigger_ref, start, end, content,
+                            end_kind="playback_ended", stop_request_ref=None):
+        response = {
+            "response_id": response_id,
+            "episode_id": episode_id,
+            "assigned_trigger_ref": trigger_ref,
+            "response_start_tick": start,
+            "response_end_tick": end,
+            "content": content,
+            "playback_start_event_ref": f"render-start-{response_id}",
+            "playback_end_event_ref": f"render-end-{response_id}",
+            "playback_end_kind": end_kind,
+            "controller_permission_event_ref": f"controller-permit-{response_id}",
+        }
+        if stop_request_ref is not None:
+            response["output_stop_request_event_ref"] = stop_request_ref
+        return response
+
     def episode(self, report, episode_id):
         return next(row for row in report["per_episode"] if row["episode_id"] == episode_id)
 
@@ -79,14 +97,9 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
 
     def test_expected_silence_response_is_false_intervention(self):
         candidate = copy.deepcopy(self.submission)
-        candidate["responses"].append({
-            "response_id": "false-silence",
-            "episode_id": "rw-007-expected-silence",
-            "assigned_trigger_ref": "silence-7",
-            "response_start_tick": 12,
-            "response_end_tick": 14,
-            "content": "unsolicited",
-        })
+        candidate["responses"].append(self.synthetic_response(
+            "false-silence", "rw-007-expected-silence", "silence-7", 12, 14, "unsolicited"
+        ))
         report = self.score(submission=candidate)
         result = self.episode(report, "rw-007-expected-silence")
         self.assertEqual(result["false_intervention_count"], 1)
@@ -95,14 +108,11 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
 
     def test_response_after_cancellation_is_rejected(self):
         candidate = copy.deepcopy(self.submission)
-        candidate["responses"].append({
-            "response_id": "stale-after-cancel",
-            "episode_id": "rw-008-canceled-trigger",
-            "assigned_trigger_ref": "trig-8",
-            "response_start_tick": 16,
-            "response_end_tick": 18,
-            "content": "stale intervention",
-        })
+        candidate["responses"].append(self.synthetic_response(
+            "stale-after-cancel", "rw-008-canceled-trigger", "trig-8", 16, 18,
+            "stale intervention", end_kind="output_stopped",
+            stop_request_ref="stop-request-stale-after-cancel"
+        ))
         report = self.score(submission=candidate)
         result = self.episode(report, "rw-008-canceled-trigger")
         self.assertIn("response_starts_after_cancellation", result["violations"])
@@ -119,28 +129,20 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
 
     def test_response_that_overhangs_cancellation_is_rejected(self):
         candidate = copy.deepcopy(self.submission)
-        candidate["responses"].append({
-            "response_id": "crosses-cancel",
-            "episode_id": "rw-008-canceled-trigger",
-            "assigned_trigger_ref": "trig-8",
-            "response_start_tick": 14,
-            "response_end_tick": 16,
-            "content": "canceled while speaking",
-        })
+        candidate["responses"].append(self.synthetic_response(
+            "crosses-cancel", "rw-008-canceled-trigger", "trig-8", 14, 16,
+            "canceled while speaking", end_kind="output_stopped",
+            stop_request_ref="stop-request-crosses-cancel"
+        ))
         report = self.score(submission=candidate)
         result = self.episode(report, "rw-008-canceled-trigger")
         self.assertIn("response_continues_after_cancellation", result["violations"])
 
     def test_two_responses_for_one_opportunity_are_duplicate_interventions(self):
         candidate = copy.deepcopy(self.submission)
-        candidate["responses"].append({
-            "response_id": "duplicate-r1",
-            "episode_id": "rw-001-spi-on-time",
-            "assigned_trigger_ref": "trig-1",
-            "response_start_tick": 14,
-            "response_end_tick": 16,
-            "content": "safety_correction",
-        })
+        candidate["responses"].append(self.synthetic_response(
+            "duplicate-r1", "rw-001-spi-on-time", "trig-1", 14, 16, "safety_correction"
+        ))
         report = self.score(submission=candidate)
         result = self.episode(report, "rw-001-spi-on-time")
         self.assertIn("multiple_responses_assigned_to_one_opportunity", result["violations"])
@@ -211,6 +213,27 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
         result = self.episode(report, "rw-001-spi-on-time")
         self.assertIn("response_precedes_trigger_availability", result["violations"])
         self.assertEqual(result["early_count"], 1)
+
+    def test_controller_permission_without_playback_start_does_not_create_response(self):
+        candidate = copy.deepcopy(self.submission)
+        candidate["responses"][0].pop("playback_start_event_ref")
+        candidate["responses"][0]["controller_permission_event_ref"] = "permission-only"
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(submission=candidate)
+
+    def test_renderer_output_stop_requires_linked_request_receipt(self):
+        candidate = copy.deepcopy(self.submission)
+        response = candidate["responses"][0]
+        response["playback_end_kind"] = "output_stopped"
+        response.pop("output_stop_request_event_ref", None)
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(submission=candidate)
+
+    def test_renderer_lifecycle_event_references_must_be_unique(self):
+        candidate = copy.deepcopy(self.submission)
+        candidate["responses"][1]["playback_start_event_ref"] = candidate["responses"][0]["playback_start_event_ref"]
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(submission=candidate)
 
     def test_response_interval_must_have_nonnegative_duration(self):
         candidate = copy.deepcopy(self.submission)
