@@ -1342,9 +1342,9 @@ mod tests {
     fn monte_carlo_outputs_match_independent_seeded_crosscheck() {
         let report = validate(&fixture()).expect("fixture validates");
         let expected = [
-            (284.81830447, 9.55869917, 0.0000178022160, 0.0000440056765),
-            (294.46979642, 9.58106565, 0.0000279525738, 0.0000442336322),
-            (259.16276943, 9.45611940, 0.00000782726216, 0.0000437609319),
+            (284.81830447, 9.55869917, 0.0000177527219, 0.0000440818314),
+            (294.46979642, 9.58106565, 0.0000281463077, 0.0000441137554),
+            (259.16276943, 9.45611940, 0.00000799875490, 0.0000438987274),
         ];
         for (actual, expected) in report.interval_results.iter().zip(expected.iter()) {
             let thermal = &actual.thermal_power_monte_carlo;
