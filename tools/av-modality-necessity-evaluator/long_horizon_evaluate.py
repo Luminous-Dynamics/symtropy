@@ -284,13 +284,17 @@ def evaluate(
         observations, superseded, revoked = _episode_state(episode, max(as_of_tick, 0))
         eligible = set(observations) - superseded - revoked
         valid_historical_citations: set[str] = set()
+        invalid_cited_refs: set[str] = set()
         revoked_citation = False
         for ref in citations:
             if ref not in observations:
+                invalid_cited_refs.add(ref)
                 violations.append("citation_not_in_episode_evidence")
             elif observations[ref] > as_of_tick:
+                invalid_cited_refs.add(ref)
                 violations.append("citation_not_available_at_evidence_cutoff")
             elif ref in revoked:
+                invalid_cited_refs.add(ref)
                 revoked_citation = True
             else:
                 # Superseded evidence remains citable as history; it is not
@@ -411,7 +415,10 @@ def evaluate(
             false_memory = not abstained and not answer_correct
 
         tp = len(valid_current_refs & required)
-        fp = len(set(current_refs) - (valid_current_refs & required))
+        fp = (
+            len(set(current_refs) - (valid_current_refs & required))
+            + len(invalid_cited_refs - set(current_refs))
+        )
         fn = len(required - valid_current_refs)
         citation_precision = ratio(tp, tp + fp)
         citation_recall = ratio(tp, tp + fn)
