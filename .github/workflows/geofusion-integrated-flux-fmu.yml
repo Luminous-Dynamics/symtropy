@@ -41,12 +41,9 @@ jobs:
       - name: Build and package both FMUs
         working-directory: research/geofusion-integrated-flux-fmu-v0.1
         run: make clean package
-      - name: Audit FMI symbol surface and J ports
+      - name: Run complete FMI, SSP and FMPy qualification suite
         working-directory: research/geofusion-integrated-flux-fmu-v0.1
-        run: python3 tests/check_fmi3_surface.py
-      - name: Execute causal integrated-energy handshake
-        working-directory: research/geofusion-integrated-flux-fmu-v0.1
-        run: python3 tests/fmpy_flux_smoke.py
+        run: make test
       - name: Upload qualified artifacts and hashes
         uses: actions/upload-artifact@v4
         with:
