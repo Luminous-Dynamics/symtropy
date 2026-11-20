@@ -455,6 +455,19 @@
       "evidence_url": "https://ssp-standard.org/tools/"
     },
     {
+      "tool": "Scilab/Xcos",
+      "vendor": "Dassault Systèmes S.E.",
+      "declared_import": [
+        "2.0"
+      ],
+      "declared_export": [
+        "2.0"
+      ],
+      "benchmark_lane": "ssp_2_0_1_additional_candidate",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
       "tool": "OMSimulator",
       "vendor": "OpenModelica",
       "declared_import": [
@@ -509,11 +522,13 @@
     {
       "tool": "Simcenter Studio",
       "vendor": "Siemens",
-      "declared_import": [],
+      "declared_import": [
+        "1.0"
+      ],
       "declared_export": [
         "1.0"
       ],
-      "benchmark_lane": "ssp_1_0_export_only",
+      "benchmark_lane": "ssp_1_0_legacy_compatibility",
       "exact_product_build": "must_pin_before_run",
       "evidence_url": "https://ssp-standard.org/tools/"
     },
@@ -547,6 +562,53 @@
       ],
       "declared_export": [],
       "benchmark_lane": "ssp_1_0_import_only",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "FMIGo!",
+      "vendor": "Tjoppen",
+      "declared_import": [
+        "1.0"
+      ],
+      "declared_export": [],
+      "benchmark_lane": "ssp_1_0_import_only",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "Ecos",
+      "vendor": "NTNU Ålesund",
+      "declared_import": [
+        "1.0"
+      ],
+      "declared_export": [
+        "1.0"
+      ],
+      "benchmark_lane": "ssp_1_0_legacy_compatibility",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "ecu.test",
+      "vendor": "tracetronic",
+      "declared_import": [
+        "1.0",
+        "2.0"
+      ],
+      "declared_export": [],
+      "benchmark_lane": "ssp_import_only_no_roundtrip",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "SysAI.simulate",
+      "vendor": "SysAI",
+      "declared_import": [],
+      "declared_export": [
+        "1.0"
+      ],
+      "benchmark_lane": "ssp_1_0_export_only",
       "exact_product_build": "must_pin_before_run",
       "evidence_url": "https://ssp-standard.org/tools/"
     }
@@ -586,12 +648,25 @@
     "unsupported_or_inaccessible_disposition": "NOT_EVALUABLE",
     "no_round_trip_claim_without_both_import_and_export_runs": true,
     "additional_ssp_2_candidates": [
-      "Dymola"
+      "Dymola",
+      "Scilab/Xcos"
     ],
     "no_one_way_support_counts_as_full_roundtrip": true,
     "import_only_tools_must_not_be_scored_as_exporters": true,
     "export_only_tools_must_not_be_scored_as_importers": true,
-    "vendor_matrix_is_declared_support_not_executed_qualification": true
+    "vendor_matrix_is_declared_support_not_executed_qualification": true,
+    "exact_ssp_patch_201_must_be_probed_even_when_vendor_lists_ssp_20": true,
+    "simcenter_studio_is_ssp_10_import_export_candidate": true,
+    "additional_import_only": [
+      "OpenMCx",
+      "Simulator Suite",
+      "FMIGo!",
+      "ecu.test"
+    ],
+    "additional_export_only": [
+      "CATIA Magic",
+      "SysAI.simulate"
+    ]
   },
   "co_sim_predictor_tracks": [
     {
