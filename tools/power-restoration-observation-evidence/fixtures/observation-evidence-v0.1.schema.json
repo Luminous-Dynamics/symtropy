@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/power-restoration-observation-evidence-v0.1.schema.json",
+  "title": "Power restoration observation evidence batch v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "batchId", "caseRef", "caseSha256", "proposalId", "proposalSha256", "presentationStep", "sources", "results"],
+  "properties": {
+    "schemaVersion": {"const": "0.1.0"},
+    "batchId": {"type": "string", "minLength": 1},
+    "caseRef": {"type": "string", "minLength": 1},
+    "caseSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "proposalId": {"type": "string", "minLength": 1},
+    "proposalSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "presentationStep": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sourceId", "sourceKind", "producerId", "producerVersion", "sourceSnapshotSha256", "producerAttestationRef", "producerAttestationSha256", "parentSourceIds", "commonCauseGroupIds", "lineageCompleteness"],
+        "properties": {
+          "sourceId": {"type": "string", "minLength": 1},
+          "sourceKind": {"enum": ["scada", "call_report", "network_model", "field_inspection", "fault_indicator", "switch_test", "load_forecast", "counterfactual_simulation", "other"]},
+          "producerId": {"type": "string", "minLength": 1},
+          "producerVersion": {"type": "string", "minLength": 1},
+          "sourceSnapshotSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "producerAttestationRef": {"type": "string", "minLength": 1},
+          "producerAttestationSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "parentSourceIds": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+          "commonCauseGroupIds": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+          "lineageCompleteness": {"enum": ["complete", "partial", "unknown"]}
+        }
+      }
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["requestId", "actionKind", "requestedStep", "outcome", "requestedAtUnixMs", "evidence"],
+        "properties": {
+          "requestId": {"type": "string", "minLength": 1},
+          "actionKind": {"enum": ["observe_scada", "observe_calls", "observe_network_model", "crew_inspect", "read_fault_indicator", "test_switch", "simulate_switch", "forecast_load", "escalate_to_human"]},
+          "requestedStep": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+          "outcome": {"enum": ["pending", "fulfilled", "partial", "denied", "timed_out", "unavailable", "failed"]},
+          "requestedAtUnixMs": {"type": "integer", "minimum": 1},
+          "completedAtUnixMs": {"type": ["integer", "null"], "minimum": 1},
+          "availableAtStep": {"type": ["integer", "null"], "minimum": 0, "maximum": 4294967295},
+          "availableAtUnixMs": {"type": ["integer", "null"], "minimum": 1},
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["evidenceId", "evidenceSha256", "observedStep", "observedAtUnixMs", "availableStep", "availableAtUnixMs", "maxAgeSteps", "quality", "sourceId"],
+              "properties": {
+                "evidenceId": {"type": "string", "minLength": 1},
+                "evidenceSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                "observedStep": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+                "observedAtUnixMs": {"type": "integer", "minimum": 1},
+                "availableStep": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+                "availableAtUnixMs": {"type": "integer", "minimum": 1},
+                "maxAgeSteps": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+                "quality": {"enum": ["current", "stale", "conflicting", "unverified"]},
+                "sourceId": {"type": "string", "minLength": 1}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
