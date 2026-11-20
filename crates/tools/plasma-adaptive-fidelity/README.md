@@ -19,7 +19,7 @@ A candidate must carry:
 - model-kind-specific well-posedness evidence: moment models require a declared hyperbolicity-envelope margin and bounded eigenbasis condition number; kinetic patches require their own kinetic admissibility / positivity receipt;
 - a cost receipt tied to the profile, model, compatibility contract, solver build, hardware and workload identity, with one common cost unit and a declared uncertainty bound.
 
-The selection tournament minimizes the conservative cost upper bound (point estimate plus uncertainty), breaking ties by point estimate and profile digest. fidelity_rank is an explicit ordinal within the admitted physical-system hierarchy; it is not inferred from moment count and must not be compared across unrelated governing systems.
+The selection tournament minimizes the conservative cost upper bound (point estimate plus uncertainty), breaking ties by point estimate and profile digest. fidelity_rank is an explicit ordinal within the admitted physical-system hierarchy; it is not inferred from moment count and must not be compared across unrelated governing systems. When replacing an affirmatively invalid active model, the evaluator may choose any candidate that independently meets the full error/well-posedness envelope and has a valid transition; it does not assume that a numerically higher rank is always safer.
 
 When a current model is supplied, it must exist in the candidate inventory. Any switch requires a transition receipt bound to the exact source and destination profiles and model artifacts, common interface schema, projection, reconstruction and conservation evidence. Refinement required because the current model is affirmatively invalid or exceeds its error envelope can bypass the minimum-dwell restriction; coarsening cannot. A current model inside the tighter coarsening band is retained, preventing needless order churn. If a still-qualified current model lacks a valid transition to an alternative, the evaluator retains it and records the rejected transition. If the current model is affirmatively outside its envelope and no safe refinement path exists, the result is Refused. If the active model's physical, error or cost evidence is unresolved, the policy returns Unknown rather than silently switching.
 
@@ -35,4 +35,4 @@ Related research:
 - Symtropy #6288 and PR #6294: conservative shared-face flux and domain-balance receipts.
 - Symthaea #12918: closure profile eligibility and regime selection.
 
-The 32 authored tests are synthetic policy-contract tests. They do not reproduce a physical plasma benchmark and are not reported as passing until the exact-head Rust toolchain workflow completes.
+The 33 authored tests are synthetic policy-contract tests. They do not reproduce a physical plasma benchmark and are not reported as passing until the exact-head Rust toolchain workflow completes.
