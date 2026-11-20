@@ -1,0 +1,289 @@
+{
+  "schema": "luminous.brown_ehd.source_points",
+  "schema_version": "0.1.0",
+  "generated_on": "2026-11-20",
+  "status": "source_transcription_not_independently_reproduced",
+  "rules": [
+    "Each operating point remains a separate case.",
+    "Null means not present in the cited source excerpt or not yet transcribed; it is not zero.",
+    "Derived flow-force values are not direct balance readings.",
+    "Do not compare cases unless the full operating conditions, geometry, power boundary, and force definition are matched.",
+    "Source-reported values are not independently reproduced measurements."
+  ],
+  "cases": [
+    {
+      "case_id": "CURMA_2025_E0K2_L15MM",
+      "source": "Čurma et al., Applied Sciences 15(16), 9190 (2025)",
+      "source_url": "https://doi.org/10.3390/app15169190",
+      "source_table": "Table 2",
+      "configuration": "single-stage (0.08)E0K2; 0.08 mm emitter conductor",
+      "evidence_class": "source_reported_flow_derived_thrust",
+      "operating_conditions": {
+        "pressure_pa": 98540,
+        "relative_humidity_fraction": 0.467,
+        "temperature_c": 20.5,
+        "gas": "ambient air",
+        "inter_electrode_gap_mm": 15,
+        "polarity": "positive emitter"
+      },
+      "electrical": {
+        "voltage_kv": 13.57,
+        "current_ma": 0.62,
+        "reported_electrical_power_w": 8.4134,
+        "power_boundary": "electrode terminal voltage multiplied by discharge current, as reported by source"
+      },
+      "output": {
+        "flow_speed_m_per_s": 2.02,
+        "reported_flow_derived_thrust_mn": 7.64,
+        "reported_mechanical_power_w": 0.015432,
+        "reported_efficiency_fraction": 0.00183427
+      },
+      "metrology": {
+        "force_directly_measured": false,
+        "force_method": "derived from outlet flow velocity, flow cross-section and ambient air density",
+        "voltage_probe_accuracy_percent": "±5% at 1–20 kV; ±6% at 20–40 kV",
+        "current_meter_accuracy_percent": "±2.5% of measured value",
+        "flow_sensor_accuracy": "±(0.5% of sensor final value + 1.0% of measured value)",
+        "uncertainty_of_reported_thrust": null
+      },
+      "comparability": {
+        "cohort": "atmospheric_single_stage_EHD",
+        "comparable_to_other_cases_in_this_source": "only after preserving geometry and exact gap",
+        "notes": "Do not combine its 7.64 mN thrust with the separate 0.756232% efficiency operating point."
+      }
+    },
+    {
+      "case_id": "CURMA_2025_E1K1_L45MM",
+      "source": "Čurma et al., Applied Sciences 15(16), 9190 (2025)",
+      "source_url": "https://doi.org/10.3390/app15169190",
+      "source_table": "Table 5",
+      "configuration": "single-stage (0.08)E1K1; 0.08 mm emitter conductor; E1/K1 effective electrode lengths 0.392 m",
+      "evidence_class": "source_reported_flow_derived_thrust",
+      "operating_conditions": {
+        "pressure_pa": 98540,
+        "relative_humidity_fraction": 0.467,
+        "temperature_c": 20.5,
+        "gas": "ambient air",
+        "inter_electrode_gap_mm": 45,
+        "polarity": "positive emitter"
+      },
+      "electrical": {
+        "voltage_kv": 27.3,
+        "current_ma": 0.03,
+        "reported_electrical_power_w": 0.819,
+        "power_boundary": "electrode terminal voltage multiplied by discharge current, as reported by source"
+      },
+      "output": {
+        "flow_speed_m_per_s": 1.49,
+        "reported_flow_derived_thrust_mn": 4.157,
+        "reported_mechanical_power_w": 0.006194,
+        "reported_efficiency_fraction": 0.00756232
+      },
+      "metrology": {
+        "force_directly_measured": false,
+        "force_method": "derived from outlet flow velocity, flow cross-section and ambient air density",
+        "voltage_probe_accuracy_percent": "±5% at 1–20 kV; ±6% at 20–40 kV",
+        "current_meter_accuracy_percent": "±2.5% of measured value",
+        "flow_sensor_accuracy": "±(0.5% of sensor final value + 1.0% of measured value)",
+        "uncertainty_of_reported_thrust": null
+      },
+      "comparability": {
+        "cohort": "atmospheric_single_stage_EHD",
+        "comparable_to_other_cases_in_this_source": "only after preserving geometry and exact gap",
+        "notes": "This is a different configuration and operating point from CURMA_2025_E0K2_L15MM. The peak efficiency does not belong to the peak-thrust row."
+      }
+    },
+    {
+      "case_id": "NONAKA_2026_GUIDE_ELECTRODE",
+      "source": "Nonaka et al., IEEJ Journal of Industry Applications 15(4), 675–682 (2026)",
+      "source_url": "https://doi.org/10.1541/ieejjia.20250124",
+      "source_table": null,
+      "configuration": "cylindrical guide electrode placed at the same potential above emitter",
+      "evidence_class": "source_reported_relative_performance",
+      "operating_conditions": {
+        "pressure_pa": null,
+        "relative_humidity_fraction": null,
+        "temperature_c": null,
+        "gas": null,
+        "inter_electrode_gap_mm": null,
+        "polarity": null
+      },
+      "electrical": {
+        "voltage_kv": null,
+        "current_ma": null,
+        "reported_electrical_power_w": null,
+        "power_boundary": null
+      },
+      "output": {
+        "flow_speed_m_per_s": null,
+        "reported_thrust_mn": null,
+        "reported_maximum_thrust_improvement_percent": 36.6,
+        "reported_thrust_to_power_effect": "authors report improvement; numeric ratio not transcribed here"
+      },
+      "metrology": {
+        "force_directly_measured": null,
+        "force_method": null,
+        "uncertainty_of_reported_thrust": null
+      },
+      "comparability": {
+        "cohort": "EHD_guide_electrode",
+        "leaderboard_eligible": false,
+        "notes": "Relative improvement only. Exact operating point, baseline geometry, absolute thrust, input power and uncertainties must be extracted from the full article before a quantitative matched comparison."
+      }
+    },
+    {
+      "case_id": "JIANG_2026_SUBUNIT_BASELINE_22KV",
+      "source": "Jiang et al., Scientific Reports, published online 2026-11-07",
+      "source_url": "https://doi.org/10.1038/s41598-026-78941-0",
+      "source_table": null,
+      "configuration": "conventional electrode system without sub-unit",
+      "evidence_class": "source_reported_thrust",
+      "operating_conditions": {
+        "pressure_pa": null,
+        "relative_humidity_fraction": null,
+        "temperature_c": null,
+        "gas": null,
+        "inter_electrode_gap_mm": null,
+        "applied_voltage_kv": 22
+      },
+      "electrical": {
+        "voltage_kv": 22,
+        "current_ma": null,
+        "reported_electrical_power_w": null,
+        "power_boundary": null
+      },
+      "output": {
+        "reported_thrust_mn": 50.23,
+        "reported_relative_improvement_percent": 0,
+        "flow_speed_m_per_s": null,
+        "reported_thrust_to_power_effect": "not transcribed from abstract"
+      },
+      "metrology": {
+        "force_directly_measured": null,
+        "force_method": null,
+        "uncertainty_of_reported_thrust": null
+      },
+      "comparability": {
+        "cohort": "same_paper_22kV_subunit_geometry_comparison",
+        "leaderboard_eligible": false,
+        "notes": "Baseline row for the within-paper comparison only; full apparatus and power details still require extraction."
+      }
+    },
+    {
+      "case_id": "JIANG_2026_SUBUNIT_22KV",
+      "source": "Jiang et al., Scientific Reports, published online 2026-11-07",
+      "source_url": "https://doi.org/10.1038/s41598-026-78941-0",
+      "source_table": null,
+      "configuration": "sub-unit electrode system",
+      "evidence_class": "source_reported_thrust",
+      "operating_conditions": {
+        "pressure_pa": null,
+        "relative_humidity_fraction": null,
+        "temperature_c": null,
+        "gas": null,
+        "inter_electrode_gap_mm": null,
+        "applied_voltage_kv": 22
+      },
+      "electrical": {
+        "voltage_kv": 22,
+        "current_ma": null,
+        "reported_electrical_power_w": null,
+        "power_boundary": null
+      },
+      "output": {
+        "reported_thrust_mn": 64.09,
+        "reported_relative_improvement_percent": 27.59,
+        "flow_speed_m_per_s": null,
+        "reported_thrust_to_power_effect": "not transcribed from abstract"
+      },
+      "metrology": {
+        "force_directly_measured": null,
+        "force_method": null,
+        "uncertainty_of_reported_thrust": null
+      },
+      "comparability": {
+        "cohort": "same_paper_22kV_subunit_geometry_comparison",
+        "leaderboard_eligible": false,
+        "notes": "Within-paper relative comparison only. Do not compare this absolute thrust to 2025 configurations without matched conditions and power boundaries."
+      }
+    },
+    {
+      "case_id": "JIANG_2026_SUBUNIT_PLUS_22KV",
+      "source": "Jiang et al., Scientific Reports, published online 2026-11-07",
+      "source_url": "https://doi.org/10.1038/s41598-026-78941-0",
+      "source_table": null,
+      "configuration": "sub-unit-plus electrode system",
+      "evidence_class": "source_reported_thrust",
+      "operating_conditions": {
+        "pressure_pa": null,
+        "relative_humidity_fraction": null,
+        "temperature_c": null,
+        "gas": null,
+        "inter_electrode_gap_mm": null,
+        "applied_voltage_kv": 22
+      },
+      "electrical": {
+        "voltage_kv": 22,
+        "current_ma": null,
+        "reported_electrical_power_w": null,
+        "power_boundary": null
+      },
+      "output": {
+        "reported_thrust_mn": 68.7,
+        "reported_relative_improvement_percent": 36.77,
+        "flow_speed_m_per_s": null,
+        "reported_thrust_to_power_effect": "source notes trade-off between absolute thrust and thrust-to-power ratio"
+      },
+      "metrology": {
+        "force_directly_measured": null,
+        "force_method": null,
+        "uncertainty_of_reported_thrust": null
+      },
+      "comparability": {
+        "cohort": "same_paper_22kV_subunit_geometry_comparison",
+        "leaderboard_eligible": false,
+        "notes": "Within-paper relative comparison only. Source-specific operating envelope and power penalty must be transcribed before considering an engineering win."
+      }
+    },
+    {
+      "case_id": "TAO_2026_ION_MICROROBOT_CONTROLLED_HOVER",
+      "source": "Tao et al., Nature Communications 17, Article 9530 (2026-08-08)",
+      "source_url": "https://doi.org/10.1038/s41467-026-76462-y",
+      "source_table": null,
+      "configuration": "36.7 mg ion-propelled microrobot with four ion-wind thrusters, IMU-based closed-loop attitude control",
+      "evidence_class": "source_reported_integrated_system_performance",
+      "operating_conditions": {
+        "pressure_pa": null,
+        "relative_humidity_fraction": null,
+        "temperature_c": null,
+        "gas": "ambient air",
+        "inter_electrode_gap_mm": null,
+        "flight_support": "tethered power / support for one-hour hover"
+      },
+      "electrical": {
+        "voltage_kv": 4.5,
+        "current_ma": 0.1,
+        "reported_electrical_power_w": 0.45,
+        "power_boundary": "reported thruster consumption; tether / external power remains part of the system boundary"
+      },
+      "output": {
+        "robot_mass_mg": 36.7,
+        "reported_thrust_to_weight_ratio": 5,
+        "reported_hover_duration_hours": 1,
+        "reported_thrust_to_power_mn_per_w": 2.8,
+        "reported_thrust_density_n_per_m3": 538,
+        "flow_speed_m_per_s": null
+      },
+      "metrology": {
+        "force_directly_measured": null,
+        "force_method": null,
+        "uncertainty_of_reported_thrust": null
+      },
+      "comparability": {
+        "cohort": "integrated_ion_wind_microrobot",
+        "leaderboard_eligible": false,
+        "notes": "System integration / controllability comparator, not a bare-thruster bench comparator. One-hour hover is tethered; do not describe as self-powered free flight."
+      }
+    }
+  ]
+}
