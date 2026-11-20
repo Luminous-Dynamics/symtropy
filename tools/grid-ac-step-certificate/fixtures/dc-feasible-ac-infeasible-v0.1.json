@@ -11,7 +11,16 @@
     "parameterSetSha256": "0000000000000000000000000000000000000000000000000000000000000001",
     "modelClass": "balanced_positive_sequence",
     "applicabilityRef": "synthetic://applicability/only-balanced-example",
-    "limitPolicyRef": "synthetic://limits/synthetic-voltage-thermal-v1"
+    "limitPolicyRef": "synthetic://limits/synthetic-voltage-thermal-v1",
+    "requiredConstraintTypes": [
+      "bus_voltage",
+      "branch_thermal",
+      "transformer_loading",
+      "generator_pq",
+      "inverter_capability",
+      "power_balance",
+      "island_source"
+    ]
   },
   "evaluationGrid": {
     "timeOriginRef": "synthetic://time-origin/t0",
@@ -133,6 +142,58 @@
           "margin": 0.3,
           "marginUnit": "MVA",
           "status": "pass"
+        },
+        {
+          "constraintId": "transformer-loading",
+          "constraintType": "transformer_loading",
+          "subjectRef": "TX1",
+          "measuredValue": 75,
+          "unit": "percent",
+          "lowerLimit": null,
+          "upperLimit": 100,
+          "limitEvidenceRef": "synthetic://limit/transformer",
+          "margin": 25,
+          "marginUnit": "percentage_points",
+          "status": "pass"
+        },
+        {
+          "constraintId": "generator-pq",
+          "constraintType": "generator_pq",
+          "subjectRef": "GEN1",
+          "measuredValue": 0.7,
+          "unit": "p.u.",
+          "lowerLimit": 0,
+          "upperLimit": 0.9,
+          "limitEvidenceRef": "synthetic://limit/generator-pq",
+          "margin": 0.2,
+          "marginUnit": "p.u.",
+          "status": "pass"
+        },
+        {
+          "constraintId": "power-balance",
+          "constraintType": "power_balance",
+          "subjectRef": "system",
+          "measuredValue": 0.000001,
+          "unit": "MVA",
+          "lowerLimit": null,
+          "upperLimit": 0.00001,
+          "limitEvidenceRef": "synthetic://limit/power-balance",
+          "margin": 0.000009,
+          "marginUnit": "MVA",
+          "status": "pass"
+        },
+        {
+          "constraintId": "island-source",
+          "constraintType": "island_source",
+          "subjectRef": "synthetic://island/main",
+          "measuredValue": 1,
+          "unit": "count",
+          "lowerLimit": 1,
+          "upperLimit": null,
+          "limitEvidenceRef": "synthetic://limit/source-count",
+          "margin": 0,
+          "marginUnit": "count",
+          "status": "pass"
         }
       ],
       "scopeLimitations": [
@@ -213,6 +274,58 @@
           "limitEvidenceRef": "synthetic://limit/mps",
           "margin": 0.3,
           "marginUnit": "MVA",
+          "status": "pass"
+        },
+        {
+          "constraintId": "transformer-loading",
+          "constraintType": "transformer_loading",
+          "subjectRef": "TX1",
+          "measuredValue": 105,
+          "unit": "percent",
+          "lowerLimit": null,
+          "upperLimit": 100,
+          "limitEvidenceRef": "synthetic://limit/transformer",
+          "margin": -5,
+          "marginUnit": "percentage_points",
+          "status": "fail"
+        },
+        {
+          "constraintId": "generator-pq",
+          "constraintType": "generator_pq",
+          "subjectRef": "GEN1",
+          "measuredValue": 0.7,
+          "unit": "p.u.",
+          "lowerLimit": 0,
+          "upperLimit": 0.9,
+          "limitEvidenceRef": "synthetic://limit/generator-pq",
+          "margin": 0.2,
+          "marginUnit": "p.u.",
+          "status": "pass"
+        },
+        {
+          "constraintId": "power-balance",
+          "constraintType": "power_balance",
+          "subjectRef": "system",
+          "measuredValue": 0.000001,
+          "unit": "MVA",
+          "lowerLimit": null,
+          "upperLimit": 0.00001,
+          "limitEvidenceRef": "synthetic://limit/power-balance",
+          "margin": 0.000009,
+          "marginUnit": "MVA",
+          "status": "pass"
+        },
+        {
+          "constraintId": "island-source",
+          "constraintType": "island_source",
+          "subjectRef": "synthetic://island/main",
+          "measuredValue": 1,
+          "unit": "count",
+          "lowerLimit": 1,
+          "upperLimit": null,
+          "limitEvidenceRef": "synthetic://limit/source-count",
+          "margin": 0,
+          "marginUnit": "count",
           "status": "pass"
         }
       ],
