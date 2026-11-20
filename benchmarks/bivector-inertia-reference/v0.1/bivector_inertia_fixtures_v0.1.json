@@ -1,0 +1,55 @@
+{
+  "schema_version": "0.1.0",
+  "model_class": "principal_axis_second_moment_bivector_inertia",
+  "claim_ceiling": "Synthetic mathematical reference only. Assumes the supplied vector contains principal moments about local body axes. Not a production engine replacement or physical inertia measurement.",
+  "governing_relations": {
+    "second_moment_tensor": "C = integral(r r^T dm)",
+    "principal_moments": "I_i = trace(C) - C_i",
+    "trace_reconstruction": "trace(C) = sum(I_i)/(D-1)",
+    "diagonal_second_moment": "C_i = sum(I)/(D-1) - I_i",
+    "plane_inertia": "J_ij = C_i + C_j",
+    "bivector_inertia_operator": "I_C(Omega) = C Omega + Omega C",
+    "kinetic_energy": "T = 0.5 * sum_(i<j) J_ij * Omega_ij^2",
+    "rotated_impulse": "DeltaOmega_world = R * I_C^-1(R^T * L_world * R) * R^T"
+  },
+  "known_answers": [
+    {
+      "id": "isotropic-3d",
+      "dimension": 3,
+      "principal_moments": [2.0, 2.0, 2.0],
+      "second_moments": [1.0, 1.0, 1.0],
+      "plane_order": ["01", "02", "12"],
+      "plane_inertia": [2.0, 2.0, 2.0]
+    },
+    {
+      "id": "asymmetric-3d",
+      "dimension": 3,
+      "principal_moments": [3.0, 4.0, 5.0],
+      "second_moments": [3.0, 2.0, 1.0],
+      "plane_order": ["01", "02", "12"],
+      "plane_inertia": [5.0, 4.0, 3.0],
+      "impulse": [10.0, 8.0, 6.0],
+      "expected_response": [2.0, 2.0, 2.0]
+    },
+    {
+      "id": "formal-single-plane-2d",
+      "dimension": 2,
+      "principal_moments": [2.0, 3.0],
+      "second_moments": [3.0, 2.0],
+      "plane_order": ["01"],
+      "plane_inertia": [5.0],
+      "impulse": [15.0],
+      "expected_response": [3.0],
+      "note": "Algebraic extension only; this does not establish the engine's physical 2D inertia-field convention."
+    },
+    {
+      "id": "formal-multi-plane-4d",
+      "dimension": 4,
+      "principal_moments": [4.0, 5.0, 6.0, 7.0],
+      "second_moments": [3.3333333333333335, 2.3333333333333335, 1.3333333333333333, 0.3333333333333333],
+      "plane_order": ["01", "02", "03", "12", "13", "23"],
+      "plane_inertia": [5.666666666666667, 4.666666666666667, 3.6666666666666665, 3.6666666666666665, 2.6666666666666665, 1.6666666666666665],
+      "note": "Algebraic N-D extension only; these are not measurements of a physical 4D object."
+    }
+  ]
+}
