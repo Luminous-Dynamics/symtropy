@@ -3,7 +3,7 @@ use power_restoration_artifact_verifier::{
     BundleManifest, ExpectedAttestationBinding, TrustRoot, VerifiedAttestation,
     BundleVerificationReport,
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::env;
 use std::fs;
