@@ -1,0 +1,618 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/synthetic-joints/discrete-passivity/v0.1/discrete_passivity_profile.schema.json",
+  "title": "Discrete Passivity and Energy Budget Profile v0.1",
+  "description": "Evidence-bound sampled-data mechanical port, storage, tank and passivity-controller record. Not a passivity proof for arbitrary systems or a safety certification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "system_boundary",
+    "conventions",
+    "controller",
+    "intervals",
+    "energy_tank",
+    "evidence",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "system_boundary": {
+      "$ref": "#/$defs/boundary"
+    },
+    "conventions": {
+      "$ref": "#/$defs/conventions"
+    },
+    "controller": {
+      "$ref": "#/$defs/controller"
+    },
+    "intervals": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/interval"
+      }
+    },
+    "energy_tank": {
+      "$ref": "#/$defs/tank"
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "system_id",
+        "declared_control_volume",
+        "included_ports",
+        "excluded_ports",
+        "sampling_rate_hz",
+        "control_period_s",
+        "delay_model"
+      ],
+      "properties": {
+        "system_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "declared_control_volume": {
+          "type": "string",
+          "minLength": 1
+        },
+        "included_ports": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "excluded_ports": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sampling_rate_hz": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "control_period_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "delay_model": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "conventions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mechanical_port_effort",
+        "mechanical_port_flow",
+        "positive_work_direction",
+        "storage_change_sign",
+        "time_basis"
+      ],
+      "properties": {
+        "mechanical_port_effort": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanical_port_flow": {
+          "type": "string",
+          "minLength": 1
+        },
+        "positive_work_direction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "storage_change_sign": {
+          "type": "string",
+          "minLength": 1
+        },
+        "time_basis": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "controller": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "controller_id",
+        "control_law",
+        "effort_limit",
+        "passivity_action",
+        "tank_capture_path"
+      ],
+      "properties": {
+        "controller_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "control_law": {
+          "type": "string",
+          "minLength": 1
+        },
+        "effort_limit": {
+          "$ref": "#/$defs/measurement"
+        },
+        "passivity_action": {
+          "enum": [
+            "none",
+            "effort_scaling",
+            "damping_injection",
+            "energy_tank",
+            "combined",
+            "unknown"
+          ]
+        },
+        "tank_capture_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sample_and_hold": {
+          "type": "string",
+          "minLength": 1
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "value",
+        "unit",
+        "uncertainty",
+        "reason"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "measured",
+            "reported",
+            "derived",
+            "estimated",
+            "assumed",
+            "unknown",
+            "not_disclosed",
+            "not_applicable"
+          ]
+        },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uncertainty": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "port_sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "time_s",
+        "effort",
+        "flow",
+        "effort_unit",
+        "flow_unit",
+        "status"
+      ],
+      "properties": {
+        "time_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "effort": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "flow": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "effort_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "flow_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "measured",
+            "reported",
+            "synthetic",
+            "unknown"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "interval_id",
+        "start_time_s",
+        "end_time_s",
+        "port_samples",
+        "storage_change_j",
+        "port_work_j",
+        "tolerance_j",
+        "passivity_residual_j",
+        "passivity_deficit_j",
+        "tank_before_j",
+        "tank_after_j",
+        "effort_command",
+        "passivity_intervention",
+        "raw_trace_refs"
+      ],
+      "properties": {
+        "interval_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_time_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "end_time_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "port_samples": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/port_sample"
+          }
+        },
+        "storage_change_j": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "port_work_j": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "tolerance_j": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "passivity_residual_j": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "passivity_deficit_j": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "tank_before_j": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "tank_after_j": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "effort_command": {
+          "$ref": "#/$defs/effort_command"
+        },
+        "passivity_intervention": {
+          "$ref": "#/$defs/intervention"
+        },
+        "raw_trace_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "effort_command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "desired_effort",
+        "actuator_saturated_effort",
+        "tank_limited_effort",
+        "applied_effort",
+        "requested_work_j",
+        "applied_work_j",
+        "curtailed_injection_j"
+      ],
+      "properties": {
+        "desired_effort": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "actuator_saturated_effort": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "tank_limited_effort": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "applied_effort": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "requested_work_j": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "applied_work_j": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "curtailed_injection_j": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "intervention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "applied",
+        "damping_effort",
+        "energy_dissipated_j",
+        "remaining_deficit_j",
+        "torque_authority_exhausted",
+        "reason"
+      ],
+      "properties": {
+        "applied": {
+          "type": "boolean"
+        },
+        "damping_effort": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "energy_dissipated_j": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "remaining_deficit_j": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "torque_authority_exhausted": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "tank": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "energy_unit",
+        "initial_energy_j",
+        "minimum_energy_j",
+        "maximum_energy_j",
+        "final_energy_j",
+        "capture_efficiency",
+        "capture_path",
+        "overflow_sink",
+        "underflow_action"
+      ],
+      "properties": {
+        "energy_unit": {
+          "const": "J"
+        },
+        "initial_energy_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimum_energy_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_energy_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "final_energy_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "capture_efficiency": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "capture_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overflow_sink": {
+          "type": "string",
+          "minLength": 1
+        },
+        "underflow_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initialization_method": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference",
+        "source_class",
+        "method",
+        "date",
+        "independence"
+      ],
+      "properties": {
+        "reference": {
+          "type": "string",
+          "format": "uri"
+        },
+        "source_class": {
+          "enum": [
+            "paper",
+            "raw_source_data",
+            "synthetic_fixture",
+            "independent_lab",
+            "model_output",
+            "other"
+          ]
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "independence": {
+          "enum": [
+            "independent",
+            "source_author",
+            "not_assessed",
+            "unknown"
+          ]
+        }
+      }
+    }
+  }
+}
