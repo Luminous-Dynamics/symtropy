@@ -193,3 +193,36 @@ Do not create another field solver, unit system, OED engine, generic evidence le
 ## Claim ceiling
 
 Completion of this document or software contracts does not establish a new physical interaction, gravity coupling, vacuum propulsion, antigravity, experimental validation, safety certification or state-of-the-art performance. A simulation receipt qualifies provenance and declared checks—not physical truth. Every numerical result must be tagged as source-reported, independently reproduced, simulated, synthetic, predicted or physically measured.
+
+
+## State-of-the-art snapshot (20 November 2026)
+
+These are source-specific anchors for reconstruction, not one comparable leaderboard:
+
+| Source / configuration | Reported result | Comparison caveat |
+|---|---|---|
+| Čurma et al., Applied Sciences 15(16), 9190 (2025), Table 2, (0.08)E0K2, 15 mm | 13.57 kV, 0.62 mA, 8.4134 W, 2.02 m/s flow, 7.64 mN calculated thrust, 0.183427% reported efficiency | Atmospheric conditions: 98,540 Pa, 46.7% RH, 20.5 °C. The paper's `F_real` is derived from flow velocity and cross-section, not a direct balance-thrust reading. |
+| Čurma et al. (2025), Table 5, (0.08)E1K1, 45 mm | 27.3 kV, 0.03 mA, 0.819 W, 1.49 m/s, 4.157 mN calculated thrust, 0.756232% reported efficiency | A different geometry and operating point from the 7.64 mN result. Do not combine peak thrust with peak efficiency. |
+| Nonaka et al., IEEJ Journal of Industry Applications 15(4), 675–682 (2026), guide electrode | Maximum thrust improvement reported as 36.6%; authors also report an improved thrust-to-power ratio | Relative improvement is configuration-specific; rebuild the exact baseline and power boundary before comparison. |
+| Jiang et al., Scientific Reports, published online 7 November 2026, DOI 10.1038/s41598-026-78941-0, sub-unit / sub-unit-plus electrodes | At 22 kV: conventional 50.23 mN; sub-unit 64.09 mN (+27.59%); sub-unit-plus 68.70 mN (+36.77% vs conventional) | The paper explicitly notes a trade-off between absolute thrust and thrust-to-power ratio. It is not directly comparable with the 2025 study. |
+| Tao et al., Nature Communications 17, 9530 (8 August 2026), 36.7 mg ion-propelled microrobot | 5:1 thrust-to-weight; 1 h tethered hover; reported ~0.45 W at 4.5 kV / 0.1 mA and ~2.8 mN/W; IMU closed-loop attitude control | Tethered power / support remains part of the system boundary; it is not a fully self-powered free-flight demonstration. |
+| Control-oriented EHD actuation study, Actuators 15(6), 326 (2026) | Three independently driven HV channels and closed-loop electrode-placement comparison | A laboratory control-system benchmark, not a universal flight-performance baseline. |
+
+Detailed source URLs:
+- 2025 operating-point tables and measurement conditions: <https://www.mdpi.com/2076-3417/15/16/9190>
+- 2026 guide-electrode study: <https://doi.org/10.1541/ieejjia.20250124>
+- 2026 sub-unit electrode study: <https://doi.org/10.1038/s41598-026-78941-0>
+- 2026 integrated-sensing microrobot: <https://doi.org/10.1038/s41467-026-76462-y>
+- 2026 control-oriented actuation study: <https://doi.org/10.3390/act15060326>
+
+### What a credible SOTA comparison must do
+
+1. Reconstruct the exact source geometry and operating point, not just the headline maximum.
+2. Distinguish direct balance measurements from thrust inferred through a flow model.
+3. Measure power at the same declared boundary. HV output power, driver input and complete wall-plug power are not interchangeable.
+4. Report thrust and thrust-to-power together; the largest thrust configuration may not be the most efficient.
+5. Include mass, payload, control electronics, cooling, tether / power source, emissions and endurance for system-level claims.
+6. Run the incumbent and candidate in the same facility, on the same calibration chain and under matched environmental conditions.
+7. State the full uncertainty and replicate across separate builds / sessions.
+
+A meaningful next engineering target is not an unqualified “more thrust.” It is a measured Pareto improvement in thrust-to-power or payload-specific impulse while preserving low noise, acceptable emissions, thermal limits and repeatability. For flight systems, the stronger target is integrated closed-loop control with a progressively reduced external support burden—clearly reporting what remains tethered.
