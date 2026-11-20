@@ -90,6 +90,9 @@ def _safe_archive_entries(archive: zipfile.ZipFile, label: str) -> dict[str, zip
         if not name or "\\" in name or name.startswith("/"):
             raise QualificationError(f"{label}: unsafe ZIP member path {name!r}")
         path = PurePosixPath(name)
+        canonical_name = path.as_posix() + ("/" if info.is_dir() else "")
+        if name != canonical_name:
+            raise QualificationError(f"{label}: non-canonical ZIP member path {name!r}")
         if any(part in ("", ".", "..") for part in path.parts):
             raise QualificationError(f"{label}: unsafe ZIP member path {name!r}")
         if path.is_absolute() or ":" in path.parts[0]:
@@ -521,11 +524,24 @@ def verify_package_bytes(package_bytes: bytes) -> dict:
                 object_pairs_hook=_json_object_no_duplicates,
             )
 
+            expected_manifest_keys = {
+                "schema_version", "ssp_release", "ssd_format_version",
+                "fmi_standard_release", "platform", "system_structure_sha256",
+                "components", "connections", "claim_ceiling",
+            }
+            if set(manifest) != expected_manifest_keys:
+                raise QualificationError("SSP package evidence manifest key set mismatch")
             if manifest.get("schema_version") != "0.1.0" \
                     or manifest.get("ssp_release") != SSP_RELEASE \
                     or manifest.get("ssd_format_version") != SSD_VERSION \
                     or manifest.get("fmi_standard_release") != FMI_STANDARD_RELEASE:
                 raise QualificationError("SSP package evidence manifest version mismatch")
+            expected_claim_ceiling = (
+                "SSP package/system-structure qualification only. No FMI execution, master, "
+                "physical thermofluid or geothermal plant qualification."
+            )
+            if manifest.get("claim_ceiling") != expected_claim_ceiling:
+                raise QualificationError("SSP package evidence manifest claim ceiling mismatch")
             if manifest.get("system_structure_sha256") != sha256(ssd_bytes):
                 raise QualificationError("SSP package evidence manifest has a stale SSD digest")
             if manifest.get("platform") != PLATFORM:
