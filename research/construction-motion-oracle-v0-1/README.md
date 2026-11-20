@@ -159,4 +159,4 @@ The computation uses floating-point formulas and adds explicit 1 mm / 1 ms numer
 
 ### Verification corpus
 
-Unit tests cover the jerk-ramp-plus-plateau formula, triangular braking, motion during response latency, speed-domain refusal, malformed evidence digests, nonphysical bounds and outward rounding. A numerical integration oracle and generated monotonicity cases are the next strengthening gate. Physical validation must use independent tracking and trigger/brake timing instrumentation in an enclosed test cell before any guarded site trial.
+Unit tests cover the jerk-ramp-plus-plateau formula, triangular braking, motion during response latency, speed-domain refusal, malformed evidence digests, nonphysical bounds, outward rounding, 54 generated analytic-vs-time-step braking cases and monotonicity under speed/latency/acceleration/deceleration/jerk changes. The Linux workflow also runs a standalone microbenchmark reporting p50/p95/p99 batch latency and median ns/call. Physical validation must use independent tracking and trigger/brake timing instrumentation in an enclosed test cell before any guarded site trial.
