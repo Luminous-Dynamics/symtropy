@@ -38,7 +38,7 @@ This reference intentionally begins with deterministic intervals. It does not tu
 
 ### NIST: traceability belongs to measurement results
 
-NIST's *Metrological Traceability: Frequently Asked Questions and NIST Policy* says only measurement results—not a laboratory or organisation—are traceable. A traceability claim needs a defined measurand, described measurement system, stated result with evaluated uncertainty, specified calibration reference and measurement-assurance evidence.
+NIST's *Metrological Traceability: Frequently Asked Questions and NIST Policy* says only measurement results—not a laboratory or organisation—are traceable. A traceability claim needs a defined measurand, described measurement system, stated result with evaluated uncertainty, specified calibration reference and measurement-assurance evidence. NIST also notes that it does not directly offer a torque calibration service, but torque can be derived from traceable component quantities such as force and length when the measurement model and uncertainty are properly evaluated.
 
 Source: https://www.nist.gov/metrology/metrological-traceability
 
@@ -55,7 +55,7 @@ Torres Rodríguez et al., *Toward Reproducible Actuator Characterization: A Comp
 ## 3. M1 channel contract
 
 A channel record must include:
-- typed quantity: output torque (N·m) or angular velocity (rad/s);
+- typed quantity and canonical machine-checked unit: output torque `N m` or angular velocity `rad/s`;
 - conservative bounded measurement interval;
 - physical sensor range and calibration-covered range;
 - bound representation (ValidatedBound, not standard/expanded uncertainty);
@@ -91,10 +91,13 @@ aligned_upper_c = measured_upper_c + L_c * max_skew_c
 \`\`\`
 
 Both torque and angular velocity must:
+- declare units consistent with their channel kind (`N m` for torque, `rad/s` for angular velocity);
 - map to the same declared reference clock;
 - target the same reference instant;
 - use matching system-boundary and operating-condition digests;
-- remain inside the calibration-covered operating range after expansion.
+- remain inside both the physical sensor range and calibration-covered operating range after expansion.
+
+The calibration-covered range may be narrower than the sensor's full hardware range. Only the actual measurement interval and its time-expanded interval must lie inside the calibration-covered portion.
 
 The power interval is the exact rectangular interval product. All four combinations are evaluated:
 
@@ -130,7 +133,7 @@ The result is Unknown (no numerical power claim) when:
 - channels use different reference clocks or physical reference instants;
 - system boundaries or operating conditions do not match.
 
-Malformed/non-finite/inverted numerical intervals, invalid negative timing bounds, wrong channel kinds and interval-product overflow are rejected as invalid inputs.
+Malformed/non-finite/inverted numerical intervals, invalid negative timing bounds, wrong channel kinds/units and interval-product overflow are rejected as invalid inputs.
 
 **Negative mechanical power is not electrical regeneration.** A negative \(\tau\omega\) result only establishes mechanical-port power direction under the declared sign convention. The DC-bus, converter, storage sink and accepted returned energy require separately measured electrical evidence.
 
@@ -158,7 +161,7 @@ cargo clippy --manifest-path benchmarks/synthetic-joints/synchronized-metrology/
 
 Dedicated workflow: .github/workflows/actuator-synchronized-metrology.yml. The local authoring environment has no Cargo/rustc/rustfmt; exact-head CI is the compilation/format/Clippy gate.
 
-Twenty-six Rust tests cover rectangular interval multiplication, negative, zero-crossing and reverse-quadrant power, clock/slew expansion, filter-delay compensation, expired calibration, serial mismatch, incomplete traceability, different clocks/instants, uncertainty-vs-bound semantics, boundary/condition mismatch, missing slew provenance, calibration range limits, preserved vendor evidence, wrong channel kinds, invalid intervals, traceability/clock-map abstention, raw-trace receipt preservation, signed filter group delay and timing overflow.
+Twenty-nine Rust tests cover rectangular interval multiplication, negative, zero-crossing and reverse-quadrant power, clock/slew expansion, filter-delay compensation, expired calibration, serial mismatch, incomplete traceability, different clocks/instants, uncertainty-vs-bound semantics, boundary/condition mismatch, missing slew provenance, calibration range limits, preserved vendor evidence, wrong channel kinds, invalid intervals, traceability/clock-map abstention, raw-trace receipt preservation, signed filter group delay, timing overflow, time-expanded sensor-range violation, unit mismatch rejection, and valid use of a calibrated subrange narrower than the sensor hardware range.
 
 ## 8. M0–M5 promotion
 
