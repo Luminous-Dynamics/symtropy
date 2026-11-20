@@ -1317,6 +1317,7 @@ fn verify_final_service_trajectory_bundle(
     final_trajectory_ref: &power_restoration_run_receipt::ArtifactRef,
     receipt: &RunReceipt,
     case: &BenchmarkCase,
+    producer_profiles: &[ClaimProducerProfile],
     max_artifact_bytes: u64,
 ) -> Result<(ServiceTrajectoryRecord, ServiceTrajectoryAuditReport), Vec<String>> {
     let trajectory_bytes = verified_bundle
@@ -1339,6 +1340,17 @@ fn verify_final_service_trajectory_bundle(
 
     let trajectory: ServiceTrajectoryRecord = serde_json::from_slice(&trajectory_bytes)
         .map_err(|error| vec![format!("final service trajectory JSON decode error: {error}")])?;
+    let service_profile = profile_for_role(producer_profiles, SignerRole::ServiceProvider)
+        .map_err(|error| vec![format!("service producer profile: {error}")])?;
+    if trajectory.producer.producer_id != service_profile.issuer_id
+        || trajectory.producer.source_commit != service_profile.tool_source_commit
+        || trajectory.producer.configuration_sha256 != service_profile.tool_configuration_sha256
+    {
+        return Err(vec![
+            "service trajectory producer identity/source/configuration does not match the pinned ServiceProvider profile".to_string()
+        ]);
+    }
+
     let service_report = audit_service_trajectory(&trajectory, receipt, case)
         .map_err(|service_errors| {
             service_errors
@@ -2123,6 +2135,7 @@ pub fn verify_restoration_claim_evidence(
             final_trajectory_ref,
             receipt,
             case,
+            producer_profiles,
             max_artifact_bytes,
         ) {
             Ok((trajectory, service_report)) => {
