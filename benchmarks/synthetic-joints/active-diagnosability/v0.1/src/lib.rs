@@ -677,6 +677,27 @@ mod tests {
         }).unwrap()
     }
 
+    fn two_signatures_mut<'a>(
+        profile: &'a mut DiagnosticProfile,
+        left_id: &str,
+        right_id: &str,
+    ) -> (&'a mut FaultSignature, &'a mut FaultSignature) {
+        let left_index = profile.fault_signatures.iter()
+            .position(|signature| signature.hypothesis_id == left_id)
+            .unwrap();
+        let right_index = profile.fault_signatures.iter()
+            .position(|signature| signature.hypothesis_id == right_id)
+            .unwrap();
+        assert_ne!(left_index, right_index);
+        if left_index < right_index {
+            let (before_right, from_right) = profile.fault_signatures.split_at_mut(right_index);
+            (&mut before_right[left_index], &mut from_right[0])
+        } else {
+            let (before_left, from_left) = profile.fault_signatures.split_at_mut(left_index);
+            (&mut from_left[0], &mut before_left[right_index])
+        }
+    }
+
     #[test]
     fn diag_001_all_hypothesis_pairs_separate_under_nominal_and_declared_dropout_cases() {
         let mut profile = profile();
@@ -768,12 +789,7 @@ mod tests {
     #[test]
     fn diag_007_overlapping_bounded_intervals_are_not_separable() {
         let mut profile = profile();
-        let healthy = profile.fault_signatures.iter_mut()
-            .find(|signature| signature.hypothesis_id == "healthy")
-            .unwrap();
-        let bearing = profile.fault_signatures.iter_mut()
-            .find(|signature| signature.hypothesis_id == "bearing_wear")
-            .unwrap();
+        let (healthy, bearing) = two_signatures_mut(&mut profile, "healthy", "bearing_wear");
         for (left, right) in healthy.features.iter_mut().zip(&mut bearing.features) {
             left.interval = NumericInterval { lower: -1.0, upper: 1.0 };
             right.interval = NumericInterval { lower: -0.5, upper: 0.5 };
@@ -854,12 +870,7 @@ mod tests {
     #[test]
     fn diag_011_touching_intervals_have_zero_gap_and_are_not_separable() {
         let mut profile = profile();
-        let healthy = profile.fault_signatures.iter_mut()
-            .find(|signature| signature.hypothesis_id == "healthy")
-            .unwrap();
-        let gearbox = profile.fault_signatures.iter_mut()
-            .find(|signature| signature.hypothesis_id == "gearbox_backlash")
-            .unwrap();
+        let (healthy, gearbox) = two_signatures_mut(&mut profile, "healthy", "gearbox_backlash");
         healthy.features[0].interval = NumericInterval { lower: 0.0, upper: 1.0 };
         gearbox.features[0].interval = NumericInterval { lower: 1.0, upper: 2.0 };
         healthy.features[1].interval = NumericInterval { lower: -1.0, upper: 1.0 };
@@ -894,18 +905,20 @@ mod tests {
         assert!(evaluate_diagnostic_profile(&missing_healthy).is_err());
 
         let mut one_hypothesis = profile();
-        one_hypothesis.fault_signatures.pop();
-        assert!(evaluate_diagnostic_profile(&one_hypothesis).is_ok());
+        one_hypothesis.fault_signatures.truncate(1);
+        assert!(evaluate_diagnostic_profile(&one_hypothesis).is_err());
     }
 
     #[test]
     fn diag_014_duplicate_profile_feature_or_scenario_ids_reject() {
         let mut duplicate_feature = profile();
-        duplicate_feature.fault_signatures[0].features.push(duplicate_feature.fault_signatures[0].features[0].clone());
+        let duplicated_feature = duplicate_feature.fault_signatures[0].features[0].clone();
+        duplicate_feature.fault_signatures[0].features.push(duplicated_feature);
         assert!(evaluate_diagnostic_profile(&duplicate_feature).is_err());
 
         let mut duplicate_scenario = profile();
-        duplicate_scenario.sensor_scenarios.push(duplicate_scenario.sensor_scenarios[0].clone());
+        let duplicated_scenario = duplicate_scenario.sensor_scenarios[0].clone();
+        duplicate_scenario.sensor_scenarios.push(duplicated_scenario);
         assert!(evaluate_diagnostic_profile(&duplicate_scenario).is_err());
     }
 
@@ -962,7 +975,8 @@ mod tests {
     #[test]
     fn diag_020_duplicate_constraint_kind_rejects() {
         let mut profile = profile();
-        profile.hard_constraint_margins.push(profile.hard_constraint_margins[0].clone());
+        let duplicate_margin = profile.hard_constraint_margins[0].clone();
+        profile.hard_constraint_margins.push(duplicate_margin);
         assert!(evaluate_diagnostic_profile(&profile).is_err());
     }
 }
