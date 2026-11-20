@@ -1,0 +1,257 @@
+{
+  "schemaVersion": "0.1.0",
+  "caseId": "ac-step-static-only-synthetic-001",
+  "caseMaturity": "synthetic_fixture",
+  "scenarioRef": "synthetic://scenario/accepted-static-ac",
+  "scheduleRef": "synthetic://schedule/candidate-1",
+  "networkModel": {
+    "modelRef": "synthetic://network-model/ieee13-shaped-example/v1",
+    "modelRevision": "1",
+    "parameterSetRef": "synthetic://network-parameters/example/v1",
+    "parameterSetSha256": "0000000000000000000000000000000000000000000000000000000000000001",
+    "modelClass": "balanced_positive_sequence",
+    "applicabilityRef": "synthetic://applicability/only-balanced-example",
+    "limitPolicyRef": "synthetic://limits/synthetic-voltage-thermal-v1"
+  },
+  "evaluationGrid": {
+    "timeOriginRef": "synthetic://time-origin/t0",
+    "timeZone": "UTC",
+    "stepDurationSeconds": 300,
+    "steps": [
+      {
+        "stepId": "s0",
+        "stepIndex": 0,
+        "startSeconds": 0,
+        "endSeconds": 300,
+        "boundaryKind": "initial_state",
+        "topologyStateSha256": "000000000000000000000000000000000000000000000000000000000000000a",
+        "dispatchStateSha256": "0000000000000000000000000000000000000000000000000000000000000014"
+      },
+      {
+        "stepId": "s1",
+        "stepIndex": 1,
+        "startSeconds": 300,
+        "endSeconds": 600,
+        "boundaryKind": "post_switch",
+        "topologyStateSha256": "000000000000000000000000000000000000000000000000000000000000000b",
+        "dispatchStateSha256": "0000000000000000000000000000000000000000000000000000000000000015"
+      }
+    ]
+  },
+  "plannerSummary": {
+    "plannerRef": "synthetic://planner/dc-opf/v1",
+    "plannerRevision": "test",
+    "plannerModelRef": "synthetic://planner-model/dc-opf",
+    "feasibilityModel": "dc_opf",
+    "stepResults": [
+      {
+        "stepId": "s0",
+        "plannerStatus": "feasible",
+        "topologyStateSha256": "000000000000000000000000000000000000000000000000000000000000000a",
+        "dispatchStateSha256": "0000000000000000000000000000000000000000000000000000000000000014"
+      },
+      {
+        "stepId": "s1",
+        "plannerStatus": "feasible",
+        "topologyStateSha256": "000000000000000000000000000000000000000000000000000000000000000b",
+        "dispatchStateSha256": "0000000000000000000000000000000000000000000000000000000000000015"
+      }
+    ]
+  },
+  "acStepReceipts": [
+    {
+      "receiptId": "ac-s0",
+      "stepId": "s0",
+      "receiptMaturity": "synthetic_fixture",
+      "solverRef": "synthetic://solver/ac-opf",
+      "solverVersion": "1.0.0",
+      "solverBuildSha256": "000000000000000000000000000000000000000000000000000000000000001e",
+      "solverConfigurationRef": "synthetic://solver-config/default",
+      "inputManifestRef": "synthetic://ac-input/s0",
+      "inputManifestSha256": "0000000000000000000000000000000000000000000000000000000000000028",
+      "outputArtifactRef": "synthetic://ac-output/s0",
+      "outputArtifactSha256": "0000000000000000000000000000000000000000000000000000000000000032",
+      "networkModelRef": "synthetic://network-model/ieee13-shaped-example/v1",
+      "parameterSetRef": "synthetic://network-parameters/example/v1",
+      "topologyStateSha256": "000000000000000000000000000000000000000000000000000000000000000a",
+      "dispatchStateSha256": "0000000000000000000000000000000000000000000000000000000000000014",
+      "modelClass": "balanced_positive_sequence",
+      "solverStatus": "converged",
+      "operatingPointStatus": "feasible",
+      "convergence": {
+        "iterationCount": 8,
+        "powerBalanceResidual": 0.000001,
+        "residualUnit": "MVA",
+        "residualTolerance": 0.00001,
+        "convergenceCriteriaRef": "synthetic://criteria/ac-residual"
+      },
+      "sourceCoverage": {
+        "energizedIslands": [
+          {
+            "islandRef": "synthetic://island/main",
+            "slackOrGridFormingSourceRef": "synthetic://source/slack-1"
+          }
+        ],
+        "allIslandsHaveQualifiedSource": true
+      },
+      "constraintAssessments": [
+        {
+          "constraintId": "v-min-n2",
+          "constraintType": "bus_voltage",
+          "subjectRef": "N2",
+          "measuredValue": 0.98,
+          "unit": "p.u.",
+          "lowerLimit": 0.95,
+          "upperLimit": 1.05,
+          "limitEvidenceRef": "synthetic://limit/voltage",
+          "margin": 0.03,
+          "marginUnit": "p.u.",
+          "status": "pass"
+        },
+        {
+          "constraintId": "line-1-2",
+          "constraintType": "branch_thermal",
+          "subjectRef": "L1-2",
+          "measuredValue": 80,
+          "unit": "percent",
+          "lowerLimit": null,
+          "upperLimit": 100,
+          "limitEvidenceRef": "synthetic://limit/thermal",
+          "margin": 20,
+          "marginUnit": "percentage_points",
+          "status": "pass"
+        },
+        {
+          "constraintId": "mps-pq",
+          "constraintType": "inverter_capability",
+          "subjectRef": "MPS1",
+          "measuredValue": 0.7,
+          "unit": "MVA",
+          "lowerLimit": null,
+          "upperLimit": 1,
+          "limitEvidenceRef": "synthetic://limit/mps",
+          "margin": 0.3,
+          "marginUnit": "MVA",
+          "status": "pass"
+        }
+      ],
+      "scopeLimitations": [
+        "Balanced positive-sequence static AC only",
+        "No dynamic or protection qualification"
+      ]
+    },
+    {
+      "receiptId": "ac-s1",
+      "stepId": "s1",
+      "receiptMaturity": "synthetic_fixture",
+      "solverRef": "synthetic://solver/ac-opf",
+      "solverVersion": "1.0.0",
+      "solverBuildSha256": "000000000000000000000000000000000000000000000000000000000000001e",
+      "solverConfigurationRef": "synthetic://solver-config/default",
+      "inputManifestRef": "synthetic://ac-input/s1",
+      "inputManifestSha256": "0000000000000000000000000000000000000000000000000000000000000029",
+      "outputArtifactRef": "synthetic://ac-output/s1",
+      "outputArtifactSha256": "0000000000000000000000000000000000000000000000000000000000000033",
+      "networkModelRef": "synthetic://network-model/ieee13-shaped-example/v1",
+      "parameterSetRef": "synthetic://network-parameters/example/v1",
+      "topologyStateSha256": "000000000000000000000000000000000000000000000000000000000000000b",
+      "dispatchStateSha256": "0000000000000000000000000000000000000000000000000000000000000015",
+      "modelClass": "balanced_positive_sequence",
+      "solverStatus": "converged",
+      "operatingPointStatus": "feasible",
+      "convergence": {
+        "iterationCount": 8,
+        "powerBalanceResidual": 0.000001,
+        "residualUnit": "MVA",
+        "residualTolerance": 0.00001,
+        "convergenceCriteriaRef": "synthetic://criteria/ac-residual"
+      },
+      "sourceCoverage": {
+        "energizedIslands": [
+          {
+            "islandRef": "synthetic://island/main",
+            "slackOrGridFormingSourceRef": "synthetic://source/slack-1"
+          }
+        ],
+        "allIslandsHaveQualifiedSource": true
+      },
+      "constraintAssessments": [
+        {
+          "constraintId": "v-min-n2",
+          "constraintType": "bus_voltage",
+          "subjectRef": "N2",
+          "measuredValue": 0.98,
+          "unit": "p.u.",
+          "lowerLimit": 0.95,
+          "upperLimit": 1.05,
+          "limitEvidenceRef": "synthetic://limit/voltage",
+          "margin": 0.03,
+          "marginUnit": "p.u.",
+          "status": "pass"
+        },
+        {
+          "constraintId": "line-1-2",
+          "constraintType": "branch_thermal",
+          "subjectRef": "L1-2",
+          "measuredValue": 80,
+          "unit": "percent",
+          "lowerLimit": null,
+          "upperLimit": 100,
+          "limitEvidenceRef": "synthetic://limit/thermal",
+          "margin": 20,
+          "marginUnit": "percentage_points",
+          "status": "pass"
+        },
+        {
+          "constraintId": "mps-pq",
+          "constraintType": "inverter_capability",
+          "subjectRef": "MPS1",
+          "measuredValue": 0.7,
+          "unit": "MVA",
+          "lowerLimit": null,
+          "upperLimit": 1,
+          "limitEvidenceRef": "synthetic://limit/mps",
+          "margin": 0.3,
+          "marginUnit": "MVA",
+          "status": "pass"
+        }
+      ],
+      "scopeLimitations": [
+        "Balanced positive-sequence static AC only",
+        "No dynamic or protection qualification"
+      ]
+    }
+  ],
+  "intertemporalReceipt": {
+    "receiptRef": "synthetic://intertemporal/accepted",
+    "receiptSha256": "000000000000000000000000000000000000000000000000000000000000003c",
+    "status": "accepted",
+    "coveredStepIds": [
+      "s0",
+      "s1"
+    ],
+    "checks": [
+      {
+        "checkId": "soc-continuity",
+        "status": "pass",
+        "evidenceRef": "synthetic://check/soc"
+      },
+      {
+        "checkId": "switch-sequence",
+        "status": "pass",
+        "evidenceRef": "synthetic://check/switch"
+      }
+    ],
+    "modelLimitations": [
+      "Synthetic continuity example only"
+    ]
+  },
+  "dynamicProtectionReceipt": {
+    "receiptRef": "synthetic://dynamic/not-assessed",
+    "receiptSha256": "000000000000000000000000000000000000000000000000000000000000003d",
+    "status": "not_assessed",
+    "coveredStepIds": [],
+    "qualificationDomains": []
+  },
+  "claimBoundary": "Static AC snapshot qualification only; dynamic stability and protection not assessed; no dispatch or service claim"
+}
