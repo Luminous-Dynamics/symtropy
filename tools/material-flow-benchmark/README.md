@@ -372,3 +372,19 @@ The v0.1 fixture has two regions, three periods, two scenarios, five observed-hi
 Detailed formulation, independent fixture replay, limits, target benchmarks and current literature comparators: [Shared aircraft repositioning v0.1](../../docs/research/MFB_SHARED_AIRCRAFT_REPOSITIONING_V0_1.md).
 
 This is a synthetic small-instance oracle, not a fleet-scale optimizer or flight model. The main fixture pins the expected-cost baseline. A separate 5%-probability rare-event stress fixture demonstrates that expected-cost, CVaR90, minimax-cost and service-robust objectives can select different nonanticipative policies: CVaR90 falls from 866 to 825 synthetic units at an expected-cost increase from 524 to 527; minimax cost falls from 1,246 to 1,156 at an expected-cost increase to 570; worst-case unserved demand falls from 22 to 21 under the service-robust policy. These are fixture arithmetic, not operational savings or calibrated risk guarantees. The objective only protects against the supplied finite scenario distribution; distribution shift, probability ambiguity and out-of-sample calibration remain open work. The full programme remains [LOGISTICS-MODE-OPTIONS-001 #6153](https://github.com/Luminous-Dynamics/symtropy/issues/6153).
+
+
+## Held-out scenario probability calibration (synthetic evaluator)
+
+The `mfb-evaluate-scenario-calibration` binary evaluates frozen multiclass scenario probabilities against later-observed outcomes. It scores multiclass Brier, log loss, training-only climatology Brier skill, and class-wise reliability bins / ECE. It rejects chronology leakage, probability vectors that do not sum to 10,000 basis points, unmodelled outcomes without the explicit `other` class, and stress-only scenarios passed as probabilistic forecasts.
+
+Run:
+
+```bash
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-evaluate-scenario-calibration -- \
+  tools/material-flow-benchmark/fixtures/synthetic-scenario-calibration-v0_1.json
+```
+
+The 20-case fixture is synthetic arithmetic only. Unknown probability provenance remains unqualified; empirical/forecast/expert provenance is still pending independent review. Zero probability assigned to an observed outcome makes raw log loss undefined rather than silently clipping the probability. The report never authorizes field-risk claims.
+
+Detailed score definitions, time-order rules and claim limits: [Scenario probability calibration v0.1](../../docs/research/MFB_SCENARIO_PROBABILITY_CALIBRATION_V0_1.md). Owner: [MFB-SCENARIO-CALIBRATION-001 #6460](https://github.com/Luminous-Dynamics/symtropy/issues/6460).
