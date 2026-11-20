@@ -649,7 +649,7 @@ mod tests {
     #[test]
     fn frozen_service_corpus_matches_expected_results() {
         let report = evaluate(&fixture()).expect("service fixture evaluates");
-        assert_eq!(report.summary.scenario_count, 27);
+        assert_eq!(report.summary.scenario_count, 28);
         assert_eq!(report.summary.expected_result_mismatches, 0);
         assert_eq!(report.summary.nominal_false_capacity_claims, 0);
         assert_eq!(report.summary.authority_grants, 0);
@@ -677,7 +677,7 @@ mod tests {
     }
 
     #[test]
-    fn partial_service_is_counted_only_at_accepted_capacity() {
+    fn planned_capacity_shortfall_is_not_claimed_as_receiver_acceptance() {
         let report = evaluate(&fixture()).expect("service fixture evaluates");
         let row = report.scenarios.iter()
             .find(|row| row.case_id == "PARTIAL_SERVICE_COUNTS_ONLY_ACCEPTED_UNITS")
@@ -714,9 +714,6 @@ mod tests {
     #[test]
     fn supplier_identity_is_an_implicit_shared_failure_domain() {
         let mut data = fixture();
-        let row = data.scenarios.iter_mut()
-            .find(|row| row.case_id == "SAME_SUPPLIER_ID_DEFEATS_FALLBACK")
-            .expect("same-supplier case exists");
         let provider_a = data.providers.iter()
             .find(|provider| provider.provider_id == "A")
             .expect("provider A exists");
@@ -732,7 +729,6 @@ mod tests {
             .expect("same-supplier result exists");
         assert_eq!(result.actual_status, ServiceStatus::Rejected);
         assert_eq!(result.actual_reason, "fallback_shares_failed_domain");
-        let _ = row;
     }
 
     #[test]
