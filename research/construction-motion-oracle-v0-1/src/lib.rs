@@ -4,7 +4,32 @@
 //! upper-semicircle geometry families. This module does not call the envelope
 //! producer's geometric expansion helpers.
 
+pub mod dependency_scoped_invalidation;
+pub mod dispatch_readiness;
+pub mod integrated_dispatch;
+pub mod stopping_reachability;
 pub mod field_layout_acceptance;
+pub use dependency_scoped_invalidation::{
+    DependencyGraphError, DependencyInvalidationPlan, EvidenceDependency, EvidenceDependencyGraph,
+    EvidenceNode, EvidenceNodeKind, EvidenceRevisionChange, EvidenceSnapshot,
+    InvalidatedEvidenceNode, NodeVersion, RequalificationAction,
+};
+pub use dispatch_readiness::{
+    DispatchEnvelopeBinding, DispatchReadinessFailure, DispatchReadinessReceipt,
+    DispatchReadinessRequest, OccupancyAssessmentReceipt, check_dispatch_readiness,
+    verify_dispatch_readiness_receipt_current,
+};
+pub use integrated_dispatch::{
+    IntegratedDispatchReadinessFailure, IntegratedDispatchReadinessReceipt,
+    IntegratedDispatchReadinessRequest, IntegratedEvidenceNodeIds,
+    INTEGRATED_DISPATCH_RECEIPT_SCHEMA_VERSION, INTEGRATED_DISPATCH_REQUEST_SCHEMA_VERSION,
+    check_integrated_dispatch_readiness, verify_integrated_dispatch_readiness_receipt_current,
+};
+pub use stopping_reachability::{
+    HazardDetectionQualification, HazardStoppingBudget, HazardStoppingMargins,
+    StoppingDynamicsQualification, StoppingReachabilityError, StoppingReachabilityRequest,
+    StoppingReachabilityResult, calculate_stopping_reachability, evaluate_hazard_stopping_budget,
+};
 pub mod ifc_ids_preflight;
 pub use ifc_ids_preflight::{
     GeometryPreflightEvaluation, IfcCoordinateContext, IfcIdsPreflightError, IfcIdsPreflightReport,
