@@ -49,7 +49,7 @@ def main(out=Path(".")):
       "claim_ceiling":"Exceptional-point method control only; no defective mode or Jordan point is claimed for the EGB black-hole principal symbol."
     }
     out.mkdir(parents=True,exist_ok=True)
-    (out/"defective_characteristic_puiseux_fixture_v1.json").write_text(json.dumps(fixture,indent=2,sort_keys=True)+"\\n")
+    (out/"defective_characteristic_puiseux_fixture_v1.json").write_text(json.dumps(fixture,indent=2,sort_keys=True)+"\n")
     print(json.dumps(fixture["summary"],indent=2))
 if __name__=="__main__":
     main(Path(sys.argv[1]) if len(sys.argv)>1 else Path("."))
