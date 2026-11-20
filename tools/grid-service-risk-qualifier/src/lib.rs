@@ -21,6 +21,9 @@ pub struct Case {
     pub service_outcome_manifest_ref: String,
     pub service_outcome_manifest_sha256: String,
     pub service_outcome_manifest: ServiceOutcomeManifest,
+    pub risk_limit_manifest_ref: String,
+    pub risk_limit_manifest_sha256: String,
+    pub risk_limit_manifest: RiskLimitManifest,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -59,6 +62,24 @@ pub struct ServiceOutcomeManifest {
     pub beneficiary_profile_ref: String,
     pub service_model_family_ref: String,
     pub branches: Vec<ServiceBranch>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct RiskLimitManifest {
+    pub schema_version: String,
+    pub manifest_id: String,
+    pub policy_ref: String,
+    pub limits: Vec<MetricRiskLimit>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct MetricRiskLimit {
+    pub metric_id: String,
+    pub unit: String,
+    pub maximum_robust_expected_unserved_quantity: f64,
+    pub authority_ref: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -157,6 +178,8 @@ pub struct QualificationReport {
     pub probability_envelope_sha256: String,
     pub service_outcome_manifest_ref: String,
     pub service_outcome_manifest_sha256: String,
+    pub risk_limit_manifest_ref: String,
+    pub risk_limit_manifest_sha256: String,
     pub point_probability_sum_basis_points: u64,
     pub probability_interval_lower_sum_basis_points: u64,
     pub probability_interval_upper_sum_basis_points: u64,
@@ -177,6 +200,14 @@ pub fn canonical_probability_envelope_sha256(
 
 pub fn canonical_service_manifest_sha256(
     manifest: &ServiceOutcomeManifest,
+) -> Result<String, serde_json::Error> {
+    let value = serde_json::to_value(manifest)?;
+    let bytes = serde_json::to_vec(&value)?;
+    Ok(format!("{:x}", Sha256::digest(bytes)))
+}
+
+pub fn canonical_risk_limit_manifest_sha256(
+    manifest: &RiskLimitManifest,
 ) -> Result<String, serde_json::Error> {
     let value = serde_json::to_value(manifest)?;
     let bytes = serde_json::to_vec(&value)?;
@@ -205,6 +236,7 @@ fn validate_case(case: &Case) -> Vec<String> {
         (&case.source_policy_certificate_ref, &case.source_policy_certificate_sha256, "source policy certificate"),
         (&case.probability_envelope_ref, &case.probability_envelope_sha256, "probability envelope"),
         (&case.service_outcome_manifest_ref, &case.service_outcome_manifest_sha256, "service outcome manifest"),
+        (&case.risk_limit_manifest_ref, &case.risk_limit_manifest_sha256, "risk limit manifest"),
     ] {
         if reference.trim().is_empty()
             || digest.len() != 64
@@ -272,6 +304,32 @@ fn validate_case(case: &Case) -> Vec<String> {
         errors.push("service outcome manifest serialization failed".to_string());
     }
 
+    let limits = &case.risk_limit_manifest;
+    if limits.schema_version != "0.1.0"
+        || limits.manifest_id.trim().is_empty()
+        || limits.policy_ref.trim().is_empty()
+    {
+        errors.push("risk limit manifest identity or policy reference is invalid".to_string());
+    }
+    if let Ok(actual) = canonical_risk_limit_manifest_sha256(limits) {
+        if actual != case.risk_limit_manifest_sha256 {
+            errors.push("risk limit manifest SHA-256 does not match canonical content".to_string());
+        }
+    } else {
+        errors.push("risk limit manifest serialization failed".to_string());
+    }
+    let mut risk_limit_ids = BTreeSet::new();
+    for limit in &limits.limits {
+        if limit.metric_id.trim().is_empty()
+            || limit.unit.trim().is_empty()
+            || !finite_nonnegative(limit.maximum_robust_expected_unserved_quantity)
+            || limit.authority_ref.trim().is_empty()
+            || !risk_limit_ids.insert(limit.metric_id.as_str())
+        {
+            errors.push("risk limit manifest contains an invalid or duplicate metric limit".to_string());
+        }
+    }
+
     let manifest_ids: BTreeSet<&str> = manifest.branches.iter().map(|branch| branch.branch_id.as_str()).collect();
     if manifest_ids.len() != manifest.branches.len() || manifest_ids != probability_ids {
         errors.push("service manifest branch IDs must match probability envelope branch IDs exactly".to_string());
@@ -311,6 +369,12 @@ fn validate_case(case: &Case) -> Vec<String> {
 
     if manifest.branches.is_empty() {
         errors.push("service outcome manifest must contain at least one branch".to_string());
+    }
+    let manifest_metric_ids: BTreeSet<&str> = manifest.branches.first()
+        .map(|branch| branch.service_assessments.iter().map(|assessment| assessment.metric_id.as_str()).collect())
+        .unwrap_or_default();
+    if risk_limit_ids != manifest_metric_ids {
+        errors.push("risk limit metric IDs must match service outcome metric IDs exactly".to_string());
     }
     errors
 }
@@ -455,8 +519,20 @@ pub fn qualify(case: &Case) -> Result<QualificationReport, Vec<String>> {
         let robust = maximum_interval_expectation(&rows).map_err(|error| vec![error])?;
         let point = point_expectation(&rows);
         let worst = worst.expect("non-empty manifest has at least one branch");
-        let risk_budget = rows[0].1.max(0.0); // Replaced below by the manifest's metric risk budget.
-        let risk_budget = risk_budget;
+        let risk_limit = case.risk_limit_manifest.limits.iter()
+            .find(|limit| limit.metric_id == *metric_id)
+            .expect("risk limit identity was validated");
+        if risk_limit.unit != meta.unit {
+            return Err(vec![format!("risk limit unit for metric {} does not match the service metric", metric_id)]);
+        }
+        if robust > risk_limit.maximum_robust_expected_unserved_quantity + TOLERANCE {
+            risk_budget_violations.push(RiskBudgetViolation {
+                metric_id: metric_id.clone(),
+                robust_expected_unserved_quantity: robust,
+                risk_budget: risk_limit.maximum_robust_expected_unserved_quantity,
+                unit: meta.unit.clone(),
+            });
+        }
         results.push(MetricRiskResult {
             metric_id: metric_id.clone(),
             service_type: meta.service_type.clone(),
@@ -465,7 +541,7 @@ pub fn qualify(case: &Case) -> Result<QualificationReport, Vec<String>> {
             unit: meta.unit.clone(),
             point_expected_unserved_quantity: point,
             robust_expected_unserved_quantity: robust,
-            robust_risk_budget: risk_budget,
+            robust_risk_budget: risk_limit.maximum_robust_expected_unserved_quantity,
             ambiguity_premium: robust - point,
             worst_branch_unserved_quantity: worst.1,
             worst_branch_id: worst.0.to_string(),
@@ -493,6 +569,8 @@ pub fn qualify(case: &Case) -> Result<QualificationReport, Vec<String>> {
         probability_envelope_sha256: case.probability_envelope_sha256.clone(),
         service_outcome_manifest_ref: case.service_outcome_manifest_ref.clone(),
         service_outcome_manifest_sha256: case.service_outcome_manifest_sha256.clone(),
+        risk_limit_manifest_ref: case.risk_limit_manifest_ref.clone(),
+        risk_limit_manifest_sha256: case.risk_limit_manifest_sha256.clone(),
         point_probability_sum_basis_points: envelope.branches.iter().map(|branch| branch.point_basis_points as u64).sum(),
         probability_interval_lower_sum_basis_points: envelope.branches.iter().map(|branch| branch.lower_basis_points as u64).sum(),
         probability_interval_upper_sum_basis_points: envelope.branches.iter().map(|branch| branch.upper_basis_points as u64).sum(),
@@ -535,6 +613,26 @@ mod tests {
             .find(|item| item.metric_id == "community-water-m3").unwrap();
         assert!((water.point_expected_unserved_quantity - 117.8).abs() <= TOLERANCE);
         assert!((water.robust_expected_unserved_quantity - 134.5).abs() <= TOLERANCE);
+    }
+
+    #[test]
+    fn robust_risk_budget_breach_is_reported_per_metric_and_unit() {
+        let mut case = fixture();
+        case.risk_limit_manifest.limits.iter_mut()
+            .find(|limit| limit.metric_id == "community-water-m3").unwrap()
+            .maximum_robust_expected_unserved_quantity = 100.0;
+        case.risk_limit_manifest_sha256 = canonical_risk_limit_manifest_sha256(&case.risk_limit_manifest).unwrap();
+        let report = qualify(&case).expect("risk budget breach is a reportable inadmissibility");
+        assert_eq!(report.result_status, "inadmissible_robust_risk_budget_breach");
+        assert_eq!(report.risk_budget_violations.len(), 1);
+        assert_eq!(report.risk_budget_violations[0].unit, "m3");
+    }
+
+    #[test]
+    fn risk_limit_manifest_digest_tampering_is_rejected() {
+        let mut case = fixture();
+        case.risk_limit_manifest.limits[0].maximum_robust_expected_unserved_quantity += 1.0;
+        assert!(qualify(&case).is_err());
     }
 
     #[test]
