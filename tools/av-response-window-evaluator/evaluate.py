@@ -291,7 +291,7 @@ def evaluate(
                 total["late_count"] += 1
                 episode_total["late_count"] += 1
 
-            if tick > deadline:
+            if response["response_end_tick"] > deadline:
                 total["deadline_miss_count"] += 1
                 episode_deadline_misses += 1
 
