@@ -96,6 +96,7 @@
     },
     "evidence_class": {
       "enum": [
+        "synthetic",
         "independent_physical",
         "source_author_physical",
         "vendor_physical",
@@ -357,7 +358,10 @@
           "$ref": "#/$defs/interval"
         },
         "evidence_class": {
-          "const": "independent_physical"
+          "enum": [
+            "independent_physical",
+            "synthetic"
+          ]
         },
         "source_reference": {
           "type": "string",
