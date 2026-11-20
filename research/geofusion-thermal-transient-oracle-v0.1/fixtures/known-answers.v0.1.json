@@ -142,5 +142,80 @@
       "endpoint_error_reduction_factor": 79.40378773987838
     },
     "causality_and_applicability": "This is an oracle/method reference for a known or forecast waveform, or a producer that can publish integrated interval flux. It requires knowledge of the whole communication interval; it is not a universally causal substitute for a point-sampled FMI input."
+  },
+  "causal_bounded_linear_predictor_convergence": {
+    "source_policy": "causal_bounded_linear_extrapolation",
+    "observation_contract": "At communication time t_n, uses only current FMI output Q_n and previous committed output Q_(n-1); first interval bootstraps with Q_0. No future output sample is read.",
+    "predictor": "Qbar_n = clamp(Q_n + 0.5*(Q_n-Q_(n-1)), Q_min, Q_max)",
+    "bounds": {
+      "minimum_power_w": 400000,
+      "maximum_power_w": 600000
+    },
+    "limiter_policy": "Project each predictor onto the explicit source envelope and record activation count plus maximum projection magnitude; no silent clipping.",
+    "reference": "continuous_sinusoidal_solution",
+    "time_interval_s": [
+      0,
+      120
+    ],
+    "input": {
+      "mean_power_w": 500000,
+      "amplitude_w": 100000,
+      "period_s": 400,
+      "initial_theta_k": 2
+    },
+    "step_count_error_k": [
+      {
+        "steps": 15,
+        "theta_end_abs_error_k": 0.0007871294252446148,
+        "limiter_activations": 1,
+        "max_unbounded_overshoot_w": 589.6467278063064
+      },
+      {
+        "steps": 30,
+        "theta_end_abs_error_k": 0.0002312734512801562,
+        "limiter_activations": 2,
+        "max_unbounded_overshoot_w": 98.66357858642004
+      },
+      {
+        "steps": 60,
+        "theta_end_abs_error_k": 0.00006448000497005779,
+        "limiter_activations": 2,
+        "max_unbounded_overshoot_w": 24.671981713501737
+      },
+      {
+        "steps": 120,
+        "theta_end_abs_error_k": 0.00001694947419661474,
+        "limiter_activations": 2,
+        "max_unbounded_overshoot_w": 6.168375917011872
+      },
+      {
+        "steps": 240,
+        "theta_end_abs_error_k": 0.000004340801009306006,
+        "limiter_activations": 2,
+        "max_unbounded_overshoot_w": 1.5421177605167031
+      },
+      {
+        "steps": 480,
+        "theta_end_abs_error_k": 0.00000109811200665888,
+        "limiter_activations": 2,
+        "max_unbounded_overshoot_w": 0.38553092652000487
+      },
+      {
+        "steps": 960,
+        "theta_end_abs_error_k": 2.761408133267196e-7,
+        "limiter_activations": 2,
+        "max_unbounded_overshoot_w": 0.09638282447122037
+      }
+    ],
+    "15_step_comparison": {
+      "left_endpoint_zero_order_hold_endpoint_error_k": 0.010188510122550287,
+      "causal_bounded_predictor_endpoint_error_k": 0.0007871294252446148,
+      "exact_interval_average_oracle_endpoint_error_k": 0.00012831264619173055,
+      "causal_error_reduction_vs_zero_order_hold": 12.943881648667908,
+      "causal_error_ratio_to_exact_average_oracle": 6.134464907445292
+    },
+    "observed_global_convergence_order": "approximately 2; refinement ratios approach 4 after first-interval bootstrap",
+    "declared_exchange_energy_residual_abs_error_j_max": 2e-7,
+    "claim_ceiling": "The predictor is causal only with respect to the discrete source samples supplied to it; the analytic oracle generates those samples from a known sinusoid for testing. It does not guarantee error bounds for arbitrary unknown inputs. Limiter activation is observable and must be included in benchmark reporting. The receiver balance closes against the declared predicted interval input, not against unobserved future physical energy."
   }
 }
