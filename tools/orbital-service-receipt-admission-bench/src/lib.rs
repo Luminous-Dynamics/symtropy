@@ -883,7 +883,7 @@ mod tests {
     #[test]
     fn frozen_receipt_corpus_matches_independent_expected_outcomes() {
         let report = evaluate(&fixture()).expect("receipt fixture evaluates");
-        assert_eq!(report.summary.scenario_count, 34);
+        assert_eq!(report.summary.scenario_count, 35);
         assert_eq!(report.summary.expected_result_mismatches, 0);
         assert_eq!(report.summary.false_service_success_claims, 0);
         assert_eq!(report.summary.authority_grants, 0);
@@ -966,6 +966,49 @@ mod tests {
             .expect("tampered receipt case exists");
         assert_eq!(row.actual_status, AdmissionStatus::Rejected);
         assert_eq!(row.actual_reason, "composition_receipt_bytes_digest_mismatch");
+    }
+
+
+    #[test]
+    fn idempotency_key_cannot_be_replayed_at_a_different_event_tick() {
+        let report = evaluate(&fixture()).expect("receipt fixture evaluates");
+        let row = report.scenarios.iter()
+            .find(|row| row.case_id == "IDEMPOTENCY_KEY_REUSED_ACROSS_EVENT_TIME")
+            .expect("cross-tick replay case exists");
+        assert_eq!(row.actual_status, AdmissionStatus::Disputed);
+        assert_eq!(row.actual_reason, "idempotency_key_reused_outside_event_scope");
+    }
+
+    #[test]
+    fn replay_of_a_superseded_receipt_never_restores_old_mass() {
+        let report = evaluate(&fixture()).expect("receipt fixture evaluates");
+        let row = report.scenarios.iter()
+            .find(|row| row.case_id == "SUPERSEDED_RECEIPT_REPLAYED_AFTER_CORRECTION")
+            .expect("superseded replay case exists");
+        assert_eq!(row.actual_status, AdmissionStatus::ServiceFloorMetSynthetic);
+        assert_eq!(row.superseded_receipts, 1);
+        assert_eq!(row.duplicate_replays, 1);
+        assert_eq!(row.accepted_receiver_mass_g, 1_140_000);
+    }
+
+    #[test]
+    fn late_receipt_after_finalization_remains_indeterminate() {
+        let report = evaluate(&fixture()).expect("receipt fixture evaluates");
+        let row = report.scenarios.iter()
+            .find(|row| row.case_id == "RECEIPT_ARRIVES_AFTER_FINALIZATION")
+            .expect("post-finalization case exists");
+        assert_eq!(row.actual_status, AdmissionStatus::Indeterminate);
+        assert_eq!(row.actual_reason, "receipt_arrived_after_finalization");
+    }
+
+    #[test]
+    fn out_of_order_receipt_arrival_is_joined_by_event_time_and_causality() {
+        let report = evaluate(&fixture()).expect("receipt fixture evaluates");
+        let row = report.scenarios.iter()
+            .find(|row| row.case_id == "OUT_OF_ORDER_RECEIPT_ARRIVAL")
+            .expect("out-of-order case exists");
+        assert_eq!(row.actual_status, AdmissionStatus::ServiceFloorMetSynthetic);
+        assert_eq!(row.accepted_receiver_mass_g, 1_140_000);
     }
 
     #[test]
