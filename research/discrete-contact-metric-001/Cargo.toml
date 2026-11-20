@@ -1,0 +1,13 @@
+[package]
+name = "symtropy-discrete-step-map"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Standalone reference for an effective-metric discrete constrained dynamics step"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+
+[workspace]
