@@ -245,7 +245,7 @@ impl<const D: usize> RigidBody<D> {
                 centered_collider.add_child(shifted, shape.clone_box());
             }
         } else {
-            let mut geometry_from_centered = Transform::from_translation(Point(-center_of_mass_local));
+            let geometry_from_centered = Transform::from_translation(Point(-center_of_mass_local));
             centered_collider.add_child(geometry_from_centered, collider);
         }
 
@@ -1475,6 +1475,104 @@ mod compound_com_tests {
                 before[index]
             );
         }
+    }
+
+    #[test]
+    fn mass_properties_constructor_recenters_body_and_preserves_world_geometry() {
+        let mut generator = Bivector::<3>::zero();
+        generator.set(0, 1, 0.37);
+        generator.set(0, 2, -0.21);
+        generator.set(1, 2, 0.48);
+        let geometry_transform = Transform {
+            translation: Point::new([3.0, -2.0, 5.0]),
+            rotation: Rotor::from_bivector(&generator),
+        };
+        let center_of_mass_local = SVector::new(0.17, -0.08, 0.23);
+        let collider: Box<dyn Shape<3>> = Box::new(HyperBox::<3>::new([0.4, 0.2, 0.3]));
+
+        let directions = [
+            SVector::from([1.0, 0.0, 0.0]),
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::from([0.0, 0.0, 1.0]),
+            SVector::from([1.0, 2.0, -3.0]),
+            SVector::from([-2.0, 0.5, 1.0]),
+        ];
+        let expected_support = directions
+            .iter()
+            .map(|direction| {
+                transformed_shape_world_support(collider.as_ref(), &geometry_transform, direction)
+            })
+            .collect::<Vec<_>>();
+        let expected_com_world = geometry_transform.translation.0
+            + geometry_transform.rotation.rotate_vector(&center_of_mass_local);
+
+        let operator = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
+            0.003, 0.0002, -0.0001,
+            0.0002, 0.002, 0.0003,
+            -0.0001, 0.0003, 0.0015,
+        ])
+        .unwrap();
+        let mass_properties =
+            MassProperties::try_new(2.5, center_of_mass_local, operator.clone()).unwrap();
+        let mut body = RigidBody::<3>::try_new_with_mass_properties(
+            BodyHandle(90),
+            geometry_transform,
+            collider,
+            mass_properties,
+        )
+        .expect("validated COM-bound dynamic body");
+
+        assert!((body.transform.translation.0 - expected_com_world).norm() < 1.0e-12);
+        assert_eq!(body.mass, 2.5);
+        assert!(body.rotational_inertia_operator.is_some());
+        assert!(!body.rotational_inertia_operator_invalidated);
+        assert!(!body.rotational_inertia_approximate);
+        assert_eq!(body.mass_properties_mass_bits, Some(body.mass.to_bits()));
+        let attached = body.rotational_inertia_operator.as_ref().unwrap();
+        assert_eq!(attached.as_row_major(), operator.as_row_major());
+
+        for (index, direction) in directions.iter().enumerate() {
+            let actual = body.world_support(direction);
+            assert!(
+                (actual - expected_support[index]).norm() < 2.0e-10,
+                "geometry changed after COM attachment for direction {index}: actual={actual:?}, expected={:?}",
+                expected_support[index]
+            );
+        }
+
+        let mut angular = Bivector::<3>::zero();
+        angular.set(0, 1, 0.31);
+        angular.set(0, 2, -0.47);
+        angular.set(1, 2, 0.83);
+        body.angular_velocity = angular;
+        let expected_energy = operator.kinetic_energy_bivector_joules(&angular).unwrap();
+        assert!((body.rotational_kinetic_energy() - expected_energy).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn mass_properties_constructor_rejects_improper_geometry_frame() {
+        let mut invalid_transform =
+            Transform::from_translation(Point::new([1.0, 2.0, 3.0]));
+        invalid_transform.rotation =
+            Rotor::from_matrix(nalgebra::SMatrix::<f64, 3, 3>::identity() * 2.0);
+        let operator = RotationalInertiaOperator::<3>::isotropic(1.0).unwrap();
+        let properties = MassProperties::try_new(
+            1.0,
+            SVector::<f64, 3>::new(0.1, 0.0, 0.0),
+            operator,
+        )
+        .unwrap();
+
+        let result = RigidBody::<3>::try_new_with_mass_properties(
+            BodyHandle(91),
+            invalid_transform,
+            Box::new(HyperBox::<3>::new([0.2, 0.2, 0.2])),
+            properties,
+        );
+        assert_eq!(
+            result.err(),
+            Some(MassPropertiesBodyError::InvalidGeometryTransform)
+        );
     }
 
     #[test]
