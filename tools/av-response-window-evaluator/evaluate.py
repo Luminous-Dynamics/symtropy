@@ -124,19 +124,67 @@ def evaluate(
         if not isinstance(opportunity_rows, list) or not opportunity_rows:
             raise EvaluationError(f"{episode_id}: opportunities must be a nonempty array")
         opportunities = index_unique(opportunity_rows, "opportunity_id")
+        opportunities_by_trigger: dict[str, dict[str, Any]] = {}
+        for opportunity in opportunity_rows:
+            trigger_ref = opportunity.get("trigger_ref")
+            if not isinstance(trigger_ref, str) or not trigger_ref or trigger_ref in opportunities_by_trigger:
+                raise EvaluationError(f"{episode_id}: invalid or duplicate opportunity trigger_ref")
+            opportunities_by_trigger[trigger_ref] = opportunity
+
+        stream_events = episode.get("stream_events")
+        if not isinstance(stream_events, list):
+            raise EvaluationError(f"{episode_id}: stream_events must be an array")
+        seen_event_ids: set[str] = set()
+        visible_trigger_refs: set[str] = set()
+        cancellation_ticks: dict[str, int] = {}
+        previous_event_tick = -1
+        for event in stream_events:
+            event_id = event.get("event_id")
+            tick = event.get("tick")
+            if not isinstance(event_id, str) or not event_id or event_id in seen_event_ids:
+                raise EvaluationError(f"{episode_id}: invalid or duplicate event_id")
+            if not isinstance(tick, int) or isinstance(tick, bool) or tick < previous_event_tick:
+                raise EvaluationError(f"{episode_id}: stream events must have ordered non-negative ticks")
+            previous_event_tick = tick
+            seen_event_ids.add(event_id)
+            trigger_ref = event.get("trigger_ref")
+            if isinstance(trigger_ref, str) and trigger_ref:
+                visible_trigger_refs.add(trigger_ref)
+                if event.get("kind") == "cancel":
+                    cancellation_ticks[trigger_ref] = min(
+                        cancellation_ticks.get(trigger_ref, tick), tick
+                    )
+        for trigger_ref in opportunities_by_trigger:
+            if trigger_ref not in visible_trigger_refs:
+                raise EvaluationError(f"{episode_id}: truth trigger_ref is not in candidate-visible workload")
+
         by_opportunity: dict[str, list[dict[str, Any]]] = defaultdict(list)
         episode_violations: list[str] = []
         for response in responses_by_episode[episode_id]:
-            opportunity_id = response.get("assigned_opportunity_id")
-            if opportunity_id not in opportunities:
-                episode_violations.append("response_assigned_to_unknown_opportunity")
+            trigger_ref = response.get("assigned_trigger_ref")
+            if trigger_ref not in opportunities_by_trigger:
+                episode_violations.append("response_assigned_to_unknown_trigger")
                 continue
-            tick = response.get("response_start_tick")
-            if not isinstance(tick, int) or isinstance(tick, bool) or tick < 0:
-                episode_violations.append("invalid_response_start_tick")
+            start_tick = response.get("response_start_tick")
+            end_tick = response.get("response_end_tick")
+            if (
+                not isinstance(start_tick, int) or isinstance(start_tick, bool) or start_tick < 0
+                or not isinstance(end_tick, int) or isinstance(end_tick, bool) or end_tick < start_tick
+            ):
+                episode_violations.append("invalid_response_interval")
                 continue
-            if tick < query_tick:
+            if start_tick < query_tick:
                 episode_violations.append("response_precedes_query")
+            if end_tick > deadline:
+                episode_violations.append("response_overhang_past_episode_deadline")
+            cancel_tick = cancellation_ticks.get(trigger_ref)
+            if cancel_tick is not None:
+                if start_tick >= cancel_tick:
+                    episode_violations.append("response_starts_after_cancellation")
+                if end_tick > cancel_tick:
+                    episode_violations.append("response_continues_after_cancellation")
+            opportunity = opportunities_by_trigger[trigger_ref]
+            opportunity_id = opportunity["opportunity_id"]
             by_opportunity[opportunity_id].append(response)
 
         episode_total = {
