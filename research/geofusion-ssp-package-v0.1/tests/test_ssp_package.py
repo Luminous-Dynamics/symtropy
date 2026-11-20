@@ -304,6 +304,125 @@ class SSPPackageTests(unittest.TestCase):
             ssp.build_package(self.geo, self.hx, self.geo)
 
 
+    def test_canonical_ssd_comparison_ignores_layout_and_xml_formatting(self):
+        source = ssp.make_ssd()
+        root = etree.fromstring(source)
+        for component in root.findall(".//ssd:Component", namespaces=ssp.NS):
+            etree.SubElement(
+                component,
+                f"{{{ssp.SSD_NS}}}ElementGeometry",
+                x1="0", y1="0", x2="1", y2="1",
+            )
+        candidate = etree.tostring(
+            root, xml_declaration=True, encoding="UTF-8", pretty_print=False
+        )
+        result = ssp.compare_ssd_bytes(source, candidate)
+        self.assertEqual(result["disposition"], "PASS")
+        self.assertTrue(result["qualified"])
+        self.assertEqual(result["source_graph_sha256"], result["candidate_graph_sha256"])
+
+    def test_canonical_ssd_comparison_reports_semantic_system_name_change(self):
+        source = ssp.make_ssd()
+        root = etree.fromstring(source)
+        root.find("ssd:System", namespaces=ssp.NS).set("name", "RenamedFederation")
+        candidate = etree.tostring(root, xml_declaration=True, encoding="UTF-8")
+        result = ssp.compare_ssd_bytes(source, candidate)
+        self.assertEqual(result["disposition"], "DIFFERENT")
+        self.assertFalse(result["qualified"])
+        self.assertIn("system_name", [item["path"] for item in result["differences"]])
+
+    def test_canonical_ssd_comparison_rejects_changed_connector_direction(self):
+        source = ssp.make_ssd()
+        root = etree.fromstring(source)
+        root.find(
+            ".//ssd:Connector[@name='thermalPowerOut']", namespaces=ssp.NS
+        ).set("kind", "input")
+        candidate = etree.tostring(root, xml_declaration=True, encoding="UTF-8")
+        result = ssp.compare_ssd_bytes(source, candidate)
+        self.assertEqual(result["disposition"], "REJECT")
+        self.assertFalse(result["qualified"])
+        self.assertIn("connector/type/kind/unit map mismatch", result["reason"])
+
+    def test_ssp_round_trip_comparison_accepts_identical_package(self):
+        package = self.build()
+        result = ssp.compare_ssp_package_bytes(package, package)
+        self.assertEqual(result["disposition"], "PASS")
+        self.assertTrue(result["qualified"])
+        self.assertTrue(result["system_structure_equivalent"])
+        self.assertTrue(result["fmu_uncompressed_content_preserved"])
+        for component in result["components"].values():
+            self.assertTrue(component["fmu_package_sha256_equal"])
+            self.assertTrue(component["binary_sha256_equal"])
+
+    def test_ssp_round_trip_allows_zip_recompression_but_checks_uncompressed_fmu_content(self):
+        source_package = self.build()
+        with zipfile.ZipFile(io.BytesIO(source_package), "r") as archive:
+            members = {
+                info.filename: archive.read(info.filename)
+                for info in archive.infolist()
+                if not info.is_dir()
+            }
+        source_fmu = members["resources/GeoFusion-GeothermalSource.fmu"]
+        recompressed_buffer = io.BytesIO()
+        with zipfile.ZipFile(recompressed_buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            with zipfile.ZipFile(io.BytesIO(source_fmu), "r") as original_fmu:
+                for info in original_fmu.infolist():
+                    if not info.is_dir():
+                        archive.writestr(info.filename, original_fmu.read(info.filename))
+        members["resources/GeoFusion-GeothermalSource.fmu"] = recompressed_buffer.getvalue()
+
+        candidate_buffer = io.BytesIO()
+        with zipfile.ZipFile(candidate_buffer, "w", compression=zipfile.ZIP_STORED) as archive:
+            for name, data in sorted(members.items()):
+                archive.writestr(name, data)
+        result = ssp.compare_ssp_package_bytes(source_package, candidate_buffer.getvalue())
+
+        self.assertEqual(result["disposition"], "PASS")
+        self.assertTrue(result["qualified"])
+        source_component = result["components"]["GeothermalSource"]
+        self.assertFalse(source_component["fmu_package_sha256_equal"])
+        self.assertTrue(source_component["uncompressed_member_content_equal"])
+        self.assertTrue(source_component["model_description_sha256_equal"])
+        self.assertTrue(source_component["binary_sha256_equal"])
+
+    def test_ssp_round_trip_detects_modified_platform_binary_content(self):
+        source_package = self.build()
+        with zipfile.ZipFile(io.BytesIO(source_package), "r") as archive:
+            source_fmu = archive.read("resources/GeoFusion-GeothermalSource.fmu")
+            outer_members = {
+                info.filename: archive.read(info.filename)
+                for info in archive.infolist()
+                if not info.is_dir()
+            }
+        with zipfile.ZipFile(io.BytesIO(source_fmu), "r") as archive:
+            inner_members = {
+                info.filename: archive.read(info.filename)
+                for info in archive.infolist()
+                if not info.is_dir()
+            }
+        binary = "binaries/x86_64-linux/GeothermalSource.so"
+        inner_members[binary] = inner_members[binary] + b"tampered"
+        changed_fmu_buffer = io.BytesIO()
+        with zipfile.ZipFile(changed_fmu_buffer, "w", compression=zipfile.ZIP_STORED) as archive:
+            for name, data in sorted(inner_members.items()):
+                archive.writestr(name, data)
+        outer_members["resources/GeoFusion-GeothermalSource.fmu"] = changed_fmu_buffer.getvalue()
+
+        candidate_buffer = io.BytesIO()
+        with zipfile.ZipFile(candidate_buffer, "w", compression=zipfile.ZIP_STORED) as archive:
+            for name, data in sorted(outer_members.items()):
+                archive.writestr(name, data)
+        result = ssp.compare_ssp_package_bytes(source_package, candidate_buffer.getvalue())
+
+        self.assertEqual(result["disposition"], "DIFFERENT")
+        self.assertFalse(result["qualified"])
+        component = result["components"]["GeothermalSource"]
+        self.assertFalse(component["uncompressed_member_content_equal"])
+        self.assertFalse(component["binary_sha256_equal"])
+        self.assertIn(binary, component["changed_fmu_members"])
+
+
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
