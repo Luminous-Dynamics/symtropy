@@ -1,0 +1,233 @@
+[
+  {
+    "schema_version": "0.1.0",
+    "scenario_id": "known-answer-deterministic-bound",
+    "chain": {
+      "sensor_serial": "torque-sensor-01",
+      "measurement_day": 150,
+      "measurand_unit": "N m",
+      "terminal_reference_id": "national-torque-reference",
+      "terminal_reference_source": "https://example.invalid/references/national-torque-reference",
+      "chain_digest": "synthetic-chain-digest-deterministic",
+      "links": [
+        {
+          "link_id": "sensor-link",
+          "calibrated_item_id": "torque-sensor-01",
+          "reference_standard_id": "transfer-standard-01",
+          "calibration_certificate_reference": "https://example.invalid/certificates/sensor-link",
+          "reference_standard_reference": "https://example.invalid/standards/transfer-standard-01",
+          "calibration_procedure_reference": "https://example.invalid/procedures/sensor-link",
+          "competence_evidence_reference": "https://example.invalid/competence/sensor-link",
+          "calibration_day": 100,
+          "valid_from_day": 101,
+          "valid_until_day": 200,
+          "uncertainty_unit": "N m",
+          "uncertainty_kind": "validated_absolute_bound",
+          "uncertainty_value": 0.02,
+          "uncertainty_source_kind": "not_specified",
+          "coverage_factor": null,
+          "coverage_probability": null,
+          "distribution_reference": null,
+          "conversion_model_reference": "https://example.invalid/conversion-models/sensor-link",
+          "certificate_digest": "synthetic-certificate-digest-sensor-link"
+        },
+        {
+          "link_id": "reference-link",
+          "calibrated_item_id": "transfer-standard-01",
+          "reference_standard_id": "national-torque-reference",
+          "calibration_certificate_reference": "https://example.invalid/certificates/reference-link",
+          "reference_standard_reference": "https://example.invalid/standards/national-torque-reference",
+          "calibration_procedure_reference": "https://example.invalid/procedures/reference-link",
+          "competence_evidence_reference": "https://example.invalid/competence/reference-link",
+          "calibration_day": 100,
+          "valid_from_day": 101,
+          "valid_until_day": 200,
+          "uncertainty_unit": "N m",
+          "uncertainty_kind": "validated_absolute_bound",
+          "uncertainty_value": 0.03,
+          "uncertainty_source_kind": "not_specified",
+          "coverage_factor": null,
+          "coverage_probability": null,
+          "distribution_reference": null,
+          "conversion_model_reference": "https://example.invalid/conversion-models/reference-link",
+          "certificate_digest": "synthetic-certificate-digest-reference-link"
+        }
+      ],
+      "pre_use_check": {
+        "status": "within_limit",
+        "check_day": 149,
+        "method_reference": "https://example.invalid/assurance/method-v1",
+        "reference_artifact_id": "transfer-standard-01",
+        "raw_check_digest": "synthetic-assurance-check-149",
+        "observed_drift": 0.01,
+        "declared_drift_limit": 0.05,
+        "unit": "N m"
+      },
+      "post_use_check": {
+        "status": "within_limit",
+        "check_day": 151,
+        "method_reference": "https://example.invalid/assurance/method-v1",
+        "reference_artifact_id": "transfer-standard-01",
+        "raw_check_digest": "synthetic-assurance-check-151",
+        "observed_drift": 0.01,
+        "declared_drift_limit": 0.05,
+        "unit": "N m"
+      }
+    },
+    "claim_ceiling": "Synthetic deterministic-bound chain fixture only. No actual sensor, certificate, laboratory or SI traceability is represented."
+  },
+  {
+    "schema_version": "0.1.0",
+    "scenario_id": "known-answer-statistical-only",
+    "chain": {
+      "sensor_serial": "torque-sensor-01",
+      "measurement_day": 150,
+      "measurand_unit": "N m",
+      "terminal_reference_id": "national-torque-reference",
+      "terminal_reference_source": "https://example.invalid/references/national-torque-reference",
+      "chain_digest": "synthetic-chain-digest-statistical",
+      "links": [
+        {
+          "link_id": "sensor-link",
+          "calibrated_item_id": "torque-sensor-01",
+          "reference_standard_id": "transfer-standard-01",
+          "calibration_certificate_reference": "https://example.invalid/certificates/sensor-link",
+          "reference_standard_reference": "https://example.invalid/standards/transfer-standard-01",
+          "calibration_procedure_reference": "https://example.invalid/procedures/sensor-link",
+          "competence_evidence_reference": "https://example.invalid/competence/sensor-link",
+          "calibration_day": 100,
+          "valid_from_day": 101,
+          "valid_until_day": 200,
+          "uncertainty_unit": "N m",
+          "uncertainty_kind": "standard_uncertainty",
+          "uncertainty_value": 0.01,
+          "uncertainty_source_kind": "type_b",
+          "coverage_factor": null,
+          "coverage_probability": null,
+          "distribution_reference": "https://example.invalid/distributions/type-b-model",
+          "conversion_model_reference": "https://example.invalid/conversion-models/sensor-link",
+          "certificate_digest": "synthetic-certificate-digest-sensor-link"
+        },
+        {
+          "link_id": "reference-link",
+          "calibrated_item_id": "transfer-standard-01",
+          "reference_standard_id": "national-torque-reference",
+          "calibration_certificate_reference": "https://example.invalid/certificates/reference-link",
+          "reference_standard_reference": "https://example.invalid/standards/national-torque-reference",
+          "calibration_procedure_reference": "https://example.invalid/procedures/reference-link",
+          "competence_evidence_reference": "https://example.invalid/competence/reference-link",
+          "calibration_day": 100,
+          "valid_from_day": 101,
+          "valid_until_day": 200,
+          "uncertainty_unit": "N m",
+          "uncertainty_kind": "validated_absolute_bound",
+          "uncertainty_value": 0.03,
+          "uncertainty_source_kind": "not_specified",
+          "coverage_factor": null,
+          "coverage_probability": null,
+          "distribution_reference": null,
+          "conversion_model_reference": "https://example.invalid/conversion-models/reference-link",
+          "certificate_digest": "synthetic-certificate-digest-reference-link"
+        }
+      ],
+      "pre_use_check": {
+        "status": "within_limit",
+        "check_day": 149,
+        "method_reference": "https://example.invalid/assurance/method-v1",
+        "reference_artifact_id": "transfer-standard-01",
+        "raw_check_digest": "synthetic-assurance-check-149",
+        "observed_drift": 0.01,
+        "declared_drift_limit": 0.05,
+        "unit": "N m"
+      },
+      "post_use_check": {
+        "status": "within_limit",
+        "check_day": 151,
+        "method_reference": "https://example.invalid/assurance/method-v1",
+        "reference_artifact_id": "transfer-standard-01",
+        "raw_check_digest": "synthetic-assurance-check-151",
+        "observed_drift": 0.01,
+        "declared_drift_limit": 0.05,
+        "unit": "N m"
+      }
+    },
+    "claim_ceiling": "Synthetic statistical-only chain fixture. A Type B standard uncertainty is not promoted to a deterministic hard bound."
+  },
+  {
+    "schema_version": "0.1.0",
+    "scenario_id": "negative-control-expired-link",
+    "chain": {
+      "sensor_serial": "torque-sensor-01",
+      "measurement_day": 150,
+      "measurand_unit": "N m",
+      "terminal_reference_id": "national-torque-reference",
+      "terminal_reference_source": "https://example.invalid/references/national-torque-reference",
+      "chain_digest": "synthetic-chain-digest-expired",
+      "links": [
+        {
+          "link_id": "sensor-link",
+          "calibrated_item_id": "torque-sensor-01",
+          "reference_standard_id": "transfer-standard-01",
+          "calibration_certificate_reference": "https://example.invalid/certificates/sensor-link",
+          "reference_standard_reference": "https://example.invalid/standards/transfer-standard-01",
+          "calibration_procedure_reference": "https://example.invalid/procedures/sensor-link",
+          "competence_evidence_reference": "https://example.invalid/competence/sensor-link",
+          "calibration_day": 100,
+          "valid_from_day": 101,
+          "valid_until_day": 149,
+          "uncertainty_unit": "N m",
+          "uncertainty_kind": "validated_absolute_bound",
+          "uncertainty_value": 0.02,
+          "uncertainty_source_kind": "not_specified",
+          "coverage_factor": null,
+          "coverage_probability": null,
+          "distribution_reference": null,
+          "conversion_model_reference": "https://example.invalid/conversion-models/sensor-link",
+          "certificate_digest": "synthetic-certificate-digest-sensor-link"
+        },
+        {
+          "link_id": "reference-link",
+          "calibrated_item_id": "transfer-standard-01",
+          "reference_standard_id": "national-torque-reference",
+          "calibration_certificate_reference": "https://example.invalid/certificates/reference-link",
+          "reference_standard_reference": "https://example.invalid/standards/national-torque-reference",
+          "calibration_procedure_reference": "https://example.invalid/procedures/reference-link",
+          "competence_evidence_reference": "https://example.invalid/competence/reference-link",
+          "calibration_day": 100,
+          "valid_from_day": 101,
+          "valid_until_day": 200,
+          "uncertainty_unit": "N m",
+          "uncertainty_kind": "validated_absolute_bound",
+          "uncertainty_value": 0.03,
+          "uncertainty_source_kind": "not_specified",
+          "coverage_factor": null,
+          "coverage_probability": null,
+          "distribution_reference": null,
+          "conversion_model_reference": "https://example.invalid/conversion-models/reference-link",
+          "certificate_digest": "synthetic-certificate-digest-reference-link"
+        }
+      ],
+      "pre_use_check": {
+        "status": "within_limit",
+        "check_day": 149,
+        "method_reference": "https://example.invalid/assurance/method-v1",
+        "reference_artifact_id": "transfer-standard-01",
+        "raw_check_digest": "synthetic-assurance-check-149",
+        "observed_drift": 0.01,
+        "declared_drift_limit": 0.05,
+        "unit": "N m"
+      },
+      "post_use_check": {
+        "status": "within_limit",
+        "check_day": 151,
+        "method_reference": "https://example.invalid/assurance/method-v1",
+        "reference_artifact_id": "transfer-standard-01",
+        "raw_check_digest": "synthetic-assurance-check-151",
+        "observed_drift": 0.01,
+        "declared_drift_limit": 0.05,
+        "unit": "N m"
+      }
+    },
+    "claim_ceiling": "Synthetic negative control. The first link is expired on the measurement day and must produce Unknown."
+  }
+]
