@@ -76,7 +76,19 @@ def evaluate(
     if set(work) != set(expected):
         raise EvaluationError("workload/truth episode IDs do not match exactly")
 
+    timing_evidence_mode = submission.get("timing_evidence_mode")
+    clock_relation_ref = submission.get("clock_relation_ref")
+    if timing_evidence_mode not in {"synthetic_reference", "renderer_qualified"}:
+        raise EvaluationError("submission must declare synthetic_reference or renderer_qualified timing evidence")
+    if not isinstance(clock_relation_ref, str) or not clock_relation_ref.strip():
+        raise EvaluationError("submission must cite a clock_relation_ref")
+    if timing_evidence_mode == "renderer_qualified":
+        relation_digest = clock_relation_ref.removeprefix("sha256:")
+        if len(relation_digest) != 64 or any(ch not in "0123456789abcdef" for ch in relation_digest):
+            raise EvaluationError("renderer_qualified timing requires a SHA-256 clock relation reference")
+
     response_ids: set[str] = set()
+    playback_event_refs: set[str] = set()
     responses_by_episode: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for response in response_rows:
         response_id = response.get("response_id")
@@ -86,6 +98,25 @@ def evaluate(
         response_ids.add(response_id)
         if episode_id not in work:
             raise EvaluationError(f"response references unknown episode: {episode_id!r}")
+        start_ref = response.get("playback_start_event_ref")
+        end_ref = response.get("playback_end_event_ref")
+        end_kind = response.get("playback_end_kind")
+        if not isinstance(start_ref, str) or not start_ref.strip():
+            raise EvaluationError("response requires renderer-confirmed playback_start_event_ref")
+        if not isinstance(end_ref, str) or not end_ref.strip():
+            raise EvaluationError("response requires renderer-confirmed playback_end_event_ref")
+        if start_ref == end_ref:
+            raise EvaluationError("playback start and end must reference distinct renderer events")
+        if end_kind not in {"playback_ended", "output_stopped"}:
+            raise EvaluationError("response requires playback_ended or output_stopped evidence")
+        if end_kind == "output_stopped":
+            stop_request_ref = response.get("output_stop_request_event_ref")
+            if not isinstance(stop_request_ref, str) or not stop_request_ref.strip():
+                raise EvaluationError("output_stopped requires its linked stop/yield request reference")
+        for event_ref in (start_ref, end_ref):
+            if event_ref in playback_event_refs:
+                raise EvaluationError(f"duplicate renderer lifecycle event reference: {event_ref}")
+            playback_event_refs.add(event_ref)
         responses_by_episode[episode_id].append(response)
 
     per_episode: list[dict[str, Any]] = []
@@ -361,13 +392,22 @@ def evaluate(
         "benchmark_id": BENCHMARK_ID,
         "policy_id": submission.get("policy_id"),
         "run_id": submission.get("run_id"),
+        "timing_evidence_mode": timing_evidence_mode,
+        "clock_relation_ref": clock_relation_ref,
         "interpretation": {
-            "status": "synthetic_response_window_score",
+            "status": (
+                "synthetic_response_window_score"
+                if timing_evidence_mode == "synthetic_reference"
+                else "renderer_qualified_response_window_score"
+            ),
             "limitations": [
                 "The workload and valid response windows are synthetic replay ticks, not measured milliseconds.",
                 "The reference submission validates evaluator semantics only; it is not a model result or a DIVE reproduction.",
                 "Content correctness is compared against author-authored exact labels; no external human-rated quality cohort is included.",
                 "A response is assigned to exactly one opportunity. The evaluator does not infer semantic cross-event attribution.",
+                "A controller permission receipt is not a renderer playback-start event; only playback_start_event_ref creates a response interval.",
+                "An output-stop request is not renderer confirmation; output_stopped must cite a distinct linked request and renderer end event.",
+                "Renderer lifecycle references are declarations and SHA-256-style clock relation references are integrity identifiers, not cryptographic proof or hardware authentication.",
                 "No acoustic cancellation, hardware playback, network or physical loopback guarantee is measured."
             ],
         },
