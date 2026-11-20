@@ -1231,6 +1231,34 @@ mod tests {
     }
 
     #[test]
+    fn qualified_but_unavailable_repair_skill_is_rejected_as_an_action_precondition() {
+        let mut value = fixture();
+        let action = value["scenarios"][0]["actions"].as_array_mut().unwrap().iter_mut()
+            .find(|action| action["action_id"] == "repair-generator").unwrap();
+        action["requires_components"] = json!([]);
+        rebind_scenario(&mut value, 0);
+        let report = audit(&value);
+        assert_eq!(report["disposition"], "SYNTHETIC_ONLY");
+        let scenario = report["scenario_reports"].as_array().unwrap().iter()
+            .find(|item| item["scenario_id"] == "generator-trip").unwrap();
+        assert_eq!(scenario["feasible_path_count"], 2);
+        assert!(scenario["rejected_edges"].as_array().unwrap().iter()
+            .any(|edge| edge["action_id"] == "repair-generator"
+                && edge["reasons"].as_array().unwrap().iter()
+                    .any(|reason| reason == "required_capability_unavailable:engine_repair")));
+    }
+
+    #[test]
+    fn action_capability_must_resolve_to_the_frozen_qualification_registry() {
+        let mut value = fixture();
+        let action = value["scenarios"][0]["actions"].as_array_mut().unwrap().iter_mut()
+            .find(|action| action["action_id"] == "repair-generator").unwrap();
+        action["requires_capabilities"] = json!(["unregistered-engine-repair"]);
+        rebind_scenario(&mut value, 0);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
     fn unregistered_available_capability_invalidates_scenario_evidence() {
         let mut value = fixture();
         value["scenarios"][0]["available_capabilities"].as_array_mut().unwrap().push(json!("ghost-capability"));
