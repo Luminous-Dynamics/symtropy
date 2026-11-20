@@ -1,0 +1,694 @@
+{
+  "schema_version": "ocean-recovery-failure-domain-graph-v0.1",
+  "fixture_id": "OCEAN-RECOVERY-TOPOLOGY-SYNTH-001",
+  "as_of": "2026-11-20",
+  "synthetic_only": true,
+  "claim_ceiling": "Reference topology and fault-injection fixture only. All sites, providers, carriers, utilities, identities, keys, runtimes and failure domains are synthetic. This does not prove real geographic or operational independence.",
+  "required_component_kinds": [
+    "site",
+    "compute",
+    "storage",
+    "identity",
+    "keys",
+    "network",
+    "power",
+    "cooling",
+    "operator",
+    "control_plane",
+    "runtime",
+    "artifact_authority",
+    "time_source"
+  ],
+  "independence_critical_kinds": [
+    "site",
+    "compute",
+    "storage",
+    "identity",
+    "keys",
+    "network",
+    "power",
+    "cooling",
+    "operator",
+    "control_plane",
+    "runtime",
+    "artifact_authority",
+    "time_source"
+  ],
+  "minimum_surviving_paths_after_any_single_domain_failure": 2,
+  "components": [
+    {
+      "component_id": "port_site",
+      "component_kind": "site",
+      "failure_domains": [
+        "site:port-edge-campus",
+        "geo:eastern-cape-coastal-hazard-region"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "port_compute",
+      "component_kind": "compute",
+      "failure_domains": [
+        "compute:arm64-edge-cluster"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "port_storage",
+      "component_kind": "storage",
+      "failure_domains": [
+        "storage:local-durable-cache"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "port_identity",
+      "component_kind": "identity",
+      "failure_domains": [
+        "identity:port-local-issuer"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "port_keys",
+      "component_kind": "keys",
+      "failure_domains": [
+        "keys:port-breakglass-domain"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "port_network",
+      "component_kind": "network",
+      "failure_domains": [
+        "network:port-local-lan"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "port_power",
+      "component_kind": "power",
+      "failure_domains": [
+        "power:port-microgrid-bus"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "port_cooling",
+      "component_kind": "cooling",
+      "failure_domains": [
+        "cooling:port-closed-loop-train"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "port_operator",
+      "component_kind": "operator",
+      "failure_domains": [
+        "operator:port-local-duty-team"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "port_control",
+      "component_kind": "control_plane",
+      "failure_domains": [
+        "control:port-local-management"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "port_runtime",
+      "component_kind": "runtime",
+      "failure_domains": [
+        "runtime:arm64-edge-stack"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "port_artifact",
+      "component_kind": "artifact_authority",
+      "failure_domains": [
+        "artifact:port-local-approval"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "port_time",
+      "component_kind": "time_source",
+      "failure_domains": [
+        "time:port-holdover-ptp"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "warm_site",
+      "component_kind": "site",
+      "failure_domains": [
+        "site:warm-recovery-campus",
+        "geo:independent-inland-hazard-region-b"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "warm_compute",
+      "component_kind": "compute",
+      "failure_domains": [
+        "compute:x86_64-warm-cluster"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "warm_storage",
+      "component_kind": "storage",
+      "failure_domains": [
+        "storage:warm-replica-array"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "warm_identity",
+      "component_kind": "identity",
+      "failure_domains": [
+        "identity:warm-recovery-issuer"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "warm_keys",
+      "component_kind": "keys",
+      "failure_domains": [
+        "keys:warm-recovery-key-domain"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "warm_network",
+      "component_kind": "network",
+      "failure_domains": [
+        "network:carrier-b-route-and-entry"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "warm_power",
+      "component_kind": "power",
+      "failure_domains": [
+        "power:warm-utility-and-bess-bus"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "warm_cooling",
+      "component_kind": "cooling",
+      "failure_domains": [
+        "cooling:warm-independent-cooling-train"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "warm_operator",
+      "component_kind": "operator",
+      "failure_domains": [
+        "operator:warm-recovery-team"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "warm_control",
+      "component_kind": "control_plane",
+      "failure_domains": [
+        "control:warm-recovery-control"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "warm_runtime",
+      "component_kind": "runtime",
+      "failure_domains": [
+        "runtime:x86_64-warm-hypervisor-family"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "warm_artifact",
+      "component_kind": "artifact_authority",
+      "failure_domains": [
+        "artifact:warm-independent-approval"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "warm_time",
+      "component_kind": "time_source",
+      "failure_domains": [
+        "time:warm-holdover-time-domain"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "vault_site",
+      "component_kind": "site",
+      "failure_domains": [
+        "site:immutable-vault-campus",
+        "geo:independent-hazard-region-c"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "vault_compute",
+      "component_kind": "compute",
+      "failure_domains": [
+        "compute:cleanroom-aarch64-cluster"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "vault_storage",
+      "component_kind": "storage",
+      "failure_domains": [
+        "storage:offline-immutable-vault"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "vault_identity",
+      "component_kind": "identity",
+      "failure_domains": [
+        "identity:vault-offline-issuer"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "vault_keys",
+      "component_kind": "keys",
+      "failure_domains": [
+        "keys:offline-escrow-domain"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "vault_network",
+      "component_kind": "network",
+      "failure_domains": [
+        "network:independent-restore-route-c"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "vault_power",
+      "component_kind": "power",
+      "failure_domains": [
+        "power:vault-independent-power-bus"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "vault_cooling",
+      "component_kind": "cooling",
+      "failure_domains": [
+        "cooling:vault-independent-cooling-train"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "vault_operator",
+      "component_kind": "operator",
+      "failure_domains": [
+        "operator:independent-vault-custodians"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "vault_control",
+      "component_kind": "control_plane",
+      "failure_domains": [
+        "control:offline-vault-control"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "vault_runtime",
+      "component_kind": "runtime",
+      "failure_domains": [
+        "runtime:minimal-cleanroom-stack"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "vault_artifact",
+      "component_kind": "artifact_authority",
+      "failure_domains": [
+        "artifact:vault-independent-approval"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    },
+    {
+      "component_id": "vault_time",
+      "component_kind": "time_source",
+      "failure_domains": [
+        "time:vault-offline-time-domain"
+      ],
+      "evidence_state": "synthetic_design_assumption",
+      "as_built_independence_verified": false
+    }
+  ],
+  "recovery_paths": [
+    {
+      "path_id": "port_local_continuity",
+      "label": "Port-local continuity",
+      "role": "Reduced but useful local marine/port analytics while external network or primary site is unavailable",
+      "service_tier": "degraded_local",
+      "component_ids": [
+        "port_site",
+        "port_compute",
+        "port_storage",
+        "port_identity",
+        "port_keys",
+        "port_network",
+        "port_power",
+        "port_cooling",
+        "port_operator",
+        "port_control",
+        "port_runtime",
+        "port_artifact",
+        "port_time"
+      ],
+      "target_rpo_minutes": 0,
+      "target_rto_minutes": 5,
+      "targets_are_measured": false
+    },
+    {
+      "path_id": "warm_recovery",
+      "label": "Warm recovery site",
+      "role": "Restore nominated services at an independent site using a separately administered recent replica",
+      "service_tier": "warm_recovery",
+      "component_ids": [
+        "warm_site",
+        "warm_compute",
+        "warm_storage",
+        "warm_identity",
+        "warm_keys",
+        "warm_network",
+        "warm_power",
+        "warm_cooling",
+        "warm_operator",
+        "warm_control",
+        "warm_runtime",
+        "warm_artifact",
+        "warm_time"
+      ],
+      "target_rpo_minutes": 15,
+      "target_rto_minutes": 240,
+      "targets_are_measured": false
+    },
+    {
+      "path_id": "immutable_cleanroom_recovery",
+      "label": "Immutable recovery and clean room",
+      "role": "Recover a frozen, independently verified baseline after destructive production or warm-site compromise",
+      "service_tier": "immutable_recovery",
+      "component_ids": [
+        "vault_site",
+        "vault_compute",
+        "vault_storage",
+        "vault_identity",
+        "vault_keys",
+        "vault_network",
+        "vault_power",
+        "vault_cooling",
+        "vault_operator",
+        "vault_control",
+        "vault_runtime",
+        "vault_artifact",
+        "vault_time"
+      ],
+      "target_rpo_minutes": 1440,
+      "target_rto_minutes": 4320,
+      "targets_are_measured": false
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "RT-001",
+      "title": "Production data-centre site lost",
+      "failed_domains": [
+        "site:production-primary",
+        "geo:production-region-a"
+      ],
+      "expected_infrastructure_paths": [
+        "port_local_continuity",
+        "warm_recovery",
+        "immutable_cleanroom_recovery"
+      ],
+      "service_blocked_paths": [],
+      "disposition": "Recover without depending on the production site; reconcile last accepted replica point.",
+      "minimum_infrastructure_paths": 3
+    },
+    {
+      "scenario_id": "RT-002",
+      "title": "Production identity and credential plane compromised",
+      "failed_domains": [
+        "identity:production-issuer",
+        "keys:production-key-domain",
+        "control:production-control-plane"
+      ],
+      "expected_infrastructure_paths": [
+        "port_local_continuity",
+        "warm_recovery",
+        "immutable_cleanroom_recovery"
+      ],
+      "service_blocked_paths": [],
+      "disposition": "Reject production credentials at every recovery boundary; retain independent authentication and key custody.",
+      "minimum_infrastructure_paths": 3
+    },
+    {
+      "scenario_id": "RT-003",
+      "title": "Port region and local site unavailable",
+      "failed_domains": [
+        "site:port-edge-campus",
+        "geo:eastern-cape-coastal-hazard-region"
+      ],
+      "expected_infrastructure_paths": [
+        "warm_recovery",
+        "immutable_cleanroom_recovery"
+      ],
+      "service_blocked_paths": [],
+      "disposition": "Warm site assumes nominated service; immutable recovery remains available.",
+      "minimum_infrastructure_paths": 2
+    },
+    {
+      "scenario_id": "RT-004",
+      "title": "Warm recovery region unavailable",
+      "failed_domains": [
+        "site:warm-recovery-campus",
+        "geo:independent-inland-hazard-region-b"
+      ],
+      "expected_infrastructure_paths": [
+        "port_local_continuity",
+        "immutable_cleanroom_recovery"
+      ],
+      "service_blocked_paths": [],
+      "disposition": "Local continuity remains where the port region is unaffected; immutable recovery remains.",
+      "minimum_infrastructure_paths": 2
+    },
+    {
+      "scenario_id": "RT-005",
+      "title": "Immutable vault region unavailable",
+      "failed_domains": [
+        "site:immutable-vault-campus",
+        "geo:independent-hazard-region-c"
+      ],
+      "expected_infrastructure_paths": [
+        "port_local_continuity",
+        "warm_recovery"
+      ],
+      "service_blocked_paths": [],
+      "disposition": "Local and warm paths remain; do not claim immutable recovery availability during this event.",
+      "minimum_infrastructure_paths": 2
+    },
+    {
+      "scenario_id": "RT-006",
+      "title": "Primary export fibre or landing station lost",
+      "failed_domains": [
+        "telecom:production-primary-route",
+        "landing:production-primary-landing"
+      ],
+      "expected_infrastructure_paths": [
+        "port_local_continuity",
+        "warm_recovery",
+        "immutable_cleanroom_recovery"
+      ],
+      "service_blocked_paths": [],
+      "disposition": "Port-local service continues; recovery paths do not depend on the production export route.",
+      "minimum_infrastructure_paths": 3
+    },
+    {
+      "scenario_id": "RT-007",
+      "title": "Warm recovery identity provider compromised",
+      "failed_domains": [
+        "identity:warm-recovery-issuer"
+      ],
+      "expected_infrastructure_paths": [
+        "port_local_continuity",
+        "immutable_cleanroom_recovery"
+      ],
+      "service_blocked_paths": [],
+      "disposition": "Quarantine warm recovery identity; use independently governed port or vault recovery path.",
+      "minimum_infrastructure_paths": 2
+    },
+    {
+      "scenario_id": "RT-008",
+      "title": "Immutable vault key custody unavailable or compromised",
+      "failed_domains": [
+        "keys:offline-escrow-domain"
+      ],
+      "expected_infrastructure_paths": [
+        "port_local_continuity",
+        "warm_recovery"
+      ],
+      "service_blocked_paths": [],
+      "disposition": "Do not bypass key controls; vault path is unavailable until key custody is independently reconciled.",
+      "minimum_infrastructure_paths": 2
+    },
+    {
+      "scenario_id": "RT-009",
+      "title": "Port cooling train unavailable",
+      "failed_domains": [
+        "cooling:port-closed-loop-train"
+      ],
+      "expected_infrastructure_paths": [
+        "warm_recovery",
+        "immutable_cleanroom_recovery"
+      ],
+      "service_blocked_paths": [],
+      "disposition": "Port compute enters bounded shutdown/degraded state before thermal limits; remote recovery remains available.",
+      "minimum_infrastructure_paths": 2
+    },
+    {
+      "scenario_id": "RT-010",
+      "title": "Shared public DNS and upstream artifact repository unavailable",
+      "failed_domains": [
+        "external:public-dns-provider",
+        "external:public-artifact-repository"
+      ],
+      "expected_infrastructure_paths": [
+        "port_local_continuity",
+        "warm_recovery",
+        "immutable_cleanroom_recovery"
+      ],
+      "service_blocked_paths": [],
+      "disposition": "Use local trust anchors, cached signed artifacts and path-specific time holdover; no critical recovery dependency on public DNS.",
+      "minimum_infrastructure_paths": 3
+    },
+    {
+      "scenario_id": "RT-011",
+      "title": "Two independent regions lost in one compound event",
+      "failed_domains": [
+        "geo:eastern-cape-coastal-hazard-region",
+        "geo:independent-inland-hazard-region-b"
+      ],
+      "expected_infrastructure_paths": [
+        "immutable_cleanroom_recovery"
+      ],
+      "service_blocked_paths": [],
+      "disposition": "Tertiary recovery survives; report service degradation and do not overstate multi-region survivability.",
+      "minimum_infrastructure_paths": 1
+    },
+    {
+      "scenario_id": "RT-012",
+      "title": "Candidate workload image fails independent integrity validation",
+      "failed_domains": [],
+      "expected_infrastructure_paths": [
+        "port_local_continuity",
+        "warm_recovery",
+        "immutable_cleanroom_recovery"
+      ],
+      "service_blocked_paths": [
+        "port_local_continuity",
+        "warm_recovery",
+        "immutable_cleanroom_recovery"
+      ],
+      "disposition": "Infrastructure remains available, but do not declare application service restored until a last-known-good image is independently validated and promoted.",
+      "minimum_infrastructure_paths": 3
+    },
+    {
+      "scenario_id": "RT-013",
+      "title": "Single shared recovery administrator is compromised",
+      "failed_domains": [
+        "operator:shared-production-backup-administrator"
+      ],
+      "expected_infrastructure_paths": [
+        "port_local_continuity",
+        "warm_recovery",
+        "immutable_cleanroom_recovery"
+      ],
+      "service_blocked_paths": [],
+      "disposition": "No single production or shared administrator can destroy all recovery copies; retain separately governed operators and dual control.",
+      "minimum_infrastructure_paths": 3
+    },
+    {
+      "scenario_id": "RT-014",
+      "title": "Port and warm sites lose power/cooling during a correlated local event",
+      "failed_domains": [
+        "power:port-microgrid-bus",
+        "cooling:port-closed-loop-train",
+        "power:warm-utility-and-bess-bus",
+        "cooling:warm-independent-cooling-train"
+      ],
+      "expected_infrastructure_paths": [
+        "immutable_cleanroom_recovery"
+      ],
+      "service_blocked_paths": [],
+      "disposition": "Vault restore path remains; the model must declare the compound event rather than assuming independent site availability.",
+      "minimum_infrastructure_paths": 1
+    }
+  ],
+  "site_evidence_admission_requirements": [
+    "as_built_site_coordinates_and_hazard_regions",
+    "utility_feeder_and_black_start_diagrams",
+    "carrier_route_and_landing_station_as_built_records",
+    "identity_tenant_issuer_and_key_custody_evidence",
+    "storage_admin_and_immutability_configuration_receipts",
+    "operator_and_dual_control_rosters",
+    "runtime_and_signed_artifact_provenance",
+    "blind_restore_transcripts_and_integrity_checks"
+  ]
+}

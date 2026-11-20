@@ -1,0 +1,398 @@
+{
+  "schema_version": "ocean-environment-campaign-design-v0.1",
+  "campaign_id": "OCEAN-ENV-CAMPAIGN-SYNTH-DESIGN-001",
+  "as_of": "2026-11-20",
+  "design_only": true,
+  "claim_ceiling": "Synthetic sampling design contract only. No site-specific sampling plan, permit-approved design, statistical power, sensor deployment, baseline or environmental result is established.",
+  "standards_context": {
+    "wastewater_sampling": "ISO 5667-10:2026",
+    "environmental_data_catalog": "ITU-T L.1312 (07/2026)",
+    "ocean_variables": "GOOS Essential Ocean Variables; specification version must be pinned per campaign",
+    "biodiversity": "OBIS Manual v2.0 / Darwin Core; confirm data provider, node and rights requirements",
+    "measurement_uncertainty": "JCGM 100:2008/Amd.1:2026 and JCGM 101:2008",
+    "interoperability": "OGC SensorThings API 2.0",
+    "owner_native_measurement_value_of_information_issue": "https://github.com/Luminous-Dynamics/symthaea/issues/11559"
+  },
+  "decision_questions": [
+    {
+      "id": "ENV-Q-THERMAL-001",
+      "question": "What are the time-resolved thermal plume exposure, duration and spatial extent relative to independent reference conditions?",
+      "primary_observables": [
+        "MARINE-THERMAL-DELTA",
+        "MARINE-THERMAL-PLUME",
+        "MARINE-TEMP-PROFILE",
+        "MARINE-HYDRODYNAMICS"
+      ],
+      "authority": "independent_hydrographer_and_ecologist"
+    },
+    {
+      "id": "ENV-Q-MASSLOAD-001",
+      "question": "Does the system add a measurable pollutant mass load above intake/background after accounting for transport time and measurement uncertainty?",
+      "primary_observables": [
+        "ITU-WATER-POLLUTANTS",
+        "MARINE-POLLUTANT-MASS-FLUX",
+        "MARINE-SEAWATER-RETURN"
+      ],
+      "authority": "accredited_laboratory_and_independent_environmental_reviewer"
+    },
+    {
+      "id": "ENV-Q-ECOLOGY-001",
+      "question": "Are benthic habitat, taxa and relevant biodiversity indicators changed relative to seasonal reference/control observations?",
+      "primary_observables": [
+        "ITU-MSA",
+        "MARINE-BENTHIC-ECOSYSTEM",
+        "MARINE-INTAKE-IMPACTS",
+        "MARINE-FOULING"
+      ],
+      "authority": "independent_marine_ecologist"
+    },
+    {
+      "id": "ENV-Q-NOISE-001",
+      "question": "Does underwater sound vary by equipment, duty cycle, vessel activity and construction/maintenance state?",
+      "primary_observables": [
+        "MARINE-UNDERWATER-NOISE"
+      ],
+      "authority": "qualified_underwater_acoustician"
+    }
+  ],
+  "spatial_design": {
+    "mandatory_station_roles": [
+      "intake",
+      "outfall",
+      "near_field_plume",
+      "far_field_impact",
+      "independent_reference_control"
+    ],
+    "location_rule": "Coordinates, depth, range, datum and station spacing must be set after site-specific hydrography, plume modelling, ecological baseline and regulatory review. No generic universal plume radius or distance is assumed.",
+    "control_rule": "Reference/control must be outside the modeled/observed influence of the intervention under relevant conditions, matched for habitat and hydrographic context, and independently justified. If independence cannot be established, the comparison remains confounded/UNKNOWN.",
+    "impact_area_rule": "Use a predeclared impact area and retain fixed stations where feasible; adaptive stations may supplement but must not replace the pre-registered spatial design without a documented amendment."
+  },
+  "temporal_strata": [
+    {
+      "stratum_id": "seasonal",
+      "states": [
+        "local_warm_season",
+        "local_cool_season",
+        "material_transition_period"
+      ],
+      "evidence_basis": "site-specific seasonal metocean and ecological calendar",
+      "coverage": "each material season represented before making annual or seasonal claims"
+    },
+    {
+      "stratum_id": "hydrodynamic",
+      "states": [
+        "low_current_or_weak_mixing",
+        "typical_current_or_mixing",
+        "high_current_or_strong_mixing",
+        "relevant_tide_or_wave_extremes"
+      ],
+      "evidence_basis": "measured current, mixing, tide and sea-state distributions",
+      "coverage": "sampling includes conditions controlling plume transport and intake recirculation"
+    },
+    {
+      "stratum_id": "compute_and_thermal_load",
+      "states": [
+        "idle_or_minimum",
+        "steady_typical",
+        "high_load",
+        "load_ramp_or_step"
+      ],
+      "evidence_basis": "synchronized accepted IT service and heat-exchanger operating state",
+      "coverage": "all material thermal operating states sampled"
+    },
+    {
+      "stratum_id": "water_operations",
+      "states": [
+        "normal_operation",
+        "startup_or_shutdown",
+        "filter_or_screen_cleaning",
+        "chemical_cleaning_or_biocide_event_if_used",
+        "purge_or_bypass_event_if_used"
+      ],
+      "evidence_basis": "operator event log and metered hydraulic state",
+      "coverage": "all discharge-relevant activities explicitly included or declared not applicable with evidence"
+    },
+    {
+      "stratum_id": "abnormal_events",
+      "states": [
+        "alarm_or_abnormal_discharge",
+        "loss_of_power_or_cooling",
+        "storm_or_extreme_metocean",
+        "unplanned_maintenance"
+      ],
+      "evidence_basis": "event-triggered sampling under approved response plan",
+      "coverage": "incident samples collected only where safe and authorized; otherwise event and missingness are explicitly recorded"
+    },
+    {
+      "stratum_id": "lifecycle",
+      "states": [
+        "pre_construction_baseline",
+        "construction",
+        "commissioning",
+        "normal_operation",
+        "maintenance",
+        "decommissioning",
+        "post_decommission_recovery"
+      ],
+      "evidence_basis": "project lifecycle register",
+      "coverage": "claims do not cross unobserved lifecycle stages"
+    }
+  ],
+  "sampling_channels": [
+    {
+      "channel": "continuous_thermal_hydraulic",
+      "methods": [
+        "paired_intake_outfall_temperature",
+        "flow",
+        "pump_power",
+        "differential_pressure",
+        "inlet_return_state"
+      ],
+      "sampling_rule": "Sampling cadence is selected from instrument response, validated hydraulic residence-time distribution and fastest relevant thermal transient; preserve raw time series and clock quality. Five-times-per-rise-time is a proposed engineering screening heuristic, not a standard requirement.",
+      "alignment": "residence_time_corrected"
+    },
+    {
+      "channel": "continuous_metocean",
+      "methods": [
+        "temperature_depth_profile",
+        "conductivity_salinity",
+        "current_speed_direction",
+        "wave_state",
+        "turbidity"
+      ],
+      "sampling_rule": "Continuous or repeated profiling sufficient to resolve stratification, mixing and seasonal/event variability; pin instrument deployment and calibration.",
+      "alignment": "UTC_and_sensor_clock_checked"
+    },
+    {
+      "channel": "discrete_water_chemistry",
+      "methods": [
+        "analyte_specific_laboratory_samples",
+        "field_blanks",
+        "trip_blanks_where_method_requires",
+        "duplicates",
+        "matrix_spikes_or_recovery_checks",
+        "detection_limits"
+      ],
+      "sampling_rule": "Use a site-specific representative sampling plan following ISO 5667-10:2026 where applicable; record method, preservation, collection window, chain of custody, lab batch, blank/duplicate/spike results and censoring method.",
+      "alignment": "hydraulic_residence_time_and_sample_composite_window"
+    },
+    {
+      "channel": "ecology_and_habitat",
+      "methods": [
+        "benthic_taxa_and_abundance",
+        "habitat_mapping",
+        "MSA_inputs",
+        "entrainment_impingement_if_authorized",
+        "biofouling_taxa"
+      ],
+      "sampling_rule": "Independent ecologist pre-registers methods, spatial support, taxonomic level, seasonal timing, effort and reference/control design; minimize disturbance and follow permit and sensitive-species rules.",
+      "alignment": "seasonal_and_habitat_matched"
+    },
+    {
+      "channel": "underwater_acoustics",
+      "methods": [
+        "ambient_sound",
+        "equipment_state_sound",
+        "construction_maintenance_sound",
+        "frequency_resolved_received_or_source_level"
+      ],
+      "sampling_rule": "Calibrated hydrophone survey across duty cycles, source/receptor positions, ranges and depth; distinguish ambient, vessel and infrastructure sources.",
+      "alignment": "duty_cycle_and_metocean_context"
+    },
+    {
+      "channel": "construction_and_maintenance_events",
+      "methods": [
+        "vessel_activity",
+        "seabed_work",
+        "screen_cleaning",
+        "filter_replacement",
+        "chemical_or_waste_transfer",
+        "decommissioning"
+      ],
+      "sampling_rule": "Event register time-linked to environmental channels, include before/during/after sampling where safe and required; disposal and material custody are recorded.",
+      "alignment": "event_id_and_UTC"
+    }
+  ],
+  "event_triggers": [
+    {
+      "trigger_id": "TRG-LOAD-STEP",
+      "when": "IT load, pump command or measured heat-transfer rate changes beyond the pre-registered threshold",
+      "action": "increase thermal/hydraulic sampling density through the response and residence-time window"
+    },
+    {
+      "trigger_id": "TRG-OUTFALL-ANOMALY",
+      "when": "outfall concentration, temperature, turbidity or other validated monitor crosses a pre-approved alert threshold",
+      "action": "preserve raw streams, collect confirmatory samples under approved method, alert responsible operator and apply approved mitigation"
+    },
+    {
+      "trigger_id": "TRG-CLEANING",
+      "when": "screen, filter, exchanger or pipe cleaning begins",
+      "action": "capture before/during/after flow, chemistry and waste handling; record all cleaning agents and discharge routing"
+    },
+    {
+      "trigger_id": "TRG-METOCEAN",
+      "when": "current, wave or stratification enters a pre-registered transport regime",
+      "action": "increase plume/chemistry observations or mark regime uncovered if resources/safety prevent it"
+    },
+    {
+      "trigger_id": "TRG-ECOLOGY",
+      "when": "independent ecological observation or intake monitoring indicates an ecological trigger",
+      "action": "stop/modify affected operation under approved response plan; do not wait for a composite score"
+    }
+  ],
+  "statistical_design": {
+    "primary_contrast_required": "pre-register at least one primary contrast per decision question before observing outcomes",
+    "example_contrasts": [
+      "outfall_vs_intake_mass_flux",
+      "near_field_vs_matched_reference",
+      "operating_vs_baseline_noise",
+      "post_construction_vs_pre_construction_MSA_or_taxon_abundance"
+    ],
+    "minimum_detectable_effect": "set from ecological relevance, permit requirements or engineering decision consequence before collecting confirmatory data; not inferred after observing results",
+    "target_statistical_power": 0.8,
+    "type_i_error_rate": 0.05,
+    "power_analysis": "pilot variance, temporal autocorrelation, spatial clustering, expected censoring, detection limits, unequal sampling and multiple comparisons must be included; the sample count is derived from the registered model, not hard-coded here",
+    "independent_unit_rule": "Do not treat repeated sensor readings from one station, one deployment or one biological sample as independent field replicates; model nested temporal/spatial structure and avoid pseudoreplication.",
+    "multiplicity_rule": "Declare a primary endpoint and handle secondary endpoints/multiple analytes with a pre-registered multiplicity strategy."
+  },
+  "adaptive_sampling_policy": {
+    "optimization_goal": "maximize expected reduction in decision regret per sampling cost while preserving pre-registered coverage, rights, ecological and safety constraints",
+    "decision_inputs": [
+      "expected_information_gain",
+      "parameter_identifiability",
+      "measurement_uncertainty",
+      "decision_sensitivity",
+      "sampling_cost",
+      "sensor_reliability",
+      "environmental_disturbance_cost",
+      "data_rights"
+    ],
+    "must_preserve": [
+      "pre_registered_primary_contrasts",
+      "independent_reference_control",
+      "seasonal_coverage",
+      "event_trigger_coverage",
+      "non_compensatory_environmental_gates"
+    ],
+    "rule": "Adaptive sampling may add observations or shift effort within a predeclared design envelope; it may not quietly remove inconvenient stations, unobserved regimes or primary endpoints. Every adaptation carries a reason, version, affected contrast and reviewer receipt.",
+    "linked_work": "https://github.com/Luminous-Dynamics/symthaea/issues/11559"
+  },
+  "quality_and_rights": {
+    "required_record_fields": [
+      "sample_id",
+      "campaign_id",
+      "event_id",
+      "station_id",
+      "station_role",
+      "coordinates_and_datum",
+      "depth",
+      "sample_window_start_utc",
+      "sample_window_end_utc",
+      "signed_sensor_clock_offset_ms",
+      "sensor_id",
+      "calibration_id",
+      "calibration_validity_window",
+      "calibration_independence_domain",
+      "method_id",
+      "preservation_state",
+      "chain_of_custody_id",
+      "laboratory_batch_id",
+      "detection_limit",
+      "measurement_uncertainty",
+      "quality_state",
+      "source_rights",
+      "raw_data_digest",
+      "laboratory_batch_independence_domain",
+      "laboratory_batch_common_standard_uncertainty_mg_l"
+    ],
+    "qc_controls": [
+      "sensor_calibration_and_drift_review",
+      "field_and_laboratory_blanks",
+      "duplicates_or_replicates",
+      "spikes_or_reference_materials_where_method_requires",
+      "taxonomic_review",
+      "geospatial_and_depth_validation",
+      "time_sync_review",
+      "missingness_and_censoring_audit"
+    ],
+    "evidence_states": [
+      "measured",
+      "modelled",
+      "synthetic",
+      "unavailable"
+    ],
+    "rule": "Missing, censored, stale, uncalibrated, rights-ineligible or contradictory evidence remains unknown/qualified with an explicit status; it is never converted to zero."
+  },
+  "stop_rules": [
+    {
+      "id": "STOP-BASELINE",
+      "condition": "pre-construction or seasonal reference baseline is missing",
+      "disposition": "block site-specific impact conclusion"
+    },
+    {
+      "id": "STOP-CONTROL",
+      "condition": "independent control is not demonstrably outside the impact area or not comparable",
+      "disposition": "mark contrast confounded and block causal claim"
+    },
+    {
+      "id": "STOP-POWER",
+      "condition": "power analysis cannot resolve the pre-registered minimum detectable effect",
+      "disposition": "redesign study or label result underpowered; no no-effect claim"
+    },
+    {
+      "id": "STOP-CUSTODY",
+      "condition": "sample method, preservation, rights or custody fails",
+      "disposition": "quarantine sample/result"
+    },
+    {
+      "id": "STOP-EVENT-GAP",
+      "condition": "material event/season/regime has no valid observation",
+      "disposition": "retain coverage gap and restrict claim to observed regimes"
+    },
+    {
+      "id": "STOP-ECOLOGY",
+      "condition": "protected/exclusion habitat, permit breach or ecological trigger occurs",
+      "disposition": "block/stop affected activity under approved response plan"
+    }
+  ],
+  "proposed_benchmarks": {
+    "complete_provenance": "100% of accepted observations carry required metadata and a raw-data digest",
+    "control_integrity": "100% of primary contrasts have independently justified reference/control stations",
+    "statistical_design": "80% or greater power at alpha 0.05 for the pre-registered primary effect, where a quantitative contrast is appropriate",
+    "event_coverage": "100% of material planned operating/maintenance events are either sampled or explicitly recorded as uncovered",
+    "seasonal_coverage": "all seasons/material strata needed for the intended claim are covered; no annual claim from a single-season baseline",
+    "missingness": "zero silent interpolation or zero-fill; publish observed duration, gap durations and reason codes",
+    "adaptation_auditability": "100% of adaptive changes have immutable design-version and reviewer receipts"
+  },
+  "comparison_policy": "Compare alternative placements or cooling architectures only with matched primary contrasts, season/hydrodynamic regimes, service/load states, metrology and measurement uncertainty. No site or architecture wins by having fewer samples or missing regimes.",
+  "owner_native_research": [
+    {
+      "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/2069",
+      "scope": "bias-aware non-contact survey design; this campaign consumes its survey-bias and non-contact evidence guidance"
+    },
+    {
+      "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/2077",
+      "scope": "temporal replication and imperfect-detection benchmark; this campaign adopts explicit detection-probability and repeated-visit constraints"
+    },
+    {
+      "issue": "https://github.com/Luminous-Dynamics/symthaea/issues/11559",
+      "scope": "sensor selection by parameter identifiability and decision value; this campaign uses a constrained expected-information/decision-regret allocation objective"
+    }
+  ],
+  "imperfect_detection_model": {
+    "rule": "Latent ecological state and observation/detection process are separate model layers. A non-detection is not absence unless the sampling method, detection probability, effort, conditions and uncertainty support that inference.",
+    "required_components": [
+      "latent_occupancy_or_abundance_state",
+      "method_specific_detection_probability",
+      "sampling_effort_and_duration",
+      "visibility_or_acoustic_background_conditions",
+      "observer_or_algorithm_identity",
+      "repeat_visit_or_temporal_replication",
+      "false_positive_model_where_material",
+      "detection_limit_or_resolution",
+      "uncertainty_interval"
+    ],
+    "acceptance": "For any primary ecological contrast based on detection, estimate or justify detection probability using the registered design. Where detectability is unknown or insufficient, report absence as UNKNOWN and do not infer no effect.",
+    "integration": "Use the current sequential-design and observation-allocation work for repeated visits, imperfect detection and non-contact survey bias; do not reimplement a competing ecological estimator in this campaign contract."
+  }
+}

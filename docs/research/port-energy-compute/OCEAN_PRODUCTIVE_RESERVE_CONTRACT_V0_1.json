@@ -1,0 +1,220 @@
+{
+  "schema_version": "ocean-productive-reserve-contract-v0.1",
+  "fixture_id": "OCEAN-PRODUCTIVE-RESERVE-SYNTH-001",
+  "as_of": "2026-11-20",
+  "synthetic_only": true,
+  "claim_ceiling": "Normalized resource units, job loads, preemption times, checkpoint rules, recovery budget and outcomes are synthetic test inputs. They are not measured hardware capacity, operator SLA, energy data or field performance.",
+  "referenced_workload_fixture": "OCEAN-COMPUTE-WORKLOAD-SYNTH-001",
+  "reserve_site_path": "warm_recovery",
+  "reserve_capacity": {
+    "resource_unit": "normalized capacity units; each dimension has independent 100-unit ceiling",
+    "capacity": {
+      "compute": 100,
+      "memory": 100,
+      "network": 100,
+      "cooling": 100,
+      "power": 100
+    },
+    "headroom_policy": "Background work may consume only declared preemptible capacity. On failover, background workloads are fenced and checkpointed before protected recovery work is admitted.",
+    "no_double_counting": true
+  },
+  "protected_recovery_services": [
+    {
+      "profile_id": "wave-observation-qc",
+      "priority": "P0",
+      "resource_demand": {
+        "compute": 25,
+        "memory": 12,
+        "network": 10,
+        "cooling": 20,
+        "power": 20
+      },
+      "service_contract": {
+        "max_start_deferral_seconds": 60,
+        "latency_budget_seconds": 300,
+        "local_fallback_required": true
+      }
+    },
+    {
+      "profile_id": "port-berth-demand-forecast",
+      "priority": "P0",
+      "resource_demand": {
+        "compute": 20,
+        "memory": 8,
+        "network": 8,
+        "cooling": 12,
+        "power": 15
+      },
+      "service_contract": {
+        "max_start_deferral_seconds": 60,
+        "latency_budget_seconds": 300,
+        "local_fallback_required": true
+      }
+    },
+    {
+      "profile_id": "offshore-wind-condition-analytics",
+      "priority": "P1",
+      "resource_demand": {
+        "compute": 25,
+        "memory": 20,
+        "network": 15,
+        "cooling": 23,
+        "power": 30
+      },
+      "service_contract": {
+        "max_start_deferral_seconds": 900,
+        "latency_budget_seconds": 900,
+        "local_fallback_required": true
+      }
+    }
+  ],
+  "background_preemptible_jobs": [
+    {
+      "profile_id": "auv-rov-inspection-reconstruction",
+      "priority": "P2",
+      "resource_demand": {
+        "compute": 50,
+        "memory": 45,
+        "network": 35,
+        "cooling": 30,
+        "power": 35
+      },
+      "preemption": {
+        "max_quiesce_seconds": 120,
+        "max_checkpoint_seconds": 240,
+        "checkpoint_required": true,
+        "checkpoint_integrity_required": true,
+        "maximum_deferral_seconds": 14400
+      }
+    },
+    {
+      "profile_id": "ocean-science-hindcast-ensemble",
+      "priority": "P3",
+      "resource_demand": {
+        "compute": 45,
+        "memory": 30,
+        "network": 35,
+        "cooling": 25,
+        "power": 30
+      },
+      "preemption": {
+        "max_quiesce_seconds": 180,
+        "max_checkpoint_seconds": 300,
+        "checkpoint_required": true,
+        "checkpoint_integrity_required": true,
+        "maximum_deferral_seconds": 86400
+      }
+    }
+  ],
+  "recovery_budget": {
+    "target_rto_seconds": 14400,
+    "sequential_budget_steps": [
+      {
+        "step": "detect_and_declare_incident",
+        "budget_seconds": 120
+      },
+      {
+        "step": "fence_and_authorize_recovery",
+        "budget_seconds": 300
+      },
+      {
+        "step": "preempt_and_checkpoint_background_jobs",
+        "budget_seconds": 480
+      },
+      {
+        "step": "verify_recovery_image_and_runtime",
+        "budget_seconds": 900
+      },
+      {
+        "step": "rehydrate_warm_data_and_catalogue",
+        "budget_seconds": 3600
+      },
+      {
+        "step": "validate_first_service_results",
+        "budget_seconds": 600
+      }
+    ],
+    "arithmetic_only_expected_total_seconds": 6000,
+    "target_is_measured": false
+  },
+  "scenarios": [
+    {
+      "scenario_id": "PR-001",
+      "title": "Normal operation at maximum permitted background load",
+      "fault": "none",
+      "expected": "ADMIT",
+      "required_assertions": [
+        "background_resource_vectors_sum_exactly",
+        "all_resource_dimensions_at_or_below_100",
+        "all_jobs_have_checkpoint_contracts"
+      ]
+    },
+    {
+      "scenario_id": "PR-002",
+      "title": "Warm recovery while both background jobs are active",
+      "fault": "primary_site_loss",
+      "expected": "PREEMPT_THEN_RESTORE",
+      "required_assertions": [
+        "background_jobs_fenced",
+        "checkpoint_integrity_verified",
+        "protected_service_resources_fit",
+        "quiesce_within_180_seconds",
+        "checkpoint_completion_within_300_seconds",
+        "sequential_recovery_budget_within_14400_seconds"
+      ]
+    },
+    {
+      "scenario_id": "PR-003",
+      "title": "One background job refuses or fails to preempt",
+      "fault": "non_preemptible_background_job",
+      "expected": "REJECT_RESERVE_CLAIM",
+      "required_assertions": [
+        "no_overcommit",
+        "no_silent_job_drop",
+        "warm_rto_not_claimed"
+      ]
+    },
+    {
+      "scenario_id": "PR-004",
+      "title": "Checkpoint hash or metadata does not validate",
+      "fault": "checkpoint_integrity_failure",
+      "expected": "QUARANTINE_BACKGROUND_JOB",
+      "required_assertions": [
+        "no_corrupt_checkpoint_resume",
+        "protected_service_has_priority",
+        "recompute_or_reconcile_job_state"
+      ]
+    },
+    {
+      "scenario_id": "PR-005",
+      "title": "Background jobs attempt to resume during a constrained power interval",
+      "fault": "pcc_headroom_reduced",
+      "expected": "DEFER_BACKGROUND_RESUME",
+      "required_assertions": [
+        "no_rebound_peak",
+        "pcc_limit_respected",
+        "protected_service_quality_preserved"
+      ]
+    },
+    {
+      "scenario_id": "PR-006",
+      "title": "Protected failover workload exceeds any resource dimension",
+      "fault": "recovery_demand_above_capacity",
+      "expected": "REJECT_INFEASIBLE_RTO",
+      "required_assertions": [
+        "no_resource_overcommit",
+        "report_unmet_service_units",
+        "do_not_claim_service_restored"
+      ]
+    }
+  ],
+  "acceptance_rules": [
+    "Protected service resource demand must fit each resource dimension independently.",
+    "Background workload is admitted only when all resource and power limits are respected.",
+    "Every admitted background workload has bounded quiesce, checkpoint, integrity and maximum-deferral contracts.",
+    "The warm RTO clock stops only after application output passes an independent service-quality oracle.",
+    "No scheduler may preempt or control a safety-critical vessel, port, grid or industrial control loop.",
+    "A failed checkpoint is quarantined; no background output is silently counted as completed.",
+    "Background work resumes only after recovery service, PCC and cooling headroom are reconciled."
+  ]
+}

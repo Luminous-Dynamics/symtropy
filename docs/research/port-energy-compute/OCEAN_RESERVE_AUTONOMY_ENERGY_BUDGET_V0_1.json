@@ -1,0 +1,86 @@
+{
+  "schema_version": "ocean-reserve-autonomy-energy-budget-v0.1",
+  "fixture_id": "OCEAN-RESERVE-AUTONOMY-SYNTH-001",
+  "as_of": "2026-11-20",
+  "synthetic_calculation_only": true,
+  "claim_ceiling": "Arithmetic illustration only; not a measured load, PUE, wave output forecast, storage design, site design or grid study.",
+  "assumptions": {
+    "whole_facility_pue": 1.15,
+    "constant_it_load": true,
+    "hours": {
+      "day_hours": 24,
+      "qualification_hours": 72,
+      "stretch_hours": 168
+    },
+    "illustrative_battery_depth_of_discharge": 0.8,
+    "illustrative_ac_round_trip_efficiency": 0.9,
+    "battery_nameplate_calculation": "delivered facility-bus energy / (depth of discharge * AC round-trip efficiency)",
+    "excluded": [
+      "N+1 redundancy",
+      "battery aging",
+      "temperature and rate derating",
+      "reserve margin",
+      "generator startup and black-start",
+      "unmodelled auxiliary loads",
+      "renewable resource chronology",
+      "storm shutdown and recovery",
+      "maintenance outages",
+      "power conversion limits",
+      "grid export/import constraints"
+    ]
+  },
+  "cases": [
+    {
+      "it_load_kw": 100,
+      "assumed_pue": 1.15,
+      "facility_bus_load_kw": 115,
+      "delivered_energy_mwh": {
+        "hours_24": 2.76,
+        "hours_72": 8.28,
+        "hours_168": 19.32
+      },
+      "illustrative_battery_nameplate_mwh_at_assumed_dod_and_ac_round_trip_efficiency": {
+        "hours_72": 11.5,
+        "hours_168": 26.833
+      }
+    },
+    {
+      "it_load_kw": 250,
+      "assumed_pue": 1.15,
+      "facility_bus_load_kw": 287.5,
+      "delivered_energy_mwh": {
+        "hours_24": 6.9,
+        "hours_72": 20.7,
+        "hours_168": 48.3
+      },
+      "illustrative_battery_nameplate_mwh_at_assumed_dod_and_ac_round_trip_efficiency": {
+        "hours_72": 28.75,
+        "hours_168": 67.083
+      }
+    },
+    {
+      "it_load_kw": 1000,
+      "assumed_pue": 1.15,
+      "facility_bus_load_kw": 1150,
+      "delivered_energy_mwh": {
+        "hours_24": 27.6,
+        "hours_72": 82.8,
+        "hours_168": 193.2
+      },
+      "illustrative_battery_nameplate_mwh_at_assumed_dod_and_ac_round_trip_efficiency": {
+        "hours_72": 115,
+        "hours_168": 268.333
+      }
+    }
+  ],
+  "wave_resource_note": {
+    "port": "Ngqura",
+    "potential_installed_capacity_mw": 8.3,
+    "source": "Eco Wave Power / AGFDL feasibility announcement dated 2026-02-17",
+    "source_url": "https://www.sec.gov/Archives/edgar/data/1846715/000121390026016925/ea027651301ex99-1_ecowave.htm",
+    "status": "feasibility-stage potential only; subject to development and permitting",
+    "firm_energy_credit_mw": null,
+    "average_generation_mw": null,
+    "reason": "No admitted hourly output, capacity factor, availability, grid-interconnection or commissioning evidence."
+  }
+}

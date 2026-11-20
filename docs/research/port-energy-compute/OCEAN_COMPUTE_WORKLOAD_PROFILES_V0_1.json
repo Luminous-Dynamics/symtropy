@@ -1,0 +1,232 @@
+{
+  "schema_version": "ocean-compute-workload-fixture-v0.1",
+  "fixture_id": "OCEAN-COMPUTE-WORKLOAD-001-SYNTH-001",
+  "as_of": "2026-11-20",
+  "synthetic_only": true,
+  "claim_ceiling": "All service volumes, input sizes, energy quantities, deadlines and stressors below are invented test values. They are not measurements, market demand estimates, marine telemetry, equipment specifications, or South African operating data.",
+  "energy_accounting_boundary": "compute + network + cooling energy per synthetic batch; no upstream generation, storage conversion loss, embodied energy, vessel energy or facility overhead outside the declared cooling allocation is represented",
+  "units": {
+    "energy": "Wh per batch",
+    "input_volume": "bytes per batch",
+    "time": "seconds",
+    "service_unit": "declared per profile"
+  },
+  "profiles": [
+    {
+      "id": "wave-observation-qc",
+      "service_family": "ocean_observation_environmental_mrv",
+      "service_unit": "QC-qualified observation record",
+      "service_units_per_batch": 1000,
+      "synthetic_input_bytes": 8388608,
+      "latency_budget_seconds": 300,
+      "deadline_seconds": 300,
+      "maximum_deferral_seconds": 60,
+      "flexibility_class": "bounded_deferrable",
+      "allowed_placement_strata": [
+        "onboard_edge",
+        "port_edge",
+        "coastal_regional",
+        "floating_nearshore"
+      ],
+      "local_fallback_required": true,
+      "safety_critical_control_dependency": false,
+      "rights_state": "synthetic_only",
+      "energy_wh": {
+        "compute": 120,
+        "network": 15,
+        "cooling": 18,
+        "total": 153
+      },
+      "synthetic_quality_gate": "all 1000 records retain source identity, timebase, units and QC; unknown QC is not upgraded to valid"
+    },
+    {
+      "id": "offshore-wind-condition-analytics",
+      "service_family": "offshore_renewable_operations",
+      "service_unit": "turbine-hour condition assessment",
+      "service_units_per_batch": 24,
+      "synthetic_input_bytes": 262144000,
+      "latency_budget_seconds": 900,
+      "deadline_seconds": 1800,
+      "maximum_deferral_seconds": 900,
+      "flexibility_class": "bounded_deferrable",
+      "allowed_placement_strata": [
+        "port_edge",
+        "coastal_regional",
+        "floating_nearshore",
+        "external_cloud"
+      ],
+      "local_fallback_required": true,
+      "safety_critical_control_dependency": false,
+      "rights_state": "synthetic_only",
+      "energy_wh": {
+        "compute": 900,
+        "network": 60,
+        "cooling": 135,
+        "total": 1095
+      },
+      "synthetic_quality_gate": "24 assessments produced with fixed model/version and declared uncertainty; outputs are maintenance decision support, not turbine control"
+    },
+    {
+      "id": "port-berth-demand-forecast",
+      "service_family": "port_vessel_shore_power_operations",
+      "service_unit": "15-minute berth/shore-power forecast",
+      "service_units_per_batch": 96,
+      "synthetic_input_bytes": 20971520,
+      "latency_budget_seconds": 300,
+      "deadline_seconds": 300,
+      "maximum_deferral_seconds": 60,
+      "flexibility_class": "bounded_deferrable",
+      "allowed_placement_strata": [
+        "port_edge",
+        "coastal_regional"
+      ],
+      "local_fallback_required": true,
+      "safety_critical_control_dependency": false,
+      "rights_state": "synthetic_only",
+      "energy_wh": {
+        "compute": 350,
+        "network": 35,
+        "cooling": 52.5,
+        "total": 437.5
+      },
+      "synthetic_quality_gate": "96 forecasts preserve forecast issue time, target interval and uncertainty; advisory only, never berth or shore-power actuation"
+    },
+    {
+      "id": "auv-rov-inspection-reconstruction",
+      "service_family": "marine_robotics_survey_processing",
+      "service_unit": "reviewable inspection tile",
+      "service_units_per_batch": 100,
+      "synthetic_input_bytes": 107374182400,
+      "latency_budget_seconds": 86400,
+      "deadline_seconds": 86400,
+      "maximum_deferral_seconds": 14400,
+      "flexibility_class": "migratable",
+      "allowed_placement_strata": [
+        "onboard_edge",
+        "port_edge",
+        "coastal_regional",
+        "floating_nearshore",
+        "external_cloud"
+      ],
+      "local_fallback_required": false,
+      "safety_critical_control_dependency": false,
+      "rights_state": "synthetic_only",
+      "energy_wh": {
+        "compute": 12000,
+        "network": 4500,
+        "cooling": 1800,
+        "total": 18300
+      },
+      "synthetic_quality_gate": "100 tiles pass declared reconstruction completeness and reviewer acceptance; missing coverage remains explicit"
+    },
+    {
+      "id": "ocean-science-hindcast-ensemble",
+      "service_family": "scientific_industrial_batch_compute",
+      "service_unit": "completed hindcast ensemble member",
+      "service_units_per_batch": 10,
+      "synthetic_input_bytes": 2199023255552,
+      "latency_budget_seconds": 259200,
+      "deadline_seconds": 259200,
+      "maximum_deferral_seconds": 86400,
+      "flexibility_class": "deferrable",
+      "allowed_placement_strata": [
+        "coastal_regional",
+        "floating_nearshore",
+        "subsea_module",
+        "external_cloud"
+      ],
+      "local_fallback_required": false,
+      "safety_critical_control_dependency": false,
+      "rights_state": "synthetic_only",
+      "energy_wh": {
+        "compute": 50000,
+        "network": 12000,
+        "cooling": 7500,
+        "total": 69500
+      },
+      "synthetic_quality_gate": "10 ensemble members reproduce the frozen input/model/software identity and declared numerical tolerance"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "nominal-steady-state",
+      "fault_or_stressor": "none",
+      "expected_disposition": "admit all five synthetic batches when capacity and all declared constraints are available",
+      "required_assertions": [
+        "service_units_preserved",
+        "energy_components_sum_exactly",
+        "no_safety_critical_remote_dependency"
+      ]
+    },
+    {
+      "id": "storm-observation-burst",
+      "fault_or_stressor": "wave telemetry and port forecast demand increase during a declared storm window",
+      "expected_disposition": "preserve observation and port-service deadlines; defer hindcast within its declared window; do not claim a forecast is valid outside its evidence envelope",
+      "required_assertions": [
+        "priority_service_floors_preserved",
+        "batch_deferral_within_bound",
+        "no_data_loss"
+      ]
+    },
+    {
+      "id": "renewable-surplus-window",
+      "fault_or_stressor": "renewable generation exceeds current firm service demand for a bounded interval",
+      "expected_disposition": "admit only deadline-compatible deferrable work that remains within PCC, feeder, cooling and storage limits",
+      "required_assertions": [
+        "no_new_peak",
+        "no_rebound_peak",
+        "same_useful_work_completed"
+      ]
+    },
+    {
+      "id": "pcc-cap-and-rebound",
+      "fault_or_stressor": "an objective-only shift creates a later interval above the shared PCC cap",
+      "expected_disposition": "reject the shifted schedule even if its energy or price objective improves",
+      "required_assertions": [
+        "full_horizon_pcc_feasibility",
+        "rebound_checked",
+        "no_service_credit_for_dropped_work"
+      ]
+    },
+    {
+      "id": "fibre-partition",
+      "fault_or_stressor": "primary wide-area fibre path is unavailable",
+      "expected_disposition": "retain local/port-edge essential analytics and safety functions; queue or store-and-forward jobs whose remote dependency is unavailable",
+      "required_assertions": [
+        "local_fallback_preserved",
+        "no_remote_safety_control",
+        "backlog_age_reported"
+      ]
+    },
+    {
+      "id": "source-qc-or-calibration-unknown",
+      "fault_or_stressor": "a sensor series has missing QC, stale calibration or unresolved deployment identity",
+      "expected_disposition": "quarantine or downgrade the affected product; do not transform missing evidence into an environmental finding",
+      "required_assertions": [
+        "source_lineage_preserved",
+        "unknown_not_zero",
+        "no_unqualified_mrv_claim"
+      ]
+    },
+    {
+      "id": "rights-or-purpose-denied",
+      "fault_or_stressor": "a source owner denies the requested processing purpose or external data egress",
+      "expected_disposition": "deny disallowed placement/egress and preserve the denial in the execution record",
+      "required_assertions": [
+        "no_unauthorized_egress",
+        "purpose_bound",
+        "provider_lease_not_self_authorized"
+      ]
+    },
+    {
+      "id": "cooling-resource-fault",
+      "fault_or_stressor": "a cooling loop, heat sink, thermal store or seawater-exchange permission becomes unavailable",
+      "expected_disposition": "mark affected placement capacity unavailable and re-plan only where service, thermal and PCC constraints remain satisfied",
+      "required_assertions": [
+        "thermal_limit_respected",
+        "no_unmetered_heat_credit",
+        "service_deadline_preserved_or_explicitly_failed"
+      ]
+    }
+  ]
+}

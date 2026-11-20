@@ -1,0 +1,400 @@
+{
+  "schema_version": "subsea-reserve-threat-scenarios-v0.1",
+  "fixture_id": "SUBSEA-RESERVE-THREAT-SYNTH-001",
+  "as_of": "2026-11-20",
+  "synthetic_only": true,
+  "claim_ceiling": "Authored threat/fault scenarios for design qualification only. Not observed incident rates, probabilities, attack instructions, security certification, site survey or operational test evidence.",
+  "semantics": {
+    "severity": "qualitative design priority; not a calibrated risk score",
+    "expected_disposition": "required safe system response",
+    "acceptance": "evidence required before a scenario can be marked passed"
+  },
+  "global_invariants": [
+    "A remote analytics or reserve-compute fault must not become a safety-critical vessel, port, grid or industrial control authority.",
+    "No single production credential or production control plane may destroy every recovery copy.",
+    "Unknown integrity, rights, power, cooling or communications state must fail closed for new mutations and preserve local safe/degraded operation.",
+    "A subsea pod must not be credited as recovered until service, data integrity and evidence are independently verified.",
+    "An active hydrothermal vent field is an exclusion for industrial siting and vent-energy extraction in this programme."
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "SR-001",
+      "domain": "cyber-recovery",
+      "title": "Production administrator compromise attempts backup deletion",
+      "trigger": "Adversary obtains a production privileged identity and issues destructive backup operations.",
+      "design_priority": "critical",
+      "affected_assets": [
+        "production_identity",
+        "backup_catalogue",
+        "immutable_copy",
+        "recovery_keys"
+      ],
+      "required_controls": [
+        "separate_backup_identity",
+        "immutable_or_offline_copy",
+        "dual_control_for_destructive_actions",
+        "independent_audit"
+      ],
+      "expected_disposition": "Reject destructive mutation of protected recovery copies; alert through an independent channel; preserve known-good baseline.",
+      "acceptance_tests": [
+        "Use production credentials against every backup deletion and retention path; all protected copies remain intact.",
+        "Verify that backup restore does not require the compromised production identity."
+      ],
+      "evidence_required": [
+        "timestamped denial receipt",
+        "immutable-copy inventory",
+        "independent restore transcript",
+        "credential dependency graph"
+      ],
+      "synthetic_estimate": true
+    },
+    {
+      "scenario_id": "SR-002",
+      "domain": "cyber-supply-chain",
+      "title": "Malicious or invalid signed firmware/software update",
+      "trigger": "Update provenance, signature, build identity or expected measurement does not match the approved release.",
+      "design_priority": "critical",
+      "affected_assets": [
+        "pod_firmware",
+        "hypervisor",
+        "management_plane",
+        "sensor_gateway"
+      ],
+      "required_controls": [
+        "signed_reproducible_release",
+        "measured_boot",
+        "staged_update",
+        "rollback_or_recovery_image",
+        "two_person_release_authority"
+      ],
+      "expected_disposition": "Do not install or activate the update; preserve previous approved image; quarantine the artifact and retain evidence.",
+      "acceptance_tests": [
+        "Reject altered, unsigned, revoked and wrong-target artifacts.",
+        "Demonstrate recovery after power interruption during a staged update."
+      ],
+      "evidence_required": [
+        "release manifest",
+        "signature verification receipt",
+        "measured-boot log",
+        "rollback transcript"
+      ],
+      "synthetic_estimate": true
+    },
+    {
+      "scenario_id": "SR-003",
+      "domain": "network",
+      "title": "Single subsea export-fibre route is severed",
+      "trigger": "Physical interruption or optical failure on one export route.",
+      "design_priority": "high",
+      "affected_assets": [
+        "subsea_pod",
+        "primary_landing_station",
+        "terrestrial_backhaul"
+      ],
+      "required_controls": [
+        "physically_diverse_routes",
+        "independent_landing_sites_or_path",
+        "local_workload_queue",
+        "out_of_band_low_bandwidth_channel"
+      ],
+      "expected_disposition": "Continue only pre-authorized local workloads; buffer data with integrity metadata; no unsafe dependency on remote services.",
+      "acceptance_tests": [
+        "Blindly remove each declared route in turn.",
+        "Prove that the surviving route does not share a single duct, beach manhole, landing station, provider or terrestrial bottleneck with the failed route."
+      ],
+      "evidence_required": [
+        "GIS route graph",
+        "carrier confirmation",
+        "fault-injection trace",
+        "buffer reconciliation receipt"
+      ],
+      "synthetic_estimate": true
+    },
+    {
+      "scenario_id": "SR-004",
+      "domain": "network-common-cause",
+      "title": "Both nominally redundant fibre paths share a hidden common cause",
+      "trigger": "Two circuits share a landing station, cable corridor, terrestrial duct, upstream carrier or common management/control plane.",
+      "design_priority": "critical",
+      "affected_assets": [
+        "primary_fibre",
+        "secondary_fibre",
+        "landing_station",
+        "provider_control_plane"
+      ],
+      "required_controls": [
+        "common_cause_dependency_graph",
+        "independent_route_evidence",
+        "provider_and_landing_diversity",
+        "local_continuity"
+      ],
+      "expected_disposition": "Do not award redundancy credit; treat both paths as one failure domain until independence is proved.",
+      "acceptance_tests": [
+        "Run common-cause cut-set analysis over the complete route and provider graph.",
+        "Remove each shared node and recalculate reachability."
+      ],
+      "evidence_required": [
+        "as-built route records",
+        "provider attestations",
+        "cut-set report",
+        "revised availability model"
+      ],
+      "synthetic_estimate": true
+    },
+    {
+      "scenario_id": "SR-005",
+      "domain": "physical-subsea",
+      "title": "Unauthorized or anomalous subsea intervention is detected",
+      "trigger": "A site monitor or trusted third-party report indicates unexpected contact, manipulation or approach near a pod or cable route.",
+      "design_priority": "high",
+      "affected_assets": [
+        "pod_enclosure",
+        "power_connector",
+        "fibre_connector",
+        "mooring_or_foundation"
+      ],
+      "required_controls": [
+        "tamper_and_state_telemetry",
+        "independent_alarm_path",
+        "local_safe_degraded_mode",
+        "incident_response_and_retrieval_plan"
+      ],
+      "expected_disposition": "Isolate affected interfaces where safe; preserve logs and service state; do not assume an alert proves attribution or compromise.",
+      "acceptance_tests": [
+        "Exercise non-destructive tamper indicators and alarm-path failures.",
+        "Verify that loss of management connectivity does not cause unsafe automatic actuation."
+      ],
+      "evidence_required": [
+        "sensor calibration records",
+        "alert receipt",
+        "forensic state snapshot",
+        "recovery decision record"
+      ],
+      "synthetic_estimate": true
+    },
+    {
+      "scenario_id": "SR-006",
+      "domain": "physical-access",
+      "title": "Depth-rated inspection/intervention capability reaches the deployment depth",
+      "trigger": "Threat model includes professional ROV/submersible access rather than assuming depth prevents access.",
+      "design_priority": "high",
+      "affected_assets": [
+        "pod",
+        "cable_route",
+        "seabed_foundation"
+      ],
+      "required_controls": [
+        "depth_not_treated_as_security_boundary",
+        "tamper_detection",
+        "enclosure_resilience",
+        "redundant_service_and_recovery",
+        "surveillance_and_response"
+      ],
+      "expected_disposition": "Security claim remains limited to measured deterrence/detection/delay; availability and recovery must survive loss of one pod.",
+      "acceptance_tests": [
+        "Red-team the stated threat model with authorized independent reviewers.",
+        "Demonstrate that a single pod loss cannot destroy all data or service capacity."
+      ],
+      "evidence_required": [
+        "threat-model review",
+        "independent physical assurance report",
+        "replica-loss recovery transcript"
+      ],
+      "synthetic_estimate": true
+    },
+    {
+      "scenario_id": "SR-007",
+      "domain": "power",
+      "title": "Shore export power fails while subsea pod is isolated from remote services",
+      "trigger": "Loss of normal grid or export cable supply.",
+      "design_priority": "critical",
+      "affected_assets": [
+        "shore_substation",
+        "export_cable",
+        "pod_power_conversion",
+        "battery_or_ups"
+      ],
+      "required_controls": [
+        "ride_through_storage",
+        "load_shed_priority",
+        "local_power_state_machine",
+        "black_start_plan",
+        "independent_reserve_supply"
+      ],
+      "expected_disposition": "Preserve data integrity, controlled shutdown or explicitly bounded local service; no unqualified restart.",
+      "acceptance_tests": [
+        "Test loss of each incoming source and verify load-shed ordering.",
+        "Measure critical-load autonomy with actual power and cooling telemetry.",
+        "Test black-start and restart under worst-case declared load."
+      ],
+      "evidence_required": [
+        "power waveform and energy receipts",
+        "islanding trace",
+        "black-start transcript",
+        "autonomy calculation"
+      ],
+      "synthetic_estimate": true
+    },
+    {
+      "scenario_id": "SR-008",
+      "domain": "cooling",
+      "title": "Heat exchanger fouling, pump trip or seawater temperature excursion",
+      "trigger": "A cooling-train fault or environmental condition reduces heat-rejection capacity.",
+      "design_priority": "critical",
+      "affected_assets": [
+        "seawater_intake",
+        "heat_exchanger",
+        "circulation_pump",
+        "secondary_coolant_loop"
+      ],
+      "required_controls": [
+        "closed_secondary_loop",
+        "N_plus_one_or_safe_reduction",
+        "temperature_alarm",
+        "thermal_buffer",
+        "fallback_cooling",
+        "environmental_limits"
+      ],
+      "expected_disposition": "Reduce or stop workload before thermal limits are exceeded; protect equipment and marine environment; do not continue on unverified thermal state.",
+      "acceptance_tests": [
+        "Inject pump trip and rising source temperature.",
+        "Measure pump, cooling and auxiliary energy under fouled and clean conditions.",
+        "Verify no unapproved outfall condition."
+      ],
+      "evidence_required": [
+        "calibrated inlet/outlet temperatures",
+        "flow and differential-pressure log",
+        "pump power trace",
+        "fallback test receipt"
+      ],
+      "synthetic_estimate": true
+    },
+    {
+      "scenario_id": "SR-009",
+      "domain": "geohazard",
+      "title": "Seabed instability, seismic event or sediment turbidity current",
+      "trigger": "Site-specific hazard limit is exceeded or monitoring becomes unavailable during a geohazard.",
+      "design_priority": "critical",
+      "affected_assets": [
+        "pod_foundation",
+        "subsea_power_cable",
+        "fibre_route",
+        "intake_outfall"
+      ],
+      "required_controls": [
+        "bathymetric_and_geotechnical_screen",
+        "route_separation",
+        "condition_monitoring",
+        "safe_shutdown",
+        "retrieval_or_loss_containment_plan"
+      ],
+      "expected_disposition": "Enter prequalified safe state; do not rely on continuing a forecast or model when measurements are stale or contradictory.",
+      "acceptance_tests": [
+        "Replay surveyed hazard envelopes and monitoring dropout.",
+        "Show that the site exclusion criteria and shutdown thresholds are explicit and independently reviewed."
+      ],
+      "evidence_required": [
+        "multibeam and geotechnical survey",
+        "geohazard report",
+        "threshold provenance",
+        "shutdown test"
+      ],
+      "synthetic_estimate": true
+    },
+    {
+      "scenario_id": "SR-010",
+      "domain": "environmental-exclusion",
+      "title": "Candidate site intersects active hydrothermal vent habitat or a protected exclusion",
+      "trigger": "Survey, regulator or authoritative habitat dataset identifies active venting, sensitive benthic habitat or a legally/operationally excluded area.",
+      "design_priority": "critical",
+      "affected_assets": [
+        "site_selection",
+        "cable_route",
+        "power_source",
+        "intake_outfall"
+      ],
+      "required_controls": [
+        "environmental_exclusion_layer",
+        "rights_and_permits_gate",
+        "independent_benthic_baseline",
+        "no_vent_interference_policy"
+      ],
+      "expected_disposition": "Reject industrial siting and vent-energy extraction at that site; retain only approved non-invasive science activity.",
+      "acceptance_tests": [
+        "Inject a positive vent/protected-area finding into the site screen; candidate is blocked regardless of energy or cost score.",
+        "Verify exclusion data provenance and version."
+      ],
+      "evidence_required": [
+        "habitat survey",
+        "official spatial layer and legal review",
+        "site-screen blocker receipt"
+      ],
+      "synthetic_estimate": true
+    },
+    {
+      "scenario_id": "SR-011",
+      "domain": "operations",
+      "title": "Pod cannot be serviced or retrieved within its declared window",
+      "trigger": "Weather, vessel availability, port access, spare-part failure or lifting-system fault delays maintenance.",
+      "design_priority": "high",
+      "affected_assets": [
+        "pod",
+        "deployment_vessel",
+        "lifting_system",
+        "spares_inventory"
+      ],
+      "required_controls": [
+        "retrieval_window_model",
+        "spares_and_tooling",
+        "serviceable_modular_design",
+        "shore_equivalent_fallback",
+        "end_of_life_plan"
+      ],
+      "expected_disposition": "Do not claim availability beyond the proven service interval; shift workloads to the independent site and preserve the pod's safe state.",
+      "acceptance_tests": [
+        "Blindly remove the primary recovery vessel and one critical spare from the scenario.",
+        "Calculate service-level degradation through the full weather and retrieval window."
+      ],
+      "evidence_required": [
+        "vessel and lifting capability statement",
+        "maintenance/retrieval drill",
+        "spares manifest",
+        "fallback workload replay"
+      ],
+      "synthetic_estimate": true
+    },
+    {
+      "scenario_id": "SR-012",
+      "domain": "evidence-integrity",
+      "title": "Sensor quality, calibration or time synchronisation becomes unknown",
+      "trigger": "Thermal, power, flow, pressure, intrusion or environmental measurement is stale, out of calibration, contradictory or unauthenticated.",
+      "design_priority": "critical",
+      "affected_assets": [
+        "site_telemetry",
+        "thermal_twin",
+        "power_twin",
+        "environmental_monitoring",
+        "security_event_log"
+      ],
+      "required_controls": [
+        "sensor_identity_and_calibration",
+        "trusted_time",
+        "quality_flags",
+        "independent_cross_check",
+        "fail_closed_decision_rules"
+      ],
+      "expected_disposition": "Mark affected evidence unknown; suspend decisions that require it; preserve local safe operation and collect a reconciliation record.",
+      "acceptance_tests": [
+        "Inject clock skew, stale values, sensor substitution, calibration expiry and contradictory channels.",
+        "Verify that unknown telemetry cannot authorize a new energy, thermal or security state transition."
+      ],
+      "evidence_required": [
+        "sensor provenance",
+        "calibration certificate",
+        "time-sync report",
+        "negative-control receipts"
+      ],
+      "synthetic_estimate": true
+    }
+  ]
+}

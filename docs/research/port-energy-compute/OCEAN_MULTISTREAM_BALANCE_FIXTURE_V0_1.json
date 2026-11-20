@@ -1,0 +1,387 @@
+{
+  "schema_version": "ocean-multistream-hydraulic-balance-v0.1",
+  "fixture_id": "OCEAN-MULTISTREAM-SYNTH-001",
+  "as_of": "2026-11-20",
+  "synthetic_only": true,
+  "interval_start_utc": "2026-10-12T10:00:00Z",
+  "interval_end_utc": "2026-10-12T10:05:00Z",
+  "interval_duration_seconds": 300,
+  "maximum_clock_offset_ms": 250,
+  "maximum_absolute_residual_z_score": 2,
+  "claim_ceiling": "Synthetic two-control-volume hydraulic conservation fixture only. Not a field measurement, complete site P&ID, permit-compliance assessment or ecological clearance.",
+  "evidence_states": [
+    "measured",
+    "modelled",
+    "synthetic",
+    "unavailable"
+  ],
+  "control_volumes": [
+    {
+      "control_volume_id": "CV-COOLER-A",
+      "name": "Primary seawater heat-exchanger loop",
+      "boundary_completeness_state": "declared_complete_synthetic",
+      "ports": [
+        {
+          "port_id": "p-intake",
+          "direction": "in",
+          "status": "connected",
+          "not_applicable_reason": null
+        },
+        {
+          "port_id": "p-transfer",
+          "direction": "out",
+          "status": "connected",
+          "not_applicable_reason": null
+        },
+        {
+          "port_id": "p-evap",
+          "direction": "out",
+          "status": "connected",
+          "not_applicable_reason": null
+        },
+        {
+          "port_id": "p-leak",
+          "direction": "out",
+          "status": "connected",
+          "not_applicable_reason": null
+        },
+        {
+          "port_id": "p-chemical-cleaning",
+          "direction": "out",
+          "status": "not_applicable",
+          "not_applicable_reason": "No cleaning operation in this synthetic interval; event register confirms no chemical-cleaning event"
+        }
+      ],
+      "storage_inventory": {
+        "measurement_id": "INV-CV-A-001",
+        "quantity_origin": "metered",
+        "evidence_state": "synthetic",
+        "interval_start_utc": "2026-10-12T10:00:00Z",
+        "interval_end_utc": "2026-10-12T10:05:00Z",
+        "signed_delta_storage_mass_kg": 0,
+        "independent_standard_uncertainty_kg": 2,
+        "common_mode_standard_uncertainty_kg": 0,
+        "correlation_group_id": null,
+        "sensor_id": "SYNTH-LEVEL-DENSITY-CV-A",
+        "calibration_id": "SYNTH-CAL-LEVEL-CV-A",
+        "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+        "calibration_valid_until_utc": "2026-12-01T00:00:00Z",
+        "clock_offset_ms": 18,
+        "quality_state": "valid",
+        "source_rights_state": "synthetic_test_data_only",
+        "synthetic_record_reference": "synthetic-ref:synthetic-inventory-a"
+      }
+    },
+    {
+      "control_volume_id": "CV-TREATMENT-B",
+      "name": "Secondary treatment, purge and return train",
+      "boundary_completeness_state": "declared_complete_synthetic",
+      "ports": [
+        {
+          "port_id": "p-transfer-in",
+          "direction": "in",
+          "status": "connected",
+          "not_applicable_reason": null
+        },
+        {
+          "port_id": "p-return",
+          "direction": "out",
+          "status": "connected",
+          "not_applicable_reason": null
+        },
+        {
+          "port_id": "p-purge",
+          "direction": "out",
+          "status": "connected",
+          "not_applicable_reason": null
+        },
+        {
+          "port_id": "p-backwash",
+          "direction": "out",
+          "status": "connected",
+          "not_applicable_reason": null
+        },
+        {
+          "port_id": "p-chemical-cleaning",
+          "direction": "out",
+          "status": "not_applicable",
+          "not_applicable_reason": "No cleaning operation in this synthetic interval; event register confirms no chemical-cleaning event"
+        }
+      ],
+      "storage_inventory": {
+        "measurement_id": "INV-CV-B-001",
+        "quantity_origin": "metered",
+        "evidence_state": "synthetic",
+        "interval_start_utc": "2026-10-12T10:00:00Z",
+        "interval_end_utc": "2026-10-12T10:05:00Z",
+        "signed_delta_storage_mass_kg": 0,
+        "independent_standard_uncertainty_kg": 2,
+        "common_mode_standard_uncertainty_kg": 0,
+        "correlation_group_id": null,
+        "sensor_id": "SYNTH-LEVEL-DENSITY-CV-B",
+        "calibration_id": "SYNTH-CAL-LEVEL-CV-B",
+        "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+        "calibration_valid_until_utc": "2026-12-01T00:00:00Z",
+        "clock_offset_ms": -22,
+        "quality_state": "valid",
+        "source_rights_state": "synthetic_test_data_only",
+        "synthetic_record_reference": "synthetic-ref:synthetic-inventory-b"
+      }
+    }
+  ],
+  "streams": [
+    {
+      "stream_id": "S-INTAKE",
+      "stream_type": "seawater_intake",
+      "from": {
+        "endpoint_type": "external",
+        "node_id": "environment-sea",
+        "port_id": null
+      },
+      "to": {
+        "endpoint_type": "control_volume",
+        "node_id": "CV-COOLER-A",
+        "port_id": "p-intake"
+      },
+      "quantity_origin": "metered",
+      "mass_flow_kg_s": 10,
+      "independent_standard_uncertainty_kg_s": 0.01,
+      "common_mode_standard_uncertainty_kg_s": 0.003,
+      "correlation_group_id": "FLOW-SCALE-COMMON-01",
+      "evidence": {
+        "record_id": "REC-INTAKE-001",
+        "interval_start_utc": "2026-10-12T10:00:00Z",
+        "interval_end_utc": "2026-10-12T10:05:00Z",
+        "evidence_state": "synthetic",
+        "quality_state": "valid",
+        "source_rights_state": "synthetic_test_data_only",
+        "clock_offset_ms": 35,
+        "sensor_id": "SYNTH-FLOW-INTAKE",
+        "calibration_id": "SYNTH-CAL-FLOW-INTAKE",
+        "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+        "calibration_valid_until_utc": "2026-12-01T00:00:00Z",
+        "synthetic_record_reference": "synthetic-ref:synthetic-intake"
+      },
+      "model": null
+    },
+    {
+      "stream_id": "S-INTERNAL-TRANSFER",
+      "stream_type": "internal_transfer",
+      "from": {
+        "endpoint_type": "control_volume",
+        "node_id": "CV-COOLER-A",
+        "port_id": "p-transfer"
+      },
+      "to": {
+        "endpoint_type": "control_volume",
+        "node_id": "CV-TREATMENT-B",
+        "port_id": "p-transfer-in"
+      },
+      "quantity_origin": "metered",
+      "mass_flow_kg_s": 9.8,
+      "independent_standard_uncertainty_kg_s": 0.01,
+      "common_mode_standard_uncertainty_kg_s": 0.003,
+      "correlation_group_id": "FLOW-SCALE-COMMON-01",
+      "evidence": {
+        "record_id": "REC-TRANSFER-001",
+        "interval_start_utc": "2026-10-12T10:00:00Z",
+        "interval_end_utc": "2026-10-12T10:05:00Z",
+        "evidence_state": "synthetic",
+        "quality_state": "valid",
+        "source_rights_state": "synthetic_test_data_only",
+        "clock_offset_ms": -44,
+        "sensor_id": "SYNTH-FLOW-TRANSFER",
+        "calibration_id": "SYNTH-CAL-FLOW-TRANSFER",
+        "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+        "calibration_valid_until_utc": "2026-12-01T00:00:00Z",
+        "synthetic_record_reference": "synthetic-ref:synthetic-transfer"
+      },
+      "model": null
+    },
+    {
+      "stream_id": "S-EVAPORATION",
+      "stream_type": "evaporation",
+      "from": {
+        "endpoint_type": "control_volume",
+        "node_id": "CV-COOLER-A",
+        "port_id": "p-evap"
+      },
+      "to": {
+        "endpoint_type": "external",
+        "node_id": "atmosphere",
+        "port_id": null
+      },
+      "quantity_origin": "modelled",
+      "mass_flow_kg_s": 0.1,
+      "independent_standard_uncertainty_kg_s": 0.02,
+      "common_mode_standard_uncertainty_kg_s": 0,
+      "correlation_group_id": null,
+      "evidence": {
+        "record_id": "REC-EVAP-001",
+        "interval_start_utc": "2026-10-12T10:00:00Z",
+        "interval_end_utc": "2026-10-12T10:05:00Z",
+        "evidence_state": "synthetic",
+        "quality_state": "valid",
+        "source_rights_state": "synthetic_test_data_only",
+        "clock_offset_ms": 0,
+        "sensor_id": null,
+        "calibration_id": null,
+        "calibration_valid_from_utc": null,
+        "calibration_valid_until_utc": null,
+        "synthetic_record_reference": "synthetic-ref:synthetic-evap"
+      },
+      "model": {
+        "method_id": "SYNTH-PSYCHROMETRIC-EVAP-001",
+        "model_version": "0.1.0",
+        "input_references": [
+          "synthetic-ref:synthetic-air-state",
+          "synthetic-ref:synthetic-water-temperature"
+        ],
+        "validation_state": "synthetic_test_assumption"
+      }
+    },
+    {
+      "stream_id": "S-LEAKAGE",
+      "stream_type": "leakage_to_secondary_containment",
+      "from": {
+        "endpoint_type": "control_volume",
+        "node_id": "CV-COOLER-A",
+        "port_id": "p-leak"
+      },
+      "to": {
+        "endpoint_type": "external",
+        "node_id": "secondary-containment",
+        "port_id": null
+      },
+      "quantity_origin": "metered",
+      "mass_flow_kg_s": 0.1,
+      "independent_standard_uncertainty_kg_s": 0.01,
+      "common_mode_standard_uncertainty_kg_s": 0.003,
+      "correlation_group_id": "FLOW-SCALE-COMMON-01",
+      "evidence": {
+        "record_id": "REC-LEAK-001",
+        "interval_start_utc": "2026-10-12T10:00:00Z",
+        "interval_end_utc": "2026-10-12T10:05:00Z",
+        "evidence_state": "synthetic",
+        "quality_state": "valid",
+        "source_rights_state": "synthetic_test_data_only",
+        "clock_offset_ms": 26,
+        "sensor_id": "SYNTH-FLOW-LEAK",
+        "calibration_id": "SYNTH-CAL-FLOW-LEAK",
+        "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+        "calibration_valid_until_utc": "2026-12-01T00:00:00Z",
+        "synthetic_record_reference": "synthetic-ref:synthetic-leak"
+      },
+      "model": null
+    },
+    {
+      "stream_id": "S-RETURN",
+      "stream_type": "treated_seawater_return",
+      "from": {
+        "endpoint_type": "control_volume",
+        "node_id": "CV-TREATMENT-B",
+        "port_id": "p-return"
+      },
+      "to": {
+        "endpoint_type": "external",
+        "node_id": "marine-outfall",
+        "port_id": null
+      },
+      "quantity_origin": "metered",
+      "mass_flow_kg_s": 9.4,
+      "independent_standard_uncertainty_kg_s": 0.01,
+      "common_mode_standard_uncertainty_kg_s": 0.003,
+      "correlation_group_id": "FLOW-SCALE-COMMON-01",
+      "evidence": {
+        "record_id": "REC-RETURN-001",
+        "interval_start_utc": "2026-10-12T10:00:00Z",
+        "interval_end_utc": "2026-10-12T10:05:00Z",
+        "evidence_state": "synthetic",
+        "quality_state": "valid",
+        "source_rights_state": "synthetic_test_data_only",
+        "clock_offset_ms": -12,
+        "sensor_id": "SYNTH-FLOW-RETURN",
+        "calibration_id": "SYNTH-CAL-FLOW-RETURN",
+        "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+        "calibration_valid_until_utc": "2026-12-01T00:00:00Z",
+        "synthetic_record_reference": "synthetic-ref:synthetic-return"
+      },
+      "model": null
+    },
+    {
+      "stream_id": "S-PURGE",
+      "stream_type": "purge_bleed",
+      "from": {
+        "endpoint_type": "control_volume",
+        "node_id": "CV-TREATMENT-B",
+        "port_id": "p-purge"
+      },
+      "to": {
+        "endpoint_type": "external",
+        "node_id": "wastewater-treatment",
+        "port_id": null
+      },
+      "quantity_origin": "metered",
+      "mass_flow_kg_s": 0.25,
+      "independent_standard_uncertainty_kg_s": 0.01,
+      "common_mode_standard_uncertainty_kg_s": 0.003,
+      "correlation_group_id": "FLOW-SCALE-COMMON-01",
+      "evidence": {
+        "record_id": "REC-PURGE-001",
+        "interval_start_utc": "2026-10-12T10:00:00Z",
+        "interval_end_utc": "2026-10-12T10:05:00Z",
+        "evidence_state": "synthetic",
+        "quality_state": "valid",
+        "source_rights_state": "synthetic_test_data_only",
+        "clock_offset_ms": 58,
+        "sensor_id": "SYNTH-FLOW-PURGE",
+        "calibration_id": "SYNTH-CAL-FLOW-PURGE",
+        "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+        "calibration_valid_until_utc": "2026-12-01T00:00:00Z",
+        "synthetic_record_reference": "synthetic-ref:synthetic-purge"
+      },
+      "model": null
+    },
+    {
+      "stream_id": "S-BACKWASH",
+      "stream_type": "filter_backwash",
+      "from": {
+        "endpoint_type": "control_volume",
+        "node_id": "CV-TREATMENT-B",
+        "port_id": "p-backwash"
+      },
+      "to": {
+        "endpoint_type": "external",
+        "node_id": "filter-waste",
+        "port_id": null
+      },
+      "quantity_origin": "metered",
+      "mass_flow_kg_s": 0.15,
+      "independent_standard_uncertainty_kg_s": 0.01,
+      "common_mode_standard_uncertainty_kg_s": 0.003,
+      "correlation_group_id": "FLOW-SCALE-COMMON-01",
+      "evidence": {
+        "record_id": "REC-BACKWASH-001",
+        "interval_start_utc": "2026-10-12T10:00:00Z",
+        "interval_end_utc": "2026-10-12T10:05:00Z",
+        "evidence_state": "synthetic",
+        "quality_state": "valid",
+        "source_rights_state": "synthetic_test_data_only",
+        "clock_offset_ms": 74,
+        "sensor_id": "SYNTH-FLOW-BACKWASH",
+        "calibration_id": "SYNTH-CAL-FLOW-BACKWASH",
+        "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+        "calibration_valid_until_utc": "2026-12-01T00:00:00Z",
+        "synthetic_record_reference": "synthetic-ref:synthetic-backwash"
+      },
+      "model": null
+    }
+  ],
+  "covariance_contract": {
+    "rule": "Independent standard uncertainty is summed by RSS; each common-mode correlation group is summed algebraically with the signed control-volume incidence coefficient before squaring.",
+    "correlation_groups": [
+      "FLOW-SCALE-COMMON-01"
+    ],
+    "unknown_correlation_state": "reject"
+  }
+}
