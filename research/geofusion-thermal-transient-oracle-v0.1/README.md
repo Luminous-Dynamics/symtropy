@@ -39,11 +39,15 @@ For `Q(t)=Q0+A sin(omega t)`, the library evaluates the closed-form response:
 
 where `k=UA/C`, `theta_c=(1-alpha)Q0/UA`, `a=((1-alpha)A/C) k/(k^2+omega^2)`, `b=-((1-alpha)A/C) omega/(k^2+omega^2)`, and `K=theta(0)-theta_c-b`.
 
-The integral of the sinusoidal input, sinusoidal temperature terms and exponential transient is evaluated analytically. A master with zero-order hold can then be measured against the continuous-input reference without using the FMU's own reported subtotals as its oracle.
+The integral of the sinusoidal input, sinusoidal temperature terms and exponential transient is evaluated analytically. The implementation uses midpoint/sinc forms for trigonometric interval integrals to avoid cancellation for narrow communication windows, and `expm1` for the exponential transient integral.
+
+### C. Zero-order-hold communication ladder
+
+The crate also samples the same sinusoidal source at each communication interval's left endpoint and holds that input constant over the interval. It solves each held interval exactly, then compares the final temperature against the continuous sinusoidal reference. A frozen 15-to-960-step ladder in the JSON fixture shows the expected approximately first-order global convergence of left-endpoint zero-order hold for this smooth input. This is a mathematical discretization study, not an OMSimulator or commercial-master performance result.
 
 ## Frozen known answers
 
-The machine-readable inputs and decimal reference values are in `fixtures/known-answers.v0.1.json`. Rust tests verify the same frozen values and the independent metamorphic property that splitting a piecewise-constant interval into subintervals produces the same endpoint and integrated balance.
+The machine-readable inputs, decimal reference values and zero-order-hold grid errors are in `fixtures/known-answers.v0.1.json`. Rust tests verify the frozen cases, partition invariance for constant inputs, zero-amplitude reduction, monotonic grid refinement and approximately first-order communication convergence.
 
 ## Run
 
