@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-modality-necessity-v0",
+  "status": "author-authored finite expected modality sufficiency; system scores not yet supplied",
+  "episodes": [
+    {
+      "episode_id": "mod-001-audio-needed-a",
+      "necessity": "audio_necessary",
+      "video_sufficient": false,
+      "audio_sufficient": true,
+      "joint_sufficient": true
+    },
+    {
+      "episode_id": "mod-001-audio-needed-b",
+      "necessity": "audio_necessary",
+      "video_sufficient": false,
+      "audio_sufficient": true,
+      "joint_sufficient": true
+    },
+    {
+      "episode_id": "mod-002-video-needed-a",
+      "necessity": "video_necessary",
+      "video_sufficient": true,
+      "audio_sufficient": false,
+      "joint_sufficient": true
+    },
+    {
+      "episode_id": "mod-002-video-needed-b",
+      "necessity": "video_necessary",
+      "video_sufficient": true,
+      "audio_sufficient": false,
+      "joint_sufficient": true
+    },
+    {
+      "episode_id": "mod-003-joint-needed-a",
+      "necessity": "jointly_necessary",
+      "video_sufficient": false,
+      "audio_sufficient": false,
+      "joint_sufficient": true
+    },
+    {
+      "episode_id": "mod-003-joint-needed-b",
+      "necessity": "jointly_necessary",
+      "video_sufficient": false,
+      "audio_sufficient": false,
+      "joint_sufficient": true
+    },
+    {
+      "episode_id": "mod-004-audio-video-conflict",
+      "necessity": "conflict_abstain_or_separate_hypotheses",
+      "video_sufficient": true,
+      "audio_sufficient": true,
+      "joint_sufficient": false
+    },
+    {
+      "episode_id": "mod-005-common-cause-redundancy",
+      "necessity": "dependent_redundant_views",
+      "video_sufficient": true,
+      "audio_sufficient": true,
+      "joint_sufficient": true
+    },
+    {
+      "episode_id": "mod-006-nonspeech-audio",
+      "necessity": "non_speech_audio_required",
+      "video_sufficient": false,
+      "audio_sufficient": true,
+      "joint_sufficient": true
+    },
+    {
+      "episode_id": "mod-007-temporal-misalignment",
+      "necessity": "no_cross_modal_association",
+      "video_sufficient": true,
+      "audio_sufficient": true,
+      "joint_sufficient": false
+    },
+    {
+      "episode_id": "mod-008-missing-audio",
+      "necessity": "abstain_audio_missing",
+      "video_sufficient": false,
+      "audio_sufficient": false,
+      "joint_sufficient": false
+    },
+    {
+      "episode_id": "mod-009-nuisance-shortcut",
+      "necessity": "nuisance_invariant_pair",
+      "video_sufficient": false,
+      "audio_sufficient": false,
+      "joint_sufficient": true
+    },
+    {
+      "episode_id": "mod-009-nuisance-shortcut-b",
+      "necessity": "nuisance_invariant_pair",
+      "video_sufficient": false,
+      "audio_sufficient": false,
+      "joint_sufficient": true
+    }
+  ]
+}
