@@ -2803,7 +2803,12 @@ mod tests {
             &mut errors,
         );
         assert!(errors.is_empty(), "{errors:?}");
-        assert_eq!(requirements.len(), trajectory.source_artifacts.len());
+        assert_eq!(
+            requirements.iter()
+                .filter(|requirement| requirement.signer_role == SignerRole::EvidenceProvider)
+                .count(),
+            trajectory.source_artifacts.len()
+        );
         assert!(requirements.iter().filter(|requirement| {
             requirement.signer_role == SignerRole::EvidenceProvider
         }).all(|requirement| {
@@ -2820,7 +2825,7 @@ mod tests {
         for source in &trajectory.source_artifacts {
             assert!(service_requirement.parent_artifact_sha256.contains(&source.sha256));
         }
-        assert_eq!(expected_artifacts.len(), trajectory.source_artifacts.len());
+        assert_eq!(expected_artifacts.len(), trajectory.source_artifacts.len() + 1);
     }
 
     #[test]
