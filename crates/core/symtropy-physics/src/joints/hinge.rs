@@ -483,3 +483,90 @@ mod proptests {
         }
     }
 }
+
+
+#[cfg(test)]
+mod motor_step_tests {
+    use super::*;
+    use crate::constraint::MotorStepState;
+    use crate::joints::MotorDrive;
+    use symtropy_math::Point;
+
+    fn velocity_motor() -> MotorDrive {
+        MotorDrive {
+            target_pos: 0.0,
+            target_vel: 1.0,
+            kp: 1.0,
+            kd: 0.0,
+            max_force: 10.0,
+        }
+    }
+
+    #[test]
+    fn hinge_motor_gives_fixed_endpoint_full_angular_response() {
+        let mut anchor = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut moving =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 1.0, 1.0);
+        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
+            .with_motor(velocity_motor());
+        let mut state = MotorStepState::default();
+
+        joint.solve_velocity_with_state(&mut anchor, &mut moving, 0.1, None, &mut state);
+
+        // The sphere has I=0.4 kg m^2, so delta omega = 0.1 / 0.4 = 0.25.
+        assert!((moving.angular_velocity.get(0, 1) - 0.25).abs() < 1.0e-12);
+        assert!(anchor.angular_velocity.norm() < 1.0e-12);
+        assert!((state.accumulated_impulse() - 0.1).abs() < 1.0e-12);
+        let work = state.take_work_receipt().expect("one motor work receipt");
+        assert!((work - 0.0125).abs() < 1.0e-12);
+        assert_eq!(state.take_work_receipt(), None);
+    }
+
+    #[test]
+    fn hinge_motor_weights_angular_impulse_by_inverse_inertia() {
+        let mut a =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        let mut b =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 1.0, 1.0);
+        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
+            .with_motor(velocity_motor());
+        let mut state = MotorStepState::default();
+
+        joint.solve_velocity_with_state(&mut a, &mut b, 0.1, None, &mut state);
+
+        // The engine's documented isotropic approximation gives invI_A=10,
+        // invI_B=2.5. A 0.1 Nms impulse therefore changes their angular rates
+        // by -1.0 and +0.25 rad/s respectively (not an equal 50/50 split).
+        assert!((a.angular_velocity.get(0, 1) + 1.0).abs() < 1.0e-12);
+        assert!((b.angular_velocity.get(0, 1) - 0.25).abs() < 1.0e-12);
+        assert!((state.accumulated_impulse() - 0.1).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn hinge_motor_impulse_never_exceeds_the_single_step_cap() {
+        let mut a =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        let mut b =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let motor = MotorDrive {
+            target_pos: 0.0,
+            target_vel: 100.0,
+            kp: 100.0,
+            kd: 0.0,
+            max_force: 0.5,
+        };
+        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1).with_motor(motor);
+        let mut state = MotorStepState::default();
+
+        for _ in 0..8 {
+            joint.solve_velocity_with_state(&mut a, &mut b, 0.1, None, &mut state);
+        }
+
+        assert!(state.accumulated_impulse().abs() <= 0.05 + 1.0e-12);
+        assert!(state.take_work_receipt().is_some());
+    }
+}
