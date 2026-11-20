@@ -1,0 +1,13 @@
+[package]
+name = "bh-spectral-norm-audit"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Small-matrix reference controls for Gram-weighted non-normal resolvent norms"
+
+[dependencies]
+nalgebra = "0.34"
+num-complex = "0.4"
+
+[workspace]
