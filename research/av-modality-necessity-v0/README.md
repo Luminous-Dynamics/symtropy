@@ -181,3 +181,48 @@ The most promising opportunities suggested by the external results are:
 StreamArena's posted leaderboard illustrates why composition is worth testing: its Mixed online system uses different backbones for frontend/router/search/recall/reviewer, memory writing and monitoring. This is an external example of a composed system, not a result reproduced here.
 
 All scores above retain their source-specific definitions, splits and hardware/API assumptions. Reproduce each official evaluation independently before claiming a win. The 13 synthetic episodes and offline scorecard in this PR are a contract/evaluator development set, not a comparable benchmark submission.
+
+
+## Matched modality-ablation tournament (v1)
+
+A single policy submission can report which modalities it claims to have used, but that does not demonstrate the incremental value of a modality. The benchmark now includes a matched three-arm tournament:
+
+- **V-only:** candidate receives only the public visual observations.
+- **A-only:** candidate receives only admitted raw PCM observations.
+- **A+V:** candidate receives both raw modalities.
+
+Each run is wrapped by \`schemas/arm-run-v1.schema.json\`. The comparator requires common comparison ID, policy, model/runtime revision, hardware identity, random seed, workload reference, protocol, shared policy configuration and resource caps. The arm's allowed modality set is fixed, and submissions that cite/use an unavailable modality or use a transcript shortcut are rejected.
+
+Run the finite reference tournament:
+
+    python3 tools/av-modality-necessity-evaluator/compare_arms.py \
+      --workload research/av-modality-necessity-v0/fixtures/agent/workload-v1.json \
+      --truth research/av-modality-necessity-v0/fixtures/evaluator-only/modality-truth-v1.json \
+      --video-only research/av-modality-necessity-v0/fixtures/agent/arm-video-only-v1.json \
+      --audio-only research/av-modality-necessity-v0/fixtures/agent/arm-audio-only-v1.json \
+      --audio-video research/av-modality-necessity-v0/fixtures/agent/arm-audio-video-v1.json \
+      --output /tmp/av-modality-ablation-tournament.json
+
+The result compares A+V against V-only and A-only on the exact same episode IDs. It reports per-arm answer accuracy, coverage, selective accuracy, safe-decision accuracy and evidence violations; paired answer wins/losses/ties; net answer-accuracy gain; and per-necessity-stratum results. It includes an exact two-sided McNemar/binomial p-value for descriptive paired discordance. With only 13 synthetic cases that p-value is an evaluator diagnostic, not statistical evidence of model superiority. It must not be reported as a meaningful significance claim until a sufficiently powered held-out corpus and preregistered analysis are available.
+
+**Abstention semantics:** if an arm does not receive a modality marked necessary for the task, a safe abstention counts as a correct *decision*. It is still an unanswered task: it increases neither answer accuracy nor coverage. This preserves the distinction between knowing that the evidence is insufficient and actually solving the task. Conflict, common-cause dependence and temporal association tasks require both raw modalities for a substantive answer; the evaluator rejects answering these from only one channel.
+
+The three committed arm fixtures use an authored synthetic reference rule policy, no ML model, no physical hardware and no raw sensor media. Their measured/declared cost fields are not used to claim efficiency. The common budget envelope establishes protocol matching only; actual cost comparisons require per-episode measured input bytes, frame counts, token use, latency and energy, plus repeated seeds and hardware-level metering.
+
+The scoring workflow now runs the single-submission adversarial tests, matched-arm tests, both scorecards and all JSON Schema checks. Exact-head Actions results remain the authority for CI qualification; source-authored fixtures do not substitute for runner results.
+
+## Research interpretation and falsifiable hypotheses
+
+This tournament opens a more useful question than "is an AV model better than a V model?":
+
+1. **Marginal information value:** on which task strata does A+V outperform V-only and A-only, and on which does it add no useful information?
+2. **Selective compute:** can an active router achieve the same answer accuracy and response-window rate with fewer input bytes, frames and joules by invoking the second modality only when its expected decision value is positive?
+3. **Temporal association:** does preserving measurement intervals and clock uncertainty reduce false event matching compared with timestamp concatenation or nearest-neighbour fusion?
+4. **Dependence-aware corroboration:** can source-dependency groups prevent correlated audio/video cues from inflating confidence?
+5. **Sustained interaction:** does the system maintain useful monitoring and make correct non-response decisions over long streams, rather than optimize one-shot QA?
+
+The proposed SOTA route is to establish strong matched baselines on each official benchmark, then show one of two narrow results:
+- a statistically supported improvement on a preregistered failure stratum at matched hardware/input/latency/energy budgets; or
+- non-inferior task quality and response-window correctness at materially lower measured resource cost.
+
+A broad industry-leadership claim requires multiple independent datasets, source-held-out and environment-held-out tests, repeated seeds, confidence intervals, and independent evaluation. The synthetic scorecard and 13-case tournament are engineering scaffolding for that research, not evidence that the target has been achieved.
