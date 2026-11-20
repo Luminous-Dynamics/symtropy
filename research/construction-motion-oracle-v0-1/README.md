@@ -131,3 +131,21 @@ The Linux differential benchmark now has two separate scaling sections:
 - ifc_ids_preflight_scaling: prebuilt typed IFC/IDS source inputs are cloned before timing, then the preflight compiler is measured at 100, 1,000 and 10,000 in-scope entities. Report p50/p95/p99 and entities/second. This isolates preflight validation from source fixture construction.
 
 Neither lane includes cryptographic signature verification, canonical digest recomputation, actual IFC STEP parsing, IDS XML interpretation, external geometry/clash engine runtime, storage I/O or network consensus. The synthetic receipts are accepted as preverified inputs solely to measure the reducer/compiler layer; their digest strings are not signed proof. Results are one-host engineering baselines, never robot-safety or field-productivity evidence.
+
+
+### Offline site journal reconciliation v0.1
+
+The typed Rust API is exported as site_journal_reconciliation::reconcile_site_journal_bundle. Each source journal is owned by one actor from the trusted SiteActorRegistry and is forked from the same authoritative site-ledger checkpoint. Every local record has a contiguous local sequence, previous-record digest, record digest, stable logical event ID, immutable event-content digest, actor identity/role, payload and optional cross-journal causal parents.
+
+The planner:
+- validates each actor-owned local hash-chain shape and rejects sequence gaps, broken links, malformed digests, role spoofing and stale checkpoint forks;
+- collapses exact replicated logical events while preserving every source-journal origin;
+- rejects event-ID reuse with different payload/content and duplicate logical digests;
+- validates references against checkpoint context (published packages, station qualifications, active attempts and observed attempts);
+- derives dependencies from typed payload references where possible, including package publication → station qualification → attempt start → robot observation/interruption → referee assessment;
+- topologically orders causally related records, with a deterministic event-ID tie-break only for independent events;
+- detects concurrent writes to the same site resource/entity/attempt and blocks ingestion rather than selecting a winner by timestamp, arrival order or robot identity.
+
+The reconciliation plan does not assign the authoritative global site-ledger sequence. Once conflicts have been dispositioned, an ingestion service must convert the topological event order into the single-writer SiteEventEnvelope chain and apply it through SiteStateLedger with the trusted actor registry.
+
+This is an offline journal *reconciliation planner*, not a distributed consensus protocol or multi-writer ledger. The caller still verifies canonical source bytes, local-record hashes, event-content hashes and actor signatures. The base checkpoint and committed-context projection must come from the authenticated site ledger. Causal metadata is not a substitute for state-machine validation; the authoritative ledger remains the final transition gate.
