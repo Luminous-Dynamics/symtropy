@@ -128,3 +128,19 @@ Primary upstream references:
 - Full-Duplex-Bench main repository and latest data availability notice: https://github.com/DanielLin94144/Full-Duplex-Bench
 - Full-Duplex-Bench v3 paper: https://arxiv.org/abs/2604.04847
 - Full-Duplex-Bench v2 paper: https://arxiv.org/abs/2510.07838
+
+## Renderer-confirmed output evidence (added with VOICE-FDX-001B composition)
+
+A response interval now requires two distinct lifecycle event references:
+- playback_start_event_ref: renderer-confirmed **PlaybackStarted**. This is the only event that can establish a response start.
+- playback_end_event_ref: renderer-confirmed **PlaybackEnded** or **OutputStopped**.
+
+An optional controller_permission_event_ref may be retained for audit, but it is intent only and never creates an answer or a start timestamp. An output_stopped response must cite its matching output_stop_request_event_ref; start, end and request references must be distinct and unique within the submission.
+
+The submission also declares:
+- timing_evidence_mode = synthetic_reference for the finite known-answer fixture. Its ticks validate only logical benchmark semantics.
+- timing_evidence_mode = renderer_qualified for future measured runs, with a SHA-256 reference to the qualified clock relation used to map renderer timestamps into benchmark time.
+
+The digest reference is an identifier, not cryptographic proof, renderer authentication or evidence that a physical speaker emitted sound. The adapter in Symthaea [#13014](https://github.com/Luminous-Dynamics/symthaea/issues/13014) must provide the actual lifecycle trace and the evaluator service must independently validate the clock relation. A missing PlaybackStarted or PlaybackEnded/OutputStopped event is incomplete / NOT_MEASURED, never a zero-latency response.
+
+This preserves the boundary in the existing Symthaea #5169 controller: AssistantSpeechPermitted is not playback start; OutputStopRequested is not output stopped; natural completion is not a stop/yield acknowledgement. No timestamp conversion from controller nanoseconds to replay ticks is allowed without an explicit, independently qualified clock relation and uncertainty bounds.
