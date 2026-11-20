@@ -3,7 +3,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BenchmarkCase {
     pub format_version: String,
     pub case_id: String,
@@ -29,7 +29,7 @@ pub enum CaseMaturity {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Provenance {
     pub dataset_id: String,
     pub source_repository: String,
@@ -40,7 +40,7 @@ pub struct Provenance {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SourceArtifact {
     pub path: String,
     pub vcs_object_id: String,
@@ -56,7 +56,7 @@ pub enum VcsObjectFormat {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UnitSystem {
     pub length: String,
     pub time: String,
@@ -68,7 +68,7 @@ pub struct UnitSystem {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Timebase {
     pub unit: String,
     pub step_size: u32,
@@ -77,7 +77,7 @@ pub struct Timebase {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ModelProfile {
     pub electrical_data_profile: ElectricalDataProfile,
     pub topology_constraints: Vec<TopologyConstraint>,
@@ -102,7 +102,7 @@ pub enum TopologyConstraint {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PowerNetwork {
     pub nodes: Vec<PowerNode>,
     pub branches: Vec<PowerBranch>,
@@ -113,13 +113,13 @@ pub struct PowerNetwork {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PowerNode {
     pub node_id: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PowerBranch {
     pub branch_id: String,
     pub from_node_id: String,
@@ -130,7 +130,7 @@ pub struct PowerBranch {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BranchElectricalData {
     pub resistance_ohm: f64,
     pub reactance_ohm: f64,
@@ -138,7 +138,7 @@ pub struct BranchElectricalData {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ElectricalSettings {
     pub base_mva: f64,
     pub base_kv: f64,
@@ -148,7 +148,7 @@ pub struct ElectricalSettings {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Switch {
     pub switch_id: String,
     pub from_node_id: String,
@@ -158,7 +158,7 @@ pub struct Switch {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Load {
     pub load_id: String,
     pub node_id: String,
@@ -169,7 +169,7 @@ pub struct Load {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GridSource {
     pub source_id: String,
     pub node_id: String,
@@ -179,21 +179,21 @@ pub struct GridSource {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RoadNetwork {
     pub nodes: Vec<RoadNode>,
     pub edges: Vec<RoadEdge>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RoadNode {
     pub node_id: String,
     pub power_node_id: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RoadEdge {
     pub edge_id: String,
     pub from_node_id: String,
@@ -204,7 +204,7 @@ pub struct RoadEdge {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Fault {
     pub fault_id: String,
     pub power_branch_id: String,
@@ -215,7 +215,7 @@ pub struct Fault {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RepairCrew {
     pub crew_id: String,
     pub starting_road_node_id: String,
@@ -227,28 +227,28 @@ pub struct RepairCrew {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ResourceCapacity {
     pub resource_ref: String,
     pub capacity_units: u32,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ShiftCalendar {
     pub timezone_ref: String,
     pub windows: Vec<ShiftWindow>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ShiftWindow {
     pub start_step: u32,
     pub end_step: u32,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct MobilePowerSource {
     pub mobile_source_id: String,
     pub starting_road_node_id: String,
@@ -260,7 +260,7 @@ pub struct MobilePowerSource {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Objective {
     pub objective_id: String,
     pub metric: String,
