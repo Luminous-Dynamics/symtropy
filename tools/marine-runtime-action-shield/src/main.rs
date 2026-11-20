@@ -14,18 +14,18 @@ const SCENARIO_CLASSES: [&str; 5] = [
     "nominal",
     "watermaker_outage",
 ];
-const METRIC_IDS: [&str; 11] = [
-    "energy_reserve_kwh",
-    "freshwater_usable_l",
-    "food_reserve_days",
-    "waste_capacity_margin_days",
-    "critical_spares_coverage_days",
-    "power_service_availability",
-    "potable_water_service_availability",
-    "sanitation_service_availability",
-    "refrigeration_service_availability",
-    "crew_workload_hours_rolling_24h",
-    "comfort_breach_minutes_rolling_24h",
+const METRIC_DEFS: [(&str, &str, &str); 11] = [
+    ("energy_reserve_kwh", "kWh", "gte"),
+    ("freshwater_usable_l", "L", "gte"),
+    ("food_reserve_days", "day", "gte"),
+    ("waste_capacity_margin_days", "day", "gte"),
+    ("critical_spares_coverage_days", "day", "gte"),
+    ("power_service_availability", "fraction", "gte"),
+    ("potable_water_service_availability", "fraction", "gte"),
+    ("sanitation_service_availability", "fraction", "gte"),
+    ("refrigeration_service_availability", "fraction", "gte"),
+    ("crew_workload_hours_rolling_24h", "h", "lte"),
+    ("comfort_breach_minutes_rolling_24h", "min", "lte"),
 ];
 
 fn string_at<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
@@ -109,7 +109,7 @@ fn parse_contract(value: &Value, errors: &mut Vec<String>) -> BTreeMap<String, M
         errors.push("service_contract must be an array".to_owned());
         return result;
     };
-    if items.len() != METRIC_IDS.len() {
+    if items.len() != METRIC_DEFS.len() {
         errors.push("service_contract must contain exactly eleven resource/service axes".to_owned());
     }
     for item in items {
@@ -118,8 +118,10 @@ fn parse_contract(value: &Value, errors: &mut Vec<String>) -> BTreeMap<String, M
         let operator = string_at(item, "operator").unwrap_or("");
         let floor = number_at(item, "floor_value");
         let coverage = number_at(item, "minimum_coverage_fraction");
-        if !METRIC_IDS.contains(&metric) || unit.is_empty()
-            || !["gte", "lte"].contains(&operator)
+        let expected = METRIC_DEFS.iter().find(|(id, _, _)| *id == metric);
+        if expected.is_none_or(|(_, expected_unit, expected_operator)| {
+                unit != *expected_unit || operator != *expected_operator
+            })
             || floor.is_none()
             || coverage.is_none_or(|v| !(0.0..=1.0).contains(&v))
         {
@@ -135,7 +137,7 @@ fn parse_contract(value: &Value, errors: &mut Vec<String>) -> BTreeMap<String, M
             errors.push(format!("service contract duplicates axis '{metric}'"));
         }
     }
-    for metric in METRIC_IDS {
+    for (metric, _, _) in METRIC_DEFS {
         if !result.contains_key(metric) {
             errors.push(format!("service contract is missing required axis '{metric}'"));
         }
@@ -145,7 +147,6 @@ fn parse_contract(value: &Value, errors: &mut Vec<String>) -> BTreeMap<String, M
 
 #[derive(Clone)]
 struct MetricInterval {
-    value: f64,
     lower: f64,
     upper: f64,
     coverage: f64,
@@ -162,7 +163,7 @@ fn read_metric_intervals(
         errors.push(format!("{label} resource_metrics must be an array"));
         return result;
     };
-    if items.len() != METRIC_IDS.len() {
+    if items.len() != METRIC_DEFS.len() {
         errors.push(format!("{label} must report exactly eleven resource/service axes"));
     }
     for item in items {
@@ -188,11 +189,11 @@ fn read_metric_intervals(
             errors.push(format!("{label} metric '{metric}' has invalid units, bounds, coverage or evidence digest"));
             continue;
         }
-        if result.insert(metric.to_owned(), MetricInterval { value, lower, upper, coverage }).is_some() {
+        if result.insert(metric.to_owned(), MetricInterval { lower, upper, coverage }).is_some() {
             errors.push(format!("{label} duplicates resource axis '{metric}'"));
         }
     }
-    for metric in METRIC_IDS {
+    for (metric, _, _) in METRIC_DEFS {
         if !result.contains_key(metric) {
             errors.push(format!("{label} is missing required axis '{metric}'"));
         }
@@ -251,6 +252,9 @@ fn validate_bundle(raw: &[u8], value: &Value) -> Value {
     }
 
     let snapshot = value.get("mission_snapshot").unwrap_or(&Value::Null);
+    if string_at(snapshot, "mission_id").is_none_or(str::is_empty) {
+        errors.push("mission_snapshot.mission_id is required".to_owned());
+    }
     match canonical_digest(snapshot, Some("mission_snapshot_sha256")) {
         Some(calculated) if string_at(snapshot, "mission_snapshot_sha256") == Some(calculated.as_str()) => {}
         _ => errors.push("mission_snapshot_sha256 does not bind the canonical mission snapshot".to_owned()),
@@ -371,9 +375,18 @@ fn validate_bundle(raw: &[u8], value: &Value) -> Value {
     let consumed = value.get("permit_registry").and_then(|registry| registry.get("consumed_nonce_sha256")).and_then(Value::as_array);
     if consumed.is_none() {
         errors.push("permit_registry.consumed_nonce_sha256 must be an array".to_owned());
-    } else if consumed.unwrap().iter().any(|item| item.as_str() == Some(nonce)) {
-        state_fresh = false;
-        global_blockers.push("permit nonce has already been consumed; replay is denied".to_owned());
+    } else {
+        let entries = consumed.unwrap().iter().filter_map(Value::as_str).collect::<Vec<_>>();
+        if entries.len() != consumed.unwrap().len()
+            || entries.iter().any(|entry| !digest_valid(Some(entry)))
+            || entries.iter().collect::<BTreeSet<_>>().len() != entries.len()
+        {
+            errors.push("permit_registry has invalid or duplicate consumed nonce digests".to_owned());
+        }
+        if entries.iter().any(|item| *item == nonce) {
+            state_fresh = false;
+            global_blockers.push("permit nonce has already been consumed; replay is denied".to_owned());
+        }
     }
     if string_at(value.get("authority_scope").unwrap_or(&Value::Null), "scope") != Some("runtime_decision_receipt_only")
         || string_at(value.get("authority_scope").unwrap_or(&Value::Null), "authority_ref").is_none_or(str::is_empty)
@@ -392,6 +405,9 @@ fn validate_bundle(raw: &[u8], value: &Value) -> Value {
                 global_blockers.push(format!("current state is outside the admitted service envelope: {reason}"));
             }
         }
+    }
+    if state.get("available_capabilities").and_then(Value::as_array).is_none() {
+        errors.push("current state available_capabilities must be an array".to_owned());
     }
     let capabilities = state.get("available_capabilities").and_then(Value::as_array)
         .map(|items| {
@@ -422,6 +438,14 @@ fn validate_bundle(raw: &[u8], value: &Value) -> Value {
             }
             let mut reasons = Vec::<String>::new();
             let mut candidate_invalid = false;
+            if string_at(candidate, "action_id").is_none_or(str::is_empty) {
+                candidate_invalid = true;
+                errors.push(format!("candidate '{candidate_id}' has no action_id"));
+            }
+            if candidate.get("required_capabilities").and_then(Value::as_array).is_none() {
+                candidate_invalid = true;
+                errors.push(format!("candidate '{candidate_id}' required_capabilities must be an array"));
+            }
 
             if !digest_valid(string_at(candidate, "action_digest_sha256"))
                 || canonical_digest(candidate, Some("action_digest_sha256")).as_deref()
@@ -832,6 +856,21 @@ mod tests {
         let digest = canonical_digest(&value["candidates"][0], Some("action_digest_sha256")).unwrap();
         value["candidates"][0]["action_digest_sha256"] = json!(digest);
         assert_eq!(audit(&value)["runtime_decision"], "PERMIT_FALLBACK_ACTION");
+    }
+
+    #[test]
+    fn service_metric_cannot_change_its_unit_or_floor_direction() {
+        let mut value = fixture("proposed");
+        value["service_contract"][0]["unit"] = json!("L");
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn duplicate_or_malformed_consumed_nonce_registry_is_invalid() {
+        let mut value = fixture("proposed");
+        let nonce = value["decision"]["permit_nonce_sha256"].clone();
+        value["permit_registry"]["consumed_nonce_sha256"] = json!([nonce.clone(), nonce]);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
     }
 
     #[test]
