@@ -198,6 +198,7 @@ pub enum SiteJournalReconciliationError {
     ConflictingEventId(String),
     ConflictingEventContentDigest(String),
     DuplicatePublishedPackageDigest(String),
+    InvalidCommittedContext,
     CausalCycle,
 }
 
@@ -232,6 +233,15 @@ pub fn reconcile_site_journal_bundle(
         return Err(SiteJournalReconciliationError::EmptyExpectedSiteId);
     }
     validate_checkpoint(expected_checkpoint)?;
+    if !committed_context
+        .station_qualification_event_ids
+        .is_subset(&committed_context.event_ids)
+        || !committed_context
+            .observed_attempt_ids
+            .is_subset(&committed_context.attempt_ids)
+    {
+        return Err(SiteJournalReconciliationError::InvalidCommittedContext);
+    }
 
     let mut journal_ids = BTreeSet::new();
     let mut events = BTreeMap::<String, EventAccumulator>::new();
