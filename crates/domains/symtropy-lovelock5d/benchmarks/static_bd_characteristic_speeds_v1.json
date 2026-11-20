@@ -54,5 +54,6 @@
     "critical_radius_exact": true,
     "scalar_speed_monotonic_in_rho_for_lambda_nonnegative": true
   },
-  "claim_ceiling": "Exact static spherical characteristic-sector specialization only. It establishes the scalar effective-metric signature change for the static 5D BD branch. It does not establish strong hyperbolicity of a chosen gauge-fixed evolution formulation, rotating-background characteristics, mode stability, EFT validity, or nonlinear branch behavior."
+  "claim_ceiling": "Exact static spherical characteristic-sector specialization only. It establishes the scalar effective-metric signature change for the static 5D BD branch. It does not establish strong hyperbolicity of a chosen gauge-fixed evolution formulation, rotating-background characteristics, mode stability, EFT validity, or nonlinear branch behavior.",
+  "quantity_semantics": "c_T,c_V,c_S are angular coefficients in the effective characteristic metrics, not direction-independent coordinate velocities. Radial characteristic null directions coincide with those of the physical metric; the sector angular cones differ."
 }
