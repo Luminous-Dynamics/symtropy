@@ -241,42 +241,53 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
         if let Some(motor) = self.motor.as_ref() {
             let rel_angular_vel =
                 body_b.angular_velocity.get(pa, pb) - body_a.angular_velocity.get(pa, pb);
-            let torque = (motor.kp * (motor.target_vel - rel_angular_vel)
-                - rel_angular_vel * motor.kd)
-                .clamp(-motor.max_force, motor.max_force);
+            let motor_inputs_valid = dt.is_finite()
+                && dt > 0.0
+                && rel_angular_vel.is_finite()
+                && motor.target_vel.is_finite()
+                && motor.kp.is_finite()
+                && motor.kd.is_finite()
+                && motor.max_force.is_finite()
+                && motor.max_force >= 0.0;
 
-            let inv_i_a = if body_a.is_dynamic() {
-                body_a.inv_inertia.sum() / D as f64
-            } else {
-                0.0
-            };
-            let inv_i_b = if body_b.is_dynamic() {
-                body_b.inv_inertia.sum() / D as f64
-            } else {
-                0.0
-            };
-            let effective_inv_inertia = inv_i_a + inv_i_b;
+            if motor_inputs_valid {
+                let torque = (motor.kp * (motor.target_vel - rel_angular_vel)
+                    - rel_angular_vel * motor.kd)
+                    .clamp(-motor.max_force, motor.max_force);
 
-            if effective_inv_inertia > 1e-15 {
-                if let Some((delta_impulse, _velocity_after)) = motor_state.project_impulse(
-                    torque * dt,
-                    motor.max_force * dt,
-                    rel_angular_vel,
-                    effective_inv_inertia,
-                ) {
-                    if body_a.is_dynamic() {
-                        body_a.angular_velocity.set(
-                            pa,
-                            pb,
-                            body_a.angular_velocity.get(pa, pb) - delta_impulse * inv_i_a,
-                        );
-                    }
-                    if body_b.is_dynamic() {
-                        body_b.angular_velocity.set(
-                            pa,
-                            pb,
-                            body_b.angular_velocity.get(pa, pb) + delta_impulse * inv_i_b,
-                        );
+                let inv_i_a = if body_a.is_dynamic() {
+                    body_a.inv_inertia.sum() / D as f64
+                } else {
+                    0.0
+                };
+                let inv_i_b = if body_b.is_dynamic() {
+                    body_b.inv_inertia.sum() / D as f64
+                } else {
+                    0.0
+                };
+                let effective_inv_inertia = inv_i_a + inv_i_b;
+
+                if effective_inv_inertia.is_finite() && effective_inv_inertia > 1e-15 {
+                    if let Some((delta_impulse, _velocity_after)) = motor_state.project_impulse(
+                        torque * dt,
+                        motor.max_force * dt,
+                        rel_angular_vel,
+                        effective_inv_inertia,
+                    ) {
+                        if body_a.is_dynamic() {
+                            body_a.angular_velocity.set(
+                                pa,
+                                pb,
+                                body_a.angular_velocity.get(pa, pb) - delta_impulse * inv_i_a,
+                            );
+                        }
+                        if body_b.is_dynamic() {
+                            body_b.angular_velocity.set(
+                                pa,
+                                pb,
+                                body_b.angular_velocity.get(pa, pb) + delta_impulse * inv_i_b,
+                            );
+                        }
                     }
                 }
             }
