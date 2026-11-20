@@ -1,0 +1,15 @@
+[workspace]
+
+[package]
+name = "marine-telemetry-evidence"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Evidence qualification gateway for marine telemetry observations"
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["std"] }
+hex = "0.4"
+serde_json = "1.0"
+sha2 = "0.10"
