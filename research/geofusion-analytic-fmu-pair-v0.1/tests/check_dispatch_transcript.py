@@ -130,8 +130,9 @@ def validate_semantics(transcript):
             "fmi3FreeInstance must be recorded as a void return")
 
     steps = by_function["fmi3DoStep"]
-    expected_starts = [0.0, 1.0, 0.0, 1.0]
-    expected_ends = [1.0, 2.0, 1.0, 2.0]
+    # Calls are interleaved per communication interval: source, then exchanger.
+    expected_starts = [0.0, 0.0, 1.0, 1.0]
+    expected_ends = [1.0, 1.0, 2.0, 2.0]
     for index, event in enumerate(steps):
         payload = event["payload"]
         require(payload.get("no_set_fmu_state_prior_to_current_point") is True,
