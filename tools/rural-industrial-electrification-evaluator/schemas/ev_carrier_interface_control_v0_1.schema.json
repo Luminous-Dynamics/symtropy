@@ -1,0 +1,260 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EV carrier interface-control register v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "programme_id",
+    "claim_ceiling",
+    "vehicle_configuration",
+    "module_configuration",
+    "ports",
+    "assessments"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "programme_id": {
+      "const": "EV-CARRIER-ICD-001"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "vehicle_configuration": {
+      "$ref": "#/$defs/configuration"
+    },
+    "module_configuration": {
+      "$ref": "#/$defs/configuration"
+    },
+    "ports": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/port"
+      }
+    },
+    "assessments": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/assessment"
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "configuration_id",
+        "revision",
+        "configuration_digest"
+      ],
+      "properties": {
+        "configuration_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "configuration_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "port": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "port_id",
+        "side",
+        "family",
+        "revision",
+        "mating_profile_id",
+        "controlled_profile_reference",
+        "profile_digest",
+        "evidence"
+      ],
+      "properties": {
+        "port_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "side": {
+          "enum": [
+            "vehicle",
+            "module"
+          ]
+        },
+        "family": {
+          "enum": [
+            "mechanical_mount",
+            "high_voltage_dc",
+            "low_voltage_power",
+            "thermal_fluid",
+            "data_control",
+            "cargo_retention",
+            "environmental",
+            "service_access"
+          ]
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "mating_profile_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "controlled_profile_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "profile_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "source_reference",
+        "scoped_configuration_digest",
+        "report_digest",
+        "valid_until"
+      ],
+      "properties": {
+        "classification": {
+          "enum": [
+            "independently_qualified",
+            "measured_unreviewed",
+            "synthetic",
+            "unknown",
+            "stale",
+            "conflicted",
+            "revoked"
+          ]
+        },
+        "source_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "scoped_configuration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "report_digest": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "valid_until": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pair_id",
+        "vehicle_port_id",
+        "module_port_id",
+        "disposition",
+        "reason_codes",
+        "evidence_references",
+        "claim_ceiling"
+      ],
+      "properties": {
+        "pair_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "vehicle_port_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "module_port_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "disposition": {
+          "enum": [
+            "compatible",
+            "incompatible",
+            "indeterminate"
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "MATING_PROFILE_MISMATCH",
+              "REVISION_UNRECONCILED",
+              "EVIDENCE_MISSING",
+              "EVIDENCE_UNQUALIFIED",
+              "EVIDENCE_STALE",
+              "EVIDENCE_SCOPE_MISMATCH",
+              "PROFILE_MISSING",
+              "PROFILE_DETAIL_NOT_ADMITTED",
+              "KNOWN_ENVELOPE_CONFLICT",
+              "NO_CONFLICTS_DETECTED"
+            ]
+          }
+        },
+        "evidence_references": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          }
+        },
+        "claim_ceiling": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
