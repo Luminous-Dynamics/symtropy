@@ -628,7 +628,9 @@
       "sample_preservation_state",
       "sample_collection_method",
       "chain_of_custody_id",
-      "laboratory_batch_id"
+      "laboratory_batch_id",
+      "laboratory_batch_independence_domain",
+      "laboratory_batch_common_standard_uncertainty_mg_l"
     ],
     "quality_states": [
       "valid",
@@ -645,7 +647,7 @@
     ],
     "rule": "unknown, provisional, unavailable, synthetic, stale, uncalibrated, clock-skewed or conflicting evidence cannot be presented as measured zero or used to satisfy an environmental gate; every sample's signed clock offset and calibration-validity window must be checked against its own observation window.",
     "time_rule": "Store UTC timestamps and signed per-sample logger/sensor clock offset plus synchronization evidence; the maximum offset is a project acceptance parameter, not a universal standard limit; do not silently interpolate gaps across environmental events.",
-    "uncertainty_rule": "Report the uncertainty budget, detection limit, calibration independence domain and any covariance treatment with every numeric result; a common hydraulic residence-time error must be propagated as a shared input; an outfall below detection limit is not proof that no pollutant exists."
+    "uncertainty_rule": "Report the uncertainty budget, detection limit, sensor calibration independence domain, laboratory-batch independence domain and common batch uncertainty with every numeric result; common hydraulic residence-time and common laboratory-batch errors must be propagated as shared inputs; an outfall below detection limit is not proof that no pollutant exists."
   },
   "spatial_sampling_design": {
     "required_station_roles": [
@@ -841,7 +843,8 @@
       "GUM_first_order_vs_deterministic_Monte_Carlo_crosscheck",
       "SHA256_exact_input_bytes",
       "explicit_time_gap_reporting",
-      "restricted_single_pass_flow_closure"
+      "restricted_single_pass_flow_closure",
+      "shared_laboratory_batch_covariance_and_common_mode_cancellation"
     ],
     "claim_ceiling": "The measurement bundle and verifier are a software/metrology fixture. No field observation, compliance, ecological result or site clearance is asserted."
   }
