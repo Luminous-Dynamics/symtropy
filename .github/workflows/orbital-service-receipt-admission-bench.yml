@@ -67,7 +67,7 @@ jobs:
             and .result == "pass"
             and .report.evidence_class == "synthetic"
             and .report.claim_ceiling == "synthetic-receiver-accepted-service-receipt-admission-only"
-            and .report.summary.scenario_count == 32
+            and .report.summary.scenario_count == 34
             and .report.summary.expected_result_mismatches == 0
             and .report.summary.false_service_success_claims == 0
             and .report.summary.authority_grants == 0
