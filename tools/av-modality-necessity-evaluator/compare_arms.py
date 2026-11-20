@@ -20,7 +20,71 @@ EXPECTED_ARMS = {
 MATCHED_FIELDS = (
     "comparison_id", "policy_id", "model_revision", "runtime_revision",
     "hardware_id", "seed", "workload_ref", "protocol_id", "shared_config_id", "budget",
+    "measurement_status",
 )
+
+MEASURED_FIELDS = (
+    "audio_bytes", "video_frames", "input_tokens", "output_tokens",
+    "latency_ms", "energy_joules",
+)
+
+
+def _percentile(values: list[float], quantile: float) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    index = max(0, math.ceil(quantile * len(ordered)) - 1)
+    return ordered[index]
+
+
+def _resource_usage(run: dict[str, Any], predictions: list[dict[str, Any]]) -> dict[str, Any]:
+    status = run.get("measurement_status")
+    if status == "synthetic_reference":
+        if any(prediction.get(field) is not None for prediction in predictions for field in MEASURED_FIELDS):
+            raise EvaluationError("synthetic_reference arm must not claim measured resource telemetry")
+        return {
+            "measurement_status": status, "audio_bytes_total": None, "video_frames_total": None,
+            "input_tokens_total": None, "output_tokens_total": None, "energy_joules_total": None,
+            "latency_p50_ms": None, "latency_p95_ms": None, "latency_p99_ms": None,
+        }
+    if status != "measured":
+        raise EvaluationError("measurement_status must be synthetic_reference or measured")
+
+    budget = run["budget"]
+    collected: dict[str, list[float]] = {field: [] for field in MEASURED_FIELDS}
+    caps = {
+        "audio_bytes": budget["max_audio_bytes"],
+        "video_frames": budget["max_video_frames"],
+        "input_tokens": budget["max_input_tokens"],
+        "output_tokens": budget["max_output_tokens"],
+        "latency_ms": budget["max_response_ms"],
+        "energy_joules": budget["max_energy_joules"],
+    }
+    for prediction in predictions:
+        for field in MEASURED_FIELDS:
+            value = prediction.get(field)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)) or value < 0:
+                raise EvaluationError(f"measured arm requires finite non-negative {field} for every episode")
+            if value > caps[field]:
+                raise EvaluationError(f"measured arm exceeded {field} per-episode budget")
+            collected[field].append(float(value))
+        used = set(prediction.get("used_modalities", []))
+        if "audio" not in run["allowed_modalities"] and prediction["audio_bytes"] != 0:
+            raise EvaluationError("non-audio arm reports nonzero audio bytes")
+        if "video" not in run["allowed_modalities"] and prediction["video_frames"] != 0:
+            raise EvaluationError("non-video arm reports nonzero video frames")
+
+    return {
+        "measurement_status": status,
+        "audio_bytes_total": int(sum(collected["audio_bytes"])),
+        "video_frames_total": int(sum(collected["video_frames"])),
+        "input_tokens_total": int(sum(collected["input_tokens"])),
+        "output_tokens_total": int(sum(collected["output_tokens"])),
+        "energy_joules_total": sum(collected["energy_joules"]),
+        "latency_p50_ms": _percentile(collected["latency_ms"], 0.50),
+        "latency_p95_ms": _percentile(collected["latency_ms"], 0.95),
+        "latency_p99_ms": _percentile(collected["latency_ms"], 0.99),
+    }
 
 
 def _index(rows: list[dict[str, Any]], key: str) -> dict[str, dict[str, Any]]:
@@ -118,6 +182,7 @@ def compare_arms(
 
     scored: dict[str, dict[str, Any]] = {}
     indexed_results: dict[str, dict[str, dict[str, Any]]] = {}
+    resource_usage: dict[str, dict[str, Any]] = {}
     for arm, run in by_arm.items():
         report = evaluate(workload, truth, run["submission"])
         allowed = EXPECTED_ARMS[arm]
@@ -127,6 +192,7 @@ def compare_arms(
                 raise EvaluationError(f"{arm}: candidate claims to use unavailable modality")
             if prediction.get("used_transcript") is True:
                 raise EvaluationError(f"{arm}: transcript path is not admitted in raw-modality tournament")
+        resource_usage[arm] = _resource_usage(run, run["submission"]["predictions"])
         scored[arm] = report
         indexed_results[arm] = _index(report["per_episode"], "episode_id")
 
@@ -162,6 +228,7 @@ def compare_arms(
             "evidence_compliance_rate": totals["evidence_compliance_rate"],
             "hard_violation_count": totals["hard_violation_count"],
             "deadline_miss_count": totals["deadline_miss_count"],
+            "resource_usage": resource_usage[arm],
         }
 
     return {
