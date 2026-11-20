@@ -2443,6 +2443,15 @@ mod tests {
         (root, bundle)
     }
 
+    fn service_provider_profiles() -> Vec<ClaimProducerProfile> {
+        vec![ClaimProducerProfile {
+            signer_role: SignerRole::ServiceProvider,
+            issuer_id: "synthetic-metering-system".to_string(),
+            tool_source_commit: "1".repeat(40),
+            tool_configuration_sha256: "2".repeat(64),
+        }]
+    }
+
     fn final_service_bundle_fixture(
         include_source_artifacts: bool,
     ) -> (
@@ -2656,6 +2665,7 @@ mod tests {
             &final_ref,
             &receipt,
             &case,
+            &service_provider_profiles(),
             8 * 1024 * 1024,
         ).unwrap();
         assert_eq!(trajectory.artifact_uri, final_ref.artifact_ref);
@@ -2672,6 +2682,7 @@ mod tests {
             &final_ref,
             &receipt,
             &case,
+            &service_provider_profiles(),
             8 * 1024 * 1024,
         ).unwrap_err();
         assert!(errors.iter().any(|error| error.contains("missing from the byte-verified bundle")));
