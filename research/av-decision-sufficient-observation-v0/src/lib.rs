@@ -863,9 +863,10 @@ mod tests {
             report["policy_tournament"]["decision_value_policy"]["selected_request_or_stop"],
             "hazard_cue"
         );
-        assert_eq!(
-            report["policy_tournament"]["policies_choose_different_actions"],
-            true
+        assert!(
+            report["policy_tournament"]["policies_choose_different_actions"]
+                .as_bool()
+                .unwrap()
         );
     }
 
