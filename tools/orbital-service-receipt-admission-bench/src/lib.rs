@@ -546,10 +546,13 @@ fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioR
         expected_reason: scenario.expected_reason.clone(),
         expected_result_matched: false,
         accepted_receiver_mass_g: 0,
+        total_measurement_uncertainty_g: 0,
+        conservative_receiver_accepted_mass_g: 0,
         required_receiver_accepted_mass_g: fixture.service_profile.minimum_receiver_accepted_mass_g,
         counted_receipt_count: 0,
         duplicate_replays: 0,
         superseded_receipts: 0,
+        late_receipts: 0,
         missing_operation_ticks: Vec::new(),
         authority_granted: false,
         receipts: Vec::new(),
@@ -628,6 +631,9 @@ fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioR
             unknown_reason = Some("receipt_arrived_after_finalization");
             continue;
         }
+        if receipt.observed_at_tick > receipt.event_time_tick {
+            result.late_receipts += 1;
+        }
         if !required_ticks.contains(&receipt.event_time_tick) {
             hard_rejection = Some("receipt_event_not_in_required_operation_window");
             break;
@@ -689,7 +695,9 @@ fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioR
                         event_time_tick: receipt.event_time_tick,
                         observed_at_tick: receipt.observed_at_tick,
                         provider_id: receipt.provider_id.clone(),
-                        accepted_receiver_mass_g: mass,
+                        accepted_receiver_mass_g: mass.accepted_mass_g,
+                        measurement_uncertainty_g: mass.uncertainty_g,
+                        conservative_accepted_mass_g: mass.conservative_mass_g,
                         counted: false,
                         duplicate_replay: true,
                         superseded: true,
@@ -740,7 +748,9 @@ fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioR
                             event_time_tick: receipt.event_time_tick,
                             observed_at_tick: receipt.observed_at_tick,
                             provider_id: receipt.provider_id.clone(),
-                            accepted_receiver_mass_g: mass,
+                            accepted_receiver_mass_g: mass.accepted_mass_g,
+                            measurement_uncertainty_g: mass.uncertainty_g,
+                            conservative_accepted_mass_g: mass.conservative_mass_g,
                             counted: false,
                             duplicate_replay: true,
                             superseded: false,
@@ -783,7 +793,9 @@ fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioR
         );
         let admitted_receipt = AdmittedReceipt {
             event_time_tick: receipt.event_time_tick,
-            accepted_receiver_mass_g: mass,
+            accepted_receiver_mass_g: mass.accepted_mass_g,
+            measurement_uncertainty_g: mass.uncertainty_g,
+            conservative_accepted_mass_g: mass.conservative_mass_g,
             causal_predecessor_event_id: receipt.causal_predecessor_event_id.clone(),
         };
         admitted.insert(receipt.event_id.clone(), admitted_receipt);
@@ -792,7 +804,9 @@ fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioR
             event_time_tick: receipt.event_time_tick,
             observed_at_tick: receipt.observed_at_tick,
             provider_id: receipt.provider_id.clone(),
-            accepted_receiver_mass_g: mass,
+            accepted_receiver_mass_g: mass.accepted_mass_g,
+            measurement_uncertainty_g: mass.uncertainty_g,
+            conservative_accepted_mass_g: mass.conservative_mass_g,
             counted: true,
             duplicate_replay: false,
             superseded: false,
@@ -832,6 +846,12 @@ fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioR
                 result.accepted_receiver_mass_g = result.accepted_receiver_mass_g
                     .checked_add(item.accepted_receiver_mass_g)
                     .unwrap_or(u64::MAX);
+                result.total_measurement_uncertainty_g = result.total_measurement_uncertainty_g
+                    .checked_add(item.measurement_uncertainty_g)
+                    .unwrap_or(u64::MAX);
+                result.conservative_receiver_accepted_mass_g = result.conservative_receiver_accepted_mass_g
+                    .checked_add(item.conservative_accepted_mass_g)
+                    .unwrap_or(u64::MAX);
             }
             result.counted_receipt_count = admitted.len();
             if causal_unknown || !result.missing_operation_ticks.is_empty() {
@@ -840,10 +860,10 @@ fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioR
             } else if let Some(reason) = unknown_reason {
                 result.actual_status = AdmissionStatus::Indeterminate;
                 result.actual_reason = reason.to_owned();
-            } else if result.accepted_receiver_mass_g >= fixture.service_profile.minimum_receiver_accepted_mass_g {
+            } else if result.conservative_receiver_accepted_mass_g >= fixture.service_profile.minimum_receiver_accepted_mass_g {
                 result.actual_status = AdmissionStatus::ServiceFloorMetSynthetic;
-                result.actual_reason = "receiver_accepted_service_floor_met".to_owned();
-            } else if result.accepted_receiver_mass_g > 0 {
+                result.actual_reason = "conservative_receiver_accepted_service_floor_met".to_owned();
+            } else if result.conservative_receiver_accepted_mass_g > 0 {
                 result.actual_status = AdmissionStatus::PartialServiceSynthetic;
                 result.actual_reason = "receiver_accepted_service_below_required_floor".to_owned();
             } else {
