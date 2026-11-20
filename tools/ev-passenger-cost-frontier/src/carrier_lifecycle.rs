@@ -271,10 +271,14 @@ fn sum_path(
     };
     elapsed += parts_wait;
 
-    if !valid_nonnegative(path.parts_and_consumables_cost_usd) {
+    if path.parts_and_consumables_cost_usd.is_none_or(|value| {
+        !value.is_finite() || value < 0.0 || value > MAX_INPUT_VALUE
+    }) {
         missing.push("parts_and_consumables_cost_usd".into());
     }
-    if !valid_nonnegative(path.replacement_module_cost_usd) {
+    if path.replacement_module_cost_usd.is_none_or(|value| {
+        !value.is_finite() || value < 0.0 || value > MAX_INPUT_VALUE
+    }) {
         missing.push("replacement_module_cost_usd".into());
     }
     if !valid_nonnegative(technician_rate) {
@@ -514,8 +518,6 @@ fn validate_catalog(
         }
         if profile.scheduled_inspection_evidence_reference.trim().is_empty()
             || profile.fault_rate_evidence_reference.trim().is_empty()
-            || profile.scheduled_inspection_evidence_class == EvidenceClass::Unknown
-            || profile.fault_rate_evidence_class == EvidenceClass::Unknown
         {
             errors.push(format!("profiles[{index}]: scheduled/fault evidence references are required even when a metric is unknown"));
         }
@@ -575,6 +577,12 @@ fn evaluate_pair(factory: &FactoryScenario, profile: &LifecycleProfile) -> Lifec
     }
     if profile.fault_rate_evidence_reference.trim().is_empty() {
         missing.push("fault_rate_evidence_reference".into());
+    }
+    if profile.scheduled_inspection_evidence_class == EvidenceClass::Unknown {
+        missing.push("scheduled_inspection_evidence_class".into());
+    }
+    if profile.fault_rate_evidence_class == EvidenceClass::Unknown {
+        missing.push("fault_rate_evidence_class".into());
     }
 
     let scheduled_events = profile.scheduled_inspections_per_module_year;
