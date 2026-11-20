@@ -225,6 +225,7 @@ def main() -> int:
                 )
                 if event or terminate or early_return or last_successful_time != current_time + 1.0:
                     raise AssertionError("unexpected geothermal doStep result")
+                geothermal_last_successful_time = last_successful_time
 
                 thermal_power = geothermal.getFloat64([11])[0]
                 exchanger.setFloat64([21], [thermal_power])
@@ -234,17 +235,28 @@ def main() -> int:
                     communicationStepSize=1.0,
                     noSetFMUStatePriorToCurrentPoint=True,
                 )
-                if event or terminate or early_return or last_successful_time != current_time + 1.0:
-                    raise AssertionError("unexpected heat-exchanger doStep result")
+                if (event or terminate or early_return
+                        or last_successful_time != geothermal_last_successful_time):
+                    raise AssertionError("geothermal / heat-exchanger successful times do not match")
 
                 service, loss, storage, stored_energy = exchanger.getFloat64([31, 32, 33, 34])
                 if (service, loss, storage) != (480000.0, 10000.0, 10000.0):
                     raise AssertionError("FMPy thermal allocation output mismatch")
 
-                total_input += thermal_power
-                total_service += service
-                total_loss += loss
-                total_storage += storage
+                interval_duration = last_successful_time - current_time
+                if interval_duration <= 0.0:
+                    raise AssertionError("federation produced a non-positive committed interval")
+                storage_delta = stored_energy - final_stored_energy
+                if not math.isclose(storage_delta, storage * interval_duration,
+                                    rel_tol=0.0, abs_tol=1e-9):
+                    raise AssertionError("buffer energy increment does not match storage power over interval")
+
+                # Integrate powers over the exact interval; do not label sums of
+                # power samples as energies merely because this smoke uses 1 s.
+                total_input += thermal_power * interval_duration
+                total_service += service * interval_duration
+                total_loss += loss * interval_duration
+                total_storage += storage_delta
                 final_stored_energy = stored_energy
                 current_time = last_successful_time
 
