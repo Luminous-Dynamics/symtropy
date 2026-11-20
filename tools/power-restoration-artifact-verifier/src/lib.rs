@@ -1045,7 +1045,7 @@ pub fn verify_restoration_claim_evidence(
 
     let case_sha256 = canonical_case_sha256(case)
         .map_err(|error| vec![format!("case canonicalization failed: {error}")])?;
-    let receipt_report = qualify_run_receipt(receipt, case)
+    qualify_run_receipt(receipt, case)
         .map_err(|receipt_errors| receipt_errors.into_iter().map(|error| format!("run receipt: {error}")).collect::<Vec<_>>())?;
     let receipt_sha256 = receipt_canonical_sha256(receipt)
         .map_err(|error| vec![format!("run receipt canonicalization failed: {error}")])?;
@@ -1792,7 +1792,6 @@ pub fn verify_restoration_claim_evidence(
         "signed_evidence_chain_verified_but_run_not_complete"
     };
 
-    let _ = receipt_report;
     let _ = all_sources;
     Ok(RestorationClaimVerificationReport {
         run_id: receipt.run_id.clone(),
