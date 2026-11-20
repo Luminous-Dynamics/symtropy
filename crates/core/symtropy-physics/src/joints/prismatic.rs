@@ -206,9 +206,9 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
                             total_inv,
                         )
                     {
-                    if body_a.is_dynamic() {
-                        body_a.linear_velocity[self.axis] -= delta_impulse * inv_mass_a;
-                    }
+                        if body_a.is_dynamic() {
+                            body_a.linear_velocity[self.axis] -= delta_impulse * inv_mass_a;
+                        }
                         if body_b.is_dynamic() {
                             body_b.linear_velocity[self.axis] += delta_impulse * inv_mass_b;
                         }
