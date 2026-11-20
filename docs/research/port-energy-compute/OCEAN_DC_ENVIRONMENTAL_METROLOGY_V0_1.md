@@ -152,12 +152,15 @@ The CLI emits a SHA-256 over exact input bytes and explicitly leaves environment
 
 Every accepted observation needs:
 - unique record ID and metric ID;
+- signed per-sample sensor/logger clock offset and synchronization evidence;
+- calibration independence domain and calibration-valid-from/to timestamps covering the exact sample window;
 - numeric value and unit or explicit categorical result;
 - start/end UTC timestamps, original source clock and time-sync evidence;
 - coordinates, datum and depth/elevation;
 - sensor/method identity and calibration reference;
 - uncertainty budget, detection limit and QC state;
 - rights/licence/purpose and custody record;
+- for laboratory observations: collection method, preservation state, chain-of-custody ID and laboratory batch ID;
 - raw-data digest and processing version.
 
 Quality states are `valid`, `provisional`, `unknown`, `invalid` and `quarantined`. Evidence states are `measured`, `modelled`, `synthetic` and `unavailable`.
