@@ -1548,6 +1548,76 @@ mod compound_com_tests {
     }
 
     #[test]
+    fn mass_properties_constructor_rebases_each_existing_compound_child() {
+        let mut generator = Bivector::<3>::zero();
+        generator.set(0, 1, -0.23);
+        generator.set(0, 2, 0.41);
+        let geometry_transform = Transform {
+            translation: Point::new([-1.0, 2.5, 0.7]),
+            rotation: Rotor::from_bivector(&generator),
+        };
+
+        let mut compound = CompoundShape::<3>::new();
+        compound.add_child(
+            Transform::from_translation(Point::new([0.4, -0.2, 0.1])),
+            Box::new(HyperBox::<3>::new([0.2, 0.1, 0.3])),
+        );
+        let mut child_rotation = Bivector::<3>::zero();
+        child_rotation.set(1, 2, 0.34);
+        compound.add_child(
+            Transform {
+                translation: Point::new([-0.5, 0.8, -0.3]),
+                rotation: Rotor::from_bivector(&child_rotation),
+            },
+            Box::new(HyperBox::<3>::new([0.12, 0.16, 0.09])),
+        );
+        let collider: Box<dyn Shape<3>> = Box::new(compound);
+        let directions = [
+            SVector::from([1.0, 0.0, 0.0]),
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::from([0.0, 0.0, 1.0]),
+            SVector::from([0.7, -1.3, 2.1]),
+            SVector::from([-1.8, 0.4, -0.6]),
+        ];
+        let expected = directions
+            .iter()
+            .map(|direction| {
+                transformed_shape_world_support(collider.as_ref(), &geometry_transform, direction)
+            })
+            .collect::<Vec<_>>();
+
+        let center_of_mass = SVector::new(-0.13, 0.21, 0.32);
+        let operator = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
+            0.002, 0.0001, 0.0,
+            0.0001, 0.003, -0.0002,
+            0.0, -0.0002, 0.0015,
+        ])
+        .unwrap();
+        let properties = MassProperties::try_new(3.2, center_of_mass, operator).unwrap();
+        let body = RigidBody::<3>::try_new_with_mass_properties(
+            BodyHandle(92),
+            geometry_transform,
+            collider,
+            properties,
+        )
+        .expect("compound collider can be rebound around its COM");
+
+        let centered = body
+            .collider
+            .as_any()
+            .downcast_ref::<CompoundShape<3>>()
+            .expect("constructor returns a COM-centred compound collider");
+        assert_eq!(centered.children().len(), 2);
+        for (index, direction) in directions.iter().enumerate() {
+            let actual = body.world_support(direction);
+            assert!(
+                (actual - expected[index]).norm() < 2.0e-10,
+                "compound world support changed after COM attachment in direction {index}"
+            );
+        }
+    }
+
+    #[test]
     fn mass_properties_constructor_rejects_improper_geometry_frame() {
         let mut invalid_transform =
             Transform::from_translation(Point::new([1.0, 2.0, 3.0]));
