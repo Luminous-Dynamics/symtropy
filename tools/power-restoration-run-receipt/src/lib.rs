@@ -10,7 +10,7 @@ const TOLERANCE: f64 = 1.0e-9;
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ReceiptEnvelope {
     pub receipt: RunReceipt,
-    pub receipt_sha256: String,
+    pub receipt_sha256: Option<String>,
     pub collector_attestation: Option<CollectorAttestation>,
 }
 
@@ -399,13 +399,25 @@ fn validate_receipt(receipt: &RunReceipt, errors: &mut Vec<String>) {
             errors.push("measured API cost is invalid".to_string());
         }
     }
-    if receipt.measured_usage.wall_clock_ms > budget.wall_clock_limit_ms {
+    if receipt.measured_usage.wall_clock_ms == 0 || receipt.measured_usage.wall_clock_ms > budget.wall_clock_limit_ms {
         errors.push("measured wall-clock exceeds the declared run budget".to_string());
     }
     if receipt.measured_usage.tool_calls > budget.tool_call_limit as u64 {
         errors.push("measured tool calls exceed the declared run budget".to_string());
     }
-    if let (Some(limit), Some(actual)) = (&budget.token_limit, Some(receipt.measured_usage.input_tokens + receipt.measured_usage.output_tokens)) {
+    let recorded_tool_calls = receipt.attempts.iter().filter(|attempt| attempt.attempt_kind == AttemptKind::ToolCall).count() as u64;
+    let recorded_solver_calls = receipt.attempts.iter().filter(|attempt| attempt.attempt_kind == AttemptKind::SolverCall).count() as u64;
+    let recorded_timeouts = receipt.attempts.iter().filter(|attempt| attempt.outcome == AttemptOutcome::TimedOut).count() as u64;
+    let recorded_overrides = receipt.attempts.iter().filter(|attempt| attempt.outcome == AttemptOutcome::HumanOverride).count() as u64;
+    if receipt.measured_usage.tool_calls < recorded_tool_calls
+        || receipt.measured_usage.solver_calls < recorded_solver_calls
+        || receipt.measured_usage.timeout_count < recorded_timeouts
+        || receipt.measured_usage.human_override_count < recorded_overrides
+    {
+        errors.push("measured usage counters under-report events in the attempt log".to_string());
+    }
+    if let Some(limit) = &budget.token_limit {
+        let actual = receipt.measured_usage.input_tokens.saturating_add(receipt.measured_usage.output_tokens);
         if actual > *limit {
             errors.push("measured tokens exceed the declared run budget".to_string());
         }
@@ -479,7 +491,6 @@ fn validate_receipt(receipt: &RunReceipt, errors: &mut Vec<String>) {
         }
         let epoch = epochs[&attempt.decision_step];
         if attempt.latency_ms > receipt.budget.decision_limit_ms
-            && attempt.attempt_kind != AttemptKind::ToolCall
         {
             errors.push(format!("attempt {} exceeds per-decision latency budget", attempt.attempt_id));
         }
@@ -507,7 +518,8 @@ fn validate_receipt(receipt: &RunReceipt, errors: &mut Vec<String>) {
                 if attempt.attempt_kind != AttemptKind::ActionSubmission
                     || validator.is_none_or(|item| item.status != ValidatorStatus::Accepted
                         || item.decision_step != attempt.decision_step
-                        || Some(item.proposal_sha256.as_str()) != attempt.proposal_sha256.as_deref())
+                        || Some(item.proposal_sha256.as_str()) != attempt.proposal_sha256.as_deref()
+                        || item.rejected_action_ids.iter().any(|id| id == action_id))
                     || transition.is_none_or(|item| item.status != TransitionStatus::Applied
                         || item.decision_step != attempt.decision_step
                         || Some(item.proposal_sha256.as_str()) != attempt.proposal_sha256.as_deref()
@@ -521,7 +533,8 @@ fn validate_receipt(receipt: &RunReceipt, errors: &mut Vec<String>) {
                 if attempt.attempt_kind != AttemptKind::ActionSubmission
                     || validator.is_none_or(|item| item.decision_step != attempt.decision_step
                         || item.proposal_sha256 != attempt.proposal_sha256.clone().unwrap_or_default()
-                        || !matches!(item.status, ValidatorStatus::Rejected | ValidatorStatus::Inconclusive))
+                        || !matches!(item.status, ValidatorStatus::Rejected | ValidatorStatus::Inconclusive)
+                        || !item.rejected_action_ids.iter().any(|id| Some(id.as_str()) == attempt.action_id.as_deref()))
                     || attempt.transition_receipt_id.is_some()
                 {
                     errors.push(format!("rejected action attempt {} lacks a matching non-mutating validator receipt", attempt.attempt_id));
@@ -548,6 +561,11 @@ fn validate_receipt(receipt: &RunReceipt, errors: &mut Vec<String>) {
             || !valid_sha(&item.proposal_sha256, HEX_SHA256)
             || !valid_sha(&item.receipt_sha256, HEX_SHA256)
             || !epochs.get(&item.decision_step).is_some_and(|epoch| epoch.proposal_sha256.as_deref() == Some(item.proposal_sha256.as_str()))
+            || receipt.independent_validator != item.validator
+            || !item.rejected_action_ids.iter().all(|id| valid_id(id))
+            || item.rejected_action_ids.iter().collect::<BTreeSet<_>>().len() != item.rejected_action_ids.len()
+            || (item.status == ValidatorStatus::Accepted && !item.rejected_action_ids.is_empty())
+            || !receipt.attempts.iter().any(|attempt| attempt.validator_receipt_id.as_deref() == Some(item.receipt_id.as_str()))
         {
             errors.push(format!("validator receipt {} is not bound to a frozen decision proposal", item.receipt_id));
         }
@@ -560,6 +578,11 @@ fn validate_receipt(receipt: &RunReceipt, errors: &mut Vec<String>) {
             || !valid_sha(&item.state_before_sha256, HEX_SHA256)
             || !valid_sha(&item.state_after_sha256, HEX_SHA256)
             || !epochs.get(&item.decision_step).is_some_and(|epoch| epoch.proposal_sha256.as_deref() == Some(item.proposal_sha256.as_str()))
+            || receipt.transition_engine != item.engine
+            || item.applied_action_ids.iter().collect::<BTreeSet<_>>().len() != item.applied_action_ids.len()
+            || item.failed_action_ids.iter().collect::<BTreeSet<_>>().len() != item.failed_action_ids.len()
+            || item.applied_action_ids.iter().any(|id| item.failed_action_ids.contains(id))
+            || !receipt.attempts.iter().any(|attempt| attempt.transition_receipt_id.as_deref() == Some(item.receipt_id.as_str()))
         {
             errors.push(format!("transition receipt {} is not bound to a frozen proposal/state", item.receipt_id));
         }
@@ -606,7 +629,9 @@ pub fn qualify(envelope: &ReceiptEnvelope) -> Result<ReceiptReport, Vec<String>>
     validate_receipt(&envelope.receipt, &mut errors);
     let actual_digest = canonical_receipt_sha256(&envelope.receipt)
         .map_err(|error| vec![format!("receipt canonicalization failed: {error}")])?;
-    if !valid_sha(&envelope.receipt_sha256, HEX_SHA256) || envelope.receipt_sha256 != actual_digest {
+    if envelope.receipt_sha256.as_ref().is_some_and(|digest| {
+        !valid_sha(digest, HEX_SHA256) || digest != &actual_digest
+    }) {
         errors.push("receipt SHA-256 does not match canonical run receipt content".to_string());
     }
     if let Some(attestation) = &envelope.collector_attestation {
@@ -685,7 +710,7 @@ mod tests {
     }
 
     fn refresh_envelope_digest(envelope: &mut ReceiptEnvelope) {
-        envelope.receipt_sha256 = canonical_receipt_sha256(&envelope.receipt).unwrap();
+        envelope.receipt_sha256 = Some(canonical_receipt_sha256(&envelope.receipt).unwrap());
         if let Some(attestation) = &mut envelope.collector_attestation {
             attestation.signed_receipt_sha256 = envelope.receipt_sha256.clone();
         }
@@ -695,7 +720,7 @@ mod tests {
         refresh_envelope_digest(envelope);
         envelope.collector_attestation = Some(CollectorAttestation {
             signer_ref: "synthetic://runner/attestor-01".to_string(),
-            signed_receipt_sha256: envelope.receipt_sha256.clone(),
+            signed_receipt_sha256: envelope.receipt_sha256.clone().unwrap(),
             verification_status: AttestationStatus::Verified,
             verification_receipt_ref: Some("synthetic://trust/verification/receipt-01".to_string()),
             verification_receipt_sha256: Some("a".repeat(64)),
@@ -733,6 +758,7 @@ mod tests {
     #[test]
     fn signed_digest_must_match_the_receipt_payload() {
         let mut envelope = fixture();
+        verify_attestation(&mut envelope);
         envelope.collector_attestation.as_mut().unwrap().signed_receipt_sha256 = "0".repeat(64);
         assert!(qualify(&envelope).is_err());
     }
@@ -819,9 +845,8 @@ mod tests {
     #[test]
     fn duplicate_metric_ids_are_rejected() {
         let mut envelope = fixture();
-        envelope.receipt.scoring_receipt.as_mut().unwrap().metrics.push(
-            envelope.receipt.scoring_receipt.as_ref().unwrap().metrics[0].clone()
-        );
+        let duplicate = envelope.receipt.scoring_receipt.as_ref().unwrap().metrics[0].clone();
+        envelope.receipt.scoring_receipt.as_mut().unwrap().metrics.push(duplicate);
         refresh_envelope_digest(&mut envelope);
         assert!(qualify(&envelope).is_err());
     }
