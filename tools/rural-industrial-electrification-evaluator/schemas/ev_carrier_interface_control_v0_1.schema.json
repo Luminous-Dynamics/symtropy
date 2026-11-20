@@ -98,6 +98,7 @@
         "classification",
         "source_reference",
         "scoped_configuration_digest",
+        "profile_digest",
         "report_digest",
         "valid_until"
       ],
@@ -133,6 +134,9 @@
               "type": "null"
             }
           ]
+        },
+        "profile_digest": {
+          "$ref": "#/$defs/digest"
         }
       }
     },
@@ -204,6 +208,9 @@
         "source_reference",
         "vehicle_configuration_digest",
         "module_configuration_digest",
+        "vehicle_profile_digest",
+        "module_profile_digest",
+        "compatibility_profile_digest",
         "report_digest",
         "valid_until"
       ],
@@ -242,6 +249,15 @@
               "type": "null"
             }
           ]
+        },
+        "vehicle_profile_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "module_profile_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "compatibility_profile_digest": {
+          "$ref": "#/$defs/digest"
         }
       }
     },
