@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_branch_atlas_benchmark_protocol",
+  "status": "protocol_frozen_controls_not_yet_executed",
+  "owner_issue": 6333,
+  "related_issues": [
+    6063,
+    6169,
+    5992,
+    6334
+  ],
+  "problem": {
+    "residual": "F_N(U;lambda,omega)=0",
+    "dimensionless_parameters": {
+      "lambda": "alpha/r_H^2",
+      "omega": "r_H*Omega_H"
+    },
+    "first_matched_case": {
+      "r_H": 1,
+      "omega": 0.33,
+      "lambda_min": 0,
+      "lambda_max": 3,
+      "reference_step": 0.01
+    },
+    "state_vector": "spectral field coefficients plus explicitly retained global unknowns",
+    "arclength_metric": "quadrature-weighted field norm with frozen physical field scales and separately scaled dimensionless parameters"
+  },
+  "methods": {
+    "baseline": "natural parameter stepping",
+    "primary": "pseudo-arclength predictor-corrector with bordered Newton system",
+    "disconnected_branch_search": "deflation with recorded deterministic initial perturbations",
+    "event_detection": [
+      "parameter tangent turning",
+      "smallest singular value",
+      "left/right kernel vectors",
+      "transversality/normal-form test",
+      "bordered Jacobian conditioning"
+    ],
+    "boundary_rule": "all original field equations, radial constraint and boundary conditions remain qualification residuals"
+  },
+  "exact_controls": [
+    {
+      "id": "PALC-FOLD-001",
+      "equation": "u^2-lambda=0",
+      "branch_parameterization": "lambda=u^2",
+      "event": {
+        "u": 0,
+        "lambda": 0
+      },
+      "expected": "continue through the simple fold from u>0 to u<0"
+    },
+    {
+      "id": "PALC-CUSP-001",
+      "equation": "u^3+mu*u+nu=0",
+      "fold_locus": "4*mu^3+27*nu^2=0",
+      "expected": "recover the exact discriminant curve"
+    },
+    {
+      "id": "DEFLATION-MULTIROOT-001",
+      "equation": "u*(u-1)*(u+1)*(u-2)=0",
+      "roots": [
+        -1,
+        0,
+        1,
+        2
+      ],
+      "expected": "identify and deduplicate known roots; report search budget and failures"
+    }
+  ],
+  "black_hole_case": {
+    "id": "BH-5D-EGB-AKRIBEIA-001",
+    "reference_setup": "matched 5D equal-spin EGB, r_H=1, omega=0.33, lambda in [0,3]",
+    "owner_issue": 6063,
+    "raw_reference_arrays": "extraction pending; no numerical solution or comparison result claimed"
+  },
+  "scorecard": [
+    "branch parameter and arclength coverage",
+    "fold-location and tangent-angle error",
+    "event false-positive/missed-event count",
+    "distinct-root and duplicate counts",
+    "field-equation and radial-constraint residuals",
+    "Noether-identity defect",
+    "spectral-tail and boundary-condition errors",
+    "cross-gauge invariant-observable mismatch",
+    "corrector failures, rejected steps, runtime and memory"
+  ],
+  "negative_controls": [
+    "natural parameter step falsely reported as traversing a fold",
+    "change of parameter units silently changes branch path",
+    "gauge copy counted as a distinct physical branch",
+    "deflated root passes transformed equation but fails original residual",
+    "small singular value alone declared a bifurcation",
+    "numerical corrector termination misreported as a physical branch endpoint"
+  ],
+  "claim_ceiling": "Analytic controls and protocol only. No target-family fold, disconnected branch, branch completeness, black-hole solution or physical admissibility result is claimed."
+}
