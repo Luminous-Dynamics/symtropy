@@ -353,16 +353,17 @@ fn apply_action(
                 continue;
             }
             let rate = spec.max_abs_rate_per_hour;
-            let duration = duration_upper.max(0.0);
-            if (next.lower - previous.lower).abs() > rate * duration + NUMERIC_TOLERANCE
-                || (next.upper - previous.upper).abs() > rate * duration + NUMERIC_TOLERANCE
+            let minimum_duration = number_at(action, "duration_hours_lower").unwrap_or(f64::NAN).max(0.0);
+            let maximum_duration = duration_upper.max(0.0);
+            if (next.lower - previous.lower).abs() > rate * minimum_duration + NUMERIC_TOLERANCE
+                || (next.upper - previous.upper).abs() > rate * minimum_duration + NUMERIC_TOLERANCE
             {
-                reasons.push(format!("endpoint_change_exceeds_declared_rate_bound:{metric}"));
+                reasons.push(format!("endpoint_change_exceeds_declared_rate_bound_at_minimum_duration:{metric}"));
                 continue;
             }
             let envelope_margin = match spec.operator.as_str() {
-                "gte" => lower_cone_minimum(previous.lower, next.lower, rate, duration) - spec.floor,
-                "lte" => spec.floor - upper_cone_maximum(previous.upper, next.upper, rate, duration),
+                "gte" => lower_cone_minimum(previous.lower, next.lower, rate, maximum_duration) - spec.floor,
+                "lte" => spec.floor - upper_cone_maximum(previous.upper, next.upper, rate, maximum_duration),
                 _ => f64::NEG_INFINITY,
             };
             let end_margin = floor_margin(spec, next);
@@ -832,6 +833,44 @@ mod tests {
         validate(&raw, value)
     }
 
+    fn rebind_scenario(value: &mut Value, scenario_index: usize) {
+        let action_count = value["scenarios"][scenario_index]["actions"].as_array().unwrap().len();
+        for action_index in 0..action_count {
+            let digest = canonical_digest(
+                &value["scenarios"][scenario_index]["actions"][action_index],
+                Some("action_sha256")
+            ).expect("action canonicalizes");
+            value["scenarios"][scenario_index]["actions"][action_index]["action_sha256"] = json!(digest);
+        }
+        let terminal_count = value["scenarios"][scenario_index]["terminals"].as_array().unwrap().len();
+        for terminal_index in 0..terminal_count {
+            let digest = canonical_digest(
+                &value["scenarios"][scenario_index]["terminals"][terminal_index],
+                Some("receipt_sha256")
+            ).expect("terminal canonicalizes");
+            value["scenarios"][scenario_index]["terminals"][terminal_index]["receipt_sha256"] = json!(digest);
+        }
+        let scenario_digest = canonical_digest(
+            &value["scenarios"][scenario_index],
+            Some("scenario_sha256")
+        ).expect("scenario canonicalizes");
+        value["scenarios"][scenario_index]["scenario_sha256"] = json!(scenario_digest);
+        let mut rows = value["scenarios"].as_array().unwrap().iter()
+            .map(|scenario| format!(
+                "{}|{}\n",
+                string_at(scenario, "scenario_id").unwrap(),
+                string_at(scenario, "scenario_sha256").unwrap()
+            ))
+            .collect::<Vec<_>>();
+        rows.sort();
+        value["mission_snapshot"]["scenario_set_sha256"] =
+            json!(sha256_hex(rows.join("").as_bytes()));
+        value["mission_snapshot"]["mission_snapshot_sha256"] = json!(
+            canonical_digest(&value["mission_snapshot"], Some("mission_snapshot_sha256"))
+                .expect("mission snapshot canonicalizes")
+        );
+    }
+
     #[test]
     fn all_synthetic_expected_recovery_outcomes_are_reproduced() {
         let report = audit(&fixture());
@@ -914,34 +953,49 @@ mod tests {
     fn required_hard_gate_roster_must_match_every_action() {
         let mut value = fixture();
         value["scenarios"][0]["actions"][0]["hard_gate_checks"].as_array_mut().unwrap().pop();
-        assert_eq!(audit(&value)["disposition"], "INVALID");
+        value["scenarios"][0]["expected_outcome"] = json!("abstain");
+        rebind_scenario(&mut value, 0);
+        let report = audit(&value);
+        assert_eq!(report["disposition"], "SYNTHETIC_ONLY");
+        let scenario = report["scenario_reports"].as_array().unwrap().iter()
+            .find(|item| item["scenario_id"] == "generator-trip").unwrap();
+        assert_eq!(scenario["outcome"], "INFEASIBLE/ABSTAIN");
+        assert!(scenario["rejected_edges"].as_array().unwrap().iter()
+            .any(|edge| edge["reasons"].as_array().unwrap().iter()
+                .any(|reason| reason == "hard_gate_roster_incomplete_or_extra")));
     }
 
     #[test]
     fn action_requiring_failed_component_is_not_traversed() {
         let mut value = fixture();
         value["scenarios"][0]["actions"][1]["requires_components"] = json!(["main_generator"]);
-        let action = &mut value["scenarios"][0]["actions"][1];
-        action["action_sha256"] = json!(canonical_digest(action, Some("action_sha256")).unwrap());
-        value["scenarios"][0]["scenario_sha256"] = json!(canonical_digest(&value["scenarios"][0], Some("scenario_sha256")).unwrap());
-        let mut scenario_rows = value["scenarios"].as_array().unwrap().iter()
-            .map(|s| format!("{}|{}\n",string_at(s,"scenario_id").unwrap(),string_at(s,"scenario_sha256").unwrap()))
-            .collect::<Vec<_>>();
-        scenario_rows.sort();
-        let scenario_rows = scenario_rows.join("");
-        let digest = sha256_hex(scenario_rows.as_bytes());
-        value["mission_snapshot"]["scenario_set_sha256"] = json!(digest);
-        value["mission_snapshot"]["mission_snapshot_sha256"] = json!(canonical_digest(&value["mission_snapshot"],Some("mission_snapshot_sha256")).unwrap());
-        assert_eq!(audit(&value)["disposition"], "INVALID");
+        value["scenarios"][0]["expected_outcome"] = json!("abstain");
+        rebind_scenario(&mut value, 0);
+        let report = audit(&value);
+        assert_eq!(report["disposition"], "SYNTHETIC_ONLY");
+        let scenario = report["scenario_reports"].as_array().unwrap().iter()
+            .find(|item| item["scenario_id"] == "generator-trip").unwrap();
+        assert_eq!(scenario["outcome"], "INFEASIBLE/ABSTAIN");
+        assert!(scenario["rejected_edges"].as_array().unwrap().iter()
+            .any(|edge| edge["reasons"].as_array().unwrap().iter()
+                .any(|reason| reason == "required_component_unavailable:main_generator")));
     }
 
     #[test]
     fn action_rate_bound_violation_cannot_be_hidden_by_safe_terminal() {
         let mut value = fixture();
-        value["scenarios"][0]["actions"][0]["duration_hours_upper"] = json!(1);
         value["scenarios"][0]["actions"][0]["metric_deltas"][0]["lower_delta"] = json!(-20);
         value["scenarios"][0]["actions"][0]["metric_deltas"][0]["upper_delta"] = json!(-20);
-        assert_eq!(audit(&value)["disposition"], "INVALID");
+        value["scenarios"][0]["expected_outcome"] = json!("abstain");
+        rebind_scenario(&mut value, 0);
+        let report = audit(&value);
+        assert_eq!(report["disposition"], "SYNTHETIC_ONLY");
+        let scenario = report["scenario_reports"].as_array().unwrap().iter()
+            .find(|item| item["scenario_id"] == "generator-trip").unwrap();
+        assert_eq!(scenario["outcome"], "INFEASIBLE/ABSTAIN");
+        assert!(scenario["rejected_edges"].as_array().unwrap().iter()
+            .any(|edge| edge["action_id"] == "shed-load" && edge["reasons"].as_array().unwrap().iter()
+                .any(|reason| reason.as_str().unwrap().starts_with("endpoint_change_exceeds_declared_rate_bound"))));
     }
 
     #[test]
