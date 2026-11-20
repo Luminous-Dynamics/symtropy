@@ -355,6 +355,7 @@ pub fn verify_integrated_dispatch_readiness_receipt_current(
     current_request.dispatch.now_tick = now_tick;
     let mut current = check_integrated_dispatch_readiness(ledger, graph, &current_request)?;
     current.dispatch_readiness.checked_at_tick = receipt.dispatch_readiness.checked_at_tick;
+    current.checked_at_tick = receipt.checked_at_tick;
 
     if &current != receipt {
         return Err(IntegratedDispatchReadinessFailure::IntegratedReceiptContextMismatch);
