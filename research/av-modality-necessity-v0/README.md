@@ -242,3 +242,17 @@ For exact DIVE reproduction, preserve the three distinct outputs:
 Do not reduce DIVE to "mean response latency". Its window-response denominator is the number of response-required events, and content correctness is reported separately. Our own future interaction scorecard should similarly publish (a) expected-silence false-positive rate, (b) missed-required-event rate, (c) early/on-time/late response fractions, (d) content accuracy, (e) interruption/revision correctness, and (f) p50/p95/p99 time-to-first-safe-response. Silence and cancellation are first-class outcomes, not missing data.
 
 The DIVE cohort's open-model latency/quality gap also suggests a focused path: use existing low-latency native acoustic/visual state for trigger detection and evidence updates, while deferring expensive specialists to bounded background work; compare that hybrid against native omni models and best-practical modular systems at the same input and hardware budget. This is a hypothesis to test, not a result.
+
+
+### Resource accounting for real matched runs
+
+Each arm envelope now declares \`measurement_status\`:
+
+- \`synthetic_reference\`: the evaluator rejects any latency/energy/input-cost claim and returns resource metrics as null.
+- \`measured\`: every episode must provide audio bytes, video frames, input tokens, output tokens, end-to-end latency in milliseconds and energy in joules. The comparator checks each value against the identical per-episode budget caps and requires zero bytes/frames for a modality not admitted to that arm.
+
+Measured-run output aggregates total audio bytes, frames, input/output tokens and energy, plus nearest-rank p50/p95/p99 response latency. It does not infer these quantities from replay ticks. The arm fixtures are explicitly marked \`synthetic_reference\`, and their resource fields remain unavailable rather than fabricated.
+
+The comparator verifies the workload's exact Git blob object ID against the input file bytes, and checks that each nested submission's model/runtime revision matches the outer run envelope. This makes the matched protocol's dataset and implementation identity auditable before any quality-versus-cost comparison.
+
+**Competitive metric:** publish a Pareto frontier, not a single scalar winner: answer accuracy, safe-decision accuracy, coverage, selective accuracy, hard evidence violations, paired A+V gain, response-window correctness, p95 latency, total energy and input bytes. A candidate that saves energy by missing events or abstaining on everything must not appear superior.
