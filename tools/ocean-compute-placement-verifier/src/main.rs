@@ -209,6 +209,15 @@ fn profile_index<'a>(workloads: &'a WorkloadFixture) -> BTreeMap<&'a str, &'a Wo
         if unique.len() != profile.allowed_placement_strata.len() {
             fail(format!("profile {} repeats a placement stratum", profile.id));
         }
+        let profile_energy_total = profile.energy_wh.compute
+            .checked_add(profile.energy_wh.network)
+            .and_then(|v| v.checked_add(profile.energy_wh.cooling));
+        if profile_energy_total != Some(profile.energy_wh.total) {
+            fail(format!("profile {} baseline energy components do not close", profile.id));
+        }
+        if profile.rights_state != "synthetic_only" {
+            fail(format!("profile {} is not admitted as synthetic-only by v0.1", profile.id));
+        }
         if index.insert(profile.id.as_str(), profile).is_some() {
             fail(format!("duplicate profile id: {}", profile.id));
         }
