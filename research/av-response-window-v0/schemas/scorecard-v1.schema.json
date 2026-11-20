@@ -69,7 +69,8 @@
           "content_correct_count",
           "response_quality_accuracy",
           "violations",
-          "deadline_miss_count"
+          "deadline_miss_count",
+          "duplicate_response_count"
         ],
         "properties": {
           "episode_id": {
@@ -136,6 +137,10 @@
           "deadline_miss_count": {
             "type": "integer",
             "minimum": 0
+          },
+          "duplicate_response_count": {
+            "type": "integer",
+            "minimum": 0
           }
         }
       }
@@ -190,7 +195,8 @@
         "response_offset_p50_ticks",
         "response_offset_p95_ticks",
         "deadline_miss_count",
-        "hard_violation_count"
+        "hard_violation_count",
+        "duplicate_response_count"
       ],
       "properties": {
         "episode_count": {
@@ -304,6 +310,10 @@
           "minimum": 0
         },
         "hard_violation_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "duplicate_response_count": {
           "type": "integer",
           "minimum": 0
         }
