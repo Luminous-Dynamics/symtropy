@@ -163,8 +163,8 @@ pub struct AmplitudeSensitivity {
     pub detected_specimen_count: usize,
     pub right_censored_specimen_count: usize,
     pub empirical_detection_rate: f64,
-    pub wilson_95_lower: f64,
-    pub wilson_95_upper: f64,
+    pub wilson_95_lower: Option<f64>,
+    pub wilson_95_upper: Option<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -416,6 +416,14 @@ fn validate_campaign(campaign: &FaultCampaign) -> Result<(), String> {
             if overlaps(exposure.start_s, exposure.end_s, episode.onset_s, episode.clear_s) {
                 return Err(format!(
                     "no-fault exposure {} overlaps fault episode {}",
+                    exposure.exposure_id, episode.episode_id
+                ));
+            }
+            if episode.termination == FaultEventTermination::ObservationEnded
+                && exposure.end_s > episode.clear_s
+            {
+                return Err(format!(
+                    "no-fault exposure {} extends beyond observation end of right-censored fault {}",
                     exposure.exposure_id, episode.episode_id
                 ));
             }
@@ -683,7 +691,8 @@ pub fn evaluate_fault_campaign(campaign: &FaultCampaign) -> Result<FaultObservab
     let mut amplitude_sensitivity = Vec::with_capacity(amplitude_groups.len());
     for ((fault_class, amplitude_unit, _), (amplitude, specimen_count, detected_count, censored_count, evaluable_count)) in &amplitude_groups {
         let (wilson_95_lower, wilson_95_upper) =
-            wilson_95(*detected_count, *evaluable_count).unwrap();
+            wilson_95(*detected_count, *evaluable_count)
+                .map_or((None, None), |(lower, upper)| (Some(lower), Some(upper)));
         amplitude_sensitivity.push(AmplitudeSensitivity {
             fault_class: fault_class.clone(),
             amplitude: *amplitude,
@@ -736,7 +745,9 @@ pub fn evaluate_fault_campaign(campaign: &FaultCampaign) -> Result<FaultObservab
             let qualifying_indices: Vec<usize> = (0..class_levels.len())
                 .filter(|index| {
                     class_levels[*index..].iter().all(|level| {
-                        level.wilson_95_lower >= plan.minimum_detection_wilson_lower_95
+                        level.wilson_95_lower.is_some_and(|lower| {
+                            lower >= plan.minimum_detection_wilson_lower_95
+                        })
                     })
                 })
                 .collect();
@@ -925,10 +936,10 @@ mod tests {
         let threshold = report.amplitude_sensitivity.iter().find(|level| level.amplitude == 0.3).unwrap();
         assert_eq!(low.independent_specimen_count, 16);
         assert_eq!(low.detected_specimen_count, 0);
-        assert!(low.wilson_95_lower < 0.8);
+        assert!(low.wilson_95_lower.unwrap() < 0.8);
         assert_eq!(threshold.independent_specimen_count, 16);
         assert_eq!(threshold.detected_specimen_count, 16);
-        assert!(threshold.wilson_95_lower >= 0.8);
+        assert!(threshold.wilson_95_lower.unwrap() >= 0.8);
     }
 
     #[test]
@@ -1194,6 +1205,7 @@ mod tests {
             .find(|episode| episode.episode_id == censored_id)
             .unwrap();
         censored.termination = FaultEventTermination::ObservationEnded;
+        campaign.no_fault_exposure.retain(|window| window.specimen_id != "spec-0.2-00");
         let report = evaluate_fault_campaign(&campaign).unwrap();
         assert_eq!(report.right_censored_fault_episode_count, 1);
         assert_eq!(report.missed_fault_episode_count, 15);
@@ -1210,21 +1222,53 @@ mod tests {
     }
 
     #[test]
-    fn fault_025_unknown_alarm_hypotheses_reject() {
+    fn fault_025_all_censored_amplitude_group_has_no_wilson_interval() {
+        let mut campaign = known_campaign();
+        for episode in campaign.fault_episodes.iter_mut().filter(|episode| episode.fault_class == GEARBOX && episode.amplitude == 0.2) {
+            episode.termination = FaultEventTermination::ObservationEnded;
+        }
+        campaign.no_fault_exposure.retain(|window| {
+            !window.specimen_id.starts_with("spec-0.2-")
+        });
+        let report = evaluate_fault_campaign(&campaign).unwrap();
+        let level = report.amplitude_sensitivity.iter()
+            .find(|level| level.fault_class == GEARBOX && level.amplitude == 0.2)
+            .unwrap();
+        assert_eq!(level.independent_specimen_count, 16);
+        assert_eq!(level.evaluable_specimen_count, 0);
+        assert_eq!(level.right_censored_specimen_count, 16);
+        assert_eq!(level.wilson_95_lower, None);
+        assert_eq!(level.wilson_95_upper, None);
+        let mdfa = report.mdfa.iter().find(|result| result.fault_class == GEARBOX).unwrap();
+        assert_eq!(mdfa.disposition, MdfaDisposition::InsufficientFollowup);
+    }
+
+    #[test]
+    fn fault_026_no_fault_exposure_cannot_follow_right_censored_observation() {
+        let mut campaign = known_campaign();
+        let censored = campaign.fault_episodes.iter_mut()
+            .find(|episode| episode.specimen_id == "spec-0.2-00")
+            .unwrap();
+        censored.termination = FaultEventTermination::ObservationEnded;
+        assert!(evaluate_fault_campaign(&campaign).is_err());
+    }
+
+    #[test]
+    fn fault_027_unknown_alarm_hypotheses_reject() {
         let mut campaign = known_campaign();
         campaign.alarm_episodes[0].hypothesized_fault_classes = vec!["mystery-fault".to_owned()];
         assert!(evaluate_fault_campaign(&campaign).is_err());
     }
 
     #[test]
-    fn fault_026_expected_fault_classes_must_be_unique_and_nonempty() {
+    fn fault_028_expected_fault_classes_must_be_unique_and_nonempty() {
         let mut campaign = known_campaign();
         campaign.plan.expected_fault_classes.push(GEARBOX.to_owned());
         assert!(evaluate_fault_campaign(&campaign).is_err());
     }
 
     #[test]
-    fn fault_027_zero_alarm_is_not_a_correct_diagnosis() {
+    fn fault_029_zero_alarm_is_not_a_correct_diagnosis() {
         let mut campaign = known_campaign();
         campaign.alarm_episodes.clear();
         let report = evaluate_fault_campaign(&campaign).unwrap();
@@ -1234,13 +1278,13 @@ mod tests {
     }
 
     #[test]
-    fn fault_028_specimen_amplitude_group_reports_wilson_interval() {
+    fn fault_030_specimen_amplitude_group_reports_wilson_interval() {
         let report = evaluate_fault_campaign(&known_campaign()).unwrap();
         let perfect = report.amplitude_sensitivity.iter()
             .find(|level| level.fault_class == GEARBOX && level.amplitude == 0.3)
             .unwrap();
-        assert!(perfect.wilson_95_lower < 1.0);
-        assert!(perfect.wilson_95_upper <= 1.0);
-        assert!(perfect.wilson_95_lower >= 0.8);
+        assert!(perfect.wilson_95_lower.unwrap() < 1.0);
+        assert!(perfect.wilson_95_upper.unwrap() <= 1.0);
+        assert!(perfect.wilson_95_lower.unwrap() >= 0.8);
     }
 }
