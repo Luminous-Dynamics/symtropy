@@ -293,18 +293,50 @@ impl<const D: usize> RigidBody<D> {
         )
     }
 
-    pub fn dynamic_sphere(handle: BodyHandle, position: Point<D>, radius: f64, mass: f64) -> Self {
+    /// Construct a dynamic, uniform-density solid D-ball in any supported dimension.
+    ///
+    /// The central second moment is C = m r^2/(D+2) * I. Therefore each
+    /// independent rotation plane has inertia 2 m r^2/(D+2). This reduces to
+    /// the familiar 2/5 m r^2 solid-sphere moment in 3D, 1/2 m r^2 for a
+    /// 2D disk, and 1/3 m r^2 for a 4D ball.
+    pub fn dynamic_ball(handle: BodyHandle, position: Point<D>, radius: f64, mass: f64) -> Self {
         use symtropy_math::Sphere;
-        let inertia = 0.4 * mass * radius * radius;
-        Self::new(
+        let inertia = 2.0 * mass * radius * radius / (D as f64 + 2.0);
+        let mut body = Self::new(
             handle,
             BodyType::Dynamic,
             Transform::from_translation(position),
             Box::new(Sphere::new(Point::origin(), radius)),
             mass,
             SVector::from_element(inertia),
-        )
+        );
+
+        // A uniform D-ball is exactly isotropic in every rotational plane.
+        // Use the validated full bivector operator when the supplied physical
+        // parameters are finite and positive; retain the compatibility
+        // constructor behaviour for invalid legacy inputs.
+        if mass.is_finite()
+            && mass > 0.0
+            && radius.is_finite()
+            && radius > 0.0
+            && inertia.is_finite()
+        {
+            if let Ok(operator) = RotationalInertiaOperator::<D>::isotropic(inertia) {
+                body.set_rotational_inertia_operator(operator);
+            }
+        }
+        body
     }
+
+
+    /// Backwards-compatible alias for dynamic_ball.
+    ///
+    /// In dimensions other than 3 this constructs the corresponding solid
+    /// D-ball (a disk in 2D and a hypersphere/ball in higher dimensions).
+    pub fn dynamic_sphere(handle: BodyHandle, position: Point<D>, radius: f64, mass: f64) -> Self {
+        Self::dynamic_ball(handle, position, radius, mass)
+    }
+
 
     pub fn is_dynamic(&self) -> bool {
         matches!(self.body_type, BodyType::Dynamic)
@@ -1963,4 +1995,117 @@ mod compound_com_tests {
         assert_child_geometry_preserved(&after_first_tool, &body, 1);
         assert_original_geometry_preserved(&initial, &body);
     }
+}
+
+#[cfg(test)]
+mod nd_ball_mass_property_tests {
+    use super::*;
+
+    #[test]
+    fn solid_d_ball_uses_dimension_correct_rotation_plane_inertia() {
+        let mass = 3.0;
+        let radius = 2.0;
+
+        let disk = RigidBody::<2>::dynamic_ball(
+            BodyHandle(200),
+            Point::origin(),
+            radius,
+            mass,
+        );
+        let sphere = RigidBody::<3>::dynamic_ball(
+            BodyHandle(201),
+            Point::origin(),
+            radius,
+            mass,
+        );
+        let four_ball = RigidBody::<4>::dynamic_ball(
+            BodyHandle(202),
+            Point::origin(),
+            radius,
+            mass,
+        );
+
+        // I_plane = 2 m r^2 / (D + 2).
+        for (actual, expected) in [
+            (disk.inertia[0], 6.0),
+            (disk.inertia[1], 6.0),
+            (sphere.inertia[0], 4.8),
+            (sphere.inertia[1], 4.8),
+            (sphere.inertia[2], 4.8),
+            (four_ball.inertia[0], 4.0),
+            (four_ball.inertia[1], 4.0),
+            (four_ball.inertia[2], 4.0),
+            (four_ball.inertia[3], 4.0),
+        ] {
+            assert!(
+                (actual - expected).abs() < 1.0e-12,
+                "solid D-ball plane inertia mismatch: actual={actual}, expected={expected}"
+            );
+        }
+
+        assert_eq!(
+            disk.rotational_inertia_model(),
+            RotationalInertiaModel::ValidatedSpatialBivectorOperator
+        );
+        assert_eq!(
+            sphere.rotational_inertia_model(),
+            RotationalInertiaModel::ValidatedSpatialBivectorOperator
+        );
+        assert_eq!(
+            four_ball.rotational_inertia_model(),
+            RotationalInertiaModel::ValidatedSpatialBivectorOperator
+        );
+        assert!(disk.rotational_inertia_operator.is_some());
+        assert!(sphere.rotational_inertia_operator.is_some());
+        assert!(four_ball.rotational_inertia_operator.is_some());
+        assert!(!disk.rotational_inertia_approximate);
+        assert!(!sphere.rotational_inertia_approximate);
+        assert!(!four_ball.rotational_inertia_approximate);
+
+        let disk_impulse = Bivector::<2>::unit_plane(0, 1);
+        let disk_response = disk.apply_inverse_angular_inertia(&disk_impulse);
+        assert!((disk_response.get(0, 1) - 1.0 / 6.0).abs() < 1.0e-12);
+
+        let four_ball_impulse = Bivector::<4>::unit_plane(1, 3);
+        let four_ball_response = four_ball.apply_inverse_angular_inertia(&four_ball_impulse);
+        assert!((four_ball_response.get(1, 3) - 0.25).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn three_dimensional_solid_sphere_formula_remains_unchanged() {
+        let body = RigidBody::<3>::dynamic_ball(
+            BodyHandle(203),
+            Point::origin(),
+            0.5,
+            2.0,
+        );
+        let expected = 0.4 * 2.0 * 0.5_f64.powi(2);
+        assert!(
+            (body.inertia[0] - expected).abs() < 1.0e-12
+                && (body.inertia[1] - expected).abs() < 1.0e-12
+                && (body.inertia[2] - expected).abs() < 1.0e-12
+        );
+    }
+
+    #[test]
+    fn legacy_dynamic_sphere_alias_retains_three_dimensional_result() {
+        let legacy = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(204),
+            Point::origin(),
+            0.5,
+            2.0,
+        );
+        let canonical = RigidBody::<3>::dynamic_ball(
+            BodyHandle(205),
+            Point::origin(),
+            0.5,
+            2.0,
+        );
+        assert_eq!(legacy.inertia, canonical.inertia);
+        assert_eq!(
+            legacy.rotational_inertia_model(),
+            canonical.rotational_inertia_model()
+        );
+    }
+
 }
