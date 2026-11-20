@@ -1376,6 +1376,53 @@ pub fn verify_restoration_claim_evidence(
             }
         }
 
+        if let Some(proposal) = &step.proposal {
+            let proposal_uri = format!("power-fabric://planner-proposal/{}", proposal.proposal_id);
+            let mut proposal_parents = observation_parents.clone();
+            if let Some(observation) = &step.observation {
+                proposal_parents.push(observation.sha256.clone());
+            }
+            add_attested_artifact(
+                &mut expected_artifacts,
+                &mut requirements,
+                &proposal_uri,
+                &proposal_sha,
+                SignerRole::Planner,
+                &receipt.planner.planner_id,
+                "power-restoration/planner-proposal/v1",
+                &receipt.run_id,
+                &case_sha256,
+                step.decision_step,
+                &proposal_sha,
+                &receipt.planner.source_commit,
+                &receipt.planner.configuration_sha256,
+                canonical_parent_digests(proposal_parents),
+                &mut errors,
+            );
+        } else if let Some(raw_output) = &step.planner_output {
+            let mut raw_parents = Vec::new();
+            if let Some(observation) = &step.observation {
+                raw_parents.push(observation.sha256.clone());
+            }
+            add_attested_artifact(
+                &mut expected_artifacts,
+                &mut requirements,
+                &raw_output.artifact_ref,
+                &raw_output.sha256,
+                SignerRole::Planner,
+                &receipt.planner.planner_id,
+                "power-restoration/planner-raw-output/v1",
+                &receipt.run_id,
+                &case_sha256,
+                step.decision_step,
+                &proposal_set_sha,
+                &receipt.planner.source_commit,
+                &receipt.planner.configuration_sha256,
+                canonical_parent_digests(raw_parents),
+                &mut errors,
+            );
+        }
+
         if let Some(observation) = &step.observation {
             if let Some(recorder) = recorder {
                 add_attested_artifact(
