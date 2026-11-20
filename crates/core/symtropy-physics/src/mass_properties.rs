@@ -1075,6 +1075,59 @@ mod tests {
     }
 
     #[test]
+    fn rank_two_planar_second_moment_is_covariant_under_body_frame_rotation() {
+        use nalgebra::SMatrix;
+        use symtropy_math::Rotor;
+
+        // A planar distribution has a rank-2 central second moment in 3D.
+        let second_moment = SMatrix::<f64, 3, 3>::new(
+            2.0, 0.0, 0.0,
+            0.0, 0.0, 0.0,
+            0.0, 0.0, 3.0,
+        );
+        let mut angular = Bivector::<3>::zero();
+        angular.set(0, 1, 0.31);
+        angular.set(0, 2, -0.47);
+        angular.set(1, 2, 0.83);
+
+        let flatten = |matrix: &SMatrix<f64, 3, 3>| {
+            let mut values = Vec::with_capacity(9);
+            for row in 0..3 {
+                for column in 0..3 {
+                    values.push(matrix[(row, column)]);
+                }
+            }
+            values
+        };
+        let original = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(
+            flatten(&second_moment),
+        )
+        .unwrap();
+        let original_energy = original.kinetic_energy_bivector_joules(&angular).unwrap();
+
+        let mut generator = Bivector::<3>::zero();
+        generator.set(0, 1, 0.37);
+        generator.set(0, 2, -0.22);
+        generator.set(1, 2, 0.29);
+        let frame_change = Rotor::<3>::from_bivector(&generator);
+        let rotation = *frame_change.to_matrix();
+        let transformed_second_moment = rotation * second_moment * rotation.transpose();
+        let transformed_angular = frame_change.rotate_bivector(&angular);
+        let transformed = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(
+            flatten(&transformed_second_moment),
+        )
+        .unwrap();
+        let transformed_energy = transformed
+            .kinetic_energy_bivector_joules(&transformed_angular)
+            .unwrap();
+
+        assert!(
+            (original_energy - transformed_energy).abs() < 1.0e-10,
+            "rank-2 planar inertia energy changed under a body-frame rotation: {original_energy} vs {transformed_energy}"
+        );
+    }
+
+    #[test]
     fn rotational_energy_is_invariant_under_body_frame_rotation() {
         use nalgebra::SMatrix;
         use symtropy_math::Rotor;
