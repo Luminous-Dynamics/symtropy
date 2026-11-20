@@ -496,12 +496,42 @@ fn evaluate_profile(
     events.sort_by(|left, right| left.event_id.cmp(&right.event_id));
     let event_results: Vec<LifecycleEventResult> = events.into_iter().map(event_result).collect();
 
-    let planned_downtime = sum_optional(event_results.iter().map(|event| event.scheduled_downtime_hours_per_module_year));
-    let unscheduled_downtime = sum_optional(event_results.iter().map(|event| event.unscheduled_downtime_hours_per_module_year));
-    let planned_technician = sum_optional(event_results.iter().map(|event| event.scheduled_technician_hours_per_module_year));
-    let unscheduled_technician = sum_optional(event_results.iter().map(|event| event.unscheduled_technician_hours_per_module_year));
-    let planned_parts = sum_optional(event_results.iter().map(|event| event.scheduled_parts_cost_per_module_year));
-    let unscheduled_parts = sum_optional(event_results.iter().map(|event| event.unscheduled_parts_cost_per_module_year));
+    let planned_downtime = sum_optional(
+        event_results
+            .iter()
+            .filter(|event| event.event_class == EventClass::Planned)
+            .map(|event| event.scheduled_downtime_hours_per_module_year),
+    );
+    let unscheduled_downtime = sum_optional(
+        event_results
+            .iter()
+            .filter(|event| event.event_class == EventClass::Unscheduled)
+            .map(|event| event.unscheduled_downtime_hours_per_module_year),
+    );
+    let planned_technician = sum_optional(
+        event_results
+            .iter()
+            .filter(|event| event.event_class == EventClass::Planned)
+            .map(|event| event.scheduled_technician_hours_per_module_year),
+    );
+    let unscheduled_technician = sum_optional(
+        event_results
+            .iter()
+            .filter(|event| event.event_class == EventClass::Unscheduled)
+            .map(|event| event.unscheduled_technician_hours_per_module_year),
+    );
+    let planned_parts = sum_optional(
+        event_results
+            .iter()
+            .filter(|event| event.event_class == EventClass::Planned)
+            .map(|event| event.scheduled_parts_cost_per_module_year),
+    );
+    let unscheduled_parts = sum_optional(
+        event_results
+            .iter()
+            .filter(|event| event.event_class == EventClass::Unscheduled)
+            .map(|event| event.unscheduled_parts_cost_per_module_year),
+    );
 
     let total_downtime = planned_downtime.zip(unscheduled_downtime).map(|(planned, unplanned)| planned + unplanned);
     let total_technician = planned_technician.zip(unscheduled_technician).map(|(planned, unplanned)| planned + unplanned);
@@ -543,23 +573,44 @@ fn evaluate_profile(
     missing_fields.dedup();
 
     let blocked = factory.status == "blocked";
-    let ranking_eligible = !blocked && missing_fields.is_empty() && lifecycle_cost.is_some() && downtime_fraction.is_some();
-    let synthetic = catalog.annual_operating_hours_evidence_class == EvidenceClass::Synthetic
-        || catalog.labour_rate_evidence_class == EvidenceClass::Synthetic
-        || profile.acquisition_cost_evidence_class == EvidenceClass::Synthetic
-        || event_results.iter().any(|event| {
-            profile.events.iter()
-                .find(|source| source.event_id == event.event_id)
-                .is_some_and(|source| {
-                    source.frequency_evidence_class == EvidenceClass::Synthetic
-                        || source.tasks.iter().any(|task| task.evidence_class == EvidenceClass::Synthetic)
-                })
+    let all_evidence_backed = matches!(
+        catalog.annual_operating_hours_evidence_class,
+        EvidenceClass::Measured | EvidenceClass::IndependentTest
+    ) && matches!(
+        catalog.labour_rate_evidence_class,
+        EvidenceClass::Measured | EvidenceClass::IndependentTest
+    ) && matches!(
+        profile.acquisition_cost_evidence_class,
+        EvidenceClass::Measured | EvidenceClass::IndependentTest
+    ) && profile.events.iter().all(|event| {
+        matches!(
+            event.frequency_evidence_class,
+            EvidenceClass::Measured | EvidenceClass::IndependentTest
+        ) && event.tasks.iter().all(|task| {
+            matches!(
+                task.evidence_class,
+                EvidenceClass::Measured | EvidenceClass::IndependentTest
+            )
+        })
+    });
+    let ranking_eligible = !blocked
+        && missing_fields.is_empty()
+        && lifecycle_cost.is_some()
+        && downtime_fraction.is_some()
+        && all_evidence_backed;
+    let synthetic = !all_evidence_backed
+        && catalog.annual_operating_hours_evidence_class != EvidenceClass::Unknown
+        && catalog.labour_rate_evidence_class != EvidenceClass::Unknown
+        && profile.acquisition_cost_evidence_class != EvidenceClass::Unknown
+        && profile.events.iter().all(|event| {
+            event.frequency_evidence_class != EvidenceClass::Unknown
+                && event.tasks.iter().all(|task| task.evidence_class != EvidenceClass::Unknown)
         });
     let status = if blocked {
         LifecycleStatus::Blocked
     } else if !missing_fields.is_empty() {
         LifecycleStatus::Indeterminate
-    } else if synthetic {
+    } else if synthetic || !all_evidence_backed {
         LifecycleStatus::SyntheticScreen
     } else {
         LifecycleStatus::EvidenceBackedScreen
@@ -590,7 +641,7 @@ fn evaluate_profile(
         factory_equivalent_good_vehicle_capacity_per_year: factory.equivalent_good_vehicle_capacity_per_year,
         factory_good_vehicle_capacity_margin_per_year: factory.good_vehicle_capacity_margin_per_year,
         base_factory_production_release_ready: factory.base_factory_production_release_ready,
-        module_production_release_ready: factory.module_production_release_ready && ranking_eligible,
+        module_production_release_ready: false,
         scheduled_downtime_hours_per_module_year: planned_downtime,
         unscheduled_downtime_hours_per_module_year: unscheduled_downtime,
         total_downtime_hours_per_module_year: total_downtime,
@@ -760,6 +811,40 @@ mod tests {
         assert_eq!(result.full_lifecycle_cost_per_module_year, None);
         assert!(!result.full_lifecycle_ranking_eligible);
         assert!(!report.full_lifecycle_ranking_available);
+        assert!(!result.return_to_service_authorized);
+    }
+
+    #[test]
+    fn full_lifecycle_accounting_can_be_complete_without_granting_release() {
+        let mut catalog = catalog();
+        catalog.annual_operating_hours_evidence_class = EvidenceClass::Measured;
+        catalog.annual_operating_hours_evidence_reference = "measurement://hours/sample".into();
+        catalog.labour_rate_per_technician_hour = Some(40.0);
+        catalog.labour_rate_evidence_class = EvidenceClass::Measured;
+        catalog.labour_rate_evidence_reference = "measurement://labour/rate".into();
+        let profile = &mut catalog.profiles[0];
+        profile.acquisition_cost_per_good_module = Some(1_000.0);
+        profile.acquisition_cost_evidence_class = EvidenceClass::Measured;
+        profile.acquisition_cost_evidence_reference = "quote://module/unit".into();
+        profile.amortization_years = Some(5.0);
+        for event in &mut profile.events {
+            event.frequency_evidence_class = EvidenceClass::Measured;
+            event.frequency_evidence_reference = "measurement://event-frequency".into();
+            for task in &mut event.tasks {
+                task.evidence_class = EvidenceClass::Measured;
+                task.evidence_reference = "measurement://maintenance-task".into();
+            }
+        }
+        let unscheduled = profile.events.iter_mut()
+            .find(|event| event.event_class == EventClass::Unscheduled).unwrap();
+        unscheduled.observed_event_count = Some(2);
+        unscheduled.exposure_module_years = Some(10.0);
+
+        let report = validate_and_evaluate(&factory(), &catalog).expect("complete evidence input");
+        let result = &report.results[0];
+        assert_eq!(result.status, LifecycleStatus::EvidenceBackedScreen);
+        assert!(result.full_lifecycle_ranking_eligible);
+        assert!(!result.module_production_release_ready);
         assert!(!result.return_to_service_authorized);
     }
 
