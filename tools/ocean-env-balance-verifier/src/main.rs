@@ -67,7 +67,10 @@ struct EquationContract {
 #[serde(deny_unknown_fields)]
 struct OgcMapping {
     standard: String,
+    standard_url: String,
+    publication_date: String,
     entity_mapping: EntityMapping,
+    datastream_result_encoding: DatastreamResultEncoding,
     data_model_policy: String,
 }
 #[derive(Debug, Deserialize)]
@@ -79,7 +82,18 @@ struct EntityMapping {
     measured_property: String,
     sensor_and_property_series: String,
     individual_measurement: String,
-    intake_outfall_or_reference_station: String,
+    station_or_sampled_environment_feature: String,
+    observation_proximate_feature_link: String,
+    datastream_proximate_feature_link: String,
+    datastream_ultimate_feature_link: String,
+}
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DatastreamResultEncoding {
+    result_type: String,
+    result_encoding: String,
+    unit_location: String,
+    legacy_unit_of_measurement: String,
 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -349,10 +363,10 @@ fn validate_evidence(
         .ok_or_else(|| format!("sample {} has invalid calibration start", e.sample_id))?;
     let valid_until = parse_utc_timestamp(&e.calibration_valid_until_utc)
         .ok_or_else(|| format!("sample {} has invalid calibration end", e.sample_id))?;
-    let sample_start = parse_utc_timestamp(&interval.interval_start_utc)
-        .ok_or_else(|| format!("interval {} has invalid start", interval.interval_id))?;
-    let sample_end = parse_utc_timestamp(&interval.interval_end_utc)
-        .ok_or_else(|| format!("interval {} has invalid end", interval.interval_id))?;
+    let sample_start = parse_utc_timestamp(expected_start)
+        .ok_or_else(|| format!("sample {} has invalid sample-window start", e.sample_id))?;
+    let sample_end = parse_utc_timestamp(expected_end)
+        .ok_or_else(|| format!("sample {} has invalid sample-window end", e.sample_id))?;
     if valid_until <= valid_from || valid_from > sample_start || valid_until < sample_end {
         return Err(format!("sample {} calibration validity does not cover observation interval", e.sample_id));
     }
@@ -615,9 +629,6 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
             return Err(format!("analyte {} requires near-field, far-field and reference concentration samples", pair.analyte_id));
         }
         let mut plume_by_role = std::collections::HashMap::new();
-        let mut calibration_domains = HashSet::new();
-        calibration_domains.insert(pair.intake.evidence.calibration_independence_domain.as_str());
-        calibration_domains.insert(pair.outfall.evidence.calibration_independence_domain.as_str());
         for sample in matching_plume {
             validate_evidence(&sample.evidence, interval,
                 &interval.outfall_window_start_utc, &interval.outfall_window_end_utc,
