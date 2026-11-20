@@ -76,6 +76,7 @@ def build_run(workload, truth, arm, run_id):
         "run_id": run_id,
         "input_arm": arm,
         "allowed_modalities": sorted(allowed),
+        "measurement_status": "synthetic_reference",
         "model_revision": None,
         "runtime_revision": "reference-v1",
         "hardware_id": "synthetic-no-device",
@@ -147,6 +148,50 @@ class ArmTournamentTests(unittest.TestCase):
     def test_transcript_path_is_not_silently_counted_as_raw_audio(self):
         runs = copy.deepcopy(self.runs)
         runs[1]["submission"]["predictions"][0]["used_transcript"] = True
+        with self.assertRaises(comparator.EvaluationError):
+            comparator.compare_arms(self.workload, self.truth, runs)
+
+
+    def test_measured_resource_usage_is_aggregated_and_budgeted(self):
+        runs = copy.deepcopy(self.runs)
+        for run in runs:
+            run["measurement_status"] = "measured"
+            allowed = set(run["allowed_modalities"])
+            for prediction in run["submission"]["predictions"]:
+                prediction.update(
+                    audio_bytes=2048 if "audio" in allowed else 0,
+                    video_frames=4 if "video" in allowed else 0,
+                    input_tokens=128,
+                    output_tokens=64,
+                    latency_ms=250.0,
+                    energy_joules=5.0,
+                )
+        report = comparator.compare_arms(self.workload, self.truth, runs)
+        usage = report["per_arm"]["audio_video"]["resource_usage"]
+        self.assertEqual(usage["measurement_status"], "measured")
+        self.assertEqual(usage["audio_bytes_total"], 2048 * len(self.workload["episodes"]))
+        self.assertEqual(usage["video_frames_total"], 4 * len(self.workload["episodes"]))
+        self.assertEqual(usage["latency_p95_ms"], 250.0)
+        self.assertEqual(usage["energy_joules_total"], 5.0 * len(self.workload["episodes"]))
+
+    def test_measured_usage_over_budget_is_rejected(self):
+        runs = copy.deepcopy(self.runs)
+        for run in runs:
+            run["measurement_status"] = "measured"
+            allowed = set(run["allowed_modalities"])
+            for prediction in run["submission"]["predictions"]:
+                prediction.update(
+                    audio_bytes=1000001 if "audio" in allowed else 0,
+                    video_frames=4 if "video" in allowed else 0,
+                    input_tokens=128, output_tokens=64,
+                    latency_ms=250.0, energy_joules=5.0,
+                )
+        with self.assertRaises(comparator.EvaluationError):
+            comparator.compare_arms(self.workload, self.truth, runs)
+
+    def test_synthetic_reference_cannot_claim_cost_telemetry(self):
+        runs = copy.deepcopy(self.runs)
+        runs[0]["submission"]["predictions"][0]["latency_ms"] = 1.0
         with self.assertRaises(comparator.EvaluationError):
             comparator.compare_arms(self.workload, self.truth, runs)
 
