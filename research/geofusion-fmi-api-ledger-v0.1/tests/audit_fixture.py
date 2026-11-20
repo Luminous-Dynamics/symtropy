@@ -202,7 +202,7 @@ def audit_cases():
         if len(c)!=3 or not all(c): fail(f"bad TSV row {n}")
         if c[0] in ids or c[1] not in ("REJECT","NOT_EVALUABLE"): fail(f"duplicate/invalid TSV row {n}")
         ids.add(c[0])
-    if len(ids)!=27: fail(f"expected 26 frozen negative-control rows, got {len(ids)}")
+    if len(ids)!=27: fail(f"expected 27 frozen negative-control rows, got {len(ids)}")
     return len(ids)
 
 def main():
@@ -215,7 +215,7 @@ def main():
     arts=audit_artifacts(d); audit_fixture(d,arts); n=audit_cases()
     print("GeoFusion FMI API ledger fixture audit: PASS")
     print(f"artifacts={len(arts)} (all non-executable stubs); federates={len(d['federates'])}; API events={len(d['events'])}")
-    print("doStep attempts=2; exchanged values=5; barriers=1; normalized trace links=2; synthetic residual=0 W")
+    print("doStep attempts=2; exchanged values=6 (five power values plus one interval-end state sample); barriers=1; normalized trace links=2; synthetic residual=0 W")
     print(f"negative controls inventoried={n} (mutation execution pending)")
     print("FMI runtime/FMUs/solver comparisons: NOT RUN")
     return 0
