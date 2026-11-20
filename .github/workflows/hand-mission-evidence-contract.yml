@@ -1,0 +1,31 @@
+name: Hand Mission Evidence Contract
+
+on:
+  pull_request:
+    paths:
+      - 'benchmarks/hand-mission-qualification/v0.1/**'
+      - 'tools/validate_hand_mission_bundle.py'
+      - '.github/workflows/hand-mission-evidence-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'benchmarks/hand-mission-qualification/v0.1/**'
+      - 'tools/validate_hand_mission_bundle.py'
+      - '.github/workflows/hand-mission-evidence-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.24.0
+      - name: Validate schema, mission semantics and negative controls
+        run: python tools/validate_hand_mission_bundle.py
