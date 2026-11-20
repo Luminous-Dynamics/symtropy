@@ -41,6 +41,7 @@ pub struct BoundaryFluxReport {
     pub boundary_profile_sha256: String,
     pub boundary_model_sha256: String,
     pub compatibility: FaceCompatibility,
+    pub face_measure: f64,
     pub outward_flux: Vec<f64>,
     pub outward_integrated_flux: Vec<f64>,
     /// Finite-volume update contributed to the adjacent cell: -A * F_out.
@@ -140,6 +141,7 @@ pub fn account_external_boundary_flux(
         boundary_profile_sha256: request.boundary_profile_sha256.clone(),
         boundary_model_sha256: request.boundary_model_sha256.clone(),
         compatibility: request.compatibility.clone(),
+        face_measure: request.face_measure,
         outward_flux: request.outward_flux.clone(),
         outward_integrated_flux,
         cell_integrated_update,
