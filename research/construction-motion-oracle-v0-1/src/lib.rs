@@ -7,6 +7,12 @@
 pub mod dependency_scoped_invalidation;
 pub mod dispatch_readiness;
 pub mod integrated_dispatch;
+pub mod stop_tube_builder;
+pub use stop_tube_builder::{
+    STOP_TUBE_BUILD_SCHEMA_VERSION, STOP_TUBE_BUILDER_MODEL, StopTubeBuildError,
+    StopTubeBuildReport, StopTubeBuildRequest, StopTubeKinematics, StopTubeSlice,
+    build_stop_tube,
+};
 pub mod stopping_reachability;
 pub mod field_layout_acceptance;
 pub use dependency_scoped_invalidation::{
