@@ -39,6 +39,17 @@ pub struct EnergyBalance {
     pub residual_j: f64,
 }
 
+/// Result and diagnostics for a causal, bounded source extrapolation.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CausalPredictorResult {
+    /// Exact receiver response to the piecewise-constant exchanged predictor values.
+    pub balance: EnergyBalance,
+    /// Number of predictor values projected onto the declared source-power envelope.
+    pub limiter_activations: usize,
+    /// Largest absolute difference between the unbounded and exchanged predictor (W).
+    pub max_unbounded_overshoot_w: f64,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SinusoidalInput {
     pub mean_power_w: f64,
@@ -514,6 +525,134 @@ impl ThermalModel {
         })
     }
 
+    /// Simulate a sinusoidal source with a causal, bounded linear predictor.
+    ///
+    /// At communication point t_n the predictor uses only Q_n and Q_(n-1):
+    ///   Qbar_n = Q_n + 0.5 * (Q_n - Q_(n-1))
+    /// The first interval is bootstrapped with Q_0 (zero-order hold). The
+    /// prediction is projected onto the explicitly declared source envelope
+    /// [mean-|amplitude|, mean+|amplitude|]. Every projection is counted and
+    /// its maximum magnitude is returned; it is never silently hidden.
+    ///
+    /// No future source sample is consulted. This is an oracle implementation
+    /// of a deployable master-side predictor: a real importer supplies Q_n
+    /// from the just-observed FMI output and retains Q_(n-1) from the prior
+    /// committed communication point.
+    ///
+    /// The exchanged interval power is an approximation, not the exact future
+    /// interval average. The receiver's balance closes against that declared
+    /// exchanged value; the endpoint error is measured separately against the
+    /// continuous sinusoidal reference.
+    pub fn sinusoidal_causal_bounded_predictor(
+        self,
+        input: SinusoidalInput,
+        start_time_s: f64,
+        end_time_s: f64,
+        communication_steps: usize,
+    ) -> Result<CausalPredictorResult, ModelError> {
+        self.validate_sinusoid(input)?;
+        if !start_time_s.is_finite() || !end_time_s.is_finite() {
+            return Err(ModelError::NonFiniteParameter);
+        }
+        if start_time_s < 0.0 {
+            return Err(ModelError::NegativeStartTime);
+        }
+        if end_time_s <= start_time_s || !(end_time_s - start_time_s).is_finite() {
+            return Err(ModelError::NonPositiveInterval);
+        }
+        if communication_steps == 0 {
+            return Err(ModelError::NonPositiveSampleCount);
+        }
+
+        let duration = end_time_s - start_time_s;
+        let step_count = communication_steps as f64;
+        let minimum_power_w = input.mean_power_w - input.amplitude_w.abs();
+        let maximum_power_w = input.mean_power_w + input.amplitude_w.abs();
+        let mut theta = self.sinusoidal_theta(input, start_time_s)?;
+        let theta_start = theta;
+        let mut previous_source_sample_w: Option<f64> = None;
+        let mut limiter_activations = 0_usize;
+        let mut max_unbounded_overshoot_w: f64 = 0.0;
+        let mut energy_input = CompensatedSum::default();
+        let mut energy_service = CompensatedSum::default();
+        let mut energy_loss = CompensatedSum::default();
+
+        for index in 0..communication_steps {
+            let fraction_start = index as f64 / step_count;
+            let fraction_end = (index + 1) as f64 / step_count;
+            let interval_start = start_time_s + duration * fraction_start;
+            let interval_end = if index + 1 == communication_steps {
+                end_time_s
+            } else {
+                start_time_s + duration * fraction_end
+            };
+            let interval_duration = interval_end - interval_start;
+
+            // This is the only new source observation made for this interval.
+            // The predictor never samples t_(n+1) before committing interval n.
+            let current_source_sample_w = input.mean_power_w
+                + input.amplitude_w
+                    * (input.angular_frequency_rad_per_s * interval_start).sin();
+            let unbounded_prediction_w = match previous_source_sample_w {
+                Some(previous) => {
+                    current_source_sample_w + 0.5 * (current_source_sample_w - previous)
+                }
+                None => current_source_sample_w,
+            };
+
+            let exchanged_power_w = unbounded_prediction_w
+                .clamp(minimum_power_w, maximum_power_w);
+            let overshoot_w = (unbounded_prediction_w - exchanged_power_w).abs();
+            if overshoot_w > 0.0 {
+                limiter_activations += 1;
+                max_unbounded_overshoot_w = max_unbounded_overshoot_w.max(overshoot_w);
+            }
+
+            let interval = self.piecewise_constant(theta, exchanged_power_w, interval_duration)?;
+            theta = interval.theta_end_k;
+            energy_input.add(interval.energy_input_j);
+            energy_service.add(interval.energy_service_j);
+            energy_loss.add(interval.energy_loss_j);
+            previous_source_sample_w = Some(current_source_sample_w);
+        }
+
+        let energy_input = energy_input.total();
+        let energy_service = energy_service.total();
+        let energy_loss = energy_loss.total();
+        let storage_delta = self.heat_capacity_j_per_k * (theta - theta_start);
+        let residual = energy_input - energy_service - energy_loss - storage_delta;
+        if ![
+            theta,
+            energy_input,
+            energy_service,
+            energy_loss,
+            storage_delta,
+            residual,
+            max_unbounded_overshoot_w,
+        ]
+        .iter()
+        .all(|value| value.is_finite())
+        {
+            return Err(ModelError::NumericalOverflow);
+        }
+
+        Ok(CausalPredictorResult {
+            balance: EnergyBalance {
+                start_time_s,
+                end_time_s,
+                theta_start_k: theta_start,
+                theta_end_k: theta,
+                energy_input_j: energy_input,
+                energy_service_j: energy_service,
+                energy_loss_j: energy_loss,
+                storage_delta_j: storage_delta,
+                residual_j: residual,
+            },
+            limiter_activations,
+            max_unbounded_overshoot_w,
+        })
+    }
+
     pub fn time_constant_s(self) -> Result<f64, ModelError> {
         self.validate()?;
         Ok(self.heat_capacity_j_per_k / self.loss_conductance_w_per_k)
@@ -692,6 +831,89 @@ mod tests {
             let ratio = pair[0] / pair[1];
             assert!((3.90..=4.10).contains(&ratio), "observed error ratio {ratio}");
         }
+    }
+
+    #[test]
+    fn causal_bounded_predictor_matches_frozen_reference_and_closes_its_declared_exchange() {
+        let model = model();
+        let input = SinusoidalInput {
+            mean_power_w: 500_000.0,
+            amplitude_w: 100_000.0,
+            angular_frequency_rad_per_s: 2.0 * PI / 400.0,
+            initial_theta_k: 2.0,
+        };
+        let reference = model.sinusoidal_interval(input, 0.0, 120.0).unwrap();
+        let frozen = [
+            (15_usize, 0.000_787_129_425_244_615, 1_usize, 589.646_727_806_306),
+            (30, 0.000_231_273_451_280_156, 2, 98.663_578_586_420),
+            (60, 0.000_064_480_004_970_058, 2, 24.671_981_713_502),
+            (120, 0.000_016_949_474_196_615, 2, 6.168_375_917_012),
+            (240, 0.000_004_340_801_009_306, 2, 1.542_117_760_517),
+            (480, 0.000_001_098_112_006_659, 2, 0.385_530_926_520),
+            (960, 0.000_000_276_140_812_471, 2, 0.096_382_824_472),
+        ];
+
+        let mut previous_error = f64::INFINITY;
+        let mut errors = Vec::new();
+        for (steps, expected_error, expected_limits, expected_overshoot) in frozen {
+            let result = model
+                .sinusoidal_causal_bounded_predictor(input, 0.0, 120.0, steps)
+                .unwrap();
+            let balance = result.balance;
+            let error = (balance.theta_end_k - reference.theta_end_k).abs();
+            close(error, expected_error, 3.0e-12);
+            assert!(error < previous_error, "error must decrease with finer communication grids");
+            assert_eq!(result.limiter_activations, expected_limits);
+            close(
+                result.max_unbounded_overshoot_w,
+                expected_overshoot,
+                2.0e-9,
+            );
+            close(balance.residual_j, 0.0, 3.0e-7);
+            assert!(balance.energy_input_j > 0.0);
+            assert!(balance.energy_service_j > 0.0);
+            assert!(balance.energy_loss_j > 0.0);
+            errors.push(error);
+            previous_error = error;
+        }
+
+        // The causal bounded predictor is second-order globally after the
+        // first-interval bootstrap; the ratio approaches four under refinement.
+        for pair in errors.windows(2) {
+            let ratio = pair[0] / pair[1];
+            assert!((3.30..=4.10).contains(&ratio), "observed error ratio {ratio}");
+        }
+    }
+
+    #[test]
+    fn causal_bounded_predictor_rejects_an_empty_communication_grid() {
+        let input = SinusoidalInput {
+            mean_power_w: 500_000.0,
+            amplitude_w: 100_000.0,
+            angular_frequency_rad_per_s: 2.0 * PI / 400.0,
+            initial_theta_k: 2.0,
+        };
+        assert_eq!(
+            model().sinusoidal_causal_bounded_predictor(input, 0.0, 120.0, 0),
+            Err(ModelError::NonPositiveSampleCount)
+        );
+    }
+
+    #[test]
+    fn causal_predictor_starts_at_the_exact_declared_absolute_time() {
+        let model = model();
+        let input = SinusoidalInput {
+            mean_power_w: 500_000.0,
+            amplitude_w: 100_000.0,
+            angular_frequency_rad_per_s: 2.0 * PI / 400.0,
+            initial_theta_k: 2.0,
+        };
+        let reference = model.sinusoidal_interval(input, 30.0, 120.0).unwrap();
+        let result = model
+            .sinusoidal_causal_bounded_predictor(input, 30.0, 120.0, 90)
+            .unwrap();
+        close(result.balance.theta_start_k, reference.theta_start_k, 1.0e-12);
+        close(result.balance.residual_j, 0.0, 3.0e-7);
     }
 
     #[test]
