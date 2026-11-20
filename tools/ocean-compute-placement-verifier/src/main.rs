@@ -51,10 +51,10 @@ struct WorkloadProfile {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ProfileEnergy {
-    compute: u64,
-    network: u64,
-    cooling: u64,
-    total: u64,
+    compute: f64,
+    network: f64,
+    cooling: f64,
+    total: f64,
 }
 
 #[allow(dead_code)]
@@ -210,9 +210,9 @@ fn profile_index<'a>(workloads: &'a WorkloadFixture) -> BTreeMap<&'a str, &'a Wo
             fail(format!("profile {} repeats a placement stratum", profile.id));
         }
         let profile_energy_total = profile.energy_wh.compute
-            .checked_add(profile.energy_wh.network)
-            .and_then(|v| v.checked_add(profile.energy_wh.cooling));
-        if profile_energy_total != Some(profile.energy_wh.total) {
+            + profile.energy_wh.network
+            + profile.energy_wh.cooling;
+        if (profile_energy_total - profile.energy_wh.total).abs() > 1e-9 {
             fail(format!("profile {} baseline energy components do not close", profile.id));
         }
         if profile.rights_state != "synthetic_only" {
