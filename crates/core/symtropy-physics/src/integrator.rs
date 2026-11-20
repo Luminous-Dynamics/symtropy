@@ -27,11 +27,94 @@ pub fn nan_zeroed_count() -> u64 {
     NAN_ZEROED_COUNT.load(Ordering::Relaxed)
 }
 
-/// Integrate a single rigid body forward by dt seconds.
+/// Input errors detected before a rigid-body integration step mutates state.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum IntegratorError {
+    /// The integration timestep must be finite and strictly positive.
+    InvalidTimestep,
+    /// Gravity must contain only finite components.
+    NonFiniteGravity,
+    /// The initial world position contains a NaN or infinity.
+    NonFinitePosition,
+    /// The initial linear velocity contains a NaN or infinity.
+    NonFiniteLinearVelocity,
+    /// The initial angular velocity contains a NaN or infinity.
+    NonFiniteAngularVelocity,
+    /// The initial orientation contains a NaN or infinity.
+    NonFiniteRotation,
+    /// The initial orientation is not a proper rotation.
+    InvalidRotation,
+}
+
+/// Checked integration entry point.
 ///
-/// Semi-implicit Euler: update velocity first, then position.
-/// This is unconditionally stable for Hamiltonian systems (symplectic).
+/// Rejects zero, negative, NaN, and infinite timesteps; non-finite gravity;
+/// and non-finite or malformed dynamic-body position, velocity, or orientation
+/// before mutating state or clearing force/torque accumulators. The existing
+/// non-finite force/torque accumulator sanitization policy remains unchanged.
+///
+/// Semi-implicit (velocity-first) Euler updates velocity before position.
+/// For separable Hamiltonian systems, the undamped fixed-step map is
+/// symplectic. Symplecticity does **not** imply unconditional stability or
+/// timestep-independent accuracy: stability and error depend on the problem,
+/// timestep, and any damping, clamping, contacts, or constraint projections
+/// applied around this integrator.
+pub fn try_integrate<const D: usize>(
+    body: &mut RigidBody<D>,
+    gravity: &SVector<f64, D>,
+    dt: f64,
+) -> Result<(), IntegratorError> {
+    if !dt.is_finite() || dt <= 0.0 {
+        return Err(IntegratorError::InvalidTimestep);
+    }
+    if !gravity.iter().all(|component| component.is_finite()) {
+        return Err(IntegratorError::NonFiniteGravity);
+    }
+    if body.is_dynamic() {
+        if !body
+            .transform
+            .translation
+            .0
+            .iter()
+            .all(|component| component.is_finite())
+        {
+            return Err(IntegratorError::NonFinitePosition);
+        }
+        if !body
+            .linear_velocity
+            .iter()
+            .all(|component| component.is_finite())
+        {
+            return Err(IntegratorError::NonFiniteLinearVelocity);
+        }
+        if !body.angular_velocity.is_finite() {
+            return Err(IntegratorError::NonFiniteAngularVelocity);
+        }
+        let rotation = body.transform.rotation.to_matrix();
+        if !rotation.iter().all(|component| component.is_finite()) {
+            return Err(IntegratorError::NonFiniteRotation);
+        }
+        if !body.transform.rotation.is_proper_rotation(1.0e-8) {
+            return Err(IntegratorError::InvalidRotation);
+        }
+    }
+    integrate_validated_timestep(body, gravity, dt);
+    Ok(())
+}
+
+/// Compatibility wrapper for existing call sites.
+///
+/// Invalid timesteps are rejected without mutating the body. New code that
+/// needs to observe rejection should call try_integrate.
 pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64, D>, dt: f64) {
+    let _ = try_integrate(body, gravity, dt);
+}
+
+fn integrate_validated_timestep<const D: usize>(
+    body: &mut RigidBody<D>,
+    gravity: &SVector<f64, D>,
+    dt: f64,
+) {
     if !body.is_dynamic() {
         body.clear_accumulators();
         return;
@@ -181,6 +264,422 @@ mod tests {
     use crate::body::BodyHandle;
 
     #[test]
+    fn invalid_timesteps_are_rejected_without_mutating_body_or_pending_impulses() {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(69),
+            Point::new([1.0, -2.0, 0.5]),
+            0.2,
+            2.0,
+        );
+        body.linear_velocity = SVector::from([0.5, -0.25, 1.0]);
+        body.angular_velocity.set(0, 1, 0.3);
+        body.angular_velocity.set(0, 2, -0.2);
+        body.apply_force(SVector::from([3.0, 4.0, -5.0]));
+        body.apply_torque(Bivector::<3>::unit_plane(1, 2).scale(0.7));
+
+        let position_before = body.transform.translation.0;
+        let rotation_before = body.transform.rotation.to_matrix();
+        let linear_before = body.linear_velocity;
+        let angular_before = body.angular_velocity;
+        let force_before = body.force_accumulator;
+        let torque_before = body.torque_accumulator;
+
+        for dt in [0.0, -0.01, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert_eq!(
+                try_integrate(&mut body, &SVector::zeros(), dt),
+                Err(IntegratorError::InvalidTimestep),
+                "dt={dt:?} must be rejected"
+            );
+            assert_eq!(body.transform.translation.0, position_before);
+            assert_eq!(
+                (body.transform.rotation.to_matrix() - rotation_before).norm(),
+                0.0
+            );
+            assert_eq!(body.linear_velocity, linear_before);
+            assert_eq!(body.angular_velocity, angular_before);
+            assert_eq!(body.force_accumulator, force_before);
+            assert_eq!(body.torque_accumulator, torque_before);
+        }
+
+        // The legacy void-returning API shares the same fail-closed behavior.
+        integrate(&mut body, &SVector::zeros(), -0.1);
+        assert_eq!(body.transform.translation.0, position_before);
+        assert_eq!(body.linear_velocity, linear_before);
+        assert_eq!(body.angular_velocity, angular_before);
+        assert_eq!(body.force_accumulator, force_before);
+        assert_eq!(body.torque_accumulator, torque_before);
+    }
+
+    #[test]
+    fn non_finite_gravity_is_rejected_without_state_mutation() {
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(68), Point::origin(), 0.2, 1.0);
+        body.linear_velocity = SVector::from([0.5, -0.25, 1.0]);
+        body.apply_force(SVector::from([1.0, 2.0, 3.0]));
+        let position_before = body.transform.translation.0;
+        let velocity_before = body.linear_velocity;
+        let force_before = body.force_accumulator;
+
+        assert_eq!(
+            try_integrate(
+                &mut body,
+                &SVector::from([0.0, f64::NAN, 0.0]),
+                0.01
+            ),
+            Err(IntegratorError::NonFiniteGravity)
+        );
+        assert_eq!(body.transform.translation.0, position_before);
+        assert_eq!(body.linear_velocity, velocity_before);
+        assert_eq!(body.force_accumulator, force_before);
+    }
+
+    #[test]
+    fn non_finite_dynamic_state_is_rejected_without_mutation() {
+        let mut position_body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(65), Point::origin(), 0.2, 1.0);
+        position_body.transform.translation.0[1] = f64::NAN;
+        assert_eq!(
+            try_integrate(&mut position_body, &SVector::zeros(), 0.01),
+            Err(IntegratorError::NonFinitePosition)
+        );
+        assert!(position_body.transform.translation.0[1].is_nan());
+
+        let mut linear_body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(66), Point::origin(), 0.2, 1.0);
+        linear_body.linear_velocity[2] = f64::INFINITY;
+        assert_eq!(
+            try_integrate(&mut linear_body, &SVector::zeros(), 0.01),
+            Err(IntegratorError::NonFiniteLinearVelocity)
+        );
+        assert_eq!(linear_body.linear_velocity[2], f64::INFINITY);
+
+        let mut angular_body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(67), Point::origin(), 0.2, 1.0);
+        angular_body.angular_velocity.set(0, 2, f64::NAN);
+        assert_eq!(
+            try_integrate(&mut angular_body, &SVector::zeros(), 0.01),
+            Err(IntegratorError::NonFiniteAngularVelocity)
+        );
+        assert!(angular_body.angular_velocity.get(0, 2).is_nan());
+    }
+
+    #[test]
+    fn non_finite_and_improper_orientations_are_rejected_without_mutation() {
+        let mut non_finite =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(64), Point::origin(), 0.2, 1.0);
+        non_finite.transform.rotation = Rotor::from_matrix(
+            nalgebra::SMatrix::<f64, 3, 3>::from_element(f64::NAN),
+        );
+        let before = *non_finite.transform.rotation.to_matrix();
+        assert_eq!(
+            try_integrate(&mut non_finite, &SVector::zeros(), 0.01),
+            Err(IntegratorError::NonFiniteRotation)
+        );
+        assert!(non_finite.transform.rotation.to_matrix().iter().all(|x| x.is_nan()));
+        assert!(before.iter().all(|x| x.is_nan()));
+
+        let mut improper =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(63), Point::origin(), 0.2, 1.0);
+        improper.transform.rotation =
+            Rotor::from_matrix(nalgebra::SMatrix::<f64, 3, 3>::identity() * 2.0);
+        let before = *improper.transform.rotation.to_matrix();
+        assert_eq!(
+            try_integrate(&mut improper, &SVector::zeros(), 0.01),
+            Err(IntegratorError::InvalidRotation)
+        );
+        assert_eq!(*improper.transform.rotation.to_matrix(), before);
+    }
+
+    #[test]
+    fn semi_implicit_euler_matches_constant_acceleration_discrete_map() {
+        const STEPS: usize = 137;
+        let dt = 0.013;
+        let mass = 2.5;
+        let initial_position = SVector::from([1.25, -2.0, 0.75]);
+        let initial_velocity = SVector::from([0.3, -0.7, 1.2]);
+        let applied_force = SVector::from([5.0, -1.25, 2.5]);
+        let gravity = SVector::from([-0.2, -9.3, 0.4]);
+        let acceleration = applied_force / mass + gravity;
+
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(70), Point(initial_position), 0.2, mass);
+        body.linear_velocity = initial_velocity;
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+
+        for _ in 0..STEPS {
+            body.apply_force(applied_force);
+            integrate(&mut body, &gravity, dt);
+        }
+
+        let elapsed = STEPS as f64 * dt;
+        let expected_velocity = initial_velocity + acceleration * elapsed;
+        let step_sum = (STEPS * (STEPS + 1)) as f64 / 2.0;
+        let expected_position =
+            initial_position + initial_velocity * elapsed + acceleration * (dt * dt * step_sum);
+
+        let actual_position = body.transform.translation.0;
+        let velocity_tolerance = 2.0e-12 * (1.0 + expected_velocity.norm());
+        let position_tolerance = 2.0e-12 * (1.0 + expected_position.norm());
+        assert!(
+            (body.linear_velocity - expected_velocity).norm() <= velocity_tolerance,
+            "velocity does not match the exact discrete update: actual={:?}, expected={expected_velocity:?}",
+            body.linear_velocity
+        );
+        assert!(
+            (actual_position - expected_position).norm() <= position_tolerance,
+            "position does not match the exact discrete update: actual={actual_position:?}, expected={expected_position:?}"
+        );
+        assert_eq!(body.force_accumulator, SVector::<f64, 3>::zeros());
+    }
+
+    #[test]
+    fn semi_implicit_euler_free_fall_position_error_is_first_order() {
+        let gravity = SVector::from([0.0, -9.81, 0.0]);
+        let initial_position = SVector::from([0.5, 3.0, -1.0]);
+        let initial_velocity = SVector::from([1.25, -0.75, 0.5]);
+        let final_time = 1.0;
+
+        let run = |dt: f64| {
+            let steps = (final_time / dt).round() as usize;
+            assert!((steps as f64 * dt - final_time).abs() < 1.0e-12);
+            let mut body = RigidBody::<3>::dynamic_sphere(
+                BodyHandle(71),
+                Point(initial_position),
+                0.2,
+                1.0,
+            );
+            body.linear_velocity = initial_velocity;
+            body.linear_damping = 0.0;
+            body.angular_damping = 0.0;
+
+            for _ in 0..steps {
+                integrate(&mut body, &gravity, dt);
+            }
+
+            let continuous_position = initial_position
+                + initial_velocity * final_time
+                + gravity * (0.5 * final_time * final_time);
+            let continuous_velocity = initial_velocity + gravity * final_time;
+            (
+                (body.transform.translation.0 - continuous_position).norm(),
+                (body.linear_velocity - continuous_velocity).norm(),
+            )
+        };
+
+        let (coarse_position_error, coarse_velocity_error) = run(0.1);
+        let (fine_position_error, fine_velocity_error) = run(0.05);
+        let observed_ratio = coarse_position_error / fine_position_error;
+
+        assert!(
+            (observed_ratio - 2.0).abs() < 1.0e-10,
+            "halving the timestep should halve semi-implicit Euler's global position error; observed ratio={observed_ratio}"
+        );
+        assert!(
+            coarse_velocity_error < 1.0e-12 && fine_velocity_error < 1.0e-12,
+            "constant-acceleration velocity should be exact absent damping or clamps: coarse={coarse_velocity_error}, fine={fine_velocity_error}"
+        );
+    }
+
+    #[test]
+    fn harmonic_oscillator_map_preserves_phase_space_area_inside_stability_envelope() {
+        let dt = 0.05;
+        let omega = 10.0;
+        let steps = 2_000;
+        let amplitude = 1.0e-3;
+
+        // For this specific velocity-first Euler map, 0 < dt*omega < 2
+        // gives unit-modulus eigenvalues. Two independent initial states
+        // span an area in (q, v); a symplectic map preserves that area.
+        assert!(dt * omega > 0.0 && dt * omega < 2.0);
+
+        let run = |initial_position: f64, initial_velocity: f64, handle: usize| {
+            let mut body = RigidBody::<3>::dynamic_sphere(
+                BodyHandle(handle),
+                Point::origin(),
+                0.2,
+                1.0,
+            );
+            body.transform.translation.0[0] = initial_position;
+            body.linear_velocity[0] = initial_velocity;
+            body.linear_damping = 0.0;
+            body.angular_damping = 0.0;
+
+            let mut max_scaled_amplitude =
+                initial_position.hypot(initial_velocity / omega);
+            for _ in 0..steps {
+                let gravity = SVector::from([
+                    -(omega * omega) * body.transform.translation.0[0],
+                    0.0,
+                    0.0,
+                ]);
+                integrate(&mut body, &gravity, dt);
+                max_scaled_amplitude = max_scaled_amplitude.max(
+                    body.transform.translation.0[0]
+                        .hypot(body.linear_velocity[0] / omega),
+                );
+            }
+            assert!(body.linear_velocity[0].abs() < 1000.0, "velocity clamp activated");
+            (
+                body.transform.translation.0[0],
+                body.linear_velocity[0],
+                max_scaled_amplitude,
+            )
+        };
+
+        let state_a = run(amplitude, 0.0, 72);
+        let state_b = run(0.0, omega * amplitude, 73);
+        let initial_area = amplitude * (omega * amplitude);
+        let final_area = state_a.0 * state_b.1 - state_b.0 * state_a.1;
+        let relative_area_error = (final_area - initial_area).abs() / initial_area;
+
+        assert!(
+            relative_area_error < 1.0e-9,
+            "phase-space area changed under the undamped symplectic map: relative error={relative_area_error}"
+        );
+        assert!(
+            state_a.2 < 1.5 * amplitude && state_b.2 < 1.5 * amplitude,
+            "oscillator amplitude should remain bounded inside the linear stability envelope: {:?}, {:?}",
+            state_a.2,
+            state_b.2
+        );
+    }
+
+    #[test]
+    fn harmonic_oscillator_stability_sweep_respects_the_analytic_amplitude_envelope() {
+        let omega = 10.0;
+        let steps = 2_000;
+        let initial_amplitude = 1.0e-3;
+
+        // For 0 < z = h*omega < 2, the kick-drift map preserves a positive
+        // quadratic form whose Euclidean norm envelope is bounded by
+        // sqrt((1+z/2)/(1-z/2)) times the initial scaled amplitude.
+        for z in [0.1_f64, 0.5, 1.0, 1.5, 1.9, 1.99] {
+            assert!(z > 0.0 && z < 2.0);
+            let dt = z / omega;
+            let mut body = RigidBody::<3>::dynamic_sphere(
+                BodyHandle(75),
+                Point::origin(),
+                0.2,
+                1.0,
+            );
+            body.transform.translation.0[0] = initial_amplitude;
+            body.linear_damping = 0.0;
+            body.angular_damping = 0.0;
+
+            let mut max_scaled_amplitude = initial_amplitude;
+            for _ in 0..steps {
+                let gravity = SVector::from([
+                    -(omega * omega) * body.transform.translation.0[0],
+                    0.0,
+                    0.0,
+                ]);
+                integrate(&mut body, &gravity, dt);
+                let scaled_amplitude = body.transform.translation.0[0]
+                    .hypot(body.linear_velocity[0] / omega);
+                max_scaled_amplitude = max_scaled_amplitude.max(scaled_amplitude);
+            }
+
+            let analytic_envelope =
+                ((1.0 + z / 2.0) / (1.0 - z / 2.0)).sqrt() * initial_amplitude;
+            assert!(
+                max_scaled_amplitude <= analytic_envelope * (1.0 + 1.0e-9),
+                "stable oscillator exceeded analytic amplitude envelope at h*omega={z}: max={max_scaled_amplitude}, bound={analytic_envelope}"
+            );
+            assert!(
+                body.linear_velocity[0].abs() < 1000.0,
+                "velocity clamp activated inside the declared stability interval at h*omega={z}"
+            );
+        }
+    }
+
+    #[test]
+    fn harmonic_oscillator_global_error_has_first_order_convergence() {
+        let omega = 10.0;
+        let amplitude = 1.0e-3;
+        let duration = 1.0;
+        let exact_position = amplitude * (omega * duration).cos();
+        let exact_velocity = -amplitude * omega * (omega * duration).sin();
+
+        let run = |dt: f64, handle: usize| {
+            let steps = (duration / dt).round() as usize;
+            assert!((steps as f64 * dt - duration).abs() < 1.0e-12);
+            let mut body = RigidBody::<3>::dynamic_sphere(
+                BodyHandle(handle),
+                Point::origin(),
+                0.2,
+                1.0,
+            );
+            body.transform.translation.0[0] = amplitude;
+            body.linear_damping = 0.0;
+            body.angular_damping = 0.0;
+
+            for _ in 0..steps {
+                let gravity = SVector::from([
+                    -(omega * omega) * body.transform.translation.0[0],
+                    0.0,
+                    0.0,
+                ]);
+                integrate(&mut body, &gravity, dt);
+            }
+
+            let position_error = body.transform.translation.0[0] - exact_position;
+            let scaled_velocity_error =
+                (body.linear_velocity[0] - exact_velocity) / omega;
+            position_error.hypot(scaled_velocity_error)
+        };
+
+        let coarse_error = run(0.01, 76);
+        let fine_error = run(0.005, 77);
+        let observed_order = (coarse_error / fine_error).log2();
+        assert!(
+            (0.9..=1.2).contains(&observed_order),
+            "expected first-order global oscillator convergence; coarse={coarse_error}, fine={fine_error}, order={observed_order}"
+        );
+    }
+
+    #[test]
+    fn harmonic_oscillator_negative_control_exceeds_velocity_first_stability_limit() {
+        let dt = 0.1;
+        let omega = 21.0;
+        let steps = 8;
+        let amplitude = 1.0e-3;
+        assert!(dt * omega > 2.0);
+
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(74),
+            Point::origin(),
+            0.2,
+            1.0,
+        );
+        body.transform.translation.0[0] = amplitude;
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+
+        let initial_scaled_amplitude = amplitude;
+        for _ in 0..steps {
+            let gravity = SVector::from([
+                -(omega * omega) * body.transform.translation.0[0],
+                0.0,
+                0.0,
+            ]);
+            integrate(&mut body, &gravity, dt);
+        }
+
+        let final_scaled_amplitude = body.transform.translation.0[0]
+            .hypot(body.linear_velocity[0] / omega);
+        assert!(
+            final_scaled_amplitude / initial_scaled_amplitude > 100.0,
+            "outside dt*omega < 2 the unstable mode must grow; observed amplification={}",
+            final_scaled_amplitude / initial_scaled_amplitude
+        );
+        assert!(
+            body.linear_velocity[0].abs() < 1000.0,
+            "negative control must show the unstable map before the safety velocity clamp"
+        );
+    }
+
+    #[test]
     fn free_fall_3d() {
         let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
         let gravity = SVector::from([0.0, -9.81, 0.0]);
@@ -191,10 +690,15 @@ mod tests {
             integrate(&mut body, &gravity, dt);
         }
 
-        // After 1s: y ≈ -0.5 * 9.81 * 1² ≈ -4.905 (with damping, less)
+        // Velocity-first Euler uses v_n = -g*n*h, then x_n += v_n*h.
+        // Its exact discrete result after N steps from rest is
+        // x_N = -g*h²*N*(N+1)/2 = -4.95405 m (not the continuous -4.905 m).
         let y = body.transform.translation.coord(1);
-        assert!(y < -3.0, "y = {y}, expected < -3.0");
-        assert!(y > -6.0, "y = {y}, expected > -6.0 (damping bounds)");
+        let expected_y = -9.81 * dt * dt * (100.0 * 101.0 / 2.0);
+        assert!(
+            (y - expected_y).abs() < 1.0e-11,
+            "y = {y}, expected exact discrete value {expected_y}"
+        );
     }
 
     #[test]
