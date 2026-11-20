@@ -39,7 +39,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
 
-    v = sp.symbols("v3", real=True)
+    v = sp.symbols("v3", positive=True, real=True)
     alpha_sym, alpha_nh = sp.symbols("alpha_sym alpha_NH", positive=True)
     r, r_h = sp.symbols("r r_H", positive=True)
 
@@ -116,7 +116,7 @@ def main() -> None:
     )
     k_source = (4-v)*sp.sqrt(v2_source*v)*sp.pi*v1_source/(2*J_source)
     exact_zero("dimensionless near-horizon k",
-               sp.simplify(k_source.subs(alpha_nh, alpha_sym/4)-kbar))
+               sp.simplify(k_source.subs(alpha_nh, alpha_sym/4)**2-kbar**2))
 
     # Critical endpoint: the source gives v3=0, v1=alpha_NH,
     # v2=J=A_H=S=0. v3=2 is a singular endpoint of this parameterization.
