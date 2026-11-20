@@ -29,11 +29,32 @@ pub enum ActionExecutionOutcome {
     NotAttempted,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ActuationDisposition {
+    NotApplicable,
+    NotAcquired,
+    Acquired,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum RejectionBoundary {
+    BeforeActuation,
+    AfterActuation,
+    Unknown,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ActionExecution {
     pub action_id: String,
     pub outcome: ActionExecutionOutcome,
+    pub actuation_disposition: ActuationDisposition,
+    pub rejection_boundary: Option<RejectionBoundary>,
+    pub no_actuation_receipt_ref: Option<String>,
+    pub no_actuation_receipt_sha256: Option<String>,
     pub result_receipt_ref: Option<String>,
     pub result_receipt_sha256: Option<String>,
 }
@@ -66,6 +87,7 @@ pub struct TransitionAuditReport {
     pub rejected_action_count: usize,
     pub failed_action_count: usize,
     pub not_attempted_action_count: usize,
+    pub unverified_rejected_physical_action_count: usize,
     pub result_status: String,
     pub unsupported_action_ids: Vec<String>,
     pub claim_boundary: String,
@@ -211,6 +233,18 @@ fn validate_state_shape(
         }
     }
     errors
+}
+
+fn is_physical_action(kind: ActionKind) -> bool {
+    matches!(
+        kind,
+        ActionKind::MoveCrew
+            | ActionKind::RepairFault
+            | ActionKind::MoveMobileSource
+            | ActionKind::ConnectMobileSource
+            | ActionKind::DisconnectMobileSource
+            | ActionKind::SetSwitchState
+    )
 }
 
 fn apply_supported_action(
@@ -376,19 +410,87 @@ pub fn audit_transition(
     let mut rejected_action_count = 0;
     let mut failed_action_count = 0;
     let mut not_attempted_action_count = 0;
+    let mut unverified_rejected_physical_action_count = 0;
 
     for action in &proposal.actions {
         let execution = executions.get(action.action_id.as_str()).expect("execution set was checked");
+        let physical = is_physical_action(action.action_kind);
+        if !physical {
+            if execution.actuation_disposition != ActuationDisposition::NotApplicable
+                || execution.rejection_boundary.is_some()
+                || execution.no_actuation_receipt_ref.is_some()
+                || execution.no_actuation_receipt_sha256.is_some()
+            {
+                errors.push(format!(
+                    "non-mutating action {} carries an incompatible actuation/rejection claim",
+                    action.action_id
+                ));
+                continue;
+            }
+        } else {
+            match (execution.outcome, execution.actuation_disposition) {
+                (ActionExecutionOutcome::Applied, ActuationDisposition::Acquired) => {
+                    if execution.rejection_boundary.is_some()
+                        || execution.no_actuation_receipt_ref.is_some()
+                        || execution.no_actuation_receipt_sha256.is_some()
+                    {
+                        errors.push(format!(
+                            "applied physical action {} carries a rejection/no-actuation claim",
+                            action.action_id
+                        ));
+                        continue;
+                    }
+                }
+                (ActionExecutionOutcome::Rejected, ActuationDisposition::NotAcquired) => {
+                    if execution.rejection_boundary != Some(RejectionBoundary::BeforeActuation) {
+                        unsupported_action_ids.push(action.action_id.clone());
+                        unverified_rejected_physical_action_count += 1;
+                        continue;
+                    }
+                    let receipt_pair_valid = matches!(
+                        (
+                            execution.no_actuation_receipt_ref.as_deref(),
+                            execution.no_actuation_receipt_sha256.as_deref()
+                        ),
+                        (Some(reference), Some(digest))
+                            if valid_id(reference) && is_lower_hex(digest, 64)
+                    );
+                    if !receipt_pair_valid {
+                        unsupported_action_ids.push(action.action_id.clone());
+                        unverified_rejected_physical_action_count += 1;
+                        continue;
+                    }
+                    // Presence and digest shape are not authentication. A separate
+                    // trusted actuation-witness verifier must validate this receipt
+                    // before any higher-level claim can treat the rejection as safe.
+                    unsupported_action_ids.push(action.action_id.clone());
+                    unverified_rejected_physical_action_count += 1;
+                    continue;
+                }
+                (ActionExecutionOutcome::Rejected, ActuationDisposition::Acquired) => {
+                    errors.push(format!(
+                        "action {} is marked rejected although actuation was acquired",
+                        action.action_id
+                    ));
+                    continue;
+                }
+                (ActionExecutionOutcome::Failed, _) => {
+                    failed_action_count += 1;
+                    unsupported_action_ids.push(action.action_id.clone());
+                    continue;
+                }
+                (ActionExecutionOutcome::NotAttempted, ActuationDisposition::NotApplicable) => {}
+                _ => {
+                    unsupported_action_ids.push(action.action_id.clone());
+                    continue;
+                }
+            }
+        }
+
         match execution.outcome {
             ActionExecutionOutcome::Applied => applied_action_count += 1,
             ActionExecutionOutcome::Rejected => rejected_action_count += 1,
-            ActionExecutionOutcome::Failed => {
-                failed_action_count += 1;
-                // Failure may have partially mutated equipment or work progress.
-                // The current state model cannot represent that uncertainty.
-                unsupported_action_ids.push(action.action_id.clone());
-                continue;
-            }
+            ActionExecutionOutcome::Failed => { unreachable!("failed outcomes are handled as inconclusive above") }
             ActionExecutionOutcome::NotAttempted => not_attempted_action_count += 1,
         }
         match apply_supported_action(action, execution, case, &mut expected_successor) {
@@ -413,9 +515,14 @@ pub fn audit_transition(
             rejected_action_count,
             failed_action_count,
             not_attempted_action_count,
-            result_status: "inconclusive_unsupported_action_semantics".to_string(),
+            unverified_rejected_physical_action_count,
+            result_status: if unverified_rejected_physical_action_count > 0 {
+                "inconclusive_unverified_actuation_boundary".to_string()
+            } else {
+                "inconclusive_unsupported_action_semantics".to_string()
+            },
             unsupported_action_ids,
-            claim_boundary: "Only supported discrete state deltas were replayed. At least one applied crew-movement, mobile-source-movement or repair action requires a specialist transition model; no state-transition correctness or physical feasibility claim is made.".to_string(),
+            claim_boundary: "Only supported discrete state deltas were replayed. Rejected physical actions remain INCONCLUSIVE until a separately trusted actuation witness proves the command was rejected before actuation acquisition. Unsupported movement/repair semantics are not inferred. No electrical or physical-safety claim is made.".to_string(),
         });
     }
 
@@ -436,6 +543,7 @@ pub fn audit_transition(
         rejected_action_count,
         failed_action_count,
         not_attempted_action_count,
+        unverified_rejected_physical_action_count,
         result_status: "supported_transition_state_delta_verified".to_string(),
         unsupported_action_ids,
         claim_boundary: "Deterministic state delta for explicit switch-state, mobile-source connection and non-mutating observation actions only. This is not radiality, AC/three-phase feasibility, protection, authority, commissioning, delivered-service or field-safety qualification.".to_string(),
