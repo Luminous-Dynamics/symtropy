@@ -9842,8 +9842,8 @@
         },
         {
           "provider_id": "B",
-          "switch_start_tick": 3,
-          "activation_tick": 2,
+          "switch_start_tick": 2,
+          "activation_tick": 4,
           "prior_outcome_reconciliation": "resolved"
         }
       ],
