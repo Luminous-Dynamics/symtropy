@@ -244,7 +244,17 @@ fn summarize_evidence(units: &[ActuatorUnit]) -> EvidenceQualification {
         ])
         .collect();
 
-    if classes.contains(&EvidenceClass::Unknown) {
+    let required_values_incomplete = units.iter().any(|unit| {
+        unit.output_torque_nm.is_none()
+            || unit.continuous_torque_capability_lower_nm.is_none()
+            || unit.peak_torque_capability_lower_nm.is_none()
+            || unit.maximum_speed_capability_lower_rad_s.is_none()
+            || unit.output_speed_rad_s.is_none()
+            || unit.temperature_c.is_none()
+            || unit.thermal_limit_lower_c.is_none()
+    });
+
+    if classes.contains(&EvidenceClass::Unknown) || required_values_incomplete {
         return EvidenceQualification::Incomplete;
     }
     let contains_synthetic = classes.contains(&EvidenceClass::Synthetic);
@@ -1089,6 +1099,24 @@ mod tests {
             a,
             unit("B", interval(5.0, 6.0), interval(41.0, 43.0)),
         ])).unwrap();
+        assert_eq!(report.evidence_qualification, EvidenceQualification::Incomplete);
+    }
+
+    #[test]
+    fn sharing_032_missing_required_quantity_prevents_complete_physical_evidence() {
+        let mut a = unit("A", interval(4.0, 5.0), interval(40.0, 42.0));
+        let mut b = unit("B", interval(5.0, 6.0), interval(41.0, 43.0));
+        for unit in [&mut a, &mut b] {
+            unit.torque_evidence_class = EvidenceClass::IndependentPhysical;
+            unit.torque_source_reference = Some(format!("urn:measurement:torque:{}", unit.actuator_id));
+            unit.capability_evidence_class = EvidenceClass::IndependentPhysical;
+            unit.capability_source_reference = Some(format!("urn:measurement:capability:{}", unit.actuator_id));
+            unit.thermal_evidence_class = EvidenceClass::IndependentPhysical;
+            unit.thermal_source_reference = Some(format!("urn:measurement:thermal:{}", unit.actuator_id));
+        }
+        a.output_speed_rad_s = None;
+        let report = evaluate_joint(&input(vec![a, b])).unwrap();
+        assert_eq!(report.disposition, JointDisposition::Unknown);
         assert_eq!(report.evidence_qualification, EvidenceQualification::Incomplete);
     }
 
