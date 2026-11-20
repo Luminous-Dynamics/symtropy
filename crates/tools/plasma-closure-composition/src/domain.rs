@@ -344,7 +344,15 @@ fn validate_internal_face(
         }
     }
     let weight_sum = compensated_sum(face.candidate_weights.iter().copied());
-    if !weight_sum.is_finite() || (weight_sum - 1.0).abs() > weight_sum_tolerance {
+    if !weight_sum.is_finite()
+        || !face.weight_sum.is_finite()
+        || (weight_sum - 1.0).abs() > weight_sum_tolerance
+        || (face.weight_sum - weight_sum).abs() > weight_sum_tolerance
+        || face
+            .candidate_receipts
+            .windows(2)
+            .any(|pair| pair[0].expert_id >= pair[1].expert_id)
+    {
         return Err(DomainBalanceError::InvalidCandidateReceipt(
             face.face_id.clone(),
         ));
@@ -745,6 +753,17 @@ mod tests {
             assemble_domain_balance(&request(
                 vec!["cell-0", "cell-1"],
                 vec![unqualified],
+                vec![],
+            )),
+            Err(DomainBalanceError::InvalidCandidateReceipt(_))
+        ));
+
+        let mut wrong_weight_sum = internal_face("wrong-weight-sum", "cell-0", "cell-1", vec![1.0, 1.0]);
+        wrong_weight_sum.weight_sum = 0.9;
+        assert!(matches!(
+            assemble_domain_balance(&request(
+                vec!["cell-0", "cell-1"],
+                vec![wrong_weight_sum],
                 vec![],
             )),
             Err(DomainBalanceError::InvalidCandidateReceipt(_))
