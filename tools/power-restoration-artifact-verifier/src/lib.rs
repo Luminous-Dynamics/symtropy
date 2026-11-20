@@ -1792,7 +1792,6 @@ pub fn verify_restoration_claim_evidence(
         "signed_evidence_chain_verified_but_run_not_complete"
     };
 
-    let _ = all_sources;
     Ok(RestorationClaimVerificationReport {
         run_id: receipt.run_id.clone(),
         run_receipt_sha256: receipt_sha256,
