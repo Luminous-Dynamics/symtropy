@@ -253,5 +253,6 @@
         "response_tick": 191
       }
     ]
-  }
+  },
+  "measurement_status": "synthetic_reference"
 }
