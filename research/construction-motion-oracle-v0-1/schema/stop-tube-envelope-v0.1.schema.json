@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-stop-tube-envelope-v0.1.json",
+  "title": "Construction Stop-Tube Envelope Receipt v0.1",
+  "description": "Receipt binding a continuous, complete full-body stopping-reachability envelope to a nominal trajectory, exact robot/tool/payload configuration, stopping dynamics and composite occupancy envelope. The consumer must verify canonical bytes and signatures.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "stop_tube_sha256",
+    "stop_tube_receipt_sha256",
+    "stop_tube_builder_build_sha256",
+    "composite_envelope_sha256",
+    "nominal_trajectory_sha256",
+    "trigger_domain_sha256",
+    "primitive_manifest_sha256",
+    "robot_configuration_sha256",
+    "tool_configuration_sha256",
+    "payload_configuration_sha256",
+    "frame_sha256",
+    "transform_sha256",
+    "stopping_profile_sha256",
+    "stopping_qualification_receipt_sha256",
+    "operating_condition_sha256",
+    "scenario_context_sha256",
+    "site_clock_domain_id",
+    "trigger_domain_start_tick",
+    "trigger_domain_end_tick",
+    "stop_coverage_duration_ms",
+    "conservative_stop_distance_bound_mm",
+    "primitive_count",
+    "trigger_domain_coverage_complete",
+    "primitive_coverage_complete",
+    "continuous_time_coverage_complete",
+    "conservative_outer_bound",
+    "valid_until_tick"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-stop-tube-envelope-receipt/0.1"
+    },
+    "stop_tube_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "stop_tube_receipt_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "stop_tube_builder_build_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "composite_envelope_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "nominal_trajectory_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "trigger_domain_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "primitive_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "robot_configuration_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "tool_configuration_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "payload_configuration_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "frame_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "transform_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "stopping_profile_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "stopping_qualification_receipt_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "operating_condition_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "scenario_context_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "site_clock_domain_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trigger_domain_start_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "trigger_domain_end_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stop_coverage_duration_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "conservative_stop_distance_bound_mm": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "primitive_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "trigger_domain_coverage_complete": {
+      "const": true
+    },
+    "primitive_coverage_complete": {
+      "const": true
+    },
+    "continuous_time_coverage_complete": {
+      "const": true
+    },
+    "conservative_outer_bound": {
+      "const": true
+    },
+    "valid_until_tick": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
