@@ -52,6 +52,19 @@ def validate_schema_shape(transcript, schema):
             "transcript importer/version mismatch")
     for key in ("claim_ceiling", "runtime", "fmus", "summary", "events"):
         require(key in transcript, f"missing transcript root key: {key}")
+    runtime = transcript["runtime"]
+    require(set(runtime) == {"python", "platform", "dependencies"},
+            "runtime field set mismatch")
+    required_dependencies = {
+        "FMPy", "attrs", "cmake", "jinja2", "lark",
+        "lxml", "msgpack", "nbformat", "numpy"
+    }
+    require(set(runtime["dependencies"]) == required_dependencies,
+            "runtime dependency version set mismatch")
+    require(all(isinstance(value, str) and value
+                for value in runtime["dependencies"].values()),
+            "runtime dependency versions must be non-empty strings")
+
     require(set(transcript) == {
         "schema_version", "observation_boundary", "claim_ceiling", "importer",
         "runtime", "fmus", "summary", "events"
