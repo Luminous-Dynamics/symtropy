@@ -240,7 +240,7 @@ fn road_graph_fingerprint(case: &BenchmarkCase) -> Result<String, String> {
             .count();
         node_labels.push(format!(
             "road-node;power-interface={};starting-crews={crew_count};starting-mobile-sources={mobile_source_count}",
-            node.power_node_id.is_empty().not()
+            !node.power_node_id.is_empty()
         ));
     }
 
@@ -440,7 +440,11 @@ pub fn audit_splits(input: &SplitAuditInput) -> Result<SplitAuditReport, Vec<Str
         leakage_finding_count: leakage_findings.len(),
         case_findings,
         leakage_findings,
-        result_status: "split_assignment_and_topology_fingerprints_valid".to_string(),
+        result_status: if leakage_findings.is_empty() {
+            "split_assignment_and_topology_fingerprints_valid".to_string()
+        } else {
+            "topology_leakage_detected".to_string()
+        },
         claim_boundary: "Split identity, case digest and identifier-invariant topology fingerprint screening only. The Weisfeiler-Lehman fingerprint is not a complete graph-isomorphism proof; declared topology-family IDs require reviewed provenance. This audit does not prove absence of all semantic, temporal, data, feature or model leakage.".to_string(),
     })
 }
@@ -518,8 +522,10 @@ mod tests {
         let mut input = split_input();
         input.manifest.assignments[1].topology_family_id =
             input.manifest.assignments[0].topology_family_id.clone();
-        let error = audit_splits(&input).unwrap_err();
-        assert!(error.is_empty()); // see leakage report assertion below
+        let report = audit_splits(&input).unwrap();
+        assert_eq!(report.leakage_finding_count, 1);
+        assert_eq!(report.leakage_findings[0].leakage_kind, "topology_family_cross_split");
+        assert_eq!(report.result_status, "topology_leakage_detected");
     }
 
     #[test]
@@ -548,7 +554,7 @@ mod tests {
 
     #[test]
     fn renaming_nodes_does_not_change_structural_fingerprint() {
-        let mut original = base_case();
+        let original = base_case();
         let first = topology_fingerprint(&original).unwrap();
         let mut renamed = original.clone();
         for (index, node) in renamed.network.nodes.iter_mut().enumerate() {
@@ -558,9 +564,6 @@ mod tests {
             .zip(renamed.network.nodes.iter())
             .map(|(old, new)| (old.node_id.clone(), new.node_id.clone()))
             .collect();
-        for (old, new) in original.network.branches.iter().zip(renamed.network.branches.iter()) {
-            let _ = (old, new);
-        }
         for (index, branch) in renamed.network.branches.iter_mut().enumerate() {
             let old = &original.network.branches[index];
             branch.from_node_id = mapping[&old.from_node_id].clone();
