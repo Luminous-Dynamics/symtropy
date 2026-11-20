@@ -405,8 +405,10 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             observed_at: observed_at.clone(),
             received_at: received_at.clone(),
         };
-        if cursor.boot_epoch_id.is_empty() || cursor.source_sequence == 0 {
-            errors.push(format!("sample '{sample_id}' has missing boot epoch or source sequence"));
+        if cursor.boot_epoch_id.is_empty() || cursor.source_sequence == 0
+            || string_at(observation,"boot_epoch_transition_ref").is_none_or(str::is_empty)
+        {
+            errors.push(format!("sample '{sample_id}' has missing boot epoch, source sequence or boot receipt reference"));
             continue;
         }
         if let Some(previous) = cursors.get(&source_id) {
@@ -475,6 +477,10 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             signal_issue_reasons.entry(signal_id).or_default().push("calibration expired or not yet valid".to_owned());
             continue;
         }
+        if string_at(observation,"calibration_id").is_none_or(str::is_empty) {
+            errors.push(format!("sample '{sample_id}' has no calibration identity"));
+            continue;
+        }
         if string_at(observation,"quality") != Some("good")
             || number_at(observation,"uncertainty").is_none_or(|value| value > contract.max_measurement_uncertainty)
         {
@@ -492,6 +498,13 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         }
         let value_number = value_number.unwrap();
         let uncertainty = uncertainty.unwrap_or(f64::INFINITY);
+        if value_number - uncertainty < contract.minimum_value
+            || value_number + uncertainty > contract.maximum_value
+        {
+            observation_issues.push(json!({"sample_id":sample_id,"signal_id":signal_id,"disposition":"DEGRADED","reason":"measurement interval crosses the signal contract range"}));
+            signal_issue_reasons.entry(signal_id).or_default().push("measurement interval crosses declared range".to_owned());
+            continue;
+        }
         latest_by_signal.entry(signal_id.clone()).or_default().insert(source_id.clone(),QualifiedObservation {
             sample_id:sample_id.clone(),
             value:value_number,
@@ -500,7 +513,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             source_id:source_id.clone(),
             failure_domains:source.failure_domains.clone()
         });
-        observation_issues.push(json!({"sample_id":sample_id,"signal_id":signal_id,"disposition":"QUALIFIED","age_seconds":age_seconds}));
+        observation_issues.push(json!({"sample_id":sample_id,"signal_id":signal_id,"disposition":"VALIDATED_INPUT","age_seconds":age_seconds,"note":"signal-level quorum and disagreement disposition is computed after the full source set is evaluated"}));
     }
 
     let mut signal_reports = Vec::<Value>::new();
@@ -721,6 +734,23 @@ mod tests {
         let tank=audit(&value)["signals"].as_array().unwrap().iter()
             .find(|signal|signal["signal_id"]=="freshwater_tank_level").unwrap().clone();
         assert_eq!(tank["usable"],false);
+    }
+
+    #[test]
+    fn uncertainty_interval_outside_physical_signal_range_is_not_usable() {
+        let mut value=fixture();
+        value["observations"][0]["value"]=json!(2.0);
+        value["observations"][0]["uncertainty"]=json!(4.0);
+        reseal(&mut value);
+        assert_eq!(audit(&value)["disposition"],"DEGRADED/ABSTAIN");
+    }
+
+    #[test]
+    fn missing_calibration_identifier_is_invalid() {
+        let mut value=fixture();
+        value["observations"][0]["calibration_id"]=json!("");
+        reseal(&mut value);
+        assert_eq!(audit(&value)["disposition"],"INVALID");
     }
 
     #[test]
