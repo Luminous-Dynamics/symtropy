@@ -91,3 +91,22 @@ The first fixture intentionally has two truck-only controls with explicit zero a
 
 The screen does **not** calculate axle loads, detailed CG, restraint, braking, crashworthiness, structure, thermal runaway propagation, HV isolation, EMC, cybersecurity, aircraft performance, aerodynamic energy, flight approval or economics. Those remain with the EV / road-dynamics, cargo, battery, airworthiness, site and factory qualification owners. It does not rank architecture options or authorize physical operation.
 
+
+
+## EV carrier interface-control evidence admission (v0.1)
+
+The `ev_carrier_interface_screen` binary reads the versioned carrier interface register and classifies declared vehicle/module port pairs as `compatible`, `incompatible` or `indeterminate`.
+
+Run the synthetic contract example:
+
+```bash
+cargo run --quiet --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml \
+  --bin ev_carrier_interface_screen -- \
+  tools/rural-industrial-electrification-evaluator/fixtures/ev_carrier_interface_examples_v0_1.json
+```
+
+The screen requires unique ports and pair IDs, exact vehicle/module configuration digests, controlled profile references, SHA-256 profile/report digests, matching family/mating-profile/revision declarations, side-correct port references, evidence scope and an explicit evaluation time. A declared family or mating-profile mismatch is `incompatible`; missing/unreviewed/synthetic/stale/revoked or out-of-scope qualification evidence remains `indeterminate`. `compatible` requires current, independently qualified evidence for both port profiles and the exact pair/configuration scope.
+
+The current fixture intentionally produces one incompatible mount-profile pair and two indeterminate HV/data pairs. It contains no real voltage/current/load/thermal/IP ratings and demonstrates no physically qualified interface. The CLI is an evidence-admission screen only: `production_release_ready=false`, `physical_effect_authorized=false`, and `commands_emitted=false` for every report. It does not parse or verify the engineering drawings, authenticate report issuers, calculate structural or electrical margins, or grant production/flight authority.
+
+The controlling design and test programme is [EV-CARRIER-ICD-001 #6308](https://github.com/Luminous-Dynamics/symtropy/issues/6308), with the interface-control template in [EV_CARRIER_INTERFACE_CONTROL_V0_1.md](../../../docs/research/EV_CARRIER_INTERFACE_CONTROL_V0_1.md).
