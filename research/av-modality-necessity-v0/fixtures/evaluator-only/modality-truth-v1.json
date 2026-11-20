@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-modality-necessity-v0",
+  "warning": "Evaluator only. Actual modality necessity labels and event truth must never be mounted into candidate policy process.",
+  "episodes": [
+    {
+      "episode_id": "mod-001-audio-needed-a",
+      "necessity": "audio_necessary",
+      "truth_answer": "impact",
+      "video_sufficient": false,
+      "audio_sufficient": true,
+      "joint_sufficient": true,
+      "source_event_id": "evt-a1"
+    },
+    {
+      "episode_id": "mod-001-audio-needed-b",
+      "necessity": "audio_necessary",
+      "truth_answer": "footsteps",
+      "video_sufficient": false,
+      "audio_sufficient": true,
+      "joint_sufficient": true,
+      "source_event_id": "evt-a2"
+    },
+    {
+      "episode_id": "mod-002-video-needed-a",
+      "necessity": "video_necessary",
+      "truth_answer": "vehicle",
+      "video_sufficient": true,
+      "audio_sufficient": false,
+      "joint_sufficient": true,
+      "source_event_id": "evt-v1"
+    },
+    {
+      "episode_id": "mod-002-video-needed-b",
+      "necessity": "video_necessary",
+      "truth_answer": "appliance",
+      "video_sufficient": true,
+      "audio_sufficient": false,
+      "joint_sufficient": true,
+      "source_event_id": "evt-v2"
+    },
+    {
+      "episode_id": "mod-003-joint-needed-a",
+      "necessity": "jointly_necessary",
+      "truth_answer": "alarm-from-service-robot",
+      "video_sufficient": false,
+      "audio_sufficient": false,
+      "joint_sufficient": true,
+      "source_event_id": "evt-j1"
+    },
+    {
+      "episode_id": "mod-003-joint-needed-b",
+      "necessity": "jointly_necessary",
+      "truth_answer": "impact-from-maintenance-cart",
+      "video_sufficient": false,
+      "audio_sufficient": false,
+      "joint_sufficient": true,
+      "source_event_id": "evt-j2"
+    },
+    {
+      "episode_id": "mod-004-audio-video-conflict",
+      "necessity": "conflict_abstain_or_separate_hypotheses",
+      "truth_answer": "different_sources",
+      "video_sufficient": true,
+      "audio_sufficient": true,
+      "joint_sufficient": false,
+      "source_event_id": "evt-conflict"
+    },
+    {
+      "episode_id": "mod-005-common-cause-redundancy",
+      "necessity": "dependent_redundant_views",
+      "truth_answer": "one_source_not_independent_corroboration",
+      "video_sufficient": true,
+      "audio_sufficient": true,
+      "joint_sufficient": true,
+      "source_event_id": "evt-impact-7",
+      "shared_dependency_group": "root-event-impact-7"
+    },
+    {
+      "episode_id": "mod-006-nonspeech-audio",
+      "necessity": "non_speech_audio_required",
+      "truth_answer": "alarm_pulse",
+      "video_sufficient": false,
+      "audio_sufficient": true,
+      "joint_sufficient": true,
+      "transcript_shortcut_valid": false,
+      "source_event_id": "evt-nonspeech"
+    },
+    {
+      "episode_id": "mod-007-temporal-misalignment",
+      "necessity": "no_cross_modal_association",
+      "truth_answer": "not_coincident",
+      "video_sufficient": true,
+      "audio_sufficient": true,
+      "joint_sufficient": false,
+      "source_event_id": "evt-misaligned"
+    },
+    {
+      "episode_id": "mod-008-missing-audio",
+      "necessity": "abstain_audio_missing",
+      "truth_answer": "insufficient_audio_evidence",
+      "video_sufficient": false,
+      "audio_sufficient": false,
+      "joint_sufficient": false,
+      "source_event_id": "evt-missing"
+    },
+    {
+      "episode_id": "mod-009-nuisance-shortcut",
+      "necessity": "nuisance_invariant_pair",
+      "truth_answer": "supported_event_a",
+      "video_sufficient": false,
+      "audio_sufficient": false,
+      "joint_sufficient": true,
+      "source_event_id": "evt-nuisance-a"
+    },
+    {
+      "episode_id": "mod-009-nuisance-shortcut-b",
+      "necessity": "nuisance_invariant_pair",
+      "truth_answer": "supported_event_b",
+      "video_sufficient": false,
+      "audio_sufficient": false,
+      "joint_sufficient": true,
+      "source_event_id": "evt-nuisance-b"
+    }
+  ]
+}
