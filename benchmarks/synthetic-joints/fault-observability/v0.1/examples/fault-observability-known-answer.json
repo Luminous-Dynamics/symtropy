@@ -1,0 +1,224 @@
+{
+  "schema_version": "0.1.0",
+  "campaign": {
+    "plan": {
+      "campaign_id": "synthetic-gdhdd-inspired-event-campaign-v0.1",
+      "detector_digest": "synthetic-detector-digest-v1",
+      "dataset_digest": "synthetic-fixture-dataset-not-gdhdd",
+      "system_boundary_digest": "complete-installed-joint-boundary-v1",
+      "operating_condition_digest": "48V-25C-thermal-plate-A-v1",
+      "mission_set_digest": "synthetic-fault-campaign-mission-v1",
+      "expected_fault_classes": [
+        "gearbox_backlash",
+        "bearing_wear",
+        "encoder_dropout"
+      ],
+      "minimum_detection_wilson_lower_95": 0.8,
+      "maximum_false_alarms_per_hour": 0.2,
+      "minimum_independent_specimens_per_amplitude": 16,
+      "evidence_class": "synthetic_fixture"
+    },
+    "fault_episodes": [
+      {
+        "episode_id": "episode-a-backlash",
+        "specimen_id": "specimen-a",
+        "fault_class": "gearbox_backlash",
+        "amplitude": 0.3,
+        "amplitude_unit": "normalized_fault_severity",
+        "onset_s": 1,
+        "clear_s": 5,
+        "termination": "fault_cleared",
+        "evidence_class": "synthetic_fixture",
+        "ground_truth_reference": "https://example.invalid/ground-truth/episode-a-backlash",
+        "raw_trace_digest": "synthetic-raw-trace-episode-a-backlash",
+        "configuration_digest": "configuration-specimen-a",
+        "system_boundary_digest": "complete-installed-joint-boundary-v1",
+        "operating_condition_digest": "48V-25C-thermal-plate-A-v1",
+        "mission_set_digest": "synthetic-fault-campaign-mission-v1"
+      },
+      {
+        "episode_id": "episode-b-backlash",
+        "specimen_id": "specimen-b",
+        "fault_class": "gearbox_backlash",
+        "amplitude": 0.3,
+        "amplitude_unit": "normalized_fault_severity",
+        "onset_s": 1,
+        "clear_s": 5,
+        "termination": "fault_cleared",
+        "evidence_class": "synthetic_fixture",
+        "ground_truth_reference": "https://example.invalid/ground-truth/episode-b-backlash",
+        "raw_trace_digest": "synthetic-raw-trace-episode-b-backlash",
+        "configuration_digest": "configuration-specimen-b",
+        "system_boundary_digest": "complete-installed-joint-boundary-v1",
+        "operating_condition_digest": "48V-25C-thermal-plate-A-v1",
+        "mission_set_digest": "synthetic-fault-campaign-mission-v1"
+      },
+      {
+        "episode_id": "episode-b-bearing",
+        "specimen_id": "specimen-b",
+        "fault_class": "bearing_wear",
+        "amplitude": 0.4,
+        "amplitude_unit": "normalized_fault_severity",
+        "onset_s": 1,
+        "clear_s": 5,
+        "termination": "fault_cleared",
+        "evidence_class": "synthetic_fixture",
+        "ground_truth_reference": "https://example.invalid/ground-truth/episode-b-bearing",
+        "raw_trace_digest": "synthetic-raw-trace-episode-b-bearing",
+        "configuration_digest": "configuration-specimen-b",
+        "system_boundary_digest": "complete-installed-joint-boundary-v1",
+        "operating_condition_digest": "48V-25C-thermal-plate-A-v1",
+        "mission_set_digest": "synthetic-fault-campaign-mission-v1"
+      },
+      {
+        "episode_id": "episode-c-encoder",
+        "specimen_id": "specimen-c",
+        "fault_class": "encoder_dropout",
+        "amplitude": 0.2,
+        "amplitude_unit": "normalized_fault_severity",
+        "onset_s": 1,
+        "clear_s": 5,
+        "termination": "fault_cleared",
+        "evidence_class": "synthetic_fixture",
+        "ground_truth_reference": "https://example.invalid/ground-truth/episode-c-encoder",
+        "raw_trace_digest": "synthetic-raw-trace-episode-c-encoder",
+        "configuration_digest": "configuration-specimen-c",
+        "system_boundary_digest": "complete-installed-joint-boundary-v1",
+        "operating_condition_digest": "48V-25C-thermal-plate-A-v1",
+        "mission_set_digest": "synthetic-fault-campaign-mission-v1"
+      },
+      {
+        "episode_id": "episode-d-backlash-censored",
+        "specimen_id": "specimen-d",
+        "fault_class": "gearbox_backlash",
+        "amplitude": 0.2,
+        "amplitude_unit": "normalized_fault_severity",
+        "onset_s": 1,
+        "clear_s": 5,
+        "termination": "observation_ended",
+        "evidence_class": "synthetic_fixture",
+        "ground_truth_reference": "https://example.invalid/ground-truth/episode-d-backlash-censored",
+        "raw_trace_digest": "synthetic-raw-trace-episode-d-backlash-censored",
+        "configuration_digest": "configuration-specimen-d",
+        "system_boundary_digest": "complete-installed-joint-boundary-v1",
+        "operating_condition_digest": "48V-25C-thermal-plate-A-v1",
+        "mission_set_digest": "synthetic-fault-campaign-mission-v1"
+      }
+    ],
+    "alarm_episodes": [
+      {
+        "alarm_id": "alarm-a-backlash",
+        "specimen_id": "specimen-a",
+        "alarm_time_s": 2,
+        "hypothesized_fault_classes": [
+          "gearbox_backlash"
+        ],
+        "detector_digest": "synthetic-detector-digest-v1",
+        "channel_set_digest": "vibration-servo-metrology-v1",
+        "source_reference": "https://example.invalid/alarms/alarm-a-backlash",
+        "method": "Synthetic known-answer detector output; not a physical diagnostic result.",
+        "configuration_digest": "configuration-specimen-a",
+        "system_boundary_digest": "complete-installed-joint-boundary-v1",
+        "operating_condition_digest": "48V-25C-thermal-plate-A-v1",
+        "mission_set_digest": "synthetic-fault-campaign-mission-v1"
+      },
+      {
+        "alarm_id": "alarm-a-false",
+        "specimen_id": "specimen-a",
+        "alarm_time_s": 20,
+        "hypothesized_fault_classes": [
+          "gearbox_backlash"
+        ],
+        "detector_digest": "synthetic-detector-digest-v1",
+        "channel_set_digest": "vibration-servo-metrology-v1",
+        "source_reference": "https://example.invalid/alarms/alarm-a-false",
+        "method": "Synthetic known-answer detector output; not a physical diagnostic result.",
+        "configuration_digest": "configuration-specimen-a",
+        "system_boundary_digest": "complete-installed-joint-boundary-v1",
+        "operating_condition_digest": "48V-25C-thermal-plate-A-v1",
+        "mission_set_digest": "synthetic-fault-campaign-mission-v1"
+      },
+      {
+        "alarm_id": "alarm-b-compound",
+        "specimen_id": "specimen-b",
+        "alarm_time_s": 2,
+        "hypothesized_fault_classes": [
+          "gearbox_backlash",
+          "bearing_wear"
+        ],
+        "detector_digest": "synthetic-detector-digest-v1",
+        "channel_set_digest": "vibration-servo-metrology-v1",
+        "source_reference": "https://example.invalid/alarms/alarm-b-compound",
+        "method": "Synthetic known-answer detector output; not a physical diagnostic result.",
+        "configuration_digest": "configuration-specimen-b",
+        "system_boundary_digest": "complete-installed-joint-boundary-v1",
+        "operating_condition_digest": "48V-25C-thermal-plate-A-v1",
+        "mission_set_digest": "synthetic-fault-campaign-mission-v1"
+      },
+      {
+        "alarm_id": "alarm-c-outside",
+        "specimen_id": "specimen-c",
+        "alarm_time_s": 7000,
+        "hypothesized_fault_classes": [
+          "encoder_dropout"
+        ],
+        "detector_digest": "synthetic-detector-digest-v1",
+        "channel_set_digest": "vibration-only-channel-set",
+        "source_reference": "https://example.invalid/alarms/alarm-c-outside",
+        "method": "Synthetic known-answer detector output; not a physical diagnostic result.",
+        "configuration_digest": "configuration-specimen-c",
+        "system_boundary_digest": "complete-installed-joint-boundary-v1",
+        "operating_condition_digest": "48V-25C-thermal-plate-A-v1",
+        "mission_set_digest": "synthetic-fault-campaign-mission-v1"
+      }
+    ],
+    "no_fault_exposure": [
+      {
+        "exposure_id": "quiet-a",
+        "specimen_id": "specimen-a",
+        "start_s": 10,
+        "end_s": 6010,
+        "evidence_class": "synthetic_fixture",
+        "source_reference": "https://example.invalid/no-fault/quiet-a",
+        "raw_trace_digest": "synthetic-no-fault-quiet-a",
+        "configuration_digest": "configuration-specimen-a",
+        "system_boundary_digest": "complete-installed-joint-boundary-v1",
+        "operating_condition_digest": "48V-25C-thermal-plate-A-v1",
+        "mission_set_digest": "synthetic-fault-campaign-mission-v1"
+      },
+      {
+        "exposure_id": "quiet-b",
+        "specimen_id": "specimen-b",
+        "start_s": 10,
+        "end_s": 6010,
+        "evidence_class": "synthetic_fixture",
+        "source_reference": "https://example.invalid/no-fault/quiet-b",
+        "raw_trace_digest": "synthetic-no-fault-quiet-b",
+        "configuration_digest": "configuration-specimen-b",
+        "system_boundary_digest": "complete-installed-joint-boundary-v1",
+        "operating_condition_digest": "48V-25C-thermal-plate-A-v1",
+        "mission_set_digest": "synthetic-fault-campaign-mission-v1"
+      },
+      {
+        "exposure_id": "quiet-c",
+        "specimen_id": "specimen-c",
+        "start_s": 10,
+        "end_s": 6010,
+        "evidence_class": "synthetic_fixture",
+        "source_reference": "https://example.invalid/no-fault/quiet-c",
+        "raw_trace_digest": "synthetic-no-fault-quiet-c",
+        "configuration_digest": "configuration-specimen-c",
+        "system_boundary_digest": "complete-installed-joint-boundary-v1",
+        "operating_condition_digest": "48V-25C-thermal-plate-A-v1",
+        "mission_set_digest": "synthetic-fault-campaign-mission-v1"
+      }
+    ]
+  },
+  "claim_ceiling": "Synthetic event-metric fixture only. It does not contain GD-HDD data, physical fault experiments, validated detector outputs or a safety diagnosis.",
+  "notes": [
+    "One verified false alarm over five hours of declared no-fault exposure gives 0.2 false alarms/hour.",
+    "The compound episode contains overlapping gearbox_backlash and bearing_wear ground truth with one exact-set alarm.",
+    "The fourth specimen ends observation while gearbox_backlash remains active; it is right-censored, not a confirmed miss.",
+    "Amplitude strata are intentionally underpowered in this small JSON fixture; unit tests generate 16 independent specimens per tested amplitude to validate the MDFA known answer."
+  ]
+}
