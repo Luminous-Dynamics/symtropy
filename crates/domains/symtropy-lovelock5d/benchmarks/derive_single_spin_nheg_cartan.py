@@ -346,6 +346,64 @@ def main():
     }
     assert all(value == 0 for value in egb_residuals_rational.values())
 
+    # Adversarial negative control: the common index-raising mistake of
+    # inserting a single eta_c in R^{cc} when Ricci is diagonal. The correct
+    # contraction has no eta_c because R^{cc}=eta_c^2 R_cc=R_cc.
+    wrong_raising_residuals = {}
+    for aa in range(5):
+        for bb in range(5):
+            ric_ab = Ricci_reduced.get((aa,bb),sp.S.Zero)
+            ricci_mixed = sum(
+                Ricci_reduced.get((aa,cc),sp.S.Zero)
+                * ETA[cc]
+                * Ricci_reduced.get((cc,bb),sp.S.Zero)
+                for cc in range(5)
+            )
+            ricci_riemann_wrong = sum(
+                ETA[cc]
+                * Ricci_reduced.get((cc,cc),sp.S.Zero)
+                * R_lower(aa,cc,bb,cc)
+                for cc in range(5)
+            )
+            riemann_square = sum(
+                ETA[cc]*ETA[dd]*ETA[ee]
+                * R_lower(aa,cc,dd,ee)
+                * R_lower(bb,cc,dd,ee)
+                for cc in range(5) for dd in range(5) for ee in range(5)
+            )
+            H_wrong = sp.factor(
+                2*(
+                    scalar*ric_ab - 2*ricci_mixed
+                    - 2*ricci_riemann_wrong + riemann_square
+                )
+                - sp.Rational(1,2)*ETA[aa]*int(aa==bb)*gauss_bonnet_scalar
+            )
+            wrong_raising_residuals[(aa,bb)] = sp.factor(
+                G_ab if False else (
+                    (ric_ab-sp.Rational(1,2)*ETA[aa]*int(aa==bb)*scalar)
+                    + alpha*H_wrong/4
+                )
+            )
+    wrong_rational = {
+        key:rationalize_frame_polynomial(value)
+        for key,value in wrong_raising_residuals.items()
+    }
+    wrong_sample = {
+        f"{aa},{bb}":sp.factor(value.subs({
+            alpha:1,beta:sp.Rational(1,2),c:sp.Rational(1,2)
+        }))
+        for (aa,bb),value in sorted(wrong_rational.items())
+    }
+    expected_wrong_sample = {
+        "0,0":sp.S.Zero, "0,1":sp.S.Zero, "0,2":sp.S.Zero, "0,3":sp.S.Zero, "0,4":sp.S.Zero,
+        "1,0":sp.S.Zero, "1,1":sp.Rational(16384,567), "1,2":sp.S.Zero, "1,3":sp.S.Zero, "1,4":sp.S.Zero,
+        "2,0":sp.S.Zero, "2,1":sp.S.Zero, "2,2":sp.Rational(16384,441), "2,3":sp.S.Zero, "2,4":sp.S.Zero,
+        "3,0":sp.S.Zero, "3,1":sp.S.Zero, "3,2":sp.S.Zero, "3,3":sp.Rational(16384,441), "3,4":sp.S.Zero,
+        "4,0":sp.S.Zero, "4,1":sp.S.Zero, "4,2":sp.S.Zero, "4,3":sp.S.Zero, "4,4":sp.Rational(16384,567)
+    }
+    assert wrong_sample == expected_wrong_sample
+    assert any(value != 0 for value in wrong_sample.values())
+
     lanczos_text = {
         f"{aa},{bb}":sp.sstr(sp.factor(value))
         for (aa,bb),value in sorted(lanczos.items()) if value != 0
@@ -442,6 +500,10 @@ def main():
             "pole_limit_K_160_over_alpha_sym_squared":True,
             "Lanczos_tensor_formula_from_source_Eq3":True,
             "all_25_EGB_frame_equations_exactly_zero":True,
+            "single_eta_wrong_index_raising_negative_control_rejected":True,
+            "wrong_raising_residual_sample_alpha1_beta1over2_c1over2":{
+                key:sp.sstr(value) for key,value in wrong_sample.items()
+            },
             "full_EGB_field_equations_independently_replayed":True
         },
         "claim_ceiling":"Independent Cartan coframe, Levi-Civita connection, Riemann/Ricci contractions, Lanczos tensor and exact local EGB field-equation replay for the source-reported near-horizon geometry. No global completion, finite horizon charges, hyperbolicity, or stability result is claimed."
