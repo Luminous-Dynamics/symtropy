@@ -530,7 +530,63 @@
         "query_tick": 3600,
         "query_text": "Which source observations remain eligible for retrieval after the revocation event?",
         "response_deadline_tick": 3630
-      }
+      },
+      "derived_memory_items": [
+        {
+          "item_ref": "mem-private-summary",
+          "kind": "summary",
+          "created_tick": 600,
+          "derived_from_observation_refs": [
+            "obs-private-utterance"
+          ],
+          "derived_from_item_refs": []
+        },
+        {
+          "item_ref": "mem-private-embedding",
+          "kind": "embedding",
+          "created_tick": 650,
+          "derived_from_observation_refs": [
+            "obs-private-utterance"
+          ],
+          "derived_from_item_refs": []
+        },
+        {
+          "item_ref": "mem-private-retrieval-index",
+          "kind": "retrieval_index",
+          "created_tick": 700,
+          "derived_from_observation_refs": [],
+          "derived_from_item_refs": [
+            "mem-private-embedding"
+          ]
+        },
+        {
+          "item_ref": "mem-private-working-context",
+          "kind": "working_context",
+          "created_tick": 900,
+          "derived_from_observation_refs": [],
+          "derived_from_item_refs": [
+            "mem-private-summary"
+          ]
+        },
+        {
+          "item_ref": "mem-private-response-cache",
+          "kind": "response_cache",
+          "created_tick": 1000,
+          "derived_from_observation_refs": [],
+          "derived_from_item_refs": [
+            "mem-private-working-context"
+          ]
+        },
+        {
+          "item_ref": "mem-public-action-summary",
+          "kind": "summary",
+          "created_tick": 700,
+          "derived_from_observation_refs": [
+            "obs-public-action"
+          ],
+          "derived_from_item_refs": []
+        }
+      ]
     },
     {
       "episode_id": "lh-009-compression-retention",
