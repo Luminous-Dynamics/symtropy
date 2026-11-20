@@ -88,7 +88,7 @@ def evaluate(
             raise EvaluationError("renderer_qualified timing requires a SHA-256 clock relation reference")
 
     response_ids: set[str] = set()
-    playback_event_refs: set[str] = set()
+    lifecycle_event_refs: set[str] = set()
     responses_by_episode: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for response in response_rows:
         response_id = response.get("response_id")
@@ -113,10 +113,13 @@ def evaluate(
             stop_request_ref = response.get("output_stop_request_event_ref")
             if not isinstance(stop_request_ref, str) or not stop_request_ref.strip():
                 raise EvaluationError("output_stopped requires its linked stop/yield request reference")
-        for event_ref in (start_ref, end_ref):
-            if event_ref in playback_event_refs:
-                raise EvaluationError(f"duplicate renderer lifecycle event reference: {event_ref}")
-            playback_event_refs.add(event_ref)
+        event_refs = [start_ref, end_ref]
+        if end_kind == "output_stopped":
+            event_refs.append(response["output_stop_request_event_ref"])
+        for event_ref in event_refs:
+            if event_ref in lifecycle_event_refs:
+                raise EvaluationError(f"duplicate renderer/controller lifecycle event reference: {event_ref}")
+            lifecycle_event_refs.add(event_ref)
         responses_by_episode[episode_id].append(response)
 
     per_episode: list[dict[str, Any]] = []
