@@ -40,7 +40,7 @@ Upstream adapters must perform any conversion explicitly and preserve its proven
 
 ## Frozen corpus and output
 
-The fixture contains 28 synthetic cases. It includes full-envelope positive controls, mechanical limit failures, same-standard/different-ICD, explicit revision mapping, frame mismatch, partial fluid-range overlap, fluid class/identity/phase/connector errors, missing/stale evidence, invalid digest/source commit, unit mismatch, unsupported claim escalation, inverted range, receiver-mass shortfall and self-compatibility negatives.
+The fixture contains 30 synthetic cases. It includes full-envelope positive controls, mechanical limit failures, same-standard/different-ICD, explicit revision mapping, frame mismatch, partial fluid-range overlap, fluid class/identity/phase/connector errors, missing/stale evidence, invalid digest/source commit, unit mismatch, unsupported claim escalation, inverted range, receiver-mass shortfall and self-compatibility negatives.
 
 Run:
 
