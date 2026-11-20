@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "degenerate_characteristic_perturbation_reference_control",
+  "status": "executed_symmetric_matrix_control_not_egb_symbol_result",
+  "unperturbed_matrix": [[0, 0, 0], [0, 0, 0], [0, 0, 4]],
+  "perturbation_matrix": [[0.2, 0.6, 0.25], [0.6, -0.1, -0.2], [0.25, -0.2, 0.3]],
+  "degenerate_subspace_dimension": 2,
+  "first_order_shifts": [-0.5684658438426491, 0.6684658438426491],
+  "basis_rotation_max_defect": 1.1102230246251565e-16,
+  "max_prediction_error_over_epsilon_squared": 0.025560896727938594,
+  "min_diagonal_only_error_over_epsilon": 0.46876824141485723,
+  "claim_ceiling": "Method control only; not an EGB principal-symbol, physical-polarization, symmetrizer, strong-hyperbolicity, or rotating-solution result."
+}
