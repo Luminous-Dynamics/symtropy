@@ -479,6 +479,17 @@ fn terminal_status(
     if arrival > valid_until {
         return Err(format!("terminal_receipt_expired_before_arrival:{terminal_id}"));
     }
+    if objective == "human_handover" {
+        let completion = scenario_time + Duration::seconds(
+            ((elapsed_hours + human_response_upper_hours) * 3600.0).ceil() as i64
+        );
+        if completion > deadline {
+            return Err(format!("human_handover_completion_after_terminal_deadline:{terminal_id}"));
+        }
+        if completion > valid_until {
+            return Err(format!("human_handover_receipt_expired_before_acknowledgement:{terminal_id}"));
+        }
+    }
     Ok(human_response_upper_hours)
 }
 
@@ -1210,6 +1221,23 @@ mod tests {
         assert!(scenario["rejected_edges"].as_array().unwrap().iter()
             .any(|edge| edge["reasons"].as_array().unwrap().iter()
                 .any(|reason| reason == "human_handover_response_after_intervention_deadline:remote-master-accepted-handover")));
+    }
+
+    #[test]
+    fn human_handover_acknowledgement_must_precede_terminal_receipt_expiry() {
+        let mut value = fixture();
+        let terminal = value["scenarios"][0]["terminals"].as_array_mut().unwrap().iter_mut()
+            .find(|terminal| terminal["objective_class"] == "human_handover").unwrap();
+        terminal["receipt_valid_until"] = json!("2026-11-20T12:15:00Z");
+        rebind_scenario(&mut value, 0);
+        let report = audit(&value);
+        assert_eq!(report["disposition"], "SYNTHETIC_ONLY");
+        let scenario = report["scenario_reports"].as_array().unwrap().iter()
+            .find(|item| item["scenario_id"] == "generator-trip").unwrap();
+        assert_eq!(scenario["feasible_path_count"], 1);
+        assert!(scenario["rejected_edges"].as_array().unwrap().iter()
+            .any(|edge| edge["reasons"].as_array().unwrap().iter()
+                .any(|reason| reason == "human_handover_receipt_expired_before_acknowledgement:remote-master-accepted-handover")));
     }
 
     #[test]
