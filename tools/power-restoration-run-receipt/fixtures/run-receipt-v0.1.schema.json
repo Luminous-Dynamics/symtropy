@@ -17,6 +17,7 @@
     "objective",
     "hardware",
     "budget",
+    "observedUsage",
     "runStatus",
     "terminalReason",
     "decisionSteps",
@@ -101,6 +102,48 @@
     },
     "aggregateScore": {
       "$ref": "#/$defs/aggregateOrNull"
+    },
+    "observedUsage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "elapsedWallClockMs",
+        "solverTimeMs",
+        "maximumSolverGapBasisPoints",
+        "totalInputTokens",
+        "totalOutputTokens",
+        "totalApiCostMicrousd"
+      ],
+      "properties": {
+        "elapsedWallClockMs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "solverTimeMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximumSolverGapBasisPoints": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "totalInputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "totalOutputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "totalApiCostMicrousd": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
     }
   },
   "$defs": {
@@ -493,6 +536,8 @@
         "observation",
         "plannerOutcome",
         "plannerLatencyMs",
+        "solverTimeMs",
+        "solverGapBasisPoints",
         "plannerOutput",
         "retryCount",
         "inputTokens",
@@ -629,6 +674,21 @@
           "items": {
             "$ref": "#/$defs/metricValue"
           }
+        },
+        "solverTimeMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "solverGapBasisPoints": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 10000
         }
       }
     },
