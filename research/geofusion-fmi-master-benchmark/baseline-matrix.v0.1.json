@@ -158,6 +158,22 @@
     {
       "id": "precice_coupling_schemes",
       "url": "https://precice.org/docs/configuration/basics/coupling/"
+    },
+    {
+      "id": "omsimulator_stable_branch",
+      "url": "https://github.com/OpenModelica/OMSimulator"
+    },
+    {
+      "id": "openmodelica_127_official_and_128_nightly",
+      "url": "https://openmodelica.org/download/download-windows/"
+    },
+    {
+      "id": "precice_350_release",
+      "url": "https://github.com/precice/precice/releases"
+    },
+    {
+      "id": "sundials_790",
+      "url": "https://computing.llnl.gov/projects/sundials/sundials-software"
     }
   ],
   "claim_ceiling": "A comparative result qualifies only the exact pinned FMU artifacts, tool versions, FMI lane, models, capability subset, parameters, communication policy, tolerances, output times and compute budget tested. It does not establish general FMI conformance, universal master superiority, real geothermal/fusion plant performance, equipment safety, economics or physical validation.",
@@ -242,5 +258,98 @@
       "purpose": "FMI 3 Co-Simulation feature and importer interoperability lane",
       "tool_policy": "Pin exact tool releases; OpenModelica support is experimental in the current guide; no cross-lane aggregate ranking."
     }
-  ]
+  ],
+  "release_maturity_snapshot": [
+    {
+      "tool": "OMSimulator",
+      "lane": "stable",
+      "version": "2.1.3",
+      "branch": "maintenance/v2.1",
+      "documentation_build": "v2.1.3.post17-g81bd489",
+      "role": "direct_fmi_master_comparator",
+      "maturity": "stable",
+      "evidence_url": "https://github.com/OpenModelica/OMSimulator"
+    },
+    {
+      "tool": "OMSimulator",
+      "lane": "development",
+      "branch": "master",
+      "role": "exploratory_only",
+      "maturity": "active_unstable",
+      "evidence_url": "https://github.com/OpenModelica/OMSimulator"
+    },
+    {
+      "tool": "OpenModelica",
+      "lane": "official",
+      "version": "1.27.1",
+      "role": "toolchain_release",
+      "maturity": "official_release",
+      "evidence_url": "https://openmodelica.org/download/download-windows/"
+    },
+    {
+      "tool": "OpenModelica",
+      "lane": "nightly",
+      "version": "1.28.0-dev",
+      "role": "toolchain_release",
+      "maturity": "nightly_development_only",
+      "evidence_url": "https://openmodelica.org/download/download-windows/"
+    },
+    {
+      "tool": "OpenModelica",
+      "lane": "FMI_2",
+      "fmi_version": "2.0.5",
+      "status": "supported",
+      "role": "compatibility_lane",
+      "evidence_url": "https://openmodelica.org/doc/OpenModelicaUsersGuide/OpenModelicaUsersGuide-latest.pdf"
+    },
+    {
+      "tool": "OpenModelica",
+      "lane": "FMI_3",
+      "fmi_version": "3.0.2",
+      "status": "experimental",
+      "role": "compatibility_lane",
+      "evidence_url": "https://openmodelica.org/doc/OpenModelicaUsersGuide/OpenModelicaUsersGuide-latest.pdf"
+    },
+    {
+      "tool": "FMPy",
+      "lane": "importer",
+      "version": "0.3.32",
+      "released": "2026-09-09",
+      "role": "importer_interoperability_not_master",
+      "wheel_sha256": "b379deb9417b842028003a288d00c1c5f138d1580e1ff12cc6c42a98719cecf0",
+      "publisher_provenance": "not_reported_by_PyPI",
+      "evidence_url": "https://pypi.org/project/FMPy/0.3.32/"
+    },
+    {
+      "tool": "preCICE",
+      "lane": "adjacent_coupling",
+      "version": "3.5.0",
+      "released": "2026-11-11",
+      "role": "partitioned_multiphysics_coupling_not_FMI_master",
+      "evidence_url": "https://github.com/precice/precice/releases"
+    },
+    {
+      "tool": "SUNDIALS",
+      "lane": "adjacent_integrator",
+      "version": "7.9.0",
+      "released": "2026-09",
+      "role": "ARKODE_MRIStep_multirate_integrator_not_FMI_master",
+      "evidence_url": "https://computing.llnl.gov/projects/sundials/sundials-software"
+    },
+    {
+      "tool": "SSP",
+      "lane": "system_structure",
+      "version": "2.0.1",
+      "released": "2026-05-05",
+      "role": "system_topology_parameterization_standard_not_master",
+      "evidence_url": "https://ssp-standard.org/docs/2.0.1/"
+    }
+  ],
+  "maturity_policy": {
+    "stable_and_development_builds_must_not_share_a_leaderboard": true,
+    "fmi_2_and_fmi_3_compatibility_lanes_must_remain_separate": true,
+    "generic_fmi3_claim_does_not_prove_fmi3_0_2_capability_support": true,
+    "importer_or_master_must_be_probed_against_each_fmu_advertised_capability": true,
+    "unsupported_compatibility_lane_disposition": "NOT_EVALUABLE"
+  }
 }
