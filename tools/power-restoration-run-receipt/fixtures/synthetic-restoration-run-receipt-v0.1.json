@@ -152,7 +152,9 @@
           "unit": "weighted_kWh",
           "value": 123.4
         }
-      ]
+      ],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 1,
@@ -173,7 +175,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 2,
@@ -194,7 +198,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 3,
@@ -215,7 +221,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 4,
@@ -236,7 +244,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 5,
@@ -257,7 +267,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 6,
@@ -278,7 +290,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 7,
@@ -299,7 +313,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 8,
@@ -320,7 +336,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 9,
@@ -341,7 +359,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 10,
@@ -362,7 +382,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 11,
@@ -383,7 +405,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 12,
@@ -404,7 +428,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 13,
@@ -425,7 +451,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 14,
@@ -446,7 +474,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 15,
@@ -467,7 +497,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 16,
@@ -488,7 +520,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 17,
@@ -509,7 +543,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 18,
@@ -530,7 +566,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 19,
@@ -551,7 +589,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 20,
@@ -572,7 +612,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 21,
@@ -593,7 +635,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 22,
@@ -614,7 +658,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     },
     {
       "decisionStep": 23,
@@ -635,7 +681,9 @@
       "validatorReceipt": null,
       "serviceOutcome": "not_run",
       "serviceTrajectory": null,
-      "serviceMetrics": []
+      "serviceMetrics": [],
+      "solverTimeMs": null,
+      "solverGapBasisPoints": null
     }
   ],
   "finalServiceTrajectory": {
@@ -650,5 +698,13 @@
       "artifactRef": "synthetic://aggregate-scorer-receipt",
       "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
     }
+  },
+  "observedUsage": {
+    "elapsedWallClockMs": 500,
+    "solverTimeMs": 0,
+    "maximumSolverGapBasisPoints": null,
+    "totalInputTokens": 128,
+    "totalOutputTokens": 32,
+    "totalApiCostMicrousd": 1000
   }
 }
