@@ -76,6 +76,7 @@ pub enum OperatingVisibility {
 #[serde(rename_all = "snake_case")]
 pub enum ApprovalRequirement {
     UasOperatingCertificate,
+    UasOperationsSpecification,
     AirServiceLicence,
     RemotePilotLicence,
     RemoteOperatorLetterOfApproval,
@@ -330,6 +331,7 @@ fn required_requirements(operation: &ZaUasOperationProfile) -> BTreeSet<Approval
     match operation.activity_class {
         ActivityClass::Commercial => {
             required.insert(ApprovalRequirement::UasOperatingCertificate);
+            required.insert(ApprovalRequirement::UasOperationsSpecification);
             required.insert(ApprovalRequirement::AirServiceLicence);
             required.insert(ApprovalRequirement::RemotePilotLicence);
             required.insert(ApprovalRequirement::RemoteOperatorLetterOfApproval);
@@ -337,6 +339,7 @@ fn required_requirements(operation: &ZaUasOperationProfile) -> BTreeSet<Approval
         }
         ActivityClass::Corporate | ActivityClass::NonProfit => {
             required.insert(ApprovalRequirement::UasOperatingCertificate);
+            required.insert(ApprovalRequirement::UasOperationsSpecification);
             required.insert(ApprovalRequirement::RemotePilotLicence);
             required.insert(ApprovalRequirement::RemoteOperatorLetterOfApproval);
             required.insert(ApprovalRequirement::CertificateOfRegistration);
@@ -609,6 +612,7 @@ mod tests {
             assessment_time_unix_ms: 5_000,
             approval_evidence: vec![
                 evidence(ApprovalRequirement::UasOperatingCertificate),
+                evidence(ApprovalRequirement::UasOperationsSpecification),
                 evidence(ApprovalRequirement::AirServiceLicence),
                 evidence(ApprovalRequirement::RemotePilotLicence),
                 evidence(ApprovalRequirement::RemoteOperatorLetterOfApproval),
@@ -641,6 +645,20 @@ mod tests {
         assert!(!report.results[0].flight_authorized);
         assert!(!report.results[0].dispatch_authorized);
         assert!(!report.dispatch_commands_emitted);
+    }
+
+    #[test]
+    fn current_op_spec_is_required_in_addition_to_current_uasoc() {
+        let mut operation = base_operation();
+        operation.approval_evidence.retain(|item| {
+            item.requirement != ApprovalRequirement::UasOperationsSpecification
+        });
+        let report = evaluate_za_uas_corpus(&corpus(vec![operation]))
+            .expect("valid but incomplete UASOC/OpSpec package");
+        assert_eq!(report.results[0].candidate_status, CandidateStatus::Indeterminate);
+        assert!(report.results[0].indeterminate_reasons.iter().any(|reason| {
+            reason.contains("UasOperationsSpecification")
+        }));
     }
 
     #[test]
