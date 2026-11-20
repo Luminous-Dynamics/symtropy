@@ -1,0 +1,1101 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_single_spin_near_horizon_geometry_qualification",
+  "status": "exact_geometric_specialization_source_field_equation_solution_not_independently_rederived",
+  "source": {
+    "paper": "Celik, Hajian and Kunz, An Exact Single-Rotating Near-Horizon Geometry in Einstein-Gauss-Bonnet Gravity",
+    "arxiv": "2605.15005",
+    "date": "2026-05-14",
+    "url": "https://arxiv.org/abs/2605.15005",
+    "equations": [
+      "(1)",
+      "(4)",
+      "(5)",
+      "(6)",
+      "(10)",
+      "(11)",
+      "(12)",
+      "(13)",
+      "(14)",
+      "(15)",
+      "(16)",
+      "(17)",
+      "(18)"
+    ]
+  },
+  "conventions": {
+    "source_action": "R+alpha_NH*L_GB",
+    "symtropy_action": "R+alpha_sym*L_GB/4",
+    "coupling_map": "alpha_sym=4*alpha_NH",
+    "beta": "2*a^2/alpha_sym=a^2/(2*alpha_NH)",
+    "u": "cos(theta)^4",
+    "regular_domain": "alpha_sym>0 and 0<beta<1",
+    "theta_domain": "0<=theta<=pi/2",
+    "global_period_psi": "not fixed by local conical regularity; global U(1) bundle data required"
+  },
+  "metric": {
+    "line_element": "ds^2=(Delta_plus/cos^2(theta))*(dr^2/(4*r^2)+(Delta_minus/Delta_plus)^2*dtheta^2+(a^2*sin^2(theta)/Delta_plus)*dphi^2+dpsi^2+r*dt*dpsi)",
+    "Delta_plus": "alpha_sym/2*(1+beta*u)",
+    "Delta_minus": "alpha_sym/2*(beta*u-1)",
+    "NHEG_data": {
+      "Gamma": "Delta_plus/(4*cos^2(theta))",
+      "sigma": "(Delta_minus/Delta_plus)^2",
+      "gamma_11": "4*a^2*sin^2(theta)/Delta_plus",
+      "gamma_22": "4",
+      "gamma_12": "0",
+      "k1": "0",
+      "k2": "1/2"
+    }
+  },
+  "signature": {
+    "t_psi_block_determinant": "-Delta_plus^2*r^2/(4*cos(theta)^4)",
+    "g_rr": "Delta_plus/(4*r^2*cos(theta)^2)",
+    "g_thetatheta": "Delta_minus^2/(Delta_plus*cos(theta)^2)",
+    "g_phiphi": "a^2*sin(theta)^2/cos(theta)^2",
+    "g_psipsi": "Delta_plus/cos(theta)^2",
+    "conclusion": "one negative and four positive eigenvalues on the open patch"
+  },
+  "curvature": {
+    "kretschmann_source": "4*((2*Delta_plus^2+2*Delta_plus*Delta_minus-Delta_minus^2)/Delta_minus^3)^2+24/Delta_minus^2+12/Delta_plus^2",
+    "alpha_sym_squared_K": "32*(9*beta^6*u^6+12*beta^5*u^5+75*beta^4*u^4+24*beta^3*u^3+23*beta^2*u^2-20*beta*u+5)/((beta*u-1)^6*(beta*u+1)^2)",
+    "pole_limit_theta_to_pi_over_2": "160/alpha_sym^2",
+    "axis_beta_to_one": "alpha_sym^2*K(theta=0)~1024/(1-beta)^6",
+    "einstein_limit": "72/(a^4*cos(theta)^8)",
+    "full_domain_upper_bound_alpha_sym_squared_K": "16*(5+6*beta+2*beta^2)^2/(1-beta)^6+96/(1-beta)^2+48"
+  },
+  "axis_regularity": {
+    "phi_period": "2*pi*(1-beta)/sqrt(beta*(1+beta))",
+    "psi_period": "not locally fixed",
+    "beta_to_zero": "phi period diverges and a->0; endpoint excluded",
+    "beta_to_one": "phi period collapses and curvature diverges at theta=0; endpoint excluded"
+  },
+  "horizon_measure": {
+    "density": "a*sin(theta)*(alpha_sym/2)*(1-beta*cos(theta)^4)/cos(theta)^3",
+    "primitive_from_theta_0": "a*alpha_sym/4*(sec(theta)^2+beta*cos(theta)^2-1-beta)",
+    "cutoff_epsilon": "epsilon=cos(theta_max)",
+    "area_with_cutoff": "Delta_phi*Delta_psi*a*alpha_sym/4*(epsilon^-2+beta*epsilon^2-1-beta)",
+    "leading_divergence": "Delta_phi*Delta_psi*a*alpha_sym/(4*epsilon^2)",
+    "dimensionless_leading_coefficient": "pi*(1-beta)/(2*sqrt(2*(1+beta))) for A/(alpha_sym^(3/2)*Delta_psi)",
+    "standard_area_entropy_Jpsi": "diverge in the source's standard prescription"
+  },
+  "global_admissibility_vector": {
+    "local_field_equation_solution": "source-reported exact NHEG; independent full tensor replay pending",
+    "lorentzian_signature": "pass on declared open patch",
+    "local_curvature_regular": "pass for alpha_sym>0, 0<beta<1",
+    "phi_axis_conical_regular": "pass when beta-dependent period is used",
+    "psi_global_identification": "unresolved until global U(1) bundle/period is specified",
+    "finite_horizon_measure": "fail; area diverges as epsilon^-2",
+    "standard_entropy_and_Jpsi_integrability": "fail under source's standard prescription",
+    "strong_hyperbolicity": "unresolved",
+    "global_asymptotically_flat_completion": "unresolved; source leaves open"
+  },
+  "validation": {
+    "exact_symbolic_replay_claimed": true,
+    "independent_field_equation_replay_claimed": false,
+    "exact_relations": [
+      "alpha_sym=4*alpha_NH",
+      "Delta_plus=alpha_sym*(1+beta*u)/2",
+      "Delta_minus=alpha_sym*(beta*u-1)/2",
+      "alpha_sym^2*K(theta->pi/2)=160",
+      "lim_(alpha_NH->0) K=72/(a^4*cos(theta)^8)",
+      "lim_(beta->1-) (1-beta)^6*alpha_sym^2*K(theta=0)=1024",
+      "Delta_phi=2*pi*(1-beta)/sqrt(beta*(1+beta))",
+      "A_H(epsilon)=Delta_phi*Delta_psi*a*alpha_sym/4*(epsilon^-2+beta*epsilon^2-1-beta)"
+    ],
+    "curvature_bound_argument": "p=1+beta*u>=1; q=1-beta*u>=1-beta; |2p^2-2pq-q^2|<=5+6beta+2beta^2"
+  },
+  "reference_grid": {
+    "beta_start": "0.05",
+    "beta_end": "0.95",
+    "beta_step": "0.05",
+    "u_values": [
+      "0",
+      "1/4",
+      "1/2",
+      "3/4",
+      "1"
+    ],
+    "point_count": 95,
+    "samples": [
+      {
+        "beta": "0.050000000000000003",
+        "u_cos4_theta": "0.0000000000000000",
+        "alpha_sym_squared_K": "160.00000000000000",
+        "conical_period_phi": "26.050965392195781",
+        "dimensionless_area_divergence_coefficient": "1.0297548235695040",
+        "analytic_K_upper_bound_alpha_sym_squared": "766.93188693819991"
+      },
+      {
+        "beta": "0.050000000000000003",
+        "u_cos4_theta": "0.25000000000000000",
+        "alpha_sym_squared_K": "160.01614459392985",
+        "conical_period_phi": "26.050965392195781",
+        "dimensionless_area_divergence_coefficient": "1.0297548235695040",
+        "analytic_K_upper_bound_alpha_sym_squared": "766.93188693819991"
+      },
+      {
+        "beta": "0.050000000000000003",
+        "u_cos4_theta": "0.50000000000000000",
+        "alpha_sym_squared_K": "160.07042192669437",
+        "conical_period_phi": "26.050965392195781",
+        "dimensionless_area_divergence_coefficient": "1.0297548235695040",
+        "analytic_K_upper_bound_alpha_sym_squared": "766.93188693819991"
+      },
+      {
+        "beta": "0.050000000000000003",
+        "u_cos4_theta": "0.75000000000000000",
+        "alpha_sym_squared_K": "160.17485087568528",
+        "conical_period_phi": "26.050965392195781",
+        "dimensionless_area_divergence_coefficient": "1.0297548235695040",
+        "analytic_K_upper_bound_alpha_sym_squared": "766.93188693819991"
+      },
+      {
+        "beta": "0.050000000000000003",
+        "u_cos4_theta": "1.0000000000000000",
+        "alpha_sym_squared_K": "160.34662085587081",
+        "conical_period_phi": "26.050965392195781",
+        "dimensionless_area_divergence_coefficient": "1.0297548235695040",
+        "analytic_K_upper_bound_alpha_sym_squared": "766.93188693819991"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "u_cos4_theta": "0.0000000000000000",
+        "alpha_sym_squared_K": "160.00000000000000",
+        "conical_period_phi": "17.050064851790690",
+        "dimensionless_area_divergence_coefficient": "0.95312760073459657",
+        "analytic_K_upper_bound_alpha_sym_squared": "1117.4244516324482"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "u_cos4_theta": "0.25000000000000000",
+        "alpha_sym_squared_K": "160.07042192669437",
+        "conical_period_phi": "17.050064851790690",
+        "dimensionless_area_divergence_coefficient": "0.95312760073459657",
+        "analytic_K_upper_bound_alpha_sym_squared": "1117.4244516324482"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "u_cos4_theta": "0.50000000000000000",
+        "alpha_sym_squared_K": "160.34662085587081",
+        "conical_period_phi": "17.050064851790690",
+        "dimensionless_area_divergence_coefficient": "0.95312760073459657",
+        "analytic_K_upper_bound_alpha_sym_squared": "1117.4244516324482"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "u_cos4_theta": "0.75000000000000000",
+        "alpha_sym_squared_K": "160.99450115452839",
+        "conical_period_phi": "17.050064851790690",
+        "dimensionless_area_divergence_coefficient": "0.95312760073459657",
+        "analytic_K_upper_bound_alpha_sym_squared": "1117.4244516324482"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "u_cos4_theta": "1.0000000000000000",
+        "alpha_sym_squared_K": "162.30956404340907",
+        "conical_period_phi": "17.050064851790690",
+        "dimensionless_area_divergence_coefficient": "0.95312760073459657",
+        "analytic_K_upper_bound_alpha_sym_squared": "1117.4244516324482"
+      },
+      {
+        "beta": "0.14999999999999999",
+        "u_cos4_theta": "0.0000000000000000",
+        "alpha_sym_squared_K": "160.00000000000000",
+        "conical_period_phi": "12.858912596113351",
+        "dimensionless_area_divergence_coefficient": "0.88038956173482497",
+        "analytic_K_upper_bound_alpha_sym_squared": "1680.2465613666402"
+      },
+      {
+        "beta": "0.14999999999999999",
+        "u_cos4_theta": "0.25000000000000000",
+        "alpha_sym_squared_K": "160.17485087568528",
+        "conical_period_phi": "12.858912596113351",
+        "dimensionless_area_divergence_coefficient": "0.88038956173482497",
+        "analytic_K_upper_bound_alpha_sym_squared": "1680.2465613666402"
+      },
+      {
+        "beta": "0.14999999999999999",
+        "u_cos4_theta": "0.50000000000000000",
+        "alpha_sym_squared_K": "160.99450115452839",
+        "conical_period_phi": "12.858912596113351",
+        "dimensionless_area_divergence_coefficient": "0.88038956173482497",
+        "analytic_K_upper_bound_alpha_sym_squared": "1680.2465613666402"
+      },
+      {
+        "beta": "0.14999999999999999",
+        "u_cos4_theta": "0.75000000000000000",
+        "alpha_sym_squared_K": "163.36110295886525",
+        "conical_period_phi": "12.858912596113351",
+        "dimensionless_area_divergence_coefficient": "0.88038956173482497",
+        "analytic_K_upper_bound_alpha_sym_squared": "1680.2465613666402"
+      },
+      {
+        "beta": "0.14999999999999999",
+        "u_cos4_theta": "1.0000000000000000",
+        "alpha_sym_squared_K": "169.21167816352525",
+        "conical_period_phi": "12.858912596113351",
+        "dimensionless_area_divergence_coefficient": "0.88038956173482497",
+        "analytic_K_upper_bound_alpha_sym_squared": "1680.2465613666402"
+      },
+      {
+        "beta": "0.20000000000000001",
+        "u_cos4_theta": "0.0000000000000000",
+        "alpha_sym_squared_K": "160.00000000000000",
+        "conical_period_phi": "10.260398641294913",
+        "dimensionless_area_divergence_coefficient": "0.81115573519472228",
+        "analytic_K_upper_bound_alpha_sym_squared": "2605.1289062499991"
+      },
+      {
+        "beta": "0.20000000000000001",
+        "u_cos4_theta": "0.25000000000000000",
+        "alpha_sym_squared_K": "160.34662085587081",
+        "conical_period_phi": "10.260398641294913",
+        "dimensionless_area_divergence_coefficient": "0.81115573519472228",
+        "analytic_K_upper_bound_alpha_sym_squared": "2605.1289062499991"
+      },
+      {
+        "beta": "0.20000000000000001",
+        "u_cos4_theta": "0.50000000000000000",
+        "alpha_sym_squared_K": "162.30956404340907",
+        "conical_period_phi": "10.260398641294913",
+        "dimensionless_area_divergence_coefficient": "0.81115573519472228",
+        "analytic_K_upper_bound_alpha_sym_squared": "2605.1289062499991"
+      },
+      {
+        "beta": "0.20000000000000001",
+        "u_cos4_theta": "0.75000000000000000",
+        "alpha_sym_squared_K": "169.21167816352525",
+        "conical_period_phi": "10.260398641294913",
+        "dimensionless_area_divergence_coefficient": "0.81115573519472228",
+        "analytic_K_upper_bound_alpha_sym_squared": "2605.1289062499991"
+      },
+      {
+        "beta": "0.20000000000000001",
+        "u_cos4_theta": "1.0000000000000000",
+        "alpha_sym_squared_K": "189.58333333333329",
+        "conical_period_phi": "10.260398641294913",
+        "dimensionless_area_divergence_coefficient": "0.81115573519472228",
+        "analytic_K_upper_bound_alpha_sym_squared": "2605.1289062499991"
+      },
+      {
+        "beta": "0.25000000000000000",
+        "u_cos4_theta": "0.0000000000000000",
+        "alpha_sym_squared_K": "160.00000000000000",
+        "conical_period_phi": "8.4297776772488717",
+        "dimensionless_area_divergence_coefficient": "0.74509411993470753",
+        "analytic_K_upper_bound_alpha_sym_squared": "4164.3676268861454"
+      },
+      {
+        "beta": "0.25000000000000000",
+        "u_cos4_theta": "0.25000000000000000",
+        "alpha_sym_squared_K": "160.60932943542133",
+        "conical_period_phi": "8.4297776772488717",
+        "dimensionless_area_divergence_coefficient": "0.74509411993470753",
+        "analytic_K_upper_bound_alpha_sym_squared": "4164.3676268861454"
+      },
+      {
+        "beta": "0.25000000000000000",
+        "u_cos4_theta": "0.50000000000000000",
+        "alpha_sym_squared_K": "164.78463275726321",
+        "conical_period_phi": "8.4297776772488717",
+        "dimensionless_area_divergence_coefficient": "0.74509411993470753",
+        "analytic_K_upper_bound_alpha_sym_squared": "4164.3676268861454"
+      },
+      {
+        "beta": "0.25000000000000000",
+        "u_cos4_theta": "0.75000000000000000",
+        "alpha_sym_squared_K": "182.41285438655188",
+        "conical_period_phi": "8.4297776772488717",
+        "dimensionless_area_divergence_coefficient": "0.74509411993470753",
+        "analytic_K_upper_bound_alpha_sym_squared": "4164.3676268861454"
+      },
+      {
+        "beta": "0.25000000000000000",
+        "u_cos4_theta": "1.0000000000000000",
+        "alpha_sym_squared_K": "243.87775034293554",
+        "conical_period_phi": "8.4297776772488717",
+        "dimensionless_area_divergence_coefficient": "0.74509411993470753",
+        "analytic_K_upper_bound_alpha_sym_squared": "4164.3676268861454"
+      },
+      {
+        "beta": "0.29999999999999999",
+        "u_cos4_theta": "0.0000000000000000",
+        "alpha_sym_squared_K": "160.00000000000000",
+        "conical_period_phi": "7.0428040427774148",
+        "dimensionless_area_divergence_coefficient": "0.68191656920697985",
+        "analytic_K_upper_bound_alpha_sym_squared": "6869.7834405732310"
+      },
+      {
+        "beta": "0.29999999999999999",
+        "u_cos4_theta": "0.25000000000000000",
+        "alpha_sym_squared_K": "160.99450115452839",
+        "conical_period_phi": "7.0428040427774148",
+        "dimensionless_area_divergence_coefficient": "0.68191656920697985",
+        "analytic_K_upper_bound_alpha_sym_squared": "6869.7834405732310"
+      },
+      {
+        "beta": "0.29999999999999999",
+        "u_cos4_theta": "0.50000000000000000",
+        "alpha_sym_squared_K": "169.21167816352525",
+        "conical_period_phi": "7.0428040427774148",
+        "dimensionless_area_divergence_coefficient": "0.68191656920697985",
+        "analytic_K_upper_bound_alpha_sym_squared": "6869.7834405732310"
+      },
+      {
+        "beta": "0.29999999999999999",
+        "u_cos4_theta": "0.75000000000000000",
+        "alpha_sym_squared_K": "210.41966285445642",
+        "conical_period_phi": "7.0428040427774148",
+        "dimensionless_area_divergence_coefficient": "0.68191656920697985",
+        "analytic_K_upper_bound_alpha_sym_squared": "6869.7834405732310"
+      },
+      {
+        "beta": "0.29999999999999999",
+        "u_cos4_theta": "1.0000000000000000",
+        "alpha_sym_squared_K": "380.02456509763448",
+        "conical_period_phi": "7.0428040427774148",
+        "dimensionless_area_divergence_coefficient": "0.68191656920697985",
+        "analytic_K_upper_bound_alpha_sym_squared": "6869.7834405732310"
+      },
+      {
+        "beta": "0.34999999999999998",
+        "u_cos4_theta": "0.0000000000000000",
+        "alpha_sym_squared_K": "160.00000000000000",
+        "conical_period_phi": "5.9414482473428984",
+        "dimensionless_area_divergence_coefficient": "0.62137153103409326",
+        "analytic_K_upper_bound_alpha_sym_squared": "11720.420433458210"
+      },
+      {
+        "beta": "0.34999999999999998",
+        "u_cos4_theta": "0.25000000000000000",
+        "alpha_sym_squared_K": "161.54345020317024",
+        "conical_period_phi": "5.9414482473428984",
+        "dimensionless_area_divergence_coefficient": "0.62137153103409326",
+        "analytic_K_upper_bound_alpha_sym_squared": "11720.420433458210"
+      },
+      {
+        "beta": "0.34999999999999998",
+        "u_cos4_theta": "0.50000000000000000",
+        "alpha_sym_squared_K": "176.83512345210065",
+        "conical_period_phi": "5.9414482473428984",
+        "dimensionless_area_divergence_coefficient": "0.62137153103409326",
+        "analytic_K_upper_bound_alpha_sym_squared": "11720.420433458210"
+      },
+      {
+        "beta": "0.34999999999999998",
+        "u_cos4_theta": "0.75000000000000000",
+        "alpha_sym_squared_K": "267.38005512795974",
+        "conical_period_phi": "5.9414482473428984",
+        "dimensionless_area_divergence_coefficient": "0.62137153103409326",
+        "analytic_K_upper_bound_alpha_sym_squared": "11720.420433458210"
+      },
+      {
+        "beta": "0.34999999999999998",
+        "u_cos4_theta": "1.0000000000000000",
+        "alpha_sym_squared_K": "710.42998257127101",
+        "conical_period_phi": "5.9414482473428984",
+        "dimensionless_area_divergence_coefficient": "0.62137153103409326",
+        "analytic_K_upper_bound_alpha_sym_squared": "11720.420433458210"
+      },
+      {
+        "beta": "0.40000000000000002",
+        "u_cos4_theta": "0.0000000000000000",
+        "alpha_sym_squared_K": "160.00000000000000",
+        "conical_period_phi": "5.0377557250881422",
+        "dimensionless_area_divergence_coefficient": "0.56323821276679142",
+        "analytic_K_upper_bound_alpha_sym_squared": "20753.075445816197"
+      },
+      {
+        "beta": "0.40000000000000002",
+        "u_cos4_theta": "0.25000000000000000",
+        "alpha_sym_squared_K": "162.30956404340907",
+        "conical_period_phi": "5.0377557250881422",
+        "dimensionless_area_divergence_coefficient": "0.56323821276679142",
+        "analytic_K_upper_bound_alpha_sym_squared": "20753.075445816197"
+      },
+      {
+        "beta": "0.40000000000000002",
+        "u_cos4_theta": "0.50000000000000000",
+        "alpha_sym_squared_K": "189.58333333333329",
+        "conical_period_phi": "5.0377557250881422",
+        "dimensionless_area_divergence_coefficient": "0.56323821276679142",
+        "analytic_K_upper_bound_alpha_sym_squared": "20753.075445816197"
+      },
+      {
+        "beta": "0.40000000000000002",
+        "u_cos4_theta": "0.75000000000000000",
+        "alpha_sym_squared_K": "380.02456509763459",
+        "conical_period_phi": "5.0377557250881422",
+        "dimensionless_area_divergence_coefficient": "0.56323821276679142",
+        "analytic_K_upper_bound_alpha_sym_squared": "20753.075445816197"
+      },
+      {
+        "beta": "0.40000000000000002",
+        "u_cos4_theta": "1.0000000000000000",
+        "alpha_sym_squared_K": "1503.2277931748838",
+        "conical_period_phi": "5.0377557250881422",
+        "dimensionless_area_divergence_coefficient": "0.56323821276679142",
+        "analytic_K_upper_bound_alpha_sym_squared": "20753.075445816197"
+      },
+      {
+        "beta": "0.45000000000000001",
+        "u_cos4_theta": "0.0000000000000000",
+        "alpha_sym_squared_K": "160.00000000000000",
+        "conical_period_phi": "4.2781134749679222",
+        "dimensionless_area_divergence_coefficient": "0.50732185010836406",
+        "analytic_K_upper_bound_alpha_sym_squared": "38336.167328136020"
+      },
+      {
+        "beta": "0.45000000000000001",
+        "u_cos4_theta": "0.25000000000000000",
+        "alpha_sym_squared_K": "163.36110295886525",
+        "conical_period_phi": "4.2781134749679222",
+        "dimensionless_area_divergence_coefficient": "0.50732185010836406",
+        "analytic_K_upper_bound_alpha_sym_squared": "38336.167328136020"
+      },
+      {
+        "beta": "0.45000000000000001",
+        "u_cos4_theta": "0.50000000000000000",
+        "alpha_sym_squared_K": "210.41966285445642",
+        "conical_period_phi": "4.2781134749679222",
+        "dimensionless_area_divergence_coefficient": "0.50732185010836406",
+        "analytic_K_upper_bound_alpha_sym_squared": "38336.167328136020"
+      },
+      {
+        "beta": "0.45000000000000001",
+        "u_cos4_theta": "0.75000000000000000",
+        "alpha_sym_squared_K": "599.03605363834367",
+        "conical_period_phi": "4.2781134749679222",
+        "dimensionless_area_divergence_coefficient": "0.50732185010836406",
+        "analytic_K_upper_bound_alpha_sym_squared": "38336.167328136020"
+      },
+      {
+        "beta": "0.45000000000000001",
+        "u_cos4_theta": "1.0000000000000000",
+        "alpha_sym_squared_K": "3417.8922850724261",
+        "conical_period_phi": "4.2781134749679222",
+        "dimensionless_area_divergence_coefficient": "0.50732185010836406",
+        "analytic_K_upper_bound_alpha_sym_squared": "38336.167328136020"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "u_cos4_theta": "0.0000000000000000",
+        "alpha_sym_squared_K": "160.00000000000000",
+        "conical_period_phi": "3.6275987284684357",
+        "dimensionless_area_divergence_coefficient": "0.45344984105855446",
+        "analytic_K_upper_bound_alpha_sym_squared": "74416.000000000000"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "u_cos4_theta": "0.25000000000000000",
+        "alpha_sym_squared_K": "164.78463275726321",
+        "conical_period_phi": "3.6275987284684357",
+        "dimensionless_area_divergence_coefficient": "0.45344984105855446",
+        "analytic_K_upper_bound_alpha_sym_squared": "74416.000000000000"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "u_cos4_theta": "0.50000000000000000",
+        "alpha_sym_squared_K": "243.87775034293554",
+        "conical_period_phi": "3.6275987284684357",
+        "dimensionless_area_divergence_coefficient": "0.45344984105855446",
+        "analytic_K_upper_bound_alpha_sym_squared": "74416.000000000000"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "u_cos4_theta": "0.75000000000000000",
+        "alpha_sym_squared_K": "1021.4700937520661",
+        "conical_period_phi": "3.6275987284684357",
+        "dimensionless_area_divergence_coefficient": "0.45344984105855446",
+        "analytic_K_upper_bound_alpha_sym_squared": "74416.000000000000"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "u_cos4_theta": "1.0000000000000000",
+        "alpha_sym_squared_K": "8149.3333333333330",
+        "conical_period_phi": "3.6275987284684357",
+        "dimensionless_area_divergence_coefficient": "0.45344984105855446",
+        "analytic_K_upper_bound_alpha_sym_squared": "74416.000000000000"
+      },
+      {
+        "beta": "0.55000000000000004",
+        "u_cos4_theta": "0.0000000000000000",
+        "alpha_sym_squared_K": "160.00000000000000",
+        "conical_period_phi": "3.0622820472819656",
+        "dimensionless_area_divergence_coefficient": "0.40146856334774150",
+        "analytic_K_upper_bound_alpha_sym_squared": "153318.34233339177"
+      },
+      {
+        "beta": "0.55000000000000004",
+        "u_cos4_theta": "0.25000000000000000",
+        "alpha_sym_squared_K": "166.68923555606403",
+        "conical_period_phi": "3.0622820472819656",
+        "dimensionless_area_divergence_coefficient": "0.40146856334774150",
+        "analytic_K_upper_bound_alpha_sym_squared": "153318.34233339177"
+      },
+      {
+        "beta": "0.55000000000000004",
+        "u_cos4_theta": "0.50000000000000000",
+        "alpha_sym_squared_K": "296.88318597650158",
+        "conical_period_phi": "3.0622820472819656",
+        "dimensionless_area_divergence_coefficient": "0.40146856334774150",
+        "analytic_K_upper_bound_alpha_sym_squared": "153318.34233339177"
+      },
+      {
+        "beta": "0.55000000000000004",
+        "u_cos4_theta": "0.75000000000000000",
+        "alpha_sym_squared_K": "1836.0996019469212",
+        "conical_period_phi": "3.0622820472819656",
+        "dimensionless_area_divergence_coefficient": "0.40146856334774150",
+        "analytic_K_upper_bound_alpha_sym_squared": "153318.34233339177"
+      },
+      {
+        "beta": "0.55000000000000004",
+        "u_cos4_theta": "1.0000000000000000",
+        "alpha_sym_squared_K": "20317.457177435528",
+        "conical_period_phi": "3.0622820472819656",
+        "dimensionless_area_divergence_coefficient": "0.40146856334774150",
+        "analytic_K_upper_bound_alpha_sym_squared": "153318.34233339177"
+      },
+      {
+        "beta": "0.59999999999999998",
+        "u_cos4_theta": "0.0000000000000000",
+        "alpha_sym_squared_K": "160.00000000000000",
+        "conical_period_phi": "2.5650996603237282",
+        "dimensionless_area_divergence_coefficient": "0.35124073655203630",
+        "analytic_K_upper_bound_alpha_sym_squared": "339954.24999999988"
+      },
+      {
+        "beta": "0.59999999999999998",
+        "u_cos4_theta": "0.25000000000000000",
+        "alpha_sym_squared_K": "169.21167816352525",
+        "conical_period_phi": "2.5650996603237282",
+        "dimensionless_area_divergence_coefficient": "0.35124073655203630",
+        "analytic_K_upper_bound_alpha_sym_squared": "339954.24999999988"
+      },
+      {
+        "beta": "0.59999999999999998",
+        "u_cos4_theta": "0.50000000000000000",
+        "alpha_sym_squared_K": "380.02456509763448",
+        "conical_period_phi": "2.5650996603237282",
+        "dimensionless_area_divergence_coefficient": "0.35124073655203630",
+        "analytic_K_upper_bound_alpha_sym_squared": "339954.24999999988"
+      },
+      {
+        "beta": "0.59999999999999998",
+        "u_cos4_theta": "0.75000000000000000",
+        "alpha_sym_squared_K": "3417.8922850724252",
+        "conical_period_phi": "2.5650996603237282",
+        "dimensionless_area_divergence_coefficient": "0.35124073655203630",
+        "analytic_K_upper_bound_alpha_sym_squared": "339954.24999999988"
+      },
+      {
+        "beta": "0.59999999999999998",
+        "u_cos4_theta": "1.0000000000000000",
+        "alpha_sym_squared_K": "53518.749999999956",
+        "conical_period_phi": "2.5650996603237282",
+        "dimensionless_area_divergence_coefficient": "0.35124073655203630",
+        "analytic_K_upper_bound_alpha_sym_squared": "339954.24999999988"
+      },
+      {
+        "beta": "0.65000000000000002",
+        "u_cos4_theta": "0.0000000000000000",
+        "alpha_sym_squared_K": "160.00000000000000",
+        "conical_period_phi": "2.1234853165355281",
+        "dimensionless_area_divergence_coefficient": "0.30264322168408414",
+        "analytic_K_upper_bound_alpha_sym_squared": "827393.61279738939"
+      },
+      {
+        "beta": "0.65000000000000002",
+        "u_cos4_theta": "0.25000000000000000",
+        "alpha_sym_squared_K": "172.52276083540477",
+        "conical_period_phi": "2.1234853165355281",
+        "dimensionless_area_divergence_coefficient": "0.30264322168408414",
+        "analytic_K_upper_bound_alpha_sym_squared": "827393.61279738939"
+      },
+      {
+        "beta": "0.65000000000000002",
+        "u_cos4_theta": "0.50000000000000000",
+        "alpha_sym_squared_K": "509.53718076659663",
+        "conical_period_phi": "2.1234853165355281",
+        "dimensionless_area_divergence_coefficient": "0.30264322168408414",
+        "analytic_K_upper_bound_alpha_sym_squared": "827393.61279738939"
+      },
+      {
+        "beta": "0.65000000000000002",
+        "u_cos4_theta": "0.75000000000000000",
+        "alpha_sym_squared_K": "6531.8246441634901",
+        "conical_period_phi": "2.1234853165355281",
+        "dimensionless_area_divergence_coefficient": "0.30264322168408414",
+        "analytic_K_upper_bound_alpha_sym_squared": "827393.61279738939"
+      },
+      {
+        "beta": "0.65000000000000002",
+        "u_cos4_theta": "1.0000000000000000",
+        "alpha_sym_squared_K": "151970.37163377169",
+        "conical_period_phi": "2.1234853165355281",
+        "dimensionless_area_divergence_coefficient": "0.30264322168408414",
+        "analytic_K_upper_bound_alpha_sym_squared": "827393.61279738939"
+      },
+      {
+        "beta": "0.69999999999999996",
+        "u_cos4_theta": "0.0000000000000000",
+        "alpha_sym_squared_K": "160.00000000000000",
+        "conical_period_phi": "1.7279359582923801",
+        "dimensionless_area_divergence_coefficient": "0.25556517473361029",
+        "analytic_K_upper_bound_alpha_sym_squared": "2275625.5034293528"
+      },
+      {
+        "beta": "0.69999999999999996",
+        "u_cos4_theta": "0.25000000000000000",
+        "alpha_sym_squared_K": "176.83512345210065",
+        "conical_period_phi": "1.7279359582923801",
+        "dimensionless_area_divergence_coefficient": "0.25556517473361029",
+        "analytic_K_upper_bound_alpha_sym_squared": "2275625.5034293528"
+      },
+      {
+        "beta": "0.69999999999999996",
+        "u_cos4_theta": "0.50000000000000000",
+        "alpha_sym_squared_K": "710.42998257127101",
+        "conical_period_phi": "1.7279359582923801",
+        "dimensionless_area_divergence_coefficient": "0.25556517473361029",
+        "analytic_K_upper_bound_alpha_sym_squared": "2275625.5034293528"
+      },
+      {
+        "beta": "0.69999999999999996",
+        "u_cos4_theta": "0.75000000000000000",
+        "alpha_sym_squared_K": "12790.795453005219",
+        "conical_period_phi": "1.7279359582923801",
+        "dimensionless_area_divergence_coefficient": "0.25556517473361029",
+        "analytic_K_upper_bound_alpha_sym_squared": "2275625.5034293528"
+      },
+      {
+        "beta": "0.69999999999999996",
+        "u_cos4_theta": "1.0000000000000000",
+        "alpha_sym_squared_K": "479742.26057404268",
+        "conical_period_phi": "1.7279359582923801",
+        "dimensionless_area_divergence_coefficient": "0.25556517473361029",
+        "analytic_K_upper_bound_alpha_sym_squared": "2275625.5034293528"
+      },
+      {
+        "beta": "0.75000000000000000",
+        "u_cos4_theta": "0.0000000000000000",
+        "alpha_sym_squared_K": "160.00000000000000",
+        "conical_period_phi": "1.3711034416945151",
+        "dimensionless_area_divergence_coefficient": "0.20990648854533925",
+        "analytic_K_upper_bound_alpha_sym_squared": "7399984.0000000000"
+      },
+      {
+        "beta": "0.75000000000000000",
+        "u_cos4_theta": "0.25000000000000000",
+        "alpha_sym_squared_K": "182.41285438655188",
+        "conical_period_phi": "1.3711034416945151",
+        "dimensionless_area_divergence_coefficient": "0.20990648854533925",
+        "analytic_K_upper_bound_alpha_sym_squared": "7399984.0000000000"
+      },
+      {
+        "beta": "0.75000000000000000",
+        "u_cos4_theta": "0.50000000000000000",
+        "alpha_sym_squared_K": "1021.4700937520661",
+        "conical_period_phi": "1.3711034416945151",
+        "dimensionless_area_divergence_coefficient": "0.20990648854533925",
+        "analytic_K_upper_bound_alpha_sym_squared": "7399984.0000000000"
+      },
+      {
+        "beta": "0.75000000000000000",
+        "u_cos4_theta": "0.75000000000000000",
+        "alpha_sym_squared_K": "25734.577815869237",
+        "conical_period_phi": "1.3711034416945151",
+        "dimensionless_area_divergence_coefficient": "0.20990648854533925",
+        "analytic_K_upper_bound_alpha_sym_squared": "7399984.0000000000"
+      },
+      {
+        "beta": "0.75000000000000000",
+        "u_cos4_theta": "1.0000000000000000",
+        "alpha_sym_squared_K": "1765135.6734693877",
+        "conical_period_phi": "1.3711034416945151",
+        "dimensionless_area_divergence_coefficient": "0.20990648854533925",
+        "analytic_K_upper_bound_alpha_sym_squared": "7399984.0000000000"
+      },
+      {
+        "beta": "0.80000000000000004",
+        "u_cos4_theta": "0.0000000000000000",
+        "alpha_sym_squared_K": "160.00000000000000",
+        "conical_period_phi": "1.0471975511965974",
+        "dimensionless_area_divergence_coefficient": "0.16557647109660165",
+        "analytic_K_upper_bound_alpha_sym_squared": "30694048.000000052"
+      },
+      {
+        "beta": "0.80000000000000004",
+        "u_cos4_theta": "0.25000000000000000",
+        "alpha_sym_squared_K": "189.58333333333329",
+        "conical_period_phi": "1.0471975511965974",
+        "dimensionless_area_divergence_coefficient": "0.16557647109660165",
+        "analytic_K_upper_bound_alpha_sym_squared": "30694048.000000052"
+      },
+      {
+        "beta": "0.80000000000000004",
+        "u_cos4_theta": "0.50000000000000000",
+        "alpha_sym_squared_K": "1503.2277931748838",
+        "conical_period_phi": "1.0471975511965974",
+        "dimensionless_area_divergence_coefficient": "0.16557647109660165",
+        "analytic_K_upper_bound_alpha_sym_squared": "30694048.000000052"
+      },
+      {
+        "beta": "0.80000000000000004",
+        "u_cos4_theta": "0.75000000000000000",
+        "alpha_sym_squared_K": "53518.750000000080",
+        "conical_period_phi": "1.0471975511965974",
+        "dimensionless_area_divergence_coefficient": "0.16557647109660165",
+        "analytic_K_upper_bound_alpha_sym_squared": "30694048.000000052"
+      },
+      {
+        "beta": "0.80000000000000004",
+        "u_cos4_theta": "1.0000000000000000",
+        "alpha_sym_squared_K": "8182014.8148148274",
+        "conical_period_phi": "1.0471975511965974",
+        "dimensionless_area_divergence_coefficient": "0.16557647109660165",
+        "analytic_K_upper_bound_alpha_sym_squared": "30694048.000000052"
+      },
+      {
+        "beta": "0.84999999999999998",
+        "u_cos4_theta": "0.0000000000000000",
+        "alpha_sym_squared_K": "160.00000000000000",
+        "conical_period_phi": "0.75158101344843697",
+        "dimensionless_area_divergence_coefficient": "0.12249271876444236",
+        "analytic_K_upper_bound_alpha_sym_squared": "187227790.11248267"
+      },
+      {
+        "beta": "0.84999999999999998",
+        "u_cos4_theta": "0.25000000000000000",
+        "alpha_sym_squared_K": "198.75184806585898",
+        "conical_period_phi": "0.75158101344843697",
+        "dimensionless_area_divergence_coefficient": "0.12249271876444236",
+        "analytic_K_upper_bound_alpha_sym_squared": "187227790.11248267"
+      },
+      {
+        "beta": "0.84999999999999998",
+        "u_cos4_theta": "0.50000000000000000",
+        "alpha_sym_squared_K": "2251.2414312717665",
+        "conical_period_phi": "0.75158101344843697",
+        "dimensionless_area_divergence_coefficient": "0.12249271876444236",
+        "analytic_K_upper_bound_alpha_sym_squared": "187227790.11248267"
+      },
+      {
+        "beta": "0.84999999999999998",
+        "u_cos4_theta": "0.75000000000000000",
+        "alpha_sym_squared_K": "116078.16830170345",
+        "conical_period_phi": "0.75158101344843697",
+        "dimensionless_area_divergence_coefficient": "0.12249271876444236",
+        "analytic_K_upper_bound_alpha_sym_squared": "187227790.11248267"
+      },
+      {
+        "beta": "0.84999999999999998",
+        "u_cos4_theta": "1.0000000000000000",
+        "alpha_sym_squared_K": "55181665.602339007",
+        "conical_period_phi": "0.75158101344843697",
+        "dimensionless_area_divergence_coefficient": "0.12249271876444236",
+        "analytic_K_upper_bound_alpha_sym_squared": "187227790.11248267"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "u_cos4_theta": "0.0000000000000000",
+        "alpha_sym_squared_K": "160.00000000000000",
+        "conical_period_phi": "0.48048718943044516",
+        "dimensionless_area_divergence_coefficient": "0.080580151341322043",
+        "analytic_K_upper_bound_alpha_sym_squared": "2311696048.0000029"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "u_cos4_theta": "0.25000000000000000",
+        "alpha_sym_squared_K": "210.41966285445642",
+        "conical_period_phi": "0.48048718943044516",
+        "dimensionless_area_divergence_coefficient": "0.080580151341322043",
+        "analytic_K_upper_bound_alpha_sym_squared": "2311696048.0000029"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "u_cos4_theta": "0.50000000000000000",
+        "alpha_sym_squared_K": "3417.8922850724261",
+        "conical_period_phi": "0.48048718943044516",
+        "dimensionless_area_divergence_coefficient": "0.080580151341322043",
+        "analytic_K_upper_bound_alpha_sym_squared": "2311696048.0000029"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "u_cos4_theta": "0.75000000000000000",
+        "alpha_sym_squared_K": "265806.51262584160",
+        "conical_period_phi": "0.48048718943044516",
+        "dimensionless_area_divergence_coefficient": "0.080580151341322043",
+        "analytic_K_upper_bound_alpha_sym_squared": "2311696048.0000029"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "u_cos4_theta": "1.0000000000000000",
+        "alpha_sym_squared_K": "746392013.29639995",
+        "conical_period_phi": "0.48048718943044516",
+        "dimensionless_area_divergence_coefficient": "0.080580151341322043",
+        "analytic_K_upper_bound_alpha_sym_squared": "2311696048.0000029"
+      },
+      {
+        "beta": "0.94999999999999996",
+        "u_cos4_theta": "0.0000000000000000",
+        "alpha_sym_squared_K": "160.00000000000000",
+        "conical_period_phi": "0.23081857971147735",
+        "dimensionless_area_divergence_coefficient": "0.039770181945390330",
+        "analytic_K_upper_bound_alpha_sym_squared": "160128064047.99911"
+      },
+      {
+        "beta": "0.94999999999999996",
+        "u_cos4_theta": "0.25000000000000000",
+        "alpha_sym_squared_K": "225.20639139319238",
+        "conical_period_phi": "0.23081857971147735",
+        "dimensionless_area_divergence_coefficient": "0.039770181945390330",
+        "analytic_K_upper_bound_alpha_sym_squared": "160128064047.99911"
+      },
+      {
+        "beta": "0.94999999999999996",
+        "u_cos4_theta": "0.50000000000000000",
+        "alpha_sym_squared_K": "5249.3716233691321",
+        "conical_period_phi": "0.23081857971147735",
+        "dimensionless_area_divergence_coefficient": "0.039770181945390330",
+        "analytic_K_upper_bound_alpha_sym_squared": "160128064047.99911"
+      },
+      {
+        "beta": "0.94999999999999996",
+        "u_cos4_theta": "0.75000000000000000",
+        "alpha_sym_squared_K": "653418.23841605242",
+        "conical_period_phi": "0.23081857971147735",
+        "dimensionless_area_divergence_coefficient": "0.039770181945390330",
+        "analytic_K_upper_bound_alpha_sym_squared": "160128064047.99911"
+      },
+      {
+        "beta": "0.94999999999999996",
+        "u_cos4_theta": "1.0000000000000000",
+        "alpha_sym_squared_K": "56188000012.622971",
+        "conical_period_phi": "0.23081857971147735",
+        "dimensionless_area_divergence_coefficient": "0.039770181945390330",
+        "analytic_K_upper_bound_alpha_sym_squared": "160128064047.99911"
+      }
+    ],
+    "stress_tests": [
+      {
+        "beta": "9.9999999999999995e-7",
+        "period_phi": "6283.1758824071239",
+        "alpha_sym_squared_K_at_axis_u1": "160.00000000009604",
+        "alpha_sym_squared_K_at_pole_u0": "160",
+        "dimensionless_area_divergence_coefficient": "1.1107190684594617"
+      },
+      {
+        "beta": "0.0010000000000000000",
+        "period_phi": "198.39390138675856",
+        "alpha_sym_squared_K_at_axis_u1": "160.00009651768409",
+        "alpha_sym_squared_K_at_pole_u0": "160",
+        "dimensionless_area_divergence_coefficient": "1.1090556245554548"
+      },
+      {
+        "beta": "0.98999999999999999",
+        "period_phi": "0.044764705620769153",
+        "alpha_sym_squared_K_at_axis_u1": "993586050400006.88",
+        "alpha_sym_squared_K_at_pole_u0": "160",
+        "dimensionless_area_divergence_coefficient": "0.0078736905272817036"
+      },
+      {
+        "beta": "0.99900000000000000",
+        "period_phi": "0.0044462177405123473",
+        "alpha_sym_squared_K_at_axis_u1": "1.0209310708482342e+21",
+        "alpha_sym_squared_K_at_pole_u0": "160",
+        "dimensionless_area_divergence_coefficient": "0.00078559458660006911"
+      },
+      {
+        "beta": "0.99999899999999997",
+        "period_phi": "0.0000044428862704509652",
+        "alpha_sym_squared_K_at_axis_u1": "1.0239969278263980e+39",
+        "alpha_sym_squared_K_at_pole_u0": "160",
+        "dimensionless_area_divergence_coefficient": "7.8539835976964739e-7"
+      }
+    ],
+    "values_are": "17-significant-digit JavaScript binary64 evaluations of exact closed-form expressions; replay script emits 24-digit SymPy strings"
+  },
+  "claim_ceiling": "Geometric identities for a source-reported local near-horizon solution. No independent EGB field-equation replay, global completion, finite charges, hyperbolicity, or dynamical stability is claimed.",
+  "horizon_measure_cutoff_tests": {
+    "beta_values": [
+      "0.1",
+      "0.5",
+      "0.9",
+      "0.99"
+    ],
+    "epsilon_values": [
+      "0.2",
+      "0.1",
+      "0.05",
+      "0.02",
+      "0.01"
+    ],
+    "normalization": "A_H/(alpha_sym^(3/2)*Delta_psi)",
+    "exact_asymptotic_coefficient": "pi*(1-beta)/(2*sqrt(2*(1+beta)))",
+    "exact_scaled_ratio": "epsilon^2*A_H/(alpha_sym^(3/2)*Delta_psi)/coefficient = 1-(1+beta)*epsilon^2+beta*epsilon^4",
+    "tests": [
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.20000000000000001",
+        "area_over_alpha_sym_3_2_delta_psi": "22.783562167959793",
+        "epsilon_squared_scaled_area": "0.91134248671839191",
+        "exact_divergence_coefficient": "0.95312760073459657",
+        "scaled_to_coefficient_ratio": "0.95616000000000001"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.10000000000000001",
+        "area_over_alpha_sym_3_2_delta_psi": "94.265272840252337",
+        "epsilon_squared_scaled_area": "0.94265272840252357",
+        "exact_divergence_coefficient": "0.95312760073459657",
+        "scaled_to_coefficient_ratio": "0.98901000000000028"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.050000000000000003",
+        "area_over_alpha_sym_3_2_delta_psi": "380.20283821493069",
+        "epsilon_squared_scaled_area": "0.95050709553732693",
+        "exact_divergence_coefficient": "0.95312760073459657",
+        "scaled_to_coefficient_ratio": "0.99725062500000006"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.020000000000000000",
+        "area_over_alpha_sym_3_2_delta_psi": "2381.7705996007876",
+        "epsilon_squared_scaled_area": "0.95270823984031505",
+        "exact_divergence_coefficient": "0.95312760073459657",
+        "scaled_to_coefficient_ratio": "0.99956001600000011"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.010000000000000000",
+        "area_over_alpha_sym_3_2_delta_psi": "9530.2275765164322",
+        "epsilon_squared_scaled_area": "0.95302275765164324",
+        "exact_divergence_coefficient": "0.95312760073459657",
+        "scaled_to_coefficient_ratio": "0.99989000099999992"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.20000000000000001",
+        "area_over_alpha_sym_3_2_delta_psi": "10.665140261697198",
+        "epsilon_squared_scaled_area": "0.42660561046788803",
+        "exact_divergence_coefficient": "0.45344984105855446",
+        "scaled_to_coefficient_ratio": "0.94079999999999997"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.10000000000000001",
+        "area_over_alpha_sym_3_2_delta_psi": "44.667076593472899",
+        "epsilon_squared_scaled_area": "0.44667076593472910",
+        "exact_divergence_coefficient": "0.45344984105855446",
+        "scaled_to_coefficient_ratio": "0.98505000000000009"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.050000000000000003",
+        "area_over_alpha_sym_3_2_delta_psi": "180.70032847413526",
+        "epsilon_squared_scaled_area": "0.45175082118533827",
+        "exact_divergence_coefficient": "0.45344984105855446",
+        "scaled_to_coefficient_ratio": "0.99625312500000018"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.020000000000000000",
+        "area_over_alpha_sym_3_2_delta_psi": "1132.9445185747666",
+        "epsilon_squared_scaled_area": "0.45317780742990665",
+        "exact_divergence_coefficient": "0.45344984105855446",
+        "scaled_to_coefficient_ratio": "0.99940008000000013"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.010000000000000000",
+        "area_over_alpha_sym_3_2_delta_psi": "4533.8182584964488",
+        "epsilon_squared_scaled_area": "0.45338182584964493",
+        "exact_divergence_coefficient": "0.45344984105855446",
+        "scaled_to_coefficient_ratio": "0.99985000500000010"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.20000000000000001",
+        "area_over_alpha_sym_3_2_delta_psi": "1.8643023814328268",
+        "epsilon_squared_scaled_area": "0.074572095257313092",
+        "exact_divergence_coefficient": "0.080580151341322043",
+        "scaled_to_coefficient_ratio": "0.92544000000000026"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.10000000000000001",
+        "area_over_alpha_sym_3_2_delta_psi": "7.9056380679457625",
+        "epsilon_squared_scaled_area": "0.079056380679457638",
+        "exact_divergence_coefficient": "0.080580151341322043",
+        "scaled_to_coefficient_ratio": "0.98108999999999991"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.050000000000000003",
+        "area_over_alpha_sym_3_2_delta_psi": "32.079139554320818",
+        "epsilon_squared_scaled_area": "0.080197848885802059",
+        "exact_divergence_coefficient": "0.080580151341322043",
+        "scaled_to_coefficient_ratio": "0.99525562499999998"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.020000000000000000",
+        "area_over_alpha_sym_3_2_delta_psi": "201.29730507461107",
+        "epsilon_squared_scaled_area": "0.080518922029844439",
+        "exact_divergence_coefficient": "0.080580151341322043",
+        "scaled_to_coefficient_ratio": "0.99924014400000005"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.010000000000000000",
+        "area_over_alpha_sym_3_2_delta_psi": "805.64841837788549",
+        "epsilon_squared_scaled_area": "0.080564841837788559",
+        "exact_divergence_coefficient": "0.080580151341322043",
+        "scaled_to_coefficient_ratio": "0.99981000900000006"
+      },
+      {
+        "beta": "0.98999999999999999",
+        "epsilon": "0.20000000000000001",
+        "area_over_alpha_sym_3_2_delta_psi": "0.18148541717763234",
+        "epsilon_squared_scaled_area": "0.0072594166871052948",
+        "exact_divergence_coefficient": "0.0078736905272817036",
+        "scaled_to_coefficient_ratio": "0.92198400000000014"
+      },
+      {
+        "beta": "0.98999999999999999",
+        "epsilon": "0.10000000000000001",
+        "area_over_alpha_sym_3_2_delta_psi": "0.77177835811509976",
+        "epsilon_squared_scaled_area": "0.0077177835811509995",
+        "exact_divergence_coefficient": "0.0078736905272817036",
+        "scaled_to_coefficient_ratio": "0.98019900000000015"
+      },
+      {
+        "beta": "0.98999999999999999",
+        "epsilon": "0.050000000000000003",
+        "area_over_alpha_sym_3_2_delta_psi": "3.1338270541474453",
+        "epsilon_squared_scaled_area": "0.0078345676353686142",
+        "exact_divergence_coefficient": "0.0078736905272817036",
+        "scaled_to_coefficient_ratio": "0.99503118749999997"
+      },
+      {
+        "beta": "0.98999999999999999",
+        "epsilon": "0.020000000000000000",
+        "area_over_alpha_sym_3_2_delta_psi": "19.668560792036420",
+        "epsilon_squared_scaled_area": "0.0078674243168145690",
+        "exact_divergence_coefficient": "0.0078736905272817036",
+        "scaled_to_coefficient_ratio": "0.99920415840000032"
+      },
+      {
+        "beta": "0.98999999999999999",
+        "epsilon": "0.010000000000000000",
+        "area_over_alpha_sym_3_2_delta_psi": "78.721237408163120",
+        "epsilon_squared_scaled_area": "0.0078721237408163128",
+        "exact_divergence_coefficient": "0.0078736905272817036",
+        "scaled_to_coefficient_ratio": "0.99980100990000031"
+      }
+    ]
+  }
+}

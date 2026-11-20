@@ -1,0 +1,239 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/domains/symtropy-lovelock5d/benchmarks/global_admissibility_vector_v1.schema.json",
+  "title": "Black-hole candidate global-admissibility vector",
+  "description": "Independent evidence gates for local and global black-hole candidates. Deliberately has no aggregate regular/success boolean.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "source",
+    "candidate_scope",
+    "theory",
+    "domain",
+    "gates",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "reference",
+        "source_reports_solution"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_reports_solution": {
+          "type": "boolean"
+        },
+        "source_scope": {
+          "type": "string"
+        }
+      }
+    },
+    "candidate_scope": {
+      "enum": [
+        "local_near_horizon",
+        "global_exterior",
+        "global_asymptotically_flat",
+        "global_asymptotically_ads",
+        "other"
+      ]
+    },
+    "theory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "dimension",
+        "action",
+        "coupling_convention",
+        "signature",
+        "curvature_convention"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "dimension": {
+          "const": 5
+        },
+        "action": {
+          "type": "string"
+        },
+        "coupling_convention": {
+          "type": "string"
+        },
+        "signature": {
+          "type": "string"
+        },
+        "curvature_convention": {
+          "type": "string"
+        }
+      }
+    },
+    "domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parameters",
+        "coordinates",
+        "coordinate_patch",
+        "excluded_endpoints"
+      ],
+      "properties": {
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "coordinates": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "coordinate_patch": {
+          "type": "string"
+        },
+        "excluded_endpoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_identity",
+        "field_equations",
+        "lorentzian_signature",
+        "local_curvature",
+        "axis_regularities",
+        "global_identifications",
+        "horizon_measure",
+        "charge_integrability",
+        "physical_characteristics",
+        "strong_hyperbolicity",
+        "mode_stability",
+        "global_completion",
+        "eft_validity"
+      ],
+      "properties": {
+        "action_identity": {
+          "$ref": "#/$defs/gate"
+        },
+        "field_equations": {
+          "$ref": "#/$defs/gate"
+        },
+        "lorentzian_signature": {
+          "$ref": "#/$defs/gate"
+        },
+        "local_curvature": {
+          "$ref": "#/$defs/gate"
+        },
+        "axis_regularities": {
+          "$ref": "#/$defs/gate"
+        },
+        "global_identifications": {
+          "$ref": "#/$defs/gate"
+        },
+        "horizon_measure": {
+          "$ref": "#/$defs/gate"
+        },
+        "charge_integrability": {
+          "$ref": "#/$defs/gate"
+        },
+        "physical_characteristics": {
+          "$ref": "#/$defs/gate"
+        },
+        "strong_hyperbolicity": {
+          "$ref": "#/$defs/gate"
+        },
+        "mode_stability": {
+          "$ref": "#/$defs/gate"
+        },
+        "global_completion": {
+          "$ref": "#/$defs/gate"
+        },
+        "eft_validity": {
+          "$ref": "#/$defs/gate"
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "scope",
+        "basis",
+        "evidence",
+        "limitations"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "unresolved",
+            "not_applicable"
+          ]
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "basis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
