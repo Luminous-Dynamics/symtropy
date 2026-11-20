@@ -200,6 +200,10 @@
                     "required": [
                       "region_id",
                       "demand_units",
+                      "prequalified_aerial_service_capacity_units",
+                      "coavailability_evidence_status",
+                      "coavailability_evidence_reference",
+                      "aerial_energy_units_per_delivery_upper_bound",
                       "weather",
                       "weather_evidence_reference",
                       "permission",
@@ -239,6 +243,29 @@
                       "permission_evidence_reference": {
                         "type": "string",
                         "minLength": 1
+                      },
+                      "prequalified_aerial_service_capacity_units": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000000
+                      },
+                      "coavailability_evidence_status": {
+                        "enum": [
+                          "fresh_in_domain",
+                          "unknown",
+                          "stale",
+                          "conflicted",
+                          "revoked"
+                        ]
+                      },
+                      "coavailability_evidence_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "aerial_energy_units_per_delivery_upper_bound": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000000000
                       }
                     }
                   }

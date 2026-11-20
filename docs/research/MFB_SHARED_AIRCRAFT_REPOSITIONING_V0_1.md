@@ -53,6 +53,17 @@ Within v0.1, a regional reposition:
 4. cannot perform a delivery in the reposition period;
 5. may only serve from the new region in a later period and only after that period's weather and permission are checked again.
 
+### Service requires an upstream qualified mission envelope
+
+Clear weather and current permission are necessary but no longer sufficient for aerial service. Each region-period observation must also carry:
+- `prequalified_aerial_service_capacity_units`: the number of delivery units qualified by the upstream carrier/UAV co-availability envelope for that period;
+- `coavailability_evidence_status` and a nonempty `coavailability_evidence_reference`;
+- `aerial_energy_units_per_delivery_upper_bound`: a conservative mission-energy upper bound per delivery unit from that qualified envelope.
+
+The evaluator uses the minimum of demand, the region's configured cap and the prequalified capacity. Service is blocked unless the co-availability evidence status is `fresh_in_domain` and its capacity is positive. Energy is charged at the greater of the v0.1 generic floor and the supplied per-period upper bound. This allows energy/capacity to vary by region and scenario without reimplementing flight physics or route synchronization here.
+
+The input is an adapter boundary for [MFB-DRONE-CARRIER-COOPT-001 #6083](https://github.com/Luminous-Dynamics/symtropy/issues/6083): #6083 remains responsible for actual route/sortie/rendezvous/aircraft capability qualification. This oracle only consumes its qualified capacity and conservative energy envelope. An evidence reference is not signature authentication or proof by itself; the upstream owner must validate the referenced receipt.
+
 ## Evidence references
 
 Every regional weather observation has separate weather and permission evidence references. Every reposition link has its own source reference and evidence status. Synthetic fixtures use explicit `synthetic://` references. Where two scenarios have the same observable prefix, they deliberately reuse the same evidence references; scenario labels are not smuggled into the decision history. This preserves nonanticipativity while retaining provenance as an observable field. Non-synthetic consumers must replace these with actual, scoped evidence identities and freshness state.
@@ -129,6 +140,10 @@ Do not treat algorithm labels as evidence of superiority. Reproduce the original
 - Heuristic / learned policy: target p95 decision latency ≤50 ms on a declared reference CPU for the bounded 2–3-region case, with hardware and confidence interval reported. Separately benchmark against the ~2 ms reported in Bi et al.; do not claim parity without matching hardware and problem semantics.
 - On reproduced published instances, first match the published feasibility/objective within stated numerical tolerances; only then test Pareto improvements in cost, unserved demand, energy, repositioning and runtime.
 - Keep a full service-cost-energy Pareto frontier rather than collapsing service, cost, energy and reliability into one opaque score.
+
+## Prequalified service-envelope regression controls
+
+The exact policy engine now requires the co-availability status/reference and a per-period service-capacity / mission-energy upper bound before it can allocate aerial service. Tests cover stale co-availability despite clear weather and approved permission, per-period service-capacity caps, energy upper bounds overriding the generic floor, and missing evidence references. The reference fixtures use synthetic source identifiers and therefore test only fail-closed contract behavior.
 
 ## v0.2 and beyond
 
