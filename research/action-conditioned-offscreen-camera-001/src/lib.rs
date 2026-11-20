@@ -442,9 +442,13 @@ struct ProjectedPoint {
 /// This checks unkeyed digests and declared shape/timing invariants. It does
 /// not authenticate the producer or prove that an upstream action receipt is
 /// genuine; those claims require a separately trusted authority.
-pub fn verify_policy_receipt(
+/// Verify policy receipt metadata without requiring the raw pixel buffer.
+///
+/// This checks shape, timing, action/tick consistency, observation identity
+/// and the unkeyed receipt commitment. It does not prove who produced the
+/// receipt or authenticate an upstream action reference.
+pub fn verify_policy_receipt_metadata(
     receipt: &PolicyObservationReceipt,
-    pixels_rgb: &[u8],
 ) -> Result<(), RenderError> {
     if receipt.schema_version != RENDERER_SCHEMA_VERSION
         || receipt.pixel_format != PixelFormat::Rgb8Srgb
@@ -475,7 +479,6 @@ pub fn verify_policy_receipt(
         || receipt.frame_height > MAX_FRAME_HEIGHT
         || expected_len > MAX_FRAME_BYTES
         || receipt.frame_byte_len != expected_len
-        || pixels_rgb.len() != expected_len
     {
         return Err(RenderError::DerivedFrameGeometryMismatch);
     }
@@ -514,15 +517,30 @@ pub fn verify_policy_receipt(
         return Err(RenderError::ParentReceiptCommitmentMismatch);
     }
 
-    if sha256_hex(pixels_rgb) != receipt.frame_sha256 {
-        return Err(RenderError::ParentFrameMismatch);
-    }
     if observation_identity_digest(receipt) != receipt.observation_id
         || policy_receipt_digest(receipt) != receipt.receipt_sha256
     {
         return Err(RenderError::ParentReceiptCommitmentMismatch);
     }
+    Ok(())
+}
 
+/// Verify that policy pixels and their receipt are internally consistent.
+///
+/// This checks unkeyed digests and declared shape/timing invariants. It does
+/// not authenticate the producer or prove that an upstream action receipt is
+/// genuine; those claims require a separately trusted authority.
+pub fn verify_policy_receipt(
+    receipt: &PolicyObservationReceipt,
+    pixels_rgb: &[u8],
+) -> Result<(), RenderError> {
+    verify_policy_receipt_metadata(receipt)?;
+    if pixels_rgb.len() != receipt.frame_byte_len {
+        return Err(RenderError::DerivedFrameGeometryMismatch);
+    }
+    if sha256_hex(pixels_rgb) != receipt.frame_sha256 {
+        return Err(RenderError::ParentFrameMismatch);
+    }
     Ok(())
 }
 
@@ -1519,6 +1537,19 @@ pub fn sha256_hex(input: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn metadata_only_verifier_checks_commitments_without_pixel_bytes() {
+        let rendered = SoftwareCameraRenderer::render(&snapshot(), 1, clocks()).unwrap();
+        assert!(verify_policy_receipt_metadata(&rendered.policy_receipt).is_ok());
+
+        let mut changed_receipt = rendered.policy_receipt.clone();
+        changed_receipt.camera_id.push_str("-tampered");
+        assert_eq!(
+            verify_policy_receipt_metadata(&changed_receipt),
+            Err(RenderError::ParentReceiptCommitmentMismatch)
+        );
+    }
 
     #[test]
     fn public_policy_receipt_verifier_checks_frame_and_commitments() {
