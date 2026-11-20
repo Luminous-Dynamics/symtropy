@@ -134,10 +134,12 @@ jobs:
             and .result_count == 108
             and .full_lifecycle_ranking_available == false
             and all(.results[]; .full_lifecycle_ranking_eligible == false)
+            and all(.results[]; .full_lifecycle_cost_per_module_year == null)
+            and all(.results[]; .downtime_loss_cost_per_module_year == null)
             and all(.results[]; .return_to_service_authorized == false)
             and all(.results[]; .module_production_release_ready == false)
             and all(.results[] | select(.config_id == "detachable-uav-pod-synthetic-demo"); .scheduled_downtime_hours_per_module_year == 2.5 and .total_downtime_hours_per_module_year == null)
-            and all(.results[] | select(.config_id == "amr-handoff-synthetic-demo"); ((.scheduled_downtime_hours_per_module_year - 0.8333333333 | fabs) < 0.000001) and .total_downtime_hours_per_module_year == null)
+            and all(.results[] | select(.config_id == "amr-handoff-synthetic-demo"); ((.scheduled_downtime_hours_per_module_year - 0.8333333333 | abs) < 0.000001) and .total_downtime_hours_per_module_year == null)
             and all(.results[] | select(.config_id == "integrated-drone-bay-production-intent-unknown"); .scheduled_downtime_hours_per_module_year == null and .status == "indeterminate")
           ' ev-carrier-module-lifecycle-report.json
           sha256sum \
