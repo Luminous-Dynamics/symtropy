@@ -5,7 +5,7 @@
   "status": "draft_not_run",
   "claim_ceiling": "synthetic_transition_contract_only",
   "schema_ref": "./nav_transition_case.schema.json",
-  "case_count": 6,
+  "case_count": 7,
   "controller_evaluator_separation": "Each case's controller_stream is the only scenario observation input. evaluator_only must be withheld from the subject process and may be mounted only by the independent scorer.",
   "cases": [
     {
