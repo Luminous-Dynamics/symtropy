@@ -478,6 +478,12 @@
             "evidence_reference": "unknown://phase/diagnosis"
           },
           {
+            "phase": "remove_module",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://phase/remove"
+          },
+          {
             "phase": "repair_module",
             "elapsed_hours": null,
             "technician_hours": null,
@@ -529,6 +535,12 @@
             "elapsed_hours": null,
             "technician_hours": null,
             "evidence_reference": "unknown://phase/diagnosis"
+          },
+          {
+            "phase": "remove_module",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://phase/remove"
           },
           {
             "phase": "replace_module",
