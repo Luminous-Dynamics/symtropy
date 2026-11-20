@@ -25,6 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
+      COMPOSITION_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       EARTH_ORBIT_COMMIT: "4cd244805ecf3de344583b79f042afbf3312d40f"
       CAPTURE_COMMIT: "df2d878519acdbed6df3b15c1ff637ad3bc295c5"
       FLUID_COMMIT: "a8e611dc3b86370d1f684f0da7e97507f7333999"
@@ -41,6 +42,16 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt, clippy
 
+      - name: Verify exact upstream pins against composition fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e --arg earth "$EARTH_ORBIT_COMMIT" --arg capture "$CAPTURE_COMMIT" --arg fluid "$FLUID_COMMIT" '
+            ([.source_pins[] | select(.component == "earth_orbit_chain" and .source_commit == $earth and .receipt_schema == "luminous.earth-orbit-chain.receipt.v1")] | length == 1)
+            and ([.source_pins[] | select(.component == "orbital_capture" and .source_commit == $capture and .receipt_schema == "luminous.orbital-capture-handoff.receipt.v0.1")] | length == 1)
+            and ([.source_pins[] | select(.component == "orbital_fluid" and .source_commit == $fluid and .receipt_schema == "luminous.orbital-fluid-transfer.receipt.v0.1")] | length == 1)
+          ' tools/orbital-service-composition-bench/fixtures/v0.1/cases.json
+
       - name: Check composition formatting
         run: cargo fmt --manifest-path tools/orbital-service-composition-bench/Cargo.toml -- --check
 
@@ -55,13 +66,13 @@ jobs:
         run: |
           set -euo pipefail
           source_commit="$(git rev-parse HEAD)"
-          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$source_commit" = "$COMPOSITION_COMMIT"
           cargo run --locked --quiet --manifest-path tools/orbital-service-composition-bench/Cargo.toml -- \
             fixture tools/orbital-service-composition-bench/fixtures/v0.1/cases.json \
             --source-commit "$source_commit" > orbital-service-composition-receipt.json
-          jq -e '
+          jq -e --arg expected_commit "$COMPOSITION_COMMIT" '
             .result == "pass"
-            and .source_commit == env.GITHUB_SHA
+            and .source_commit == $expected_commit
             and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
             and .report.result == "pass"
             and .report.evidence_class == "synthetic"
@@ -161,7 +172,10 @@ jobs:
           cargo run --locked --quiet --manifest-path tools/orbital-service-composition-bench/Cargo.toml -- \
             compose \
             tools/orbital-service-composition-bench/fixtures/v0.1/cases.json \
-            delivery-receipt.json capture-receipt.json fluid-receipt.json \
+            delivery-receipt.json \
+            .integration/earth-orbit/symtropy-earth-orbit-chain/fixtures/v1/nominal.json \
+            capture-receipt.json upstream/capture/tools/orbital-capture-handoff-bench/fixtures/v0.1/cases.json \
+            fluid-receipt.json upstream/fluid/tools/orbital-fluid-transfer-bench/fixtures/v0.1/reference.json \
             --source-commit "$source_commit" > orbital-service-integrated-bundle.json
           jq -e '
             .result == "pass"
@@ -180,8 +194,11 @@ jobs:
             and .bundle.joined_service.fluid_class == "storable_liquid"
             and .bundle.joined_service.phase == "liquid"
             and .bundle.joined_service.accepted_receiver_mass_g == 390000
-            and (.bundle.artifact_sha256 | length == 4)
+            and (.bundle.artifact_sha256 | length == 7)
             and (.bundle.artifact_sha256 | to_entries | all(.value | test("^[0-9a-f]{64}$")))
+            and .bundle.source_commits.earth_orbit_chain == env.EARTH_ORBIT_COMMIT
+            and .bundle.source_commits.orbital_capture == env.CAPTURE_COMMIT
+            and .bundle.source_commits.orbital_fluid == env.FLUID_COMMIT
           ' orbital-service-integrated-bundle.json
 
       - name: Retain source receipts and integrated bundle
