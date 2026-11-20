@@ -1,16 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "EV carrier interface-control register v0.1",
+  "title": "EV carrier interface-control contract v0.1",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "schema_version",
     "programme_id",
+    "evaluated_at_utc",
     "claim_ceiling",
     "vehicle_configuration",
     "module_configuration",
     "ports",
-    "assessments"
+    "interface_pairs"
   ],
   "properties": {
     "schema_version": {
@@ -18,6 +19,10 @@
     },
     "programme_id": {
       "const": "EV-CARRIER-ICD-001"
+    },
+    "evaluated_at_utc": {
+      "type": "string",
+      "format": "date-time"
     },
     "claim_ceiling": {
       "type": "string",
@@ -37,12 +42,12 @@
         "$ref": "#/$defs/port"
       }
     },
-    "assessments": {
+    "interface_pairs": {
       "type": "array",
       "minItems": 1,
       "maxItems": 256,
       "items": {
-        "$ref": "#/$defs/assessment"
+        "$ref": "#/$defs/interfacePair"
       }
     }
   },
@@ -72,6 +77,62 @@
         },
         "configuration_digest": {
           "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "evidenceClass": {
+      "enum": [
+        "independently_qualified",
+        "measured_unreviewed",
+        "synthetic",
+        "unknown",
+        "stale",
+        "conflicted",
+        "revoked"
+      ]
+    },
+    "portEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "source_reference",
+        "scoped_configuration_digest",
+        "report_digest",
+        "valid_until"
+      ],
+      "properties": {
+        "classification": {
+          "$ref": "#/$defs/evidenceClass"
+        },
+        "source_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "scoped_configuration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "report_digest": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "valid_until": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -131,38 +192,34 @@
           "$ref": "#/$defs/digest"
         },
         "evidence": {
-          "$ref": "#/$defs/evidence"
+          "$ref": "#/$defs/portEvidence"
         }
       }
     },
-    "evidence": {
+    "pairEvidence": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "classification",
         "source_reference",
-        "scoped_configuration_digest",
+        "vehicle_configuration_digest",
+        "module_configuration_digest",
         "report_digest",
         "valid_until"
       ],
       "properties": {
         "classification": {
-          "enum": [
-            "independently_qualified",
-            "measured_unreviewed",
-            "synthetic",
-            "unknown",
-            "stale",
-            "conflicted",
-            "revoked"
-          ]
+          "$ref": "#/$defs/evidenceClass"
         },
         "source_reference": {
           "type": "string",
           "minLength": 1,
           "maxLength": 2048
         },
-        "scoped_configuration_digest": {
+        "vehicle_configuration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "module_configuration_digest": {
           "$ref": "#/$defs/digest"
         },
         "report_digest": {
@@ -188,17 +245,17 @@
         }
       }
     },
-    "assessment": {
+    "interfacePair": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "pair_id",
         "vehicle_port_id",
         "module_port_id",
-        "disposition",
-        "reason_codes",
-        "evidence_references",
-        "claim_ceiling"
+        "compatibility_profile_id",
+        "compatibility_profile_reference",
+        "compatibility_profile_digest",
+        "qualification_evidence"
       ],
       "properties": {
         "pair_id": {
@@ -216,43 +273,21 @@
           "minLength": 1,
           "maxLength": 128
         },
-        "disposition": {
-          "enum": [
-            "compatible",
-            "incompatible",
-            "indeterminate"
-          ]
-        },
-        "reason_codes": {
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": {
-            "enum": [
-              "MATING_PROFILE_MISMATCH",
-              "REVISION_UNRECONCILED",
-              "EVIDENCE_MISSING",
-              "EVIDENCE_UNQUALIFIED",
-              "EVIDENCE_STALE",
-              "EVIDENCE_SCOPE_MISMATCH",
-              "PROFILE_MISSING",
-              "PROFILE_DETAIL_NOT_ADMITTED",
-              "KNOWN_ENVELOPE_CONFLICT",
-              "NO_CONFLICTS_DETECTED"
-            ]
-          }
-        },
-        "evidence_references": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2048
-          }
-        },
-        "claim_ceiling": {
+        "compatibility_profile_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "compatibility_profile_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "compatibility_profile_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "qualification_evidence": {
+          "$ref": "#/$defs/pairEvidence"
         }
       }
     }
