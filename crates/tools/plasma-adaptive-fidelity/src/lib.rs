@@ -561,7 +561,9 @@ pub fn evaluate_adaptive_policy(
         let has_unknown = excluded.iter().any(|item| {
             matches!(
                 item.reason,
-                ExclusionReason::WellPosednessUnknown | ExclusionReason::ErrorEvidenceUnknown
+                ExclusionReason::WellPosednessUnknown
+                    | ExclusionReason::ErrorEvidenceUnknown
+                    | ExclusionReason::CostEvidenceUnknown
             )
         });
         return Ok(if has_unknown {
@@ -595,6 +597,23 @@ pub fn evaluate_adaptive_policy(
             .iter()
             .find(|candidate| &candidate.candidate.profile_sha256 == current)
     });
+    if let (Some(current), None) = (&request.current_profile_sha256, current_eligible) {
+        let unresolved = excluded.iter().any(|item| {
+            &item.profile_sha256 == current
+                && matches!(
+                    item.reason,
+                    ExclusionReason::WellPosednessUnknown
+                        | ExclusionReason::ErrorEvidenceUnknown
+                        | ExclusionReason::CostEvidenceUnknown
+                )
+        });
+        if unresolved {
+            return Ok(PolicyDecision::Unknown {
+                reason: UnknownReason::CurrentModelEvidenceUnresolved,
+                excluded,
+            });
+        }
+    }
 
     if let Some(current) = current_eligible {
         if current.error.upper_bound <= request.coarsen_error_tolerance {
@@ -1400,6 +1419,23 @@ mod tests {
         assert!(excluded.iter().any(|item| {
             item.reason == ExclusionReason::TransitionConservationResidualTooLarge
         }));
+    }
+
+
+    #[test]
+    fn missing_cost_evidence_returns_unknown_instead_of_inventing_a_ranking() {
+        let mut candidate = moment_candidate('a', 8, 0.01, 1.0);
+        candidate.cost_evidence = Evidence::Unknown {
+            reason: "no matched hardware cost measurement".into(),
+        };
+        let decision = evaluate_adaptive_policy(&request(vec![candidate])).unwrap();
+        assert!(matches!(
+            decision,
+            PolicyDecision::Unknown {
+                reason: UnknownReason::OnlyUnresolvedCandidatesRemain,
+                ..
+            }
+        ));
     }
 
     #[test]
