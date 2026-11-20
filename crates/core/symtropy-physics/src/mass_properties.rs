@@ -557,8 +557,11 @@ impl<const D: usize> RotationalInertiaOperator<D> {
 
 /// Dynamic rigid-body mass and rotational mass properties.
 ///
-/// The inertia operator is body-frame data and must be transformed or used
-/// with body-frame angular variables consistently by any integrator.
+/// `center_of_mass_m` is the vector from the caller's geometry/body-frame
+/// origin to the centre of mass, expressed in that frame. The rotational
+/// inertia operator is central about this COM and expressed in the same axes.
+/// A body constructor that consumes these properties must either recenter its
+/// geometry and body origin consistently or explicitly retain the offset.
 #[derive(Clone, Debug, PartialEq)]
 pub struct MassProperties<const D: usize> {
     mass_kg: f64,
@@ -568,6 +571,12 @@ pub struct MassProperties<const D: usize> {
 
 impl<const D: usize> MassProperties<D> {
     /// Construct validated dynamic-body mass properties.
+    ///
+    /// The centre-of-mass vector is relative to the source geometry/body-frame
+    /// origin. The supplied inertia operator must already be central about
+    /// that COM and expressed in the same frame. This constructor validates
+    /// algebraic values; it does not verify the geometry/material provenance
+    /// from which they were derived.
     pub fn try_new(
         mass_kg: f64,
         center_of_mass_m: SVector<f64, D>,
@@ -591,7 +600,7 @@ impl<const D: usize> MassProperties<D> {
         self.mass_kg
     }
 
-    /// Body-frame center of mass in metres.
+    /// Centre-of-mass offset from the source geometry-frame origin, in metres.
     pub fn center_of_mass_m(&self) -> &SVector<f64, D> {
         &self.center_of_mass_m
     }
