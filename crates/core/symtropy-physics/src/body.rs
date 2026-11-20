@@ -2020,14 +2020,24 @@ mod nd_ball_mass_property_tests {
             );
         }
 
-        for body in [&disk, &sphere, &four_ball] {
-            assert_eq!(
-                body.rotational_inertia_model(),
-                RotationalInertiaModel::ValidatedSpatialBivectorOperator
-            );
-            assert!(body.rotational_inertia_operator.is_some());
-            assert!(!body.rotational_inertia_approximate);
-        }
+        assert_eq!(
+            disk.rotational_inertia_model(),
+            RotationalInertiaModel::ValidatedSpatialBivectorOperator
+        );
+        assert_eq!(
+            sphere.rotational_inertia_model(),
+            RotationalInertiaModel::ValidatedSpatialBivectorOperator
+        );
+        assert_eq!(
+            four_ball.rotational_inertia_model(),
+            RotationalInertiaModel::ValidatedSpatialBivectorOperator
+        );
+        assert!(disk.rotational_inertia_operator.is_some());
+        assert!(sphere.rotational_inertia_operator.is_some());
+        assert!(four_ball.rotational_inertia_operator.is_some());
+        assert!(!disk.rotational_inertia_approximate);
+        assert!(!sphere.rotational_inertia_approximate);
+        assert!(!four_ball.rotational_inertia_approximate);
 
         let mut disk_impulse = Bivector::<2>::unit_plane(0, 1);
         let disk_response = disk.apply_inverse_angular_inertia(&disk_impulse);
