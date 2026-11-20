@@ -38,10 +38,14 @@ jobs:
           from pathlib import Path
           from jsonschema import Draft202012Validator
 
-          schema_path = Path("tools/power-restoration-service-trajectory-audit/fixtures/service-trajectory-v0.1.schema.json")
-          schema = json.loads(schema_path.read_text())
-          Draft202012Validator.check_schema(schema)
-          print("PASS: service trajectory JSON Schema is valid")
+          schema_paths = [
+              Path("tools/power-restoration-service-trajectory-audit/fixtures/service-trajectory-v0.1.schema.json"),
+              Path("tools/power-restoration-service-trajectory-audit/fixtures/cascade-endpoint-mapping-v0.1.schema.json"),
+          ]
+          for schema_path in schema_paths:
+              schema = json.loads(schema_path.read_text())
+              Draft202012Validator.check_schema(schema)
+              print(f"PASS: {schema_path} is valid")
           PY
       - name: Check Rust formatting
         run: cargo fmt --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --all -- --check
