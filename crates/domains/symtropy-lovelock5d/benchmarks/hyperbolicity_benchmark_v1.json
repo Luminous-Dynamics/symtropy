@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_hyperbolicity_benchmark_protocol",
+  "status": "protocol_frozen_no_target_background_result_claimed",
+  "owner_issue": 6334,
+  "related_issues": [
+    6063,
+    6169,
+    6181,
+    6202,
+    6013,
+    6014
+  ],
+  "theory": {
+    "dimension": 5,
+    "action": "I=(16*pi*G)^-1 integral sqrt(-g)*(R+alpha*L_GB/4)",
+    "geometry": "asymptotically flat equal-angular-momentum vacuum EGB black holes",
+    "dimensionless_coupling": "lambda=alpha/r_H^2",
+    "spin_parameter": "omega=r_H*Omega_H",
+    "principal_symbol_formulation": "must be explicitly gauge-fixed and reduced to the physical polarization subspace"
+  },
+  "background_ladder": [
+    {
+      "id": "H0-MYERS-PERRY",
+      "status": "exact_control",
+      "expected": "alpha=0 physical characteristics reduce to the metric null cone"
+    },
+    {
+      "id": "H1-BOULWARE-DESER",
+      "status": "reference_to_derive",
+      "expected": "reproduce applicable static spherical Lovelock characteristic sectors"
+    },
+    {
+      "id": "H2-SLOW-ROTATION",
+      "status": "not_started",
+      "expected": "degenerate perturbation of rotating physical polarization symbol"
+    },
+    {
+      "id": "H3-SPIN2",
+      "status": "dependent_on_issue_6169",
+      "expected": "principal symbol on qualified second-order background"
+    },
+    {
+      "id": "H4-NONLINEAR",
+      "status": "dependent_on_issue_6063",
+      "expected": "full exterior branch-local symbol and hyperbolicity map"
+    }
+  ],
+  "tests": {
+    "covector_directions": [
+      "radial",
+      "Hopf-fibre",
+      "base-angular",
+      "generic residual-symmetry directions"
+    ],
+    "strong_hyperbolicity_checks": [
+      "real characteristic speeds",
+      "complete physical eigenbasis",
+      "uniform eigenbasis conditioning",
+      "gauge/constraint mode separation"
+    ],
+    "horizon": "horizon-regular tetrad; characteristic-horizon check",
+    "interval": "radial/directional subdivision with outward-rounded or Arb enclosures; unresolved if any margin/eigenbasis bound crosses zero"
+  },
+  "scorecard": [
+    "GR-limit cone discrepancy",
+    "static Boulware-Deser sector-speed discrepancy",
+    "maximum independent characteristic-root mismatch",
+    "minimum characteristic-root separation",
+    "maximum physical eigenbasis condition number",
+    "horizon-limit defect in regular frame",
+    "cross-gauge characteristic mismatch",
+    "first radius/coupling/spin at which hyperbolicity fails or becomes unresolved"
+  ],
+  "negative_controls": [
+    "gauge or constraint modes counted as physical",
+    "real roots alone claimed to prove strong hyperbolicity",
+    "static sector decomposition used for rotation without derivation",
+    "non-GR characteristic cone at alpha=0",
+    "coordinate singularity misclassified as physical symbol degeneration",
+    "hyperbolicity inferred from curvature invariants or Noether flux positivity",
+    "pure-EGB conclusion inferred from dCS/sGB or black-string result"
+  ],
+  "claim_ceiling": "Protocol and exact GR/static reference ladder only. No hyperbolicity result for the target rotating EGB black-hole branch is claimed."
+}
