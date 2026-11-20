@@ -16,6 +16,8 @@ pub struct ModelCompatibility {
     pub solver_build_sha256: String,
     /// Canonical compatibility-contract identity supplied by the contract owner.
     pub compatibility_sha256: String,
+    /// Shared ordinal mapping for fidelity_rank across this model hierarchy.
+    pub fidelity_ordering_schema_sha256: String,
     pub species_scope_id: String,
     pub collision_model_id: String,
     pub normalization_id: String,
@@ -579,7 +581,7 @@ pub fn evaluate_adaptive_policy(
 
         if let Some(current) = current_candidate {
             if urgent_refinement
-                && candidate.kind.fidelity_rank() <= current.kind.fidelity_rank()
+                && candidate.kind.fidelity_rank() < current.kind.fidelity_rank()
             {
                 continue;
             }
@@ -895,6 +897,7 @@ fn validate_compatibility(value: &ModelCompatibility) -> Result<(), InputError> 
         || !is_sha256(&value.source_revision_sha256)
         || !is_sha256(&value.solver_build_sha256)
         || !is_sha256(&value.compatibility_sha256)
+        || !is_sha256(&value.fidelity_ordering_schema_sha256)
     {
         return Err(InputError::InvalidCompatibilityDigest);
     }
@@ -919,6 +922,7 @@ mod tests {
             source_revision_sha256: digest('6'),
             solver_build_sha256: digest('7'),
             compatibility_sha256: digest('8'),
+            fidelity_ordering_schema_sha256: digest('4'),
             species_scope_id: "electrons".into(),
             collision_model_id: "collisionless-slab".into(),
             normalization_id: "synthetic-normalization-v1".into(),
@@ -1191,6 +1195,75 @@ mod tests {
             selected(decision).kind,
             ModelKind::KineticPatch { .. }
         ));
+    }
+
+
+    #[test]
+    fn qualified_kinetic_patch_can_replace_moment_model_outside_its_hyperbolicity_envelope() {
+        let mut moment = moment_candidate('a', 8, 0.01, 5.0);
+        if let Evidence::Qualified(WellPosednessEvidence::MomentHyperbolicity {
+            minimum_normalized_margin, ..
+        }) = &mut moment.well_posedness
+        {
+            *minimum_normalized_margin = 0.0;
+        }
+        let kinetic = ModelCandidate {
+            profile_id: "kinetic-patch-high".into(),
+            profile_sha256: digest('6'),
+            model_sha256: digest('5'),
+            kind: ModelKind::KineticPatch {
+                kinetic_method_id: "vlasov-patch-grid".into(),
+                velocity_grid_sha256: digest('7'),
+                fidelity_rank: 8,
+            },
+            compatibility: compatibility(),
+            well_posedness: Evidence::Qualified(kinetic_evidence(&digest('6'), &digest('5'))),
+            error_bound: Evidence::Qualified(error(0.02, &digest('6'), &digest('5'))),
+            estimated_cost: 50.0,
+            cost_units_id: "normalized-runtime-cost-v1".into(),
+            transition: None,
+        };
+        let decision = evaluate_adaptive_policy(&request(vec![moment, kinetic])).unwrap();
+        assert!(matches!(
+            selected(decision).kind,
+            ModelKind::KineticPatch { .. }
+        ));
+    }
+
+    #[test]
+    fn equal_rank_alternative_can_replace_an_invalid_current_profile() {
+        let mut current = moment_candidate('a', 8, 0.01, 5.0);
+        if let Evidence::Qualified(WellPosednessEvidence::MomentHyperbolicity {
+            minimum_normalized_margin, ..
+        }) = &mut current.well_posedness
+        {
+            *minimum_normalized_margin = 0.0;
+        }
+        let mut alternate = moment_candidate('b', 8, 0.02, 7.0);
+        alternate.transition = Some(transition(&digest('a'), &digest('b')));
+        let mut req = request(vec![current, alternate]);
+        req.current_profile_sha256 = Some(digest('a'));
+        req.current_dwell_steps = 0;
+        let receipt = selected(evaluate_adaptive_policy(&req).unwrap());
+        assert_eq!(receipt.profile_sha256, digest('b'));
+        assert_eq!(receipt.reason, SelectionReason::EscalatedForErrorOrValidity);
+    }
+
+    #[test]
+    fn all_rejected_candidates_refuse_but_unresolved_candidates_return_unknown() {
+        let mut rejected = moment_candidate('a', 8, 0.01, 1.0);
+        rejected.well_posedness = Evidence::Rejected {
+            reason: "independent referee rejected envelope".into(),
+        };
+        let refusal = evaluate_adaptive_policy(&request(vec![rejected])).unwrap();
+        assert!(matches!(refusal, PolicyDecision::Refused { .. }));
+
+        let mut unknown = moment_candidate('b', 8, 0.01, 1.0);
+        unknown.error_bound = Evidence::Unknown {
+            reason: "no calibrated error upper bound".into(),
+        };
+        let unresolved = evaluate_adaptive_policy(&request(vec![unknown])).unwrap();
+        assert!(matches!(unresolved, PolicyDecision::Unknown { .. }));
     }
 
     #[test]
