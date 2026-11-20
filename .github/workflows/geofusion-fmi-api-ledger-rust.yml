@@ -32,6 +32,8 @@ jobs:
           toolchain: 1.96.0
       - name: Resolve dependency lock for first qualification
         run: cargo generate-lockfile --manifest-path research/geofusion-fmi-api-ledger-v0.1/validator/Cargo.toml
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path research/geofusion-fmi-api-ledger-v0.1/validator/Cargo.toml -- --check
       - name: Run standalone validator tests
         run: cargo test --manifest-path research/geofusion-fmi-api-ledger-v0.1/validator/Cargo.toml --all-targets
       - name: Run strict Clippy
