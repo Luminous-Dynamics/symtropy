@@ -14,10 +14,40 @@ use crate::body::{BodyHandle, RigidBody};
 pub struct MotorStepState {
     accumulated_impulse: f64,
     mechanical_work_j: f64,
+    target_relative_velocity: Option<f64>,
     active: bool,
 }
 
 impl MotorStepState {
+    /// Initialize a fixed target velocity once from the controller's
+    /// per-step desired impulse. Later solver iterations reuse this target,
+    /// then solve only the residual velocity error.
+    pub fn initialize_velocity_target(
+        &mut self,
+        current_relative_velocity: f64,
+        desired_step_impulse: f64,
+        effective_inverse_mass: f64,
+    ) -> Option<f64> {
+        if !current_relative_velocity.is_finite()
+            || !desired_step_impulse.is_finite()
+            || !effective_inverse_mass.is_finite()
+            || effective_inverse_mass <= 0.0
+        {
+            return None;
+        }
+
+        if let Some(target) = self.target_relative_velocity {
+            return Some(target);
+        }
+
+        let target = current_relative_velocity + effective_inverse_mass * desired_step_impulse;
+        if !target.is_finite() {
+            return None;
+        }
+        self.target_relative_velocity = Some(target);
+        Some(target)
+    }
+
     /// Add one desired impulse increment to the accumulated per-step impulse,
     /// then project the total into the symmetric effort budget.
     ///
@@ -292,6 +322,30 @@ mod motor_step_state_tests {
         }
         close(state.accumulated_impulse(), 0.2, 1.0e-12);
         close(state.take_work_receipt().expect("receipt"), 0.01, 1.0e-12);
+    }
+
+
+    #[test]
+    fn velocity_target_is_frozen_after_the_first_controller_evaluation() {
+        let mut state = MotorStepState::default();
+        let target = state
+            .initialize_velocity_target(0.0, 0.4, 1.0)
+            .expect("valid target");
+        close(target, 0.4, 1.0e-12);
+
+        // A later solver iteration sees a passive constraint disturbance, but
+        // it must continue solving toward the same per-step target.
+        let reused = state
+            .initialize_velocity_target(0.2, 100.0, 1.0)
+            .expect("reused target");
+        close(reused, 0.4, 1.0e-12);
+
+        let (delta, after) = state
+            .apply_impulse_increment(reused - 0.2, 0.5, 0.2, 1.0)
+            .expect("remaining motor correction");
+        close(delta, 0.2, 1.0e-12);
+        close(after, 0.4, 1.0e-12);
+        close(state.accumulated_impulse(), 0.2, 1.0e-12);
     }
 
     #[test]
