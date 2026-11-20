@@ -131,6 +131,20 @@ pub struct BundleVerificationReport {
     pub claim_boundary: String,
 }
 
+/// Opaque proof that the bundle manifest and every declared artifact byte
+/// were resolved and verified by this crate. Its private field prevents a
+/// caller from fabricating a success-shaped report for attestation checking.
+#[derive(Clone, Debug, PartialEq)]
+pub struct VerifiedBundle {
+    report: BundleVerificationReport,
+}
+
+impl VerifiedBundle {
+    pub fn report(&self) -> &BundleVerificationReport {
+        &self.report
+    }
+}
+
 fn valid_id(value: &str) -> bool {
     !value.trim().is_empty()
 }
@@ -560,7 +574,7 @@ pub fn verify_artifact_bytes(
 /// obligations from the run receipt and chooses which roles/artifacts are
 /// mandatory for the specific claim being evaluated.
 pub fn verify_attestation_set(
-    manifest_report: &BundleVerificationReport,
+    verified_bundle: &VerifiedBundle,
     trust_root: &TrustRoot,
     pinned_root_sha256: &str,
     now_unix_ms: u64,
@@ -568,9 +582,7 @@ pub fn verify_attestation_set(
     envelopes: &[AttestationEnvelope],
 ) -> Result<Vec<VerifiedAttestation>, Vec<String>> {
     let mut errors = Vec::new();
-    if manifest_report.result_status != "all_manifest_artifact_bytes_verified" {
-        errors.push("attestation set cannot consume an unverified artifact manifest report".to_string());
-    }
+    let manifest_report = verified_bundle.report();
     if requirements.is_empty() || requirements.len() != envelopes.len() {
         errors.push("attestation count must exactly match the non-empty caller-declared requirement set".to_string());
     }
@@ -671,7 +683,7 @@ pub fn verify_bundle_manifest(
     bundle_root: &Path,
     manifest: &BundleManifest,
     max_artifact_bytes: u64,
-) -> Result<BundleVerificationReport, Vec<String>> {
+) -> Result<VerifiedBundle, Vec<String>> {
     let mut errors = Vec::new();
     if manifest.schema_version != "0.1.0" || !valid_id(&manifest.bundle_id) {
         errors.push("bundle manifest version or identity is invalid".to_string());
@@ -716,13 +728,15 @@ pub fn verify_bundle_manifest(
         return Err(errors);
     }
 
-    Ok(BundleVerificationReport {
-        bundle_id: manifest.bundle_id.clone(),
-        manifest_sha256,
-        artifact_count: verified_artifacts.len(),
-        verified_artifacts,
-        result_status: "all_manifest_artifact_bytes_verified".to_string(),
-        claim_boundary: "Bundle content identity and path containment only; signatures, issuer trust, physical truth and restoration success require separate verification".to_string(),
+    Ok(VerifiedBundle {
+        report: BundleVerificationReport {
+            bundle_id: manifest.bundle_id.clone(),
+            manifest_sha256,
+            artifact_count: verified_artifacts.len(),
+            verified_artifacts,
+            result_status: "all_manifest_artifact_bytes_verified".to_string(),
+            claim_boundary: "Bundle content identity and path containment only; signatures, issuer trust, physical truth and restoration success require separate verification".to_string(),
+        },
     })
 }
 
@@ -884,7 +898,7 @@ mod tests {
         let root = test_bundle_root();
         let (trust, envelope, expected, manifest) = fixtures();
         let result = verify_bundle_manifest(&root, &manifest, 1024).unwrap();
-        assert_eq!(result.artifact_count, 1);
+        assert_eq!(result.report().artifact_count, 1);
         let verified = verify_attestation(
             &envelope,
             &trust,
@@ -893,7 +907,7 @@ mod tests {
             &expected,
         )
         .unwrap();
-        assert_eq!(verified.subject_sha256, result.verified_artifacts[0].sha256);
+        assert_eq!(verified.subject_sha256, result.report().verified_artifacts[0].sha256);
         fs::remove_dir_all(root).expect("remove test bundle");
     }
 
