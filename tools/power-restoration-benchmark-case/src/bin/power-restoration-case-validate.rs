@@ -15,9 +15,11 @@ fn main() {
     match validate_json(&input) {
         Ok(case) => {
             let digest = canonical_case_sha256(&case).expect("canonical JSON serialization");
+            let case_id = serde_json::to_string(&case.case_id).expect("case ID JSON string");
+            let maturity = serde_json::to_string(&case.maturity).expect("case maturity JSON string");
             println!(
-                "{{\"caseId\":{:?},\"caseMaturity\":{:?},\"caseSha256\":\"{}\",\"status\":\"case_contract_valid\"}}",
-                case.case_id, case.maturity, digest
+                "{{\"caseId\":{},\"caseMaturity\":{},\"caseSha256\":\"{}\",\"status\":\"case_contract_valid\"}}",
+                case_id, maturity, digest
             );
         }
         Err(errors) => {
