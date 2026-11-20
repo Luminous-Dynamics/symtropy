@@ -1,0 +1,12 @@
+[package]
+name = "robust-actuator-pareto"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+# Keep this no-dependency decision reference independent from the root workspace.
+[workspace]

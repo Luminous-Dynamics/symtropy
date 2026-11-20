@@ -1,0 +1,1354 @@
+#![forbid(unsafe_code)]
+
+//! Evidence-lane-separated robust feasibility and Pareto filtering.
+//!
+//! This M1 reference is deliberately not an optimizer. It classifies candidate
+//! design records against declared worst-case hard-constraint margins, then
+//! computes non-dominated sets only within comparable evidence lanes.
+//! Unknown/infeasible candidates are retained as dispositions but excluded
+//! from Pareto ranking.
+
+use std::collections::{BTreeMap, BTreeSet};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ObjectiveDirection {
+    Minimize,
+    Maximize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum EvidenceClass {
+    IndependentPhysical,
+    SourceAuthorPhysical,
+    VendorPhysical,
+    ModelDerived,
+    /// A model prediction accompanied by a valid specimen-group calibration
+    /// receipt. It remains Conditional evidence, never independent physical.
+    CalibratedModelPrediction,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum EvidenceLane {
+    Independent,
+    SourceReported,
+    Conditional,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CandidateDisposition {
+    Infeasible,
+    Unknown,
+    Feasible(EvidenceLane),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ObjectiveDefinition {
+    pub name: String,
+    pub unit: String,
+    pub direction: ObjectiveDirection,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HardConstraintDefinition {
+    pub name: String,
+    pub unit: String,
+    /// A nonnegative minimum robust margin is required.
+    pub interpretation: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct PredictionCalibrationReceipt {
+    pub report_digest: String,
+    pub model_digest: String,
+    pub training_split_digest: String,
+    pub calibration_split_digest: String,
+    pub test_split_digest: String,
+    pub system_boundary_digest: String,
+    pub operating_condition_digest: String,
+    pub mission_set_digest: String,
+    pub domain_digest: String,
+    pub alpha: f64,
+    pub calibration_specimen_count: usize,
+    pub order_statistic_rank: usize,
+    pub correction_q_nm: f64,
+    pub test_specimen_count: usize,
+    pub in_domain_test_specimen_count: usize,
+    pub covered_test_specimen_count: usize,
+    pub uncovered_test_specimen_count: usize,
+    pub out_of_domain_test_specimen_count: usize,
+    pub empirical_group_coverage: f64,
+    pub wilson_95_lower: f64,
+    pub wilson_95_upper: f64,
+    pub measurement_evidence_class: EvidenceClass,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MetricEvidence {
+    pub name: String,
+    /// Reported point estimate, retained for display/traceability.
+    pub value: Option<f64>,
+    /// Evidence-supported lower/upper bounds for robust Pareto comparison.
+    /// Missing bounds make the candidate Unknown, never a point-score pass.
+    pub lower_bound: Option<f64>,
+    pub upper_bound: Option<f64>,
+    pub unit: String,
+    pub evidence_class: EvidenceClass,
+    pub source_reference: Option<String>,
+    pub method: Option<String>,
+    pub configuration_digest: String,
+    pub system_boundary_digest: String,
+    pub operating_condition_digest: String,
+    pub mission_set_digest: String,
+    pub stress_set_digest: String,
+    pub calibration_receipt: Option<PredictionCalibrationReceipt>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ConstraintEvidence {
+    pub name: String,
+    /// Worst-case margin over the declared bounded stress set. Positive passes.
+    pub minimum_robust_margin: Option<f64>,
+    pub unit: String,
+    pub evidence_class: EvidenceClass,
+    pub source_reference: Option<String>,
+    pub method: Option<String>,
+    pub configuration_digest: String,
+    pub system_boundary_digest: String,
+    pub operating_condition_digest: String,
+    pub mission_set_digest: String,
+    pub stress_set_digest: String,
+    pub calibration_receipt: Option<PredictionCalibrationReceipt>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct DesignCandidate {
+    pub candidate_id: String,
+    pub configuration_digest: String,
+    pub system_boundary_digest: String,
+    pub operating_condition_digest: String,
+    pub mission_set_digest: String,
+    pub stress_set_digest: String,
+    /// Required when any objective/constraint is a calibrated model prediction.
+    pub model_digest: Option<String>,
+    pub prediction_domain_digest: Option<String>,
+    pub objectives: Vec<MetricEvidence>,
+    pub hard_constraints: Vec<ConstraintEvidence>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct KnownConstraintViolation {
+    pub constraint_name: String,
+    pub minimum_robust_margin: f64,
+    pub unit: String,
+    pub evidence_class: EvidenceClass,
+    pub source_reference: Option<String>,
+    pub method: Option<String>,
+    pub stress_set_digest: String,
+    pub calibration_receipt: Option<PredictionCalibrationReceipt>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CandidateAssessment {
+    pub candidate_id: String,
+    pub configuration_digest: String,
+    pub system_boundary_digest: String,
+    pub operating_condition_digest: String,
+    pub mission_set_digest: String,
+    pub stress_set_digest: String,
+    pub model_digest: Option<String>,
+    pub prediction_domain_digest: Option<String>,
+    pub disposition: CandidateDisposition,
+    pub violated_constraints: Vec<String>,
+    pub known_constraint_violations: Vec<KnownConstraintViolation>,
+    pub unknown_fields: Vec<String>,
+    pub dominated_by: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct EvidenceLaneFront {
+    pub lane: EvidenceLane,
+    /// Pareto comparisons are only valid within identical mission and
+    /// operating-condition cohorts.
+    pub system_boundary_digest: String,
+    pub operating_condition_digest: String,
+    pub mission_set_digest: String,
+    pub stress_set_digest: String,
+    pub candidate_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ParetoReport {
+    pub assessments: Vec<CandidateAssessment>,
+    pub fronts: Vec<EvidenceLaneFront>,
+    pub excluded_infeasible_ids: Vec<String>,
+    pub excluded_unknown_ids: Vec<String>,
+}
+
+fn nonempty(value: &str) -> bool {
+    !value.trim().is_empty()
+}
+
+fn validate_evidence(
+    evidence_class: EvidenceClass,
+    source_reference: &Option<String>,
+    method: &Option<String>,
+    configuration_digest: &str,
+    expected_configuration_digest: &str,
+    operating_condition_digest: &str,
+    expected_operating_condition_digest: &str,
+    label: &str,
+) -> Result<(), String> {
+    if configuration_digest != expected_configuration_digest {
+        return Err(format!("{label} belongs to a different candidate configuration"));
+    }
+    if operating_condition_digest != expected_operating_condition_digest {
+        return Err(format!("{label} belongs to different operating conditions"));
+    }
+    if evidence_class != EvidenceClass::Unknown {
+        if source_reference.as_deref().is_none_or(|value| !nonempty(value)) {
+            return Err(format!("{label} has a non-unknown evidence class but no source reference"));
+        }
+        if method.as_deref().is_none_or(|value| !nonempty(value)) {
+            return Err(format!("{label} has a non-unknown evidence class but no method"));
+        }
+    }
+    Ok(())
+}
+
+fn wilson_interval_95(successes: usize, trials: usize) -> Option<(f64, f64)> {
+    if trials == 0 || successes > trials {
+        return None;
+    }
+    const Z: f64 = 1.959_963_984_540_054;
+    let n = trials as f64;
+    let p = successes as f64 / n;
+    let z2 = Z * Z;
+    let denominator = 1.0 + z2 / n;
+    let center = (p + z2 / (2.0 * n)) / denominator;
+    let half_width = Z * ((p * (1.0 - p) / n) + (z2 / (4.0 * n * n))).sqrt() / denominator;
+    Some(((center - half_width).max(0.0), (center + half_width).min(1.0)))
+}
+
+fn validate_prediction_calibration(
+    evidence_class: EvidenceClass,
+    receipt: &Option<PredictionCalibrationReceipt>,
+    candidate: &DesignCandidate,
+    unit: &str,
+    label: &str,
+) -> Result<(), String> {
+    if evidence_class != EvidenceClass::CalibratedModelPrediction {
+        if receipt.is_some() {
+            return Err(format!(
+                "{label} has a calibration receipt but is not classified as CalibratedModelPrediction"
+            ));
+        }
+        return Ok(());
+    }
+
+    if unit != "Nm" && unit != "N m" {
+        return Err(format!("{label} uses a torque calibration receipt for non-torque unit {unit:?}"));
+    }
+    let receipt = receipt.as_ref().ok_or_else(|| {
+        format!("{label} is CalibratedModelPrediction but has no calibration receipt")
+    })?;
+    if !nonempty(&receipt.report_digest) || !nonempty(&receipt.model_digest) {
+        return Err(format!("{label} calibration report/model digest is missing"));
+    }
+    if candidate.model_digest.as_deref() != Some(receipt.model_digest.as_str())
+        || candidate.prediction_domain_digest.as_deref() != Some(receipt.domain_digest.as_str())
+    {
+        return Err(format!("{label} calibration model/domain digest does not match the candidate"));
+    }
+    if receipt.system_boundary_digest != candidate.system_boundary_digest
+        || receipt.operating_condition_digest != candidate.operating_condition_digest
+        || receipt.mission_set_digest != candidate.mission_set_digest
+    {
+        return Err(format!("{label} calibration receipt belongs to a different boundary, condition or mission set"));
+    }
+
+    let split_digests = [
+        receipt.training_split_digest.as_str(),
+        receipt.calibration_split_digest.as_str(),
+        receipt.test_split_digest.as_str(),
+    ];
+    if split_digests.iter().any(|digest| !nonempty(digest))
+        || split_digests[0] == split_digests[1]
+        || split_digests[0] == split_digests[2]
+        || split_digests[1] == split_digests[2]
+    {
+        return Err(format!("{label} calibration receipt has invalid or overlapping split identities"));
+    }
+    if !receipt.alpha.is_finite()
+        || !(0.0..1.0).contains(&receipt.alpha)
+        || receipt.calibration_specimen_count == 0
+        || !receipt.correction_q_nm.is_finite()
+        || receipt.correction_q_nm < 0.0
+    {
+        return Err(format!("{label} calibration receipt has invalid finite-sample rank or correction"));
+    }
+    let expected_rank = (((receipt.calibration_specimen_count.saturating_add(1)) as f64)
+        * (1.0 - receipt.alpha))
+        .ceil() as usize;
+    if expected_rank == 0
+        || expected_rank > receipt.calibration_specimen_count
+        || receipt.order_statistic_rank != expected_rank
+    {
+        return Err(format!(
+            "{label} calibration receipt rank {} does not match finite-sample rank {}",
+            receipt.order_statistic_rank, expected_rank
+        ));
+    }
+    let covered_plus_uncovered = receipt
+        .covered_test_specimen_count
+        .checked_add(receipt.uncovered_test_specimen_count);
+    let in_domain_plus_ood = receipt
+        .in_domain_test_specimen_count
+        .checked_add(receipt.out_of_domain_test_specimen_count);
+    if receipt.test_specimen_count == 0
+        || receipt.in_domain_test_specimen_count == 0
+        || covered_plus_uncovered != Some(receipt.in_domain_test_specimen_count)
+        || in_domain_plus_ood != Some(receipt.test_specimen_count)
+    {
+        return Err(format!("{label} calibration receipt has inconsistent or empty held-out test counts"));
+    }
+    let expected_coverage = receipt.covered_test_specimen_count as f64
+        / receipt.in_domain_test_specimen_count as f64;
+    if !receipt.empirical_group_coverage.is_finite()
+        || !(0.0..=1.0).contains(&receipt.empirical_group_coverage)
+        || (receipt.empirical_group_coverage - expected_coverage).abs() > 1.0e-9
+        || !receipt.wilson_95_lower.is_finite()
+        || !receipt.wilson_95_upper.is_finite()
+        || !(0.0..=1.0).contains(&receipt.wilson_95_lower)
+        || !(0.0..=1.0).contains(&receipt.wilson_95_upper)
+        || receipt.wilson_95_lower > receipt.empirical_group_coverage
+        || receipt.empirical_group_coverage > receipt.wilson_95_upper
+        || receipt.wilson_95_lower > receipt.wilson_95_upper
+    {
+        return Err(format!("{label} calibration receipt has invalid held-out coverage statistics"));
+    }
+    let (required_wilson_lower, required_wilson_upper) = wilson_interval_95(
+        receipt.covered_test_specimen_count,
+        receipt.in_domain_test_specimen_count,
+    )
+    .ok_or_else(|| format!("{label} calibration receipt has invalid Wilson interval denominator"))?;
+    // A rounded/wider interval is acceptable, but the receipt may not narrow
+    // the canonical 95% finite-sample interval and overstate precision.
+    if receipt.wilson_95_lower > required_wilson_lower + 1.0e-9
+        || receipt.wilson_95_upper < required_wilson_upper - 1.0e-9
+    {
+        return Err(format!("{label} calibration receipt understates Wilson 95% uncertainty"));
+    }
+    if !matches!(
+        receipt.measurement_evidence_class,
+        EvidenceClass::IndependentPhysical
+            | EvidenceClass::SourceAuthorPhysical
+            | EvidenceClass::VendorPhysical
+    ) {
+        return Err(format!("{label} calibration receipt has invalid underlying measurement evidence class"));
+    }
+
+    Ok(())
+}
+
+fn lane_for_evidence(classes: &[EvidenceClass]) -> Option<EvidenceLane> {
+    if classes.is_empty() || classes.contains(&EvidenceClass::Unknown) {
+        return None;
+    }
+    if classes.iter().all(|class| *class == EvidenceClass::IndependentPhysical) {
+        Some(EvidenceLane::Independent)
+    } else if classes.iter().all(|class| {
+        matches!(
+            class,
+            EvidenceClass::IndependentPhysical | EvidenceClass::SourceAuthorPhysical
+        )
+    }) {
+        Some(EvidenceLane::SourceReported)
+    } else {
+        Some(EvidenceLane::Conditional)
+    }
+}
+
+fn validate_definitions(
+    objectives: &[ObjectiveDefinition],
+    constraints: &[HardConstraintDefinition],
+) -> Result<(), String> {
+    if objectives.is_empty() || constraints.is_empty() {
+        return Err("at least one objective and one hard constraint are required".to_owned());
+    }
+
+    let mut objective_names = BTreeSet::new();
+    for objective in objectives {
+        if !nonempty(&objective.name) || !nonempty(&objective.unit) {
+            return Err("objective names and units must be nonempty".to_owned());
+        }
+        if !objective_names.insert(objective.name.as_str()) {
+            return Err(format!("duplicate objective definition {:?}", objective.name));
+        }
+    }
+
+    let mut constraint_names = BTreeSet::new();
+    for constraint in constraints {
+        if !nonempty(&constraint.name)
+            || !nonempty(&constraint.unit)
+            || !nonempty(&constraint.interpretation)
+        {
+            return Err("hard-constraint names, units and interpretation must be nonempty".to_owned());
+        }
+        if !constraint_names.insert(constraint.name.as_str()) {
+            return Err(format!("duplicate hard-constraint definition {:?}", constraint.name));
+        }
+    }
+    Ok(())
+}
+
+fn assess_candidate(
+    candidate: &DesignCandidate,
+    objectives: &[ObjectiveDefinition],
+    constraints: &[HardConstraintDefinition],
+) -> Result<CandidateAssessment, String> {
+    if !nonempty(&candidate.candidate_id)
+        || !nonempty(&candidate.configuration_digest)
+        || !nonempty(&candidate.system_boundary_digest)
+        || !nonempty(&candidate.operating_condition_digest)
+        || !nonempty(&candidate.mission_set_digest)
+        || !nonempty(&candidate.stress_set_digest)
+        || candidate.model_digest.as_deref().is_some_and(|digest| !nonempty(digest))
+        || candidate.prediction_domain_digest.as_deref().is_some_and(|digest| !nonempty(digest))
+    {
+        return Err("candidate, configuration, condition and mission-set identities are required".to_owned());
+    }
+    if candidate.objectives.len() != objectives.len() {
+        return Err(format!(
+            "candidate {:?} has {} objective records; expected {}",
+            candidate.candidate_id,
+            candidate.objectives.len(),
+            objectives.len()
+        ));
+    }
+    if candidate.hard_constraints.len() != constraints.len() {
+        return Err(format!(
+            "candidate {:?} has {} hard-constraint records; expected {}",
+            candidate.candidate_id,
+            candidate.hard_constraints.len(),
+            constraints.len()
+        ));
+    }
+
+    let mut classes = Vec::with_capacity(objectives.len() + constraints.len());
+    let mut unknown_fields = Vec::new();
+    let mut violated_constraints = Vec::new();
+    let mut known_constraint_violations = Vec::new();
+
+    for (index, (definition, observation)) in objectives.iter().zip(&candidate.objectives).enumerate() {
+        if observation.name != definition.name {
+            return Err(format!(
+                "candidate {:?} objective name {:?} does not match declared name {:?}",
+                candidate.candidate_id, observation.name, definition.name
+            ));
+        }
+        if observation.unit != definition.unit {
+            return Err(format!(
+                "candidate {:?} objective {} unit {:?} does not match declared unit {:?}",
+                candidate.candidate_id, definition.name, observation.unit, definition.unit
+            ));
+        }
+        validate_evidence(
+            observation.evidence_class,
+            &observation.source_reference,
+            &observation.method,
+            &observation.configuration_digest,
+            &candidate.configuration_digest,
+            &observation.operating_condition_digest,
+            &candidate.operating_condition_digest,
+            &format!("objective {:?}", definition.name),
+        )?;
+        if observation.system_boundary_digest != candidate.system_boundary_digest {
+            return Err(format!(
+                "candidate {:?} objective {} has a different system boundary",
+                candidate.candidate_id, definition.name
+            ));
+        }
+        if observation.mission_set_digest != candidate.mission_set_digest
+            || observation.stress_set_digest != candidate.stress_set_digest
+        {
+            return Err(format!(
+                "candidate {:?} objective {} was evaluated against a different mission/stress set",
+                candidate.candidate_id, definition.name
+            ));
+        }
+        validate_prediction_calibration(
+            observation.evidence_class,
+            &observation.calibration_receipt,
+            candidate,
+            &observation.unit,
+            &format!("objective {:?}", definition.name),
+        )?;
+        if observation.value.is_some_and(|value| !value.is_finite())
+            || observation.lower_bound.is_some_and(|value| !value.is_finite())
+            || observation.upper_bound.is_some_and(|value| !value.is_finite())
+        {
+            return Err(format!("candidate {:?} objective {} or its interval bounds are non-finite", candidate.candidate_id, definition.name));
+        }
+        match (observation.value, observation.lower_bound, observation.upper_bound) {
+            (Some(value), Some(lower), Some(upper)) => {
+                if lower > upper || value < lower || value > upper {
+                    return Err(format!(
+                        "candidate {:?} objective {} has an invalid interval or point estimate outside its bounds",
+                        candidate.candidate_id, definition.name
+                    ));
+                }
+            }
+            _ => unknown_fields.push(format!("objective_interval[{index}]={}", definition.name)),
+        }
+        if observation.value.is_none() || observation.evidence_class == EvidenceClass::Unknown {
+            unknown_fields.push(format!("objective[{index}]={}", definition.name));
+        }
+        classes.push(observation.evidence_class);
+    }
+
+    for (index, (definition, observation)) in constraints.iter().zip(&candidate.hard_constraints).enumerate() {
+        if observation.name != definition.name {
+            return Err(format!(
+                "candidate {:?} constraint name {:?} does not match declared name {:?}",
+                candidate.candidate_id, observation.name, definition.name
+            ));
+        }
+        if observation.unit != definition.unit {
+            return Err(format!(
+                "candidate {:?} constraint {} unit {:?} does not match declared unit {:?}",
+                candidate.candidate_id, definition.name, observation.unit, definition.unit
+            ));
+        }
+        validate_evidence(
+            observation.evidence_class,
+            &observation.source_reference,
+            &observation.method,
+            &observation.configuration_digest,
+            &candidate.configuration_digest,
+            &observation.operating_condition_digest,
+            &candidate.operating_condition_digest,
+            &format!("constraint {:?}", definition.name),
+        )?;
+        if observation.system_boundary_digest != candidate.system_boundary_digest {
+            return Err(format!(
+                "candidate {:?} constraint {} has a different system boundary",
+                candidate.candidate_id, definition.name
+            ));
+        }
+        if observation.mission_set_digest != candidate.mission_set_digest
+            || observation.stress_set_digest != candidate.stress_set_digest
+        {
+            return Err(format!(
+                "candidate {:?} constraint {} was evaluated against a different mission/stress set",
+                candidate.candidate_id, definition.name
+            ));
+        }
+        validate_prediction_calibration(
+            observation.evidence_class,
+            &observation.calibration_receipt,
+            candidate,
+            &observation.unit,
+            &format!("constraint {:?}", definition.name),
+        )?;
+        if observation.minimum_robust_margin.is_some_and(|margin| !margin.is_finite()) {
+            return Err(format!("candidate {:?} constraint {} has non-finite margin", candidate.candidate_id, definition.name));
+        }
+        match observation.minimum_robust_margin {
+            Some(margin) if margin < 0.0 && observation.evidence_class != EvidenceClass::Unknown => {
+                violated_constraints.push(definition.name.clone());
+                known_constraint_violations.push(KnownConstraintViolation {
+                    constraint_name: definition.name.clone(),
+                    minimum_robust_margin: margin,
+                    unit: definition.unit.clone(),
+                    evidence_class: observation.evidence_class,
+                    source_reference: observation.source_reference.clone(),
+                    method: observation.method.clone(),
+                    stress_set_digest: observation.stress_set_digest.clone(),
+                    calibration_receipt: observation.calibration_receipt.clone(),
+                });
+            }
+            None => unknown_fields.push(format!("constraint[{index}]={}", definition.name)),
+            Some(_) => {}
+        }
+        if observation.evidence_class == EvidenceClass::Unknown {
+            unknown_fields.push(format!("constraint_evidence[{index}]={}", definition.name));
+        }
+        classes.push(observation.evidence_class);
+    }
+
+    let disposition = if !violated_constraints.is_empty() {
+        CandidateDisposition::Infeasible
+    } else if !unknown_fields.is_empty() {
+        CandidateDisposition::Unknown
+    } else if let Some(lane) = lane_for_evidence(&classes) {
+        CandidateDisposition::Feasible(lane)
+    } else {
+        CandidateDisposition::Unknown
+    };
+
+    Ok(CandidateAssessment {
+        candidate_id: candidate.candidate_id.clone(),
+        configuration_digest: candidate.configuration_digest.clone(),
+        system_boundary_digest: candidate.system_boundary_digest.clone(),
+        operating_condition_digest: candidate.operating_condition_digest.clone(),
+        mission_set_digest: candidate.mission_set_digest.clone(),
+        stress_set_digest: candidate.stress_set_digest.clone(),
+        model_digest: candidate.model_digest.clone(),
+        prediction_domain_digest: candidate.prediction_domain_digest.clone(),
+        disposition,
+        violated_constraints,
+        known_constraint_violations,
+        unknown_fields,
+        dominated_by: Vec::new(),
+    })
+}
+
+fn dominates(
+    left: &DesignCandidate,
+    right: &DesignCandidate,
+    definitions: &[ObjectiveDefinition],
+) -> bool {
+    let mut strictly_better = false;
+
+    for ((left_metric, right_metric), definition) in left
+        .objectives
+        .iter()
+        .zip(&right.objectives)
+        .zip(definitions)
+    {
+        let (
+            Some(left_lower),
+            Some(left_upper),
+            Some(right_lower),
+            Some(right_upper),
+        ) = (
+            left_metric.lower_bound,
+            left_metric.upper_bound,
+            right_metric.lower_bound,
+            right_metric.upper_bound,
+        ) else {
+            return false;
+        };
+
+        // Robust interval dominance: the left candidate's worst case must
+        // be no worse than the right candidate's best case on every axis.
+        // Overlapping intervals are deliberately left non-dominated.
+        match definition.direction {
+            ObjectiveDirection::Minimize => {
+                if left_upper > right_lower {
+                    return false;
+                }
+                if left_upper < right_lower {
+                    strictly_better = true;
+                }
+            }
+            ObjectiveDirection::Maximize => {
+                if left_lower < right_upper {
+                    return false;
+                }
+                if left_lower > right_upper {
+                    strictly_better = true;
+                }
+            }
+        }
+    }
+    strictly_better
+}
+
+/// Classifies candidate robust feasibility and computes separate Pareto fronts
+/// for independent, source-reported and conditional evidence lanes.
+///
+/// An infeasible candidate is excluded when any known worst-case hard margin
+/// is negative. An unknown candidate is excluded when any required metric,
+/// margin or evidence source is missing. Pareto dominance is calculated only
+/// among candidates in the same evidence lane.
+pub fn robust_pareto_report(
+    candidates: &[DesignCandidate],
+    objectives: &[ObjectiveDefinition],
+    constraints: &[HardConstraintDefinition],
+) -> Result<ParetoReport, String> {
+    validate_definitions(objectives, constraints)?;
+
+    let mut ids = BTreeSet::new();
+    let mut assessments = Vec::with_capacity(candidates.len());
+    for candidate in candidates {
+        if !ids.insert(candidate.candidate_id.as_str()) {
+            return Err(format!("duplicate candidate_id {:?}", candidate.candidate_id));
+        }
+        assessments.push(assess_candidate(candidate, objectives, constraints)?);
+    }
+
+    let candidate_index: BTreeMap<&str, usize> = candidates
+        .iter()
+        .enumerate()
+        .map(|(index, candidate)| (candidate.candidate_id.as_str(), index))
+        .collect();
+
+    for index in 0..assessments.len() {
+        let CandidateDisposition::Feasible(lane) = assessments[index].disposition else {
+            continue;
+        };
+        let candidate_id = assessments[index].candidate_id.clone();
+        let right_index = *candidate_index.get(candidate_id.as_str()).unwrap();
+        let right = &candidates[right_index];
+        let mut dominated_by = Vec::new();
+
+        for other in candidates {
+            if other.candidate_id == candidate_id {
+                continue;
+            }
+            let other_index = *candidate_index.get(other.candidate_id.as_str()).unwrap();
+            if assessments[other_index].disposition == CandidateDisposition::Feasible(lane)
+                && other.system_boundary_digest == right.system_boundary_digest
+                && other.operating_condition_digest == right.operating_condition_digest
+                && other.mission_set_digest == right.mission_set_digest
+                && other.stress_set_digest == right.stress_set_digest
+                && dominates(other, right, objectives)
+            {
+                dominated_by.push(other.candidate_id.clone());
+            }
+        }
+        dominated_by.sort();
+        assessments[index].dominated_by = dominated_by;
+    }
+
+    let mut fronts = Vec::new();
+    for lane in [
+        EvidenceLane::Independent,
+        EvidenceLane::SourceReported,
+        EvidenceLane::Conditional,
+    ] {
+        let mut cohorts: BTreeMap<(String, String, String, String), Vec<String>> = BTreeMap::new();
+        for assessment in &assessments {
+            if assessment.disposition != CandidateDisposition::Feasible(lane)
+                || !assessment.dominated_by.is_empty()
+            {
+                continue;
+            }
+            let candidate = &candidates[*candidate_index.get(assessment.candidate_id.as_str()).unwrap()];
+            cohorts
+                .entry((
+                    candidate.system_boundary_digest.clone(),
+                    candidate.operating_condition_digest.clone(),
+                    candidate.mission_set_digest.clone(),
+                    candidate.stress_set_digest.clone(),
+                ))
+                .or_default()
+                .push(candidate.candidate_id.clone());
+        }
+        for ((system_boundary_digest, operating_condition_digest, mission_set_digest, stress_set_digest), mut candidate_ids) in cohorts {
+            candidate_ids.sort();
+            fronts.push(EvidenceLaneFront {
+                lane,
+                system_boundary_digest,
+                operating_condition_digest,
+                mission_set_digest,
+                stress_set_digest,
+                candidate_ids,
+            });
+        }
+    }
+
+    let excluded_infeasible_ids = assessments
+        .iter()
+        .filter(|assessment| assessment.disposition == CandidateDisposition::Infeasible)
+        .map(|assessment| assessment.candidate_id.clone())
+        .collect();
+    let excluded_unknown_ids = assessments
+        .iter()
+        .filter(|assessment| assessment.disposition == CandidateDisposition::Unknown)
+        .map(|assessment| assessment.candidate_id.clone())
+        .collect();
+
+    Ok(ParetoReport {
+        assessments,
+        fronts,
+        excluded_infeasible_ids,
+        excluded_unknown_ids,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const CONFIG: &str = "configuration-a";
+    const BOUNDARY: &str = "complete-installed-joint-boundary-v1";
+    const CONDITION: &str = "48V-25C-cooling-a";
+    const MISSIONS: &str = "mission-set-v1";
+    const STRESS_SET: &str = "bounded-stress-set-v1";
+
+    fn objective_defs() -> Vec<ObjectiveDefinition> {
+        vec![
+            ObjectiveDefinition { name: "installed_mass".to_owned(), unit: "kg".to_owned(), direction: ObjectiveDirection::Minimize },
+            ObjectiveDefinition { name: "task_energy".to_owned(), unit: "J".to_owned(), direction: ObjectiveDirection::Minimize },
+            ObjectiveDefinition { name: "task_coverage".to_owned(), unit: "fraction".to_owned(), direction: ObjectiveDirection::Maximize },
+        ]
+    }
+
+    fn constraint_defs() -> Vec<HardConstraintDefinition> {
+        vec![
+            HardConstraintDefinition { name: "thermal_margin".to_owned(), unit: "degC".to_owned(), interpretation: "Minimum robust margin to declared thermal limit".to_owned() },
+            HardConstraintDefinition { name: "torque_margin".to_owned(), unit: "Nm".to_owned(), interpretation: "Minimum robust margin over every required trajectory sample".to_owned() },
+        ]
+    }
+
+    fn metric(value: f64, unit: &str, class: EvidenceClass) -> MetricEvidence {
+        MetricEvidence {
+            name: String::new(),
+            value: Some(value),
+            lower_bound: Some(value),
+            upper_bound: Some(value),
+            unit: unit.to_owned(),
+            evidence_class: class,
+            source_reference: Some("https://example.invalid/fixture".to_owned()),
+            method: Some("synthetic known-answer fixture".to_owned()),
+            configuration_digest: CONFIG.to_owned(),
+            system_boundary_digest: BOUNDARY.to_owned(),
+            operating_condition_digest: CONDITION.to_owned(),
+            mission_set_digest: MISSIONS.to_owned(),
+            stress_set_digest: STRESS_SET.to_owned(),
+            calibration_receipt: None,
+        }
+    }
+
+    fn set_objective_bounds(
+        candidate: &mut DesignCandidate,
+        index: usize,
+        lower: f64,
+        upper: f64,
+    ) {
+        candidate.objectives[index].lower_bound = Some(lower);
+        candidate.objectives[index].upper_bound = Some(upper);
+    }
+
+    fn constraint(margin: f64, unit: &str, class: EvidenceClass) -> ConstraintEvidence {
+        ConstraintEvidence {
+            name: String::new(),
+            minimum_robust_margin: Some(margin),
+            unit: unit.to_owned(),
+            evidence_class: class,
+            source_reference: Some("https://example.invalid/fixture".to_owned()),
+            method: Some("synthetic bounded stress-set oracle".to_owned()),
+            configuration_digest: CONFIG.to_owned(),
+            system_boundary_digest: BOUNDARY.to_owned(),
+            operating_condition_digest: CONDITION.to_owned(),
+            mission_set_digest: MISSIONS.to_owned(),
+            stress_set_digest: STRESS_SET.to_owned(),
+            calibration_receipt: None,
+        }
+    }
+
+    fn candidate(
+        id: &str,
+        mass: f64,
+        energy: f64,
+        coverage: f64,
+        class: EvidenceClass,
+    ) -> DesignCandidate {
+        DesignCandidate {
+            candidate_id: id.to_owned(),
+            configuration_digest: CONFIG.to_owned(),
+            system_boundary_digest: BOUNDARY.to_owned(),
+            operating_condition_digest: CONDITION.to_owned(),
+            mission_set_digest: MISSIONS.to_owned(),
+            stress_set_digest: STRESS_SET.to_owned(),
+            model_digest: None,
+            prediction_domain_digest: None,
+            objectives: vec![
+                MetricEvidence { name: "installed_mass".to_owned(), ..metric(mass, "kg", class) },
+                MetricEvidence { name: "task_energy".to_owned(), ..metric(energy, "J", class) },
+                MetricEvidence { name: "task_coverage".to_owned(), ..metric(coverage, "fraction", class) },
+            ],
+            hard_constraints: vec![
+                ConstraintEvidence { name: "thermal_margin".to_owned(), ..constraint(5.0, "degC", class) },
+                ConstraintEvidence { name: "torque_margin".to_owned(), ..constraint(2.0, "Nm", class) },
+            ],
+        }
+    }
+
+    fn calibration_receipt() -> PredictionCalibrationReceipt {
+        PredictionCalibrationReceipt {
+            report_digest: "calibration-report-sha256-v1".to_owned(),
+            model_digest: "torque-surrogate-model-v1".to_owned(),
+            training_split_digest: "training-specimen-split-v1".to_owned(),
+            calibration_split_digest: "calibration-specimen-split-v1".to_owned(),
+            test_split_digest: "heldout-specimen-split-v1".to_owned(),
+            system_boundary_digest: BOUNDARY.to_owned(),
+            operating_condition_digest: CONDITION.to_owned(),
+            mission_set_digest: MISSIONS.to_owned(),
+            domain_digest: "torque-speed-domain-v1".to_owned(),
+            alpha: 0.25,
+            calibration_specimen_count: 3,
+            order_statistic_rank: 3,
+            correction_q_nm: 1.0,
+            test_specimen_count: 3,
+            in_domain_test_specimen_count: 2,
+            covered_test_specimen_count: 1,
+            uncovered_test_specimen_count: 1,
+            out_of_domain_test_specimen_count: 1,
+            empirical_group_coverage: 0.5,
+            wilson_95_lower: 0.09,
+            wilson_95_upper: 0.91,
+            measurement_evidence_class: EvidenceClass::IndependentPhysical,
+        }
+    }
+
+    fn calibrated_model_candidate(id: &str) -> DesignCandidate {
+        let mut candidate = candidate(
+            id,
+            0.8,
+            70.0,
+            0.95,
+            EvidenceClass::IndependentPhysical,
+        );
+        candidate.model_digest = Some("torque-surrogate-model-v1".to_owned());
+        candidate.prediction_domain_digest = Some("torque-speed-domain-v1".to_owned());
+        // The grouped conformal receipt calibrates output torque only. It
+        // must not be reused to imply calibrated mass, energy or temperature.
+        candidate.hard_constraints[1].evidence_class = EvidenceClass::CalibratedModelPrediction;
+        candidate.hard_constraints[1].calibration_receipt = Some(calibration_receipt());
+        candidate
+    }
+
+    fn assessment<'a>(report: &'a ParetoReport, id: &str) -> &'a CandidateAssessment {
+        report.assessments.iter().find(|candidate| candidate.candidate_id == id).unwrap()
+    }
+
+    #[test]
+    fn pareto_001_dominance_respects_mixed_objective_directions() {
+        let a = candidate("A", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        let b = candidate("B", 2.0, 110.0, 0.8, EvidenceClass::IndependentPhysical);
+        let report = robust_pareto_report(&[a, b], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(report.fronts.len(), 1);
+        assert_eq!(report.fronts[0].candidate_ids, vec!["A"]);
+        assert_eq!(assessment(&report, "B").dominated_by, vec!["A"]);
+    }
+
+    #[test]
+    fn pareto_002_tradeoffs_remain_non_dominated() {
+        let a = candidate("A", 1.0, 100.0, 0.8, EvidenceClass::IndependentPhysical);
+        let b = candidate("B", 1.2, 90.0, 0.9, EvidenceClass::IndependentPhysical);
+        let report = robust_pareto_report(&[a, b], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(report.fronts[0].candidate_ids, vec!["A", "B"]);
+    }
+
+    #[test]
+    fn pareto_003_evidence_lanes_are_never_cross_dominated() {
+        let independent = candidate("independent", 1.0, 100.0, 0.8, EvidenceClass::IndependentPhysical);
+        let vendor = candidate("vendor", 0.5, 50.0, 1.0, EvidenceClass::VendorPhysical);
+        let source = candidate("source", 1.5, 120.0, 0.75, EvidenceClass::SourceAuthorPhysical);
+        let report = robust_pareto_report(&[independent, vendor, source], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(report.fronts.len(), 3);
+        assert!(report.fronts.iter().any(|front| front.lane == EvidenceLane::Independent && front.candidate_ids == vec!["independent"]));
+        assert!(report.fronts.iter().any(|front| front.lane == EvidenceLane::SourceReported && front.candidate_ids == vec!["source"]));
+        assert!(report.fronts.iter().any(|front| front.lane == EvidenceLane::Conditional && front.candidate_ids == vec!["vendor"]));
+    }
+
+    #[test]
+    fn pareto_004_known_hard_constraint_violation_excludes_candidate() {
+        let mut bad = candidate("bad", 0.1, 1.0, 1.0, EvidenceClass::IndependentPhysical);
+        bad.hard_constraints[0].minimum_robust_margin = Some(-0.1);
+        let report = robust_pareto_report(&[bad], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(assessment(&report, "bad").disposition, CandidateDisposition::Infeasible);
+        assert_eq!(report.excluded_infeasible_ids, vec!["bad"]);
+        assert!(report.fronts.is_empty());
+    }
+
+    #[test]
+    fn pareto_005_unknown_margin_or_evidence_is_not_promoted() {
+        let mut unknown = candidate("unknown", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        unknown.hard_constraints[1].minimum_robust_margin = None;
+        let report = robust_pareto_report(&[unknown], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(assessment(&report, "unknown").disposition, CandidateDisposition::Unknown);
+        assert_eq!(report.excluded_unknown_ids, vec!["unknown"]);
+    }
+
+    #[test]
+    fn pareto_006_known_violation_precedes_other_unknowns() {
+        let mut candidate = candidate("mixed", 1.0, 100.0, 0.9, EvidenceClass::Unknown);
+        // The violating hard margin is independently measured even though
+        // unrelated objective/evidence fields remain unknown.
+        candidate.hard_constraints[0].evidence_class = EvidenceClass::IndependentPhysical;
+        candidate.hard_constraints[0].minimum_robust_margin = Some(-1.0);
+        let report = robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(assessment(&report, "mixed").disposition, CandidateDisposition::Infeasible);
+    }
+
+    #[test]
+    fn pareto_007_duplicate_candidate_ids_reject() {
+        let a = candidate("same", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        let b = candidate("same", 2.0, 110.0, 0.8, EvidenceClass::IndependentPhysical);
+        assert!(robust_pareto_report(&[a, b], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_008_metric_dimension_and_unit_mismatch_reject() {
+        let mut short = candidate("short", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        short.objectives.pop();
+        assert!(robust_pareto_report(&[short], &objective_defs(), &constraint_defs()).is_err());
+
+        let mut wrong_unit = candidate("wrong-unit", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        wrong_unit.objectives[0].unit = "g".to_owned();
+        assert!(robust_pareto_report(&[wrong_unit], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_009_nonfinite_metrics_and_margins_reject() {
+        let mut bad_metric = candidate("bad-metric", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        bad_metric.objectives[0].value = Some(f64::NAN);
+        assert!(robust_pareto_report(&[bad_metric], &objective_defs(), &constraint_defs()).is_err());
+
+        let mut bad_margin = candidate("bad-margin", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        bad_margin.hard_constraints[0].minimum_robust_margin = Some(f64::INFINITY);
+        assert!(robust_pareto_report(&[bad_margin], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_010_equal_objective_vectors_do_not_dominate_each_other() {
+        let a = candidate("A", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        let b = candidate("B", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        let report = robust_pareto_report(&[a, b], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(report.fronts[0].candidate_ids, vec!["A", "B"]);
+    }
+
+    #[test]
+    fn pareto_011_missing_objective_value_is_unknown() {
+        let mut candidate = candidate("unknown-objective", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        candidate.objectives[2].value = None;
+        let report = robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(assessment(&report, "unknown-objective").disposition, CandidateDisposition::Unknown);
+    }
+
+    #[test]
+    fn pareto_012_unknown_source_must_not_claim_a_measured_lane() {
+        let mut candidate = candidate("no-source", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        candidate.objectives[0].source_reference = None;
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_013_evidence_from_another_configuration_rejects() {
+        let mut candidate = candidate("stale", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        candidate.objectives[0].configuration_digest = "old-config".to_owned();
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_014_operating_condition_mismatch_rejects_evidence() {
+        let mut candidate = candidate("wrong-condition", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        candidate.objectives[0].operating_condition_digest = "different-cooling".to_owned();
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_015_metric_names_must_match_the_declared_objective_order() {
+        let mut candidate = candidate("wrong-name", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        candidate.objectives.swap(0, 1);
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_016_mission_sets_are_separate_comparison_cohorts() {
+        let a = candidate("mission-a", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        let mut b = candidate("mission-b", 2.0, 110.0, 0.8, EvidenceClass::IndependentPhysical);
+        b.mission_set_digest = "different-mission-set".to_owned();
+        for metric in &mut b.objectives {
+            metric.mission_set_digest = b.mission_set_digest.clone();
+        }
+        for constraint in &mut b.hard_constraints {
+            constraint.mission_set_digest = b.mission_set_digest.clone();
+        }
+        let report = robust_pareto_report(&[a, b], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(report.fronts.len(), 2);
+        assert!(report.assessments.iter().all(|assessment| assessment.dominated_by.is_empty()));
+        assert!(report.fronts.iter().any(|front| front.mission_set_digest == MISSIONS));
+        assert!(report.fronts.iter().any(|front| front.mission_set_digest == "different-mission-set"));
+    }
+
+    #[test]
+    fn pareto_017_operating_conditions_are_separate_comparison_cohorts() {
+        let a = candidate("cooling-a", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        let mut b = candidate("cooling-b", 2.0, 110.0, 0.8, EvidenceClass::IndependentPhysical);
+        b.operating_condition_digest = "48V-25C-cooling-b".to_owned();
+        for metric in &mut b.objectives {
+            metric.operating_condition_digest = b.operating_condition_digest.clone();
+        }
+        for constraint in &mut b.hard_constraints {
+            constraint.operating_condition_digest = b.operating_condition_digest.clone();
+        }
+        let report = robust_pareto_report(&[a, b], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(report.fronts.len(), 2);
+        assert!(report.assessments.iter().all(|assessment| assessment.dominated_by.is_empty()));
+    }
+
+    #[test]
+    fn pareto_018_stress_set_mismatch_rejects_margin_evidence() {
+        let mut candidate = candidate("stale-stress", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        candidate.hard_constraints[0].stress_set_digest = "different-stress-set".to_owned();
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_019_system_boundary_mismatch_rejects_metric_evidence() {
+        let mut candidate = candidate("wrong-boundary", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        candidate.objectives[0].system_boundary_digest = "component-only-mass".to_owned();
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_020_objective_mission_or_stress_digest_mismatch_rejects() {
+        let mut candidate = candidate("stale-objective", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        candidate.objectives[0].mission_set_digest = "old-mission".to_owned();
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_021_system_boundaries_are_separate_comparison_cohorts() {
+        let a = candidate("installed-boundary", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        let mut b = candidate("component-boundary", 2.0, 110.0, 0.8, EvidenceClass::IndependentPhysical);
+        b.system_boundary_digest = "motor-only-boundary".to_owned();
+        for metric in &mut b.objectives {
+            metric.system_boundary_digest = b.system_boundary_digest.clone();
+        }
+        for constraint in &mut b.hard_constraints {
+            constraint.system_boundary_digest = b.system_boundary_digest.clone();
+        }
+        let report = robust_pareto_report(&[a, b], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(report.fronts.len(), 2);
+        assert!(report.assessments.iter().all(|assessment| assessment.dominated_by.is_empty()));
+    }
+
+    #[test]
+    fn pareto_022_stress_sets_are_separate_comparison_cohorts() {
+        let a = candidate("stress-a", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        let mut b = candidate("stress-b", 2.0, 110.0, 0.8, EvidenceClass::IndependentPhysical);
+        b.stress_set_digest = "different-stress-envelope".to_owned();
+        for metric in &mut b.objectives {
+            metric.stress_set_digest = b.stress_set_digest.clone();
+        }
+        for constraint in &mut b.hard_constraints {
+            constraint.stress_set_digest = b.stress_set_digest.clone();
+        }
+        let report = robust_pareto_report(&[a, b], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(report.fronts.len(), 2);
+        assert!(report.assessments.iter().all(|assessment| assessment.dominated_by.is_empty()));
+    }
+
+    #[test]
+    fn pareto_023_violation_receipt_preserves_source_and_margin() {
+        let mut candidate = candidate("receipt", 1.0, 100.0, 0.9, EvidenceClass::SourceAuthorPhysical);
+        candidate.hard_constraints[0].minimum_robust_margin = Some(-0.25);
+        let report = robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).unwrap();
+        let assessment = assessment(&report, "receipt");
+        assert_eq!(assessment.disposition, CandidateDisposition::Infeasible);
+        assert_eq!(assessment.known_constraint_violations.len(), 1);
+        let violation = &assessment.known_constraint_violations[0];
+        assert_eq!(violation.constraint_name, "thermal_margin");
+        assert_eq!(violation.minimum_robust_margin, -0.25);
+        assert_eq!(violation.evidence_class, EvidenceClass::SourceAuthorPhysical);
+        assert_eq!(violation.stress_set_digest, STRESS_SET);
+        assert!(violation.source_reference.is_some());
+    }
+
+    #[test]
+    fn pareto_024_calibrated_model_evidence_class_is_conditional_even_alone() {
+        assert_eq!(
+            lane_for_evidence(&[EvidenceClass::CalibratedModelPrediction]),
+            Some(EvidenceLane::Conditional)
+        );
+    }
+
+    #[test]
+    fn pareto_025_calibrated_model_prediction_remains_conditional() {
+        let calibrated = calibrated_model_candidate("calibrated-model");
+        let report = robust_pareto_report(&[calibrated], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(
+            assessment(&report, "calibrated-model").disposition,
+            CandidateDisposition::Feasible(EvidenceLane::Conditional)
+        );
+        assert_eq!(report.fronts.len(), 1);
+        assert_eq!(report.fronts[0].lane, EvidenceLane::Conditional);
+    }
+
+    #[test]
+    fn pareto_026_calibrated_model_prediction_cannot_cross_dominate_independent_measurement() {
+        let calibrated = calibrated_model_candidate("calibrated-model");
+        let independent = candidate(
+            "independent",
+            1.0,
+            90.0,
+            0.85,
+            EvidenceClass::IndependentPhysical,
+        );
+        let report = robust_pareto_report(
+            &[calibrated, independent],
+            &objective_defs(),
+            &constraint_defs(),
+        ).unwrap();
+        assert_eq!(report.fronts.len(), 2);
+        assert!(report.fronts.iter().any(|front| front.lane == EvidenceLane::Conditional));
+        assert!(report.fronts.iter().any(|front| front.lane == EvidenceLane::Independent));
+        assert!(report.assessments.iter().all(|entry| entry.dominated_by.is_empty()));
+    }
+
+    #[test]
+    fn pareto_027_calibrated_model_torque_margin_requires_receipt() {
+        let mut candidate = calibrated_model_candidate("missing-receipt");
+        candidate.hard_constraints[1].calibration_receipt = None;
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+
+        let mut candidate = calibrated_model_candidate("missing-constraint-receipt");
+        candidate.hard_constraints[0].calibration_receipt = None;
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_028_calibration_receipt_cannot_be_used_to_launder_an_independent_claim() {
+        let mut candidate = candidate(
+            "laundered",
+            1.0,
+            100.0,
+            0.9,
+            EvidenceClass::IndependentPhysical,
+        );
+        candidate.hard_constraints[1].calibration_receipt = Some(calibration_receipt());
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_029_torque_calibration_receipt_cannot_validate_energy_or_thermal_metrics() {
+        let mut candidate = candidate(
+            "wrong-unit-calibration",
+            1.0,
+            100.0,
+            0.9,
+            EvidenceClass::ModelDerived,
+        );
+        candidate.model_digest = Some("torque-surrogate-model-v1".to_owned());
+        candidate.prediction_domain_digest = Some("torque-speed-domain-v1".to_owned());
+        candidate.objectives[1].evidence_class = EvidenceClass::CalibratedModelPrediction;
+        candidate.objectives[1].calibration_receipt = Some(calibration_receipt());
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_030_stale_model_domain_boundary_or_mission_receipt_rejects() {
+        let mut candidate = calibrated_model_candidate("stale-model");
+        candidate.model_digest = Some("different-model".to_owned());
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+
+        let mut candidate = calibrated_model_candidate("stale-domain");
+        candidate.prediction_domain_digest = Some("different-domain".to_owned());
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+
+        let mut candidate = calibrated_model_candidate("stale-mission");
+        candidate.objectives[0].calibration_receipt.as_mut().unwrap().mission_set_digest =
+            "different-mission".to_owned();
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_031_insufficient_or_malformed_calibration_receipt_rejects() {
+        let mut insufficient = calibrated_model_candidate("insufficient-calibration");
+        let receipt = insufficient.objectives[0].calibration_receipt.as_mut().unwrap();
+        receipt.order_statistic_rank = 4;
+        assert!(robust_pareto_report(&[insufficient], &objective_defs(), &constraint_defs()).is_err());
+
+        let mut wrong_rank = calibrated_model_candidate("wrong-in-range-rank");
+        // n=3, alpha=0.25 requires k=ceil(4*0.75)=3; rank=2 is in range
+        // but does not implement the split-conformal finite-sample rule.
+        wrong_rank.objectives[0].calibration_receipt.as_mut().unwrap().order_statistic_rank = 2;
+        assert!(robust_pareto_report(&[wrong_rank], &objective_defs(), &constraint_defs()).is_err());
+
+        let mut empty_test = calibrated_model_candidate("empty-calibration-test");
+        let receipt = empty_test.hard_constraints[0].calibration_receipt.as_mut().unwrap();
+        receipt.in_domain_test_specimen_count = 0;
+        receipt.covered_test_specimen_count = 0;
+        receipt.uncovered_test_specimen_count = 0;
+        assert!(robust_pareto_report(&[empty_test], &objective_defs(), &constraint_defs()).is_err());
+
+        let mut narrow_wilson = calibrated_model_candidate("narrow-wilson");
+        let receipt = narrow_wilson.objectives[0].calibration_receipt.as_mut().unwrap();
+        receipt.wilson_95_lower = 0.49;
+        receipt.wilson_95_upper = 0.51;
+        assert!(robust_pareto_report(&[narrow_wilson], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_032_calibrated_model_violation_receipt_retains_calibration_provenance() {
+        let mut candidate = calibrated_model_candidate("calibrated-violation");
+        candidate.hard_constraints[1].minimum_robust_margin = Some(-0.25);
+        let report = robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).unwrap();
+        let violation = &assessment(&report, "calibrated-violation").known_constraint_violations[0];
+        assert_eq!(violation.evidence_class, EvidenceClass::CalibratedModelPrediction);
+        assert_eq!(
+            violation.calibration_receipt.as_ref().unwrap().report_digest,
+            "calibration-report-sha256-v1"
+        );
+    }
+
+    #[test]
+    fn pareto_033_overlapping_objective_intervals_do_not_create_false_dominance() {
+        let mut a = candidate("point-better", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        let mut b = candidate("point-worse", 1.1, 105.0, 0.88, EvidenceClass::IndependentPhysical);
+        // A has better point estimates on all objectives, but the intervals overlap.
+        set_objective_bounds(&mut a, 0, 0.8, 1.2);
+        set_objective_bounds(&mut a, 1, 90.0, 110.0);
+        set_objective_bounds(&mut a, 2, 0.85, 0.95);
+        set_objective_bounds(&mut b, 0, 0.9, 1.3);
+        set_objective_bounds(&mut b, 1, 95.0, 115.0);
+        set_objective_bounds(&mut b, 2, 0.84, 0.94);
+        let report = robust_pareto_report(&[a, b], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(report.fronts[0].candidate_ids, vec!["point-better", "point-worse"]);
+        assert!(report.assessments.iter().all(|assessment| assessment.dominated_by.is_empty()));
+    }
+
+    #[test]
+    fn pareto_034_nonoverlapping_objective_intervals_allow_robust_dominance() {
+        let mut a = candidate("robust-winner", 1.0, 80.0, 0.9, EvidenceClass::IndependentPhysical);
+        let mut b = candidate("robust-loser", 2.0, 100.0, 0.8, EvidenceClass::IndependentPhysical);
+        set_objective_bounds(&mut a, 0, 0.9, 1.1);
+        set_objective_bounds(&mut a, 1, 75.0, 85.0);
+        set_objective_bounds(&mut a, 2, 0.88, 0.92);
+        set_objective_bounds(&mut b, 0, 1.9, 2.1);
+        set_objective_bounds(&mut b, 1, 95.0, 105.0);
+        set_objective_bounds(&mut b, 2, 0.78, 0.82);
+        let report = robust_pareto_report(&[a, b], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(report.fronts[0].candidate_ids, vec!["robust-winner"]);
+        assert_eq!(assessment(&report, "robust-loser").dominated_by, vec!["robust-winner"]);
+    }
+
+    #[test]
+    fn pareto_035_missing_objective_interval_makes_candidate_unknown() {
+        let mut candidate = candidate("missing-interval", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        candidate.objectives[0].upper_bound = None;
+        let report = robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(assessment(&report, "missing-interval").disposition, CandidateDisposition::Unknown);
+        assert!(report.fronts.is_empty());
+    }
+
+    #[test]
+    fn pareto_036_malformed_or_point_excluding_objective_interval_rejects() {
+        let mut inverted = candidate("inverted", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        inverted.objectives[0].lower_bound = Some(2.0);
+        inverted.objectives[0].upper_bound = Some(1.0);
+        assert!(robust_pareto_report(&[inverted], &objective_defs(), &constraint_defs()).is_err());
+
+        let mut excludes_point = candidate("excludes-point", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        excludes_point.objectives[0].lower_bound = Some(1.2);
+        excludes_point.objectives[0].upper_bound = Some(1.5);
+        assert!(robust_pareto_report(&[excludes_point], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_037_all_candidates_are_retained_as_assessments() {
+        let good = candidate("good", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        let mut bad = candidate("bad", 0.5, 50.0, 1.0, EvidenceClass::IndependentPhysical);
+        bad.hard_constraints[0].minimum_robust_margin = Some(-0.5);
+        let report = robust_pareto_report(&[good, bad], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(report.assessments.len(), 2);
+        assert_eq!(report.excluded_infeasible_ids, vec!["bad"]);
+    }
+}
