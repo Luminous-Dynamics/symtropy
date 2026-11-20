@@ -94,7 +94,7 @@ No verified no-fault exposure means FAR is **Unknown**, not zero. An alarm outsi
 For each fault class and tested amplitude:
 - each independent specimen contributes at most one trial;
 - repeated windows from one specimen are not treated as extra independent units;
-- the report includes total independent specimens, evaluable specimens (detected or confirmed missed), right-censored specimens, detected count, empirical detection fraction and two-sided 95% Wilson interval. Censored specimens are excluded from the Wilson denominator and remain separately counted;
+- the report includes total independent specimens, evaluable specimens (detected or confirmed missed), right-censored specimens, detected count, empirical detection fraction and two-sided 95% Wilson interval. Censored specimens are excluded from the Wilson denominator and remain separately counted; if all specimens in an amplitude stratum are censored, the Wilson interval is null rather than a fabricated zero;
 - amplitude units must be consistent within a fault class.
 
 MDFA is the **smallest tested amplitude** for which:
@@ -139,7 +139,7 @@ Baseline families should include residual/parity observers, thresholds/change de
 
 `examples/fault-observability-known-answer.json` includes five synthetic fault episodes, four synthetic alarms and three verified synthetic no-fault windows. It demonstrates a one-false-alarm/five-hour = 0.2/hour denominator, an overlapping compound fault with exact-set alarm, an alarm outside scored exposure and a right-censored fault. Values and IDs are placeholders, not real actuator data.
 
-Twenty-eight uniquely numbered Rust test definitions cover:
+Thirty uniquely numbered Rust test definitions cover:
 1. TTD and FAR arithmetic;
 2. specimen-grouped Wilson MDFA;
 3. exact compound-fault set isolation and partial mis-isolation;
