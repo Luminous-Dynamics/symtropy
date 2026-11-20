@@ -56,3 +56,24 @@ The overlay inherits productive minutes/cell-year, shifts, target good-carrier t
 This is an incremental capacity/resource overlay, not a second factory costing engine. Base building, general overhead, site labor/energy rates and vehicle assembly costs remain with `ev_factory_frontier`. Module production release remains false in v0.1, including synthetic-screen passes.
 
 Research dossier: [EV Carrier Module Manufacturing Screen v0.1](../../docs/research/EV_CARRIER_MODULE_MANUFACTURING_SCREEN_V0_1.md).
+
+
+## EV-CARRIER-LIFECYCLE-001 — serviceability and repairability overlay
+
+The `ev_carrier_lifecycle_screen` binary consumes the module factory report and adds service-specific observations. It does not create a new maintenance ledger; the task vocabulary follows AERO-SERVICE-LOOP-001 #4056, while Mycelix owns physical asset identity, lineage and passport projections.
+
+Run after `ev_carrier_module_factory_screen`:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_carrier_lifecycle_screen -- \
+  ev-carrier-module-factory-report.json \
+  tools/ev-passenger-cost-frontier/fixtures/ev_carrier_lifecycle_profiles_v0_1.json
+```
+
+The screen requires an eight-phase ordered record for each event: safe isolation, access/disassembly, diagnosis/inspection, removal, repair/replacement, reinstall/configure, post-maintenance test, and return-to-service disposition. Every performed duration has a crew, skill, measurement method, evidence class and source reference. Not-applicable phases require an explicit reason. Unknown duration and event rates remain unknown.
+
+Planned and unplanned service are reported separately. Measured/independent unplanned rates must reconcile observed event counts with module-hour exposure and annual operating hours. A synthetic event rate is arithmetic-only. The screen reports per-module event downtime, technician-hours, labor and parts cost, and annualized planned/unplanned totals only when their inputs are complete.
+
+The truck-only control is **zero incremental optional-module service burden**, not zero base-truck maintenance. Base vehicle maintenance is excluded and remains with EV-BENCH-001 #2164. The report never grants production release or maintenance return-to-service authority. Whole-life cost ranking remains false in v0.1 because field failure exposure, warranty, acquisition, spares, end-of-life and other lifecycle boundaries remain incomplete.
+
+Research dossier: [EV Carrier Lifecycle and Serviceability Screen v0.1](../../docs/research/EV_CARRIER_LIFECYCLE_SERVICEABILITY_V0_1.md).
