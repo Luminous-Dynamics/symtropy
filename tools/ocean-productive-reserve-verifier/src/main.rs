@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::{env, fs, path::Path};
 
 const CONTRACT_PATH: &str =
@@ -156,7 +156,13 @@ fn validate(c: &Contract, w: &WorkloadFixture) -> Result<Report, String> {
     if !c.synthetic_only || !w.synthetic_only || c.recovery_budget.target_is_measured {
         return Err("fixtures and target status must remain explicitly synthetic/unmeasured".into());
     }
-    if !c.reserve_capacity.no_double_counting || c.acceptance_rules.is_empty()
+    if c.reserve_site_path != "warm_recovery"
+        || c.reserve_capacity.resource_unit.trim().is_empty()
+        || c.reserve_capacity.headroom_policy.trim().is_empty()
+        || w.schema_version.trim().is_empty() || w.as_of.trim().is_empty()
+        || w.claim_ceiling.trim().is_empty() || w.energy_accounting_boundary.trim().is_empty()
+        || w.units.is_null() || w.scenarios.is_empty()
+        || !c.reserve_capacity.no_double_counting || c.acceptance_rules.is_empty()
         || c.protected_recovery_services.is_empty() || c.background_preemptible_jobs.is_empty()
         || c.scenarios.is_empty() {
         return Err("reserve contract missing nonempty resources, jobs, scenarios or no-double-counting rule".into());
@@ -178,7 +184,9 @@ fn validate(c: &Contract, w: &WorkloadFixture) -> Result<Report, String> {
         }
         let p = profiles.get(s.profile_id.as_str())
             .ok_or_else(|| format!("unknown protected profile {}", s.profile_id))?;
-        if p.safety_critical_control_dependency || !s.service_contract.local_fallback_required
+        if p.safety_critical_control_dependency
+            || p.local_fallback_required != s.service_contract.local_fallback_required
+            || !s.service_contract.local_fallback_required
             || s.service_contract.max_start_deferral_seconds > p.maximum_deferral_seconds
             || s.service_contract.latency_budget_seconds > p.latency_budget_seconds {
             return Err(format!("protected service {} violates source workload contract", s.profile_id));
