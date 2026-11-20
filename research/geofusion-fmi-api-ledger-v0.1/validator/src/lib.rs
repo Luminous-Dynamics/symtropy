@@ -268,6 +268,44 @@ struct VariableRecord {
     port_role: String,
 }
 
+fn validate_sampling_semantics(
+    unit: &str,
+    port_role: &str,
+    event_kind: &str,
+    sampling_semantics: &str,
+    has_transfer_id: bool,
+) -> Result<(), &'static str> {
+    const ALLOWED: &[&str] = &[
+        "constant_over_declared_half_open_interval",
+        "sample_at_interval_end",
+        "sample_at_interval_start",
+        "interval_average",
+        "integral_over_half_open_interval",
+    ];
+    if !ALLOWED.contains(&sampling_semantics) {
+        return Err("invalid per-value sampling semantics");
+    }
+    if port_role == "state_observation" {
+        if event_kind != "get_float64"
+            || sampling_semantics != "sample_at_interval_end"
+            || has_transfer_id
+        {
+            return Err("state observation must be a non-transfer output sampled at interval end");
+        }
+        return Ok(());
+    }
+    if matches!(port_role, "coupling_source" | "coupling_sink") && !has_transfer_id {
+        return Err("coupling port value is missing transfer identity");
+    }
+    if unit == "J" && sampling_semantics != "integral_over_half_open_interval" {
+        return Err("joule-valued flow must be an interval-integrated quantity");
+    }
+    if unit != "J" && sampling_semantics == "integral_over_half_open_interval" {
+        return Err("interval-integrated sampling semantics require joule units");
+    }
+    Ok(())
+}
+
 #[derive(Debug, Default)]
 struct Lifecycle {
     created: bool,
@@ -646,7 +684,8 @@ fn audit(ledger: Ledger, artifact_root: &Path) -> Result<AuditReport, String> {
                 let interval = event.payload.interval.as_ref().ok_or("missing exchange interval")?;
                 if interval.start_master_ns < 0 || interval.start_master_ns >= interval.end_master_ns
                     || !["constant_over_declared_half_open_interval", "sample_at_interval_end",
-                        "sample_at_interval_start", "interval_average"].contains(&interval.sampling_semantics.as_str()) {
+                        "sample_at_interval_start", "interval_average", "integral_over_half_open_interval"]
+                        .contains(&interval.sampling_semantics.as_str()) {
                     return Err(format!("invalid exchange interval at {}", event.event_id));
                 }
                 if event.kind == "get_float64" {
@@ -675,19 +714,13 @@ fn audit(ledger: Ledger, artifact_root: &Path) -> Result<AuditReport, String> {
                     }
                     let sampling_semantics = value.sampling_semantics.as_deref()
                         .unwrap_or(interval.sampling_semantics.as_str());
-                    if !["constant_over_declared_half_open_interval", "sample_at_interval_end",
-                        "sample_at_interval_start", "interval_average"].contains(&sampling_semantics) {
-                        return Err(format!("invalid per-value sampling semantics at {}", event.event_id));
-                    }
-                    if variable.port_role == "state_observation"
-                        && (event.kind != "get_float64"
-                            || sampling_semantics != "sample_at_interval_end"
-                            || value.transfer_id.is_some()) {
-                        return Err(format!(
-                            "state observation must be a non-transfer output sampled at interval end at {}",
-                            event.event_id
-                        ));
-                    }
+                    validate_sampling_semantics(
+                        &variable.unit,
+                        &variable.port_role,
+                        &event.kind,
+                        sampling_semantics,
+                        value.transfer_id.is_some(),
+                    ).map_err(|error| format!("{error} at {}", event.event_id))?;
                     let decoded = parse_bits(&value.raw_f64_bits, "raw_f64_bits")?;
                     if decoded.to_bits() != value.value.to_bits() {
                         return Err(format!("Float64 bit-pattern mismatch at {}", event.event_id));
@@ -775,8 +808,14 @@ fn audit(ledger: Ledger, artifact_root: &Path) -> Result<AuditReport, String> {
         let write = transfer_writes.get(id).ok_or("missing receiver transfer leg")?;
         let a = &read.value;
         let b = &write.value;
-        if (a.raw_f64_bits.as_str(), a.source_interval_id.as_str(), read.interval.start_master_ns, read.interval.end_master_ns)
-            != (b.raw_f64_bits.as_str(), b.source_interval_id.as_str(), write.interval.start_master_ns, write.interval.end_master_ns)
+        let read_sampling = a.sampling_semantics.as_deref()
+            .unwrap_or(read.interval.sampling_semantics.as_str());
+        let write_sampling = b.sampling_semantics.as_deref()
+            .unwrap_or(write.interval.sampling_semantics.as_str());
+        if (a.raw_f64_bits.as_str(), a.source_interval_id.as_str(),
+            read.interval.start_master_ns, read.interval.end_master_ns, read_sampling)
+            != (b.raw_f64_bits.as_str(), b.source_interval_id.as_str(),
+                write.interval.start_master_ns, write.interval.end_master_ns, write_sampling)
             || read.variable.port_role != "coupling_source" || write.variable.port_role != "coupling_sink"
             || read.variable.carrier != write.variable.carrier || read.variable.unit != write.variable.unit
             || read.variable.boundary_id != write.variable.boundary_id {
@@ -1005,6 +1044,57 @@ mod tests {
         assert!(run(d).unwrap_err().contains(
             "getFloat64 interval does not match most recent successful lastSuccessfulTime"
         ));
+    }
+
+    #[test]
+    fn joule_valued_flows_require_interval_integral_semantics() {
+        assert_eq!(
+            validate_sampling_semantics(
+                "J", "coupling_source", "get_float64",
+                "integral_over_half_open_interval", true
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            validate_sampling_semantics(
+                "J", "terminal_sink", "get_float64",
+                "interval_average", false
+            ),
+            Err("joule-valued flow must be an interval-integrated quantity")
+        );
+        assert_eq!(
+            validate_sampling_semantics(
+                "W", "coupling_source", "get_float64",
+                "integral_over_half_open_interval", true
+            ),
+            Err("interval-integrated sampling semantics require joule units")
+        );
+    }
+
+    #[test]
+    fn cumulative_joule_state_remains_a_sample_not_an_interval_transfer() {
+        assert_eq!(
+            validate_sampling_semantics(
+                "J", "state_observation", "get_float64",
+                "sample_at_interval_end", false
+            ),
+            Ok(())
+        );
+        assert!(validate_sampling_semantics(
+            "J", "state_observation", "get_float64",
+            "integral_over_half_open_interval", false
+        ).is_err());
+    }
+
+    #[test]
+    fn coupling_ports_require_transfer_ids_even_when_units_are_watts() {
+        assert_eq!(
+            validate_sampling_semantics(
+                "W", "coupling_source", "get_float64",
+                "constant_over_declared_half_open_interval", false
+            ),
+            Err("coupling port value is missing transfer identity")
+        );
     }
 
     #[test]
