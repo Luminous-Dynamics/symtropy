@@ -16,6 +16,8 @@ pub struct Interval {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EvidenceClass {
+    /// Synthetic known-answer values; arithmetic fixtures only, never physical observations.
+    Synthetic,
     IndependentPhysical,
     SourceAuthorPhysical,
     VendorPhysical,
@@ -124,7 +126,8 @@ pub struct JointEvaluationInput {
     pub reference_clock_id: String,
     pub reference_instant_s: f64,
     pub actuator_units: Vec<ActuatorUnit>,
-    /// Optional independently measured joint-output torque transducer.
+    /// Optional joint-output torque reference. EvidenceClass distinguishes
+    /// independent physical measurement from synthetic known-answer input.
     pub joint_torque_cross_check: Option<JointTorqueCrossCheck>,
 }
 
@@ -172,9 +175,11 @@ pub struct JointEvaluation {
     pub disposition: JointDisposition,
     pub aggregate_unit_torque_nm: Option<Interval>,
     pub aggregate_current_magnitude_a: Option<Interval>,
-    pub independently_measured_joint_torque_nm: Option<Interval>,
+    /// Joint-output reference interval; inspect its evidence class before
+    /// treating it as a physical measurement.
+    pub joint_torque_cross_check_nm: Option<Interval>,
     pub joint_torque_cross_check_evidence: Option<JointTorqueCrossCheck>,
-    /// Aggregate unit torque interval minus independent joint torque interval.
+    /// Aggregate unit torque interval minus the declared joint-output reference.
     pub torque_sum_residual_nm: Option<Interval>,
     pub torque_sum_consistency: TorqueSumConsistency,
     pub hottest_unit_id: Option<String>,
@@ -340,7 +345,10 @@ fn validate_input(input: &JointEvaluationInput) -> Result<(), String> {
             || !nonempty(&check.source_reference)
             || !nonempty(&check.method)
             || !nonempty(&check.calibration_digest)
-            || check.evidence_class != EvidenceClass::IndependentPhysical
+            || !matches!(
+                check.evidence_class,
+                EvidenceClass::IndependentPhysical | EvidenceClass::Synthetic
+            )
             || !check.reference_instant_s.is_finite()
             || !nonempty(&check.joint_configuration_digest)
         {
@@ -581,7 +589,7 @@ pub fn evaluate_joint(input: &JointEvaluationInput) -> Result<JointEvaluation, S
         disposition,
         aggregate_unit_torque_nm: aggregate,
         aggregate_current_magnitude_a: aggregate_current,
-        independently_measured_joint_torque_nm: joint_measured,
+        joint_torque_cross_check_nm: joint_measured,
         joint_torque_cross_check_evidence: input.joint_torque_cross_check.clone(),
         torque_sum_residual_nm: residual,
         torque_sum_consistency: consistency,
@@ -590,7 +598,7 @@ pub fn evaluate_joint(input: &JointEvaluationInput) -> Result<JointEvaluation, S
         minimum_continuous_torque_margin_nm: minimum_continuous_margin,
         minimum_speed_margin_rad_s: minimum_speed_margin,
         unit_assessments,
-        interpretation: "This is a per-unit torque/speed/duration/temperature envelope check only. A Feasible result does not prove task success, full thermal life, current-to-torque accuracy, passivity or hardware/HRI safety.".to_owned(),
+        interpretation: "This is a per-unit torque/speed/duration/temperature envelope check only. Cross-check evidence class is preserved: Synthetic is arithmetic-only; only IndependentPhysical is an independent measurement. A Feasible result does not prove task success, full thermal life, current-to-torque accuracy, passivity or hardware/HRI safety.".to_owned(),
     })
 }
 
@@ -622,13 +630,13 @@ mod tests {
             current_method: None,
             current_calibration_digest: None,
             output_torque_nm: Some(torque),
-            torque_evidence_class: EvidenceClass::IndependentPhysical,
-            torque_source_reference: Some(format!("https://example.invalid/torque/{id}")),
-            torque_method: Some("Synthetic independent output torque fixture".to_owned()),
+            torque_evidence_class: EvidenceClass::Synthetic,
+            torque_source_reference: Some(format!("urn:synthetic:paired-actuator-sharing:v0.1:torque:{id}")),
+            torque_method: Some("Synthetic output-equivalent torque interval".to_owned()),
             torque_calibration_digest: Some(format!("cal-torque-{id}")),
-            capability_evidence_class: EvidenceClass::IndependentPhysical,
-            capability_source_reference: Some(format!("https://example.invalid/capability/{id}")),
-            capability_method: Some("Synthetic conservative envelope fixture".to_owned()),
+            capability_evidence_class: EvidenceClass::Synthetic,
+            capability_source_reference: Some(format!("urn:synthetic:paired-actuator-sharing:v0.1:capability:{id}")),
+            capability_method: Some("Synthetic conservative capability envelope".to_owned()),
             capability_digest: Some(format!("capability-{id}-v1")),
             continuous_torque_capability_lower_nm: Some(10.0),
             peak_torque_capability_lower_nm: Some(15.0),
@@ -638,9 +646,9 @@ mod tests {
             available_peak_duration_lower_s: Some(0.5),
             temperature_c: Some(temperature),
             thermal_limit_lower_c: Some(70.0),
-            thermal_evidence_class: EvidenceClass::IndependentPhysical,
-            thermal_source_reference: Some(format!("https://example.invalid/thermal/{id}")),
-            thermal_method: Some("Synthetic calibrated temperature fixture".to_owned()),
+            thermal_evidence_class: EvidenceClass::Synthetic,
+            thermal_source_reference: Some(format!("urn:synthetic:paired-actuator-sharing:v0.1:temperature:{id}")),
+            thermal_method: Some("Synthetic temperature interval".to_owned()),
             thermal_calibration_digest: Some(format!("cal-temperature-{id}")),
         }
     }
@@ -662,9 +670,9 @@ mod tests {
     fn cross_check(torque: Interval) -> JointTorqueCrossCheck {
         JointTorqueCrossCheck {
             output_torque_nm: torque,
-            evidence_class: EvidenceClass::IndependentPhysical,
-            source_reference: "https://example.invalid/joint-output-transducer/run-01".to_owned(),
-            method: "Synthetic common-output torque reference".to_owned(),
+            evidence_class: EvidenceClass::Synthetic,
+            source_reference: "urn:synthetic:paired-actuator-sharing:v0.1:joint-torque:known-answer-01".to_owned(),
+            method: "Synthetic common-output torque interval for arithmetic consistency testing".to_owned(),
             calibration_digest: "joint-output-calibration-v1".to_owned(),
             output_reference_plane_digest: PLANE.to_owned(),
             reference_clock_id: CLOCK.to_owned(),
@@ -853,9 +861,9 @@ mod tests {
         a.current_magnitude_a = Some(interval(4.0, 5.0));
         b.current_magnitude_a = Some(interval(8.0, 9.0));
         for u in [&mut a, &mut b] {
-            u.current_evidence_class = EvidenceClass::IndependentPhysical;
-            u.current_source_reference = Some("https://example.invalid/current/run".to_owned());
-            u.current_method = Some("Synthetic calibrated current measurement".to_owned());
+            u.current_evidence_class = EvidenceClass::Synthetic;
+            u.current_source_reference = Some("urn:synthetic:paired-actuator-sharing:v0.1:current:run".to_owned());
+            u.current_method = Some("Synthetic current magnitude interval".to_owned());
             u.current_calibration_digest = Some("current-calibration-v1".to_owned());
         }
         let report = evaluate_joint(&input(vec![a, b])).unwrap();
@@ -884,8 +892,8 @@ mod tests {
     fn sharing_017_unit_evidence_receipts_survive_evaluation() {
         let mut a = unit("A", interval(4.0, 5.0), interval(40.0, 42.0));
         a.current_magnitude_a = Some(interval(4.0, 5.0));
-        a.current_evidence_class = EvidenceClass::IndependentPhysical;
-        a.current_source_reference = Some("https://example.invalid/current/A".to_owned());
+        a.current_evidence_class = EvidenceClass::Synthetic;
+        a.current_source_reference = Some("urn:synthetic:paired-actuator-sharing:v0.1:current:A".to_owned());
         a.current_method = Some("fixture current method".to_owned());
         a.current_calibration_digest = Some("current-cal-A".to_owned());
         let report = evaluate_joint(&input(vec![
@@ -928,7 +936,7 @@ mod tests {
     }
 
     #[test]
-    fn sharing_020_joint_torque_cross_check_requires_independent_physical_evidence() {
+    fn sharing_020_joint_torque_cross_check_rejects_vendor_physical_class() {
         let mut input = input(vec![
             unit("A", interval(4.0, 5.0), interval(40.0, 42.0)),
             unit("B", interval(5.0, 6.0), interval(41.0, 43.0)),
@@ -937,6 +945,40 @@ mod tests {
         check.evidence_class = EvidenceClass::VendorPhysical;
         input.joint_torque_cross_check = Some(check);
         assert!(evaluate_joint(&input).is_err());
+    }
+
+    #[test]
+    fn sharing_023_synthetic_cross_check_is_not_promoted_to_physical_measurement() {
+        let mut input = input(vec![
+            unit("A", interval(4.0, 5.0), interval(40.0, 42.0)),
+            unit("B", interval(5.0, 6.0), interval(41.0, 43.0)),
+        ]);
+        input.joint_torque_cross_check = Some(cross_check(interval(9.0, 11.0)));
+        let report = evaluate_joint(&input).unwrap();
+        assert_eq!(report.torque_sum_consistency, TorqueSumConsistency::Consistent);
+        assert_eq!(report.joint_torque_cross_check_nm, Some(interval(9.0, 11.0)));
+        assert_eq!(
+            report.joint_torque_cross_check_evidence.as_ref().unwrap().evidence_class,
+            EvidenceClass::Synthetic
+        );
+        assert!(report.interpretation.contains("Synthetic is arithmetic-only"));
+    }
+
+    #[test]
+    fn sharing_024_independent_physical_cross_check_remains_distinguishable() {
+        let mut input = input(vec![
+            unit("A", interval(4.0, 5.0), interval(40.0, 42.0)),
+            unit("B", interval(5.0, 6.0), interval(41.0, 43.0)),
+        ]);
+        let mut check = cross_check(interval(9.0, 11.0));
+        check.evidence_class = EvidenceClass::IndependentPhysical;
+        check.source_reference = "urn:measurement:joint-output-transducer:run-01".to_owned();
+        input.joint_torque_cross_check = Some(check);
+        let report = evaluate_joint(&input).unwrap();
+        assert_eq!(
+            report.joint_torque_cross_check_evidence.as_ref().unwrap().evidence_class,
+            EvidenceClass::IndependentPhysical
+        );
     }
 
     #[test]
