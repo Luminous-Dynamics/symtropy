@@ -31,7 +31,7 @@ Each run binds:
 - planner source commit, model/provider/revision, prompt and configuration digest;
 - action adapter, simulator, independent validator and scorer version/config hashes;
 - objective ID/expression/unit from the case;
-- wall-clock/solver/token/API budgets and, when measured, hardware/runtime details.
+- wall-clock/solver/token/API budgets, per-step and run-level observed usage totals, and, when measured, hardware/runtime details.
 
 Synthetic fixtures mark hardware as not measured; no fake CPU/GPU capacity is accepted.
 
@@ -48,6 +48,12 @@ The included 24-step case records:
 - steps 1–23: explicit not-run-after-restoration-complete records.
 
 Every identity is synthetic. The example is a schema/receipt test, not an executed simulation or measured service restoration.
+
+## Observed usage and budget integrity
+
+Every executed decision must explicitly record planner latency, token counts as a pair, API cost (zero for local/no-charge planners), and optional solver time/gap as a pair. The run-level elapsed wall-clock, token, API-cost, solver-time and maximum-gap totals are recomputed from the complete decision ledger and must match. A completed run cannot exceed its declared wall-clock, solver-time, solver-gap, token or API-cost budget. Budget-exceeded runs can still be recorded as timed out/aborted/incomplete, never as successful completed runs.
+
+Not-run reasons must match the run-level terminal reason. This stops a run from labeling a timed-out tail as if restoration had been achieved.
 
 ## What it verifies
 
@@ -69,7 +75,7 @@ A SHA-256 identifies bytes; it does not authenticate the issuer. Production rece
 
 ## Verification
 
-There are 18 authored Rust unit tests. No Rust toolchain is available in the authoring environment, so tests are not locally executed. Dedicated exact-head CI performs schema validation, cross-file checks, Rust formatting, Clippy, tests and CLI replay. No pass is claimed before that run completes.
+There are 21 authored Rust unit tests. No Rust toolchain is available in the authoring environment, so tests are not locally executed. Dedicated exact-head CI performs schema validation, cross-file checks, Rust formatting, Clippy, tests and CLI replay. No pass is claimed before that run completes.
 
 ## Claim boundary
 
