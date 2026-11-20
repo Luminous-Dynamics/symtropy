@@ -21,8 +21,8 @@ pub enum Reconciliation {
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ServiceStatus {
-    ServiceFloorMetSynthetic,
-    ServiceShortfall,
+    PlannedCapacityFloorMetSynthetic,
+    PlannedCapacityShortfall,
     Indeterminate,
     Rejected,
 }
@@ -68,7 +68,7 @@ pub struct Provider {
 pub struct Scenario {
     pub case_id: String,
     pub service_kind: String,
-    pub minimum_accepted_service: u64,
+    pub minimum_planned_service_capacity: u64,
     pub demand: Vec<Demand>,
     pub faults: Vec<Fault>,
     pub plan: Vec<PlanStep>,
@@ -107,8 +107,8 @@ pub struct TickResult {
     pub qualification_status: String,
     pub provider_available: bool,
     pub demanded_units: u64,
-    pub accepted_units: u64,
-    pub unmet_units: u64,
+    pub available_capacity_units: u64,
+    pub unserved_demand_units: u64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -119,10 +119,10 @@ pub struct ScenarioResult {
     pub expected_status: ServiceStatus,
     pub expected_reason: String,
     pub expected_result_matched: bool,
-    pub accepted_units: u64,
-    pub unmet_units: u64,
-    pub outage_ticks: u64,
-    pub first_restored_tick: Option<u64>,
+    pub available_capacity_units: u64,
+    pub unserved_demand_units: u64,
+    pub capacity_unavailable_ticks: u64,
+    pub first_capacity_restored_tick: Option<u64>,
     pub authority_granted: bool,
     pub ticks: Vec<TickResult>,
 }
@@ -130,12 +130,12 @@ pub struct ScenarioResult {
 #[derive(Debug, Clone, Serialize)]
 pub struct Summary {
     pub scenario_count: usize,
-    pub service_floor_met_synthetic: usize,
-    pub service_shortfall: usize,
+    pub planned_capacity_floor_met_synthetic: usize,
+    pub planned_capacity_shortfall: usize,
     pub indeterminate: usize,
     pub rejected: usize,
     pub expected_result_mismatches: usize,
-    pub false_continuity_claims: usize,
+    pub nominal_false_capacity_claims: usize,
     pub authority_grants: usize,
 }
 
@@ -157,10 +157,10 @@ struct Decision {
 
 impl Decision {
     fn met() -> Self {
-        Self { status: ServiceStatus::ServiceFloorMetSynthetic, reason: "accepted_service_floor_met" }
+        Self { status: ServiceStatus::PlannedCapacityFloorMetSynthetic, reason: "planned_capacity_floor_met" }
     }
     fn shortfall(reason: &'static str) -> Self {
-        Self { status: ServiceStatus::ServiceShortfall, reason }
+        Self { status: ServiceStatus::PlannedCapacityShortfall, reason }
     }
     fn indeterminate(reason: &'static str) -> Self {
         Self { status: ServiceStatus::Indeterminate, reason }
@@ -271,7 +271,7 @@ fn preflight(
             return Err(Decision::rejected("duplicate_demand_tick"));
         }
     }
-    if scenario.minimum_accepted_service == 0 {
+    if scenario.minimum_planned_service_capacity == 0 {
         return Err(Decision::rejected("service_floor_must_be_positive"));
     }
     for fault in &scenario.faults {
@@ -418,10 +418,10 @@ fn evaluate_scenario(
         expected_status: scenario.expected_status,
         expected_reason: scenario.expected_reason.clone(),
         expected_result_matched: false,
-        accepted_units: 0,
-        unmet_units: 0,
-        outage_ticks: 0,
-        first_restored_tick: None,
+        available_capacity_units: 0,
+        unserved_demand_units: 0,
+        capacity_unavailable_ticks: 0,
+        first_capacity_restored_tick: None,
         authority_granted: false,
         ticks: Vec::new(),
     };
@@ -501,13 +501,13 @@ fn evaluate_scenario(
 
         let accepted = if available { demand.min(provider.capacity_per_tick) } else { 0 };
         let unmet = demand.saturating_sub(accepted);
-        result.accepted_units = result.accepted_units.saturating_add(accepted);
-        result.unmet_units = result.unmet_units.saturating_add(unmet);
+        result.available_capacity_units = result.available_capacity_units.saturating_add(accepted);
+        result.unserved_demand_units = result.unserved_demand_units.saturating_add(unmet);
         if demand > 0 && accepted == 0 {
-            result.outage_ticks = result.outage_ticks.saturating_add(1);
+            result.capacity_unavailable_ticks = result.capacity_unavailable_ticks.saturating_add(1);
         }
-        if result.first_restored_tick.is_none() && saw_fault && accepted > 0 {
-            result.first_restored_tick = Some(tick);
+        if result.first_capacity_restored_tick.is_none() && saw_fault && accepted > 0 {
+            result.first_capacity_restored_tick = Some(tick);
         }
         result.ticks.push(TickResult {
             tick,
@@ -515,8 +515,8 @@ fn evaluate_scenario(
             qualification_status: qualification,
             provider_available: available,
             demanded_units: demand,
-            accepted_units: accepted,
-            unmet_units: unmet,
+            available_capacity_units: accepted,
+            unserved_demand_units: unmet,
         });
     }
 
@@ -524,10 +524,10 @@ fn evaluate_scenario(
         Decision::rejected("active_provider_qualification_rejected")
     } else if service_indeterminate {
         Decision::indeterminate("active_provider_qualification_indeterminate")
-    } else if result.accepted_units >= scenario.minimum_accepted_service {
+    } else if result.available_capacity_units >= scenario.minimum_planned_service_capacity {
         Decision::met()
     } else {
-        Decision::shortfall("accepted_service_below_required_floor")
+        Decision::shortfall("planned_capacity_below_required_floor")
     };
     result.actual_status = decision.status;
     result.actual_reason = decision.reason.to_owned();
@@ -593,13 +593,13 @@ pub fn evaluate(fixture: &ServiceFixture) -> Result<Report, String> {
         }
         let result = evaluate_scenario(fixture, &providers, &known_fault_domains, scenario);
         match result.actual_status {
-            ServiceStatus::ServiceFloorMetSynthetic => met += 1,
-            ServiceStatus::ServiceShortfall => shortfall += 1,
+            ServiceStatus::PlannedCapacityFloorMetSynthetic => met += 1,
+            ServiceStatus::PlannedCapacityShortfall => shortfall += 1,
             ServiceStatus::Indeterminate => indeterminate += 1,
             ServiceStatus::Rejected => rejected += 1,
         }
-        if result.actual_status == ServiceStatus::ServiceFloorMetSynthetic
-            && scenario.expected_status != ServiceStatus::ServiceFloorMetSynthetic
+        if result.actual_status == ServiceStatus::PlannedCapacityFloorMetSynthetic
+            && scenario.expected_status != ServiceStatus::PlannedCapacityFloorMetSynthetic
         {
             false_continuity += 1;
         }
@@ -611,12 +611,12 @@ pub fn evaluate(fixture: &ServiceFixture) -> Result<Report, String> {
 
     let summary = Summary {
         scenario_count: fixture.scenarios.len(),
-        service_floor_met_synthetic: met,
-        service_shortfall: shortfall,
+        planned_capacity_floor_met_synthetic: met,
+        planned_capacity_shortfall: shortfall,
         indeterminate,
         rejected,
         expected_result_mismatches: mismatches,
-        false_continuity_claims: false_continuity,
+        nominal_false_capacity_claims: false_continuity,
         authority_grants: 0,
     };
     Ok(Report {
@@ -643,7 +643,7 @@ mod tests {
         let report = evaluate(&fixture()).expect("service fixture evaluates");
         assert_eq!(report.summary.scenario_count, 27);
         assert_eq!(report.summary.expected_result_mismatches, 0);
-        assert_eq!(report.summary.false_continuity_claims, 0);
+        assert_eq!(report.summary.nominal_false_capacity_claims, 0);
         assert_eq!(report.summary.authority_grants, 0);
         assert!(!report.authority_granted);
     }
@@ -674,9 +674,9 @@ mod tests {
         let row = report.scenarios.iter()
             .find(|row| row.case_id == "PARTIAL_SERVICE_COUNTS_ONLY_ACCEPTED_UNITS")
             .expect("partial service case exists");
-        assert_eq!(row.accepted_units, 10);
-        assert_eq!(row.unmet_units, 10);
-        assert_eq!(row.actual_status, ServiceStatus::ServiceShortfall);
+        assert_eq!(row.available_capacity_units, 10);
+        assert_eq!(row.unserved_demand_units, 10);
+        assert_eq!(row.actual_status, ServiceStatus::PlannedCapacityShortfall);
     }
 
 
@@ -686,9 +686,9 @@ mod tests {
         let row = report.scenarios.iter()
             .find(|row| row.case_id == "INDEPENDENT_ROBUST_FAILOVER_MEETS_FLOOR")
             .expect("independent fallback case exists");
-        assert_eq!(row.actual_status, ServiceStatus::ServiceFloorMetSynthetic);
-        assert_eq!(row.accepted_units, 15);
-        assert_eq!(row.first_restored_tick, Some(3));
+        assert_eq!(row.actual_status, ServiceStatus::PlannedCapacityFloorMetSynthetic);
+        assert_eq!(row.available_capacity_units, 15);
+        assert_eq!(row.first_capacity_restored_tick, Some(3));
     }
 
 
