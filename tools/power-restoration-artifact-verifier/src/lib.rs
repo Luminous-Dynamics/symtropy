@@ -1066,12 +1066,18 @@ pub fn verify_restoration_claim_evidence(
             ));
             continue;
         };
-        if !valid_id(&source_artifact.path)
-            || !valid_id(&source_artifact.vcs_object_id)
-            || !is_lower_hex(raw_sha256, 64)
-        {
+        let source_path_valid = validate_relative_path(&source_artifact.path).is_ok();
+        let vcs_object_id_valid = match source_artifact.vcs_object_format {
+            power_restoration_benchmark_case::VcsObjectFormat::GitSha1 => {
+                is_lower_hex(&source_artifact.vcs_object_id, 40)
+            }
+            power_restoration_benchmark_case::VcsObjectFormat::GitSha256 => {
+                is_lower_hex(&source_artifact.vcs_object_id, 64)
+            }
+        };
+        if !source_path_valid || !vcs_object_id_valid || !is_lower_hex(raw_sha256, 64) {
             errors.push(format!(
-                "case source artifact {} has invalid path, VCS object ID or raw digest",
+                "case source artifact {} has invalid relative path, VCS object ID for its declared format, or raw digest",
                 source_artifact.path
             ));
             continue;
