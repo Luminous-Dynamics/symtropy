@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "tools/power-restoration-artifact-verifier/**"
+      - "tools/power-restoration-service-trajectory-audit/**"
       - ".github/workflows/power-restoration-artifact-verifier.yml"
   push:
     paths:
@@ -48,6 +49,10 @@ jobs:
           for schema_path in sorted((root / "fixtures").glob("*.schema.json")):
               Draft202012Validator.check_schema(json.loads(schema_path.read_text()))
 
+          service_root = Path("tools/power-restoration-service-trajectory-audit")
+          for schema_path in sorted((service_root / "fixtures").glob("*.schema.json")):
+              Draft202012Validator.check_schema(json.loads(schema_path.read_text()))
+
           fixtures = [
               (manifest, "bundle-manifest-v0.1.schema.json"),
               (trust, "trust-root-v0.1.schema.json"),
@@ -76,3 +81,11 @@ jobs:
         run: cargo clippy --locked --manifest-path tools/power-restoration-artifact-verifier/Cargo.toml --all-targets -- -D warnings
       - name: Run Rust tests
         run: cargo test --locked --manifest-path tools/power-restoration-artifact-verifier/Cargo.toml --all-targets
+      - name: Check service auditor formatting
+        run: cargo fmt --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --all -- --check
+      - name: Resolve service auditor dependency graph
+        run: cargo generate-lockfile --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml
+      - name: Run service auditor strict Clippy
+        run: cargo clippy --locked --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --all-targets -- -D warnings
+      - name: Run service auditor Rust tests
+        run: cargo test --locked --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --all-targets
