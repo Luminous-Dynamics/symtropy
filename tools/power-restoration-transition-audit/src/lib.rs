@@ -1,6 +1,5 @@
 use power_restoration_action_proposal::{
-    ActionKind, ActionProposal, SwitchState, canonical_case_sha256 as _,
-    validate_proposal,
+    ActionKind, ActionProposal, SwitchState, validate_proposal,
 };
 use power_restoration_benchmark_case::{
     BenchmarkCase, canonical_case_sha256, validate_case,
@@ -273,10 +272,7 @@ fn apply_supported_action(
         }
         ActionKind::MoveCrew | ActionKind::MoveMobileSource | ActionKind::RepairFault => {
             Ok(false)
-        }
-        ActionKind::MoveCrew
-        | ActionKind::MoveMobileSource
-        | ActionKind::RepairFault => Ok(false),
+        },
         ActionKind::ObserveScada
         | ActionKind::ObserveCalls
         | ActionKind::ObserveNetworkModel
@@ -473,17 +469,20 @@ mod tests {
         action.actor_id = match kind {
             ActionKind::SetSwitchState => "GRID-OP-1".to_string(),
             ActionKind::ConnectMobileSource | ActionKind::DisconnectMobileSource => "MPS-1".to_string(),
+            ActionKind::RepairFault => "CREW-A".to_string(),
             _ => "system".to_string(),
         };
         action.actor_kind = match kind {
             ActionKind::SetSwitchState => power_restoration_action_proposal::ActorKind::GridOperator,
             ActionKind::ConnectMobileSource | ActionKind::DisconnectMobileSource => power_restoration_action_proposal::ActorKind::MobilePowerSource,
+            ActionKind::RepairFault | ActionKind::MoveCrew => power_restoration_action_proposal::ActorKind::RepairCrew,
             _ => power_restoration_action_proposal::ActorKind::System,
         };
         action.target_id = match kind {
             ActionKind::SetSwitchState => Some("T56".to_string()),
             ActionKind::ConnectMobileSource | ActionKind::DisconnectMobileSource => Some("N5".to_string()),
             ActionKind::ObserveScada => Some("N3".to_string()),
+            ActionKind::RepairFault => Some("F23-A".to_string()),
             _ => None,
         };
         action.desired_switch_state = if kind == ActionKind::SetSwitchState {
