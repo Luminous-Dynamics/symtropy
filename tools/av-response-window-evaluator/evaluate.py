@@ -136,6 +136,7 @@ def evaluate(
             raise EvaluationError(f"{episode_id}: stream_events must be an array")
         seen_event_ids: set[str] = set()
         visible_trigger_refs: set[str] = set()
+        primary_trigger_refs: set[str] = set()
         trigger_ticks: dict[str, int] = {}
         cancellation_ticks: dict[str, int] = {}
         previous_event_tick = -1
@@ -151,8 +152,12 @@ def evaluate(
             trigger_ref = event.get("trigger_ref")
             if isinstance(trigger_ref, str) and trigger_ref:
                 visible_trigger_refs.add(trigger_ref)
-                if event.get("kind") in {"trigger", "duplicate_trigger"}:
+                if event.get("kind") == "trigger":
+                    primary_trigger_refs.add(trigger_ref)
                     trigger_ticks.setdefault(trigger_ref, tick)
+                elif event.get("kind") == "duplicate_trigger":
+                    if trigger_ref not in primary_trigger_refs:
+                        raise EvaluationError(f"{episode_id}: duplicate trigger has no earlier primary trigger")
                 if event.get("kind") == "cancel":
                     cancellation_ticks[trigger_ref] = min(
                         cancellation_ticks.get(trigger_ref, tick), tick
