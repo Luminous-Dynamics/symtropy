@@ -24,6 +24,7 @@ The five radial functions are \(b,f,g,h,w\). The gauge \(g(r)=r^2\) is imposed o
 - A binary64 outward-rounded angular-quadrature pre-screen that fails closed when the metric or denominator is unresolved. This is a fast screening layer, not a proof-grade interval solver.
 - Exact MP and BD fixtures, the \(O(a^2)\) spin-response equation derivation, and solver-comparison protocols.
 - An executed high-precision reference for the areal-to-isotropic map of the static BD exterior and its linear-spin transformation.
+- An exact radial-diffeomorphism Noether identity, a differential-algebraic reduction of the spin-squared system, and an exact Laurent asymptotic for the horizon algebraic pivot.
 - A matched-asymptotic strong-coupling reference for the isotropic horizon coordinate, showing exponential chart compression and motivating a horizon-relative logarithmic radial chart.
 
 The finite-\(\alpha\) first-order angular mode obeys
@@ -65,7 +66,7 @@ with lambda=alpha/r_H^2. A 90-dps numerical grid from lambda=100 through 1,000,0
 | MP and BD reference profiles | Implemented; exact symbolic controls recorded in development | Reference implementation; Rust suite still needs execution |
 | Five action-derived residuals | Implemented with second-order radial jets; exact MP/BD controls authored | Cohomogeneity-one action oracle, not a full 5D tensor evaluator |
 | First-order finite-\(\alpha\) slow spin | Exact published reference implemented | \(O(a)\) solution only |
-| Spin-squared equations | Symbolically extracted; exact \(\alpha=0\) MP coefficients pass in the development SymPy session | Finite-\(\alpha\) \(B_2,F_2,H_2\) BVP is not solved |
+| Spin-squared equations | Symbolically extracted; exact MP limit, Einstein-limit indicial modes, radial Noether identity, open-exterior DAE reduction and horizon-pivot Laurent coefficients are symbolically checked | Finite-\(\alpha\) horizon Frobenius recurrence and \(B_2,F_2,H_2\) BVP remain unsolved; no interval certificate |
 | Areal/isotropic BD map | 90-digit mpmath reference replayed for \(\lambda=0,0.7,3\) | Numerical coordinate-map consistency; not Arb-certified and not an isotropic field-equation solve |
 | Angular interval pre-screen | Rust implementation and tests authored | Binary64 screening, not IEEE-1788/Arb certification |
 | Nonlinear rotating EGB branch | Not implemented | No finite-spin nonzero-\(\alpha\) solution claimed |
