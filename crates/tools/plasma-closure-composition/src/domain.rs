@@ -711,12 +711,25 @@ mod tests {
             Err(DomainBalanceError::UnknownCell { .. })
         ));
 
-        let mut incompatible = internal_face("face", "cell-0", "cell-1", vec![1.0, 1.0]);
-        incompatible.compatibility.operator_id = "other-operator".into();
+        let mut incompatible_operator =
+            internal_face("wrong-operator", "cell-0", "cell-1", vec![1.0, 1.0]);
+        incompatible_operator.compatibility.operator_id = "other-operator".into();
         assert!(matches!(
             assemble_domain_balance(&request(
                 vec!["cell-0", "cell-1"],
-                vec![incompatible],
+                vec![incompatible_operator],
+                vec![],
+            )),
+            Err(DomainBalanceError::InternalFaceCompatibilityMismatch(_))
+        ));
+
+        let mut incompatible_layout =
+            internal_face("wrong-layout", "cell-0", "cell-1", vec![1.0, 1.0]);
+        incompatible_layout.compatibility.component_layout_id = "reordered-vector-v2".into();
+        assert!(matches!(
+            assemble_domain_balance(&request(
+                vec!["cell-0", "cell-1"],
+                vec![incompatible_layout],
                 vec![],
             )),
             Err(DomainBalanceError::InternalFaceCompatibilityMismatch(_))
