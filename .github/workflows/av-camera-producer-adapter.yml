@@ -1,0 +1,77 @@
+name: AV camera producer adapter conformance
+
+on:
+  push:
+    branches:
+      - research/av-camera-producer-adapter-v0
+    paths:
+      - "research/av-camera-producer-adapter-v0/**"
+      - "research/action-conditioned-offscreen-camera-001/**"
+      - "research/av-observation-replay-v0/**"
+      - ".github/workflows/av-camera-producer-adapter.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/av-camera-producer-adapter-v0/**"
+      - "research/action-conditioned-offscreen-camera-001/**"
+      - "research/av-observation-replay-v0/**"
+      - ".github/workflows/av-camera-producer-adapter.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: av-camera-producer-adapter-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  conformance:
+    name: Exact-head adapter tests and strict Clippy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+
+      - name: Assert exact checkout
+        run: test "$(git rev-parse HEAD)" = "${QUALIFIED_SHA}"
+
+      - name: Install Rust 1.96.0
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Assert toolchain
+        run: test "$(rustc --version | awk '{print $2}')" = "1.96.0"
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/av-camera-producer-adapter-v0/Cargo.toml --all -- --check
+
+      - name: Regenerate lockfile for exact Cargo 1.96 resolution
+        run: cargo generate-lockfile --manifest-path research/av-camera-producer-adapter-v0/Cargo.toml
+
+      - name: Require committed lockfile to match resolver output
+        run: |
+          git ls-files --error-unmatch research/av-camera-producer-adapter-v0/Cargo.lock
+          git diff --exit-code -- research/av-camera-producer-adapter-v0/Cargo.lock
+
+      - name: Export resolved lockfile for diagnosis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: av-camera-producer-adapter-resolved-lockfile
+          path: research/av-camera-producer-adapter-v0/Cargo.lock
+          if-no-files-found: error
+
+      - name: Run adapter tests
+        run: cargo test --locked --manifest-path research/av-camera-producer-adapter-v0/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/av-camera-producer-adapter-v0/Cargo.toml --all-targets --all-features -- -D warnings
