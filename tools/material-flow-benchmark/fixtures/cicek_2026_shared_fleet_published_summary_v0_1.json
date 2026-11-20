@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "MFB-SOTA-CICEK-2026-SUMMARY-001",
+  "citation_doi": "10.3390/drones10070476",
+  "title": "Data-Driven Optimization of Truck–Drone Collaborative Delivery with Shared Fleet Allocation",
+  "publication_date": "2026-06-23",
+  "source_url": "https://www.mdpi.com/2504-446X/10/7/476",
+  "dataset_name": "2021 Amazon Last Mile Routing Research Challenge Dataset",
+  "dataset_year": 2018,
+  "dataset_route_count": 9184,
+  "dataset_metro_count": 5,
+  "dataset_license": "CC-BY-NC-4.0",
+  "raw_dataset_loaded": false,
+  "truck_count": 3,
+  "shared_drone_fleet_size": 10,
+  "aircraft_platform": "DJI Matrice 100",
+  "battery_feasibility_enforced": false,
+  "baseline": {
+    "makespan_minutes": 474,
+    "truck_energy_wh": 51338,
+    "drone_energy_wh": 0,
+    "total_energy_wh": 51338,
+    "system_distance_meters": 218230,
+    "truck_served_customers": 456,
+    "drone_served_customers": 0,
+    "energy_per_delivery_hundredths_wh": 11260
+  },
+  "collaborative": {
+    "makespan_minutes": 358,
+    "truck_energy_wh": 30984,
+    "drone_energy_wh": 12033,
+    "total_energy_wh": 43017,
+    "system_distance_meters": 578800,
+    "truck_served_customers": 12,
+    "drone_served_customers": 444,
+    "energy_per_delivery_hundredths_wh": 9430
+  },
+  "narrative_collaborative_truck_energy_wh": 30983,
+  "reported_makespan_reduction_tenths_percent": 245,
+  "reported_truck_energy_reduction_tenths_percent": 396,
+  "reported_total_energy_reduction_tenths_percent": 162,
+  "reported_distance_increase_tenths_percent": 1652
+}
