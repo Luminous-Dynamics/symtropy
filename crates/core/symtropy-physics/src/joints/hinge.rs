@@ -1486,10 +1486,12 @@ mod tests {
         }
 
         fn make_a() -> RigidBody<3> {
-            let operator = RotationalInertiaOperator::<3>::try_from_row_major(vec![
-                4.0, 0.5, -0.2,
-                0.5, 3.0, 0.25,
-                -0.2, 0.25, 2.0,
+            // Synthetic but physically realizable central second-moment
+            // fixture S = integral(r r^T dm); this is not measured evidence.
+            let operator = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
+                3.0, 0.2, -0.1,
+                0.2, 2.0, 0.3,
+                -0.1, 0.3, 1.5,
             ])
             .unwrap();
             let mut body = RigidBody::<3>::dynamic_sphere(
@@ -1506,10 +1508,11 @@ mod tests {
         }
 
         fn make_b() -> RigidBody<3> {
-            let operator = RotationalInertiaOperator::<3>::try_from_row_major(vec![
-                2.0, -0.2, 0.1,
-                -0.2, 4.6, 0.3,
-                0.1, 0.3, 3.4,
+            // A second synthetic central second-moment distribution.
+            let operator = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
+                1.5, -0.1, 0.15,
+                -0.1, 3.0, 0.25,
+                0.15, 0.25, 2.5,
             ])
             .unwrap();
             let mut body = RigidBody::<3>::dynamic_sphere(
