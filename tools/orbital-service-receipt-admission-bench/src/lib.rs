@@ -195,6 +195,57 @@ struct AdmittedReceipt {
     causal_predecessor_event_id: Option<String>,
 }
 
+#[derive(Debug, Clone)]
+struct ReceiptIdentity {
+    idempotency_key: String,
+    composition_receipt_sha256: String,
+    provider_id: String,
+    provider_profile_id: String,
+    provider_configuration_revision: String,
+    provider_lifecycle_state_id: String,
+    event_time_tick: u64,
+    causal_predecessor_event_id: Option<String>,
+    supersedes_event_id: Option<String>,
+}
+
+impl ReceiptIdentity {
+    fn from_receipt(receipt: &ServiceReceipt, digest: &str) -> Self {
+        Self {
+            idempotency_key: receipt.idempotency_key.clone(),
+            composition_receipt_sha256: digest.to_owned(),
+            provider_id: receipt.provider_id.clone(),
+            provider_profile_id: receipt.provider_profile_id.clone(),
+            provider_configuration_revision: receipt.provider_configuration_revision.clone(),
+            provider_lifecycle_state_id: receipt.provider_lifecycle_state_id.clone(),
+            event_time_tick: receipt.event_time_tick,
+            causal_predecessor_event_id: receipt.causal_predecessor_event_id.clone(),
+            supersedes_event_id: receipt.supersedes_event_id.clone(),
+        }
+    }
+
+    fn same_replay(&self, receipt: &ServiceReceipt, digest: &str) -> bool {
+        self.idempotency_key == receipt.idempotency_key
+            && self.composition_receipt_sha256 == digest
+            && self.provider_id == receipt.provider_id
+            && self.provider_profile_id == receipt.provider_profile_id
+            && self.provider_configuration_revision == receipt.provider_configuration_revision
+            && self.provider_lifecycle_state_id == receipt.provider_lifecycle_state_id
+            && self.event_time_tick == receipt.event_time_tick
+            && self.causal_predecessor_event_id == receipt.causal_predecessor_event_id
+            && self.supersedes_event_id == receipt.supersedes_event_id
+    }
+
+    fn same_supersession_scope(&self, receipt: &ServiceReceipt) -> bool {
+        self.idempotency_key == receipt.idempotency_key
+            && self.provider_id == receipt.provider_id
+            && self.provider_profile_id == receipt.provider_profile_id
+            && self.provider_configuration_revision == receipt.provider_configuration_revision
+            && self.provider_lifecycle_state_id == receipt.provider_lifecycle_state_id
+            && self.event_time_tick == receipt.event_time_tick
+            && self.causal_predecessor_event_id == receipt.causal_predecessor_event_id
+    }
+}
+
 pub fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     let mut output = String::with_capacity(64);
@@ -463,8 +514,8 @@ fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioR
     let providers: HashMap<&str, &ProviderWindow> = fixture.providers.iter()
         .map(|provider| (provider.provider_id.as_str(), provider))
         .collect();
-    let mut seen_event: HashMap<String, (String, String)> = HashMap::new();
-    let mut seen_key: HashMap<String, (String, String)> = HashMap::new();
+    let mut seen_event: HashMap<String, ReceiptIdentity> = HashMap::new();
+    let mut seen_key: HashMap<String, String> = HashMap::new();
     let mut admitted: BTreeMap<String, AdmittedReceipt> = BTreeMap::new();
     let mut superseded_ids = HashSet::new();
     let mut hard_rejection = None;
@@ -544,8 +595,8 @@ fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioR
         let digest = receipt.composition_receipt_sha256.clone();
 
         if superseded_ids.contains(&receipt.event_id) {
-            if let Some((old_key, old_digest)) = seen_event.get(&receipt.event_id) {
-                if old_key == &receipt.idempotency_key && old_digest == &digest {
+            if let Some(previous) = seen_event.get(&receipt.event_id) {
+                if previous.same_replay(receipt, &digest) {
                     result.duplicate_replays += 1;
                     result.receipts.push(ReceiptResult {
                         event_id: receipt.event_id.clone(),
@@ -566,12 +617,16 @@ fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioR
 
         let mut supersession_verified = false;
         if let Some(previous_id) = receipt.supersedes_event_id.as_deref() {
-            let Some((previous_key, _)) = seen_event.get(previous_id) else {
+            let Some(previous) = seen_event.get(previous_id) else {
                 unknown_reason = Some("superseded_receipt_predecessor_missing");
                 continue;
             };
-            if previous_key != &receipt.idempotency_key {
+            if previous.idempotency_key != receipt.idempotency_key {
                 disputed = Some("supersession_idempotency_key_mismatch");
+                break;
+            }
+            if !previous.same_supersession_scope(receipt) {
+                disputed = Some("supersession_scope_mismatch");
                 break;
             }
             if admitted.remove(previous_id).is_none() {
@@ -589,20 +644,26 @@ fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioR
             supersession_verified = true;
         }
 
-        if let Some((existing_event, existing_digest)) = seen_key.get(&receipt.idempotency_key) {
-            if existing_event == &receipt.event_id && existing_digest == &digest {
-                result.duplicate_replays += 1;
-                result.receipts.push(ReceiptResult {
-                    event_id: receipt.event_id.clone(),
-                    event_time_tick: receipt.event_time_tick,
-                    observed_at_tick: receipt.observed_at_tick,
-                    provider_id: receipt.provider_id.clone(),
-                    accepted_receiver_mass_g: mass,
-                    counted: false,
-                    duplicate_replay: true,
-                    superseded: false,
-                });
-                continue;
+        if let Some(existing_event) = seen_key.get(&receipt.idempotency_key) {
+            if existing_event == &receipt.event_id {
+                if let Some(previous) = seen_event.get(existing_event) {
+                    if previous.same_replay(receipt, &digest) {
+                        result.duplicate_replays += 1;
+                        result.receipts.push(ReceiptResult {
+                            event_id: receipt.event_id.clone(),
+                            event_time_tick: receipt.event_time_tick,
+                            observed_at_tick: receipt.observed_at_tick,
+                            provider_id: receipt.provider_id.clone(),
+                            accepted_receiver_mass_g: mass,
+                            counted: false,
+                            duplicate_replay: true,
+                            superseded: false,
+                        });
+                        continue;
+                    }
+                }
+                disputed = Some("idempotency_key_reused_outside_event_scope");
+                break;
             }
             if !(supersession_verified
                 && receipt.supersedes_event_id.as_deref() == Some(existing_event.as_str()))
@@ -611,17 +672,29 @@ fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioR
                 break;
             }
         }
-        if let Some((existing_key, existing_digest)) = seen_event.get(&receipt.event_id) {
-            if existing_key != &receipt.idempotency_key || existing_digest != &digest {
+        if let Some(previous) = seen_event.get(&receipt.event_id) {
+            if !previous.same_replay(receipt, &digest) {
                 disputed = Some("event_id_reused_with_conflicting_receipt");
                 break;
             }
+            result.duplicate_replays += 1;
+            result.receipts.push(ReceiptResult {
+                event_id: receipt.event_id.clone(),
+                event_time_tick: receipt.event_time_tick,
+                observed_at_tick: receipt.observed_at_tick,
+                provider_id: receipt.provider_id.clone(),
+                accepted_receiver_mass_g: mass,
+                counted: false,
+                duplicate_replay: true,
+                superseded: false,
+            });
+            continue;
         }
-        seen_key.insert(
-            receipt.idempotency_key.clone(),
-            (receipt.event_id.clone(), digest.clone()),
+        seen_key.insert(receipt.idempotency_key.clone(), receipt.event_id.clone());
+        seen_event.insert(
+            receipt.event_id.clone(),
+            ReceiptIdentity::from_receipt(receipt, &digest),
         );
-        seen_event.insert(receipt.event_id.clone(), (receipt.idempotency_key.clone(), digest.clone()));
         let admitted_receipt = AdmittedReceipt {
             event_time_tick: receipt.event_time_tick,
             accepted_receiver_mass_g: mass,
