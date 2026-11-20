@@ -512,66 +512,48 @@ fn validate_evidence(
     Ok(())
 }
 #[allow(clippy::too_many_arguments)]
-fn monte_carlo_thermal_and_mass_flux(
+fn monte_carlo_thermal_distribution(
     config: &UncertaintySimulation,
     seed: u32,
     rho: f64, u_rho: f64,
     cp: f64, u_cp: f64,
     intake_temp: f64, u_intake_temp: f64,
     outfall_temp: f64, u_outfall_temp: f64, outfall_temp_rate: f64,
-    intake_flow: f64, u_intake_flow: f64,
     outfall_flow: f64, u_outfall_flow: f64, outfall_flow_rate: f64,
-    intake_concentration: f64, u_intake_concentration: f64,
-    outfall_concentration: f64, u_outfall_concentration: f64, outfall_concentration_rate: f64,
     lag_standard_uncertainty_seconds: f64,
-) -> Result<(DistributionSummary, DistributionSummary), String> {
-    if config.draws_per_interval < 10_000 || config.seed == 0
+) -> Result<DistributionSummary, String> {
+    if config.draws_per_interval < 10_000 || seed == 0
         || config.algorithm != "deterministic_xorshift32_box_muller_v0_1" {
         return Err("unsupported or insufficient Monte Carlo configuration".into());
     }
     let mut rng = DeterministicNormalRng::new(seed);
     let mut thermal = Vec::with_capacity(config.draws_per_interval);
-    let mut net_flux = Vec::with_capacity(config.draws_per_interval);
     for _ in 0..config.draws_per_interval {
         let rho_draw = rho + u_rho * rng.standard_normal();
         let cp_draw = cp + u_cp * rng.standard_normal();
-        let intake_flow_draw = intake_flow + u_intake_flow * rng.standard_normal();
-        let outfall_flow_draw = outfall_flow
-            + u_outfall_flow * rng.standard_normal();
+        let outfall_flow_instrument_draw = outfall_flow + u_outfall_flow * rng.standard_normal();
         let lag_draw = lag_standard_uncertainty_seconds * rng.standard_normal();
-        let outfall_flow_draw = outfall_flow_draw + outfall_flow_rate * lag_draw;
+        let outfall_flow_draw = outfall_flow_instrument_draw + outfall_flow_rate * lag_draw;
         let intake_temp_draw = intake_temp + u_intake_temp * rng.standard_normal();
         let outfall_temp_draw = outfall_temp + u_outfall_temp * rng.standard_normal()
             + outfall_temp_rate * lag_draw;
-        let intake_concentration_draw = intake_concentration
-            + u_intake_concentration * rng.standard_normal();
-        let outfall_concentration_draw = outfall_concentration
-            + u_outfall_concentration * rng.standard_normal()
-            + outfall_concentration_rate * lag_draw;
         for (name, value) in [
             ("sampled density", rho_draw), ("sampled heat capacity", cp_draw),
-            ("sampled intake flow", intake_flow_draw), ("sampled outfall flow", outfall_flow_draw),
-            ("sampled intake concentration", intake_concentration_draw),
-            ("sampled outfall concentration", outfall_concentration_draw),
+            ("sampled outfall flow", outfall_flow_draw),
         ] {
             positive(value, name)?;
         }
         let thermal_kw = rho_draw * cp_draw * outfall_flow_draw
             * (outfall_temp_draw - intake_temp_draw) / 1000.0;
-        let net_flux_g_s = outfall_concentration_draw * outfall_flow_draw
-            - intake_concentration_draw * intake_flow_draw;
         finite(thermal_kw, "Monte Carlo thermal output")?;
-        finite(net_flux_g_s, "Monte Carlo pollutant output")?;
         thermal.push(thermal_kw);
-        net_flux.push(net_flux_g_s);
     }
-    let thermal_summary = summarize_distribution(
-        &mut thermal, seed, config.lower_95_percentile, config.upper_95_percentile
-    )?;
-    let flux_summary = summarize_distribution(
-        &mut net_flux, seed, config.lower_95_percentile, config.upper_95_percentile
-    )?;
-    Ok((thermal_summary, flux_summary))
+    summarize_distribution(
+        &mut thermal,
+        seed,
+        config.lower_95_percentile,
+        config.upper_95_percentile,
+    )
 }
 fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index: usize) -> Result<IntervalResult, String> {
     let start_seconds = parse_utc_timestamp(&interval.interval_start_utc)
@@ -733,20 +715,14 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index:
     let u_q_out_total = (u_q_out_instrument.powi(2) + u_q_out_lag.powi(2)).sqrt();
     finite(thermal_kw, "thermal_power_kw")?;
     let simulation_seed = bundle.uncertainty_simulation.seed.wrapping_add(interval_index as u32);
-    let (thermal_monte_carlo, _) = monte_carlo_thermal_and_mass_flux(
+    let thermal_monte_carlo = monte_carlo_thermal_distribution(
         &bundle.uncertainty_simulation,
         simulation_seed,
         rho, u_rho, cp, u_cp,
         intake_temp, temperatures["intake"].standard_uncertainty_deg_c,
         outfall_temp, temperatures["outfall"].standard_uncertainty_deg_c,
         temperatures["outfall"].temporal_rate_deg_c_per_s,
-        q_in, u_q_in, q_out, u_q_out_instrument,
-        outfall_flow.temporal_rate_m3_s_per_s,
-        interval.concentration_pairs[0].intake.concentration_mg_l,
-        interval.concentration_pairs[0].standard_uncertainty_mg_l,
-        interval.concentration_pairs[0].outfall.concentration_mg_l,
-        interval.concentration_pairs[0].outfall.standard_uncertainty_mg_l,
-        interval.concentration_pairs[0].outfall.temporal_rate_mg_l_per_s,
+        q_out, u_q_out_instrument, outfall_flow.temporal_rate_m3_s_per_s,
         u_lag,
     )?;
     let thermal_uncertainty_comparison = compare_uncertainty(
