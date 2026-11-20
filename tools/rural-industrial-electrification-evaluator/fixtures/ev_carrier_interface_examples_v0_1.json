@@ -1,0 +1,160 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "EV-CARRIER-ICD-001",
+  "claim_ceiling": "Synthetic interface-identity and evidence-admission fixture only. It contains no qualified physical ratings, connector selections or production compatibility claims.",
+  "vehicle_configuration": {
+    "configuration_id": "ev-carrier-ref-01-synthetic",
+    "revision": "0.1.0",
+    "configuration_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "module_configuration": {
+    "configuration_id": "detachable-uav-pod-synthetic",
+    "revision": "0.1.0",
+    "configuration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "ports": [
+    {
+      "port_id": "vehicle-mechanical-mount-a",
+      "side": "vehicle",
+      "family": "mechanical_mount",
+      "revision": "A",
+      "mating_profile_id": "MOUNT-PROFILE-A",
+      "controlled_profile_reference": "doc://vehicle/mechanical-mount-A",
+      "profile_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "evidence": {
+        "classification": "synthetic",
+        "source_reference": "synthetic://evidence/vehicle-mechanical-mount",
+        "scoped_configuration_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "report_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_until": null
+      }
+    },
+    {
+      "port_id": "pod-mechanical-mount-b",
+      "side": "module",
+      "family": "mechanical_mount",
+      "revision": "B",
+      "mating_profile_id": "MOUNT-PROFILE-B",
+      "controlled_profile_reference": "doc://uav-pod/mechanical-mount-B",
+      "profile_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evidence": {
+        "classification": "synthetic",
+        "source_reference": "synthetic://evidence/pod-mechanical-mount",
+        "scoped_configuration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "report_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "valid_until": null
+      }
+    },
+    {
+      "port_id": "vehicle-hv-output-01",
+      "side": "vehicle",
+      "family": "high_voltage_dc",
+      "revision": "0.1.0",
+      "mating_profile_id": "HV-CONNECTOR-PROFILE-UNSELECTED",
+      "controlled_profile_reference": "doc://vehicle/hv-output-profile",
+      "profile_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "evidence": {
+        "classification": "synthetic",
+        "source_reference": "synthetic://evidence/vehicle-hv-interface",
+        "scoped_configuration_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "report_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "valid_until": null
+      }
+    },
+    {
+      "port_id": "pod-hv-input-01",
+      "side": "module",
+      "family": "high_voltage_dc",
+      "revision": "0.1.0",
+      "mating_profile_id": "HV-CONNECTOR-PROFILE-UNSELECTED",
+      "controlled_profile_reference": "doc://uav-pod/hv-input-profile",
+      "profile_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "evidence": {
+        "classification": "unknown",
+        "source_reference": "unknown://pod-hv-test-not-performed",
+        "scoped_configuration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "report_digest": null,
+        "valid_until": null
+      }
+    },
+    {
+      "port_id": "vehicle-data-control-01",
+      "side": "vehicle",
+      "family": "data_control",
+      "revision": "0.1.0",
+      "mating_profile_id": "DATA-PROFILE-UNSELECTED",
+      "controlled_profile_reference": "doc://vehicle/data-control-profile",
+      "profile_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "evidence": {
+        "classification": "measured_unreviewed",
+        "source_reference": "measurement://vehicle-data-interface/preliminary",
+        "scoped_configuration_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "report_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "valid_until": null
+      }
+    },
+    {
+      "port_id": "pod-data-control-01",
+      "side": "module",
+      "family": "data_control",
+      "revision": "0.1.0",
+      "mating_profile_id": "DATA-PROFILE-UNSELECTED",
+      "controlled_profile_reference": "doc://uav-pod/data-control-profile",
+      "profile_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "evidence": {
+        "classification": "unknown",
+        "source_reference": "unknown://pod-data-protocol-selection-pending",
+        "scoped_configuration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "report_digest": null,
+        "valid_until": null
+      }
+    }
+  ],
+  "assessments": [
+    {
+      "pair_id": "vehicle-pod-mechanical-mount",
+      "vehicle_port_id": "vehicle-mechanical-mount-a",
+      "module_port_id": "pod-mechanical-mount-b",
+      "disposition": "incompatible",
+      "reason_codes": [
+        "MATING_PROFILE_MISMATCH"
+      ],
+      "evidence_references": [
+        "synthetic://evidence/vehicle-mechanical-mount",
+        "synthetic://evidence/pod-mechanical-mount"
+      ],
+      "claim_ceiling": "Declared mount-profile IDs disagree; no physical load or fit conclusion is made."
+    },
+    {
+      "pair_id": "vehicle-pod-hv-power",
+      "vehicle_port_id": "vehicle-hv-output-01",
+      "module_port_id": "pod-hv-input-01",
+      "disposition": "indeterminate",
+      "reason_codes": [
+        "EVIDENCE_UNQUALIFIED",
+        "PROFILE_DETAIL_NOT_ADMITTED"
+      ],
+      "evidence_references": [
+        "synthetic://evidence/vehicle-hv-interface",
+        "unknown://pod-hv-test-not-performed"
+      ],
+      "claim_ceiling": "Mating profile identity alone does not qualify voltage, current, isolation, interlock, fault or thermal compatibility."
+    },
+    {
+      "pair_id": "vehicle-pod-data-control",
+      "vehicle_port_id": "vehicle-data-control-01",
+      "module_port_id": "pod-data-control-01",
+      "disposition": "indeterminate",
+      "reason_codes": [
+        "EVIDENCE_UNQUALIFIED",
+        "EVIDENCE_MISSING",
+        "PROFILE_DETAIL_NOT_ADMITTED"
+      ],
+      "evidence_references": [
+        "measurement://vehicle-data-interface/preliminary",
+        "unknown://pod-data-protocol-selection-pending"
+      ],
+      "claim_ceiling": "Preliminary measured/unknown records do not establish authenticated protocol, schema, timing, cybersecurity or safe-state compatibility."
+    }
+  ]
+}
