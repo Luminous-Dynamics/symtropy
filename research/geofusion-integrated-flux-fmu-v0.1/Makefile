@@ -40,6 +40,7 @@ package: $(BUILD)/IntegratedFluxSource.so $(BUILD)/IntegratedFluxReceiver.so
 	cd $(BUILD) && sha256sum IntegratedFluxSource.so IntegratedFluxReceiver.so >> stage/artifact-digests.sha256
 
 test: package
+	python3 tests/check_fmi3_surface.py
 	python3 tests/fmpy_flux_smoke.py
 
 clean:
