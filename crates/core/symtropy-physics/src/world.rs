@@ -79,9 +79,11 @@ pub trait PhysicsCallback<const D: usize> {
     /// Called after each physics step to record energy dissipated.
     fn record_dissipation(&mut self, energy: f64);
 
-    /// Record mechanical work performed (or energy recovered) by an actuator.
-    /// Positive work = energy consumed (motor driving motion).
-    /// Negative work = energy recovered (regenerative braking).
+    /// Record signed mechanical work at an actuator's generalized mechanical port.
+    /// Positive work means the actuator delivered mechanical energy to the bodies;
+    /// negative work means mechanical energy was absorbed at that port. Negative
+    /// mechanical work is not, by itself, proof of electrical regeneration or
+    /// battery energy recovery; drive losses and bus-side measurements are separate.
     fn record_work(&mut self, body: BodyHandle, work_joules: f64);
 
     /// Calculates and applies the long-term effect of a collision event
