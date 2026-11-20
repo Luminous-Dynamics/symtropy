@@ -12,6 +12,7 @@ from dataclasses import dataclass
 import hashlib
 import io
 import json
+import math
 import os
 from pathlib import Path, PurePosixPath
 import stat
@@ -103,6 +104,15 @@ def _safe_archive_entries(archive: zipfile.ZipFile, label: str) -> dict[str, zip
         entries[name] = info
     return entries
 
+def _finite_float(raw: str, label: str) -> float:
+    try:
+        value = float(raw)
+    except (TypeError, ValueError) as error:
+        raise QualificationError(f"{label}: invalid numeric value {raw!r}") from error
+    if not math.isfinite(value):
+        raise QualificationError(f"{label}: numeric value must be finite")
+    return value
+
 def _unit_base_exponents(model_description, unit_name: str) -> dict[str, float]:
     unit = model_description.find(f"UnitDefinitions/Unit[@name='{unit_name}']")
     if unit is None:
@@ -111,9 +121,12 @@ def _unit_base_exponents(model_description, unit_name: str) -> dict[str, float]:
     if base is None:
         raise QualificationError(f"modelDescription.xml: unit {unit_name!r} has no BaseUnit")
     keys = ("kg", "m", "s", "A", "K", "mol", "cd", "rad")
-    result = {key: float(base.get(key, "0")) for key in keys}
-    result["factor"] = float(base.get("factor", "1"))
-    result["offset"] = float(base.get("offset", "0"))
+    result = {
+        key: _finite_float(base.get(key, "0"), f"modelDescription.xml unit {unit_name} {key}")
+        for key in keys
+    }
+    result["factor"] = _finite_float(base.get("factor", "1"), f"modelDescription.xml unit {unit_name} factor")
+    result["offset"] = _finite_float(base.get("offset", "0"), f"modelDescription.xml unit {unit_name} offset")
     return result
 
 EXPECTED_W = {
@@ -283,7 +296,7 @@ def validate_ssd(ssd_bytes: bytes) -> dict:
         schema_doc = etree.parse(str(SCHEMA_PATH))
         schema = etree.XMLSchema(schema_doc)
         schema.assertValid(root)
-    except (OSError, etree.XMLSchemaParseError, etree.DocumentInvalid) as error:
+    except (OSError, etree.XMLSyntaxError, etree.XMLSchemaParseError, etree.DocumentInvalid) as error:
         raise QualificationError(f"SystemStructure.ssd: SSP 2.0.1 XSD validation failed: {error}") from error
 
     system = root.find("ssd:System", namespaces=NS)
@@ -306,6 +319,8 @@ def validate_ssd(ssd_bytes: bytes) -> dict:
             raise QualificationError(f"SystemStructure.ssd: unsafe component source URI {source!r}")
         if component.get("implementation") != "CoSimulation":
             raise QualificationError(f"SystemStructure.ssd: {name} must select CoSimulation")
+        if component.get("type", "application/x-fmu-sharedlibrary") != "application/x-fmu-sharedlibrary":
+            raise QualificationError(f"SystemStructure.ssd: {name} must declare an FMU shared-library component")
         connectors_node = component.find("ssd:Connectors", namespaces=NS)
         if connectors_node is None:
             raise QualificationError(f"SystemStructure.ssd: {name} connectors are missing")
@@ -363,17 +378,11 @@ def validate_ssd(ssd_bytes: bytes) -> dict:
     if units is None:
         raise QualificationError("SystemStructure.ssd: SI unit W is missing")
     unit_map = {
-        "kg": float(units.get("kg", "0")),
-        "m": float(units.get("m", "0")),
-        "s": float(units.get("s", "0")),
-        "A": float(units.get("A", "0")),
-        "K": float(units.get("K", "0")),
-        "mol": float(units.get("mol", "0")),
-        "cd": float(units.get("cd", "0")),
-        "rad": float(units.get("rad", "0")),
-        "factor": float(units.get("factor", "1")),
-        "offset": float(units.get("offset", "0")),
+        key: _finite_float(units.get(key, "0"), f"SSP W unit {key}")
+        for key in ("kg", "m", "s", "A", "K", "mol", "cd", "rad")
     }
+    unit_map["factor"] = _finite_float(units.get("factor", "1"), "SSP W unit factor")
+    unit_map["offset"] = _finite_float(units.get("offset", "0"), "SSP W unit offset")
     _check_w_unit(unit_map, "SSP SystemStructure.ssd")
     return {
         "ssd_version": root.get("version"),
@@ -383,6 +392,14 @@ def validate_ssd(ssd_bytes: bytes) -> dict:
         "unit_W": unit_map,
     }
 
+def _json_object_no_duplicates(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise QualificationError(f"evidence manifest contains duplicate JSON key {key!r}")
+        result[key] = value
+    return result
+
 def _json_bytes(value: dict) -> bytes:
     return (json.dumps(value, sort_keys=True, indent=2, separators=(",", ": ")) + "\n").encode("utf-8")
 
@@ -391,6 +408,11 @@ def build_package(geothermal_fmu: Path, heat_exchanger_fmu: Path, output_path: P
     geothermal_fmu = Path(geothermal_fmu)
     heat_exchanger_fmu = Path(heat_exchanger_fmu)
     output_path = Path(output_path)
+    if output_path.is_symlink():
+        raise QualificationError(f"SSP output path must not be a symlink: {output_path}")
+    resolved_output = output_path.resolve()
+    if resolved_output in (geothermal_fmu.resolve(), heat_exchanger_fmu.resolve()):
+        raise QualificationError("SSP output path must not overwrite either input FMU")
     for path in (geothermal_fmu, heat_exchanger_fmu):
         if not path.is_file() or path.is_symlink():
             raise QualificationError(f"FMU input must be a regular non-symlink file: {path}")
@@ -444,7 +466,6 @@ def build_package(geothermal_fmu: Path, heat_exchanger_fmu: Path, output_path: P
         "resources/geofusion-ssp-evidence.json": manifest_bytes,
     }
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary_name = tempfile.mkstemp(prefix=output_path.name + ".", suffix=".tmp", dir=output_path.parent)
     os.close(fd)
     temporary_path = Path(temporary_name)
@@ -494,7 +515,10 @@ def verify_package_bytes(package_bytes: bytes) -> dict:
                 raise QualificationError(f"SSP package is missing required members: {missing}")
             ssd_bytes = archive.read("SystemStructure.ssd")
             ssd_semantics = validate_ssd(ssd_bytes)
-            manifest = json.loads(archive.read("resources/geofusion-ssp-evidence.json"))
+            manifest = json.loads(
+                archive.read("resources/geofusion-ssp-evidence.json"),
+                object_pairs_hook=_json_object_no_duplicates,
+            )
 
             if manifest.get("schema_version") != "0.1.0" \
                     or manifest.get("ssp_release") != SSP_RELEASE \
@@ -503,6 +527,20 @@ def verify_package_bytes(package_bytes: bytes) -> dict:
                 raise QualificationError("SSP package evidence manifest version mismatch")
             if manifest.get("system_structure_sha256") != sha256(ssd_bytes):
                 raise QualificationError("SSP package evidence manifest has a stale SSD digest")
+            if manifest.get("platform") != PLATFORM:
+                raise QualificationError("SSP package evidence manifest platform mismatch")
+            expected_manifest_connections = [
+                {
+                    "start_element": "GeothermalSource",
+                    "start_connector": "thermalPowerOut",
+                    "end_element": "HeatExchangerBuffer",
+                    "end_connector": "thermalPowerIn",
+                    "carrier": "thermal",
+                    "unit": "W",
+                }
+            ]
+            if manifest.get("connections") != expected_manifest_connections:
+                raise QualificationError("SSP package evidence manifest connection declaration mismatch")
 
             actual_inspections = []
             for profile in PROFILES:
