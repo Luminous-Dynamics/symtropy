@@ -55,7 +55,8 @@
       "decoder_version": "0.1.0",
       "decoder_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "active_boot_epoch_id": "boot-a-001",
-      "active_boot_epoch_ordinal": 1
+      "active_boot_epoch_ordinal": 1,
+      "active_boot_epoch_sequence_floor": 1000
     },
     {
       "source_id": "tank-level-b",
@@ -79,7 +80,8 @@
       "decoder_version": "0.1.0",
       "decoder_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       "active_boot_epoch_id": "boot-b-001",
-      "active_boot_epoch_ordinal": 4
+      "active_boot_epoch_ordinal": 4,
+      "active_boot_epoch_sequence_floor": 2000
     },
     {
       "source_id": "battery-monitor-c",
@@ -103,10 +105,11 @@
       "decoder_version": "0.1.0",
       "decoder_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
       "active_boot_epoch_id": "boot-c-001",
-      "active_boot_epoch_ordinal": 2
+      "active_boot_epoch_ordinal": 2,
+      "active_boot_epoch_sequence_floor": 3000
     }
   ],
-  "source_registry_sha256": "5acd96e55262dd5fae9601e4e38861887af2f622416ce3d857b8c4c563c6fcf6",
+  "source_registry_sha256": "d98efda477ee4b508a6be9962ede932cf93cf3342873bdefadb25f1b59d32bbe",
   "observations": [
     {
       "sample_id": "sample-tank-a-0001",
@@ -221,5 +224,5 @@
     }
   ],
   "observations_sha256": "cbdac603277ff74a4f089eaff43df3a31f48f4430c6da21a99d5355a6ec1a38a",
-  "batch_sha256": "504b4f50c50a27e1eee7dd237fbf16a538b6dd5c41d0498a9585cb84b29be2b9"
+  "batch_sha256": "159f35ee1f8bb7bb3875f78bc79940f295eee24a85831b6427711346d11b696f"
 }
