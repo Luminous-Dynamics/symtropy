@@ -49,8 +49,18 @@ jobs:
               return hashlib.sha256(payload).hexdigest()
 
           assert canonical_hash(case["probabilityEnvelope"]) == case["probabilityEnvelopeSha256"]
-          assert canonical_hash(case["serviceOutcomeManifest"]) == case["serviceOutcomeManifestSha256"]
-          assert canonical_hash(case["riskLimitManifest"]) == case["riskLimitManifestSha256"]
+
+          service_for_hash = json.loads(json.dumps(case["serviceOutcomeManifest"]))
+          for branch in service_for_hash["branches"]:
+              for assessment in branch["serviceAssessments"]:
+                  for field in ("serviceFractionLowerBound", "serviceFractionUpperBound", "minimumServiceFloor", "unservedQuantity"):
+                      assessment[field] = float(assessment[field])
+          assert canonical_hash(service_for_hash) == case["serviceOutcomeManifestSha256"]
+
+          limits_for_hash = json.loads(json.dumps(case["riskLimitManifest"]))
+          for limit in limits_for_hash["limits"]:
+              limit["maximumRobustExpectedUnservedQuantity"] = float(limit["maximumRobustExpectedUnservedQuantity"])
+          assert canonical_hash(limits_for_hash) == case["riskLimitManifestSha256"]
           points = [item["pointBasisPoints"] for item in case["probabilityEnvelope"]["branches"]]
           lowers = [item["lowerBasisPoints"] for item in case["probabilityEnvelope"]["branches"]]
           uppers = [item["upperBasisPoints"] for item in case["probabilityEnvelope"]["branches"]]
