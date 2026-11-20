@@ -231,7 +231,7 @@ def main() -> int:
     validate_semantics(transcript)
     digest = hashlib.sha256(TRANSCRIPT.read_bytes()).hexdigest()
     digest_path = TRANSCRIPT.with_name("fmi3-api-transcript.sha256")
-    digest_path.write_text(f"{digest}  {TRANSCRIPT.name}\\n", encoding="utf-8")
+    digest_path.write_text(f"{digest}  {TRANSCRIPT.name}\n", encoding="utf-8")
     print("FMPy FMI dispatch transcript contract: PASS")
     print(f"api_events={len(transcript['events'])} doStep=4 setFloat64=2 getFloat64=5")
     print("unknown_value_reference=ERROR retained; Float64 raw bits and artifact digests checked")
