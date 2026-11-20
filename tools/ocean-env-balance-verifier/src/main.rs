@@ -1047,14 +1047,15 @@ fn validate(bundle: &Bundle) -> Result<Report, String> {
         return Err("water-balance screen must remain a metrology check, not permit compliance".into());
     }
     let simulation = &bundle.uncertainty_simulation;
-    if simulation.framework.trim().is_empty()
+    if !simulation.framework.contains("JCGM 101:2008")
+        || !simulation.framework.contains("JCGM 100:2008/Amd.1:2026")
         || simulation.framework_references.len() < 2
+        || simulation.framework_references.iter().any(|url| !url.starts_with("https://"))
         || simulation.algorithm != "deterministic_xorshift32_box_muller_v0_1"
         || simulation.seed == 0
         || simulation.draws_per_interval < 10_000
-        || !(0.0 < simulation.lower_95_percentile
-            && simulation.lower_95_percentile < simulation.upper_95_percentile
-            && simulation.upper_95_percentile < 1.0)
+        || simulation.lower_95_percentile != 0.025
+        || simulation.upper_95_percentile != 0.975
         || !(0.0 < simulation.maximum_relative_standard_uncertainty_difference_from_first_order
             && simulation.maximum_relative_standard_uncertainty_difference_from_first_order <= 0.20)
         || !simulation.distribution_assumption.contains("common normal hydraulic-residence-time")
@@ -1154,6 +1155,18 @@ mod tests {
         serde_json::from_str(include_str!(
             "../../../docs/research/port-energy-compute/OCEAN_ENVIRONMENT_MEASUREMENT_BUNDLE_V0_1.json"
         )).expect("measurement bundle parses")
+    }
+    #[test]
+    fn first_order_uncertainty_disagreement_above_tolerance_is_rejected() {
+        assert!(compare_uncertainty(1.0, 1.06, 0.05).is_err());
+        assert!(compare_uncertainty(1.0, 1.04, 0.05).is_ok());
+    }
+    #[test]
+    fn ogc_sensor_things_v2_mapping_rejects_legacy_feature_of_interest_contract() {
+        let mut b = fixture();
+        b.ogc_sensorthings_mapping.entity_mapping.station_or_sampled_environment_feature =
+            "FeatureOfInterest".into();
+        assert!(validate(&b).unwrap_err().contains("OGC SensorThings 2.0"));
     }
     #[test]
     fn monte_carlo_distribution_is_deterministic_for_a_fixed_seed() {
