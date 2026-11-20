@@ -156,17 +156,21 @@ The final applicability register must name vehicle category, module class, opera
 - At least one negative control per family (wrong datum/keying, voltage/polarity, load, fluid, protocol, ingress or service tool profile).
 - No production-release claim until applicable physical tests, regulatory review and independent discipline sign-off are recorded.
 
-## 8. Next implementation slice
+## 8. Implemented v0.1 evidence-admission slice
 
-The first software contract must:
-1. validate exact vehicle/module and interface revisions, unique port/pair IDs and strict unknown-field rejection;
-2. bind controlled profile references and evidence scope;
-3. classify only explicit known mismatches as incompatible;
-4. keep absent or non-qualified release-critical evidence indeterminate;
-5. be deterministic under input-order permutations;
-6. emit no power, actuator, unlock, launch, reservation or dispatch commands.
+The first executable screen is `ev_carrier_interface_screen`, with a strict schema, synthetic fixture and exact workflow gate. It:
+1. validates exact vehicle/module configuration digests, unique port/pair IDs and strict unknown-field rejection;
+2. validates vehicle/module port side, family, revision, mating-profile identity and controlled profile references;
+3. requires SHA-256 digests for vehicle/module configurations, port profiles and pair compatibility profiles;
+4. binds every port-evidence record to the corresponding configuration and exact port-profile digest;
+5. binds pair qualification evidence to both configuration digests, both port-profile digests and the pair compatibility-profile digest;
+6. requires independently qualified evidence, a report digest and an unexpired validity window before the declared interface pair can be admitted as compatible;
+7. marks explicit family or mating-profile mismatches incompatible, and missing/unreviewed/synthetic/stale/revoked, expired, scope-mismatched or profile-mismatched evidence indeterminate;
+8. sorts pair results deterministically and emits no power, actuator, unlock, launch, reservation or dispatch commands.
 
-The executable screen should initially be an evidence-admission/compatibility contract. Family-specific numerical envelope comparisons should be added only when the responsible engineering owners supply signed-off profile semantics and test evidence. Do not manufacture placeholder load, voltage, current, temperature, IP or tolerance values to make a synthetic fixture pass.
+The current fixture intentionally reports one declared mount-profile mismatch as incompatible and two unqualified HV/data pairs as indeterminate. It has no compatible physical module. The test suite includes a synthetic in-memory positive path only to verify the admission predicate; it is not a claim that such a real qualified interface exists.
+
+The v0.1 screen is an evidence-admission contract. It does **not** parse controlled drawings or independently recalculate structural, electrical, thermal, EMC or cybersecurity properties. Family-specific numerical envelope comparisons should be added only when responsible engineering owners supply signed-off profile semantics and measured/independent test evidence. Do not manufacture placeholder load, voltage, current, temperature, IP or tolerance values to make a synthetic fixture pass.
 
 ## 9. Non-claims
 
