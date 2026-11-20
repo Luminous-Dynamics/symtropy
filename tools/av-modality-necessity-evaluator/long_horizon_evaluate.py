@@ -47,14 +47,13 @@ def ratio(numerator: int, denominator: int) -> float | None:
 def _episode_state(
     episode: dict[str, Any], as_of_tick: int
 ) -> tuple[dict[str, int], set[str], set[str]]:
-    """Return first-seen observation availability, superseded refs and revoked refs."""
+    """Return all source refs plus supersession/revocation effective by as_of_tick."""
     events = episode.get("stream_events")
     if not isinstance(events, list):
         raise EvaluationError(f"{episode.get('episode_id')}: stream_events must be an array")
     event_ids: set[str] = set()
+    ordered: list[dict[str, Any]] = []
     observations: dict[str, int] = {}
-    superseded: set[str] = set()
-    revoked: set[str] = set()
 
     for event in events:
         if not isinstance(event, dict):
@@ -67,29 +66,37 @@ def _episode_state(
         tick = event.get("availability_tick")
         if isinstance(tick, bool) or not isinstance(tick, int) or tick < 0:
             raise EvaluationError(f"{episode.get('episode_id')}: invalid event availability tick")
-        if tick > as_of_tick:
-            continue
+        ordered.append(event)
         if kind == "observation":
             ref = event.get("observation_ref")
             if not isinstance(ref, str) or not ref:
                 raise EvaluationError(f"{episode.get('episode_id')}: observation missing ref")
-            # A duplicate delivery reuses the original observation identity. First availability wins.
+            # Duplicate delivery reuses the original observation identity; first availability wins.
             observations[ref] = min(observations.get(ref, tick), tick)
-        elif kind == "correction":
+        elif kind not in {"correction", "revocation"}:
+            raise EvaluationError(f"{episode.get('episode_id')}: unknown event kind {kind!r}")
+
+    superseded: set[str] = set()
+    revoked: set[str] = set()
+    for event in sorted(ordered, key=lambda item: item["availability_tick"]):
+        tick = event["availability_tick"]
+        if tick > as_of_tick:
+            continue
+        if event["kind"] == "correction":
             old_ref = event.get("supersedes_observation_ref")
             new_ref = event.get("replacement_observation_ref")
-            if old_ref not in observations or new_ref not in observations:
+            if (
+                old_ref not in observations or new_ref not in observations
+                or observations[old_ref] > tick or observations[new_ref] > tick
+            ):
                 raise EvaluationError(f"{episode.get('episode_id')}: correction ancestry is unresolved")
             superseded.add(old_ref)
-        elif kind == "revocation":
+        elif event["kind"] == "revocation":
             target = event.get("target_observation_ref")
-            if target not in observations:
+            if target not in observations or observations[target] > tick:
                 raise EvaluationError(f"{episode.get('episode_id')}: revocation target is unresolved")
             revoked.add(target)
-        else:
-            raise EvaluationError(f"{episode.get('episode_id')}: unknown event kind {kind!r}")
     return observations, superseded, revoked
-
 
 def _score_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
     answered = [row for row in rows if not row["abstained"]]
@@ -219,6 +226,8 @@ def evaluate(
             raise EvaluationError(f"{episode_id}: truth contains invalid required observation ref")
         if not required <= set(observations):
             raise EvaluationError(f"{episode_id}: truth requires an observation not present in stream")
+        if not required <= eligible:
+            raise EvaluationError(f"{episode_id}: truth requires superseded or revoked evidence")
 
         if label.get("independence_claim_allowed") is False and prediction.get("claimed_independent_corroboration") is True:
             violations.append("common_cause_views_claimed_independent")
