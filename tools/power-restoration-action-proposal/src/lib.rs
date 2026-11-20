@@ -1,4 +1,4 @@
-use power_restoration_benchmark_case::{BenchmarkCase, canonical_case_sha256};
+use power_restoration_benchmark_case::{BenchmarkCase, canonical_case_sha256, validate_case};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -279,6 +279,10 @@ pub fn parse_and_validate(
         .map_err(|error| vec![format!("proposal JSON decode error: {error}")])?;
     let case: BenchmarkCase = serde_json::from_str(case_json)
         .map_err(|error| vec![format!("case JSON decode error: {error}")])?;
+    let case_errors = validate_case(&case);
+    if !case_errors.is_empty() {
+        return Err(case_errors.into_iter().map(|error| format!("invalid benchmark case: {error}")).collect());
+    }
     let digest = canonical_case_sha256(&case)
         .map_err(|error| vec![format!("case canonicalization failed: {error}")])?;
     validate_proposal(&proposal, &case, &digest)
@@ -517,6 +521,20 @@ mod tests {
         proposal.actions[0].precondition_evidence.push(proposal.actions[0].precondition_evidence[0].clone());
         let digest = canonical_case_sha256(&case).unwrap();
         assert!(validate_proposal(&proposal, &case, &digest).is_err());
+    }
+
+    #[test]
+    fn unknown_action_fields_are_rejected() {
+        let mut value = serde_json::to_value(proposal()).unwrap();
+        value["actions"][0]["executable"] = serde_json::Value::Bool(true);
+        assert!(serde_json::from_value::<ActionProposal>(value).is_err());
+    }
+
+    #[test]
+    fn unknown_evidence_fields_are_rejected() {
+        let mut value = serde_json::to_value(proposal()).unwrap();
+        value["actions"][0]["preconditionEvidence"][0]["authorityGranted"] = serde_json::Value::Bool(true);
+        assert!(serde_json::from_value::<ActionProposal>(value).is_err());
     }
 
     #[test]
