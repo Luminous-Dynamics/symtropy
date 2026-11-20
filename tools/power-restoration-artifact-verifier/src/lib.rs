@@ -2083,6 +2083,123 @@ mod tests {
         (trust, envelope, expected, manifest)
     }
 
+    fn actuation_witness_fixtures() -> (
+        TrustRoot,
+        NoActuationWitnessReceipt,
+        ActuationCommandBinding,
+        AttestationEnvelope,
+        String,
+    ) {
+        use ed25519_dalek::{Signer, SigningKey};
+
+        let signing_key = SigningKey::from_bytes(&[7_u8; 32]);
+        let public_key = signing_key.verifying_key().to_bytes();
+        let public_key_hex = public_key.iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>();
+
+        let issuer_id = "synthetic-utility-actuation-adapter".to_string();
+        let tool_source_commit = "e".repeat(40);
+        let tool_configuration_sha256 = "f".repeat(64);
+        let trust_root = TrustRoot {
+            schema_version: "0.1.0".to_string(),
+            root_id: "synthetic-actuation-root".to_string(),
+            valid_from_unix_ms: 0,
+            valid_until_unix_ms: 10_000,
+            keys: vec![TrustedKey {
+                key_id: "actuation-adapter-key-1".to_string(),
+                producer_id: issuer_id.clone(),
+                public_key_hex,
+                roles: vec![SignerRole::ActuationWitness],
+                not_before_unix_ms: 0,
+                not_after_unix_ms: 10_000,
+                revoked_at_unix_ms: None,
+            }],
+        };
+        let command_binding = ActuationCommandBinding {
+            run_id: "synthetic-run-0001".to_string(),
+            case_sha256: "c".repeat(64),
+            decision_step: 3,
+            proposal_sha256: "d".repeat(64),
+            action_id: "switch-action-0003".to_string(),
+            action_kind: "set_switch_state".to_string(),
+            command_id: "cmd-0003".to_string(),
+            command_sha256: "a".repeat(64),
+            challenge_nonce: "b".repeat(64),
+            controller_id: "controller-substation-1".to_string(),
+            device_id: "switch-T56".to_string(),
+            witness_issuer_id: issuer_id.clone(),
+            witness_tool_source_commit: tool_source_commit.clone(),
+            witness_tool_configuration_sha256: tool_configuration_sha256.clone(),
+            minimum_monotonic_sequence: 40,
+        };
+        let receipt = NoActuationWitnessReceipt {
+            schema_version: "0.1.0".to_string(),
+            witness_id: "witness-controller-1".to_string(),
+            issuer_id: issuer_id.clone(),
+            controller_id: command_binding.controller_id.clone(),
+            device_id: command_binding.device_id.clone(),
+            run_id: command_binding.run_id.clone(),
+            case_sha256: command_binding.case_sha256.clone(),
+            decision_step: command_binding.decision_step,
+            proposal_sha256: command_binding.proposal_sha256.clone(),
+            action_id: command_binding.action_id.clone(),
+            action_kind: command_binding.action_kind.clone(),
+            command_id: command_binding.command_id.clone(),
+            command_sha256: command_binding.command_sha256.clone(),
+            challenge_nonce: command_binding.challenge_nonce.clone(),
+            monotonic_sequence: 41,
+            rejection_boundary: "before_actuation".to_string(),
+            actuation_acquired: false,
+            queue_dispatched: false,
+            driver_acquired: false,
+            output_transition_observed: false,
+            hardware_feedback: ActuationHardwareFeedback::NoMovementObserved,
+            observed_at_unix_ms: 1_500,
+            expires_at_unix_ms: 5_000,
+            tool_source_commit,
+            tool_configuration_sha256,
+        };
+        let artifact_uri = format!(
+            "power-fabric://actuation-witness/{}",
+            command_binding.command_sha256
+        );
+        let artifact_sha256 = canonical_sha256(&receipt).unwrap();
+        let mut parents = vec![
+            command_binding.command_sha256.clone(),
+            command_binding.proposal_sha256.clone(),
+        ];
+        parents.sort();
+        let payload = AttestationPayload {
+            schema_version: "0.1.0".to_string(),
+            predicate_type: "power-restoration/no-actuation-witness/v1".to_string(),
+            issuer_id,
+            signer_role: SignerRole::ActuationWitness,
+            subject_uri: artifact_uri,
+            subject_sha256: artifact_sha256,
+            run_id: command_binding.run_id.clone(),
+            case_sha256: command_binding.case_sha256.clone(),
+            decision_step: command_binding.decision_step,
+            proposal_sha256: command_binding.proposal_sha256.clone(),
+            tool_source_commit: receipt.tool_source_commit.clone(),
+            tool_configuration_sha256: receipt.tool_configuration_sha256.clone(),
+            issued_at_unix_ms: receipt.observed_at_unix_ms,
+            expires_at_unix_ms: receipt.expires_at_unix_ms,
+            parent_artifact_sha256: parents,
+        };
+        let signature = signing_key.sign(&canonical_bytes(&payload).unwrap());
+        let signature_hex = signature.to_bytes().iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>();
+        let envelope = AttestationEnvelope {
+            key_id: "actuation-adapter-key-1".to_string(),
+            payload,
+            signature_hex,
+        };
+        let pinned_root_sha256 = canonical_sha256(&trust_root).unwrap();
+        (trust_root, receipt, command_binding, envelope, pinned_root_sha256)
+    }
+
     fn test_bundle_root() -> PathBuf {
         let root = std::env::temp_dir().join(format!(
             "power-restoration-artifact-verifier-{}-{}",
@@ -2097,6 +2214,73 @@ mod tests {
         )
         .expect("write test artifact");
         root
+    }
+
+    #[test]
+    fn fresh_command_bound_actuation_witness_verifies_and_consumes_nonce() {
+        let (trust, receipt, binding, envelope, root_sha256) =
+            actuation_witness_fixtures();
+        let mut replay = ActuationWitnessReplayState::default();
+        let verified = verify_no_actuation_witness(
+            &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
+        ).unwrap();
+        assert_eq!(
+            verified.result_status,
+            "no_actuation_witness_signature_and_command_binding_verified"
+        );
+        assert!(replay.used_challenge_nonces.contains(&binding.challenge_nonce));
+        assert_eq!(
+            replay.last_sequence_by_controller_device
+                .get("controller-substation-1/switch-T56"),
+            Some(&41)
+        );
+    }
+
+    #[test]
+    fn actuation_witness_challenge_replay_is_rejected() {
+        let (trust, receipt, binding, envelope, root_sha256) =
+            actuation_witness_fixtures();
+        let mut replay = ActuationWitnessReplayState::default();
+        verify_no_actuation_witness(
+            &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
+        ).unwrap();
+        assert!(verify_no_actuation_witness(
+            &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
+        ).is_err());
+    }
+
+    #[test]
+    fn actuation_witness_cannot_be_replayed_for_another_command() {
+        let (trust, receipt, mut binding, envelope, root_sha256) =
+            actuation_witness_fixtures();
+        binding.command_id = "cmd-substituted".to_string();
+        let mut replay = ActuationWitnessReplayState::default();
+        assert!(verify_no_actuation_witness(
+            &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
+        ).is_err());
+    }
+
+    #[test]
+    fn actuation_witness_rejects_contradictory_output_feedback() {
+        let (trust, mut receipt, binding, envelope, root_sha256) =
+            actuation_witness_fixtures();
+        receipt.output_transition_observed = true;
+        let mut replay = ActuationWitnessReplayState::default();
+        assert!(verify_no_actuation_witness(
+            &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
+        ).is_err());
+    }
+
+    #[test]
+    fn actuation_witness_rejects_stale_sequence_and_expired_window() {
+        let (trust, mut receipt, binding, envelope, root_sha256) =
+            actuation_witness_fixtures();
+        receipt.monotonic_sequence = 40;
+        receipt.expires_at_unix_ms = 1_999;
+        let mut replay = ActuationWitnessReplayState::default();
+        assert!(verify_no_actuation_witness(
+            &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
+        ).is_err());
     }
 
     #[test]
