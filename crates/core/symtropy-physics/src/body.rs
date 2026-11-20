@@ -700,8 +700,6 @@ impl<const D: usize> RigidBody<D> {
         tool_collider: Box<dyn Shape<D>>,
         tool_mass: f64,
     ) -> Result<(), ToolheadMergeError> {
-        use symtropy_math::CompoundShape;
-
         if D < 2 {
             return Err(ToolheadMergeError::InvalidDimension);
         }
