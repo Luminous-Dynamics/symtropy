@@ -433,16 +433,15 @@ fn validate_receipt(receipt: &RunReceipt, errors: &mut Vec<String>) {
         }
     }
     if !attempt_costs.is_empty() {
-        let Some(measured_cost) = receipt.measured_usage.api_cost.as_ref() else {
-            errors.push("attempt-level API costs exist but measured run cost is absent".to_string());
-            return;
-        };
-        let Some(attempt_total) = attempt_costs.get(measured_cost.currency.as_str()) else {
-            errors.push("measured API cost currency does not match attempt-level costs".to_string());
-            return;
-        };
-        if attempt_costs.len() != 1 || measured_cost.amount + TOLERANCE < *attempt_total {
-            errors.push("measured API cost under-reports the attempt ledger or mixes currencies".to_string());
+        match receipt.measured_usage.api_cost.as_ref() {
+            None => errors.push("attempt-level API costs exist but measured run cost is absent".to_string()),
+            Some(measured_cost) => match attempt_costs.get(measured_cost.currency.as_str()) {
+                None => errors.push("measured API cost currency does not match attempt-level costs".to_string()),
+                Some(attempt_total) if attempt_costs.len() != 1 || measured_cost.amount + TOLERANCE < *attempt_total => {
+                    errors.push("measured API cost under-reports the attempt ledger or mixes currencies".to_string());
+                }
+                Some(_) => {}
+            }
         }
     }
     if let Some(limit) = &budget.token_limit {
@@ -747,10 +746,6 @@ pub fn qualify(envelope: &ReceiptEnvelope) -> Result<ReceiptReport, Vec<String>>
     let timed_out_attempt_count = attempts.iter().filter(|attempt| attempt.outcome == AttemptOutcome::TimedOut).count();
 
     let independent_score_present = receipt.scoring_receipt.as_ref().is_some_and(|scoring| scoring.acceptance_status == ScoringAcceptance::Accepted);
-    let score_metrics = receipt.scoring_receipt.as_ref()
-        .filter(|scoring| scoring.acceptance_status == ScoringAcceptance::Accepted)
-        .map(|scoring| scoring.metrics.clone())
-        .unwrap_or_default();
 
     let result_status = if !receipt.attempt_log_complete {
         "incomplete_attempt_log"
@@ -760,10 +755,19 @@ pub fn qualify(envelope: &ReceiptEnvelope) -> Result<ReceiptReport, Vec<String>>
         "completed_without_independent_score_receipt"
     } else if receipt.scoring_receipt.as_ref().is_some_and(|scoring| scoring.acceptance_status != ScoringAcceptance::Accepted) {
         "independent_score_not_accepted"
+    } else if envelope.collector_attestation.as_ref().is_some_and(|attestation| attestation.verification_status == AttestationStatus::Rejected) {
+        "collector_attestation_rejected"
     } else if envelope.collector_attestation.as_ref().is_none_or(|attestation| attestation.verification_status != AttestationStatus::Verified) {
         "score_present_collector_attestation_unverified"
     } else {
         "independently_scored_run_receipt"
+    };
+    // Do not expose metric values as a qualified score until the collector's external
+    // attestation is verified. The raw scorer receipt remains in the input envelope.
+    let score_metrics = if result_status == "independently_scored_run_receipt" {
+        receipt.scoring_receipt.as_ref().map(|scoring| scoring.metrics.clone()).unwrap_or_default()
+    } else {
+        Vec::new()
     };
 
     Ok(ReceiptReport {
@@ -821,6 +825,8 @@ mod tests {
         assert_eq!(report.rejected_action_count, 1);
         assert_eq!(report.timed_out_attempt_count, 1);
         assert_eq!(report.result_status, "score_present_collector_attestation_unverified");
+        assert!(report.independent_score_present);
+        assert!(report.score_metrics.is_empty(), "unattested metrics must not be exposed as a qualified score");
     }
 
     #[test]
@@ -830,6 +836,18 @@ mod tests {
         let report = qualify(&envelope).expect("verified attestation qualifies");
         assert_eq!(report.result_status, "independently_scored_run_receipt");
         assert!(report.independent_score_present);
+        assert_eq!(report.score_metrics.len(), 3);
+    }
+
+    #[test]
+    fn rejected_collector_attestation_blocks_score_release() {
+        let mut envelope = fixture();
+        verify_attestation(&mut envelope);
+        envelope.collector_attestation.as_mut().unwrap().verification_status = AttestationStatus::Rejected;
+        refresh_envelope_digest(&mut envelope);
+        let report = qualify(&envelope).unwrap();
+        assert_eq!(report.result_status, "collector_attestation_rejected");
+        assert!(report.score_metrics.is_empty());
     }
 
     #[test]
