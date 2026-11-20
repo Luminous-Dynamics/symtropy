@@ -2,7 +2,8 @@
 
 **Issue:** #6301  
 **Camera producer:** #4595 / #4616  
-**AV replay contract:** #6183 / #6201  
+**AV replay contract:** #6183 / #6201 (pinned source commit 311f65c)  
+**Camera producer:** #4616 (pinned source commit 25ce4da)  
 **Temporal eligibility:** #6253
 
 ## Purpose
@@ -24,7 +25,7 @@ The #4616 camera producer currently exposes one capture timestamp, not a physica
 - The generic AV bundle contains the existing VideoFrameObservationV1 and TransportEventV1.
 - CameraFrameEnvelopeV1 retains the complete policy-visible PolicyObservationReceipt, clock generation/time-scale identity and all three converted clock milestones.
 - EvaluatorObservationAudit is not accepted by this package and is never serialized.
-- The raw RGB bytes must already be persisted at the caller-supplied root-relative artifact path. The existing #6201 loader remains the authority for root-confined loading and exact artifact verification.
+- The raw RGB bytes must already be persisted at the caller-supplied root-relative artifact path. The existing #6201 loader remains the authority for root-confined loading and exact artifact verification. The Cargo manifest pins both producer packages to immutable PR-head commits until those PRs are merged; do not replace these with floating branch references.
 
 The camera receipt uses unkeyed SHA-256 commitments. The producer verifier checks internal consistency and byte agreement, not producer authentication or signature authority.
 
