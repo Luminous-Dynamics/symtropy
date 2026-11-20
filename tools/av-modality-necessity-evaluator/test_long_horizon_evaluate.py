@@ -1,0 +1,140 @@
+import copy
+import unittest
+from pathlib import Path
+
+import long_horizon_evaluate as evaluator
+
+ROOT = Path(__file__).resolve().parents[2]
+BASE = ROOT / "research" / "av-long-horizon-evidence-v0" / "fixtures"
+
+
+class LongHorizonEvaluatorTests(unittest.TestCase):
+    def setUp(self):
+        self.workload = evaluator.read_json(BASE / "agent" / "workload-v1.json")
+        self.truth = evaluator.read_json(BASE / "evaluator-only" / "truth-v1.json")
+        self.submission = evaluator.read_json(BASE / "agent" / "reference-submission-v1.json")
+
+    def score(self, submission=None, workload=None, truth=None):
+        return evaluator.evaluate(
+            workload or self.workload,
+            truth or self.truth,
+            submission or self.submission,
+        )
+
+    def episode_prediction(self, submission, episode_id):
+        return next(x for x in submission["predictions"] if x["episode_id"] == episode_id)
+
+    def episode_result(self, score, episode_id):
+        return next(x for x in score["per_episode"] if x["episode_id"] == episode_id)
+
+    def test_reference_submission_passes_all_finite_known_answers(self):
+        score = self.score()
+        totals = score["totals"]
+        self.assertEqual(totals["episode_count"], 9)
+        self.assertEqual(totals["answer_correct_count"], 8)
+        self.assertEqual(totals["decision_correct_count"], 9)
+        self.assertEqual(totals["answer_accuracy"], 8 / 9)
+        self.assertEqual(totals["coverage"], 8 / 9)
+        self.assertEqual(totals["selective_accuracy"], 1.0)
+        self.assertEqual(totals["citation_precision"], 1.0)
+        self.assertEqual(totals["citation_recall"], 1.0)
+        self.assertEqual(totals["provenance_complete_count"], 9)
+        self.assertEqual(totals["evidence_compliant_count"], 9)
+        self.assertEqual(totals["false_memory_count"], 0)
+        self.assertEqual(totals["hard_violation_count"], 0)
+        self.assertEqual(totals["deadline_miss_count"], 0)
+
+    def test_duplicate_transport_reuses_one_source_observation(self):
+        score = self.score()
+        result = self.episode_result(score, "lh-002-repeated-event-dedup")
+        self.assertTrue(result["answer_correct"])
+        self.assertTrue(result["provenance_complete"])
+        self.assertEqual(result["violations"], [])
+        row = self.episode_prediction(self.submission, "lh-002-repeated-event-dedup")
+        self.assertEqual(row["cited_observation_refs"].count("obs-tap-2"), 1)
+
+    def test_superseded_observation_cannot_support_current_claim(self):
+        candidate = copy.deepcopy(self.submission)
+        row = self.episode_prediction(candidate, "lh-003-correction-supersession")
+        row["cited_observation_refs"] = ["obs-machine-state-v1"]
+        score = self.score(candidate)
+        result = self.episode_result(score, "lh-003-correction-supersession")
+        self.assertIn("citation_uses_superseded_observation", result["violations"])
+        self.assertFalse(result["provenance_complete"])
+
+    def test_revoked_observation_cannot_support_current_claim(self):
+        candidate = copy.deepcopy(self.submission)
+        row = self.episode_prediction(candidate, "lh-008-memory-revocation")
+        row["cited_observation_refs"] = ["obs-private-utterance"]
+        score = self.score(candidate)
+        result = self.episode_result(score, "lh-008-memory-revocation")
+        self.assertIn("citation_uses_revoked_observation", result["violations"])
+        self.assertFalse(result["provenance_complete"])
+
+    def test_future_observation_is_not_admissible_at_query_cutoff(self):
+        candidate = copy.deepcopy(self.submission)
+        episode = next(x for x in self.workload["episodes"] if x["episode_id"] == "lh-001-delayed-recall-10m")
+        episode["stream_events"].append({
+            "event_id": "ev-future-test", "kind": "observation", "availability_tick": 700,
+            "observation_ref": "obs-future-test", "modalities": ["video"], "capture_tick": 700,
+            "artifact_sha256": "f" * 64, "clock_domain_id": "test-clock", "clock_generation": 0
+        })
+        self.episode_prediction(candidate, "lh-001-delayed-recall-10m")["cited_observation_refs"] = ["obs-future-test"]
+        result = self.episode_result(self.score(candidate), "lh-001-delayed-recall-10m")
+        self.assertIn("citation_not_available_at_evidence_cutoff", result["violations"])
+
+    def test_common_cause_views_cannot_be_claimed_independent(self):
+        candidate = copy.deepcopy(self.submission)
+        self.episode_prediction(candidate, "lh-004-common-cause-dependence")["claimed_independent_corroboration"] = True
+        result = self.episode_result(self.score(candidate), "lh-004-common-cause-dependence")
+        self.assertIn("common_cause_views_claimed_independent", result["violations"])
+
+    def test_cross_clock_ordering_requires_qualified_transform(self):
+        candidate = copy.deepcopy(self.submission)
+        self.episode_prediction(candidate, "lh-007-cross-clock-and-event-order")["claimed_cross_clock_ordering"] = True
+        result = self.episode_result(self.score(candidate), "lh-007-cross-clock-and-event-order")
+        self.assertIn("cross_clock_order_claim_without_qualified_transform", result["violations"])
+
+    def test_absent_event_answer_counts_as_false_memory(self):
+        candidate = copy.deepcopy(self.submission)
+        self.episode_prediction(candidate, "lh-006-absent-event-false-memory").update(
+            answer="glass_breaking", abstained=False, confidence=0.9
+        )
+        result = self.episode_result(self.score(candidate), "lh-006-absent-event-false-memory")
+        self.assertFalse(result["decision_correct"])
+        self.assertTrue(result["false_memory"])
+
+    def test_missing_required_source_reduces_citation_recall(self):
+        candidate = copy.deepcopy(self.submission)
+        row = self.episode_prediction(candidate, "lh-001-delayed-recall-10m")
+        row["cited_observation_refs"] = []
+        score = self.score(candidate)
+        result = self.episode_result(score, "lh-001-delayed-recall-10m")
+        self.assertEqual(result["citation_recall"], 0.0)
+        self.assertFalse(result["provenance_complete"])
+        self.assertLess(score["totals"]["citation_recall"], 1.0)
+
+    def test_query_cutoff_must_match_declared_as_of_tick(self):
+        candidate = copy.deepcopy(self.submission)
+        self.episode_prediction(candidate, "lh-001-delayed-recall-10m")["evidence_as_of_tick"] = 599
+        result = self.episode_result(self.score(candidate), "lh-001-delayed-recall-10m")
+        self.assertIn("evidence_cutoff_must_equal_query_tick", result["violations"])
+
+    def test_duplicate_event_identity_is_rejected(self):
+        workload = copy.deepcopy(self.workload)
+        episode = next(x for x in workload["episodes"] if x["episode_id"] == "lh-001-delayed-recall-10m")
+        duplicate = copy.deepcopy(episode["stream_events"][0])
+        episode["stream_events"].append(duplicate)
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(workload=workload)
+
+    def test_truth_cannot_require_revoked_observation(self):
+        truth = copy.deepcopy(self.truth)
+        label = next(x for x in truth["episodes"] if x["episode_id"] == "lh-008-memory-revocation")
+        label["required_observation_refs"] = ["obs-private-utterance"]
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(truth=truth)
+
+
+if __name__ == "__main__":
+    unittest.main()
