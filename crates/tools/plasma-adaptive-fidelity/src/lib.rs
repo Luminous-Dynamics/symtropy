@@ -614,6 +614,34 @@ pub fn evaluate_adaptive_policy(
             &item.profile_sha256 == current
                 && matches!(
                     item.reason,
+                    ExclusionReason::CompatibilityMismatch
+                        | ExclusionReason::WellPosednessUnknown
+                        | ExclusionReason::InvalidWellPosednessReceipt
+                        | ExclusionReason::EvidenceIdentityMismatch
+                        | ExclusionReason::ErrorEvidenceUnknown
+                        | ExclusionReason::ErrorEvidenceRejected
+                        | ExclusionReason::InvalidErrorEvidence
+                        | ExclusionReason::ErrorUnitsMismatch
+                        | ExclusionReason::CalibrationCoverageTooLow
+                        | ExclusionReason::CostEvidenceUnknown
+                        | ExclusionReason::CostEvidenceRejected
+                        | ExclusionReason::InvalidCostEvidence
+                        | ExclusionReason::CostEvidenceIdentityMismatch
+                        | ExclusionReason::CostUnitsMismatch
+                )
+        });
+        if unresolved {
+            return Ok(PolicyDecision::Unknown {
+                reason: UnknownReason::CurrentModelEvidenceUnresolved,
+                excluded,
+            });
+        }
+    }
+    if let (Some(current), None) = (&request.current_profile_sha256, current_eligible) {
+        let unresolved = excluded.iter().any(|item| {
+            &item.profile_sha256 == current
+                && matches!(
+                    item.reason,
                     ExclusionReason::WellPosednessUnknown
                         | ExclusionReason::ErrorEvidenceUnknown
                         | ExclusionReason::CostEvidenceUnknown
@@ -1639,7 +1667,7 @@ mod tests {
     }
 
     #[test]
-    fn current_model_with_unresolved_evidence_does_not_trigger_silent_switch() {
+    fn current_model_with_unresolved_evidence_blocks_automatic_switch() {
         let mut current = moment_candidate('a', 4, 0.08, 10.0);
         current.well_posedness = Evidence::Unknown {
             reason: "current hyperbolicity evidence stale".into(),
@@ -1652,8 +1680,10 @@ mod tests {
         let decision = evaluate_adaptive_policy(&req).unwrap();
         assert!(matches!(
             decision,
-            PolicyDecision::Selected { receipt, .. }
-                if receipt.profile_sha256 == digest('b')
+            PolicyDecision::Unknown {
+                reason: UnknownReason::CurrentModelEvidenceUnresolved,
+                ..
+            }
         ));
     }
 }
