@@ -717,25 +717,6 @@ impl<const D: usize> RigidBody<D> {
         let _ = self.try_merge_toolhead(local_transform, tool_collider, tool_mass);
     }
 
-econd-moment derivation. Report it as an
-        // approximation even when the resulting three stored moments happen
-        // to be equal.
-        self.rotational_inertia_approximate = true;
-        self.mass_properties_mass_bits = if source_mass_properties_current {
-            Some(self.mass.to_bits())
-        } else {
-            None
-        };
-
-        // Toolhead mass changes invalidate any previously certified full
-        // inertia operator. Do not silently keep using stale mass properties.
-        if self.rotational_inertia_operator.is_some() {
-            self.rotational_inertia_operator = None;
-            self.rotational_inertia_operator_invalidated = true;
-            self.rotational_inertia_operator_mass_bits = None;
-        }
-    }
-
     pub fn world_support(&self, direction: &SVector<f64, D>) -> SVector<f64, D> {
         let local_dir = self.transform.rotation.reverse().rotate_vector(direction);
         let local_support = self.collider.support(&local_dir);
