@@ -1,0 +1,16 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://luminousdynamics.io/schemas/power-restoration-claim-package-v0.1.schema.json",
+  "title":"Power restoration claim package v0.1",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["case","runReceipt","observationBatches","manifest","attestations","runReceiptArtifactUri"],
+  "properties":{
+    "case":{"type":"object","description":"Frozen power-restoration benchmark case, validated by the case contract."},
+    "runReceipt":{"type":"object","description":"Complete planner-to-service run receipt, validated by the run-receipt contract."},
+    "observationBatches":{"type":"array","items":{"type":"object","description":"Per-proposal result batch, validated by the observation-evidence contract."}},
+    "manifest":{"$ref":"bundle-manifest-v0.1.schema.json"},
+    "attestations":{"type":"array","items":{"$ref":"attestation-v0.1.schema.json"}},
+    "runReceiptArtifactUri":{"type":"string","minLength":1}
+  }
+}
