@@ -72,7 +72,7 @@ The report preserves per-cell updates, internal and boundary face identities, gl
 
 - Caller-supplied Qualified status is not authenticated here.
 - A well-formed digest does not prove that the referenced bytes are available or correct.
-- The authored test suite contains 44 Rust tests across shared-face composition, sampled entropy audits, external-boundary accounting and multi-face domain assembly. It includes a 36-case entropy-convexity sweep, four-cell periodic stencil oracle, two-cell mixed-boundary known answer, deterministic input-order test and receipt-tampering negative controls. These are not reported as executed until Rust tooling or hosted CI actually runs them.
+- The authored test suite contains 45 Rust tests across shared-face composition, sampled entropy audits, external-boundary accounting and multi-face domain assembly. It includes a 36-case entropy-convexity sweep, four-cell periodic stencil oracle, two-cell mixed-boundary known answer, deterministic input-order test, face-area/qualification tampering controls, and a negative control where individually tolerated face residuals accumulate beyond the global balance threshold. These are not reported as executed until Rust tooling or hosted CI actually runs them.
 - Matching declared compatibility keys do not prove the solver adapter is semantically correct.
 - This primitive does not choose experts, compute weights, implement hysteresis, normalize units, validate pressure-tensor PSD, prove hyperbolicity or entropy consistency, or execute a plasma solver.
 - Synthetic unit tests do not reproduce ECsim, the Landau-damping papers, the magnetosheath paper or an industrial solver.
