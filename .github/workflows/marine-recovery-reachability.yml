@@ -1,0 +1,47 @@
+name: Marine Recovery Reachability Audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/marine-recovery-reachability/**"
+      - ".github/workflows/marine-recovery-reachability.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marine-recovery-reachability-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  recovery-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/marine-recovery-reachability/Cargo.toml -- --check
+
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/marine-recovery-reachability/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run semantic and negative-control tests
+        run: cargo test --manifest-path tools/marine-recovery-reachability/Cargo.toml
+
+      - name: Check strict schema and expected recovery matrix
+        run: |
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.service_contract.minItems == 11 and .properties.scenarios.minItems == 5 and (.required | index("capability_roster") != null)' tools/marine-recovery-reachability/schema/marine-recovery-reachability.schema.json
+          jq -e '(.properties.graph_limits.required | index("max_expanded_edges_per_scenario")) != null and (.properties.scenarios.items.properties.terminals.items.properties.objective_class.enum | index("human_handover")) != null' tools/marine-recovery-reachability/schema/marine-recovery-reachability.schema.json
+          jq -e '.record_status == "synthetic" and (.scenarios | length == 5) and (.capability_roster | length == 9) and (.graph_limits.max_action_count_per_scenario == 64) and (.graph_limits.max_expanded_edges_per_scenario == 256) and ([.scenarios[].expected_outcome] | sort | group_by(.) | map({(.[0]): length}) | add == {"abstain":3,"recoverable":2}) and all(.scenarios[]; (.scenario_sha256 | length == 64) and all(.actions[]; (.action_sha256 | length == 64)) and all(.terminals[]; (.receipt_sha256 | length == 64))) and ([.scenarios[] | select(.scenario_id == "generator-trip") | .actions[] | select(.action_class == "human_handover")] | length == 1) and ([.scenarios[] | select(.scenario_id == "generator-trip") | .terminals[] | select(.objective_class == "human_handover" and .human_acknowledged == true)] | length == 1)' tools/marine-recovery-reachability/fixtures/synthetic-recovery-graph-0001.json
+
+      - name: Audit all recovery paths and abstentions
+        run: |
+          cargo run --quiet --manifest-path tools/marine-recovery-reachability/Cargo.toml -- audit-recovery-graph tools/marine-recovery-reachability/fixtures/synthetic-recovery-graph-0001.json > /tmp/marine-recovery-graph.json
+          jq -e '.disposition == "SYNTHETIC_ONLY" and .scenario_count == 5 and .recoverable_scenario_count == 2 and .abstaining_scenario_count == 3 and .incomplete_scenario_count == 0 and ([.scenario_reports[] | select(.scenario_id == "generator-trip") | .feasible_path_count] == [2]) and ([.scenario_reports[] | select(.scenario_id == "generator-trip") | .feasible_paths[] | select(.objective_class == "human_handover") | .remaining_intervention_margin_hours] | (length == 1 and .[0] > 0)) and .aggregate_scalar_score == "NOT_COMPUTED"' /tmp/marine-recovery-graph.json
