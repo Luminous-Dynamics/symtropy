@@ -13,7 +13,7 @@ MODEL_DIR=ROOT/"model-description"
 
 def function_blocks(source: str):
     pattern=re.compile(
-        r"^\s*(?:FMI3_Export\s+)?(?:const\s+char\s*\*|fmi3Status|fmi3Instance|void)\s+(fmi3[A-Za-z0-9_]+)\s*\(",
+        r"^\s*(?:FMI3_Export\s+)?(?:const\s+char\s*\*\s*|(?:fmi3Status|fmi3Instance|void)\s+)(fmi3[A-Za-z0-9_]+)\s*\(",
         re.MULTILINE,
     )
     matches=list(pattern.finditer(source))
@@ -83,8 +83,10 @@ def main() -> int:
                     f"{component_name}: unsupported symbol does not fail closed: {symbol}"
                 )
 
-    if '"3.0"' not in blocks["fmi3GetVersion"] or '"3.0.2"' in blocks["fmi3GetVersion"]:
-        raise AssertionError("FMI version function does not return the pinned interface version")
+        if '"3.0"' not in blocks["fmi3GetVersion"] or '"3.0.2"' in blocks["fmi3GetVersion"]:
+            raise AssertionError(
+                f"{component_name}: FMI version function does not return the pinned interface version"
+            )
 
     for xml_path in sorted(MODEL_DIR.glob("*.xml")):
         root=ET.parse(xml_path).getroot()
