@@ -238,9 +238,26 @@ fn road_graph_fingerprint(case: &BenchmarkCase) -> Result<String, String> {
         let mobile_source_count = case.mobile_power_sources.iter()
             .filter(|source| source.starting_road_node_id == node.node_id)
             .count();
+        let power_interface = case.network.nodes.iter()
+            .find(|power_node| power_node.node_id == node.power_node_id)
+            .map(|power_node| {
+                let loads = case.network.loads.iter()
+                    .filter(|load| load.node_id == power_node.node_id)
+                    .count();
+                let sources = case.network.grid_sources.iter()
+                    .filter(|source| source.node_id == power_node.node_id)
+                    .count();
+                let degree = case.network.branches.iter()
+                    .filter(|branch| branch.from_node_id == power_node.node_id || branch.to_node_id == power_node.node_id)
+                    .count()
+                    + case.network.switches.iter()
+                        .filter(|switch| switch.from_node_id == power_node.node_id || switch.to_node_id == power_node.node_id)
+                        .count();
+                format!("loads={loads};sources={sources};degree={degree}")
+            })
+            .unwrap_or_else(|| "unmapped".to_string());
         node_labels.push(format!(
-            "road-node;power-interface={};starting-crews={crew_count};starting-mobile-sources={mobile_source_count}",
-            !node.power_node_id.is_empty()
+            "road-node;power-interface={power_interface};starting-crews={crew_count};starting-mobile-sources={mobile_source_count}"
         ));
     }
 
