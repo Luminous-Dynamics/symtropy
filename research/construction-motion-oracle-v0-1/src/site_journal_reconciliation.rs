@@ -95,6 +95,20 @@ pub struct ReconciledSiteJournalEvent {
     pub payload: SiteEventPayload,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct SiteJournalCommittedContext {
+    /// Logical event IDs at or before the common checkpoint.
+    pub event_ids: BTreeSet<String>,
+    /// Work-package digests already published at the checkpoint.
+    pub package_sha256s: BTreeSet<String>,
+    /// Station-qualification event IDs already committed at the checkpoint.
+    pub station_qualification_event_ids: BTreeSet<String>,
+    /// Execution attempt IDs already started at the checkpoint.
+    pub attempt_ids: BTreeSet<String>,
+    /// Attempt IDs with a robot observation/interruption already committed.
+    pub observed_attempt_ids: BTreeSet<String>,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct SiteJournalReconciliationPlan {
     pub site_id: String,
@@ -160,6 +174,25 @@ pub enum SiteJournalReconciliationError {
         event_id: String,
         parent_event_id: String,
     },
+    MissingWorkPackage {
+        event_id: String,
+        package_sha256: String,
+    },
+    MissingStationQualification {
+        event_id: String,
+        station_qualification_event_id: String,
+    },
+    MissingAttemptStart {
+        event_id: String,
+        attempt_id: String,
+    },
+    MissingPriorRobotObservation {
+        event_id: String,
+        attempt_id: String,
+    },
+    AttemptAlreadyCommitted(String),
+    AttemptAlreadyObserved(String),
+    DuplicateAttemptStart(String),
     DuplicateEventWithinJournal(String),
     EventAlreadyCommitted(String),
     ConflictingEventId(String),
@@ -189,7 +222,7 @@ pub fn reconcile_site_journal_bundle(
     journals: &[OfflineSiteJournal],
     expected_site_id: &str,
     expected_checkpoint: &SiteJournalCheckpoint,
-    committed_event_ids: &BTreeSet<String>,
+    committed_context: &SiteJournalCommittedContext,
     actor_registry: &SiteActorRegistry,
 ) -> Result<SiteJournalReconciliationPlan, SiteJournalReconciliationError> {
     if journals.is_empty() {
@@ -383,7 +416,7 @@ pub fn reconcile_site_journal_bundle(
     // Add domain-derived causal edges for references already explicit in the
     // payload. Adapters still supply cross-event causal parents that have no
     // typed reference in SiteEventPayload.
-    add_payload_dependencies(&mut events, committed_event_ids)?;
+    add_payload_dependencies(&mut events, committed_context)?;
 
     // A logical event ID and its immutable content digest are one-to-one.
     let mut event_ids_by_digest = BTreeMap::<&str, &str>::new();
@@ -403,7 +436,7 @@ pub fn reconcile_site_journal_bundle(
 
     for event in events.values() {
         for parent_id in &event.causal_parents {
-            if !events.contains_key(parent_id) && !committed_event_ids.contains(parent_id) {
+            if !events.contains_key(parent_id) && !committed_context.event_ids.contains(parent_id) {
                 return Err(SiteJournalReconciliationError::MissingCausalParent {
                     event_id: event.event_id.clone(),
                     parent_event_id: parent_id.clone(),
@@ -445,7 +478,7 @@ pub fn reconcile_site_journal_bundle(
 
 fn add_payload_dependencies(
     events: &mut BTreeMap<String, EventAccumulator>,
-    committed_event_ids: &BTreeSet<String>,
+    committed_context: &SiteJournalCommittedContext,
 ) -> Result<(), SiteJournalReconciliationError> {
     let mut station_events = BTreeSet::new();
     let mut attempt_starts = BTreeMap::<String, String>::new();
@@ -469,14 +502,29 @@ fn add_payload_dependencies(
             SiteEventPayload::StationQualified { .. } => {
                 station_events.insert(event.event_id.clone());
             }
-            SiteEventPayload::ExecutionStarted { attempt_id, .. } => {
+            SiteEventPayload::ExecutionStarted {
+                package_sha256,
+                attempt_id,
+                ..
+            } => {
+                if committed_context.attempt_ids.contains(attempt_id) {
+                    return Err(SiteJournalReconciliationError::AttemptAlreadyCommitted(
+                        attempt_id.clone(),
+                    ));
+                }
                 if attempt_starts
                     .insert(attempt_id.clone(), event.event_id.clone())
                     .is_some()
                 {
-                    return Err(SiteJournalReconciliationError::ConflictingEventId(
-                        event.event_id.clone(),
+                    return Err(SiteJournalReconciliationError::DuplicateAttemptStart(
+                        attempt_id.clone(),
                     ));
+                }
+                if committed_context.package_sha256s.contains(package_sha256)
+                    || package_publications.contains_key(package_sha256)
+                {
+                    // Package references are checked again below after all
+                    // package publication events have been collected.
                 }
             }
             SiteEventPayload::RobotObservationRecorded { attempt_id, .. }
@@ -512,6 +560,11 @@ fn add_payload_dependencies(
                     if package_event_id != &event_id {
                         required_parents.insert(package_event_id.clone());
                     }
+                } else if !committed_context.package_sha256s.contains(package_sha256) {
+                    return Err(SiteJournalReconciliationError::MissingWorkPackage {
+                        event_id: event_id.clone(),
+                        package_sha256: package_sha256.clone(),
+                    });
                 }
             }
         }
@@ -523,27 +576,66 @@ fn add_payload_dependencies(
             } => {
                 if station_events.contains(station_qualification_event_id) {
                     required_parents.insert(station_qualification_event_id.clone());
-                } else if !committed_event_ids.contains(station_qualification_event_id) {
-                    return Err(SiteJournalReconciliationError::MissingCausalParent {
-                        event_id: event_id.clone(),
-                        parent_event_id: station_qualification_event_id.clone(),
-                    });
+                } else if !committed_context
+                    .station_qualification_event_ids
+                    .contains(station_qualification_event_id)
+                {
+                    return Err(
+                        SiteJournalReconciliationError::MissingStationQualification {
+                            event_id: event_id.clone(),
+                            station_qualification_event_id: station_qualification_event_id.clone(),
+                        },
+                    );
                 }
             }
             SiteEventPayload::RobotObservationRecorded { attempt_id, .. }
-            | SiteEventPayload::ExecutionInterrupted { attempt_id, .. }
-            | SiteEventPayload::RefereeAssessmentRecorded { attempt_id, .. } => {
+            | SiteEventPayload::ExecutionInterrupted { attempt_id, .. } => {
                 if let Some(start_event_id) = attempt_starts.get(attempt_id) {
                     if start_event_id != &event_id {
                         required_parents.insert(start_event_id.clone());
                     }
+                } else if !committed_context.attempt_ids.contains(attempt_id) {
+                    return Err(SiteJournalReconciliationError::MissingAttemptStart {
+                        event_id: event_id.clone(),
+                        attempt_id: attempt_id.clone(),
+                    });
                 }
-                if let SiteEventPayload::RefereeAssessmentRecorded { .. } = payload {
-                    if let Some(observation_event_id) = attempt_observations.get(attempt_id) {
-                        if observation_event_id != &event_id {
-                            required_parents.insert(observation_event_id.clone());
-                        }
+                if matches!(&payload, SiteEventPayload::RobotObservationRecorded { .. })
+                    && committed_context.observed_attempt_ids.contains(attempt_id)
+                {
+                    return Err(SiteJournalReconciliationError::AttemptAlreadyObserved(
+                        attempt_id.clone(),
+                    ));
+                }
+            }
+            SiteEventPayload::RefereeAssessmentRecorded { attempt_id, .. } => {
+                if let Some(start_event_id) = attempt_starts.get(attempt_id) {
+                    if start_event_id != &event_id {
+                        required_parents.insert(start_event_id.clone());
                     }
+                } else if !committed_context.attempt_ids.contains(attempt_id) {
+                    return Err(SiteJournalReconciliationError::MissingAttemptStart {
+                        event_id: event_id.clone(),
+                        attempt_id: attempt_id.clone(),
+                    });
+                }
+                if let Some(observation_event_ids) = attempt_observations.get(attempt_id) {
+                    required_parents.extend(
+                        observation_event_ids
+                            .iter()
+                            .filter(|observation_event_id| *observation_event_id != &event_id)
+                            .cloned(),
+                    );
+                } else if !committed_context
+                    .observed_attempt_ids
+                    .contains(attempt_id)
+                {
+                    return Err(
+                        SiteJournalReconciliationError::MissingPriorRobotObservation {
+                            event_id: event_id.clone(),
+                            attempt_id: attempt_id.clone(),
+                        },
+                    );
                 }
             }
             SiteEventPayload::WorkPackagePublished { .. }
@@ -828,7 +920,15 @@ mod tests {
             journals,
             "site-001",
             &checkpoint(),
-            &BTreeSet::new(),
+            &SiteJournalCommittedContext {
+                package_sha256s: BTreeSet::from([digest('a')]),
+                attempt_ids: BTreeSet::from([
+                    "attempt-a".to_owned(),
+                    "attempt-b".to_owned(),
+                ]),
+                station_qualification_event_ids: BTreeSet::from(["station-1".to_owned()]),
+                ..SiteJournalCommittedContext::default()
+            },
             &registry(),
         )
     }
@@ -1220,7 +1320,12 @@ mod tests {
             &[first],
             "site-001",
             &checkpoint(),
-            &committed,
+            &SiteJournalCommittedContext {
+                event_ids: committed,
+                package_sha256s: BTreeSet::from([digest('a')]),
+                attempt_ids: BTreeSet::from(["attempt-a".to_owned()]),
+                ..SiteJournalCommittedContext::default()
+            },
             &registry(),
         )
         .unwrap();
