@@ -41,7 +41,19 @@ python ssp_package.py build \
   --output GeoFusion-Thermal-Federation.ssp
 
 python ssp_package.py verify GeoFusion-Thermal-Federation.ssp
+
+# Compare an SSP file exported by an external tool with the source SSD.
+python ssp_package.py compare-ssd \
+  SystemStructure.ssd \
+  exported/SystemStructure.ssd
+
+# Compare a complete SSP round-trip, including all uncompressed FMU members.
+python ssp_package.py compare-ssp \
+  GeoFusion-Thermal-Federation.ssp \
+  exported/GeoFusion-Thermal-Federation.ssp
 ```
+
+Comparison commands emit a JSON receipt and use exit code 0 for semantic/content preservation, 3 for a valid but different/rejected candidate, and 2 for invalid input. The SSD canonicalizer ignores XML whitespace, attribute ordering and presentation-only layout/geometry but compares the system name, component source URIs, connector names/kinds/types/units, connection endpoints and SI unit definitions. The SSP package comparator also checks every uncompressed file member inside each referenced FMU: ZIP recompression/timestamp changes are distinguished from changes to modelDescription, binaries or other FMU resources.
 
 The build emits:
 - `GeoFusion-Thermal-Federation.ssp`: deterministic SSP ZIP package.
@@ -68,11 +80,20 @@ The assembler preserves the original FMU ZIP bytes. It does not unpack/repack or
 
 The official SSP 2.0.1 XSD files and license are vendored under `third_party/SSP-2.0.1/`; exact upstream tag and blob SHAs are recorded in `UPSTREAM.md`. The schemas are licensed under BSD 2-Clause. The SSP specification text has a separate license; this repository vendors schema sources, not specification prose.
 
+## Canonical round-trip comparison
+
+The comparator is intended for the future import → export → cross-import campaign. It separates:
+- **System-structure equivalence:** canonical component, connector, unit and connection graph; layout and XML serialization changes are ignored.
+- **Referenced-FMU content preservation:** member-by-member SHA-256 of uncompressed FMU contents. Recompression is allowed, but any changed model description, platform binary or resource is reported.
+- **Outer SSP archive identity:** retained as a receipt, but archive-byte differences alone are not treated as semantic graph changes.
+
+It does not claim the tools can execute the contained FMUs. Tool versions, import/export warnings and exported package digests remain part of the external campaign receipt.
+
 ## Tests and claim ceiling
 
 `tests/test_ssp_package.py` creates tiny **NON-EXECUTABLE, test-only FMU doubles** in temporary directories. They contain placeholder binary bytes; they are used solely to test packaging and the negative-control suite and are not committed as FMUs or accepted as real model evidence.
 
-The test suite covers deterministic assembly, correct graph/unit semantics, wrong variable identity/type/causality/unit, missing binaries, model identifier mismatch, path traversal, duplicate archive entries, reversed/wrong connections, stale FMU bytes, symlink inputs and DTD/external-entity rejection.
+The test suite covers deterministic assembly, correct graph/unit semantics, wrong variable identity/type/causality/unit, missing binaries, model identifier mismatch, path traversal, duplicate archive entries, reversed/wrong connections, stale FMU bytes, symlink inputs, DTD/external-entity rejection, canonical graph comparison, layout-insensitive round-trip equivalence, FMU ZIP recompression, and platform-binary tampering.
 
 Run:
 
