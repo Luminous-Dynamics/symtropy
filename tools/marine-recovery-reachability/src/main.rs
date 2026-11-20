@@ -73,10 +73,6 @@ fn parse_time(raw: Option<&str>) -> Option<DateTime<FixedOffset>> {
     raw.and_then(|value| DateTime::parse_from_rfc3339(value).ok())
 }
 
-fn close(left: f64, right: f64) -> bool {
-    (left - right).abs() <= NUMERIC_TOLERANCE
-}
-
 fn lower_cone_minimum(a: f64, b: f64, rate: f64, duration: f64) -> f64 {
     if rate <= NUMERIC_TOLERANCE || duration <= NUMERIC_TOLERANCE {
         return a.min(b);
