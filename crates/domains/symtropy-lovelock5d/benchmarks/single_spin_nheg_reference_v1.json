@@ -917,5 +917,185 @@
     ],
     "values_are": "17-significant-digit JavaScript binary64 evaluations of exact closed-form expressions; replay script emits 24-digit SymPy strings"
   },
-  "claim_ceiling": "Geometric identities for a source-reported local near-horizon solution. No independent EGB field-equation replay, global completion, finite charges, hyperbolicity, or dynamical stability is claimed."
+  "claim_ceiling": "Geometric identities for a source-reported local near-horizon solution. No independent EGB field-equation replay, global completion, finite charges, hyperbolicity, or dynamical stability is claimed.",
+  "horizon_measure_cutoff_tests": {
+    "beta_values": [
+      "0.1",
+      "0.5",
+      "0.9",
+      "0.99"
+    ],
+    "epsilon_values": [
+      "0.2",
+      "0.1",
+      "0.05",
+      "0.02",
+      "0.01"
+    ],
+    "normalization": "A_H/(alpha_sym^(3/2)*Delta_psi)",
+    "exact_asymptotic_coefficient": "pi*(1-beta)/(2*sqrt(2*(1+beta)))",
+    "exact_scaled_ratio": "epsilon^2*A_H/(alpha_sym^(3/2)*Delta_psi)/coefficient = 1-(1+beta)*epsilon^2+beta*epsilon^4",
+    "tests": [
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.20000000000000001",
+        "area_over_alpha_sym_3_2_delta_psi": "22.783562167959793",
+        "epsilon_squared_scaled_area": "0.91134248671839191",
+        "exact_divergence_coefficient": "0.95312760073459657",
+        "scaled_to_coefficient_ratio": "0.95616000000000001"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.10000000000000001",
+        "area_over_alpha_sym_3_2_delta_psi": "94.265272840252337",
+        "epsilon_squared_scaled_area": "0.94265272840252357",
+        "exact_divergence_coefficient": "0.95312760073459657",
+        "scaled_to_coefficient_ratio": "0.98901000000000028"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.050000000000000003",
+        "area_over_alpha_sym_3_2_delta_psi": "380.20283821493069",
+        "epsilon_squared_scaled_area": "0.95050709553732693",
+        "exact_divergence_coefficient": "0.95312760073459657",
+        "scaled_to_coefficient_ratio": "0.99725062500000006"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.020000000000000000",
+        "area_over_alpha_sym_3_2_delta_psi": "2381.7705996007876",
+        "epsilon_squared_scaled_area": "0.95270823984031505",
+        "exact_divergence_coefficient": "0.95312760073459657",
+        "scaled_to_coefficient_ratio": "0.99956001600000011"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.010000000000000000",
+        "area_over_alpha_sym_3_2_delta_psi": "9530.2275765164322",
+        "epsilon_squared_scaled_area": "0.95302275765164324",
+        "exact_divergence_coefficient": "0.95312760073459657",
+        "scaled_to_coefficient_ratio": "0.99989000099999992"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.20000000000000001",
+        "area_over_alpha_sym_3_2_delta_psi": "10.665140261697198",
+        "epsilon_squared_scaled_area": "0.42660561046788803",
+        "exact_divergence_coefficient": "0.45344984105855446",
+        "scaled_to_coefficient_ratio": "0.94079999999999997"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.10000000000000001",
+        "area_over_alpha_sym_3_2_delta_psi": "44.667076593472899",
+        "epsilon_squared_scaled_area": "0.44667076593472910",
+        "exact_divergence_coefficient": "0.45344984105855446",
+        "scaled_to_coefficient_ratio": "0.98505000000000009"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.050000000000000003",
+        "area_over_alpha_sym_3_2_delta_psi": "180.70032847413526",
+        "epsilon_squared_scaled_area": "0.45175082118533827",
+        "exact_divergence_coefficient": "0.45344984105855446",
+        "scaled_to_coefficient_ratio": "0.99625312500000018"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.020000000000000000",
+        "area_over_alpha_sym_3_2_delta_psi": "1132.9445185747666",
+        "epsilon_squared_scaled_area": "0.45317780742990665",
+        "exact_divergence_coefficient": "0.45344984105855446",
+        "scaled_to_coefficient_ratio": "0.99940008000000013"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.010000000000000000",
+        "area_over_alpha_sym_3_2_delta_psi": "4533.8182584964488",
+        "epsilon_squared_scaled_area": "0.45338182584964493",
+        "exact_divergence_coefficient": "0.45344984105855446",
+        "scaled_to_coefficient_ratio": "0.99985000500000010"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.20000000000000001",
+        "area_over_alpha_sym_3_2_delta_psi": "1.8643023814328268",
+        "epsilon_squared_scaled_area": "0.074572095257313092",
+        "exact_divergence_coefficient": "0.080580151341322043",
+        "scaled_to_coefficient_ratio": "0.92544000000000026"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.10000000000000001",
+        "area_over_alpha_sym_3_2_delta_psi": "7.9056380679457625",
+        "epsilon_squared_scaled_area": "0.079056380679457638",
+        "exact_divergence_coefficient": "0.080580151341322043",
+        "scaled_to_coefficient_ratio": "0.98108999999999991"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.050000000000000003",
+        "area_over_alpha_sym_3_2_delta_psi": "32.079139554320818",
+        "epsilon_squared_scaled_area": "0.080197848885802059",
+        "exact_divergence_coefficient": "0.080580151341322043",
+        "scaled_to_coefficient_ratio": "0.99525562499999998"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.020000000000000000",
+        "area_over_alpha_sym_3_2_delta_psi": "201.29730507461107",
+        "epsilon_squared_scaled_area": "0.080518922029844439",
+        "exact_divergence_coefficient": "0.080580151341322043",
+        "scaled_to_coefficient_ratio": "0.99924014400000005"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.010000000000000000",
+        "area_over_alpha_sym_3_2_delta_psi": "805.64841837788549",
+        "epsilon_squared_scaled_area": "0.080564841837788559",
+        "exact_divergence_coefficient": "0.080580151341322043",
+        "scaled_to_coefficient_ratio": "0.99981000900000006"
+      },
+      {
+        "beta": "0.98999999999999999",
+        "epsilon": "0.20000000000000001",
+        "area_over_alpha_sym_3_2_delta_psi": "0.18148541717763234",
+        "epsilon_squared_scaled_area": "0.0072594166871052948",
+        "exact_divergence_coefficient": "0.0078736905272817036",
+        "scaled_to_coefficient_ratio": "0.92198400000000014"
+      },
+      {
+        "beta": "0.98999999999999999",
+        "epsilon": "0.10000000000000001",
+        "area_over_alpha_sym_3_2_delta_psi": "0.77177835811509976",
+        "epsilon_squared_scaled_area": "0.0077177835811509995",
+        "exact_divergence_coefficient": "0.0078736905272817036",
+        "scaled_to_coefficient_ratio": "0.98019900000000015"
+      },
+      {
+        "beta": "0.98999999999999999",
+        "epsilon": "0.050000000000000003",
+        "area_over_alpha_sym_3_2_delta_psi": "3.1338270541474453",
+        "epsilon_squared_scaled_area": "0.0078345676353686142",
+        "exact_divergence_coefficient": "0.0078736905272817036",
+        "scaled_to_coefficient_ratio": "0.99503118749999997"
+      },
+      {
+        "beta": "0.98999999999999999",
+        "epsilon": "0.020000000000000000",
+        "area_over_alpha_sym_3_2_delta_psi": "19.668560792036420",
+        "epsilon_squared_scaled_area": "0.0078674243168145690",
+        "exact_divergence_coefficient": "0.0078736905272817036",
+        "scaled_to_coefficient_ratio": "0.99920415840000032"
+      },
+      {
+        "beta": "0.98999999999999999",
+        "epsilon": "0.010000000000000000",
+        "area_over_alpha_sym_3_2_delta_psi": "78.721237408163120",
+        "epsilon_squared_scaled_area": "0.0078721237408163128",
+        "exact_divergence_coefficient": "0.0078736905272817036",
+        "scaled_to_coefficient_ratio": "0.99980100990000031"
+      }
+    ]
+  }
 }
