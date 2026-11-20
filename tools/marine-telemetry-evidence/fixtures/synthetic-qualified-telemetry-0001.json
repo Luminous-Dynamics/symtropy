@@ -140,7 +140,10 @@
       "calibration_evidence_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
       "calibration_valid_from": "2026-10-01T00:00:00Z",
       "calibration_valid_until": "2027-01-01T00:00:00Z",
-      "observation_sha256": "10be0868d948705e874acd500629290c5d41f11e0970901aa446ef47036865f1"
+      "device_identity_ref": "SYNTHETIC-DEVICE-A",
+      "identity_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "calibration_chain_id": "cal-chain-a",
+      "observation_sha256": "e797fee61df0c133516d74e9cec7b9ac15fc58e3b6d05a3767dda4aec906835b"
     },
     {
       "sample_id": "sample-tank-b-0001",
@@ -174,7 +177,10 @@
       "calibration_evidence_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
       "calibration_valid_from": "2026-10-01T00:00:00Z",
       "calibration_valid_until": "2027-01-01T00:00:00Z",
-      "observation_sha256": "5d71f83edea3aaa821d3d83a18243d24baf665216ca42452561ed17749814e95"
+      "device_identity_ref": "SYNTHETIC-DEVICE-B",
+      "identity_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "calibration_chain_id": "cal-chain-b",
+      "observation_sha256": "c032ac33d6b3ab7a9b6f0d3a6e2a1b22c49a86d6491a8c977895d93524925eaa"
     },
     {
       "sample_id": "sample-battery-c-0001",
@@ -208,9 +214,12 @@
       "calibration_evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "calibration_valid_from": "2026-10-01T00:00:00Z",
       "calibration_valid_until": "2027-01-01T00:00:00Z",
-      "observation_sha256": "37646e7d711cf02c979aa7c91b116ee93ffeefc0099c4294ff3778dd7b5d0eb9"
+      "device_identity_ref": "SYNTHETIC-DEVICE-C",
+      "identity_evidence_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "calibration_chain_id": "cal-chain-c",
+      "observation_sha256": "3c6501923e597270365c4e69c111bcd8980fddd80514a4aaead511721d3bd67e"
     }
   ],
-  "observations_sha256": "da5c69155cf6ef2f1ef2c11ffe217f3c150a155d0dca0e028c5e9ae301a699b9",
-  "batch_sha256": "83ff8962c1725f1323626d61d7e2ceed1b8d62cb237f3230e4683cfae1b8fa9b"
+  "observations_sha256": "cbdac603277ff74a4f089eaff43df3a31f48f4430c6da21a99d5355a6ec1a38a",
+  "batch_sha256": "504b4f50c50a27e1eee7dd237fbf16a538b6dd5c41d0498a9585cb84b29be2b9"
 }
