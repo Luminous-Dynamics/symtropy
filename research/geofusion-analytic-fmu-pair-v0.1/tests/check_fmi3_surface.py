@@ -13,7 +13,7 @@ MODEL_DIR=ROOT/"model-description"
 
 def function_blocks(source: str):
     pattern=re.compile(
-        r"^\\s*(?:FMI3_Export\\s+)?(?:const\\s+char\\s*\\*|fmi3Status|fmi3Instance|void)\\s+(fmi3[A-Za-z0-9_]+)\\s*\\(",
+        r"^\s*(?:FMI3_Export\s+)?(?:const\s+char\s*\*|fmi3Status|fmi3Instance|void)\s+(fmi3[A-Za-z0-9_]+)\s*\(",
         re.MULTILINE,
     )
     matches=list(pattern.finditer(source))
