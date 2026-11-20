@@ -545,7 +545,28 @@ impl<const D: usize> RigidBody<D> {
                 -self.angular_velocity.get(0, 2),
                 self.angular_velocity.get(0, 1),
             );
-        /// Fallibly merge a rigid toolhead using the legacy isotropic mass approximation.
+            let rotation = SMatrix::<f64, 3, 3>::from_fn(|row, col| {
+                self.transform.rotation.to_matrix()[(row, col)]
+            });
+            let omega_local = rotation.transpose() * omega_world;
+            0.5 * (0..3)
+                .map(|axis| self.inertia[axis] * omega_local[axis] * omega_local[axis])
+                .sum::<f64>()
+        } else {
+            let inertia_mean = self.inertia.sum() / D as f64;
+            0.5 * inertia_mean * self.angular_velocity.norm_squared()
+        }
+    }
+
+    pub fn kinetic_energy(&self) -> f64 {
+        if !self.is_dynamic() {
+            return 0.0;
+        }
+        let linear = 0.5 * self.mass * self.linear_velocity.norm_squared();
+        linear + self.rotational_kinetic_energy()
+    }
+
+    /// Fallibly merge a rigid toolhead using the legacy isotropic mass approximation.
     ///
     /// The toolhead is assumed to share the base body's rigid motion at the
     /// instant of attachment. Its mass distribution is approximated by the
