@@ -140,6 +140,19 @@ class MemoryTournamentTests(unittest.TestCase):
                 workload_ref="git-blob-sha1:" + "0" * 40,
             )
 
+    def test_budget_caps_must_match_between_conditions(self):
+        runs = copy.deepcopy(self.runs)
+        runs[0]["budget"]["max_memory_bytes_per_episode"] = 65536
+        with self.assertRaises(comparator.EvaluationError):
+            comparator.compare_memory_conditions(self.workload, self.truth, runs)
+
+    def test_wrong_exact_workload_blob_reference_is_rejected(self):
+        with self.assertRaises(comparator.EvaluationError):
+            comparator.compare_memory_conditions(
+                self.workload, self.truth, self.runs,
+                workload_ref="git-blob-sha1:" + "0" * 40,
+            )
+
     def test_synthetic_run_cannot_claim_memory_or_latency_measurements(self):
         runs = copy.deepcopy(self.runs)
         runs[0]["submission"]["predictions"][0]["memory_bytes_used"] = 4
