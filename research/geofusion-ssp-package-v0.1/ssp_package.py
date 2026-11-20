@@ -34,6 +34,18 @@ ROOT = Path(__file__).resolve().parent
 SCHEMA_PATH = ROOT / "third_party" / "SSP-2.0.1" / "schema" / "SystemStructureDescription.xsd"
 
 @dataclass(frozen=True)
+class VariableProfile:
+    name: str
+    value_reference: int
+    causality: str
+    unit: str
+    port_id: str
+    carrier: str
+    boundary_id: str
+    port_role: str
+    quantity_kind: str
+
+@dataclass(frozen=True)
 class ComponentProfile:
     name: str
     source_uri: str
@@ -41,6 +53,7 @@ class ComponentProfile:
     variable_name: str
     value_reference: int
     causality: str
+    variables: tuple[VariableProfile, ...]
 
 PROFILES = (
     ComponentProfile(
@@ -50,6 +63,13 @@ PROFILES = (
         variable_name="thermalPowerOut",
         value_reference=11,
         causality="output",
+        variables=(
+            VariableProfile(
+                name="thermalPowerOut", value_reference=11, causality="output", unit="W",
+                port_id="geo.thermal_out", carrier="thermal", boundary_id="geo-to-hx",
+                port_role="coupling_source", quantity_kind="power_flow",
+            ),
+        ),
     ),
     ComponentProfile(
         name="HeatExchangerBuffer",
@@ -58,6 +78,33 @@ PROFILES = (
         variable_name="thermalPowerIn",
         value_reference=21,
         causality="input",
+        variables=(
+            VariableProfile(
+                name="thermalPowerIn", value_reference=21, causality="input", unit="W",
+                port_id="hx.thermal_in", carrier="thermal", boundary_id="geo-to-hx",
+                port_role="coupling_sink", quantity_kind="power_flow",
+            ),
+            VariableProfile(
+                name="thermalService", value_reference=31, causality="output", unit="W",
+                port_id="hx.thermal_service", carrier="thermal", boundary_id="hx-terminal-services",
+                port_role="terminal_sink", quantity_kind="power_flow",
+            ),
+            VariableProfile(
+                name="heatLoss", value_reference=32, causality="output", unit="W",
+                port_id="hx.heat_loss", carrier="thermal", boundary_id="hx-terminal-losses",
+                port_role="terminal_sink", quantity_kind="power_flow",
+            ),
+            VariableProfile(
+                name="storageCharge", value_reference=33, causality="output", unit="W",
+                port_id="hx.storage_charge", carrier="thermal", boundary_id="hx-terminal-storage",
+                port_role="terminal_sink", quantity_kind="power_flow",
+            ),
+            VariableProfile(
+                name="storedEnergy", value_reference=34, causality="output", unit="J",
+                port_id="hx.stored_energy", carrier="thermal", boundary_id="hx-storage-state",
+                port_role="state_observation", quantity_kind="stored_energy_state",
+            ),
+        ),
     ),
 )
 
@@ -132,18 +179,26 @@ def _unit_base_exponents(model_description, unit_name: str) -> dict[str, float]:
     result["offset"] = _finite_float(base.get("offset", "0"), f"modelDescription.xml unit {unit_name} offset")
     return result
 
-EXPECTED_W = {
-    "kg": 1.0, "m": 2.0, "s": -3.0, "A": 0.0,
-    "K": 0.0, "mol": 0.0, "cd": 0.0, "rad": 0.0,
-    "factor": 1.0, "offset": 0.0,
+EXPECTED_UNITS = {
+    "W": {
+        "kg": 1.0, "m": 2.0, "s": -3.0, "A": 0.0,
+        "K": 0.0, "mol": 0.0, "cd": 0.0, "rad": 0.0,
+        "factor": 1.0, "offset": 0.0,
+    },
+    "J": {
+        "kg": 1.0, "m": 2.0, "s": -2.0, "A": 0.0,
+        "K": 0.0, "mol": 0.0, "cd": 0.0, "rad": 0.0,
+        "factor": 1.0, "offset": 0.0,
+    },
 }
 
-def _check_w_unit(unit_map: dict[str, float], label: str) -> None:
-    if unit_map != EXPECTED_W:
-        raise QualificationError(f"{label}: unit W is not kg·m²·s⁻³ with factor=1, offset=0")
+def _check_unit(unit_map: dict[str, float], unit_name: str, label: str) -> None:
+    expected = EXPECTED_UNITS.get(unit_name)
+    if expected is None or unit_map != expected:
+        raise QualificationError(f"{label}: unit {unit_name!r} has unexpected SI base dimensions")
 
 def inspect_fmu_bytes(data: bytes, profile: ComponentProfile) -> dict:
-    """Verify the FMU ZIP profile and extract hashes/identity from actual bytes."""
+    """Verify every declared FMI variable and extract hashes/identity from actual bytes."""
     label = profile.name
     try:
         with zipfile.ZipFile(io.BytesIO(data), "r") as archive:
@@ -174,35 +229,62 @@ def inspect_fmu_bytes(data: bytes, profile: ComponentProfile) -> dict:
             if not binary_bytes:
                 raise QualificationError(f"{label} FMU: selected platform binary is empty")
 
-            variable = md.find(
-                f"ModelVariables/Float64[@name='{profile.variable_name}']"
-            )
-            if variable is None:
-                raise QualificationError(
-                    f"{label} FMU: Float64 variable {profile.variable_name!r} is missing"
+            variable_records = []
+            seen_value_references = set()
+            for variable_profile in profile.variables:
+                variable = md.find(
+                    f"ModelVariables/Float64[@name='{variable_profile.name}']"
                 )
-            if variable.get("causality") != profile.causality:
-                raise QualificationError(
-                    f"{label} FMU: {profile.variable_name} causality must be {profile.causality!r}"
-                )
-            if variable.get("variability") != "continuous":
-                raise QualificationError(
-                    f"{label} FMU: {profile.variable_name} variability must be 'continuous'"
-                )
-            if variable.get("unit") != "W":
-                raise QualificationError(
-                    f"{label} FMU: {profile.variable_name} unit must be 'W', got {variable.get('unit')!r}"
-                )
-            try:
-                value_reference = int(variable.get("valueReference", ""))
-            except ValueError as error:
-                raise QualificationError(f"{label} FMU: invalid valueReference") from error
-            if value_reference != profile.value_reference:
-                raise QualificationError(
-                    f"{label} FMU: valueReference must be {profile.value_reference}, "
-                    f"got {value_reference}"
-                )
-            _check_w_unit(_unit_base_exponents(md, "W"), f"{label} FMU")
+                if variable is None:
+                    raise QualificationError(
+                        f"{label} FMU: Float64 variable {variable_profile.name!r} is missing"
+                    )
+                if variable.get("causality") != variable_profile.causality:
+                    raise QualificationError(
+                        f"{label} FMU: {variable_profile.name} causality must be {variable_profile.causality!r}"
+                    )
+                if variable.get("variability") != "continuous":
+                    raise QualificationError(
+                        f"{label} FMU: {variable_profile.name} variability must be 'continuous'"
+                    )
+                if variable.get("unit") != variable_profile.unit:
+                    raise QualificationError(
+                        f"{label} FMU: {variable_profile.name} unit must be {variable_profile.unit!r}, "
+                        f"got {variable.get('unit')!r}"
+                    )
+                try:
+                    value_reference = int(variable.get("valueReference", ""))
+                except ValueError as error:
+                    raise QualificationError(
+                        f"{label} FMU: {variable_profile.name} has invalid valueReference"
+                    ) from error
+                if value_reference != variable_profile.value_reference:
+                    raise QualificationError(
+                        f"{label} FMU: {variable_profile.name} valueReference must be "
+                        f"{variable_profile.value_reference}, got {value_reference}"
+                    )
+                if value_reference in seen_value_references:
+                    raise QualificationError(f"{label} FMU: duplicate valueReference {value_reference}")
+                seen_value_references.add(value_reference)
+                unit_map = _unit_base_exponents(md, variable_profile.unit)
+                _check_unit(unit_map, variable_profile.unit, f"{label} FMU")
+
+                variable_records.append({
+                    "name": variable_profile.name,
+                    "value_reference": value_reference,
+                    "fmi_type": "Float64",
+                    "causality": variable_profile.causality,
+                    "variability": variable.get("variability"),
+                    "unit": variable_profile.unit,
+                    "unit_base_exponents": unit_map,
+                    "ssp_connector_kind": variable_profile.causality,
+                    "ssp_connector_type": "Float64",
+                    "port_id": variable_profile.port_id,
+                    "carrier": variable_profile.carrier,
+                    "boundary_id": variable_profile.boundary_id,
+                    "port_role": variable_profile.port_role,
+                    "quantity_kind": variable_profile.quantity_kind,
+                })
 
             return {
                 "component_name": profile.name,
@@ -217,16 +299,7 @@ def inspect_fmu_bytes(data: bytes, profile: ComponentProfile) -> dict:
                 "binary_sha256": sha256(binary_bytes),
                 "model_description_sha256": sha256(md_bytes),
                 "fmu_package_sha256": sha256(data),
-                "variable": {
-                    "name": profile.variable_name,
-                    "value_reference": value_reference,
-                    "fmi_type": "Float64",
-                    "causality": profile.causality,
-                    "variability": variable.get("variability"),
-                    "unit": variable.get("unit"),
-                    "ssp_connector_kind": profile.causality,
-                    "ssp_connector_type": "Float64",
-                },
+                "variables": variable_records,
                 "capabilities": {
                     key: cosim.get(key, "false").lower() == "true"
                     for key in (
@@ -242,7 +315,7 @@ def inspect_fmu_bytes(data: bytes, profile: ComponentProfile) -> dict:
         raise QualificationError(f"{label} input is not a valid FMU ZIP archive") from error
 
 def make_ssd() -> bytes:
-    """Generate the canonical SSP SSD descriptor for the declared two-FMU graph."""
+    """Generate the SSP descriptor for every typed FMI port in the federation."""
     q = lambda ns, local: f"{{{ns}}}{local}"
     root = etree.Element(
         q(SSD_NS, "SystemStructureDescription"),
@@ -263,13 +336,14 @@ def make_ssd() -> bytes:
             implementation="CoSimulation",
         )
         connectors = etree.SubElement(component, q(SSD_NS, "Connectors"))
-        connector = etree.SubElement(
-            connectors,
-            q(SSD_NS, "Connector"),
-            name=profile.variable_name,
-            kind=profile.causality,
-        )
-        etree.SubElement(connector, q(SSC_NS, "Float64"), unit="W")
+        for variable in profile.variables:
+            connector = etree.SubElement(
+                connectors,
+                q(SSD_NS, "Connector"),
+                name=variable.name,
+                kind=variable.causality,
+            )
+            etree.SubElement(connector, q(SSC_NS, "Float64"), unit=variable.unit)
 
     connections = etree.SubElement(system, q(SSD_NS, "Connections"))
     etree.SubElement(
@@ -282,8 +356,15 @@ def make_ssd() -> bytes:
     )
 
     units = etree.SubElement(root, q(SSD_NS, "Units"))
-    unit = etree.SubElement(units, q(SSC_NS, "Unit"), name="W")
-    etree.SubElement(unit, q(SSC_NS, "BaseUnit"), kg="1", m="2", s="-3")
+    for unit_name, unit_values in EXPECTED_UNITS.items():
+        unit = etree.SubElement(units, q(SSC_NS, "Unit"), name=unit_name)
+        etree.SubElement(
+            unit,
+            q(SSC_NS, "BaseUnit"),
+            kg=str(int(unit_values["kg"])),
+            m=str(int(unit_values["m"])),
+            s=str(int(unit_values["s"])),
+        )
 
     etree.SubElement(root, q(SSD_NS, "DefaultExperiment"), startTime="0", stopTime="2")
     return etree.tostring(root, xml_declaration=True, encoding="UTF-8", pretty_print=True)
@@ -333,32 +414,46 @@ def validate_ssd(ssd_bytes: bytes) -> dict:
             connector_name = connector.get("name")
             if not connector_name or connector_name in connector_map:
                 raise QualificationError(f"SystemStructure.ssd: duplicate connector on {name}")
-            float64 = connector.find("ssc:Float64", namespaces=NS)
-            if float64 is None:
-                raise QualificationError(f"SystemStructure.ssd: connector {name}.{connector_name} is not Float64")
+            typed_nodes = [
+                (type_name, connector.find(f"ssc:{type_name}", namespaces=NS))
+                for type_name in ("Float64",)
+            ]
+            present = [(type_name, node) for type_name, node in typed_nodes if node is not None]
+            if len(present) != 1:
+                raise QualificationError(
+                    f"SystemStructure.ssd: connector {name}.{connector_name} must have exactly one Float64 type"
+                )
+            type_name, type_node = present[0]
+            unit_name = type_node.get("unit")
+            if unit_name not in EXPECTED_UNITS:
+                raise QualificationError(
+                    f"SystemStructure.ssd: connector {name}.{connector_name} uses unsupported unit {unit_name!r}"
+                )
             connector_map[connector_name] = {
                 "kind": connector.get("kind"),
-                "type": "Float64",
-                "unit": float64.get("unit"),
+                "type": type_name,
+                "unit": unit_name,
             }
         components[name] = {"source": source, "connectors": connector_map}
 
-    if set(components) != {"GeothermalSource", "HeatExchangerBuffer"}:
+    if set(components) != {profile.name for profile in PROFILES}:
         raise QualificationError("SystemStructure.ssd: component set does not match the two-FMU federation")
 
-    expected_connectors = {
-        "GeothermalSource": {"thermalPowerOut": {"kind": "output", "type": "Float64", "unit": "W"}},
-        "HeatExchangerBuffer": {"thermalPowerIn": {"kind": "input", "type": "Float64", "unit": "W"}},
-    }
-    for component_name, expected in expected_connectors.items():
-        if components[component_name]["connectors"] != expected:
+    for profile in PROFILES:
+        expected_connectors = {
+            variable.name: {
+                "kind": variable.causality,
+                "type": "Float64",
+                "unit": variable.unit,
+            }
+            for variable in profile.variables
+        }
+        if components[profile.name]["connectors"] != expected_connectors:
             raise QualificationError(
-                f"SystemStructure.ssd: {component_name} connector/type/kind/unit map mismatch"
+                f"SystemStructure.ssd: {profile.name} connector/type/kind/unit map mismatch"
             )
-        if components[component_name]["source"] != next(
-            profile.source_uri for profile in PROFILES if profile.name == component_name
-        ):
-            raise QualificationError(f"SystemStructure.ssd: unexpected source URI for {component_name}")
+        if components[profile.name]["source"] != profile.source_uri:
+            raise QualificationError(f"SystemStructure.ssd: unexpected source URI for {profile.name}")
 
     connections = system.find("ssd:Connections", namespaces=NS)
     if connections is None:
@@ -378,22 +473,28 @@ def validate_ssd(ssd_bytes: bytes) -> dict:
     if connection_records != expected_connection:
         raise QualificationError("SystemStructure.ssd: connection direction or endpoint identity mismatch")
 
-    units = root.find("ssd:Units/ssc:Unit[@name='W']/ssc:BaseUnit", namespaces=NS)
-    if units is None:
-        raise QualificationError("SystemStructure.ssd: SI unit W is missing")
-    unit_map = {
-        key: _finite_float(units.get(key, "0"), f"SSP W unit {key}")
-        for key in ("kg", "m", "s", "A", "K", "mol", "cd", "rad")
-    }
-    unit_map["factor"] = _finite_float(units.get("factor", "1"), "SSP W unit factor")
-    unit_map["offset"] = _finite_float(units.get("offset", "0"), "SSP W unit offset")
-    _check_w_unit(unit_map, "SSP SystemStructure.ssd")
+    unit_definitions = {}
+    for unit_name in EXPECTED_UNITS:
+        node = root.find(f"ssd:Units/ssc:Unit[@name='{unit_name}']/ssc:BaseUnit", namespaces=NS)
+        if node is None:
+            raise QualificationError(f"SystemStructure.ssd: SI unit {unit_name} is missing")
+        unit_map = {
+            key: _finite_float(node.get(key, "0"), f"SSP {unit_name} unit {key}")
+            for key in ("kg", "m", "s", "A", "K", "mol", "cd", "rad")
+        }
+        unit_map["factor"] = _finite_float(node.get("factor", "1"), f"SSP {unit_name} unit factor")
+        unit_map["offset"] = _finite_float(node.get("offset", "0"), f"SSP {unit_name} unit offset")
+        _check_unit(unit_map, unit_name, "SSP SystemStructure.ssd")
+        unit_definitions[unit_name] = unit_map
+
     return {
         "ssd_version": root.get("version"),
         "system_name": system.get("name"),
         "components": components,
         "connections": connection_records,
-        "unit_W": unit_map,
+        "unit_definitions": unit_definitions,
+        "unit_W": unit_definitions["W"],
+        "unit_J": unit_definitions["J"],
     }
 
 def _canonical_graph_from_semantics(semantics: dict) -> dict:
@@ -431,7 +532,7 @@ def _canonical_graph_from_semantics(semantics: dict) -> dict:
         "system_name": semantics["system_name"],
         "components": components,
         "connections": connections,
-        "unit_definitions": {"W": semantics["unit_W"]},
+        "unit_definitions": semantics["unit_definitions"],
     }
 
 def canonicalize_ssd(ssd_bytes: bytes) -> dict:
@@ -628,6 +729,28 @@ def _json_object_no_duplicates(pairs):
 def _json_bytes(value: dict) -> bytes:
     return (json.dumps(value, sort_keys=True, indent=2, separators=(",", ": ")) + "\n").encode("utf-8")
 
+def _validate_ssd_fmu_bindings(ssd_semantics: dict, inspections: list[dict]) -> None:
+    """Require a one-to-one match between every profiled FMU variable and SSP connector."""
+    for inspection in inspections:
+        component_name = inspection["component_name"]
+        connector_map = ssd_semantics["components"][component_name]["connectors"]
+        variables = {record["name"]: record for record in inspection["variables"]}
+        if set(connector_map) != set(variables):
+            raise QualificationError(
+                f"{component_name}: SSP connector set does not match profiled FMI variable set"
+            )
+        for variable_name, variable in variables.items():
+            connector = connector_map[variable_name]
+            expected = {
+                "kind": variable["causality"],
+                "type": variable["fmi_type"],
+                "unit": variable["unit"],
+            }
+            if connector != expected:
+                raise QualificationError(
+                    f"{component_name}.{variable_name}: SSP connector is incompatible with FMI variable"
+                )
+
 def build_package(geothermal_fmu: Path, heat_exchanger_fmu: Path, output_path: Path) -> dict:
     """Assemble a deterministic SSP package from two actual FMU files."""
     geothermal_fmu = Path(geothermal_fmu)
@@ -653,12 +776,7 @@ def build_package(geothermal_fmu: Path, heat_exchanger_fmu: Path, output_path: P
     ssd_bytes = make_ssd()
     ssd_semantics = validate_ssd(ssd_bytes)
 
-    for inspection, profile in zip(inspections, PROFILES):
-        connector = ssd_semantics["components"][profile.name]["connectors"][profile.variable_name]
-        variable = inspection["variable"]
-        if connector["kind"] != variable["causality"] or connector["type"] != variable["fmi_type"] \
-                or connector["unit"] != variable["unit"]:
-            raise QualificationError(f"{profile.name}: SSP connector is incompatible with FMI variable")
+    _validate_ssd_fmu_bindings(ssd_semantics, inspections)
 
     manifest = {
         "schema_version": "0.1.0",
@@ -791,6 +909,7 @@ def verify_package_bytes(package_bytes: bytes) -> dict:
                 if ssd_component["source"] != uri:
                     raise QualificationError(f"SSP source URI mismatch for {profile.name}")
 
+            _validate_ssd_fmu_bindings(ssd_semantics, actual_inspections)
             if manifest.get("components") != actual_inspections:
                 raise QualificationError("SSP package evidence manifest does not match actual FMU bytes/metadata")
             return {
