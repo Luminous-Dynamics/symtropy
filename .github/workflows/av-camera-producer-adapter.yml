@@ -57,10 +57,11 @@ jobs:
       - name: Regenerate lockfile for exact Cargo 1.96 resolution
         run: cargo generate-lockfile --manifest-path research/av-camera-producer-adapter-v0/Cargo.toml
 
-      - name: Require committed lockfile to match resolver output
-        run: |
-          git ls-files --error-unmatch research/av-camera-producer-adapter-v0/Cargo.lock
-          git diff --exit-code -- research/av-camera-producer-adapter-v0/Cargo.lock
+      - name: Run adapter tests against resolved lock
+        run: cargo test --manifest-path research/av-camera-producer-adapter-v0/Cargo.toml
+
+      - name: Run strict Clippy against resolved lock
+        run: cargo clippy --locked --manifest-path research/av-camera-producer-adapter-v0/Cargo.toml --all-targets --all-features -- -D warnings
 
       - name: Export resolved lockfile for diagnosis
         if: always()
@@ -70,8 +71,7 @@ jobs:
           path: research/av-camera-producer-adapter-v0/Cargo.lock
           if-no-files-found: error
 
-      - name: Run adapter tests
-        run: cargo test --locked --manifest-path research/av-camera-producer-adapter-v0/Cargo.toml
-
-      - name: Run strict Clippy
-        run: cargo clippy --locked --manifest-path research/av-camera-producer-adapter-v0/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Require committed lockfile to match resolver output
+        run: |
+          git ls-files --error-unmatch research/av-camera-producer-adapter-v0/Cargo.lock
+          git diff --exit-code -- research/av-camera-producer-adapter-v0/Cargo.lock
