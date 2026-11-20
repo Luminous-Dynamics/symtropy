@@ -220,6 +220,7 @@ fn validate_inputs(
             || scenario.shifts_per_day > 4
             || !scenario.productive_minutes_per_cell_year.is_finite()
             || scenario.productive_minutes_per_cell_year <= 0.0
+            || scenario.productive_minutes_per_cell_year > 10_000_000.0
             || !scenario.good_vehicle_yield_fraction.is_finite()
             || scenario.good_vehicle_yield_fraction <= 0.0
             || scenario.good_vehicle_yield_fraction > 1.0
@@ -367,6 +368,12 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
     if config.good_module_yield_fraction.is_none() {
         missing_fields.push("good_module_yield_fraction".into());
     }
+    if target_good_modules.is_some()
+        && config.good_module_yield_fraction.is_some()
+        && attempts.is_none()
+    {
+        missing_fields.push("planned_module_attempt_count_exceeds_v1_range".into());
+    }
 
     let mut station_results = Vec::new();
     let mut station_capacities = Vec::new();
@@ -392,6 +399,12 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
             (Some(required), Some(available)) => Some(required.min(u64::from(available))),
             _ => None,
         };
+        if station.cycle_minutes_per_attempt.is_some()
+            && attempts.is_some()
+            && required.is_none()
+        {
+            missing.push("required_parallel_cells_exceeds_v1_sizing_limit".into());
+        }
         if station.cycle_minutes_per_attempt.is_none() {
             missing.push("cycle_minutes_per_attempt".into());
         }
@@ -707,6 +720,20 @@ mod tests {
         let result = evaluate_pair(&base(), &test);
         assert_eq!(result.status, Status::Blocked);
         assert!(result.good_vehicle_capacity_margin_per_year.unwrap() < 0);
+    }
+
+    #[test]
+    fn module_station_size_above_supported_bound_is_indeterminate_not_a_pass() {
+        let mut factory = base();
+        factory.target_good_vehicles_per_year = 10_000_000;
+        let mut test = config();
+        test.good_module_yield_fraction = Some(0.0001);
+        let result = evaluate_pair(&factory, &test);
+        assert_eq!(result.status, Status::Indeterminate);
+        assert_eq!(result.equivalent_good_vehicle_capacity_per_year, None);
+        assert!(result.missing_fields.iter().any(|field| {
+            field == "assembly:required_parallel_cells_exceeds_v1_sizing_limit"
+        }));
     }
 
     #[test]
