@@ -32,7 +32,7 @@ fn read_json<T: DeserializeOwned>(path: &Path, label: &str) -> Result<T, String>
 
 fn usage(program: &str) -> String {
     format!(
-        "Usage: {program} <bundle-root> <claim-package.json> <trusted-roots.json> <pinned-trust-root-sha256> <producer-profiles.json> <verified-at-unix-ms>\\n\\nTrust-root digest and producer profiles are supplied outside the evidence bundle. The claim package contains the frozen case, run receipt, observation batches, artifact manifest, attestations, and run-receipt artifact URI."
+        "Usage: {program} <bundle-root> <claim-package.json> <trusted-roots.json> <pinned-trust-root-sha256> <producer-profiles.json> <verified-at-unix-ms>\n\nTrust-root digest and producer profiles are supplied outside the evidence bundle. The claim package contains the frozen case, run receipt, observation batches, artifact manifest, attestations, and run receipt artifact URI."
     )
 }
 
