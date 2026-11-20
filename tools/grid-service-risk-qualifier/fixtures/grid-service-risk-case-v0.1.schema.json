@@ -1,0 +1,376 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:grid-service-risk-qualifier:case:0.1.0",
+  "title": "Grid Service Risk Certificate Case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "caseId",
+    "caseMaturity",
+    "asOfHour",
+    "horizonEndHour",
+    "sourcePolicyCertificateRef",
+    "sourcePolicyCertificateSha256",
+    "probabilityEnvelopeRef",
+    "probabilityEnvelopeSha256",
+    "probabilityEnvelope",
+    "serviceOutcomeManifestRef",
+    "serviceOutcomeManifestSha256",
+    "serviceOutcomeManifest",
+    "riskLimitManifestRef",
+    "riskLimitManifestSha256",
+    "riskLimitManifest"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "caseId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "caseMaturity": {
+      "enum": [
+        "synthetic_fixture",
+        "historical_replay",
+        "field_observed"
+      ]
+    },
+    "asOfHour": {
+      "type": "number",
+      "minimum": 0
+    },
+    "horizonEndHour": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "sourcePolicyCertificateRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourcePolicyCertificateSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "probabilityEnvelopeRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "probabilityEnvelopeSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "probabilityEnvelope": {
+      "$ref": "#/$defs/probabilityEnvelope"
+    },
+    "serviceOutcomeManifestRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "serviceOutcomeManifestSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "serviceOutcomeManifest": {
+      "$ref": "#/$defs/serviceOutcomeManifest"
+    },
+    "riskLimitManifestRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "riskLimitManifestSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "riskLimitManifest": {
+      "$ref": "#/$defs/riskLimitManifest"
+    }
+  },
+  "$defs": {
+    "probabilityEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "ambiguitySetRef",
+        "sourceEvidenceRef",
+        "branches"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "0.1.0"
+        },
+        "ambiguitySetRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceEvidenceRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "branches": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "branchId",
+              "pointBasisPoints",
+              "lowerBasisPoints",
+              "upperBasisPoints"
+            ],
+            "properties": {
+              "branchId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "pointBasisPoints": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 10000
+              },
+              "lowerBasisPoints": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 10000
+              },
+              "upperBasisPoints": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 10000
+              }
+            }
+          }
+        }
+      }
+    },
+    "serviceOutcomeManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "manifestId",
+        "timeOriginRef",
+        "horizonRef",
+        "beneficiaryProfileRef",
+        "serviceModelFamilyRef",
+        "branches"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "0.1.0"
+        },
+        "manifestId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timeOriginRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "horizonRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "beneficiaryProfileRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serviceModelFamilyRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "branches": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "branchId",
+              "serviceAssessments"
+            ],
+            "properties": {
+              "branchId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "serviceAssessments": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/serviceAssessment"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "serviceAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metricId",
+        "serviceType",
+        "beneficiaryScope",
+        "cohortId",
+        "unit",
+        "denominatorRef",
+        "targetHorizonRef",
+        "serviceFractionLowerBound",
+        "serviceFractionUpperBound",
+        "minimumServiceFloor",
+        "unservedQuantity",
+        "acceptanceStatus",
+        "evidenceMaturity",
+        "serviceModelRef",
+        "serviceTrajectoryRef",
+        "independentAcceptanceRef",
+        "evidenceRef"
+      ],
+      "properties": {
+        "metricId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serviceType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "beneficiaryScope": {
+          "enum": [
+            "household_site",
+            "organization",
+            "community",
+            "town_municipality",
+            "city_metropolitan"
+          ]
+        },
+        "cohortId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "denominatorRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "targetHorizonRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serviceFractionLowerBound": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "serviceFractionUpperBound": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "minimumServiceFloor": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "unservedQuantity": {
+          "type": "number",
+          "minimum": 0
+        },
+        "acceptanceStatus": {
+          "enum": [
+            "accepted",
+            "pending",
+            "rejected",
+            "unknown"
+          ]
+        },
+        "evidenceMaturity": {
+          "enum": [
+            "synthetic_fixture",
+            "historical_replay",
+            "field_observed"
+          ]
+        },
+        "serviceModelRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serviceTrajectoryRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "independentAcceptanceRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidenceRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "riskLimitManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "manifestId",
+        "policyRef",
+        "limits"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "0.1.0"
+        },
+        "manifestId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policyRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "limits": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "metricId",
+              "unit",
+              "maximumRobustExpectedUnservedQuantity",
+              "authorityRef"
+            ],
+            "properties": {
+              "metricId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "maximumRobustExpectedUnservedQuantity": {
+                "type": "number",
+                "minimum": 0
+              },
+              "authorityRef": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
