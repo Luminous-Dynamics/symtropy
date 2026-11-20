@@ -1,0 +1,548 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "GEOFUSION-THERMAL-TRANSIENT-ORACLE-001",
+  "model": "C*d(theta)/dt = (1-alpha)*Q_source - UA*theta",
+  "units": {
+    "heat_capacity": "J/K",
+    "loss_conductance": "W/K",
+    "source_power": "W",
+    "temperature_excess": "K",
+    "time": "s",
+    "energy": "J"
+  },
+  "parameters": {
+    "heat_capacity_j_per_k": 10000000,
+    "loss_conductance_w_per_k": 100000,
+    "service_fraction": 0.4
+  },
+  "piecewise_constant": {
+    "initial_theta_k": 1.5,
+    "source_power_w": 500000,
+    "duration_s": 60,
+    "expected": {
+      "theta_end_k": 2.1767825458589605,
+      "energy_input_j": 30000000,
+      "energy_service_j": 12000000,
+      "energy_loss_j": 11232174.541410396,
+      "storage_delta_j": 6767825.458589605,
+      "residual_j": 0
+    }
+  },
+  "sinusoidal": {
+    "mean_power_w": 500000,
+    "amplitude_w": 100000,
+    "period_s": 400,
+    "initial_theta_k": 2,
+    "start_time_s": 0,
+    "end_time_s": 120,
+    "expected": {
+      "theta_end_k": 3.02923898271592,
+      "energy_input_j": 68333461.00984275,
+      "energy_service_j": 27333384.4039371,
+      "energy_loss_j": 30707686.77874645,
+      "storage_delta_j": 10292389.8271592,
+      "residual_j": 0
+    }
+  },
+  "claim_ceiling": "Synthetic closed-form mathematical oracle only. No FMU, master, physical heat exchanger or geothermal plant qualification.",
+  "zero_order_hold_convergence": {
+    "source_policy": "left_endpoint_zero_order_hold",
+    "reference": "continuous_sinusoidal_solution",
+    "time_interval_s": [
+      0,
+      120
+    ],
+    "input": {
+      "mean_power_w": 500000,
+      "amplitude_w": 100000,
+      "period_s": 400,
+      "initial_theta_k": 2
+    },
+    "step_count_error_k": [
+      {
+        "steps": 15,
+        "theta_end_abs_error_k": 0.01018851012255
+      },
+      {
+        "steps": 30,
+        "theta_end_abs_error_k": 0.00494693276956
+      },
+      {
+        "steps": 60,
+        "theta_end_abs_error_k": 0.00243746324223
+      },
+      {
+        "steps": 120,
+        "theta_end_abs_error_k": 0.0012098335168
+      },
+      {
+        "steps": 240,
+        "theta_end_abs_error_k": 0.00060270501981
+      },
+      {
+        "steps": 480,
+        "theta_end_abs_error_k": 0.00030080117068
+      },
+      {
+        "steps": 960,
+        "theta_end_abs_error_k": 0.0001502629498
+      }
+    ],
+    "observed_global_convergence_order": "approximately 1 for smooth forcing and left-endpoint hold",
+    "claim_ceiling": "Reference discretization study only; not a measured OMSimulator, FMPy or commercial-master result."
+  },
+  "interval_average_exchange_convergence": {
+    "source_policy": "exact_interval_average_power_from_known_sinusoidal_waveform",
+    "reference": "continuous_sinusoidal_solution",
+    "time_interval_s": [
+      0,
+      120
+    ],
+    "input": {
+      "mean_power_w": 500000,
+      "amplitude_w": 100000,
+      "period_s": 400,
+      "initial_theta_k": 2
+    },
+    "step_count_error_k": [
+      {
+        "steps": 15,
+        "theta_end_abs_error_k": 0.00012831264619173055
+      },
+      {
+        "steps": 30,
+        "theta_end_abs_error_k": 0.00003203961106557074
+      },
+      {
+        "steps": 60,
+        "theta_end_abs_error_k": 0.000008007493556227985
+      },
+      {
+        "steps": 120,
+        "theta_end_abs_error_k": 0.000002001722820832441
+      },
+      {
+        "steps": 240,
+        "theta_end_abs_error_k": 5.004212946246867e-7
+      },
+      {
+        "steps": 480,
+        "theta_end_abs_error_k": 1.251047296868535e-7
+      },
+      {
+        "steps": 960,
+        "theta_end_abs_error_k": 3.127617054232701e-8
+      }
+    ],
+    "source_energy_closure_abs_error_j_max": 0.0001,
+    "observed_global_convergence_order": "approximately 2 for smooth forcing and exact interval-average source power",
+    "15_step_comparison": {
+      "left_endpoint_zero_order_hold_endpoint_error_k": 0.010188510122550287,
+      "interval_average_exchange_endpoint_error_k": 0.00012831264619173055,
+      "endpoint_error_reduction_factor": 79.40378773987838
+    },
+    "causality_and_applicability": "This is an oracle/method reference for a known or forecast waveform, or a producer that can publish integrated interval flux. It requires knowledge of the whole communication interval; it is not a universally causal substitute for a point-sampled FMI input."
+  },
+  "causal_bounded_linear_predictor_convergence": {
+    "source_policy": "causal_bounded_linear_extrapolation",
+    "observation_contract": "At communication time t_n, uses only current FMI output Q_n and previous committed output Q_(n-1); first interval bootstraps with Q_0. No future output sample is read.",
+    "predictor": "Qbar_n = clamp(Q_n + 0.5*(Q_n-Q_(n-1)), Q_min, Q_max)",
+    "bounds": {
+      "minimum_power_w": 400000,
+      "maximum_power_w": 600000
+    },
+    "limiter_policy": "Project each predictor onto the explicit source envelope and record activation count plus maximum projection magnitude; no silent clipping.",
+    "reference": "continuous_sinusoidal_solution",
+    "time_interval_s": [
+      0,
+      120
+    ],
+    "input": {
+      "mean_power_w": 500000,
+      "amplitude_w": 100000,
+      "period_s": 400,
+      "initial_theta_k": 2
+    },
+    "step_count_error_k": [
+      {
+        "steps": 15,
+        "theta_end_abs_error_k": 0.0007871294252446148,
+        "limiter_activations": 1,
+        "max_unbounded_overshoot_w": 589.6467278063064
+      },
+      {
+        "steps": 30,
+        "theta_end_abs_error_k": 0.0002312734512801562,
+        "limiter_activations": 2,
+        "max_unbounded_overshoot_w": 98.66357858642004
+      },
+      {
+        "steps": 60,
+        "theta_end_abs_error_k": 0.00006448000497005779,
+        "limiter_activations": 2,
+        "max_unbounded_overshoot_w": 24.671981713501737
+      },
+      {
+        "steps": 120,
+        "theta_end_abs_error_k": 0.00001694947419661474,
+        "limiter_activations": 2,
+        "max_unbounded_overshoot_w": 6.168375917011872
+      },
+      {
+        "steps": 240,
+        "theta_end_abs_error_k": 0.000004340801009306006,
+        "limiter_activations": 2,
+        "max_unbounded_overshoot_w": 1.5421177605167031
+      },
+      {
+        "steps": 480,
+        "theta_end_abs_error_k": 0.00000109811200665888,
+        "limiter_activations": 2,
+        "max_unbounded_overshoot_w": 0.38553092652000487
+      },
+      {
+        "steps": 960,
+        "theta_end_abs_error_k": 2.761408133267196e-7,
+        "limiter_activations": 2,
+        "max_unbounded_overshoot_w": 0.09638282447122037
+      }
+    ],
+    "15_step_comparison": {
+      "left_endpoint_zero_order_hold_endpoint_error_k": 0.010188510122550287,
+      "causal_bounded_predictor_endpoint_error_k": 0.0007871294252446148,
+      "exact_interval_average_oracle_endpoint_error_k": 0.00012831264619173055,
+      "causal_error_reduction_vs_zero_order_hold": 12.943881648667908,
+      "causal_error_ratio_to_exact_average_oracle": 6.134464907445292
+    },
+    "observed_global_convergence_order": "approximately 2; refinement ratios approach 4 after first-interval bootstrap",
+    "declared_exchange_energy_residual_abs_error_j_max": 2e-7,
+    "claim_ceiling": "The predictor is causal only with respect to the discrete source samples supplied to it; the analytic oracle generates those samples from a known sinusoid for testing. It does not guarantee error bounds for arbitrary unknown inputs. Limiter activation is observable and must be included in benchmark reporting. The receiver balance closes against the declared predicted interval input, not against unobserved future physical energy."
+  },
+  "adaptive_step_policy_v0_1": {
+    "policy": "max of independently normalized trajectory, interface and energy residuals; conservative order-based step factor; fence at earliest known event time",
+    "default_case": {
+      "current_time_s": 1,
+      "attempted_step_s": 10,
+      "minimum_step_s": 0.5,
+      "maximum_step_s": 20,
+      "trajectory_error": 0.01,
+      "trajectory_tolerance": 0.1,
+      "interface_residual": 0.002,
+      "interface_tolerance": 0.01,
+      "energy_residual": 0.1,
+      "energy_tolerance": 1,
+      "method_order": 2,
+      "next_event_time_s": 17,
+      "model_uncertainty": 0.01,
+      "model_uncertainty_tolerance": 0.1
+    },
+    "expected_default": {
+      "action": "Accept",
+      "normalized_error": 0.1,
+      "next_step_s": 16,
+      "event_fence_applied": true,
+      "event_time_s": 17,
+      "event_step_below_minimum": false,
+      "normalized_model_uncertainty": 0.1
+    },
+    "negative_and_boundary_cases": [
+      {
+        "id": "energy_error_dominates",
+        "normalized_error": 2,
+        "action": "RejectAndRetry",
+        "next_step_s": 7.14142842854285
+      },
+      {
+        "id": "event_due_now",
+        "next_event_time_s": 1,
+        "action": "ProcessEventNow",
+        "next_step_s": 0
+      },
+      {
+        "id": "known_event_below_minimum",
+        "next_event_time_s": 1.2,
+        "minimum_step_s": 0.5,
+        "action": "Accept",
+        "next_step_s": 0.2,
+        "event_step_below_minimum": true
+      },
+      {
+        "id": "minimum_step_exhaustion",
+        "minimum_step_s": 2,
+        "attempted_step_s": 10,
+        "normalized_error": 1000,
+        "action": "FailClosedAtMinimumStep",
+        "next_step_s": 1
+      },
+      {
+        "id": "event_in_past",
+        "next_event_time_s": 0.5,
+        "current_time_s": 1,
+        "disposition": "REJECT",
+        "error": "EventInPast"
+      },
+      {
+        "id": "invalid_energy_tolerance",
+        "energy_tolerance": 0,
+        "disposition": "REJECT",
+        "error": "NonPositiveInterval"
+      },
+      {
+        "id": "model_uncertainty_exceeds_budget",
+        "model_uncertainty": 0.2,
+        "model_uncertainty_tolerance": 0.1,
+        "normalized_error": 0.1,
+        "action": "ModelUncertaintyBudgetExceeded",
+        "next_step_s": 0,
+        "reason": "smaller communication steps cannot reduce epistemic/parameter uncertainty"
+      },
+      {
+        "id": "model_uncertainty_high_event_due_now",
+        "model_uncertainty": 10,
+        "model_uncertainty_tolerance": 0.1,
+        "next_event_at_current_time": true,
+        "action": "ProcessEventNow",
+        "next_step_s": 0,
+        "reason": "process known event ordering before requesting further continuous advancement"
+      }
+    ],
+    "claim_ceiling": "Policy primitive only. Input error estimates and event times are supplied by other owners; this function does not estimate local error, execute FMI calls, or infer events."
+  },
+  "integrated_flux_handshake": {
+    "source_policy": "difference_of_two_successful_cumulative_energy_observations",
+    "causality": "causal_after_producer_interval_completion; consumes no future source sample",
+    "source_observations": {
+      "previous_cumulative_energy_j": 0,
+      "current_cumulative_energy_j": 68333461.00984275,
+      "master_interval_ns": [
+        0,
+        120000000000
+      ]
+    },
+    "derived_interval_energy_j": 68333461.00984275,
+    "receiver_average_power_w": 569445.5084153563,
+    "receiver_model": "exact_piecewise_constant_response_to_declared_interval_energy_as_average_power",
+    "expected": {
+      "theta_start_k": 2,
+      "theta_end_k": 2.989979327511903,
+      "energy_input_j": 68333461.00984275,
+      "energy_service_j": 27333384.4039371,
+      "energy_loss_j": 31100283.330786623,
+      "storage_delta_j": 9899793.275119029,
+      "residual_j": 0
+    },
+    "comparison": {
+      "continuous_sinusoidal_reference_theta_end_k": 3.02923898271592,
+      "one_window_exact_interval_average_theta_end_k": 2.989979327511903,
+      "trajectory_error_vs_continuous_k": 0.039259655204017,
+      "source_energy_error_j": 0
+    },
+    "claim_ceiling": "The producer-reported cumulative interval energy is used as an exact declared J input; the oracle cannot prove that an arbitrary producer integrated its physical flux correctly. The receiver uses average power over the interval, so the within-window trajectory is approximate even though the macro-interval input energy is exact. A scalar energy observation is not a serialized FMU checkpoint.",
+    "producer_cumulative_energy_method": "cumulative_sinusoidal_source_energy_j(t) = mean_power_w*t + (2*amplitude_w/angular_frequency_rad_per_s)*sin(angular_frequency_rad_per_s*t/2)^2",
+    "cumulative_readings_for_points": [
+      {
+        "time_s": 0,
+        "cumulative_energy_j": 0
+      },
+      {
+        "time_s": 1e-9,
+        "cumulative_energy_j": 0.0005000000000007854
+      },
+      {
+        "time_s": 30,
+        "cumulative_energy_j": 15693874.017607527
+      },
+      {
+        "time_s": 120,
+        "cumulative_energy_j": 68333461.00984275
+      },
+      {
+        "time_s": 400,
+        "cumulative_energy_j": 200000000
+      },
+      {
+        "time_s": 1000,
+        "cumulative_energy_j": 512732395.44735163
+      }
+    ],
+    "maximum_resolution_error_j": 0.000001,
+    "float64_endpoint_resolution_bound_j": 1.490116119384766e-8,
+    "receiver_api": "integrated_flux_exchange_from_cumulative(..., maximum_resolution_error_j, ...)",
+    "receipt": {
+      "source_interval_energy_j": 68333461.00984275,
+      "source_interval_resolution_bound_j": 1.490116119384766e-8,
+      "resolution_budget_j": 0.000001,
+      "disposition": "ACCEPT"
+    }
+  },
+  "cumulative_energy_precision_contract": {
+    "representation": "IEEE-754 Float64 cumulative joules",
+    "policy": "derive delta only if the conservative sum of one-ULP endpoint bounds is within the caller-supplied absolute energy-error budget",
+    "error_bound": "ulp(previous_cumulative_j) + ulp(current_cumulative_j)",
+    "cases": [
+      {
+        "previous_j": 0,
+        "current_j": 68333461.00984275,
+        "max_resolution_error_j": 0.000001,
+        "expected_delta_j": 68333461.00984275,
+        "disposition": "ACCEPT"
+      },
+      {
+        "previous_j": 1000000000000000000,
+        "current_j": 1000000000000000300,
+        "max_resolution_error_j": 1,
+        "disposition": "REJECT",
+        "reason": "CumulativeEnergyPrecisionInsufficient"
+      },
+      {
+        "previous_j": 1000000000000000000,
+        "current_j": 1000000000000000300,
+        "max_resolution_error_j": 1024,
+        "expected_delta_j": 256,
+        "disposition": "ACCEPT_WITH_RECORDED_RESOLUTION_BOUND"
+      }
+    ],
+    "claim_ceiling": "This bounds endpoint Float64 quantization under the stated round-to-nearest observation model; it does not authenticate producer integration, prove sensor uncertainty, or correct within-interval physics. For long-running large counters or tight tolerances, prefer interval-energy J outputs or a higher-precision/epoch-based counter profile."
+  },
+  "cumulative_energy_cursor_v0_1": {
+    "identity_fields": [
+      "counter_epoch_id",
+      "monotone_sequence",
+      "committed_master_time",
+      "cumulative_energy_j"
+    ],
+    "consume_rule": "same epoch; next sequence exactly previous+1; strictly increasing committed time; monotone cumulative J; Float64 endpoint ULP sum within explicit error budget",
+    "failure_dispositions": {
+      "epoch_change": "REJECT",
+      "sequence_replay": "REJECT",
+      "sequence_gap": "REJECT",
+      "non_increasing_time": "REJECT",
+      "counter_regression": "REJECT",
+      "precision_budget_exceeded": "REJECT"
+    },
+    "cases": [
+      {
+        "id": "normal_commit",
+        "initial": {
+          "epoch": 7,
+          "sequence": 0,
+          "time_s": 0,
+          "cumulative_j": 1000
+        },
+        "next": {
+          "epoch": 7,
+          "sequence": 1,
+          "time_s": 2,
+          "cumulative_j": 2000
+        },
+        "expected_interval_energy_j": 1000,
+        "disposition": "ACCEPT"
+      },
+      {
+        "id": "sequence_replay",
+        "initial": {
+          "epoch": 7,
+          "sequence": 10,
+          "time_s": 1,
+          "cumulative_j": 1000
+        },
+        "next": {
+          "epoch": 7,
+          "sequence": 10,
+          "time_s": 2,
+          "cumulative_j": 2000
+        },
+        "disposition": "REJECT",
+        "reason": "CumulativeEnergySequenceMismatch"
+      },
+      {
+        "id": "sequence_gap",
+        "initial": {
+          "epoch": 7,
+          "sequence": 10,
+          "time_s": 1,
+          "cumulative_j": 1000
+        },
+        "next": {
+          "epoch": 7,
+          "sequence": 12,
+          "time_s": 2,
+          "cumulative_j": 2000
+        },
+        "disposition": "REJECT",
+        "reason": "CumulativeEnergySequenceMismatch"
+      },
+      {
+        "id": "epoch_reset",
+        "initial": {
+          "epoch": 7,
+          "sequence": 0,
+          "time_s": 1,
+          "cumulative_j": 1000
+        },
+        "next": {
+          "epoch": 8,
+          "sequence": 1,
+          "time_s": 2,
+          "cumulative_j": 2000
+        },
+        "disposition": "REJECT",
+        "reason": "CumulativeEnergyEpochMismatch"
+      },
+      {
+        "id": "time_replay",
+        "initial": {
+          "epoch": 7,
+          "sequence": 0,
+          "time_s": 1,
+          "cumulative_j": 1000
+        },
+        "next": {
+          "epoch": 7,
+          "sequence": 1,
+          "time_s": 1,
+          "cumulative_j": 2000
+        },
+        "disposition": "REJECT",
+        "reason": "CumulativeEnergyTimeNotIncreasing"
+      },
+      {
+        "id": "counter_reset_without_epoch",
+        "initial": {
+          "epoch": 7,
+          "sequence": 0,
+          "time_s": 1,
+          "cumulative_j": 1000
+        },
+        "next": {
+          "epoch": 7,
+          "sequence": 1,
+          "time_s": 2,
+          "cumulative_j": 500
+        },
+        "disposition": "REJECT",
+        "reason": "CumulativeEnergyRegressed"
+      },
+      {
+        "id": "float64_precision_exhausted",
+        "initial": {
+          "epoch": 3,
+          "sequence": 5,
+          "time_s": 10,
+          "cumulative_j": 1000000000000000000,
+          "max_resolution_error_j": 1
+        },
+        "next": {
+          "epoch": 3,
+          "sequence": 6,
+          "time_s": 11,
+          "cumulative_j": 1000000000000000300
+        },
+        "disposition": "REJECT",
+        "reason": "CumulativeEnergyPrecisionInsufficient"
+      }
+    ],
+    "atomicity": "consume is pure and returns a new cursor only on success; all rejected observations leave the prior cursor unchanged",
+    "claim_ceiling": "Exactly-once sequencing and monotone counter semantics within the caller-provided epoch/observation stream. This does not authenticate the producer or prove its integration physics."
+  }
+}
