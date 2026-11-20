@@ -801,7 +801,7 @@ mod tests {
     #[test]
     fn frozen_receipt_corpus_matches_independent_expected_outcomes() {
         let report = evaluate(&fixture()).expect("receipt fixture evaluates");
-        assert_eq!(report.summary.scenario_count, 32);
+        assert_eq!(report.summary.scenario_count, 34);
         assert_eq!(report.summary.expected_result_mismatches, 0);
         assert_eq!(report.summary.false_service_success_claims, 0);
         assert_eq!(report.summary.authority_grants, 0);
