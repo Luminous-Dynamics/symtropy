@@ -35,17 +35,17 @@ The CLI is read-only. It does not execute actions, recalculate a power flow, ver
 
 The bundled fixture is a structural adapter example, not a measured run. It contains five attempt events: two successful planner calls, one validator-rejected unsafe switch action, one applied action supported by separate validator and transition receipts, and one timed-out tool call. It includes an independent score receipt with weighted ENS (kWh), time to 90% restoration (minutes) and potable-water shortfall (m³).
 
-The collector attestation is intentionally absent in the fixture. The CLI must therefore report a score with unverified collector provenance, never a fully independently attested run. The unit test constructs a synthetic verified-attestation case and checks the resulting status, but this is only a conformance test of reference handling—not cryptographic security validation.
+The collector attestation is intentionally absent in the fixture. The raw scorer receipt contains three native-unit metrics (kWh, minutes and m³), but the CLI must report unverified collector provenance and withhold those values from the qualified report. A test constructs a synthetic verified-attestation case and checks the status and metric release, but this is only a conformance test of reference handling—not cryptographic security validation. A rejected collector attestation also blocks score release.
 
 ## Source-level tests
 
-15 Rust unit tests are authored for complete attempt accounting, applied-action receipt chaining, validator rejection, digest tampering, collector-digest mismatch, count mismatch, incomplete logs, aborted-run retention, score acceptance, explicit maturity, native-unit separation, duplicate metrics, deterministic replay and unknown-field rejection.
+20 Rust unit tests are authored for complete attempt accounting, applied-action receipt chaining, validator rejection, digest tampering, collector-digest mismatch, count mismatch, incomplete logs, aborted-run retention, score acceptance, explicit maturity, native-unit separation, duplicate metrics, deterministic replay and unknown-field rejection.
 
 The authoring environment does not include rustc/Cargo. Tests are authored but not locally executed. Exact-head CI must run format, Clippy, unit tests and CLI replay. No runner pass is claimed here.
 
 ## Trust boundary
 
-SHA-256 proves content identity, not issuer identity. The collector attestation contains a trusted external verification receipt reference and digest; downstream evidence systems must verify that receipt against their key/identity registry. The report says independently scored run receipt only when the receipt digest, external collector attestation and scorer acceptance are all present and consistent.
+SHA-256 proves content identity, not issuer identity. The collector attestation contains a trusted external verification receipt reference and digest; downstream evidence systems must verify that receipt against their key/identity registry. An absent/pending attestation yields score-present-but-unverified, and a rejected attestation yields a separate rejected status. The report says independently scored run receipt only when the receipt digest, external collector attestation and scorer acceptance are all present and consistent. Metric values are not released in the qualified report until that condition holds.
 
 ## Claim boundary
 
