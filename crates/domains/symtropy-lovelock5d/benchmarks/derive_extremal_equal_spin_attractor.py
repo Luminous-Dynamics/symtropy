@@ -94,6 +94,13 @@ def main() -> None:
     exact_zero("static Wald entropy convention map",
                (entropy_source-entropy_sym).subs(alpha_sym,4*alpha_nh))
 
+    exact_zero("static first law at fixed alpha",
+               sp.diff(mass_sym,r_h)-temperature_sym*sp.diff(entropy_sym,r_h))
+    x_source = 3*sp.pi/4*alpha_nh/mass_source
+    x_sym = alpha_sym/(2*r_h**2+alpha_sym)
+    exact_zero("dimensionless static coupling map",
+               (x_source-x_sym).subs(alpha_sym,4*alpha_nh))
+
     # Exact algebraic positivity controls on 0 < v3 < 2.
     bern_01 = bernstein_coefficients(radicand, v, sp.Rational(0), sp.Rational(1), 4)
     bern_12 = bernstein_coefficients(radicand, v, sp.Rational(1), sp.Rational(2), 4)
