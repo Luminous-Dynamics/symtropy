@@ -5,7 +5,7 @@
   "status": "draft_not_run",
   "claim_ceiling": "synthetic_transition_contract_only",
   "schema_ref": "./nav_transition_case.schema.json",
-  "case_count": 12,
+  "case_count": 14,
   "controller_evaluator_separation": "Each case's controller_stream is the only scenario observation input. evaluator_only must be withheld from the subject process and may be mounted only by the independent scorer.",
   "cases": [
     {
@@ -5320,6 +5320,1056 @@
         "The source inventories intentionally declare distinct sensor, clock, power and calibration failure domains; the benchmark must verify the declarations rather than infer independence from source count.",
         "Clock correlations are synthetic and are not evidence of a real time-transfer service.",
         "This positive control is designed to catch a system that abstains from every multi-source fusion case instead of recognizing a truly independent admissible set."
+      ]
+    },
+    {
+      "schema_version": "nav-transition-case/v0.1",
+      "case_id": "nav.integrity.protection-level-cap-saturation.negative.v0.1",
+      "revision": 1,
+      "status": "draft_not_run",
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_transition_contract_only",
+      "domain_path": [
+        "air",
+        "air"
+      ],
+      "source_registry": [
+        {
+          "source_id": "plcap.src.air.gnss",
+          "modality": "gnss",
+          "configuration_ref": "plcap.cfg.synthetic.v0.1",
+          "calibration_ref": null,
+          "clock_domain_ref": "plcap.clock.air.1",
+          "failure_domains": [
+            "plcap.fd.air.antenna",
+            "plcap.fd.clock.air",
+            "plcap.fd.power.air",
+            "plcap.fd.correction.provider"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "plcap.src.air.ins",
+          "modality": "imu",
+          "configuration_ref": "plcap.cfg.synthetic.v0.1",
+          "calibration_ref": "plcap.cal.synthetic.air-ins",
+          "clock_domain_ref": "plcap.clock.air.1",
+          "failure_domains": [
+            "plcap.fd.airframe.mount",
+            "plcap.fd.clock.air",
+            "plcap.fd.power.air"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "plcap.src.airdata",
+          "modality": "air_data",
+          "configuration_ref": "plcap.cfg.synthetic.v0.1",
+          "calibration_ref": "plcap.cal.synthetic.airdata",
+          "clock_domain_ref": "plcap.clock.airdata.1",
+          "failure_domains": [
+            "plcap.fd.airdata.probe",
+            "plcap.fd.power.air"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "plcap.src.baro",
+          "modality": "barometer",
+          "configuration_ref": "plcap.cfg.synthetic.v0.1",
+          "calibration_ref": "plcap.cal.synthetic.baro",
+          "clock_domain_ref": "plcap.clock.baro.1",
+          "failure_domains": [
+            "plcap.fd.baro.sensor",
+            "plcap.fd.power.air"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "plcap.src.radaralt",
+          "modality": "radar",
+          "configuration_ref": "plcap.cfg.synthetic.v0.1",
+          "calibration_ref": "plcap.cal.synthetic.radaralt",
+          "clock_domain_ref": "plcap.clock.radar.1",
+          "failure_domains": [
+            "plcap.fd.radar.altimeter",
+            "plcap.fd.power.air"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "plcap.src.vision",
+          "modality": "camera",
+          "configuration_ref": "plcap.cfg.synthetic.v0.1",
+          "calibration_ref": "plcap.cal.synthetic.vision",
+          "clock_domain_ref": "plcap.clock.vision.1",
+          "failure_domains": [
+            "plcap.fd.camera",
+            "plcap.fd.power.air"
+          ],
+          "qualification_status": "synthetic_fixture"
+        }
+      ],
+      "phases": [
+        {
+          "phase_id": "plcap.phase.valid",
+          "environment": "air",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "plcap.frame.earth.ecef",
+            "frame_kind": "earth_ecef",
+            "body_id": "earth",
+            "origin_ref": "plcap.origin.earth.centre",
+            "epoch_ref": "plcap.epoch.wgs84.2025",
+            "parent_frame_id": null
+          },
+          "time_basis": {
+            "time_basis_id": "plcap.time.utc",
+            "kind": "utc",
+            "clock_or_scale_id": "plcap.scale.utc",
+            "epoch_ref": "plcap.epoch.utc",
+            "uncertainty_s": 0.002
+          },
+          "measurement_classes": [
+            "gnss",
+            "imu",
+            "air_data",
+            "barometer"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "NORMAL"
+        },
+        {
+          "phase_id": "plcap.phase.bias-detected",
+          "environment": "air",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "plcap.frame.land.enu",
+            "frame_kind": "local_enu",
+            "body_id": "earth",
+            "origin_ref": "plcap.origin.synthetic.survey.001",
+            "epoch_ref": "plcap.epoch.wgs84.2025",
+            "parent_frame_id": "plcap.frame.earth.ecef"
+          },
+          "time_basis": {
+            "time_basis_id": "plcap.time.utc",
+            "kind": "utc",
+            "clock_or_scale_id": "plcap.scale.utc",
+            "epoch_ref": "plcap.epoch.utc",
+            "uncertainty_s": 0.002
+          },
+          "measurement_classes": [
+            "gnss",
+            "imu",
+            "air_data",
+            "barometer",
+            "radar",
+            "camera"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "INTEGRITY_UNCERTAIN"
+        },
+        {
+          "phase_id": "plcap.phase.cap-exhausted",
+          "environment": "air",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "plcap.frame.land.enu",
+            "frame_kind": "local_enu",
+            "body_id": "earth",
+            "origin_ref": "plcap.origin.synthetic.survey.001",
+            "epoch_ref": "plcap.epoch.wgs84.2025",
+            "parent_frame_id": "plcap.frame.earth.ecef"
+          },
+          "time_basis": {
+            "time_basis_id": "plcap.time.utc",
+            "kind": "utc",
+            "clock_or_scale_id": "plcap.scale.utc",
+            "epoch_ref": "plcap.epoch.utc",
+            "uncertainty_s": 0.002
+          },
+          "measurement_classes": [
+            "gnss",
+            "imu",
+            "air_data",
+            "barometer",
+            "radar",
+            "camera"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "UNAVAILABLE"
+        },
+        {
+          "phase_id": "plcap.phase.recovering",
+          "environment": "air",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "plcap.frame.earth.ecef",
+            "frame_kind": "earth_ecef",
+            "body_id": "earth",
+            "origin_ref": "plcap.origin.earth.centre",
+            "epoch_ref": "plcap.epoch.wgs84.2025",
+            "parent_frame_id": null
+          },
+          "time_basis": {
+            "time_basis_id": "plcap.time.utc",
+            "kind": "utc",
+            "clock_or_scale_id": "plcap.scale.utc",
+            "epoch_ref": "plcap.epoch.utc",
+            "uncertainty_s": 0.002
+          },
+          "measurement_classes": [
+            "gnss",
+            "imu",
+            "air_data",
+            "barometer"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "RECOVERING"
+        }
+      ],
+      "transitions": [
+        {
+          "transition_id": "plcap.tr.bias-detected",
+          "from_phase": "plcap.phase.valid",
+          "to_phase": "plcap.phase.bias-detected",
+          "offset_ms": 15000,
+          "kind": "observability_collapse",
+          "expected_state": "INTEGRITY_UNCERTAIN",
+          "notes": "A persistent GNSS bias increases the true error while the reported solution remains plausible."
+        },
+        {
+          "transition_id": "plcap.tr.bound-saturated",
+          "from_phase": "plcap.phase.bias-detected",
+          "to_phase": "plcap.phase.cap-exhausted",
+          "offset_ms": 30000,
+          "kind": "observability_collapse",
+          "expected_state": "UNAVAILABLE",
+          "notes": "The protection-level controller reaches its configured ceiling. The implementation must not silently continue asserting a supported NORMAL bound."
+        },
+        {
+          "transition_id": "plcap.tr.recovery-start",
+          "from_phase": "plcap.phase.cap-exhausted",
+          "to_phase": "plcap.phase.recovering",
+          "offset_ms": 45000,
+          "kind": "recovery",
+          "expected_state": "RECOVERING",
+          "notes": "Bias clears, but a fresh integrity assessment and profile requalification are still required."
+        }
+      ],
+      "controller_stream": [
+        {
+          "observation_id": "plcap.obs.gnss.initial",
+          "offset_ms": 0,
+          "event_kind": "measurement",
+          "source_id": "plcap.src.air.gnss",
+          "modality": "gnss",
+          "frame_id": "plcap.frame.earth.ecef",
+          "time_basis_id": "plcap.time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            0,
+            0,
+            1000
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Initial synthetic GNSS fix."
+        },
+        {
+          "observation_id": "plcap.obs.ins.initial",
+          "offset_ms": 0,
+          "event_kind": "measurement",
+          "source_id": "plcap.src.air.ins",
+          "modality": "imu",
+          "frame_id": "plcap.frame.earth.ecef",
+          "time_basis_id": "plcap.time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            0,
+            0,
+            0
+          ],
+          "units": "m/s2",
+          "payload_digest": null,
+          "notes": "Initial synthetic inertial reading."
+        },
+        {
+          "observation_id": "plcap.obs.bias-warning",
+          "offset_ms": 15000,
+          "event_kind": "integrity_status",
+          "source_id": "plcap.src.air.gnss",
+          "modality": "gnss",
+          "frame_id": "plcap.frame.land.enu",
+          "time_basis_id": "plcap.time.utc",
+          "observation_class": "integrity_assessment",
+          "components": [
+            25,
+            40
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "A conservative PL is growing as bias is detected; controller does not receive evaluator truth."
+        },
+        {
+          "observation_id": "plcap.obs.pl-at-cap",
+          "offset_ms": 30000,
+          "event_kind": "integrity_status",
+          "source_id": "plcap.src.air.gnss",
+          "modality": "gnss",
+          "frame_id": "plcap.frame.land.enu",
+          "time_basis_id": "plcap.time.utc",
+          "observation_class": "integrity_assessment",
+          "components": [
+            50,
+            40,
+            50
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Synthetic fields are [reported_PL, profile_alert_limit, implementation_cap]. PL equals cap while the true evaluator error exceeds the cap. Correct disposition is UNAVAILABLE or INDETERMINATE, not continued NORMAL."
+        },
+        {
+          "observation_id": "plcap.obs.gnss-bias-cleared",
+          "offset_ms": 45000,
+          "event_kind": "source_status",
+          "source_id": "plcap.src.air.gnss",
+          "modality": "gnss",
+          "frame_id": "plcap.frame.land.enu",
+          "time_basis_id": "plcap.time.utc",
+          "observation_class": "source_health",
+          "components": null,
+          "units": null,
+          "payload_digest": null,
+          "notes": "External event label says the bias has cleared; the subject still needs fresh independent evidence and requalification."
+        },
+        {
+          "observation_id": "plcap.obs.ins-coast",
+          "offset_ms": 46000,
+          "event_kind": "measurement",
+          "source_id": "plcap.src.air.ins",
+          "modality": "imu",
+          "frame_id": "plcap.frame.land.enu",
+          "time_basis_id": "plcap.time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            0,
+            0,
+            9.8
+          ],
+          "units": "m/s2",
+          "payload_digest": null,
+          "notes": "Inertial propagation alone does not restore the stronger PNT profile."
+        }
+      ],
+      "faults": [
+        {
+          "fault_id": "plcap.fault.persistent-gnss-bias",
+          "fault_kind": "persistent_bias",
+          "source_ids": [
+            "plcap.src.air.gnss"
+          ],
+          "start_offset_ms": 15000,
+          "end_offset_ms": 45000,
+          "controller_visible_effect": "GNSS innovations and protection level degrade; underlying position error remains evaluator-only.",
+          "notes": "Synthetic slowly increasing bias."
+        },
+        {
+          "fault_id": "plcap.fault.protection-level-cap",
+          "fault_kind": "protection_level_saturation",
+          "source_ids": [
+            "plcap.src.air.gnss"
+          ],
+          "start_offset_ms": 30000,
+          "end_offset_ms": 45000,
+          "controller_visible_effect": "Reported protection level reaches its configured cap.",
+          "notes": "Negative control: a capped bound must not be treated as a valid finite overbound once the cap no longer contains supported error."
+        }
+      ],
+      "evaluator_only": {
+        "reference_class": "synthetic_oracle",
+        "reference_sources": [
+          "plcap.oracle.air.truth.v0.1"
+        ],
+        "truth_states": [
+          {
+            "truth_id": "plcap.truth.0",
+            "offset_ms": 0,
+            "body_id": "earth",
+            "frame_id": "plcap.frame.earth.ecef",
+            "position_m": [
+              0,
+              0,
+              1000
+            ],
+            "velocity_mps": [
+              100,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "plcap.truth.1",
+            "offset_ms": 15000,
+            "body_id": "earth",
+            "frame_id": "plcap.frame.land.enu",
+            "position_m": [
+              1500,
+              0,
+              0
+            ],
+            "velocity_mps": [
+              100,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "plcap.truth.2",
+            "offset_ms": 30000,
+            "body_id": "earth",
+            "frame_id": "plcap.frame.land.enu",
+            "position_m": [
+              3000,
+              0,
+              0
+            ],
+            "velocity_mps": [
+              100,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "plcap.truth.3",
+            "offset_ms": 45000,
+            "body_id": "earth",
+            "frame_id": "plcap.frame.land.enu",
+            "position_m": [
+              4500,
+              0,
+              0
+            ],
+            "velocity_mps": [
+              100,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        ],
+        "event_labels": [
+          {
+            "fault_id": "plcap.fault.persistent-gnss-bias",
+            "true_fault_kind": "persistent_bias",
+            "onset_offset_ms": 15000,
+            "cause_attribution": "not_adjudicated"
+          },
+          {
+            "fault_id": "plcap.fault.protection-level-cap",
+            "true_fault_kind": "protection_level_saturation",
+            "onset_offset_ms": 30000,
+            "cause_attribution": "not_adjudicated"
+          }
+        ]
+      },
+      "expected_dispositions": [
+        {
+          "at_offset_ms": 0,
+          "expected_state": "NORMAL",
+          "minimum_evidence_condition": "Initial GNSS/INS source and declared profile are current.",
+          "reason_code": "PL_CAP_INITIAL"
+        },
+        {
+          "at_offset_ms": 15000,
+          "expected_state": "INTEGRITY_UNCERTAIN",
+          "minimum_evidence_condition": "Persistent bias invalidates the nominal Gaussian covariance-only bound; increase protection or downgrade service.",
+          "reason_code": "PL_CAP_BIAS_DETECTED"
+        },
+        {
+          "at_offset_ms": 30000,
+          "expected_state": "UNAVAILABLE",
+          "minimum_evidence_condition": "Reported PL has reached its cap and is no longer a defensible overbound for the supported error envelope; do not silently clamp and remain NORMAL.",
+          "reason_code": "PL_CAP_EXHAUSTED"
+        },
+        {
+          "at_offset_ms": 45000,
+          "expected_state": "RECOVERING",
+          "minimum_evidence_condition": "Fault cleared but source availability alone is insufficient; fresh integrity, calibration and profile-specific requalification are required.",
+          "reason_code": "PL_CAP_RECOVERY_PENDING"
+        }
+      ],
+      "assumptions": [
+        "All coordinates, errors and PL values are synthetic and are not an aviation protection-level implementation.",
+        "The controller sees the reported PL, alert limit, cap and source-status stream; it does not see evaluator truth or true error.",
+        "The evaluator deliberately supplies true position error above the configured cap after 30 seconds.",
+        "The target alert limit and risk threshold are illustrative fixture parameters only; real values are supplied by the relevant operational profile.",
+        "No aircraft dynamics, actuation, flight safety or certification semantics are modeled."
+      ]
+    },
+    {
+      "schema_version": "nav-transition-case/v0.1",
+      "case_id": "nav.land.heavy-tail-residual-integrity.v0.1",
+      "revision": 1,
+      "status": "draft_not_run",
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_transition_contract_only",
+      "domain_path": [
+        "land",
+        "urban",
+        "underground"
+      ],
+      "source_registry": [
+        {
+          "source_id": "heavy.src.gnss.primary",
+          "modality": "gnss",
+          "configuration_ref": "heavy.cfg.synthetic.v0.1",
+          "calibration_ref": null,
+          "clock_domain_ref": "heavy.clock.shared.receiver",
+          "failure_domains": [
+            "heavy.fd.antenna.shared",
+            "heavy.fd.clock.shared",
+            "heavy.fd.power.vehicle",
+            "heavy.fd.correction.provider"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "heavy.src.imu.primary",
+          "modality": "imu",
+          "configuration_ref": "heavy.cfg.synthetic.v0.1",
+          "calibration_ref": "heavy.cal.synthetic.imu.1",
+          "clock_domain_ref": "heavy.clock.shared.receiver",
+          "failure_domains": [
+            "heavy.fd.mount.vehicle",
+            "heavy.fd.clock.shared",
+            "heavy.fd.power.vehicle"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "heavy.src.lidar.primary",
+          "modality": "lidar",
+          "configuration_ref": "heavy.cfg.synthetic.v0.1",
+          "calibration_ref": "heavy.cal.synthetic.lidar.1",
+          "clock_domain_ref": "heavy.clock.lidar.1",
+          "failure_domains": [
+            "heavy.fd.mount.vehicle",
+            "heavy.fd.power.vehicle"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "heavy.src.camera.primary",
+          "modality": "camera",
+          "configuration_ref": "heavy.cfg.synthetic.v0.1",
+          "calibration_ref": "heavy.cal.synthetic.camera.1",
+          "clock_domain_ref": "heavy.clock.camera.1",
+          "failure_domains": [
+            "heavy.fd.mount.vehicle",
+            "heavy.fd.power.vehicle"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "heavy.src.wheel.primary",
+          "modality": "wheel_odometry",
+          "configuration_ref": "heavy.cfg.synthetic.v0.1",
+          "calibration_ref": "heavy.cal.synthetic.odo.1",
+          "clock_domain_ref": "heavy.clock.odo.1",
+          "failure_domains": [
+            "heavy.fd.chassis.vehicle",
+            "heavy.fd.power.vehicle"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "heavy.src.map.landmark",
+          "modality": "map_landmark",
+          "configuration_ref": "heavy.cfg.synthetic.v0.1",
+          "calibration_ref": "heavy.cal.synthetic.map.1",
+          "clock_domain_ref": "heavy.clock.map.1",
+          "failure_domains": [
+            "heavy.fd.map.snapshot.1"
+          ],
+          "qualification_status": "synthetic_fixture"
+        }
+      ],
+      "phases": [
+        {
+          "phase_id": "heavy.phase.open",
+          "environment": "land",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "heavy.frame.earth.ecef",
+            "frame_kind": "earth_ecef",
+            "body_id": "earth",
+            "origin_ref": "heavy.origin.earth.centre",
+            "epoch_ref": "heavy.epoch.wgs84.2025",
+            "parent_frame_id": null
+          },
+          "time_basis": {
+            "time_basis_id": "heavy.time.utc",
+            "kind": "utc",
+            "clock_or_scale_id": "heavy.scale.utc",
+            "epoch_ref": "heavy.epoch.utc",
+            "uncertainty_s": 0.002
+          },
+          "measurement_classes": [
+            "gnss",
+            "imu"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "NORMAL"
+        },
+        {
+          "phase_id": "heavy.phase.urban",
+          "environment": "urban",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "heavy.frame.land.enu",
+            "frame_kind": "local_enu",
+            "body_id": "earth",
+            "origin_ref": "heavy.origin.synthetic.survey.001",
+            "epoch_ref": "heavy.epoch.wgs84.2025",
+            "parent_frame_id": "heavy.frame.earth.ecef"
+          },
+          "time_basis": {
+            "time_basis_id": "heavy.time.utc",
+            "kind": "utc",
+            "clock_or_scale_id": "heavy.scale.utc",
+            "epoch_ref": "heavy.epoch.utc",
+            "uncertainty_s": 0.002
+          },
+          "measurement_classes": [
+            "gnss",
+            "imu",
+            "camera",
+            "lidar",
+            "wheel_odometry"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "INTEGRITY_UNCERTAIN"
+        },
+        {
+          "phase_id": "heavy.phase.tunnel",
+          "environment": "underground",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "heavy.frame.land.enu",
+            "frame_kind": "local_enu",
+            "body_id": "earth",
+            "origin_ref": "heavy.origin.synthetic.survey.001",
+            "epoch_ref": "heavy.epoch.wgs84.2025",
+            "parent_frame_id": "heavy.frame.earth.ecef"
+          },
+          "time_basis": {
+            "time_basis_id": "heavy.time.device.mono.1",
+            "kind": "monotonic",
+            "clock_or_scale_id": "heavy.clock.device.boot.1",
+            "epoch_ref": "boot.epoch.1",
+            "uncertainty_s": 0.0001
+          },
+          "measurement_classes": [
+            "imu",
+            "lidar",
+            "wheel_odometry",
+            "map_landmark"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "DEGRADED"
+        }
+      ],
+      "transitions": [
+        {
+          "transition_id": "heavy.tr.open-urban",
+          "from_phase": "heavy.phase.open",
+          "to_phase": "heavy.phase.urban",
+          "offset_ms": 10000,
+          "kind": "environment_boundary",
+          "expected_state": "INTEGRITY_UNCERTAIN",
+          "notes": "Multipath/NLOS increases; the declared transform into local ENU must be explicit."
+        },
+        {
+          "transition_id": "heavy.tr.urban-tunnel",
+          "from_phase": "heavy.phase.urban",
+          "to_phase": "heavy.phase.tunnel",
+          "offset_ms": 25000,
+          "kind": "sensor_loss",
+          "expected_state": "DEGRADED",
+          "notes": "GNSS is no longer available; local dead reckoning and mapped geometry remain available."
+        }
+      ],
+      "controller_stream": [
+        {
+          "observation_id": "heavy.obs.gnss.0",
+          "offset_ms": 0,
+          "event_kind": "measurement",
+          "source_id": "heavy.src.gnss.primary",
+          "modality": "gnss",
+          "frame_id": "heavy.frame.earth.ecef",
+          "time_basis_id": "heavy.time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            0,
+            0,
+            0
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Synthetic position fix."
+        },
+        {
+          "observation_id": "heavy.obs.imu.0",
+          "offset_ms": 0,
+          "event_kind": "measurement",
+          "source_id": "heavy.src.imu.primary",
+          "modality": "imu",
+          "frame_id": "heavy.frame.earth.ecef",
+          "time_basis_id": "heavy.time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            0,
+            0,
+            9.80665
+          ],
+          "units": "m/s2",
+          "payload_digest": null,
+          "notes": "Synthetic initial IMU."
+        },
+        {
+          "observation_id": "heavy.obs.gnss.integrity",
+          "offset_ms": 12000,
+          "event_kind": "integrity_status",
+          "source_id": "heavy.src.gnss.primary",
+          "modality": "gnss",
+          "frame_id": "heavy.frame.land.enu",
+          "time_basis_id": "heavy.time.utc",
+          "observation_class": "integrity_assessment",
+          "components": null,
+          "units": null,
+          "payload_digest": null,
+          "notes": "Receiver continues producing a plausible fix but integrity is uncertain."
+        },
+        {
+          "observation_id": "heavy.obs.gnss.heavy-tail-warning",
+          "offset_ms": 12000,
+          "event_kind": "integrity_status",
+          "source_id": "heavy.src.gnss.primary",
+          "modality": "gnss",
+          "frame_id": "heavy.frame.land.enu",
+          "time_basis_id": "heavy.time.utc",
+          "observation_class": "integrity_assessment",
+          "components": [
+            4,
+            18,
+            -3,
+            25
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Synthetic residual burst samples; no distribution label is provided to the controller."
+        },
+        {
+          "observation_id": "heavy.obs.lidar.1",
+          "offset_ms": 16000,
+          "event_kind": "measurement",
+          "source_id": "heavy.src.lidar.primary",
+          "modality": "lidar",
+          "frame_id": "heavy.frame.land.enu",
+          "time_basis_id": "heavy.time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            1.2,
+            0.1,
+            0
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Synthetic local geometric constraint."
+        },
+        {
+          "observation_id": "heavy.obs.gnss.bias-trend",
+          "offset_ms": 18000,
+          "event_kind": "measurement",
+          "source_id": "heavy.src.gnss.primary",
+          "modality": "gnss",
+          "frame_id": "heavy.frame.land.enu",
+          "time_basis_id": "heavy.time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            22,
+            4,
+            1
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Synthetic biased GNSS innovation; compare nominal Gaussian and heavy-tail robust methods."
+        },
+        {
+          "observation_id": "heavy.obs.gnss.lost",
+          "offset_ms": 25000,
+          "event_kind": "source_status",
+          "source_id": "heavy.src.gnss.primary",
+          "modality": "gnss",
+          "frame_id": "heavy.frame.land.enu",
+          "time_basis_id": "heavy.time.utc",
+          "observation_class": "source_health",
+          "components": null,
+          "units": null,
+          "payload_digest": null,
+          "notes": "GNSS source is no longer available."
+        },
+        {
+          "observation_id": "heavy.obs.odo.1",
+          "offset_ms": 30000,
+          "event_kind": "measurement",
+          "source_id": "heavy.src.wheel.primary",
+          "modality": "wheel_odometry",
+          "frame_id": "heavy.frame.land.enu",
+          "time_basis_id": "heavy.time.device.mono.1",
+          "observation_class": "raw_observation",
+          "components": [
+            0.7,
+            0,
+            0
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Local displacement; timestamp is monotonic and cannot be compared to UTC without correlation."
+        },
+        {
+          "observation_id": "heavy.obs.map.1",
+          "offset_ms": 36000,
+          "event_kind": "map_match",
+          "source_id": "heavy.src.map.landmark",
+          "modality": "map_landmark",
+          "frame_id": "heavy.frame.land.enu",
+          "time_basis_id": "heavy.time.device.mono.1",
+          "observation_class": "map_constraint",
+          "components": [
+            0.2,
+            0,
+            0
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Synthetic map landmark constraint."
+        }
+      ],
+      "faults": [
+        {
+          "fault_id": "heavy.fault.gnss.nlos",
+          "fault_kind": "nlos_or_multipath",
+          "source_ids": [
+            "heavy.src.gnss.primary"
+          ],
+          "start_offset_ms": 10000,
+          "end_offset_ms": 25000,
+          "controller_visible_effect": "GNSS integrity assessment changes to uncertain.",
+          "notes": "Benign urban multipath is not attributed to hostile intent."
+        },
+        {
+          "fault_id": "heavy.fault.gnss.loss",
+          "fault_kind": "gnss_unavailable",
+          "source_ids": [
+            "heavy.src.gnss.primary"
+          ],
+          "start_offset_ms": 25000,
+          "end_offset_ms": 50000,
+          "controller_visible_effect": "GNSS source status becomes unavailable.",
+          "notes": "The controller must not continue calling the solution GNSS-observed."
+        },
+        {
+          "fault_id": "heavy.fault.heavy-tailed-gnss-residuals",
+          "fault_kind": "heavy_tailed_residuals",
+          "source_ids": [
+            "heavy.src.gnss.primary"
+          ],
+          "start_offset_ms": 10000,
+          "end_offset_ms": 24000,
+          "controller_visible_effect": "GNSS residual process departs from the nominal Gaussian model and produces rare large innovations.",
+          "notes": "Requires a heavy-tail comparator such as Student-t and calibration evaluation on grouped held-out episodes."
+        }
+      ],
+      "evaluator_only": {
+        "reference_class": "synthetic_oracle",
+        "reference_sources": [
+          "heavy.oracle.land.truth.v0.1"
+        ],
+        "truth_states": [
+          {
+            "truth_id": "heavy.truth.0",
+            "offset_ms": 0,
+            "body_id": "earth",
+            "frame_id": "heavy.frame.earth.ecef",
+            "position_m": [
+              1000,
+              2000,
+              30
+            ],
+            "velocity_mps": [
+              1,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "heavy.truth.1",
+            "offset_ms": 20000,
+            "body_id": "earth",
+            "frame_id": "heavy.frame.land.enu",
+            "position_m": [
+              20,
+              2,
+              0
+            ],
+            "velocity_mps": [
+              1,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "heavy.truth.2",
+            "offset_ms": 40000,
+            "body_id": "earth",
+            "frame_id": "heavy.frame.land.enu",
+            "position_m": [
+              40,
+              2,
+              0
+            ],
+            "velocity_mps": [
+              1,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "heavy.truth.3",
+            "offset_ms": 60000,
+            "body_id": "earth",
+            "frame_id": "heavy.frame.land.enu",
+            "position_m": [
+              60,
+              2,
+              0
+            ],
+            "velocity_mps": [
+              1,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        ],
+        "event_labels": [
+          {
+            "fault_id": "heavy.fault.gnss.nlos",
+            "true_fault_kind": "nlos_or_multipath",
+            "onset_offset_ms": 10000,
+            "cause_attribution": "not_adjudicated"
+          },
+          {
+            "fault_id": "heavy.fault.gnss.loss",
+            "true_fault_kind": "gnss_unavailable",
+            "onset_offset_ms": 25000,
+            "cause_attribution": "not_adjudicated"
+          },
+          {
+            "fault_id": "heavy.fault.heavy-tailed-gnss-residuals",
+            "true_fault_kind": "heavy_tailed_residuals",
+            "onset_offset_ms": 10000,
+            "cause_attribution": "not_adjudicated"
+          }
+        ]
+      },
+      "expected_dispositions": [
+        {
+          "at_offset_ms": 0,
+          "expected_state": "NORMAL",
+          "minimum_evidence_condition": "Fresh GNSS and IMU in matching declared frame/time basis.",
+          "reason_code": "LAND_VALID_INITIAL"
+        },
+        {
+          "at_offset_ms": 12000,
+          "expected_state": "INTEGRITY_UNCERTAIN",
+          "minimum_evidence_condition": "Plausible GNSS output has an independent integrity warning; do not use it as normal.",
+          "reason_code": "LAND_GNSS_INTEGRITY_UNCERTAIN"
+        },
+        {
+          "at_offset_ms": 12000,
+          "expected_state": "INTEGRITY_UNCERTAIN",
+          "minimum_evidence_condition": "Observed innovation behaviour violates or weakens the frozen nominal calibration assumptions; profile must widen or abstain.",
+          "reason_code": "LAND_HEAVY_TAIL_RESIDUALS"
+        },
+        {
+          "at_offset_ms": 25000,
+          "expected_state": "DEGRADED",
+          "minimum_evidence_condition": "GNSS unavailable; propagate only with declared local sensors and their uncertainty.",
+          "reason_code": "LAND_GNSS_DENIED"
+        },
+        {
+          "at_offset_ms": 50000,
+          "expected_state": "RECOVERING",
+          "minimum_evidence_condition": "Fresh, configuration-matched external observations and transform evidence required before restoring NORMAL.",
+          "reason_code": "LAND_REQUALIFICATION"
+        }
+      ],
+      "assumptions": [
+        "All coordinates and sensor values are synthetic; the evaluator oracle is not a survey product.",
+        "The phase transition from ECEF to local ENU requires a declared, epoch-bound transform and uncertainty propagation.",
+        "The monotonic clock is a separate boot-epoch clock and is not directly comparable to UTC.",
+        "No vehicle dynamics or safety controller is modelled.",
+        "Heavy-tailed residuals are synthetic and are not drawn from an external physical data release.",
+        "Gaussian covariance-derived and Student-t heavy-tail uncertainty claims must be compared using the same held-out event groups and independent oracle."
       ]
     }
   ]
