@@ -315,6 +315,8 @@ pub fn validate_camera_frame_envelope_v1(
         || envelope.observation.capture_interval.end.lower_ns != capture_ns
         || envelope.observation.capture_interval.end.upper_ns != capture_ns
         || envelope.producer_clock_domain.domain_id != receipt.clock_id
+        || !nonempty(&envelope.producer_clock_domain.domain_id)
+        || !nonempty(&envelope.producer_clock_domain.time_scale_id)
         || !nonempty(&envelope.transport_event.event_id)
         || envelope.transport_event.arrival_order == 0
         || !matches!(
@@ -570,6 +572,17 @@ mod tests {
             Err(AdapterError::ProducerReceiptRejected(
                 RenderError::ParentReceiptCommitmentMismatch
             ))
+        );
+    }
+
+    #[test]
+    fn deserialized_frame_projection_must_preserve_point_capture_interval() {
+        let rendered = rendered_at(10_000);
+        let mut envelope = adapt_camera_frame_v1(&rendered, &context()).unwrap();
+        envelope.observation.capture_interval.start.upper_ns += 1;
+        assert_eq!(
+            validate_camera_frame_envelope_v1(&envelope),
+            Err(AdapterError::ProducerProjectionMismatch)
         );
     }
 
