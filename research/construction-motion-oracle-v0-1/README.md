@@ -152,3 +152,14 @@ The occupancy receipt must identify the exact stop-tube digest and assert that i
 See docs/verified-stop-tube-dispatch-benchmark-v0.1.md, schema/stop-tube-envelope-v0.1.schema.json and examples/stop-tube-envelope-synthetic-v0.1.json. The pinned Draft 2020-12 workflow validates the stop-tube schema and fixture. The Rust unit suite covers occupancy mismatch, incomplete primitive/continuous-time coverage, undersized distance/time bounds, configuration mismatch, empty trigger intervals and missing evidence dependencies.
 
 Claim ceiling: the Rust gate verifies receipt structure and cross-artifact binding. It does not independently generate the swept stop geometry, verify real signatures, measure braking, qualify physical sensors, issue a safety permit or authorize actuation. The envelope producer and occupancy assessor still need independent qualification.
+
+
+### Stop-tube geometry builder v0.1 — restricted executable model
+
+The typed API is exported as stop_tube_builder::build_stop_tube. It reconstructs the nominal envelope with the original producer, checks all body/tool/payload primitives preserve fixed relative offsets and a common translation vector, recomputes the qualified jerk-limited stopping result, and emits deterministic primitive × trigger-window 4D outer-box slices. Each slice carries its source segment, half-open trigger window, full trigger-to-stop occupancy interval and conservative AABB.
+
+The declared model is intentionally narrow: fixed orientation, rigid translation and no steering during braking. Articulated or relative motion, steering during braking, or a nonzero stop distance without a defined tangent are rejected. The output includes radius plus path/localization/tracking/model/numerical/stopping margins and the projected stopping distance. Project policy clearance is omitted from this physical stop tube and belongs to the occupancy policy layer exactly once. It is not a safety certificate or actuation permit.
+
+The report schema and synthetic output fixture are schema/stop-tube-build-report-v0.1.schema.json and examples/stop-tube-build-report-synthetic-v0.1.json. The schema gate checks structural fields plus cross-field slice-count, trigger-duration, and occupancy-time coverage invariants.
+
+The detailed model, restrictions, independent vertex oracle, benchmark programme and claim boundaries are in docs/stop-tube-geometry-builder-v0.1.md. The stop-tube-builder-bench binary runs 31 measured repetitions after a warm-up at 400, 4,000 and 100,000 primitive-window output slices; it reports p50/p95/p99, output size, stopping distance and time. This remains a single-host synthetic microbenchmark.
