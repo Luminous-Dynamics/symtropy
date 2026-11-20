@@ -49,10 +49,14 @@ cargo run --locked --manifest-path tools/power-restoration-artifact-verifier/Car
   <verification-time-unix-ms>
 ```
 
-The claim package contains `case`, `runReceipt`, `observationBatches`, `manifest`, `attestations`, and `runReceiptArtifactUri`. The trust-root digest, producer profiles and verification time are supplied separately from the evidence bundle. Producer profiles pin issuer identity, tool source commit and configuration digest for run recorders, service providers and evidence providers.
+The claim package contains `case`, `runReceipt`, `observationBatches`, `manifest`, `attestations`, and `runReceiptArtifactUri`. The out-of-band producer-profile file supplies exactly the pinned `RunRecorder`, `ServiceProvider` and one or more `EvidenceProvider` identities/tool revisions; component-owned planner, transition, validator and scorer identities are derived from the validated run receipt. The trust-root digest, producer profiles and verification time are supplied separately from the evidence bundle. Producer profiles pin issuer identity, tool source commit and configuration digest for run recorders, service providers and evidence providers.
 
 The integrated gate derives requirements for:
 - canonical run receipt and each signed decision-observation snapshot;
+Each observation source snapshot has a deterministic subject URI `power-fabric://source/{sourceId}/snapshot`; the corresponding signed EvidenceProvider envelope is serialized canonically, addressed as `power-fabric://attestation/{sha256(canonical-envelope)}`, and that exact URI plus the canonical envelope digest must match the source record's `producerAttestationRef` and `producerAttestationSha256`. Evidence items use `power-fabric://evidence/{evidenceId}`. Planner preconditions may reference either the evidence ID or that deterministic URI, but the evidence digest must match exactly.
+
+Initial precondition evidence that is not represented in an observation-result batch is deliberately rejected in v0.1. A deployment must bootstrap through a recorded information acquisition or add a separately specified, signed initial-state evidence package. This avoids silently treating fixture annotations or preloaded hidden truth as knowledge available to the planner.
+
 - each planner proposal (or raw malformed planner output);
 - every observation batch, evidence artifact and source snapshot;
 - every transition and independent-validator receipt;
