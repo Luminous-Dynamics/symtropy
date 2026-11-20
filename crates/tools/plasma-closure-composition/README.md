@@ -25,6 +25,25 @@ The input flux is oriented from the request's left cell toward its right cell. T
 
 This makes internal-face contributions equal and opposite by construction. An 18-test authored suite includes a four-cell periodic ring with face-varying weights; it compares assembled cell updates against an independently written incoming-minus-outgoing reference stencil and checks component-wise global cancellation. The primitive handles internal faces only; external boundary fluxes require a separately specified boundary contract.
 
+
+## Sampled-interface entropy audit
+
+The `entropy` module adds a narrow numerical audit for a common entropy pair at one supplied interface state pair. For the declared orientation (right minus left), it evaluates Tadmor's inequality:
+
+    (v_R - v_L) · F_hat <= psi_R - psi_L
+
+or the residual:
+
+    r = Delta_v · F_hat - Delta_psi <= 0
+
+Each candidate is bound to the same entropy-pair digest and exact left/right state fingerprints. The audit evaluates every candidate residual, requires each to be within the declared tolerance, requires the deterministic weight sum to equal exactly 1.0, then checks the blended residual and the weighted-residual identity. It refuses mixed entropy pairs or state identities.
+
+**This is a sampled-interface check, not a proof over all admissible states.** SHA-256-shaped fingerprints and candidate bindings are declarations, not authenticated evidence. The routine does not establish that the entropy pair is valid for a given plasma moment hierarchy, that a learned candidate satisfies the inequality globally, or that the full space-time discretization is entropy stable. A real plasma application must first derive the applicable entropy variables, potential, sign convention, source/work terms and discrete operator from its governing equations.
+
+Background:
+- Tadmor's entropy stability framework for conservative numerical fluxes.
+- Klein et al. (2026), *Generalized Tadmor Conditions and Structure-Preserving Numerical Fluxes for the Compressible Flow of Real Gases*, [arXiv:2603.15112](https://arxiv.org/abs/2603.15112), which extends flux conditions to secondary structures and introduces discrete null-consistency for non-convex structures. That result motivates future structure-specific contracts; it is not assumed to transfer directly to plasma closures.
+
 ## Claim boundary
 
 - Caller-supplied Qualified status is not authenticated here.
