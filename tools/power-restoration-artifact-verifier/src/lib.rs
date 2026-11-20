@@ -812,8 +812,7 @@ fn proposal_set_sha256(receipt: &RunReceipt) -> Result<String, String> {
         if let Some(proposal) = &step.proposal {
             proposals.push((
                 step.decision_step,
-                power_restoration_action_proposal::canonical_proposal_sha256(proposal)
-                    .map_err(|errors| errors.join("; "))?,
+                canonical_sha256(proposal)?,
             ));
         }
     }
@@ -1133,10 +1132,10 @@ pub fn verify_restoration_claim_evidence(
             }
         };
         let batch_uri = format!("power-fabric://observation-batch/{}", batch.batch_id);
-        let proposal_sha = match power_restoration_action_proposal::canonical_proposal_sha256(proposal) {
+        let proposal_sha = match canonical_sha256(proposal) {
             Ok(value) => value,
-            Err(batch_errors) => {
-                errors.extend(batch_errors);
+            Err(batch_error) => {
+                errors.push(batch_error);
                 continue;
             }
         };
@@ -1302,10 +1301,10 @@ pub fn verify_restoration_claim_evidence(
     let mut service_trajectory_digests = Vec::new();
     for step in receipt.decision_steps.iter().filter(|step| step.disposition == StepDisposition::Executed) {
         let proposal_sha = match &step.proposal {
-            Some(proposal) => match power_restoration_action_proposal::canonical_proposal_sha256(proposal) {
+            Some(proposal) => match canonical_sha256(proposal) {
                 Ok(value) => value,
-                Err(proposal_errors) => {
-                    errors.extend(proposal_errors);
+                Err(proposal_error) => {
+                    errors.push(proposal_error);
                     proposal_set_sha.clone()
                 }
             },
