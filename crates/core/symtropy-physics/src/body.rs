@@ -2267,3 +2267,131 @@ mod nd_ball_mass_property_tests {
     }
 
 }
+
+#[cfg(test)]
+mod solid_capsule_body_tests {
+    use super::*;
+    use symtropy_math::Capsule;
+
+    #[test]
+    fn capsule_geometry_and_full_inertia_share_exact_analytical_inputs() {
+        let body = RigidBody::<3>::try_dynamic_solid_capsule_3d(
+            BodyHandle(301),
+            Point::new([1.0, -2.0, 3.0]),
+            2.0,
+            0.5,
+            1,
+            10.0,
+        )
+        .expect("valid centered capsule");
+
+        let capsule = body
+            .collider
+            .as_any()
+            .downcast_ref::<Capsule<3>>()
+            .expect("capsule collider");
+        assert_eq!(capsule.half_height, 2.0);
+        assert_eq!(capsule.radius, 0.5);
+        assert_eq!(capsule.axis, 1);
+        assert_eq!(body.mass, 10.0);
+        assert_eq!(body.transform.translation.0, SVector::from([1.0, -2.0, 3.0]));
+        assert_eq!(
+            body.rotational_inertia_model(),
+            RotationalInertiaModel::ValidatedSpatialBivectorOperator
+        );
+        assert!(!body.rotational_inertia_approximate);
+
+        // Independent composite formula:
+        // m_c = 60/7, m_s = 10/7 for h=2, r=0.5, m=10.
+        let expected_axial = 1.214_285_714_285_714_2;
+        let expected_transverse = 18.892_857_142_857_142;
+        let operator = body.rotational_inertia_operator.as_ref().unwrap();
+        let mut rotate_about_y = Bivector::<3>::zero();
+        rotate_about_y.set(0, 2, 1.0);
+        let mut rotate_about_x = Bivector::<3>::zero();
+        rotate_about_x.set(1, 2, 1.0);
+        let mut rotate_about_z = Bivector::<3>::zero();
+        rotate_about_z.set(0, 1, 1.0);
+
+        assert!(
+            (operator.kinetic_energy_bivector_joules(&rotate_about_y).unwrap()
+                - 0.5 * expected_axial)
+                .abs()
+                < 1.0e-11
+        );
+        assert!(
+            (operator.kinetic_energy_bivector_joules(&rotate_about_x).unwrap()
+                - 0.5 * expected_transverse)
+                .abs()
+                < 1.0e-11
+        );
+        assert!(
+            (operator.kinetic_energy_bivector_joules(&rotate_about_z).unwrap()
+                - 0.5 * expected_transverse)
+                .abs()
+                < 1.0e-11
+        );
+
+        body.rotational_kinetic_energy();
+    }
+
+    #[test]
+    fn zero_cylinder_half_height_reduces_to_the_solid_sphere_limit() {
+        let body = RigidBody::<3>::try_dynamic_solid_capsule_3d(
+            BodyHandle(302),
+            Point::origin(),
+            0.0,
+            0.5,
+            2,
+            2.0,
+        )
+        .expect("zero-height capsule is a solid sphere");
+        let expected = 0.4 * 2.0 * 0.5_f64.powi(2);
+        let operator = body.rotational_inertia_operator.as_ref().unwrap();
+        for plane in [
+            Bivector::<3>::unit_plane(0, 1),
+            Bivector::<3>::unit_plane(0, 2),
+            Bivector::<3>::unit_plane(1, 2),
+        ] {
+            assert!(
+                (operator.kinetic_energy_bivector_joules(&plane).unwrap()
+                    - 0.5 * expected)
+                    .abs()
+                    < 1.0e-12
+            );
+        }
+    }
+
+    #[test]
+    fn invalid_capsule_inputs_fail_closed() {
+        assert_eq!(
+            RigidBody::<3>::try_dynamic_solid_capsule_3d(
+                BodyHandle(303), Point::origin(), -1.0, 0.5, 2, 1.0
+            )
+            .unwrap_err(),
+            CapsuleBodyConstructionError::InvalidHalfHeight
+        );
+        assert_eq!(
+            RigidBody::<3>::try_dynamic_solid_capsule_3d(
+                BodyHandle(304), Point::origin(), 1.0, 0.0, 2, 1.0
+            )
+            .unwrap_err(),
+            CapsuleBodyConstructionError::InvalidRadius
+        );
+        assert_eq!(
+            RigidBody::<3>::try_dynamic_solid_capsule_3d(
+                BodyHandle(305), Point::origin(), 1.0, 0.5, 3, 1.0
+            )
+            .unwrap_err(),
+            CapsuleBodyConstructionError::InvalidAxis
+        );
+        assert_eq!(
+            RigidBody::<3>::try_dynamic_solid_capsule_3d(
+                BodyHandle(306), Point::origin(), 1.0, 0.5, 2, f64::NAN
+            )
+            .unwrap_err(),
+            CapsuleBodyConstructionError::InvalidMass
+        );
+    }
+}
+
