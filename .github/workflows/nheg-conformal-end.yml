@@ -1,0 +1,78 @@
+name: EGB NHEG conformal-end geometry replay
+
+on:
+  push:
+    branches:
+      - research/egb-nheg-conformal-end-2026-11-20
+    paths:
+      - crates/domains/symtropy-lovelock5d/benchmarks/derive_nheg_conformal_end.py
+      - crates/domains/symtropy-lovelock5d/benchmarks/nheg_conformal_end_v1.json
+      - .github/workflows/nheg-conformal-end.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nheg-conformal-end-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  exact-horizon-end:
+    name: Exact horizon geometry and regulated volume
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned symbolic engine
+        run: python -m pip install --disable-pip-version-check sympy==1.14.0
+
+      - name: Replay intrinsic metric, curvature and cutoff volume
+        env:
+          PYTHONHASHSEED: "0"
+        run: |
+          python crates/domains/symtropy-lovelock5d/benchmarks/derive_nheg_conformal_end.py \\
+            --output "$RUNNER_TEMP/nheg_conformal_end_replay.json"
+
+      - name: Verify asymptotic curvature and exact volume divergence
+        env:
+          REPLAY_JSON: ${{ runner.temp }}/nheg_conformal_end_replay.json
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          data=json.loads(Path(os.environ["REPLAY_JSON"]).read_text())
+          v=data["validation"]
+          for key in (
+              "induced_metric_exact",
+              "sectional_curvature_formulae_exact",
+              "scalar_curvature_formula_exact",
+              "asymptotic_hyperbolic_limit_exact",
+              "extrinsic_curvature_formulae_exact",
+              "horizon_measure_exact",
+              "regulated_area_exact",
+              "psi_period_left_external",
+              "finite_physical_charges_not_claimed",
+          ):
+              assert v[key] is True, (key,v[key])
+          grid=data["reference_grid"]
+          assert grid["point_count"]==95
+          assert len(grid["samples"])==95
+          print("PASS: exact asymptotically hyperbolic horizon-end identities.")
+          print("PASS: exact regulated volume and 95-point reference grid.")
+          PY
+
+      - name: Preserve replay receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: egb-nheg-conformal-end-exact-replay
+          path: ${{ runner.temp }}/nheg_conformal_end_replay.json
+          if-no-files-found: error
+          retention-days: 30
