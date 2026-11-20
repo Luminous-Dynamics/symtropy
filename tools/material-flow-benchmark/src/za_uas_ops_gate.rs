@@ -132,6 +132,7 @@ pub struct OperationConditions {
     /// Whether a current, approved command-and-control radio link is available.
     /// BVLOS may still be RLOS; BRLOS is a separate unsupported state in v0.1.
     pub rlos_command_link_available: bool,
+    pub rlos_command_link_evidence_reference: String,
     pub payload_release_or_delivery: bool,
     pub multi_uas_operation: bool,
     pub public_road_takeoff_or_landing: bool,
@@ -280,6 +281,9 @@ fn validate_batch(batch: &UasEligibilityBatch) -> Result<(), Vec<String>> {
         if !identifier_valid(&case.case_id) || !case_ids.insert(case.case_id.as_str()) {
             errors.push(format!("cases[{index}].case_id: unique opaque identity required"));
         }
+        if case.operation.rlos_command_link_evidence_reference.trim().is_empty() {
+            errors.push(format!("cases[{index}].operation.rlos_command_link_evidence_reference: required"));
+        }
         for (field, value) in [
             ("operator.operator_id", case.operator.operator_id.as_str()),
             ("aircraft.aircraft_id", case.aircraft.aircraft_id.as_str()),
@@ -396,21 +400,15 @@ fn boolean_gate(
     }
 }
 
-fn optional_evidence_gate(
+fn boolean_gate_with_reference(
     gate_id: &str,
     requirement: &str,
-    required: bool,
-    evidence: Option<&ApprovalEvidence>,
-    expected_subject_id: &str,
-    scope_digest: &str,
-) -> Option<GateFinding> {
-    required.then(|| evidence_gate(
-        gate_id,
-        requirement,
-        evidence,
-        expected_subject_id,
-        scope_digest,
-    ))
+    value: Option<bool>,
+    source_reference: &str,
+) -> GateFinding {
+    let mut finding = boolean_gate(gate_id, requirement, value);
+    finding.evidence_source_reference = Some(source_reference.to_string());
+    finding
 }
 
 fn evaluate_case(case: &UasOperationCase) -> UasCaseReport {
@@ -518,10 +516,11 @@ fn evaluate_case(case: &UasOperationCase) -> UasCaseReport {
     }
 
     // Current SACAA guidance distinguishes visual mode from the radio link.
-    findings.push(boolean_gate(
+    findings.push(boolean_gate_with_reference(
         "radio_line_of_sight_command_link",
         "Current command-and-control radio link is available; RLOS is distinct from VLOS",
         Some(case.operation.rlos_command_link_available),
+        &case.operation.rlos_command_link_evidence_reference,
     ));
     if case.operation.visual_flight_mode == VisualFlightMode::Brlos {
         findings.push(GateFinding {
@@ -541,6 +540,17 @@ fn evaluate_case(case: &UasOperationCase) -> UasCaseReport {
             aircraft_id,
             scope,
         ));
+    }
+
+    if case.aircraft.uas_class == UasClass::Unknown {
+        findings.push(GateFinding {
+            gate_id: "aircraft_classification".into(),
+            state: GateState::Indeterminate,
+            requirement: "UAS class determined using the current SACAA mass/impact-energy/height/flight-rule classification".into(),
+            reason: "aircraft classification is unknown".into(),
+            evidence_record_id: None,
+            evidence_source_reference: None,
+        });
     }
 
     if case.aircraft.uas_class == UasClass::Class3OrHigher {
@@ -610,18 +620,18 @@ fn evaluate_case(case: &UasOperationCase) -> UasCaseReport {
             operator_id,
             scope,
         ));
+        findings.push(evidence_gate(
+            "public_road_safety_controls",
+            "Evidence of reasonable care for road users and pedestrians in loss-of-control scenarios",
+            approvals.public_road_safety_controls.as_ref(),
+            operator_id,
+            scope,
+        ));
         if case.operation.over_public_road {
             findings.push(evidence_gate(
                 "public_road_closure_evidence",
                 "Evidence that the public road is closed for operations over the road",
                 approvals.public_road_closure_evidence.as_ref(),
-                operator_id,
-                scope,
-            ));
-            findings.push(evidence_gate(
-                "public_road_safety_controls",
-                "Evidence of reasonable care for road users and pedestrians in loss-of-control scenarios",
-                approvals.public_road_safety_controls.as_ref(),
                 operator_id,
                 scope,
             ));
@@ -792,6 +802,7 @@ mod tests {
                 operation_scope_digest_sha256: scope.clone(),
                 visual_flight_mode: VisualFlightMode::RestrictedVlos,
                 rlos_command_link_available: true,
+                rlos_command_link_evidence_reference: "synthetic://c2-link/parcel-route-a".into(),
                 payload_release_or_delivery: true,
                 multi_uas_operation: false,
                 public_road_takeoff_or_landing: false,
@@ -959,6 +970,73 @@ mod tests {
         case.operation.public_road_takeoff_or_landing = true;
         case.approvals.director_public_road_approval = None;
         case.approvals.local_authority_public_road_approval = None;
+        let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid envelope");
+        assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::Indeterminate);
+    }
+
+    #[test]
+    fn road_proximity_requires_director_scope_and_safety_controls() {
+        let mut case = commercial_case();
+        case.operation.over_or_within_fifty_m_of_public_road = true;
+        case.approvals.director_public_road_overflight_approval = None;
+        case.approvals.public_road_safety_controls = None;
+        let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid envelope");
+        assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::Indeterminate);
+        assert!(report.cases[0].findings.iter().any(|gate| gate.gate_id == "director_public_road_overflight_approval"));
+        assert!(report.cases[0].findings.iter().any(|gate| gate.gate_id == "public_road_safety_controls"));
+    }
+
+    #[test]
+    fn overflight_of_public_road_also_requires_road_closure_evidence() {
+        let mut case = commercial_case();
+        case.operation.over_or_within_fifty_m_of_public_road = true;
+        case.operation.over_public_road = true;
+        case.approvals.director_public_road_overflight_approval = Some(evidence(
+            &case.operator.operator_id,
+            &case.operation.operation_scope_digest_sha256,
+            "road-director",
+        ));
+        case.approvals.public_road_safety_controls = Some(evidence(
+            &case.operator.operator_id,
+            &case.operation.operation_scope_digest_sha256,
+            "road-safety",
+        ));
+        let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid envelope");
+        assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::Indeterminate);
+        assert!(report.cases[0].findings.iter().any(|gate| gate.gate_id == "public_road_closure_evidence"));
+    }
+
+    #[test]
+    fn class_three_requires_a_director_applicability_determination_not_an_rmt_flight_gate() {
+        let mut case = commercial_case();
+        case.aircraft.uas_class = UasClass::Class3OrHigher;
+        let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid envelope");
+        assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::Indeterminate);
+        assert!(report.cases[0].findings.iter().any(|gate| gate.gate_id == "director_class_3_applicability"));
+        assert!(!report.cases[0].findings.iter().any(|gate| gate.gate_id.contains("maintenance_technician")));
+    }
+
+    #[test]
+    fn unknown_aircraft_classification_is_indeterminate() {
+        let mut case = commercial_case();
+        case.aircraft.uas_class = UasClass::Unknown;
+        let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid envelope");
+        assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::Indeterminate);
+    }
+
+    #[test]
+    fn missing_current_c2_compliance_prevents_review_eligibility() {
+        let mut case = commercial_case();
+        case.approvals.sa_cats_101_c2_compliance = None;
+        let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid envelope");
+        assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::Indeterminate);
+    }
+
+    #[test]
+    fn near_manned_aircraft_requires_airspace_scope_evidence() {
+        let mut case = commercial_case();
+        case.operation.near_manned_aircraft = true;
+        case.approvals.airspace_approval = None;
         let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid envelope");
         assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::Indeterminate);
     }
