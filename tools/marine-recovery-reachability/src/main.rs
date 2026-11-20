@@ -628,6 +628,10 @@ fn explore_paths(
     }
 }
 
+fn scenario_time_or_earlier(scenario: &Value, valid_until: DateTime<FixedOffset>) -> bool {
+    parse_time(string_at(scenario, "decision_time")).is_some_and(|decision| decision <= valid_until)
+}
+
 fn validate(raw: &[u8], value: &Value) -> Value {
     let mut errors = Vec::<String>::new();
     let mut scenario_reports = Vec::<Value>::new();
@@ -678,6 +682,40 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     }
 
     let snapshot = value.get("mission_snapshot").unwrap_or(&Value::Null);
+    let capability_items = value.get("capability_roster").and_then(Value::as_array);
+    let mut capability_records = capability_items.cloned().unwrap_or_default();
+    capability_records.sort_by(|left, right| {
+        string_at(left, "capability_id").cmp(&string_at(right, "capability_id"))
+    });
+    let mut capability_registry = BTreeMap::<String, (String, String, DateTime<FixedOffset>)>::new();
+    if capability_records.is_empty() {
+        errors.push("capability_roster must be non-empty".to_owned());
+    }
+    for capability in &capability_records {
+        let id = string_at(capability, "capability_id").unwrap_or("");
+        let qualification = string_at(capability, "qualification_status").unwrap_or("");
+        let scope = string_at(capability, "qualification_scope_sha256").unwrap_or("");
+        let evidence = string_at(capability, "qualification_evidence_sha256").unwrap_or("");
+        let valid_until = parse_time(string_at(capability, "valid_until"));
+        if id.is_empty() || !["qualified", "expired", "suspended"].contains(&qualification)
+            || !valid_digest(Some(scope)) || !valid_digest(Some(evidence)) || valid_until.is_none()
+        {
+            errors.push(format!("capability '{id}' has invalid qualification identity or evidence"));
+            continue;
+        }
+        if capability_registry.insert(id.to_owned(), (qualification.to_owned(), scope.to_owned(), valid_until.unwrap())).is_some() {
+            errors.push(format!("capability '{id}' is duplicated"));
+        }
+    }
+    if string_at(snapshot, "capability_roster_sha256")
+        != canonical_digest(&json!(capability_records), None).as_deref()
+    {
+        errors.push("capability_roster_sha256 does not bind the sorted capability qualification roster".to_owned());
+    }
+    let operating_scope = string_at(snapshot, "operating_envelope_sha256").unwrap_or("");
+    if capability_registry.values().any(|(_, scope, _)| scope != operating_scope) {
+        errors.push("capability qualification scope differs from the mission operating envelope".to_owned());
+    }
     if string_at(snapshot, "mission_snapshot_sha256") != canonical_digest(snapshot, Some("mission_snapshot_sha256")).as_deref() {
         errors.push("mission_snapshot_sha256 does not match canonical snapshot payload".to_owned());
     }
@@ -686,7 +724,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     if mission_start.is_none() || mission_end.is_none() || mission_start >= mission_end {
         errors.push("mission window is invalid or unordered".to_owned());
     }
-    for field in ["craft_configuration_sha256", "occupancy_sha256", "operating_envelope_sha256"] {
+    for field in ["craft_configuration_sha256", "occupancy_sha256", "operating_envelope_sha256", "capability_roster_sha256"] {
         if !valid_digest(string_at(snapshot, field)) {
             errors.push(format!("mission snapshot has invalid {field}"));
         }
@@ -780,6 +818,16 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                 .unwrap_or_default();
             if available_caps.len() != scenario.get("available_capabilities").and_then(Value::as_array).map_or(0, Vec::len) {
                 errors.push(format!("scenario '{scenario_id}' has missing/duplicate capability IDs"));
+            }
+            for capability_id in &available_caps {
+                match capability_registry.get(*capability_id) {
+                    Some((qualification, scope, valid_until))
+                        if qualification == "qualified"
+                            && scope == operating_scope
+                            && scenario_time_or_earlier(scenario, *valid_until) => {}
+                    Some(_) => errors.push(format!("scenario '{scenario_id}' declares capability '{capability_id}' without a current qualification for this operating envelope")),
+                    None => errors.push(format!("scenario '{scenario_id}' declares unregistered capability '{capability_id}'")),
+                }
             }
             let mut action_ids = BTreeSet::<String>::new();
             for action in &actions {
