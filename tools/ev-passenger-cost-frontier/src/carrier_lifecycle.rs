@@ -931,6 +931,17 @@ mod tests {
         test.repair_path.post_test_status = PostTestStatus::Failed;
         test.replacement_path.post_test_status = PostTestStatus::Stale;
         let result = evaluate_pair(&factory_row(), &test);
+        assert_eq!(result.status, Status::Indeterminate);
+        assert_eq!(result.selected_fault_path, None);
+        assert!(!result.return_to_service_authority_granted);
+    }
+
+    #[test]
+    fn failed_post_tests_on_all_paths_block_the_service_claim() {
+        let mut test = profile();
+        test.repair_path.post_test_status = PostTestStatus::Failed;
+        test.replacement_path.post_test_status = PostTestStatus::Failed;
+        let result = evaluate_pair(&factory_row(), &test);
         assert_eq!(result.status, Status::Blocked);
         assert_eq!(result.selected_fault_path, None);
         assert!(!result.return_to_service_authority_granted);
