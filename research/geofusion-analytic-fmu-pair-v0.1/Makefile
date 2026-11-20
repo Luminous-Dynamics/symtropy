@@ -47,6 +47,7 @@ package: $(BUILD)/GeothermalSource.so $(BUILD)/HeatExchangerBuffer.so
 
 test: package $(BUILD)/fmi3_smoke
 	$(BUILD)/fmi3_smoke $(STAGE)/geothermal/binaries/x86_64-linux/GeothermalSource.so $(STAGE)/heat-exchanger/binaries/x86_64-linux/HeatExchangerBuffer.so
+	python3 tests/analytic_oracle.py $(STAGE)/GeoFusion-GeothermalSource.fmu $(STAGE)/GeoFusion-HeatExchangerBuffer.fmu
 
 clean:
 	rm -rf $(BUILD)
