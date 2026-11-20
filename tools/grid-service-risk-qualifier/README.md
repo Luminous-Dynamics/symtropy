@@ -1,6 +1,7 @@
 # Grid service risk certificate qualifier v0.1
 
-**Owner:** Symtropy #6317  
+**Owner:** Symtropy #6317
+**Independent reference:** `reference/interval_simplex_reference.py` exhaustively enumerates all integer-basis-point probability vectors in the three-branch fixture (not the Rust algorithm).  
 **Programme:** #5241 Power Fabric benchmark  
 **Upstream policy:** Symthaea #12436 / PR #12441, adapted in #6295 / PR #6300  
 **Service owner:** Symtropy #6235  
