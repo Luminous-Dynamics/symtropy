@@ -1,0 +1,186 @@
+{
+  "schema_version": "0.1.0",
+  "record_kind": "illustrative_fixture",
+  "bundle_id": "pomdar-repeated-mission-illustrative-001",
+  "benchmark_profile": {
+    "framework_id": "POMDAR",
+    "profile_id": "POMDAR vertical-wheel and horizontal-pinch illustrative subset",
+    "profile_version": "project-page snapshot accessed 2026-11-20",
+    "source_snapshot_date": "2026-11-20",
+    "protocol_reference": "https://srl-ethz.github.io/POMDAR/",
+    "task_set_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "task_mix_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "scoring_protocol": "POMDAR_CORRECTNESS_0_8_SPEED_VS_HUMAN_0_2",
+    "human_baseline_reference": null,
+    "profile_notes": "Illustrative two-task subset only; not a full POMDAR submission or official task identifier set."
+  },
+  "candidate": {
+    "candidate_id": "illustrative-no-physical-device",
+    "display_name": "Synthetic example embodiment",
+    "embodiment_class": "anthropomorphic_hand",
+    "manufacturer_or_lab": null,
+    "evidence_origin": "illustrative_candidate",
+    "unit_identifier": null
+  },
+  "configuration": {
+    "configuration_id": "illustrative-config-v0",
+    "configuration_digest": null,
+    "hardware_revision": null,
+    "software_revision": null,
+    "controller_revision": null,
+    "control_mode": "unknown",
+    "arm_assistance": false,
+    "wrist_assistance": false,
+    "human_teleoperation": false,
+    "vision_inputs": false,
+    "tactile_inputs": false,
+    "calibration_state": "unknown",
+    "service_state": "unknown",
+    "configuration_notes": "Synthetic record for schema testing, not an evaluated hand."
+  },
+  "system_boundary": {
+    "included_components": ["illustrative hand assembly"],
+    "excluded_components": ["arm", "wrist", "external power supply"],
+    "unknown_components": ["driver and sensor power boundary"],
+    "power_measurement_boundary": "unknown",
+    "boundary_notes": "No real hardware or energy observations exist in this fixture."
+  },
+  "mission_clock": {
+    "start_utc": "2026-11-20T08:00:00Z",
+    "end_utc": "2026-11-20T08:02:00Z",
+    "elapsed_s": 120.0,
+    "timebase": "illustrative monotonic mission clock",
+    "clock_alignment_uncertainty_ms": null
+  },
+  "task_catalog": [
+    {
+      "task_id": "vertical_sphere",
+      "family": "vertical_scaffold",
+      "source_task_label": "POMDAR vertical sphere task",
+      "difficulty_tier": "reference",
+      "acceptance_criteria": "Complete the sphere progression while maintaining the declared contact and task constraints.",
+      "fixture_or_object_revision": "illustrative-only"
+    },
+    {
+      "task_id": "horizontal_pinch",
+      "family": "horizontal_scaffold",
+      "source_task_label": "POMDAR horizontal pinch task",
+      "difficulty_tier": "reference",
+      "acceptance_criteria": "Complete the pinch translation on the constrained horizontal track without dropping or leaving the accepted path.",
+      "fixture_or_object_revision": "illustrative-only"
+    }
+  ],
+  "attempts": [
+    {
+      "attempt_id": "attempt-001",
+      "task_id": "vertical_sphere",
+      "repetition_index": 1,
+      "outcome": "accepted",
+      "task_success": true,
+      "start_elapsed_s": 0.0,
+      "end_elapsed_s": 20.0,
+      "outcome_reason": null
+    },
+    {
+      "attempt_id": "attempt-002",
+      "task_id": "horizontal_pinch",
+      "repetition_index": 1,
+      "outcome": "accepted",
+      "task_success": true,
+      "start_elapsed_s": 20.0,
+      "end_elapsed_s": 45.0,
+      "outcome_reason": null
+    },
+    {
+      "attempt_id": "attempt-003",
+      "task_id": "vertical_sphere",
+      "repetition_index": 2,
+      "outcome": "failed",
+      "task_success": false,
+      "start_elapsed_s": 85.0,
+      "end_elapsed_s": 115.0,
+      "outcome_reason": "Illustrative failed repeat after the declared cooldown interval."
+    }
+  ],
+  "timeline": [
+    {
+      "event_id": "event-001",
+      "event_type": "task_execution",
+      "start_elapsed_s": 0.0,
+      "end_elapsed_s": 20.0,
+      "attempt_id": "attempt-001",
+      "notes": "Illustrative accepted task."
+    },
+    {
+      "event_id": "event-002",
+      "event_type": "task_execution",
+      "start_elapsed_s": 20.0,
+      "end_elapsed_s": 45.0,
+      "attempt_id": "attempt-002",
+      "notes": "Illustrative accepted task."
+    },
+    {
+      "event_id": "event-003",
+      "event_type": "cooldown",
+      "start_elapsed_s": 45.0,
+      "end_elapsed_s": 85.0,
+      "attempt_id": null,
+      "notes": "Cooldown is part of elapsed mission time, not removed from the throughput denominator."
+    },
+    {
+      "event_id": "event-004",
+      "event_type": "task_execution",
+      "start_elapsed_s": 85.0,
+      "end_elapsed_s": 115.0,
+      "attempt_id": "attempt-003",
+      "notes": "Illustrative repeated task after cooldown."
+    },
+    {
+      "event_id": "event-005",
+      "event_type": "standby",
+      "start_elapsed_s": 115.0,
+      "end_elapsed_s": 120.0,
+      "attempt_id": null,
+      "notes": "Post-run standby remains inside the mission clock."
+    }
+  ],
+  "run_summary": {
+    "planned_attempts": 3,
+    "accepted_task_completions": 2,
+    "failed_attempts": 1,
+    "aborted_attempts": 0,
+    "censored_attempts": 0,
+    "excluded_attempts": 0,
+    "mission_elapsed_s": 120.0,
+    "sustained_mission_throughput_per_h": 60.0,
+    "summary_notes": "Synthetic arithmetic only: 2 accepted completions divided by 120 seconds, including 40 seconds of cooldown and 5 seconds of standby."
+  },
+  "observations": [
+    {
+      "metric_id": "motor_case_initial_temperature",
+      "category": "temperature",
+      "value_status": "not_disclosed",
+      "value": null,
+      "unit": "degC",
+      "regime": "Initial mission state",
+      "denominator": "One synthetic mission start",
+      "sensor_or_channel": "motor case",
+      "source_class": "other",
+      "verification_state": "unreviewed",
+      "evidence_refs": ["pomdar-project-page"],
+      "reason": "Illustrative fixture contains no physical thermal sensor trace."
+    }
+  ],
+  "linked_component_records": [],
+  "evidence": [
+    {
+      "evidence_id": "pomdar-project-page",
+      "source_type": "benchmark_protocol",
+      "uri": "https://srl-ethz.github.io/POMDAR/",
+      "locator": "Task families, benchmark configurations and throughput score description",
+      "digest": null,
+      "notes": "Protocol reference only; this illustrative fixture is not a POMDAR result."
+    }
+  ],
+  "claim_ceiling": "Illustrative schema fixture only. No device was tested, and no physical task performance, thermal behavior, energy use or benchmark score is claimed."
+}
