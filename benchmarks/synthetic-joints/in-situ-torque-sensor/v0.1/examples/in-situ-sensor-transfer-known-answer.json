@@ -1,0 +1,427 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "synthetic-in-situ-torque-sensor-transfer-v0.1",
+  "plan": {
+    "model_digest": "compensation-model-v1",
+    "feature_schema_digest": "mems-grid-features-v1",
+    "training_split_digest": "training-installations-v1",
+    "calibration_split_digest": "calibration-installations-v1",
+    "test_split_digest": "heldout-installations-v1",
+    "system_boundary_digest": "installed-harmonic-joint-boundary-v1",
+    "sensor_family_digest": "flexspline-mems-grid-family-v1",
+    "reference_method_digest": "external-torque-reference-method-v1",
+    "domain_digest": "angle-temperature-speed-quadrant-domain-v1",
+    "target_miscoverage_alpha": 0.25,
+    "reference_evidence_class": "independent_physical",
+    "training_installation_ids": [
+      "train-installation-1"
+    ],
+    "training_sensor_serials": [
+      "train-sensor-1"
+    ],
+    "training_flexspline_serials": [
+      "train-flex-1"
+    ],
+    "training_reducer_serials": [
+      "train-reducer-1"
+    ],
+    "domain": {
+      "joint_angle_rad": {
+        "lower": -3,
+        "upper": 3
+      },
+      "temperature_c": {
+        "lower": 10,
+        "upper": 70
+      },
+      "maximum_absolute_speed_rad_s": 10,
+      "supported_directions": [
+        "forward_motoring",
+        "forward_regenerating",
+        "reverse_motoring",
+        "reverse_regenerating",
+        "static_hold"
+      ],
+      "angle_sector_edges_rad": [
+        -3,
+        -1,
+        1,
+        3
+      ],
+      "temperature_band_edges_c": [
+        10,
+        30,
+        50,
+        70
+      ],
+      "speed_band_edges_rad_s": [
+        0,
+        2,
+        6,
+        10
+      ]
+    },
+    "mission_set_digest": "frozen-angle-temperature-speed-quadrant-trajectory-set-v1"
+  },
+  "calibration": {
+    "split_digest": "calibration-installations-v1",
+    "model_digest": "compensation-model-v1",
+    "feature_schema_digest": "mems-grid-features-v1",
+    "system_boundary_digest": "installed-harmonic-joint-boundary-v1",
+    "sensor_family_digest": "flexspline-mems-grid-family-v1",
+    "reference_method_digest": "external-torque-reference-method-v1",
+    "domain_digest": "angle-temperature-speed-quadrant-domain-v1",
+    "installations": [
+      {
+        "installation_id": "cal-a",
+        "sensor_serial": "sensor-cal-a",
+        "flexspline_serial": "flex-cal-a",
+        "reducer_serial": "reducer-cal-a",
+        "installation_digest": "installation-digest-cal-a",
+        "sensor_assembly_digest": "sensor-assembly-cal-a",
+        "calibration_digest": "sensor-calibration-cal-a",
+        "reference_calibration_digest": "reference-calibration-cal-a",
+        "reference_evidence_class": "independent_physical",
+        "reference_source_reference": "https://example.invalid/external-torque/cal-a",
+        "reference_method": "Synthetic external torque transducer reference fixture; not physical test data.",
+        "reference_raw_trace_digest": "reference-raw-trace-cal-a",
+        "sensor_raw_trace_digest": "mems-grid-raw-trace-cal-a",
+        "observations": [
+          {
+            "sample_id": "cal-a-1",
+            "joint_angle_rad": 0,
+            "temperature_c": 25,
+            "angular_speed_rad_s": 3,
+            "direction": "forward_motoring",
+            "raw_torque_nm": {
+              "lower": 11.5,
+              "upper": 11.7
+            },
+            "compensated_torque_nm": {
+              "lower": 9.9,
+              "upper": 10.1
+            },
+            "reference_torque_nm": {
+              "lower": 9.9,
+              "upper": 10.1
+            }
+          },
+          {
+            "sample_id": "cal-a-2",
+            "joint_angle_rad": 0,
+            "temperature_c": 25,
+            "angular_speed_rad_s": 3,
+            "direction": "forward_motoring",
+            "raw_torque_nm": {
+              "lower": 21.5,
+              "upper": 21.700000000000003
+            },
+            "compensated_torque_nm": {
+              "lower": 20,
+              "upper": 20.200000000000003
+            },
+            "reference_torque_nm": {
+              "lower": 19.9,
+              "upper": 20.1
+            }
+          }
+        ],
+        "synchronized_metrology_receipt_digest": "synced-metrology-receipt-cal-a"
+      },
+      {
+        "installation_id": "cal-b",
+        "sensor_serial": "sensor-cal-b",
+        "flexspline_serial": "flex-cal-b",
+        "reducer_serial": "reducer-cal-b",
+        "installation_digest": "installation-digest-cal-b",
+        "sensor_assembly_digest": "sensor-assembly-cal-b",
+        "calibration_digest": "sensor-calibration-cal-b",
+        "reference_calibration_digest": "reference-calibration-cal-b",
+        "reference_evidence_class": "independent_physical",
+        "reference_source_reference": "https://example.invalid/external-torque/cal-b",
+        "reference_method": "Synthetic external torque transducer reference fixture; not physical test data.",
+        "reference_raw_trace_digest": "reference-raw-trace-cal-b",
+        "sensor_raw_trace_digest": "mems-grid-raw-trace-cal-b",
+        "observations": [
+          {
+            "sample_id": "cal-b-1",
+            "joint_angle_rad": 0,
+            "temperature_c": 25,
+            "angular_speed_rad_s": 3,
+            "direction": "forward_motoring",
+            "raw_torque_nm": {
+              "lower": 16.5,
+              "upper": 16.700000000000003
+            },
+            "compensated_torque_nm": {
+              "lower": 15.1,
+              "upper": 15.299999999999999
+            },
+            "reference_torque_nm": {
+              "lower": 14.9,
+              "upper": 15.1
+            }
+          },
+          {
+            "sample_id": "cal-b-2",
+            "joint_angle_rad": 0,
+            "temperature_c": 25,
+            "angular_speed_rad_s": 3,
+            "direction": "forward_motoring",
+            "raw_torque_nm": {
+              "lower": 26.5,
+              "upper": 26.700000000000003
+            },
+            "compensated_torque_nm": {
+              "lower": 25.2,
+              "upper": 25.400000000000002
+            },
+            "reference_torque_nm": {
+              "lower": 24.9,
+              "upper": 25.1
+            }
+          }
+        ],
+        "synchronized_metrology_receipt_digest": "synced-metrology-receipt-cal-b"
+      },
+      {
+        "installation_id": "cal-c",
+        "sensor_serial": "sensor-cal-c",
+        "flexspline_serial": "flex-cal-c",
+        "reducer_serial": "reducer-cal-c",
+        "installation_digest": "installation-digest-cal-c",
+        "sensor_assembly_digest": "sensor-assembly-cal-c",
+        "calibration_digest": "sensor-calibration-cal-c",
+        "reference_calibration_digest": "reference-calibration-cal-c",
+        "reference_evidence_class": "independent_physical",
+        "reference_source_reference": "https://example.invalid/external-torque/cal-c",
+        "reference_method": "Synthetic external torque transducer reference fixture; not physical test data.",
+        "reference_raw_trace_digest": "reference-raw-trace-cal-c",
+        "sensor_raw_trace_digest": "mems-grid-raw-trace-cal-c",
+        "observations": [
+          {
+            "sample_id": "cal-c-1",
+            "joint_angle_rad": 0,
+            "temperature_c": 25,
+            "angular_speed_rad_s": 3,
+            "direction": "forward_motoring",
+            "raw_torque_nm": {
+              "lower": 31.5,
+              "upper": 31.700000000000003
+            },
+            "compensated_torque_nm": {
+              "lower": 30.299999999999997,
+              "upper": 30.5
+            },
+            "reference_torque_nm": {
+              "lower": 29.9,
+              "upper": 30.1
+            }
+          },
+          {
+            "sample_id": "cal-c-2",
+            "joint_angle_rad": 0,
+            "temperature_c": 25,
+            "angular_speed_rad_s": 3,
+            "direction": "forward_motoring",
+            "raw_torque_nm": {
+              "lower": 41.5,
+              "upper": 41.7
+            },
+            "compensated_torque_nm": {
+              "lower": 40.4,
+              "upper": 40.6
+            },
+            "reference_torque_nm": {
+              "lower": 39.9,
+              "upper": 40.1
+            }
+          }
+        ],
+        "synchronized_metrology_receipt_digest": "synced-metrology-receipt-cal-c"
+      }
+    ],
+    "mission_set_digest": "frozen-angle-temperature-speed-quadrant-trajectory-set-v1"
+  },
+  "test": {
+    "split_digest": "heldout-installations-v1",
+    "model_digest": "compensation-model-v1",
+    "feature_schema_digest": "mems-grid-features-v1",
+    "system_boundary_digest": "installed-harmonic-joint-boundary-v1",
+    "sensor_family_digest": "flexspline-mems-grid-family-v1",
+    "reference_method_digest": "external-torque-reference-method-v1",
+    "domain_digest": "angle-temperature-speed-quadrant-domain-v1",
+    "installations": [
+      {
+        "installation_id": "test-a",
+        "sensor_serial": "sensor-test-a",
+        "flexspline_serial": "flex-test-a",
+        "reducer_serial": "reducer-test-a",
+        "installation_digest": "installation-digest-test-a",
+        "sensor_assembly_digest": "sensor-assembly-test-a",
+        "calibration_digest": "sensor-calibration-test-a",
+        "reference_calibration_digest": "reference-calibration-test-a",
+        "reference_evidence_class": "independent_physical",
+        "reference_source_reference": "https://example.invalid/external-torque/test-a",
+        "reference_method": "Synthetic external torque transducer reference fixture; not physical test data.",
+        "reference_raw_trace_digest": "reference-raw-trace-test-a",
+        "sensor_raw_trace_digest": "mems-grid-raw-trace-test-a",
+        "observations": [
+          {
+            "sample_id": "test-a-1",
+            "joint_angle_rad": 0,
+            "temperature_c": 25,
+            "angular_speed_rad_s": 3,
+            "direction": "forward_motoring",
+            "raw_torque_nm": {
+              "lower": 11.5,
+              "upper": 11.7
+            },
+            "compensated_torque_nm": {
+              "lower": 10.1,
+              "upper": 10.299999999999999
+            },
+            "reference_torque_nm": {
+              "lower": 9.9,
+              "upper": 10.1
+            }
+          },
+          {
+            "sample_id": "test-a-2",
+            "joint_angle_rad": 0,
+            "temperature_c": 25,
+            "angular_speed_rad_s": 3,
+            "direction": "forward_motoring",
+            "raw_torque_nm": {
+              "lower": 21.5,
+              "upper": 21.700000000000003
+            },
+            "compensated_torque_nm": {
+              "lower": 20.2,
+              "upper": 20.400000000000002
+            },
+            "reference_torque_nm": {
+              "lower": 19.9,
+              "upper": 20.1
+            }
+          }
+        ],
+        "synchronized_metrology_receipt_digest": "synced-metrology-receipt-test-a"
+      },
+      {
+        "installation_id": "test-b",
+        "sensor_serial": "sensor-test-b",
+        "flexspline_serial": "flex-test-b",
+        "reducer_serial": "reducer-test-b",
+        "installation_digest": "installation-digest-test-b",
+        "sensor_assembly_digest": "sensor-assembly-test-b",
+        "calibration_digest": "sensor-calibration-test-b",
+        "reference_calibration_digest": "reference-calibration-test-b",
+        "reference_evidence_class": "independent_physical",
+        "reference_source_reference": "https://example.invalid/external-torque/test-b",
+        "reference_method": "Synthetic external torque transducer reference fixture; not physical test data.",
+        "reference_raw_trace_digest": "reference-raw-trace-test-b",
+        "sensor_raw_trace_digest": "mems-grid-raw-trace-test-b",
+        "observations": [
+          {
+            "sample_id": "test-b-1",
+            "joint_angle_rad": 0,
+            "temperature_c": 25,
+            "angular_speed_rad_s": 3,
+            "direction": "forward_motoring",
+            "raw_torque_nm": {
+              "lower": 16.5,
+              "upper": 16.700000000000003
+            },
+            "compensated_torque_nm": {
+              "lower": 15.700000000000001,
+              "upper": 15.9
+            },
+            "reference_torque_nm": {
+              "lower": 14.9,
+              "upper": 15.1
+            }
+          },
+          {
+            "sample_id": "test-b-2",
+            "joint_angle_rad": 0,
+            "temperature_c": 25,
+            "angular_speed_rad_s": 3,
+            "direction": "forward_motoring",
+            "raw_torque_nm": {
+              "lower": 26.5,
+              "upper": 26.700000000000003
+            },
+            "compensated_torque_nm": {
+              "lower": 25.799999999999997,
+              "upper": 26
+            },
+            "reference_torque_nm": {
+              "lower": 24.9,
+              "upper": 25.1
+            }
+          }
+        ],
+        "synchronized_metrology_receipt_digest": "synced-metrology-receipt-test-b"
+      },
+      {
+        "installation_id": "test-ood",
+        "sensor_serial": "sensor-test-ood",
+        "flexspline_serial": "flex-test-ood",
+        "reducer_serial": "reducer-test-ood",
+        "installation_digest": "installation-digest-test-ood",
+        "sensor_assembly_digest": "sensor-assembly-test-ood",
+        "calibration_digest": "sensor-calibration-test-ood",
+        "reference_calibration_digest": "reference-calibration-test-ood",
+        "reference_evidence_class": "independent_physical",
+        "reference_source_reference": "https://example.invalid/external-torque/test-ood",
+        "reference_method": "Synthetic external torque transducer reference fixture; not physical test data.",
+        "reference_raw_trace_digest": "reference-raw-trace-test-ood",
+        "sensor_raw_trace_digest": "mems-grid-raw-trace-test-ood",
+        "observations": [
+          {
+            "sample_id": "test-ood-1",
+            "joint_angle_rad": 3.5,
+            "temperature_c": 25,
+            "angular_speed_rad_s": 3,
+            "direction": "forward_motoring",
+            "raw_torque_nm": {
+              "lower": 11.5,
+              "upper": 11.7
+            },
+            "compensated_torque_nm": {
+              "lower": 9.9,
+              "upper": 10.1
+            },
+            "reference_torque_nm": {
+              "lower": 9.9,
+              "upper": 10.1
+            }
+          },
+          {
+            "sample_id": "test-ood-2",
+            "joint_angle_rad": 0,
+            "temperature_c": 25,
+            "angular_speed_rad_s": 3,
+            "direction": "forward_motoring",
+            "raw_torque_nm": {
+              "lower": 21.5,
+              "upper": 21.700000000000003
+            },
+            "compensated_torque_nm": {
+              "lower": 19.9,
+              "upper": 20.1
+            },
+            "reference_torque_nm": {
+              "lower": 19.9,
+              "upper": 20.1
+            }
+          }
+        ],
+        "synchronized_metrology_receipt_digest": "synced-metrology-receipt-test-ood"
+      }
+    ],
+    "mission_set_digest": "frozen-angle-temperature-speed-quadrant-trajectory-set-v1"
+  },
+  "claim_ceiling": "Synthetic known-answer fixture only. All models, IDs, torque intervals, external references, certificates, raw traces and sensor installations are fabricated placeholders; no physical sensor calibration or transfer result is represented."
+}
