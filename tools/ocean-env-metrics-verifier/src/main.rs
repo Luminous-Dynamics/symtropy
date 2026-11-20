@@ -148,8 +148,8 @@ fn validate(catalog: &Value) -> Result<String, String> {
     }
 
     let marine = required_array(catalog, "marine_extension_metrics", "catalogue")?;
-    if marine.len() < 10 {
-        return Err("marine extension must define at least ten distinct ocean-specific metrics".into());
+    if marine.len() != 14 {
+        return Err(format!("expected exactly 14 ocean-specific marine extension metrics; got {}", marine.len()));
     }
     let marine_ids = unique_ids(marine, "marine_extension_metrics")?;
     for (i, metric) in marine.iter().enumerate() {
@@ -322,5 +322,11 @@ mod tests {
         let mut v = fixture();
         v["official_metrics"][0]["unreviewed_shortcut"] = Value::Bool(true);
         assert!(validate(&v).unwrap_err().contains("unknown field unreviewed_shortcut"));
+    }
+    #[test]
+    fn missing_marine_extension_is_rejected() {
+        let mut v = fixture();
+        v["marine_extension_metrics"].as_array_mut().unwrap().pop();
+        assert!(validate(&v).unwrap_err().contains("expected exactly 14 ocean-specific"));
     }
 }
