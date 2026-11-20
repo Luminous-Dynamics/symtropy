@@ -40,6 +40,28 @@ pub enum EvidenceStatus {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+pub enum OperationalEvidenceClass {
+    Synthetic,
+    MeasurementRecord,
+    IndependentTest,
+    Unknown,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OperationalObservation {
+    pub evidence_class: OperationalEvidenceClass,
+    pub status: EvidenceStatus,
+    pub link_available: bool,
+    pub record_id: String,
+    pub source_system: String,
+    pub subject_id: String,
+    pub operation_scope_digest_sha256: String,
+    pub source_reference: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ActivityClass {
     Commercial,
     Corporate,
@@ -129,10 +151,9 @@ pub struct OperationConditions {
     pub operation_id: String,
     pub operation_scope_digest_sha256: String,
     pub visual_flight_mode: VisualFlightMode,
-    /// Whether a current, approved command-and-control radio link is available.
-    /// BVLOS may still be RLOS; BRLOS is a separate unsupported state in v0.1.
-    pub rlos_command_link_available: bool,
-    pub rlos_command_link_evidence_reference: String,
+    /// A time/scoped observation of the C2 link. This is distinct from the
+    /// visual flight mode and from the RLOS/BRLOS regulatory classification.
+    pub c2_link_observation: Option<OperationalObservation>,
     pub payload_release_or_delivery: bool,
     pub multi_uas_operation: bool,
     pub public_road_takeoff_or_landing: bool,
@@ -286,9 +307,6 @@ fn validate_batch(batch: &UasEligibilityBatch) -> Result<(), Vec<String>> {
         {
             errors.push(format!("cases[{index}].operation.operations_manual_revision: required for non-private operation"));
         }
-        if case.operation.rlos_command_link_evidence_reference.trim().is_empty() {
-            errors.push(format!("cases[{index}].operation.rlos_command_link_evidence_reference: required"));
-        }
         for (field, value) in [
             ("operator.operator_id", case.operator.operator_id.as_str()),
             ("aircraft.aircraft_id", case.aircraft.aircraft_id.as_str()),
@@ -404,15 +422,69 @@ fn boolean_gate(
     }
 }
 
-fn boolean_gate_with_reference(
-    gate_id: &str,
-    requirement: &str,
-    value: Option<bool>,
-    source_reference: &str,
+fn operational_c2_gate(
+    observation: Option<&OperationalObservation>,
+    expected_aircraft_id: &str,
+    expected_scope_digest: &str,
 ) -> GateFinding {
-    let mut finding = boolean_gate(gate_id, requirement, value);
-    finding.evidence_source_reference = Some(source_reference.to_string());
-    finding
+    let gate_id = "current_c2_link_state";
+    let requirement = "Current command-and-control link health for this aircraft and operation scope";
+    let Some(observation) = observation else {
+        return GateFinding {
+            gate_id: gate_id.into(),
+            state: GateState::Indeterminate,
+            requirement: requirement.into(),
+            reason: "current C2 link observation is missing".into(),
+            evidence_record_id: None,
+            evidence_source_reference: None,
+        };
+    };
+
+    let mut state = match observation.status {
+        EvidenceStatus::FreshInScope => GateState::Pass,
+        EvidenceStatus::Unknown | EvidenceStatus::Stale | EvidenceStatus::Missing => GateState::Indeterminate,
+        EvidenceStatus::Expired | EvidenceStatus::Revoked | EvidenceStatus::OutOfScope => GateState::Blocked,
+    };
+    let mut reason = match observation.status {
+        EvidenceStatus::FreshInScope => "current C2 link observation declared".to_string(),
+        EvidenceStatus::Unknown | EvidenceStatus::Stale | EvidenceStatus::Missing => "C2 link observation is unknown, stale or missing".to_string(),
+        EvidenceStatus::Expired | EvidenceStatus::Revoked | EvidenceStatus::OutOfScope => "C2 link observation is expired, revoked or out of scope".to_string(),
+    };
+    if observation.record_id.trim().is_empty()
+        || observation.source_system.trim().is_empty()
+        || observation.source_reference.trim().is_empty()
+    {
+        state = GateState::Indeterminate;
+        reason = "C2 link observation lacks record, source-system or source reference".into();
+    } else if observation.subject_id != expected_aircraft_id
+        || observation.operation_scope_digest_sha256 != expected_scope_digest
+    {
+        state = GateState::Blocked;
+        reason = "C2 link observation subject or operation scope does not match".into();
+    } else if !observation.link_available {
+        state = GateState::Blocked;
+        reason = "C2 link is not available at assessment time".into();
+    } else if state == GateState::Pass {
+        state = match observation.evidence_class {
+            OperationalEvidenceClass::Synthetic => GateState::SyntheticOnly,
+            OperationalEvidenceClass::MeasurementRecord | OperationalEvidenceClass::IndependentTest => GateState::Pass,
+            OperationalEvidenceClass::Unknown => GateState::Indeterminate,
+        };
+        reason = match observation.evidence_class {
+            OperationalEvidenceClass::Synthetic => "synthetic C2 observation exercises the gate only".into(),
+            OperationalEvidenceClass::MeasurementRecord | OperationalEvidenceClass::IndependentTest => "current source-bound C2 link observation declared".into(),
+            OperationalEvidenceClass::Unknown => "C2 link evidence class is unknown".into(),
+        };
+    }
+
+    GateFinding {
+        gate_id: gate_id.into(),
+        state,
+        requirement: requirement.into(),
+        reason,
+        evidence_record_id: Some(observation.record_id.clone()),
+        evidence_source_reference: Some(observation.source_reference.clone()),
+    }
 }
 
 fn evaluate_case(case: &UasOperationCase) -> UasCaseReport {
@@ -525,11 +597,10 @@ fn evaluate_case(case: &UasOperationCase) -> UasCaseReport {
     }
 
     // Current SACAA guidance distinguishes visual mode from the radio link.
-    findings.push(boolean_gate_with_reference(
-        "radio_line_of_sight_command_link",
-        "Current command-and-control radio link is available; RLOS is distinct from VLOS",
-        Some(case.operation.rlos_command_link_available),
-        &case.operation.rlos_command_link_evidence_reference,
+    findings.push(operational_c2_gate(
+        case.operation.c2_link_observation.as_ref(),
+        aircraft_id,
+        scope,
     ));
     if case.operation.visual_flight_mode == VisualFlightMode::Brlos {
         findings.push(GateFinding {
@@ -827,8 +898,16 @@ mod tests {
                 operation_id: "parcel-route-a".into(),
                 operation_scope_digest_sha256: scope.clone(),
                 visual_flight_mode: VisualFlightMode::RestrictedVlos,
-                rlos_command_link_available: true,
-                rlos_command_link_evidence_reference: "synthetic://c2-link/parcel-route-a".into(),
+                c2_link_observation: Some(OperationalObservation {
+                    evidence_class: OperationalEvidenceClass::Synthetic,
+                    status: EvidenceStatus::FreshInScope,
+                    link_available: true,
+                    record_id: "synthetic-c2-link-01".into(),
+                    source_system: "synthetic-c2-monitor".into(),
+                    subject_id: aircraft.into(),
+                    operation_scope_digest_sha256: scope.clone(),
+                    source_reference: "synthetic://c2-link/parcel-route-a".into(),
+                }),
                 payload_release_or_delivery: true,
                 multi_uas_operation: false,
                 public_road_takeoff_or_landing: false,
@@ -971,7 +1050,6 @@ mod tests {
     fn brlos_is_unsupported_under_current_source_snapshot() {
         let mut case = commercial_case();
         case.operation.visual_flight_mode = VisualFlightMode::Brlos;
-        case.operation.rlos_command_link_available = true;
         let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid envelope");
         assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::UnsupportedBySnapshot);
         assert!(report.cases[0].findings.iter().any(|gate| gate.gate_id == "beyond_radio_line_of_sight"
@@ -1055,6 +1133,30 @@ mod tests {
     fn unknown_aircraft_classification_is_indeterminate() {
         let mut case = commercial_case();
         case.aircraft.uas_class = UasClass::Unknown;
+        let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid envelope");
+        assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::Indeterminate);
+    }
+
+    #[test]
+    fn missing_c2_link_observation_is_indeterminate() {
+        let mut case = commercial_case();
+        case.operation.c2_link_observation = None;
+        let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid envelope");
+        assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::Indeterminate);
+    }
+
+    #[test]
+    fn unavailable_current_c2_link_blocks_operation() {
+        let mut case = commercial_case();
+        case.operation.c2_link_observation.as_mut().unwrap().link_available = false;
+        let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid envelope");
+        assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::Blocked);
+    }
+
+    #[test]
+    fn stale_current_c2_link_observation_is_indeterminate() {
+        let mut case = commercial_case();
+        case.operation.c2_link_observation.as_mut().unwrap().status = EvidenceStatus::Stale;
         let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid envelope");
         assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::Indeterminate);
     }
