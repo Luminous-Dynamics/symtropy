@@ -49,7 +49,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 1,
+          "upper_bound": 1
         },
         {
           "name": "task_energy",
@@ -63,7 +65,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 100,
+          "upper_bound": 100
         },
         {
           "name": "task_coverage",
@@ -77,7 +81,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 0.9,
+          "upper_bound": 0.9
         }
       ],
       "hard_constraints": [
@@ -133,7 +139,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 1.4,
+          "upper_bound": 1.4
         },
         {
           "name": "task_energy",
@@ -147,7 +155,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 120,
+          "upper_bound": 120
         },
         {
           "name": "task_coverage",
@@ -161,7 +171,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 0.8,
+          "upper_bound": 0.8
         }
       ],
       "hard_constraints": [
@@ -217,7 +229,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-02",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 1.5,
+          "upper_bound": 1.5
         },
         {
           "name": "task_energy",
@@ -231,7 +245,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-02",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 130,
+          "upper_bound": 130
         },
         {
           "name": "task_coverage",
@@ -245,7 +261,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-02",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 0.75,
+          "upper_bound": 0.75
         }
       ],
       "hard_constraints": [
@@ -301,7 +319,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 0.5,
+          "upper_bound": 0.5
         },
         {
           "name": "task_energy",
@@ -315,7 +335,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 40,
+          "upper_bound": 40
         },
         {
           "name": "task_coverage",
@@ -329,7 +351,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 0.99,
+          "upper_bound": 0.99
         }
       ],
       "hard_constraints": [
@@ -385,7 +409,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 0.7,
+          "upper_bound": 0.7
         },
         {
           "name": "task_energy",
@@ -399,7 +425,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 60,
+          "upper_bound": 60
         },
         {
           "name": "task_coverage",
@@ -413,7 +441,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 0.95,
+          "upper_bound": 0.95
         }
       ],
       "hard_constraints": [
@@ -469,7 +499,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": null,
+          "upper_bound": null
         },
         {
           "name": "task_energy",
@@ -483,7 +515,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 90,
+          "upper_bound": 90
         },
         {
           "name": "task_coverage",
@@ -497,7 +531,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 0.9,
+          "upper_bound": 0.9
         }
       ],
       "hard_constraints": [
@@ -553,7 +589,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 0.9,
+          "upper_bound": 0.9
         },
         {
           "name": "task_energy",
@@ -567,7 +605,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 80,
+          "upper_bound": 80
         },
         {
           "name": "task_coverage",
@@ -581,7 +621,9 @@
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 0.92,
+          "upper_bound": 0.92
         }
       ],
       "hard_constraints": [
@@ -641,7 +683,9 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-01",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 0.85,
+          "upper_bound": 0.85
         },
         {
           "name": "task_energy",
@@ -655,7 +699,9 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-01",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 75,
+          "upper_bound": 75
         },
         {
           "name": "task_coverage",
@@ -669,7 +715,9 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "mission_set_digest": "frozen-mission-set-01",
           "stress_set_digest": "frozen-bounded-stress-set-01",
-          "calibration_receipt": null
+          "calibration_receipt": null,
+          "lower_bound": 0.93,
+          "upper_bound": 0.93
         }
       ],
       "hard_constraints": [
@@ -725,6 +773,186 @@
           }
         }
       ]
+    },
+    {
+      "candidate_id": "overlap-left",
+      "configuration_digest": "config-overlap-left",
+      "operating_condition_digest": "48V-25C-cooling-A",
+      "mission_set_digest": "frozen-mission-set-01",
+      "objectives": [
+        {
+          "name": "installed_mass",
+          "value": 0.9,
+          "unit": "kg",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://example.invalid/overlap-left",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-overlap-left",
+          "operating_condition_digest": "48V-25C-cooling-A",
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null,
+          "lower_bound": 0.8,
+          "upper_bound": 1.1
+        },
+        {
+          "name": "task_energy",
+          "value": 90,
+          "unit": "J",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://example.invalid/overlap-left",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-overlap-left",
+          "operating_condition_digest": "48V-25C-cooling-A",
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null,
+          "lower_bound": 80,
+          "upper_bound": 110
+        },
+        {
+          "name": "task_coverage",
+          "value": 0.92,
+          "unit": "fraction",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://example.invalid/overlap-left",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-overlap-left",
+          "operating_condition_digest": "48V-25C-cooling-A",
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null,
+          "lower_bound": 0.89,
+          "upper_bound": 0.95
+        }
+      ],
+      "hard_constraints": [
+        {
+          "name": "thermal_margin",
+          "minimum_robust_margin": 5,
+          "unit": "degC",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://example.invalid/overlap-left",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-overlap-left",
+          "operating_condition_digest": "48V-25C-cooling-A",
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "calibration_receipt": null
+        },
+        {
+          "name": "torque_margin",
+          "minimum_robust_margin": 2,
+          "unit": "N m",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://example.invalid/overlap-left",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-overlap-left",
+          "operating_condition_digest": "48V-25C-cooling-A",
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "calibration_receipt": null
+        }
+      ],
+      "system_boundary_digest": "complete-installed-joint-boundary-v1",
+      "stress_set_digest": "frozen-bounded-stress-set-v1",
+      "model_digest": null,
+      "prediction_domain_digest": null
+    },
+    {
+      "candidate_id": "overlap-right",
+      "configuration_digest": "config-overlap-right",
+      "operating_condition_digest": "48V-25C-cooling-A",
+      "mission_set_digest": "frozen-mission-set-01",
+      "objectives": [
+        {
+          "name": "installed_mass",
+          "value": 1,
+          "unit": "kg",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://example.invalid/overlap-right",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-overlap-right",
+          "operating_condition_digest": "48V-25C-cooling-A",
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null,
+          "lower_bound": 0.9,
+          "upper_bound": 1.2
+        },
+        {
+          "name": "task_energy",
+          "value": 95,
+          "unit": "J",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://example.invalid/overlap-right",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-overlap-right",
+          "operating_condition_digest": "48V-25C-cooling-A",
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null,
+          "lower_bound": 85,
+          "upper_bound": 115
+        },
+        {
+          "name": "task_coverage",
+          "value": 0.9,
+          "unit": "fraction",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://example.invalid/overlap-right",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-overlap-right",
+          "operating_condition_digest": "48V-25C-cooling-A",
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null,
+          "lower_bound": 0.88,
+          "upper_bound": 0.94
+        }
+      ],
+      "hard_constraints": [
+        {
+          "name": "thermal_margin",
+          "minimum_robust_margin": 5,
+          "unit": "degC",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://example.invalid/overlap-right",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-overlap-right",
+          "operating_condition_digest": "48V-25C-cooling-A",
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "calibration_receipt": null
+        },
+        {
+          "name": "torque_margin",
+          "minimum_robust_margin": 2,
+          "unit": "N m",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://example.invalid/overlap-right",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-overlap-right",
+          "operating_condition_digest": "48V-25C-cooling-A",
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "calibration_receipt": null
+        }
+      ],
+      "system_boundary_digest": "complete-installed-joint-boundary-v1",
+      "stress_set_digest": "frozen-bounded-stress-set-v1",
+      "model_digest": null,
+      "prediction_domain_digest": null
     }
   ],
   "claim_ceiling": "Synthetic Pareto/evidence-lane arithmetic only. Values, margins, sources and methods are fixture placeholders; they are not actuator measurements, robust design predictions or physical qualification."
