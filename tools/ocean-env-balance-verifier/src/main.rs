@@ -182,6 +182,8 @@ struct PollutantResult {
     net_added_standard_uncertainty_g_s: f64,
     net_added_kg_day: f64,
     net_added_standard_uncertainty_kg_day: f64,
+    net_added_to_standard_uncertainty_ratio: f64,
+    net_flux_resolution_status: String,
 }
 #[derive(Debug, Serialize)]
 struct IntervalResult {
@@ -481,6 +483,13 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
             + (pair.outfall.concentration_mg_l * u_q_out).powi(2)).sqrt();
         let net = fout - fin;
         let u_net = (u_fin.powi(2) + u_fout.powi(2)).sqrt();
+        positive(u_net, "net pollutant flux standard uncertainty")?;
+        let resolution_ratio = net.abs() / u_net;
+        let resolution_status = if resolution_ratio < 1.0 {
+            "BELOW_1_STANDARD_UNCERTAINTY_UNRESOLVED"
+        } else {
+            "ABOVE_1_STANDARD_UNCERTAINTY_NOT_COMPLIANCE"
+        };
         for (name, value) in [
             ("intake_pollutant_flux", fin), ("outfall_pollutant_flux", fout),
             ("net_pollutant_flux", net), ("net_pollutant_flux_uncertainty", u_net),
@@ -497,6 +506,8 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
             net_added_standard_uncertainty_g_s:u_net,
             net_added_kg_day:net * 86.4,
             net_added_standard_uncertainty_kg_day:u_net * 86.4,
+            net_added_to_standard_uncertainty_ratio:resolution_ratio,
+            net_flux_resolution_status:resolution_status.into(),
         });
     }
 
@@ -652,6 +663,11 @@ mod tests {
         assert!(report.total_thermal_energy_kwh_th > 0.0);
         assert_eq!(report.site_clearance_status, "UNKNOWN_BLOCKED");
         assert!(report.environmental_compliance_status.starts_with("NOT_ASSESSED"));
+        assert!(report.interval_results.iter().all(|interval|
+            interval.pollutant_results.iter().all(|p|
+                p.net_flux_resolution_status == "BELOW_1_STANDARD_UNCERTAINTY_UNRESOLVED"
+            )
+        ));
     }
     #[test]
     fn expired_calibration_is_rejected() {
