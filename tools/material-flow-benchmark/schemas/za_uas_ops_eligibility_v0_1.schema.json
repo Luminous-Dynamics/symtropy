@@ -140,7 +140,8 @@
               "over_public_road",
               "rps_id",
               "operations_manual_revision",
-              "c2_link_observation"
+              "c2_link_observation",
+              "radio_link_mode"
             ],
             "properties": {
               "operation_id": {
@@ -156,8 +157,7 @@
                   "restricted_vlos",
                   "vlos",
                   "evlos",
-                  "bvlos",
-                  "brlos"
+                  "bvlos"
                 ]
               },
               "payload_release_or_delivery": {
@@ -271,6 +271,12 @@
                   {
                     "type": "null"
                   }
+                ]
+              },
+              "radio_link_mode": {
+                "enum": [
+                  "rlos",
+                  "brlos"
                 ]
               }
             }
