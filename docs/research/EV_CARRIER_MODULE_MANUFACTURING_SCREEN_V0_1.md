@@ -19,7 +19,8 @@ The current v0.1 screen is intentionally a *capacity and resource overlay*, not 
 The fixture contains:
 - detachable UAV pod — fully populated **synthetic** process route for exercising station sizing;
 - AMR handoff module — fully populated **synthetic** two-module-per-carrier route;
-- integrated enclosed drone bay — production-intent process data deliberately left unknown.
+- integrated enclosed drone bay — production-intent process data deliberately left unknown;
+- mobile drone-station trailer — production-intent process data deliberately left unknown.
 
 The fixture does not assert that a drone pod or AMR can currently be manufactured at these rates. The synthetic process values are illustrative test inputs, not time studies, equipment quotations or industrial engineering estimates.
 
