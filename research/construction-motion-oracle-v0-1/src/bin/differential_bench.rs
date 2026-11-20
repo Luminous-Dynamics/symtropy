@@ -4,8 +4,10 @@ use std::time::{Duration, Instant};
 use construction_motion_oracle::{
     AnalyticPath, DesignIntentEntity, FieldAcceptanceProfile, FieldLayoutEntityType,
     GeometryPreflightEvaluation, IdsRequirementEvaluation, IfcCoordinateContext,
-    IfcIdsWorkPackageInput, IfcLengthUnit, IfcSourceEntity, SiteActorRegistry, SiteActorRole,
-    SiteEventEnvelope, SiteEventPayload, SiteStateLedger, SiteWorkPackage, Vec3,
+    IfcIdsWorkPackageInput, IfcLengthUnit, IfcSourceEntity, OfflineSiteJournal,
+    OfflineSiteJournalEntry, SiteActorRegistry, SiteActorRole,
+    SiteEventEnvelope, SiteEventPayload, SiteJournalCheckpoint, SiteJournalCommittedContext,
+    SiteStateLedger, SiteWorkPackage, Vec3, reconcile_site_journal_bundle,
     SUPPORTED_IDS_VERSION, SUPPORTED_IFC_SCHEMA_RELEASE, chord_collision,
     endpoints_only_collision, preflight_ifc_ids_work_package,
 };
@@ -124,6 +126,7 @@ fn main() {
         );
     });
     run_site_ledger_append_scaling_benchmarks();
+    run_offline_site_journal_reconciliation_scaling_benchmarks();
     run_ifc_ids_preflight_scaling_benchmarks();
 }
 
@@ -248,6 +251,175 @@ fn run_site_ledger_append_scaling_benchmarks() {
             replay_p99.as_micros(),
             append_p50.as_nanos() / total_events,
             replay_p50.as_nanos() / total_events,
+        );
+    }
+}
+
+
+
+fn benchmark_digest(value: u64) -> String {
+    format!("{value:064x}")
+}
+
+fn build_offline_journal_benchmark_bundle(
+    total_event_count: usize,
+) -> (
+    Vec<OfflineSiteJournal>,
+    SiteJournalCheckpoint,
+    SiteJournalCommittedContext,
+    SiteActorRegistry,
+) {
+    let journal_count = 10_usize.min(total_event_count).max(1);
+    let package_sha256 = benchmark_digest(0xabc);
+    let checkpoint_sha256 = benchmark_digest(0xdef);
+    let mut registry = SiteActorRegistry::new();
+    let mut journals = Vec::with_capacity(journal_count);
+    let mut committed_context = SiteJournalCommittedContext {
+        event_ids: std::collections::BTreeSet::from(["checkpoint-event-1".into()]),
+        package_sha256s: std::collections::BTreeSet::from([package_sha256.clone()]),
+        ..SiteJournalCommittedContext::default()
+    };
+
+    for journal_index in 0..journal_count {
+        let actor_id = format!("robot-{journal_index:03}");
+        registry
+            .grant(&actor_id, SiteActorRole::Robot)
+            .expect("benchmark actor registration must be valid");
+        let count_for_journal =
+            total_event_count / journal_count + usize::from(journal_index < total_event_count % journal_count);
+        let mut entries = Vec::with_capacity(count_for_journal);
+        let mut previous_record_sha256 = None;
+
+        for local_index in 0..count_for_journal {
+            let global_index = journals
+                .iter()
+                .map(|journal: &OfflineSiteJournal| journal.entries.len())
+                .sum::<usize>()
+                + local_index;
+            let event_id = format!("offline-event-{global_index:08}");
+            let attempt_id = format!("checkpoint-attempt-{global_index:08}");
+            let entity_id = format!("entity-{global_index:08}");
+            let record_sha256 = benchmark_digest(0x10_0000 + global_index as u64);
+            let event_content_sha256 = benchmark_digest(0x20_0000 + global_index as u64);
+            committed_context.attempt_ids.insert(attempt_id.clone());
+            entries.push(OfflineSiteJournalEntry {
+                local_sequence: local_index as u64 + 1,
+                previous_record_sha256,
+                record_sha256: record_sha256.clone(),
+                event_id,
+                event_content_sha256,
+                actor_id: actor_id.clone(),
+                actor_role: SiteActorRole::Robot,
+                causal_parent_event_ids: Vec::new(),
+                payload: SiteEventPayload::RobotObservationRecorded {
+                    package_sha256: package_sha256.clone(),
+                    entity_id,
+                    attempt_id,
+                    disposition: construction_motion_oracle::RobotExecutionDisposition::Printed,
+                    robot_receipt_sha256: benchmark_digest(0x30_0000 + global_index as u64),
+                },
+            });
+            previous_record_sha256 = Some(record_sha256);
+        }
+        journals.push(OfflineSiteJournal {
+            journal_id: format!("offline-journal-{journal_index:03}"),
+            site_id: "benchmark-site".into(),
+            owner_actor_id: actor_id,
+            base_checkpoint: SiteJournalCheckpoint {
+                sequence: 1,
+                event_sha256: Some(checkpoint_sha256.clone()),
+            },
+            entries,
+        });
+    }
+
+    (
+        journals,
+        SiteJournalCheckpoint {
+            sequence: 1,
+            event_sha256: Some(checkpoint_sha256),
+        },
+        committed_context,
+        registry,
+    )
+}
+
+fn run_offline_site_journal_reconciliation_scaling_benchmarks() {
+    println!("offline_site_journal_reconciliation,event_count,journal_count,rounds,p50_us,p95_us,p99_us,events_per_second_p50,arrival_order_deterministic,conflicts");
+    for total_event_count in [100_usize, 1_000, 10_000] {
+        let (journals, checkpoint, committed_context, registry) =
+            build_offline_journal_benchmark_bundle(total_event_count);
+        let forward = reconcile_site_journal_bundle(
+            &journals,
+            "benchmark-site",
+            &checkpoint,
+            &committed_context,
+            &registry,
+        )
+        .expect("no-conflict offline journal benchmark bundle must reconcile");
+        assert!(forward.can_ingest());
+        assert_eq!(forward.ordered_events.len(), total_event_count);
+
+        let mut reversed_journals = journals.clone();
+        reversed_journals.reverse();
+        let reverse = reconcile_site_journal_bundle(
+            &reversed_journals,
+            "benchmark-site",
+            &checkpoint,
+            &committed_context,
+            &registry,
+        )
+        .expect("reversed no-conflict bundle must reconcile");
+        let forward_ids: Vec<_> = forward
+            .ordered_events
+            .iter()
+            .map(|event| event.event_id.as_str())
+            .collect();
+        let reverse_ids: Vec<_> = reverse
+            .ordered_events
+            .iter()
+            .map(|event| event.event_id.as_str())
+            .collect();
+        assert_eq!(forward_ids, reverse_ids);
+
+        let mut durations = Vec::with_capacity(11);
+        for _round in 0..11 {
+            let start = Instant::now();
+            let plan = black_box(
+                reconcile_site_journal_bundle(
+                    black_box(&journals),
+                    "benchmark-site",
+                    black_box(&checkpoint),
+                    black_box(&committed_context),
+                    black_box(&registry),
+                )
+                .expect("offline journal benchmark bundle must reconcile"),
+            );
+            assert!(plan.can_ingest());
+            assert_eq!(plan.ordered_events.len(), total_event_count);
+            black_box(plan);
+            durations.push(start.elapsed());
+        }
+        durations.sort_unstable();
+        let p50 = percentile(&durations, 50);
+        let p95 = percentile(&durations, 95);
+        let p99 = percentile(&durations, 99);
+        let events_per_second = if p50.as_nanos() == 0 {
+            0
+        } else {
+            (total_event_count as u128 * 1_000_000_000) / p50.as_nanos()
+        };
+        println!(
+            "{},{},{},{},{},{},{},{},{},{}",
+            total_event_count,
+            journals.len(),
+            durations.len(),
+            p50.as_micros(),
+            p95.as_micros(),
+            p99.as_micros(),
+            events_per_second,
+            true,
+            forward.concurrent_mutations.len()
         );
     }
 }
