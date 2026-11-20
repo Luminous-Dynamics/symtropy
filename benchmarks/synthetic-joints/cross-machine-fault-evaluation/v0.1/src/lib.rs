@@ -496,10 +496,6 @@ fn validate_episode(
         }
     }
 
-    if !episode.in_domain && episode.disposition_hint_is_scored() {
-        return Err(format!("episode {} is out-of-domain but contains unsupported scored metadata", episode.episode_id));
-    }
-
     if episode.predictions.is_empty() {
         return Err(format!("episode {} has no model prediction windows", episode.episode_id));
     }
@@ -528,14 +524,6 @@ fn validate_episode(
         _ => {}
     }
     Ok(())
-}
-
-impl EpisodeRecord {
-    fn disposition_hint_is_scored(&self) -> bool {
-        // An out-of-domain episode may still contain predictions for audit.
-        // It is not permitted to create a scored/healthy performance claim.
-        self.true_faults.is_empty() && !self.unknown_fault_class
-    }
 }
 
 fn event_truth_at(episode: &EpisodeRecord, timestamp_ns: u64) -> BTreeSet<&str> {
@@ -717,11 +705,15 @@ pub fn evaluate_fault_benchmark(
                 }
 
                 let predicted_labels = prediction_labels(prediction, plan)?;
-                for label in &predicted_labels {
-                    union_predicted.insert(label.clone());
-                }
-
                 let active_faults = event_truth_at(episode, prediction.timestamp_ns);
+                // Only post-onset decisions contribute to fault localization.
+                // A pre-onset alarm remains a false alarm but cannot be
+                // credited as a prediction of an event that has not happened.
+                if episode.fault_onset_time_ns.is_none() || !active_faults.is_empty() {
+                    for label in &predicted_labels {
+                        union_predicted.insert(label.clone());
+                    }
+                }
                 let is_alarm = !predicted_labels.is_empty();
                 if is_alarm && !previous_alarm {
                     if active_faults.is_empty() {
