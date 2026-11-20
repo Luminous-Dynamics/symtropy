@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "branch_atlas_cusp_deflation_reference_control",
+  "status": "executed_polynomial_controls_not_egb_branch_classification",
+  "exact_control": "x^3-x=0",
+  "exact_roots": [-1, 0, 1],
+  "deterministic_seeds": [2, -2, 0.3],
+  "discovered_roots": [-1.0000000000000466, 0, 1.000000000002289],
+  "maximum_root_error": 2.2890578321721478e-12,
+  "cusp_parameterization": {
+    "equation": "u^3+mu*u+nu=0",
+    "fold_locus": "mu=-3*u^2; nu=2*u^3",
+    "discriminant": "4*mu^3+27*nu^2=0",
+    "tested_u": [-1, -0.5, 0, 0.5, 1]
+  },
+  "negative_controls": {
+    "mutated_fold_original_residual": -0.5,
+    "injected_nonroot_original_residual": 0.192,
+    "both_rejected": true
+  },
+  "claim_ceiling": "Finite-dimensional method controls only; no EGB fold, cusp, disconnected branch, or completeness result."
+}

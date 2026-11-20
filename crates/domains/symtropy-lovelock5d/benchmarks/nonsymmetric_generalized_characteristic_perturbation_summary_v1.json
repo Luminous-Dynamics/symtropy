@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "nonsymmetric_generalized_eigenvalue_perturbation_control",
+  "status": "executed_generalized_pencil_method_control_not_gravitational_symbol",
+  "pencil": "A(epsilon) v = omega B(epsilon) v",
+  "unperturbed": {"A0": "2 I", "B0": "I", "omega0": 2},
+  "A1": [[0.7, 2.6], [0.0, 0.2]],
+  "B1": [[0.1, 0.3], [-0.05, 0.2]],
+  "effective_first_order_matrix": [[0.5, 2.0], [0.1, -0.2]],
+  "first_order_shifts": [-0.4178908345800274, 0.7178908345800274],
+  "nonorthogonal_basis": [[1.0, 2.0], [0.5, 1.5]],
+  "left_basis_inverse": [[3.0, -4.0], [-1.0, 2.0]],
+  "basis_covariance_defect": 1.2212453270876722e-15,
+  "diagonal_only_negative_control": {
+    "canonical_diagonal": [-0.2, 0.5],
+    "transformed_diagonal": [-4.2, 4.5],
+    "canonical_max_shift_error": 0.2178908345800274,
+    "transformed_max_shift_error": 4.917890834580027,
+    "rejected": true
+  },
+  "epsilon_sweep": [0.1, 0.05, 0.025, 0.0125],
+  "max_absolute_eigenvalue_error_over_epsilon_squared": 0.10105052109133705,
+  "claim_ceiling": "Generalized non-symmetric eigenvalue method control only; no EGB principal symbol, physical polarization quotient, symmetrizer, or rotating-background result."
+}
