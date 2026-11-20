@@ -295,6 +295,21 @@
       ]
     },
     {
+      "metric_id": "MARINE-THERMAL-PLUME",
+      "name": "Spatial and temporal thermal-plume exposure",
+      "unit": "delta_degC_by_station_depth_time_and_area",
+      "direction": "bounded_by_site_specific_ecological_and_permit_limits",
+      "purpose": "Characterise the spatial and temporal footprint of the thermal anomaly, including plume extent, duration and receptor exposure; do not infer impact from the outfall thermometer alone.",
+      "required_context": [
+        "pre_operation_reference_temperature",
+        "station_coordinates_and_depth",
+        "current_and_mixing_state",
+        "synchronized_temperature_series",
+        "thermal_model_validation",
+        "uncertainty_and_detection_resolution"
+      ]
+    },
+    {
       "metric_id": "MARINE-THERMAL-FLUX",
       "name": "Net thermal energy discharged or reused",
       "unit": "kW_and_MWh_th",
@@ -348,6 +363,22 @@
         "turbidity",
         "temperature",
         "analyte_specific_lab_results"
+      ]
+    },
+    {
+      "metric_id": "MARINE-POLLUTANT-MASS-FLUX",
+      "name": "Discharge pollutant mass flux",
+      "unit": "mg_per_s_or_g_per_hour_per_analyte",
+      "direction": "minimize_and_permit_bound",
+      "purpose": "Prevent dilution from masking total pollutant release by combining analyte-specific concentration with synchronized discharge flow; report concentration and mass load together.",
+      "required_context": [
+        "analyte_and_concentration",
+        "synchronized_discharge_flow",
+        "sample_and_flow_time_alignment",
+        "detection_limit",
+        "uncertainty_propagation",
+        "background_reference",
+        "laboratory_chain_of_custody"
       ]
     },
     {
