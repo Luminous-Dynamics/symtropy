@@ -1557,8 +1557,8 @@ mod tests {
             kd: 4.0,
             max_force: 100.0,
         };
-        let reference_joint =
-            HingeJoint::new(BodyHandle(40), BodyHandle(41), 0, 1).with_motor(motor);
+        let reference_joint = HingeJoint::new(BodyHandle(40), BodyHandle(41), 0, 1)
+            .with_motor(motor.clone());
         let rotated_joint =
             HingeJoint::new(BodyHandle(40), BodyHandle(41), 0, 1).with_motor(motor);
 
