@@ -68,6 +68,7 @@ pub struct CandidateReceipt {
     pub expert_id: String,
     pub profile_sha256: String,
     pub model_sha256: String,
+    pub qualification: CandidateQualification,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -247,6 +248,7 @@ pub fn compose_shared_face_flux(
                 expert_id: candidate.expert_id.clone(),
                 profile_sha256: candidate.profile_sha256.clone(),
                 model_sha256: candidate.model_sha256.clone(),
+                qualification: candidate.qualification,
             })
             .collect(),
         candidate_weights: candidates.iter().map(|candidate| candidate.weight).collect(),
