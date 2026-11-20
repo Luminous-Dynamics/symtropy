@@ -1,0 +1,41 @@
+name: In-Situ Torque Sensor Transfer Reference
+
+on:
+  push:
+    paths:
+      - "benchmarks/synthetic-joints/in-situ-torque-sensor/v0.1/**"
+      - ".github/workflows/in-situ-torque-sensor-transfer.yml"
+  pull_request:
+    paths:
+      - "benchmarks/synthetic-joints/in-situ-torque-sensor/v0.1/**"
+      - ".github/workflows/in-situ-torque-sensor-transfer.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: in-situ-torque-sensor-transfer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.96.0
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/synthetic-joints/in-situ-torque-sensor/v0.1/Cargo.toml -- --check
+
+      - name: Run in-situ sensor transfer tests
+        run: cargo test --manifest-path benchmarks/synthetic-joints/in-situ-torque-sensor/v0.1/Cargo.toml --locked
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path benchmarks/synthetic-joints/in-situ-torque-sensor/v0.1/Cargo.toml --all-targets --locked -- -D warnings
