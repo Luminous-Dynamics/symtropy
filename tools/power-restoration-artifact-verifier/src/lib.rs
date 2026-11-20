@@ -742,6 +742,826 @@ pub fn verify_bundle_manifest(
     })
 }
 
+
+// -----------------------------------------------------------------------------
+// End-to-end restoration claim evidence gate
+// -----------------------------------------------------------------------------
+
+use power_restoration_action_proposal::{ActionKind, ActionProposal};
+use power_restoration_benchmark_case::{
+    BenchmarkCase, CaseMaturity, ElectricalDataProfile, canonical_case_sha256,
+};
+use power_restoration_observation_evidence::{
+    EvidenceBatch, EvidenceDisposition, SourceProvenance, validate_evidence_batch,
+};
+use power_restoration_run_receipt::{
+    RunReceipt, RunStatus, ServiceOutcome, StepDisposition, TerminalReason,
+    TransitionOutcome, ValidatorOutcome, canonical_sha256 as receipt_canonical_sha256,
+    qualify as qualify_run_receipt,
+};
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ClaimProducerProfile {
+    pub signer_role: SignerRole,
+    pub issuer_id: String,
+    pub tool_source_commit: String,
+    pub tool_configuration_sha256: String,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct RestorationClaimVerificationReport {
+    pub run_id: String,
+    pub run_receipt_sha256: String,
+    pub case_sha256: String,
+    pub run_status: String,
+    pub case_maturity: String,
+    pub electrical_data_profile: String,
+    pub proposal_count: usize,
+    pub observation_batch_count: usize,
+    pub observation_request_count: usize,
+    pub unsuccessful_observation_request_count: usize,
+    pub evidence_item_count: usize,
+    pub required_artifact_count: usize,
+    pub verified_artifact_count: usize,
+    pub required_attestation_count: usize,
+    pub verified_attestation_count: usize,
+    pub claim_status: String,
+    pub claim_boundary: String,
+}
+
+fn is_information_request(kind: ActionKind) -> bool {
+    matches!(
+        kind,
+        ActionKind::ObserveScada
+            | ActionKind::ObserveCalls
+            | ActionKind::ObserveNetworkModel
+            | ActionKind::CrewInspect
+            | ActionKind::ReadFaultIndicator
+            | ActionKind::TestSwitch
+            | ActionKind::SimulateSwitch
+            | ActionKind::ForecastLoad
+            | ActionKind::EscalateToHuman
+    )
+}
+
+fn proposal_set_sha256(receipt: &RunReceipt) -> Result<String, String> {
+    let mut proposals = Vec::new();
+    for step in &receipt.decision_steps {
+        if let Some(proposal) = &step.proposal {
+            proposals.push((
+                step.decision_step,
+                power_restoration_action_proposal::canonical_proposal_sha256(proposal)
+                    .map_err(|errors| errors.join("; "))?,
+            ));
+        }
+    }
+    canonical_sha256(&proposals)
+}
+
+fn profile_for<'a>(
+    profiles: &'a [ClaimProducerProfile],
+    role: SignerRole,
+    issuer_id: &str,
+) -> Result<&'a ClaimProducerProfile, String> {
+    let matching: Vec<&ClaimProducerProfile> = profiles
+        .iter()
+        .filter(|profile| profile.signer_role == role && profile.issuer_id == issuer_id)
+        .collect();
+    match matching.as_slice() {
+        [profile] => Ok(*profile),
+        [] => Err(format!(
+            "no pinned producer profile for role {role:?} and issuer {issuer_id}"
+        )),
+        _ => Err(format!(
+            "duplicate pinned producer profiles for role {role:?} and issuer {issuer_id}"
+        )),
+    }
+}
+
+fn add_expected_artifact(
+    artifacts: &mut BTreeMap<String, String>,
+    artifact_uri: &str,
+    digest: &str,
+    errors: &mut Vec<String>,
+) {
+    if !valid_id(artifact_uri) || !is_lower_hex(digest, 64) {
+        errors.push(format!(
+            "required artifact {artifact_uri} has invalid URI or digest"
+        ));
+        return;
+    }
+    if let Some(previous) = artifacts.insert(artifact_uri.to_string(), digest.to_string()) {
+        if previous != digest {
+            errors.push(format!(
+                "artifact URI {artifact_uri} is reused with different content digests"
+            ));
+        }
+    }
+}
+
+fn add_attested_artifact(
+    artifacts: &mut BTreeMap<String, String>,
+    requirements: &mut Vec<ExpectedAttestationBinding>,
+    artifact_uri: &str,
+    artifact_sha256: &str,
+    role: SignerRole,
+    issuer_id: &str,
+    predicate_type: &str,
+    run_id: &str,
+    case_sha256: &str,
+    decision_step: u32,
+    proposal_sha256: &str,
+    tool_source_commit: &str,
+    tool_configuration_sha256: &str,
+    parents: Vec<String>,
+    errors: &mut Vec<String>,
+) {
+    add_expected_artifact(artifacts, artifact_uri, artifact_sha256, errors);
+    if !is_lower_hex(tool_source_commit, 40)
+        || !is_lower_hex(tool_configuration_sha256, 64)
+        || !valid_id(issuer_id)
+        || !valid_id(predicate_type)
+    {
+        errors.push(format!(
+            "attestation producer identity for {artifact_uri} is invalid"
+        ));
+        return;
+    }
+
+    let requirement = ExpectedAttestationBinding {
+        predicate_type: predicate_type.to_string(),
+        issuer_id: issuer_id.to_string(),
+        artifact_uri: artifact_uri.to_string(),
+        artifact_sha256: artifact_sha256.to_string(),
+        run_id: run_id.to_string(),
+        case_sha256: case_sha256.to_string(),
+        decision_step,
+        proposal_sha256: proposal_sha256.to_string(),
+        signer_role: role,
+        tool_source_commit: tool_source_commit.to_string(),
+        tool_configuration_sha256: tool_configuration_sha256.to_string(),
+        parent_artifact_sha256: parents,
+    };
+
+    if let Some(existing) = requirements.iter().find(|existing| {
+        existing.artifact_uri == requirement.artifact_uri
+            && existing.signer_role == requirement.signer_role
+    }) {
+        if existing != &requirement {
+            errors.push(format!(
+                "artifact {} has conflicting attestation contexts for role {:?}",
+                artifact_uri, role
+            ));
+        }
+        return;
+    }
+    requirements.push(requirement);
+}
+
+fn artifact_envelope_uri(envelope: &AttestationEnvelope) -> Result<String, String> {
+    let digest = canonical_sha256(envelope)?;
+    Ok(format!("power-fabric://attestation/{digest}"))
+}
+
+fn add_component_attestation(
+    artifacts: &mut BTreeMap<String, String>,
+    requirements: &mut Vec<ExpectedAttestationBinding>,
+    artifact_uri: &str,
+    artifact_sha256: &str,
+    role: SignerRole,
+    component: &power_restoration_run_receipt::ComponentIdentity,
+    predicate_type: &str,
+    run_id: &str,
+    case_sha256: &str,
+    decision_step: u32,
+    proposal_sha256: &str,
+    parents: Vec<String>,
+    errors: &mut Vec<String>,
+) {
+    add_attested_artifact(
+        artifacts,
+        requirements,
+        artifact_uri,
+        artifact_sha256,
+        role,
+        &component.component_id,
+        predicate_type,
+        run_id,
+        case_sha256,
+        decision_step,
+        proposal_sha256,
+        &component.source_commit,
+        &component.configuration_sha256,
+        parents,
+        errors,
+    );
+}
+
+/// Verifies a complete claim package without accepting a caller-provided
+/// subset of required artifacts or signatures. Required obligations are
+/// derived from the actual case, run receipt, proposals and observation batches.
+pub fn verify_restoration_claim_evidence(
+    bundle_root: &Path,
+    case: &BenchmarkCase,
+    receipt: &RunReceipt,
+    observation_batches: &[EvidenceBatch],
+    manifest: &BundleManifest,
+    trust_root: &TrustRoot,
+    pinned_trust_root_sha256: &str,
+    attestations: &[AttestationEnvelope],
+    producer_profiles: &[ClaimProducerProfile],
+    run_receipt_artifact_uri: &str,
+    verified_at_unix_ms: u64,
+    max_artifact_bytes: u64,
+) -> Result<RestorationClaimVerificationReport, Vec<String>> {
+    let mut errors = Vec::new();
+
+    let case_sha256 = canonical_case_sha256(case)
+        .map_err(|error| vec![format!("case canonicalization failed: {error}")])?;
+    let receipt_report = qualify_run_receipt(receipt, case)
+        .map_err(|receipt_errors| receipt_errors.into_iter().map(|error| format!("run receipt: {error}")).collect::<Vec<_>>())?;
+    let receipt_sha256 = receipt_canonical_sha256(receipt)
+        .map_err(|error| vec![format!("run receipt canonicalization failed: {error}")])?;
+    let proposal_set_sha = proposal_set_sha256(receipt)
+        .map_err(|error| vec![format!("proposal-set canonicalization failed: {error}")])?;
+
+    let mut expected_artifacts = BTreeMap::new();
+    let mut requirements = Vec::new();
+
+    // The exact canonical run receipt itself must be present and signed.
+    let recorder = match profile_for(
+        producer_profiles,
+        SignerRole::RunRecorder,
+        producer_profiles
+            .iter()
+            .find(|profile| profile.signer_role == SignerRole::RunRecorder)
+            .map(|profile| profile.issuer_id.as_str())
+            .unwrap_or(""),
+    ) {
+        Ok(profile) => Some(profile),
+        Err(error) => {
+            errors.push(error);
+            None
+        }
+    };
+    if let Some(recorder) = recorder {
+        add_attested_artifact(
+            &mut expected_artifacts,
+            &mut requirements,
+            run_receipt_artifact_uri,
+            &receipt_sha256,
+            SignerRole::RunRecorder,
+            &recorder.issuer_id,
+            "power-restoration/run-receipt/v1",
+            &receipt.run_id,
+            &case_sha256,
+            0,
+            &proposal_set_sha,
+            &recorder.tool_source_commit,
+            &recorder.tool_configuration_sha256,
+            vec![case_sha256.clone(), proposal_set_sha.clone()],
+            &mut errors,
+        );
+    }
+
+    // Each information request is paired to exactly one result batch.
+    let mut expected_batch_proposals = BTreeMap::<String, (&ActionProposal, u32)>::new();
+    for step in &receipt.decision_steps {
+        if step.disposition != StepDisposition::Executed {
+            continue;
+        }
+        if let Some(proposal) = &step.proposal {
+            if proposal.actions.iter().any(|action| is_information_request(action.action_kind)) {
+                if expected_batch_proposals
+                    .insert(proposal.proposal_id.clone(), (proposal, step.decision_step))
+                    .is_some()
+                {
+                    errors.push(format!(
+                        "duplicate proposal ID {} across executed decision steps",
+                        proposal.proposal_id
+                    ));
+                }
+            }
+        }
+    }
+
+    let mut actual_batches = BTreeMap::<String, &EvidenceBatch>::new();
+    for batch in observation_batches {
+        if actual_batches.insert(batch.proposal_id.clone(), batch).is_some() {
+            errors.push(format!(
+                "duplicate observation result batch for proposal {}",
+                batch.proposal_id
+            ));
+        }
+    }
+    if actual_batches.len() != expected_batch_proposals.len() {
+        errors.push(format!(
+            "observation batch coverage mismatch: {} required proposals, {} supplied batches",
+            expected_batch_proposals.len(),
+            actual_batches.len()
+        ));
+    }
+
+    let mut observation_request_count = 0;
+    let mut unsuccessful_observation_request_count = 0;
+    let mut evidence_item_count = 0;
+    let mut all_sources = BTreeMap::<String, &SourceProvenance>::new();
+
+    for (proposal_id, (proposal, proposal_step)) in &expected_batch_proposals {
+        let Some(batch) = actual_batches.get(proposal_id) else {
+            errors.push(format!(
+                "information-request proposal {proposal_id} has no observation evidence batch"
+            ));
+            continue;
+        };
+        if batch.presentation_step < *proposal_step {
+            errors.push(format!(
+                "observation evidence batch for {proposal_id} predates its information request"
+            ));
+        }
+        match validate_evidence_batch(batch, proposal, case) {
+            Ok(report) => {
+                observation_request_count += report.request_count;
+                unsuccessful_observation_request_count += report.unsuccessful_request_count
+                    + report.pending_request_count;
+                evidence_item_count += report.evidence_count;
+                if report.stale_at_presentation_count > 0
+                    || report.conflicting_evidence_count > 0
+                    || report.unverified_evidence_count > 0
+                {
+                    errors.push(format!(
+                        "observation batch {} contains stale, conflicting or unverified evidence",
+                        batch.batch_id
+                    ));
+                }
+            }
+            Err(batch_errors) => errors.extend(
+                batch_errors
+                    .into_iter()
+                    .map(|error| format!("observation batch {}: {error}", batch.batch_id)),
+            ),
+        }
+        for source in &batch.sources {
+            if let Some(existing) = all_sources.insert(source.source_id.clone(), source) {
+                if existing != source {
+                    errors.push(format!(
+                        "source {} changes provenance across observation batches",
+                        source.source_id
+                    ));
+                }
+            }
+        }
+
+        // The batch is itself immutable evidence and is tied to the exact proposal.
+        let batch_sha = match canonical_sha256(batch) {
+            Ok(value) => value,
+            Err(error) => {
+                errors.push(error);
+                continue;
+            }
+        };
+        let batch_uri = format!("power-fabric://observation-batch/{}", batch.batch_id);
+        let proposal_sha = match power_restoration_action_proposal::canonical_proposal_sha256(proposal) {
+            Ok(value) => value,
+            Err(batch_errors) => {
+                errors.extend(batch_errors);
+                continue;
+            }
+        };
+        let observation_role_profile = profile_for(
+            producer_profiles,
+            SignerRole::EvidenceProvider,
+            batch
+                .sources
+                .first()
+                .map(|source| source.producer_id.as_str())
+                .unwrap_or(""),
+        );
+        if let Ok(profile) = observation_role_profile {
+            add_attested_artifact(
+                &mut expected_artifacts,
+                &mut requirements,
+                &batch_uri,
+                &batch_sha,
+                SignerRole::EvidenceProvider,
+                &profile.issuer_id,
+                "power-restoration/observation-result-batch/v1",
+                &receipt.run_id,
+                &case_sha256,
+                batch.presentation_step,
+                &proposal_sha,
+                &profile.tool_source_commit,
+                &profile.tool_configuration_sha256,
+                vec![proposal_sha.clone()],
+                &mut errors,
+            );
+        } else if batch.results.is_empty() {
+            // A proposal with an empty information result set is not expected
+            // by the current action vocabulary; retain the explicit profile error.
+            errors.push(observation_role_profile.err().unwrap_or_else(|| "missing evidence provider profile".to_string()));
+        } else {
+            errors.push(observation_role_profile.err().unwrap_or_else(|| "missing evidence provider profile".to_string()));
+        }
+
+        for result in &batch.results {
+            for item in &result.evidence {
+                let source = match batch.sources.iter().find(|source| source.source_id == item.source_id) {
+                    Some(source) => source,
+                    None => continue,
+                };
+                let profile = match profile_for(
+                    producer_profiles,
+                    SignerRole::EvidenceProvider,
+                    &source.producer_id,
+                ) {
+                    Ok(profile) => profile,
+                    Err(error) => {
+                        errors.push(error);
+                        continue;
+                    }
+                };
+                let evidence_uri = format!("power-fabric://evidence/{}", item.evidence_id);
+                add_attested_artifact(
+                    &mut expected_artifacts,
+                    &mut requirements,
+                    &evidence_uri,
+                    &item.evidence_sha256,
+                    SignerRole::EvidenceProvider,
+                    &profile.issuer_id,
+                    "power-restoration/observation-evidence/v1",
+                    &receipt.run_id,
+                    &case_sha256,
+                    item.available_step,
+                    &proposal_sha,
+                    &profile.tool_source_commit,
+                    &profile.tool_configuration_sha256,
+                    vec![source.source_snapshot_sha256.clone()],
+                    &mut errors,
+                );
+            }
+        }
+    }
+
+    for batch_id in actual_batches.keys() {
+        if !expected_batch_proposals.contains_key(batch_id) {
+            errors.push(format!(
+                "unexpected observation batch for non-requesting proposal {batch_id}"
+            ));
+        }
+    }
+
+    // Every source snapshot has its own provider attestation, and its declared
+    // ancestry is preserved as the parent list of that signed snapshot claim.
+    for source in all_sources.values() {
+        if source.lineage_completeness != power_restoration_observation_evidence::LineageCompleteness::Complete {
+            errors.push(format!(
+                "source {} has incomplete declared provenance lineage",
+                source.source_id
+            ));
+        }
+        let profile = match profile_for(
+            producer_profiles,
+            SignerRole::EvidenceProvider,
+            &source.producer_id,
+        ) {
+            Ok(profile) => profile,
+            Err(error) => {
+                errors.push(error);
+                continue;
+            }
+        };
+        let source_uri = format!("power-fabric://source/{}/snapshot", source.source_id);
+        let mut parents = Vec::new();
+        for parent_id in &source.parent_source_ids {
+            match all_sources.get(parent_id) {
+                Some(parent) => parents.push(parent.source_snapshot_sha256.clone()),
+                None => errors.push(format!(
+                    "source {} parent {} is absent from the claim package",
+                    source.source_id, parent_id
+                )),
+            }
+        }
+        add_attested_artifact(
+            &mut expected_artifacts,
+            &mut requirements,
+            &source_uri,
+            &source.source_snapshot_sha256,
+            SignerRole::EvidenceProvider,
+            &profile.issuer_id,
+            "power-restoration/source-snapshot/v1",
+            &receipt.run_id,
+            &case_sha256,
+            0,
+            &proposal_set_sha,
+            &profile.tool_source_commit,
+            &profile.tool_configuration_sha256,
+            parents,
+            &mut errors,
+        );
+    }
+
+    let validator_role = match case.model_profile.electrical_data_profile {
+        ElectricalDataProfile::TopologyOnly => SignerRole::IndependentValidator,
+        ElectricalDataProfile::BranchImpedanceAndLimits
+        | ElectricalDataProfile::CompleteAcModelInputs => SignerRole::ElectricalValidator,
+    };
+
+    let mut service_trajectory_digests = Vec::new();
+    for step in receipt.decision_steps.iter().filter(|step| step.disposition == StepDisposition::Executed) {
+        let proposal_sha = match &step.proposal {
+            Some(proposal) => match power_restoration_action_proposal::canonical_proposal_sha256(proposal) {
+                Ok(value) => value,
+                Err(proposal_errors) => {
+                    errors.extend(proposal_errors);
+                    proposal_set_sha.clone()
+                }
+            },
+            None => proposal_set_sha.clone(),
+        };
+
+        if let Some(transition) = &step.transition_receipt {
+            if !matches!(
+                step.transition_outcome,
+                TransitionOutcome::Applied
+                    | TransitionOutcome::Failed
+                    | TransitionOutcome::Rejected
+                    | TransitionOutcome::HumanOverride
+            ) {
+                errors.push(format!(
+                    "decision {} has a transition receipt for an incompatible outcome",
+                    step.decision_step
+                ));
+            }
+            let mut parents = Vec::new();
+            if let Some(observation) = &step.observation {
+                parents.push(observation.sha256.clone());
+            }
+            parents.push(proposal_sha.clone());
+            add_component_attestation(
+                &mut expected_artifacts,
+                &mut requirements,
+                &transition.artifact_ref,
+                &transition.sha256,
+                SignerRole::TransitionEngine,
+                &receipt.simulator,
+                "power-restoration/transition/v1",
+                &receipt.run_id,
+                &case_sha256,
+                step.decision_step,
+                &proposal_sha,
+                parents,
+                &mut errors,
+            );
+        }
+
+        if let Some(validation) = &step.validator_receipt {
+            let mut parents = Vec::new();
+            if let Some(observation) = &step.observation {
+                parents.push(observation.sha256.clone());
+            }
+            parents.push(proposal_sha.clone());
+            if let Some(transition) = &step.transition_receipt {
+                parents.push(transition.sha256.clone());
+            }
+            add_component_attestation(
+                &mut expected_artifacts,
+                &mut requirements,
+                &validation.artifact_ref,
+                &validation.sha256,
+                validator_role,
+                &receipt.independent_validator,
+                "power-restoration/independent-validation/v1",
+                &receipt.run_id,
+                &case_sha256,
+                step.decision_step,
+                &proposal_sha,
+                parents,
+                &mut errors,
+            );
+        }
+
+        if step.service_outcome == ServiceOutcome::Scored {
+            let Some(service) = &step.service_trajectory else {
+                errors.push(format!(
+                    "scored decision {} lacks a service trajectory",
+                    step.decision_step
+                ));
+                continue;
+            };
+            let profile = match producer_profiles.iter().find(|profile| profile.signer_role == SignerRole::ServiceProvider) {
+                Some(profile) => profile,
+                None => {
+                    errors.push("missing pinned service-provider producer profile".to_string());
+                    continue;
+                }
+            };
+            let mut parents = Vec::new();
+            if let Some(transition) = &step.transition_receipt {
+                parents.push(transition.sha256.clone());
+            }
+            if let Some(validation) = &step.validator_receipt {
+                parents.push(validation.sha256.clone());
+            }
+            add_attested_artifact(
+                &mut expected_artifacts,
+                &mut requirements,
+                &service.artifact_ref,
+                &service.sha256,
+                SignerRole::ServiceProvider,
+                &profile.issuer_id,
+                "power-restoration/service-trajectory/v1",
+                &receipt.run_id,
+                &case_sha256,
+                step.decision_step,
+                &proposal_sha,
+                &profile.tool_source_commit,
+                &profile.tool_configuration_sha256,
+                parents,
+                &mut errors,
+            );
+            service_trajectory_digests.push(service.sha256.clone());
+        }
+    }
+
+    if receipt.run_status == RunStatus::Completed {
+        if receipt.decision_steps.iter().any(|step| {
+            step.disposition == StepDisposition::Executed
+                && step.service_outcome != ServiceOutcome::Scored
+        }) {
+            errors.push("completed restoration claim has an executed decision without an independently scored service trajectory".to_string());
+        }
+    }
+
+    if let Some(final_trajectory) = &receipt.final_service_trajectory {
+        let profile = match producer_profiles.iter().find(|profile| profile.signer_role == SignerRole::ServiceProvider) {
+            Some(profile) => profile,
+            None => {
+                errors.push("missing pinned service-provider producer profile".to_string());
+                // Continue to aggregate the rest of the claim so errors remain complete.
+                &ClaimProducerProfile {
+                    signer_role: SignerRole::ServiceProvider,
+                    issuer_id: String::new(),
+                    tool_source_commit: String::new(),
+                    tool_configuration_sha256: String::new(),
+                }
+            }
+        };
+        add_attested_artifact(
+            &mut expected_artifacts,
+            &mut requirements,
+            &final_trajectory.artifact_ref,
+            &final_trajectory.sha256,
+            SignerRole::ServiceProvider,
+            &profile.issuer_id,
+            "power-restoration/final-service-trajectory/v1",
+            &receipt.run_id,
+            &case_sha256,
+            case.timebase.horizon_steps.saturating_sub(1),
+            &proposal_set_sha,
+            &profile.tool_source_commit,
+            &profile.tool_configuration_sha256,
+            service_trajectory_digests,
+            &mut errors,
+        );
+    }
+
+    if let Some(score) = &receipt.aggregate_score {
+        add_component_attestation(
+            &mut expected_artifacts,
+            &mut requirements,
+            &score.scorer_receipt.artifact_ref,
+            &score.scorer_receipt.sha256,
+            SignerRole::Scorer,
+            &receipt.objective.scorer,
+            "power-restoration/aggregate-score/v1",
+            &receipt.run_id,
+            &case_sha256,
+            case.timebase.horizon_steps.saturating_sub(1),
+            &proposal_set_sha,
+            receipt
+                .final_service_trajectory
+                .as_ref()
+                .map(|trajectory| vec![trajectory.sha256.clone()])
+                .unwrap_or_default(),
+            &mut errors,
+        );
+    }
+
+    // Every signature envelope is itself included byte-for-byte in the bundle.
+    for envelope in attestations {
+        match artifact_envelope_uri(envelope) {
+            Ok(uri) => match canonical_bytes(envelope) {
+                Ok(bytes) => add_expected_artifact(
+                    &mut expected_artifacts,
+                    &uri,
+                    &sha256_hex(&bytes),
+                    &mut errors,
+                ),
+                Err(error) => errors.push(error),
+            },
+            Err(error) => errors.push(error),
+        }
+    }
+
+    // A complete claim package is closed-world: no required artifact can be
+    // omitted and no extra unsigned or unreferenced artifact can be smuggled in.
+    let manifest_map: BTreeMap<&str, &str> = manifest
+        .artifacts
+        .iter()
+        .map(|artifact| (artifact.artifact_uri.as_str(), artifact.sha256.as_str()))
+        .collect();
+    if manifest_map.len() != manifest.artifacts.len() {
+        errors.push("bundle manifest contains duplicate artifact URIs".to_string());
+    }
+    if manifest_map.len() != expected_artifacts.len() {
+        errors.push(format!(
+            "artifact manifest is not closed-world: {} required artifacts, {} declared",
+            expected_artifacts.len(),
+            manifest_map.len()
+        ));
+    }
+    for (uri, digest) in &expected_artifacts {
+        match manifest_map.get(uri.as_str()) {
+            Some(manifest_digest) if *manifest_digest == digest => {}
+            Some(_) => errors.push(format!(
+                "manifest digest for required artifact {uri} does not match its typed record"
+            )),
+            None => errors.push(format!("required artifact {uri} is absent from the bundle manifest")),
+        }
+    }
+    for uri in manifest_map.keys() {
+        if !expected_artifacts.contains_key(*uri) {
+            errors.push(format!("unexpected unreferenced artifact {uri} is present in the bundle"));
+        }
+    }
+
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+
+    let verified_bundle = verify_bundle_manifest(bundle_root, manifest, max_artifact_bytes)
+        .map_err(|bundle_errors| bundle_errors.into_iter().map(|error| format!("bundle: {error}")).collect::<Vec<_>>())?;
+
+    // Every producer envelope must use the deterministic artifact URI above.
+    for envelope in attestations {
+        let uri = artifact_envelope_uri(envelope)
+            .map_err(|error| vec![error])?;
+        if !expected_artifacts.contains_key(&uri) {
+            errors.push(format!("attestation envelope {uri} is not committed in the verified artifact set"));
+        }
+    }
+
+    let verified_attestations = verify_attestation_set(
+        &verified_bundle,
+        trust_root,
+        pinned_trust_root_sha256,
+        verified_at_unix_ms,
+        &requirements,
+        attestations,
+    )
+    .map_err(|attestation_errors| attestation_errors.into_iter().map(|error| format!("attestation: {error}")).collect::<Vec<_>>())?;
+
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+
+    let successful_terminal = receipt.run_status == RunStatus::Completed
+        && receipt.terminal_reason == Some(TerminalReason::RestorationComplete);
+    let claim_status = if successful_terminal {
+        match case.maturity {
+            CaseMaturity::SyntheticFixture => "synthetic_evidence_chain_complete",
+            CaseMaturity::HistoricalReplay => "historical_replay_evidence_chain_complete",
+            CaseMaturity::FieldObserved => "field_evidence_chain_complete",
+        }
+    } else {
+        "claim_evidence_verified_but_run_not_complete"
+    };
+
+    let _ = receipt_report;
+    let _ = all_sources;
+    Ok(RestorationClaimVerificationReport {
+        run_id: receipt.run_id.clone(),
+        run_receipt_sha256: receipt_sha256,
+        case_sha256,
+        run_status: format!("{:?}", receipt.run_status),
+        case_maturity: format!("{:?}", case.maturity),
+        electrical_data_profile: format!("{:?}", case.model_profile.electrical_data_profile),
+        proposal_count: receipt.decision_steps.iter().filter(|step| step.proposal.is_some()).count(),
+        observation_batch_count: observation_batches.len(),
+        observation_request_count,
+        unsuccessful_observation_request_count,
+        evidence_item_count,
+        required_artifact_count: expected_artifacts.len(),
+        verified_artifact_count: verified_bundle.report().artifact_count,
+        required_attestation_count: requirements.len(),
+        verified_attestation_count: verified_attestations.len(),
+        claim_status: claim_status.to_string(),
+        claim_boundary: "Complete content-addressed and role-separated attestation chain for the declared case/run scope only. Cryptographic authenticity does not prove signed statements are scientifically true, that power flow or protection is physically correct, that switching is authorized or safe, or that customers actually received the claimed service.".to_string(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
