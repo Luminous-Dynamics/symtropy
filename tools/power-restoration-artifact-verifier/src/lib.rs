@@ -285,6 +285,9 @@ pub fn verify_attestation(
     if !valid_id(&envelope.key_id) {
         errors.push("attestation key ID is empty".to_string());
     }
+    if !is_lower_hex(&envelope.signature_hex, 128) {
+        errors.push("attestation signature must be 128 lowercase hexadecimal characters".to_string());
+    }
 
     let payload = &envelope.payload;
     if payload.predicate_type != expected.predicate_type
@@ -331,6 +334,12 @@ pub fn verify_attestation(
         }
         if now_unix_ms < key.not_before_unix_ms || now_unix_ms >= key.not_after_unix_ms {
             errors.push("attestation signing key is outside its validity interval".to_string());
+        }
+        if payload.issued_at_unix_ms < key.not_before_unix_ms
+            || payload.expires_at_unix_ms > key.not_after_unix_ms
+            || payload.expires_at_unix_ms > trust_root.valid_until_unix_ms
+        {
+            errors.push("attestation validity interval exceeds the trusted key or root validity window".to_string());
         }
         if key.revoked_at_unix_ms.is_some_and(|revoked| revoked <= now_unix_ms) {
             errors.push("attestation signing key is revoked at the verification time".to_string());
@@ -689,6 +698,14 @@ mod tests {
     fn expired_attestation_is_rejected() {
         let (trust, envelope, expected, _) = fixtures();
         assert!(verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 9_000, &expected).is_err());
+    }
+
+    #[test]
+    fn attestation_cannot_outlive_its_trusted_signing_key() {
+        let (mut trust, envelope, expected, _) = fixtures();
+        trust.keys[0].not_after_unix_ms = 8_000;
+        let root_hash = canonical_sha256(&trust).unwrap();
+        assert!(verify_attestation(&envelope, &trust, &root_hash, 2_000, &expected).is_err());
     }
 
     #[test]
