@@ -109,6 +109,15 @@ def main() -> int:
             raise AssertionError(f"{filename}: unqualified state capability advertised")
         if cosim.get("canSerializeFMUState", "false").lower() != "false":
             raise AssertionError(f"{filename}: unqualified serialized state capability advertised")
+        for unsupported_flag in (
+            "hasEventMode",
+            "providesIntermediateUpdate",
+            "canReturnEarlyAfterIntermediateUpdate",
+            "providesDirectionalDerivatives",
+            "providesAdjointDerivatives",
+        ):
+            if cosim.get(unsupported_flag, "false").lower() != "false":
+                raise AssertionError(f"{filename}: unsupported {unsupported_flag} capability advertised")
 
         units = root.findall("./UnitDefinitions/Unit")
         unit_map = {unit.get("name"): unit.find("BaseUnit") for unit in units}
@@ -137,7 +146,7 @@ def main() -> int:
         f"shared_libraries={len(source_units)} pinned_symbols_per_library={len(expected)} "
         f"implemented={len(implemented)} fail_closed_unsupported={len(unsupported)}"
     )
-    print("FMI J-port maps and state-capability declarations: PASS")
+    print("FMI J-port maps, lifecycle and capability declarations: PASS")
     return 0
 
 
