@@ -332,6 +332,18 @@ fn preflight(
             if step.activation_tick != fixture.start_tick {
                 return Err(Decision::rejected("invalid_initial_provider_step"));
             }
+            if let Err(decision) = robust_qualification(
+                provider,
+                &fixture.client_profile_id,
+                &fixture.client_configuration_revision,
+                step.activation_tick,
+            ) {
+                return Err(match decision.status {
+                    ServiceStatus::Rejected => Decision::rejected("initial_provider_qualification_rejected"),
+                    ServiceStatus::Indeterminate => Decision::indeterminate("initial_provider_qualification_indeterminate"),
+                    _ => Decision::indeterminate("initial_provider_qualification_unknown"),
+                });
+            }
             previous_activation = Some(step.activation_tick);
             continue;
         }
@@ -368,6 +380,18 @@ fn preflight(
         let active_domains = active_fault_domains(&scenario.faults, step.activation_tick);
         if provider.failure_domains.iter().any(|domain| active_domains.contains(domain.as_str())) {
             return Err(Decision::rejected("fallback_shares_failed_domain"));
+        }
+        if let Err(decision) = robust_qualification(
+            provider,
+            &fixture.client_profile_id,
+            &fixture.client_configuration_revision,
+            step.activation_tick,
+        ) {
+            return Err(match decision.status {
+                ServiceStatus::Rejected => Decision::rejected("candidate_robust_qualification_rejected"),
+                ServiceStatus::Indeterminate => Decision::indeterminate("candidate_robust_qualification_indeterminate"),
+                _ => Decision::indeterminate("candidate_robust_qualification_unknown"),
+            });
         }
         previous_activation = Some(step.activation_tick);
     }
