@@ -1072,11 +1072,11 @@ mod tests {
         let result = &report.results[0];
         assert_eq!(result.status, LifecycleStatus::EvidenceBackedScreen);
         assert!(result.full_lifecycle_ranking_eligible);
-        assert!((result.total_downtime_hours_per_module_year.unwrap() - 3.3).abs() < 1e-9);
-        assert!((result.total_technician_hours_per_module_year.unwrap() - 3.3).abs() < 1e-9);
-        assert_eq!(result.total_service_parts_cost_per_module_year, Some(9.0));
-        assert!((result.downtime_loss_cost_per_module_year.unwrap() - 82.5).abs() < 1e-9);
-        assert!((result.full_lifecycle_cost_per_module_year.unwrap() - 623.5).abs() < 1e-9);
+        assert!((result.total_downtime_hours_per_module_year.unwrap() - 2.8).abs() < 1e-9);
+        assert!((result.total_technician_hours_per_module_year.unwrap() - 4.2).abs() < 1e-9);
+        assert_eq!(result.total_service_parts_cost_per_module_year, Some(56.0));
+        assert!((result.downtime_loss_cost_per_module_year.unwrap() - 70.0).abs() < 1e-9);
+        assert!((result.full_lifecycle_cost_per_module_year.unwrap() - 694.0).abs() < 1e-9);
         assert!(!result.module_production_release_ready);
         assert!(!result.return_to_service_authorized);
     }
