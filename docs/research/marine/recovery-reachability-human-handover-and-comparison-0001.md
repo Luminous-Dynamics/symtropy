@@ -112,3 +112,17 @@ Only after those steps should the project consider a formal reachable viability 
 ## 7. Claim ceiling
 
 This tool audits declared bounded action graphs and evidence receipts. It does not plan or execute routes, command a helm, certify a refuge, prove collision avoidance, validate COLREG compliance, prove continuous-system viability, or guarantee a human operator will respond. Physical authority remains with qualified vessel systems and the responsible crew/operator.
+
+
+## 1.6 Commercial sailing and autopilot boundary
+
+Do not claim novelty for marine weather routing, motion/comfort summaries, boat-specific polars, or wind-angle autopilot control:
+
+- PredictWind's AI Weather Router reads **eight model routes** with boat polars and provides a crew briefing covering demanding passage periods, motion/comfort (roll, vertical acceleration, slamming) and forecast confidence: https://www.predictwind.com/features/ai-weather-router and https://help.predictwind.com/en/articles/17593418-ai-weather-routing-briefing-for-sail-boats-how-it-works
+- PredictWind Comfort Routing checks RMS roll, vertical acceleration and slamming incidence. Its Help Centre explicitly says that if it cannot calculate a route within the configured comfort settings, it automatically reruns without those comfort limits to return a route: https://help.predictwind.com/en/articles/15546304-power-routing-comfort-routing . That is an important benchmark case: record whether each limit is a hard safety gate or a crew-selected soft preference. Never report a route as satisfying the original hard envelope after silently removing a constraint.
+- Garmin announced SmartDrive on 1 September 2026 as a brushless linear sailboat autopilot actuator with wind-hold, tack/gybe and remote-control integration: https://www.garmin.com/en-US/newsroom/press-release/marine/garmin-launches-innovative-smartdrive-autopilot-for-sailboats-and-catamarans/
+- Raymarine already provides sailboat autopilot steer-to-wind modes using apparent/true wind angles and a polar-table target angle: https://docs.raymarine.com/81432/en-US/latest/AutopilotWindVaneMode-6A57E8F8.html
+
+The new work must be positioned as a **post-fault recovery assurance layer** independent of those route/autopilot products. It should consume a proposed recovery route/action sequence, not replace the vendor's low-level helm controller. A route with a hard-gate breach is rejected or explicitly marked infeasible; a user-authorized relaxation must be a separately recorded soft-constraint policy arm with distinct authority and ODD evidence.
+
+This also changes the matched industry benchmark: use the same fixed craft/polars, weather cycle, departure time, waypoints/boundaries, comfort settings, resource snapshot, fault trigger, communications and action authority. Compare vendor-returned route/comfort behaviour and the independent recovery verifier separately. Vendor black-box outputs without reproducible inputs are reference evidence, not a reproducible superiority comparison.
