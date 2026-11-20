@@ -158,7 +158,6 @@ fn validate_tolerances(tolerances: &AuditTolerances) -> Result<(), String> {
 
 fn tensor_metrics(
     input: &Matrix3,
-    symmetry_tolerance: f64,
     psd_tolerance: f64,
 ) -> Result<(Matrix3, TensorMetrics), String> {
     let mut scale = input.iter().flatten().fold(0.0_f64, |acc, value| acc.max(value.abs()));
@@ -323,11 +322,8 @@ pub fn audit_pressure_tensor(request: &AuditRequest) -> Result<AuditReport, Stri
         return Err("pressure tensor and velocity gradient must contain only finite values".to_owned());
     }
 
-    let (symmetric_pressure, tensor) = tensor_metrics(
-        &request.pressure_tensor,
-        request.tolerances.symmetry_relative,
-        request.tolerances.psd_relative,
-    )?;
+    let (symmetric_pressure, tensor) =
+        tensor_metrics(&request.pressure_tensor, request.tolerances.psd_relative)?;
     let pressure_strain = pressure_strain_metrics(
         &symmetric_pressure,
         &request.velocity_gradient,
@@ -534,11 +530,8 @@ pub fn audit_periodic_pressure_grid(
         if !finite_matrix(pressure) {
             return Err(format!("pressure tensor at cell {cell_index} is non-finite"));
         }
-        let (symmetric, metrics) = tensor_metrics(
-            pressure,
-            request.tolerances.symmetry_relative,
-            request.tolerances.psd_relative,
-        )?;
+        let (symmetric, metrics) =
+            tensor_metrics(pressure, request.tolerances.psd_relative)?;
         maximum_symmetry_relative_residual =
             maximum_symmetry_relative_residual.max(metrics.symmetry_relative_residual);
         minimum_normalized_principal_minor = minimum_normalized_principal_minor
