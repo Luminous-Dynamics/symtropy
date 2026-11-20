@@ -1,0 +1,157 @@
+{
+  "schema_version":"0.1.0",
+  "record_kind":"synthetic_analytic_fixture",
+  "validation_id":"thermal-model-heldout-split-illustrative-001",
+  "model":{
+    "model_id":"one-node-rc-exact-reference-v0.1",
+    "model_class":"single_node_linear_rc",
+    "equation_reference":"C_th*dT/dt = P_loss - G_th*(T-T_ambient); exact-step update as in #6394",
+    "parameter_count":2,
+    "parameters":[
+      {"name":"thermal_heat_capacity","value":100.0,"unit":"J/K","lower_bound":100.0,"upper_bound":100.0,"uncertainty_status":"synthetic_exact","standard_uncertainty":0.0,"reason":"Synthetic known-answer parameter."},
+      {"name":"ambient_conductance","value":10.0,"unit":"W/K","lower_bound":10.0,"upper_bound":10.0,"uncertainty_status":"synthetic_exact","standard_uncertainty":0.0,"reason":"Synthetic known-answer parameter."}
+    ],
+    "predicted_channels":["node-temperature"]
+  },
+  "dataset":{
+    "dataset_id":"thermal-rc-generated-four-mission-fixture-v0.1",
+    "dataset_digest":"sha256:6c3be6a7e6dd4f1a22569535de57a327f2f589f69485309fae2fbb3b0a3f4531",
+    "evidence_origin":"synthetic_generated",
+    "trace_catalog":[
+      {
+        "trace_id":"run-cold-load-a",
+        "trace_digest":"sha256:5a64f0fc16369cafd9d40847fb38eac5f76bfaa594677d339407606295f8808c",
+        "article_group_id":"synthetic-article-a",
+        "mission_group_id":"cold-load-profile",
+        "configuration_digest":"synthetic-config-a",
+        "channels":[{"channel_id":"node-temperature","location":"lumped_node","unit":"degC","sensor_status":"synthetic","calibration_reference":null,"standard_uncertainty":0.0}]
+      },
+      {
+        "trace_id":"run-hot-load-b",
+        "trace_digest":"sha256:083a8d968cf08cdcebb7c5b60d78b6a2bd9c9856b2d40000f1b0583b4622c9ab",
+        "article_group_id":"synthetic-article-b",
+        "mission_group_id":"hot-start-profile",
+        "configuration_digest":"synthetic-config-b",
+        "channels":[{"channel_id":"node-temperature","location":"lumped_node","unit":"degC","sensor_status":"synthetic","calibration_reference":null,"standard_uncertainty":0.0}]
+      },
+      {
+        "trace_id":"run-partial-cooldown-c",
+        "trace_digest":"sha256:1f092520cbebebf2e8993d445e7fa6d8a44fd4651500ef8b2abb577d10cbe534",
+        "article_group_id":"synthetic-article-c",
+        "mission_group_id":"partial-cooldown-profile",
+        "configuration_digest":"synthetic-config-c",
+        "channels":[{"channel_id":"node-temperature","location":"lumped_node","unit":"degC","sensor_status":"synthetic","calibration_reference":null,"standard_uncertainty":0.0}]
+      },
+      {
+        "trace_id":"run-repeated-mission-holdout-d",
+        "trace_digest":"sha256:fdb7ce5d28ee435f3b2ce77739fe50127dae74b8d6394576978bc3f357908565",
+        "article_group_id":"synthetic-article-d",
+        "mission_group_id":"repeated-mission-profile",
+        "configuration_digest":"synthetic-config-d",
+        "channels":[{"channel_id":"node-temperature","location":"lumped_node","unit":"degC","sensor_status":"synthetic","calibration_reference":null,"standard_uncertainty":0.0}]
+      }
+    ]
+  },
+  "split":{
+    "split_id":"article-and-mission-disjoint-v0.1",
+    "split_digest":"sha256:0cfd3973bb5661347efc131ef3e1c03e1bf9bf35c254b2f987d66ccf28bdef2f",
+    "grouping_keys":["article_group_id","mission_group_id"],
+    "training_trace_ids":["run-cold-load-a","run-hot-load-b"],
+    "validation_trace_ids":["run-partial-cooldown-c"],
+    "held_out_trace_ids":["run-repeated-mission-holdout-d"],
+    "split_method":"Predeclared disjoint article and mission-profile groups; no windows from one mission are split across partitions.",
+    "locked_before_fit":true,
+    "split_lock_reference":"synthetic-fixture-only"
+  },
+  "fit":{
+    "algorithm":"fixed-analytic-parameters",
+    "fit_status":"fixed_analytic_parameters",
+    "evaluation_budget":1000,
+    "evaluations_used":0,
+    "seed":0,
+    "regularization":"none; parameters fixed to synthetic known-answer values",
+    "training_data_digest":"sha256:3c6b45cb411c1214aee49cfd5388a56d46fbd15de4c5b45c6642e6c3d5208b23",
+    "identifiability":{
+      "status":"well_identified",
+      "method":"synthetic exact-known-answer fixture; not a physical identifiability claim",
+      "local_condition_number":4.0,
+      "minimum_singular_value":0.4,
+      "max_abs_parameter_correlation":0.1,
+      "bootstrap_draws":0,
+      "notes":"Synthetic parameter observability only. Physical identifiability must be established from sensor channels and designed excitation."
+    }
+  },
+  "held_out_evaluation":{
+    "evaluation_method":"Exact analytic RC propagation against a frozen synthetic repeated-mission trace; temperature residuals include illustrative deterministic noise.",
+    "evaluated_trace_ids":["run-repeated-mission-holdout-d"],
+    "per_trace":[
+      {
+        "trace_id":"run-repeated-mission-holdout-d",
+        "channels":[
+          {
+            "channel_id":"node-temperature",
+            "sample_count":101,
+            "rmse_c":0.08,
+            "mae_c":0.06,
+            "bias_c":0.01,
+            "max_abs_error_c":0.15,
+            "normalized_rmse_by_sensor_uncertainty":null,
+            "prediction_interval_coverage_90":0.91,
+            "prediction_interval_coverage_95":0.97,
+            "residual_autocorrelation_lag1":0.06
+          }
+        ]
+      }
+    ]
+  },
+  "model_comparisons":[
+    {
+      "model_id":"one-node-rc-exact-reference-v0.1",
+      "model_class":"single_node_linear_rc",
+      "parameter_count":2,
+      "split_digest":"sha256:0cfd3973bb5661347efc131ef3e1c03e1bf9bf35c254b2f987d66ccf28bdef2f",
+      "evaluated_trace_ids":["run-repeated-mission-holdout-d"],
+      "evaluation_method":"same synthetic held-out repeated-mission trace",
+      "fit_budget_evaluations":1000,
+      "per_channel_metrics":[{"channel_id":"node-temperature","rmse_c":0.08,"mae_c":0.06,"bias_c":0.01,"prediction_interval_coverage_90":0.91}]
+    },
+    {
+      "model_id":"ambient-only-baseline",
+      "model_class":"ambient_only_baseline",
+      "parameter_count":0,
+      "split_digest":"sha256:0cfd3973bb5661347efc131ef3e1c03e1bf9bf35c254b2f987d66ccf28bdef2f",
+      "evaluated_trace_ids":["run-repeated-mission-holdout-d"],
+      "evaluation_method":"same synthetic held-out repeated-mission trace",
+      "fit_budget_evaluations":1000,
+      "per_channel_metrics":[{"channel_id":"node-temperature","rmse_c":0.72,"mae_c":0.58,"bias_c":-0.44,"prediction_interval_coverage_90":0.22}]
+    }
+  ],
+  "validity_domain":{
+    "ambient_temperature_c_min":20.0,
+    "ambient_temperature_c_max":20.0,
+    "initial_temperature_c_min":20.0,
+    "initial_temperature_c_max":30.0,
+    "cooling_boundary":["single declared lumped-node conductance to fixed ambient"],
+    "load_envelope":"Synthetic constant nonnegative heat-loss power by mission segment.",
+    "speed_envelope":"Not modelled; heat-loss power is an explicit exogenous input.",
+    "hardware_revisions":["synthetic-rc-node-v0.1"],
+    "extrapolation_policy":"reject_outside_domain"
+  },
+  "review":{
+    "qualification_status":"candidate",
+    "independent_review":"not_applicable",
+    "independent_reproduction":"not_applicable",
+    "reviewer_role":null,
+    "review_notes":"Synthetic example for contract and validator tests only; no physical thermal dataset is included."
+  },
+  "evidence":[
+    {
+      "evidence_id":"thermal-state-oracle-6394",
+      "source_type":"source_code",
+      "uri":"https://github.com/Luminous-Dynamics/symtropy/tree/research/thermal-state-oracle-m1-v0.1/benchmarks/thermal-state-oracle/v0.1",
+      "digest":null,
+      "notes":"Dependency-free one-node exact-step analytic reference. This record is a synthetic model-validation example."
+    }
+  ],
+  "claim_ceiling":"Synthetic model-validation contract fixture only. No actuator thermal model, parameter fit, held-out physical prediction, thermal threshold, safe torque envelope or hardware qualification is claimed."
+}
