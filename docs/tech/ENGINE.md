@@ -1,113 +1,150 @@
-# Symtropy Integration-Physics Engine
+# Symtropy Engine: Native Physics, Research Coupling and Model Federation
 
-The world's first game engine where integrated information (Φ) is a first-class physics parameter.
+**Status:** engineering overview. This page distinguishes source-backed native capabilities, experimental coupling models and planned/external solver integrations. It is not a physical-validation or certification statement.
 
-> **Terminology note**: This engine uses Φ from Integrated Information Theory (IIT, Tononi 2004) — a formal measure of how much a system's information exceeds the sum of its parts. "Consciousness" in this codebase refers exclusively to this mathematical quantity. It is NOT a claim about subjective experience, qualia, or sentience.
+## What Symtropy is
 
-## Architecture
+Symtropy is a Rust simulation substrate whose native physics core focuses on N-dimensional geometry, rigid-body dynamics, contact and constraints, replay, and integration with Bevy. Its broader engineering direction is to coordinate domain-specific physical models through explicit interfaces and evidence-qualified composition.
+
+The native engine is not a universal FEM, CFD, electromagnetics, electrochemistry, plasma, fusion, geoscience or circuit solver. Those domains require specialist models or future, separately qualified implementations.
+
+## Terminology and scientific scope
+
+The research layer uses the symbol Φ for a configured integrated-information metric associated with Integrated Information Theory (IIT). In this codebase, a computed Φ value is a model quantity produced by a particular estimator and configuration. It is not, by itself, evidence of subjective experience, sentience, a validated physical field, or a universal constitutive variable.
+
+Likewise, “harmony”, “sanctuary”, “J/Φ” and “consciousness-physics” refer to named constructs in experimental simulation models. They should not be interpreted as established physical quantities or laws without independent operational definitions, dimensional analysis, mechanism and validation.
+
+## Native architecture
 
 ```
-symtropy-math          ← ND geometric algebra (const-generic, stack-allocated)
-  └→ symtropy-physics  ← GJK+EPA collision, friction, sleeping, PhysicsCallback
-       └→ symtropy-consciousness-physics  ← Φ-coupling, thermodynamics, harmony fields
-            └→ symtropy-world             ← macro/micro sim bridge
-  └→ symtropy-render-bridge               ← ND→Bevy projection, 4D slicing
-  └→ symtropy-robotics-bridge             ← FEP agents, 6 Symthaea platforms
-  └→ symtropy-net                         ← P2P spatial authority
+symtropy-math
+  N-dimensional geometric primitives, transforms and support-mapped shapes
+       |
+       v
+symtropy-physics
+  rigid-body world, collision/contact, constraints, CCD, raycasting, replay
+       |
+       +---- symtropy-bevy-core / Bevy adapters
+       |
+       +---- PhysicsCallback<D> (low-level application/research hook)
+                  |
+                  v
+       symtropy-consciousness-physics
+         experimental metric-coupled behaviors and energy bookkeeping
+
+Separate composition paths:
+  typed model ports + scenario identity + solver adapters + qualification
+  specialist FEM / CFD / PIC / MHD / electrical / chemical / geoscience models
 ```
 
-## What Makes This Unique
+The current codebase exposes several supported shapes and constraints. Exact pairwise contact routes, dimensional specializations, CCD coverage, numerical approximations and replay guarantees vary by implementation path. Consult the machine-readable capability work in [#1472](https://github.com/Luminous-Dynamics/symtropy/issues/1472); do not infer full fidelity from a generic trait or type signature.
 
-**1. Integrated information (Φ) modulates physics in real-time.**
-Not a UI overlay — Φ literally changes collision impulses, friction coefficients, and energy budgets during rigid body simulation via `PhysicsCallback`.
+## Native physics capabilities and limits
 
-**2. Thermodynamic closure.**
-Every action costs Joules from a consciousness-gated energy budget. The `ThermodynamicLedger` tracks the novel Joules-per-Phi metric. Landauer bound (2.87×10⁻²¹ J/bit) enforced.
+The documented native substrate includes:
+- const-generic N-dimensional geometry and rigid-body types;
+- sphere, capsule, hyperbox, half-space and convex-hull shape families;
+- GJK/EPA collision machinery with specialized contact paths;
+- contact manifolds, warm-starting, broadphase collision filtering and sleeping;
+- bounded continuous-collision paths;
+- joint/constraint and motor-related primitives;
+- raycasting, overlap/sensor events and deterministic replay structures;
+- an optional fixed-point quantization profile for a declared networking subset.
 
-**3. Bidirectional feedback loop.**
-```
-Consciousness → Motor Gain → Force → Collision → Prediction Error → Motor Precision ↓ → Recovery
-```
-Based on Adams/Friston (2013): motor commands are proprioceptive predictions. Unexpected collision spikes prediction error, temporarily reducing motor authority.
+Important scope limits include:
+- Generic shape abstraction does not mean every shape pair follows an equally exact or equally tested contact path.
+- CCD support is shape-pair and profile dependent; it is not universal for every rapidly moving convex body.
+- Some rotational-inertia paths are approximations.
+- Sensor overlap events are not calibrated camera, lidar, radar, IMU, thermal or force/torque sensor models.
+- Replay determinism is limited to its declared execution profile; it does not imply cross-platform bitwise identity for all floating-point or multithreaded runs.
+- Long contact stacks, high stiffness, severe mass ratios and difficult constraint systems require dedicated stress and convergence qualification.
+- A successful build or test suite does not establish predictive validity against physical measurements.
 
-**4. Harmony fields.**
-McFadden CEMI-inspired (2020): 1/r² spatially-varying fields from harmony activations modulate local friction (resonance reduces friction, dissonance increases it).
+The current package-level public capability audit is [#1472](https://github.com/Luminous-Dynamics/symtropy/issues/1472). That census is the source of truth for exact feature paths and should be kept synchronized with code.
 
-**5. ND physics (2D/3D/4D).**
-Const-generic types `Point<D>`, `Rotor<D>`, `PhysicsWorld<D>`. GJK works across dimensions. 4D cross-section slicing for Miegakure-style hidden geometry.
+## The PhysicsCallback extension point
 
-**6. Phi-driven procedural generation.**
-IIT axioms → PCG parameters: high Φ = complex interconnected spaces, low Φ = simple modular rooms. Completely novel — no prior work exists.
+`PhysicsCallback<D>` is a low-level hook invoked in the rigid-body simulation path. It can let an application or research model modify intended forces, contact impulses and friction coefficients, and observe collisions/dissipation.
 
-## Performance
+This hook is useful for controlled experiments and policy-conditioned actuation. It is **not** the general multiphysics federation interface.
 
-Measured with criterion (NixOS, Rust stable, AMD Ryzen, single-threaded):
+A callback that changes friction as a function of an arbitrary metric is implementing a model rule. It is not automatically describing a measured material law. To claim a physical effect, a model needs:
+1. an operationally defined quantity and units;
+2. a proposed physical mechanism and constitutive relationship;
+3. parameter provenance and a stated validity range;
+4. analytic or manufactured verification where possible;
+5. independent validation against relevant physical observations;
+6. uncertainty and failure/abstention behavior.
 
-| Operation | Time |
-|-----------|------|
+### Research coupling examples
+
+The research crate contains experimental behaviors such as:
+- metric-conditioned motor-authority mappings;
+- model-specific energy reservoirs and flows;
+- collision prediction-error feedback;
+- spatial harmony/resonance fields;
+- convergence and statistical analysis helpers.
+
+These mechanisms should be described as experiments under explicit parameters, not as general laws of thermodynamics, friction, gravity or consciousness. The details and current limitations are in [FORMAL_SPECIFICATION.md](FORMAL_SPECIFICATION.md).
+
+## Performance measurements
+
+Historical local Criterion measurements on NixOS / Rust stable / an AMD Ryzen CPU (single-threaded) include:
+
+| Operation | Reported time |
+|---|---:|
 | GJK sphere-sphere 3D | 156 ns |
 | GJK capsule-capsule 3D | 173 ns |
 | GJK HyperBox-HyperBox 3D | 116 ns |
 | GJK HyperBox 4D | 101 ns |
 | GJK ConvexHull tesseract 4D | 359 ns |
 | EPA sphere-sphere 3D | 30 ns |
-| Raycast 100 bodies | 14 us |
-| Physics step (10 bodies) | 5.8 us |
-| Physics step (100 bodies) | 135 us |
-| Physics step (500 bodies) | 910 us |
+| Raycast 100 bodies | 14 μs |
+| Physics step, 10 bodies | 5.8 μs |
+| Physics step, 100 bodies | 135 μs |
+| Physics step, 500 bodies | 910 μs |
 
-Zero heap allocation in physics hot path. Bivector uses `[f64; 36]` fixed array (supports up to 9D). GJK simplex uses `ArrayVec<SVector, 5>`. Contact manifold uses `ArrayVec<ContactPoint, 8>`.
+These are local microbenchmarks from a particular host, compiler, feature set and workload. They are not a matched comparison against MuJoCo, Newton, Chrono, Rapier, Isaac Sim or a commercial multiphysics suite. They do not establish physical accuracy or SOTA superiority.
 
-**Note**: HyperBox is 3.5x faster than ConvexHull for 4D shapes (O(D) vs O(2^D) support function).
+For fair comparisons, match equations and model semantics, geometry, solver settings, integrator, timestep, observables, hardware and resource budget. Report single-world latency separately from batch throughput, and compare error/convergence/uncertainty alongside speed. See [REALITY_BENCHMARK_PORTFOLIO.md](../ops/REALITY_BENCHMARK_PORTFOLIO.md).
 
-## Crates
+## Research results and interpretation
 
-| Crate | Tests | Description |
-|-------|-------|-------------|
-| `symtropy-math` | 84 | `Point<D>`, `Bivector<D>`, `Rotor<D>`, `Transform<D>`, `Shape<D>`, `Sphere<D>`, `Capsule<D>`, `HyperBox<D>`, `HalfSpace<D>`, `ConvexHull<D>` |
-| `symtropy-physics` | 98 | `PhysicsWorld<D>`, GJK+EPA(ND), CCD, raycasting, 3 joints, warm-starting, collision groups, sensors, NetId replay |
-| `symtropy-consciousness-physics` | 108 | `ConsciousnessField<D>`, 5-channel Phi coupling, Phi-gravity, temperature feedback, thermodynamic ledger, 63 experiments |
-| `symtropy-world` | 15 | `WorldBridge` (threaded sim), `TimeControl`, `SimSnapshot` interpolation |
-| `symtropy-render-bridge` | 13 | `Projector2D/3D/4D`, 4D cross-section slicing, `sync_physics_2d/3d/4d` |
-| `symtropy-robotics-bridge` | 9 | `RoboticAgent`, `PlatformType` (6 platforms), `spawn_robot()` |
-| `symtropy-net` | 11 | `SpatialAuthority`, lockstep protocol, `PeerState`, `SyncableState` |
+The repository contains many experiments on cooperation, clustering, resource allocation and metric-coupled behavior. Results such as tighter clustering, convergence of a J/Φ ratio or collapse/recovery under selected energy parameters are conditional outcomes of the specified simulation model.
 
-## Quick Start
+They do not by themselves establish:
+- that cooperation is a universal thermodynamic necessity;
+- that J/Φ is a validated biological or physical constant;
+- that the model's energy bookkeeping is a general proof of thermodynamic closure;
+- that Φ is a measured physical field or an explanation of subjective experience.
 
-```rust
-use symtropy_physics::PhysicsWorld;
-use symtropy_consciousness_physics::ConsciousnessField;
-use symtropy_math::{Point, Sphere};
+Each result should be accompanied by the exact code/configuration, seed policy, sample size, statistical analysis, negative controls and independent replication status.
 
-// Create a 3D physics world
-let mut world = PhysicsWorld::<3>::new(nalgebra::SVector::from([0.0, -9.81, 0.0]));
-let mut consciousness = ConsciousnessField::<3>::new();
+## Reality-physics composition
 
-// Add a conscious sphere
-let handle = world.add_sphere(Point::new([0.0, 10.0, 0.0]), 1.0, 1.0);
-consciousness.register(handle, 100.0, 20.0);
+The long-term platform strategy is documented in:
+- [Reality Physics Platform](REALITY_PHYSICS_PLATFORM.md): domain portfolio, model passports, typed ports, solver federation, ownership and claim boundaries.
+- [Reality Benchmark Portfolio](../ops/REALITY_BENCHMARK_PORTFOLIO.md): matched industry comparisons, benchmark cases, VVUQ, uncertainty and resource metrics.
 
-// Step with consciousness-physics coupling
-world.step_with_callback(0.016, &mut consciousness);
-```
+Existing owners to compose:
+- [#4487 multi-fidelity admission and escalation](https://github.com/Luminous-Dynamics/symtropy/issues/4487)
+- [#1467 engineering twin projection and synthetic boundary](https://github.com/Luminous-Dynamics/symtropy/issues/1467)
+- [#1472 capability/model-path census](https://github.com/Luminous-Dynamics/symtropy/issues/1472)
+- [#5779 typed physical ports and coupling semantics](https://github.com/Luminous-Dynamics/symtropy/issues/5779)
+- [#4275 fluid-structure coupling](https://github.com/Luminous-Dynamics/symtropy/issues/4275)
+- [#6156 FMI co-simulation qualification](https://github.com/Luminous-Dynamics/symtropy/issues/6156)
+- [#1685 solver-neutral plasma adapter](https://github.com/Luminous-Dynamics/symtropy/issues/1685)
 
-## Game Integration (Bevy)
+The core competitive proposition is not to replace every specialist solver. It is to coordinate the least costly model that is admissible for a declared physical question, escalate when the validity envelope is exceeded, and abstain when no model is sufficiently supported.
 
-The engine integrates with Bevy 0.18 via `FixedUpdate` scheduling:
+## Bevy integration
 
-```
-FixedUpdate (64Hz):
-  physics_apply_inputs → physics_step_with_callback → physics_sync_transforms
+Bevy provides the application/ECS/rendering integration. FixedUpdate scheduling and frame presentation should be distinguished from the physical model's own timebase. The exact Bevy and crate versions in the current workspace manifests take precedence over stale examples in older documentation.
 
-Update (vsync):
-  input → player_movement → consciousness_systems → consciousness_sync
-```
+## Related documents
 
-## References
-
-- Tononi, G. (2004). IIT. *BMC Neuroscience*.
-- Friston, K. (2019). A Free Energy Principle for a Particular Physics. *arXiv*.
-- Adams, Shipp & Friston (2013). Predictions not commands. *Brain Structure & Function*.
-- McFadden, J. (2020). CEMI field theory. *Neuroscience of Consciousness*.
-- Landauer, R. (1961). Irreversibility and Heat Generation. *IBM J. Res. Dev*.
-- ten Bosch, M. (2020). N-Dimensional Rigid Body Dynamics. *SIGGRAPH*.
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+- [REALITY_PHYSICS_PLATFORM.md](REALITY_PHYSICS_PLATFORM.md)
+- [FORMAL_SPECIFICATION.md](FORMAL_SPECIFICATION.md)
+- [REALITY_BENCHMARK_PORTFOLIO.md](../ops/REALITY_BENCHMARK_PORTFOLIO.md)
+- [ROADMAP.md](../ops/ROADMAP.md)
