@@ -399,16 +399,51 @@ fn validate_relative_path(relative_path: &str) -> Result<PathBuf, String> {
 
 pub fn validate_role_separation(
     envelopes: &[AttestationEnvelope],
+    trust_root: &TrustRoot,
 ) -> Result<(), Vec<String>> {
     let mut errors = Vec::new();
-    let mut role_keys: BTreeMap<SignerRole, BTreeSet<&str>> = BTreeMap::new();
+    let mut role_key_fingerprints: BTreeMap<SignerRole, BTreeSet<String>> = BTreeMap::new();
+
     for envelope in envelopes {
-        role_keys
+        let matching_keys: Vec<&TrustedKey> = trust_root
+            .keys
+            .iter()
+            .filter(|key| key.key_id == envelope.key_id)
+            .collect();
+        let key = match matching_keys.as_slice() {
+            [key] => *key,
+            [] => {
+                errors.push(format!("attestation key {} is not trusted", envelope.key_id));
+                continue;
+            }
+            _ => {
+                errors.push(format!("trust root has ambiguous key ID {}", envelope.key_id));
+                continue;
+            }
+        };
+        if !key.roles.contains(&envelope.payload.signer_role) {
+            errors.push(format!(
+                "key {} is not authorized for {:?}",
+                envelope.key_id, envelope.payload.signer_role
+            ));
+            continue;
+        }
+        let public_key = match decode_hex::<32>(&key.public_key_hex, "Ed25519 public key") {
+            Ok(value) => value,
+            Err(error) => {
+                errors.push(error);
+                continue;
+            }
+        };
+        let fingerprint = sha256_hex(&public_key);
+        role_key_fingerprints
             .entry(envelope.payload.signer_role)
             .or_default()
-            .insert(envelope.key_id.as_str());
+            .insert(fingerprint);
     }
 
+    // Separation is checked against the public-key fingerprint, not key IDs:
+    // registering one public key under two aliases must not defeat this gate.
     let forbidden_pairs = [
         (SignerRole::Planner, SignerRole::ElectricalValidator),
         (SignerRole::Planner, SignerRole::Scorer),
@@ -416,12 +451,12 @@ pub fn validate_role_separation(
         (SignerRole::ServiceProvider, SignerRole::Scorer),
     ];
     for (left, right) in forbidden_pairs {
-        let left_keys = role_keys.get(&left);
-        let right_keys = role_keys.get(&right);
+        let left_keys = role_key_fingerprints.get(&left);
+        let right_keys = role_key_fingerprints.get(&right);
         if let (Some(left_keys), Some(right_keys)) = (left_keys, right_keys) {
-            for key in left_keys.intersection(right_keys) {
+            for fingerprint in left_keys.intersection(right_keys) {
                 errors.push(format!(
-                    "key {key} cannot satisfy both {left:?} and {right:?} roles"
+                    "public key fingerprint {fingerprint} cannot satisfy both {left:?} and {right:?} roles"
                 ));
             }
         }
@@ -694,7 +729,21 @@ mod tests {
         let mut planner = envelope.clone();
         planner.payload.signer_role = SignerRole::Planner;
         envelope.payload.signer_role = SignerRole::ElectricalValidator;
-        assert!(validate_role_separation(&[planner, envelope]).is_err());
+        let (trust, _, _, _) = fixtures();
+        assert!(validate_role_separation(&[planner, envelope], &trust).is_err());
+    }
+
+    #[test]
+    fn duplicated_public_key_under_different_key_ids_cannot_fill_independent_roles() {
+        let (mut trust, envelope, _, _) = fixtures();
+        let mut alias = trust.keys[0].clone();
+        alias.key_id = "synthetic-validator-key-alias".to_string();
+        alias.roles = vec![SignerRole::Planner];
+        trust.keys.push(alias);
+        let mut planner = envelope.clone();
+        planner.key_id = "synthetic-validator-key-alias".to_string();
+        planner.payload.signer_role = SignerRole::Planner;
+        assert!(validate_role_separation(&[planner, envelope], &trust).is_err());
     }
 
     #[test]
