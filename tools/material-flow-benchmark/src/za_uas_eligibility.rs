@@ -111,6 +111,7 @@ pub enum EvidenceState {
     Stale,
     Expired,
     Revoked,
+    Conflicted,
     Mismatched,
     OutOfScope,
 }
@@ -481,8 +482,8 @@ fn evaluate_operation(
         }
         match state {
             EvidenceState::CallerVerifiedCurrent => {}
-            EvidenceState::Revoked | EvidenceState::Expired | EvidenceState::Mismatched
-            | EvidenceState::OutOfScope => {
+            EvidenceState::Revoked | EvidenceState::Conflicted | EvidenceState::Expired
+            | EvidenceState::Mismatched | EvidenceState::OutOfScope => {
                 blocked.push(format!("approval_not_usable:{requirement:?}:{state:?}"));
             }
             EvidenceState::Missing | EvidenceState::Unknown | EvidenceState::Stale => {
@@ -805,6 +806,18 @@ mod tests {
             let report = evaluate_za_uas_corpus(&corpus(vec![operation])).expect("valid corpus");
             assert_eq!(report.results[0].candidate_status, CandidateStatus::Blocked);
         }
+    }
+
+    #[test]
+    fn conflicting_approval_records_are_blocked() {
+        let mut operation = base_operation();
+        operation.approval_evidence[0].state = EvidenceState::Conflicted;
+        let report = evaluate_za_uas_corpus(&corpus(vec![operation]))
+            .expect("conflicted evidence is structurally parseable");
+        assert_eq!(report.results[0].candidate_status, CandidateStatus::Blocked);
+        assert!(report.results[0].blocked_reasons.iter().any(|reason| {
+            reason.contains("Conflicted")
+        }));
     }
 
     #[test]
