@@ -160,10 +160,11 @@ impl<const D: usize> RotationalInertiaOperator<D> {
     ///
     /// Consequently, `T_rot = 0.5 * omega^T * I * omega` equals
     /// `0.5 * integral(||Omega r||^2 dm)`. The input second-moment matrix must
-    /// be finite, symmetric and positive definite. This gives a physically
-    /// realizable inertia operator for a full-dimensional mass distribution;
-    /// degenerate lower-dimensional bodies require a separate semidefinite
-    /// representation and are not accepted by this dynamic-body constructor.
+    /// be finite, symmetric and positive semidefinite, with numerical rank at
+    /// least D-1. This admits physically valid lower-dimensional supports
+    /// (e.g. a planar lamina in 3D) while rejecting supports that leave a
+    /// zero-energy rotational plane. The derived inertia operator is still
+    /// required to be strictly positive definite.
     pub fn from_body_second_moment_matrix(
         second_moment_row_major: Vec<f64>,
     ) -> Result<Self, MassPropertiesError> {
@@ -1013,6 +1014,43 @@ mod tests {
             .map(|(weight, point)| weight * (angular_map * point).norm_squared())
             .sum::<f64>();
 
+        assert!((operator_energy - direct_energy).abs() < 1.0e-11);
+    }
+
+    #[test]
+    fn planar_mass_points_match_direct_rotational_kinetic_energy() {
+        use nalgebra::SMatrix;
+
+        // Three non-collinear samples embedded in the XZ plane. Their central
+        // second-moment matrix has rank 2, while the 3D rotational inertia is SPD.
+        let samples = [
+            (0.7, SVector::<f64, 3>::new(1.0, 0.0, 2.0)),
+            (1.2, SVector::<f64, 3>::new(-0.3, 0.0, 0.7)),
+            (0.4, SVector::<f64, 3>::new(0.8, 0.0, -1.2)),
+        ];
+        let mut second_moment = SMatrix::<f64, 3, 3>::zeros();
+        for (weight, point) in samples {
+            second_moment += (point * point.transpose()) * (2.0 * weight);
+        }
+        let mut row_major = Vec::with_capacity(9);
+        for row in 0..3 {
+            for column in 0..3 {
+                row_major.push(second_moment[(row, column)]);
+            }
+        }
+        let inertia =
+            RotationalInertiaOperator::<3>::from_body_second_moment_matrix(row_major).unwrap();
+
+        let mut angular = Bivector::<3>::zero();
+        angular.set(0, 1, 0.31);
+        angular.set(0, 2, -0.47);
+        angular.set(1, 2, 0.83);
+        let operator_energy = inertia.kinetic_energy_bivector_joules(&angular).unwrap();
+        let angular_map = angular.to_matrix();
+        let direct_energy = samples
+            .iter()
+            .map(|(weight, point)| weight * (angular_map * point).norm_squared())
+            .sum::<f64>();
         assert!((operator_energy - direct_energy).abs() < 1.0e-11);
     }
 
