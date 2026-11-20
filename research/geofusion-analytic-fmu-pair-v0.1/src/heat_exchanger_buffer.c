@@ -14,7 +14,7 @@ typedef struct {
     fmi3Boolean terminated;
 } HeatExchangerBuffer;
 
-FMI3_Export fmi3GetVersionTYPE fmi3GetVersion(void) {
+FMI3_Export const char *fmi3GetVersion(void) {
     return "3.0.2";
 }
 
