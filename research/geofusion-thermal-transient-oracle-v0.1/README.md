@@ -73,7 +73,9 @@ A deterministic policy primitive now accepts three independent normalized error 
 
 The policy distinguishes four outcomes: `Accept`, `RejectAndRetry`, `ProcessEventNow`, and `FailClosedAtMinimumStep`. It never emits a zero-length FMI doStep: an event due at the current time is an instruction to process the event. A known event may require an accepted step shorter than the configured minimum; that exception is explicit. If an unaccepted attempt would require a retry below the minimum, the policy fails closed. A past event timestamp is rejected.
 
-This is a scheduler decision primitive, not yet an FMI master. It does not generate its own error estimates, infer future events, execute doStep, handle rollback or commit physical transfers. Those remain with the numerical estimator, FMI adapter, #6198 trace owner and #6154 physical ledger. The frozen policy cases are in the JSON fixture; six Rust tests cover the decision boundaries. The importer-integrated work is tracked separately in [#6393 — adaptive master scheduler](https://github.com/Luminous-Dynamics/symtropy/issues/6393).
+Model/parameter uncertainty is a separate stop gate, not a fourth quantity that is assumed to fall when the step is shortened. If normalized uncertainty exceeds its own budget, the policy returns `ModelUncertaintyBudgetExceeded` and proposes no continuous advancement. A known event already due at the current time is processed first; subsequent continuous stepping is re-evaluated against the uncertainty budget. This keeps missing calibration or poorly constrained parameters from being disguised as a smaller numerical truncation error. The default, over-budget and event-priority cases are frozen in the JSON fixture.
+
+This is a scheduler decision primitive, not yet an FMI master. It does not generate its own error estimates, infer future events, execute doStep, handle rollback or commit physical transfers. Those remain with the numerical estimator, FMI adapter, #6198 trace owner and #6154 physical ledger. The frozen policy cases are in the JSON fixture; eight Rust tests cover the decision boundaries. The importer-integrated work is tracked separately in [#6393 — adaptive master scheduler](https://github.com/Luminous-Dynamics/symtropy/issues/6393).
 
 
 ### G. Causal cumulative-energy / integrated-flux handshake
@@ -97,7 +99,7 @@ The method is causal only after the producer interval completes and only if the 
 
 ## Frozen known answers
 
-The machine-readable inputs, decimal reference values, ZOH/interval-average/causal-predictor convergence ladders, cumulative-energy producer samples, Float64 resolution cases and adaptive step-policy cases are in `fixtures/known-answers.v0.1.json`. Rust tests verify frozen answers, partition invariance, exact interval-average source energy, limiter diagnostics, first- and second-order convergence, event fences and minimum-step refusal.
+The machine-readable inputs, decimal reference values, ZOH/interval-average/causal-predictor convergence ladders, cumulative-energy producer samples, Float64 resolution cases and adaptive step-policy cases are in `fixtures/known-answers.v0.1.json`. Rust tests verify frozen answers, partition invariance, exact interval-average source energy, limiter diagnostics, first- and second-order convergence, event fences, minimum-step refusal, uncertainty gating and cumulative-counter precision limits.
 
 ## Run
 
