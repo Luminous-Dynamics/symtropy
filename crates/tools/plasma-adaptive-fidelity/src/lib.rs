@@ -697,7 +697,7 @@ fn validate_transition(
     request: &AdaptivePolicyRequest,
     current: &ModelCandidate,
     next: &ModelCandidate,
-) -> Result<&TransitionEvidence, ExclusionReason> {
+) -> Result<(), ExclusionReason> {
     let Some(transition) = next.transition.as_ref() else {
         return Err(ExclusionReason::MissingTransitionEvidence);
     };
@@ -732,7 +732,7 @@ fn validate_transition(
     if transition.state_transfer_error_upper_bound > request.maximum_state_transfer_error {
         return Err(ExclusionReason::StateTransferErrorTooLarge);
     }
-    Ok(transition)
+    Ok(())
 }
 
 fn selection_receipt(
