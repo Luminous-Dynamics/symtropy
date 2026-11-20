@@ -135,13 +135,18 @@ zero restitution, fixed-J, single-step and small-island only.
 ## Benchmark lanes — keep unlike workloads separate
 
 1. **Small constrained islands (CPU reference lane):** 1–10 contacts, 1–12 generalized DOFs; active-set enumeration versus independent KKT/LCP and MuJoCo discrete-step fixtures. Score physical error and normalized residuals before latency.
-2. **Many homogeneous worlds (throughput lane):** fixed-size batches of identical scenes, reporting worlds/s and simulated-seconds/s at fixed batch sizes. Separate CPU and GPU.
-3. **Heterogeneous robot batches:** mixed morphologies, joint counts, contact topologies and task lengths; report throughput, tail latency, padding/occupancy and per-world quality. This is the relevant lane for Newton Steel's heterogeneous-batch claims.
-4. **Large homogeneous rigid-body scenes:** 10k–500k bodies, pyramids, broad-phase-heavy and contact-dense scenes; report broad-phase, narrow-phase, solver and synchronization costs separately. This is the lane for Rapier/Nexus large-scene work, not the same leaderboard as small islands.
-5. **Engineering multiphysics:** FSI, granular/peridynamic, thermal and coupled implicit cases; compare against domain-specific Chrono capabilities with matched constitutive laws and boundary conditions.
+2. **One large connected island (intra-island solver parallelism):** one fixed connected constraint/contact graph with 1k–100k rows where feasible; vary graph degree, friction rows, contact-law stiffness and conflict density. Measure coloring/propagation phases, synchronization, iterations, residual convergence, speedup and parallel efficiency.
+3. **Many disconnected islands in one world:** hold total bodies/constraints fixed while varying island count and size distribution. This stresses island discovery, scheduling, wake/sleep and load balance—not independent-world batching.
+4. **Many homogeneous worlds (throughput lane):** fixed-size batches of identical scenes, reporting worlds/s and simulated-seconds/s at fixed batch sizes. Separate CPU and GPU; include warm/cold setup and persistent-state costs.
+5. **Heterogeneous robot batches:** mixed morphologies, joint counts, contact topologies and task lengths; report throughput, tail latency, padding/occupancy and per-world quality. This is the relevant lane for Newton Steel's heterogeneous-batch claims.
+6. **Large homogeneous rigid-body scenes:** 10k–500k bodies, pyramids, broad-phase-heavy and contact-dense scenes; report broad-phase, narrow-phase, solver and synchronization costs separately. This is the lane for Rapier/Nexus large-scene work, not the same leaderboard as CPU articulated-body or small-island timings.
+7. **Engineering multiphysics:** FSI, granular/peridynamic, thermal and coupled implicit cases; compare against domain-specific Chrono capabilities with matched constitutive laws and boundary conditions. Use SUNDIALS only for the smooth stiff ODE/DAE portions where its equations and observables match.
 
-Every throughput lane must publish both fixed-batch comparisons and each engine's peak-throughput configuration. Pin hardware, driver, backend, precision, compiler, threads, solver/integrator settings, timestep, contact law, warmup, batch size and exact source revisions. Report p50/p95/p99/worst-case step time, memory, iterations, failure/rejection rate, and quality residuals alongside throughput.
+For lanes 2–3, sweep 1/2/4/8/physical-core threads; for GPU backends also record device, occupancy, launch count, transfer bytes and graph-capture mode. Freeze both contact graph topology and topology-churn fixtures. Include sparse chains, dense stacks, grids, branched articulations and frictional multi-contact.
 
+Never infer one performance dimension from another: independent-world batch throughput does not measure one-large-island solver parallelism, and a many-island world does not measure contact conflict within one connected island.
+
+Every throughput lane must publish the exact requested case set and one result per case; no failed, unsupported, abstained or not-run case may disappear from the denominator. Report both raw completed ticks/s and quality-qualified ticks/s, p50/p95/p99/worst-case step time, max error-to-bound, constraint/complementarity residuals, memory, iterations and scoped energy-per-qualified-tick. Keep CPU/GPU, single-world, batch and connected-island Pareto frontiers separate unless the hardware and semantics are deliberately matched.
 
 ### Contact residual reference-scale correction
 
