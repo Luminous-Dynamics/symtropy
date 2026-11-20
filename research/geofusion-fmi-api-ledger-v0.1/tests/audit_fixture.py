@@ -45,6 +45,8 @@ def audit_fixture(d, arts):
             if vr in seen: fail(f"duplicate value reference {fid}/{vr}")
             if v["port_role"] not in ("coupling_source", "coupling_sink", "terminal_sink", "state_observation"):
                 fail(f"unsupported port role: {fid}/{vr}")
+            if v["port_role"]=="state_observation" and (v["causality"]!="output" or v["unit"]!="J"):
+                fail(f"state observation must be a Joule-valued output: {fid}/{vr}")
             seen.add(vr); vars[(fid,vr)]=v
     life={fid:{"created":False,"entered":False,"initialized":False,"terminated":False,"freed":False} for fid in feds}
     steps={}; successful=set(); last_successful_interval={fid:None for fid in feds}; values=[]; event_ids=set()
@@ -103,6 +105,11 @@ def audit_fixture(d, arts):
                     k!="get_float64" or value_semantics!="sample_at_interval_end" or "transfer_id" in x
                 ):
                     fail(f"state observation must be a non-transfer output sampled at interval end: {eid}")
+                if v["port_role"]=="state_observation":
+                    sample_key=(fid,x["value_reference"],iv["end_master_ns"])
+                    if sample_key in state_samples:
+                        fail(f"duplicate state observation for one federate/variable/lastSuccessfulTime: {eid}")
+                    state_samples.add(sample_key)
                 if v["port_role"]!="state_observation" and v["unit"]=="J" and value_semantics!="integral_over_half_open_interval":
                     fail(f"joule-valued flow must be an interval-integrated quantity: {eid}")
                 if v["unit"]!="J" and value_semantics=="integral_over_half_open_interval":
