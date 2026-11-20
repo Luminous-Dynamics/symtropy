@@ -1452,6 +1452,180 @@ mod tests {
     }
 
     #[test]
+    fn hinge_joint_frame_is_scene_rotation_equivariant_with_anisotropic_inertia() {
+        use crate::mass_properties::RotationalInertiaOperator;
+        use std::collections::HashMap;
+        use symtropy_math::Rotor;
+
+        struct WorkRecorder {
+            work_by_body: HashMap<BodyHandle, f64>,
+        }
+        impl crate::world::PhysicsCallback<3> for WorkRecorder {
+            fn modulate_force(
+                &self,
+                _body: BodyHandle,
+                force: &SVector<f64, 3>,
+            ) -> SVector<f64, 3> {
+                *force
+            }
+            fn modulate_impulse(&self, impulse: f64, _contact: &SVector<f64, 3>) -> f64 {
+                impulse
+            }
+            fn friction_multiplier(&self, _contact: &SVector<f64, 3>, _body: BodyHandle) -> f64 {
+                1.0
+            }
+            fn on_collision(&mut self, _event: &crate::contact::CollisionEvent<3>) {}
+            fn record_dissipation(&mut self, _energy: f64) {}
+            fn record_work(&mut self, body: BodyHandle, work_joules: f64) {
+                *self.work_by_body.entry(body).or_default() += work_joules;
+            }
+            fn apply_trauma(&mut self, _event: &crate::contact::CollisionEvent<3>) {}
+        }
+
+        fn make_a() -> RigidBody<3> {
+            let operator = RotationalInertiaOperator::<3>::try_from_row_major(vec![
+                4.0, 0.5, -0.2,
+                0.5, 3.0, 0.25,
+                -0.2, 0.25, 2.0,
+            ])
+            .unwrap();
+            let mut body = RigidBody::<3>::dynamic_sphere(
+                BodyHandle(40),
+                Point::origin(),
+                0.1,
+                1.0,
+            )
+            .with_rotational_inertia_operator(operator);
+            body.angular_velocity.set(0, 1, -0.2);
+            body.angular_velocity.set(0, 2, 0.3);
+            body.angular_velocity.set(1, 2, -0.1);
+            body
+        }
+
+        fn make_b() -> RigidBody<3> {
+            let operator = RotationalInertiaOperator::<3>::try_from_row_major(vec![
+                2.0, -0.2, 0.1,
+                -0.2, 5.0, 0.3,
+                0.1, 0.3, 3.0,
+            ])
+            .unwrap();
+            let mut body = RigidBody::<3>::dynamic_sphere(
+                BodyHandle(41),
+                Point::origin(),
+                0.1,
+                1.0,
+            )
+            .with_rotational_inertia_operator(operator);
+            body.angular_velocity.set(0, 1, 0.5);
+            body.angular_velocity.set(0, 2, -0.4);
+            body.angular_velocity.set(1, 2, 0.6);
+            body
+        }
+
+        let mut reference_a = make_a();
+        let mut reference_b = make_b();
+        let mut rotated_a = make_a();
+        let mut rotated_b = make_b();
+
+        // A generic proper scene rotation mixes all three canonical bivector
+        // components. Both body orientations and spatial angular velocities
+        // must be transformed; body-local inertia operators remain unchanged.
+        let mut scene_generator = Bivector::<3>::zero();
+        scene_generator.set(0, 1, 0.31);
+        scene_generator.set(0, 2, -0.27);
+        scene_generator.set(1, 2, 0.42);
+        let scene_rotation = Rotor::<3>::from_bivector(&scene_generator);
+
+        rotated_a.transform.rotation = scene_rotation.compose(&rotated_a.transform.rotation);
+        rotated_b.transform.rotation = scene_rotation.compose(&rotated_b.transform.rotation);
+        rotated_a.angular_velocity =
+            scene_rotation.rotate_bivector(&rotated_a.angular_velocity);
+        rotated_b.angular_velocity =
+            scene_rotation.rotate_bivector(&rotated_b.angular_velocity);
+
+        let motor = super::super::MotorDrive {
+            target_pos: 0.0,
+            target_vel: 0.9,
+            kp: 0.0,
+            kd: 4.0,
+            max_force: 100.0,
+        };
+        let reference_joint =
+            HingeJoint::new(BodyHandle(40), BodyHandle(41), 0, 1).with_motor(motor);
+        let rotated_joint =
+            HingeJoint::new(BodyHandle(40), BodyHandle(41), 0, 1).with_motor(motor);
+
+        let mut reference_work = WorkRecorder {
+            work_by_body: HashMap::new(),
+        };
+        let mut rotated_work = WorkRecorder {
+            work_by_body: HashMap::new(),
+        };
+        reference_joint.solve_velocity(
+            &mut reference_a,
+            &mut reference_b,
+            0.05,
+            Some(&mut reference_work),
+        );
+        rotated_joint.solve_velocity(
+            &mut rotated_a,
+            &mut rotated_b,
+            0.05,
+            Some(&mut rotated_work),
+        );
+
+        let expected_a = scene_rotation.rotate_bivector(&reference_a.angular_velocity);
+        let expected_b = scene_rotation.rotate_bivector(&reference_b.angular_velocity);
+        assert!(
+            (rotated_a.angular_velocity.to_matrix() - expected_a.to_matrix()).norm() < 1.0e-9,
+            "body A angular response changed under a rigid scene rotation"
+        );
+        assert!(
+            (rotated_b.angular_velocity.to_matrix() - expected_b.to_matrix()).norm() < 1.0e-9,
+            "body B angular response changed under a rigid scene rotation"
+        );
+
+        let local_plane = Bivector::<3>::unit_plane(0, 1);
+        let world_plane = scene_rotation.rotate_bivector(&local_plane);
+        assert!(
+            (world_plane.to_matrix() - local_plane.to_matrix()).norm() > 0.1,
+            "negative control is ineffective: the scene rotation must distinguish the transported plane from stale global e01"
+        );
+
+        for (body, label) in [(&reference_a, "reference A"), (&reference_b, "reference B")] {
+            let relative = reference_b
+                .angular_velocity
+                .add(&reference_a.angular_velocity.scale(-1.0));
+            let residual = relative.add(
+                &local_plane.scale(-bivector_inner_product(&local_plane, &relative)),
+            );
+            assert!(
+                residual.norm() < 1.0e-9,
+                "{label}: relative angular response escaped the allowed hinge plane"
+            );
+        }
+
+        assert!(
+            (reference_a.rotational_kinetic_energy() - rotated_a.rotational_kinetic_energy())
+                .abs()
+                < 1.0e-9
+        );
+        assert!(
+            (reference_b.rotational_kinetic_energy() - rotated_b.rotational_kinetic_energy())
+                .abs()
+                < 1.0e-9
+        );
+        for handle in [BodyHandle(40), BodyHandle(41)] {
+            let reference = reference_work.work_by_body.get(&handle).copied().unwrap_or(0.0);
+            let rotated = rotated_work.work_by_body.get(&handle).copied().unwrap_or(0.0);
+            assert!(
+                (reference - rotated).abs() < 1.0e-9,
+                "per-body motor work changed under scene rotation for {handle:?}: {reference} vs {rotated}"
+            );
+        }
+    }
+
+    #[test]
     fn hinge_4d() {
         let mut a = RigidBody::<4>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
         let mut b = RigidBody::<4>::dynamic_sphere(
