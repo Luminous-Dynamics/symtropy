@@ -13,6 +13,7 @@ from tempfile import TemporaryDirectory
 import math
 
 from fmpy import extract, read_model_description
+from fmpy.fmi1 import FMICallException
 from fmpy.fmi3 import FMU3Slave
 from fmpy.validation import validate_fmu
 
@@ -83,8 +84,16 @@ def make_slave(path: Path, name: str, workdir: Path, model_identifier: str):
 def expect_fmi_error(operation, label: str) -> None:
     try:
         operation()
-    except Exception:
+    except FMICallException as error:
+        if error.status != 3:
+            raise AssertionError(
+                f"negative control returned FMI status {error.status}, expected fmi3Error: {label}"
+            ) from error
         return
+    except Exception as error:
+        raise AssertionError(
+            f"negative control raised a non-FMI exception: {label}: {type(error).__name__}: {error}"
+        ) from error
     raise AssertionError(f"negative control was accepted: {label}")
 
 
@@ -108,6 +117,15 @@ def main() -> int:
                 )
                 slave.enterInitializationMode(startTime=0.0, stopTime=120.0)
                 slave.exitInitializationMode()
+
+            expect_fmi_error(
+                lambda: source.enterInitializationMode(startTime=0.0, stopTime=120.0),
+                "source re-enter initialization mode",
+            )
+            expect_fmi_error(
+                lambda: receiver.enterInitializationMode(startTime=0.0, stopTime=120.0),
+                "receiver re-enter initialization mode",
+            )
 
             current_time = 0.0
             previous_cumulative = 0.0
@@ -210,12 +228,21 @@ def main() -> int:
             if abs(total_residual) > 16.0 * math.ulp(max(totals["input"], 1.0)):
                 raise AssertionError(f"federation energy residual too large: {total_residual}")
 
+            expect_fmi_error(
+                lambda: source.doStep(
+                    currentCommunicationPoint=120.0,
+                    communicationStepSize=1.0,
+                    noSetFMUStatePriorToCurrentPoint=True,
+                ),
+                "producer step beyond declared stop time",
+            )
+
             print("FMPy integrated-flux FMI 3.0.2 pair: PASS")
             print(f"intervals={len(step_bounds)}")
             print(f"input_J={totals['input']:.9f} service_J={totals['service']:.9f} "
                   f"loss_J={totals['loss']:.9f} storage_J={totals['storage']:.9f}")
             print(f"total_residual_J={total_residual:.12g}")
-            print("negative_controls=duplicate-consume,negative-J,stale-step: REJECTED")
+            print("negative_controls=duplicate-consume,negative-J,stale-step,reenter-init,stop-time-overrun: FMI_ERROR")
             print("claim_ceiling=synthetic FMI interface and energy accounting only")
         finally:
             for slave in slaves:
