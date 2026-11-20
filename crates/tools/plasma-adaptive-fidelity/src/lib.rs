@@ -302,16 +302,24 @@ pub fn evaluate_adaptive_fidelity(
                         ineligible_candidates: rejected,
                     }));
                 }
-                CandidateAssessment::Unknown(_) => {
+                CandidateAssessment::Unknown(reason) => {
+                    rejected.push(CandidateIneligibility {
+                        profile_id: patch.patch_profile_id.clone(),
+                        reason,
+                    });
                     return Ok(PolicyDecision::Unknown {
                         reason: UnknownReason::KineticPatchQualificationUnknown,
                         ineligible_candidates: rejected,
                     });
                 }
                 CandidateAssessment::Rejected(reason) => {
+                    rejected.push(CandidateIneligibility {
+                        profile_id: patch.patch_profile_id.clone(),
+                        reason,
+                    });
                     return Ok(PolicyDecision::Refused {
                         ineligible_candidates: rejected,
-                        reason: format!("kinetic patch is ineligible: {reason:?}"),
+                        reason: "kinetic patch is ineligible".to_owned(),
                     });
                 }
             }
@@ -335,13 +343,22 @@ pub fn evaluate_adaptive_fidelity(
                     ineligible_candidates: rejected,
                 }));
             }
-            CandidateAssessment::Unknown(_) => {
+            CandidateAssessment::Unknown(reason) => {
+                rejected.push(CandidateIneligibility {
+                    profile_id: patch.patch_profile_id.clone(),
+                    reason,
+                });
                 return Ok(PolicyDecision::Unknown {
                     reason: UnknownReason::KineticPatchQualificationUnknown,
                     ineligible_candidates: rejected,
                 });
             }
-            CandidateAssessment::Rejected(_) => {}
+            CandidateAssessment::Rejected(reason) => {
+                rejected.push(CandidateIneligibility {
+                    profile_id: patch.patch_profile_id.clone(),
+                    reason,
+                });
+            }
         }
     }
 
@@ -851,7 +868,9 @@ mod tests {
             PolicyDecision::Refused {
                 ineligible_candidates,
                 ..
-            } if ineligible_candidates.is_empty()
+            } if ineligible_candidates.iter().any(|item|
+                item.profile_id == "synthetic-kinetic-patch"
+                    && item.reason == IneligibilityReason::KineticPatchStateMismatch)
         ));
     }
 
