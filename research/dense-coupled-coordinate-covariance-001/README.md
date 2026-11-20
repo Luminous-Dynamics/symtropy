@@ -115,3 +115,18 @@ The warning-denied Rust tests verify exact inverse identities, the transformed m
 The v0.1 tests qualified algebraic transformation identities. The v0.2 direct dense-coordinate RATTLE implementation and its independent Cartesian comparison extend that scope, but remain unqualified until the exact-head Rust 1.96 workflow passes. A dense path that reconstructs Cartesian state and calls the original solver is not acceptable.
 
 No physical calibration, production readiness, performance improvement or SOTA claim is made.
+
+
+## Forced dense-coordinate RATTLE (v0.3, authored; exact-head test pending)
+
+The Cartesian reference now exposes a constant-force Velocity-Verlet/RATTLE step. The dense-coordinate path accepts the original force covector (Q_q), transforms it by (Q_y=S^TQ_q), and solves the SHAKE drift, first and second force half-kicks, and endpoint momentum projection directly in the dense (M_y) metric.
+
+The new v0.3 fixture freezes:
+- one-step force case: (Q_q=[0.18,-0.07,0.11,-0.12,0.09,0.05,0.04,-0.15,0.08]), (dt=0.01);
+- 24-step replay case: (Q_q=[0.08,-0.04,0.06,-0.05,0.03,0.02,0.02,-0.07,0.04]), (dt=0.005), across both dense basis changes;
+- lifted position/velocity, both multiplier vectors, link residuals, external work and work-energy residual tolerances.
+
+The new warning-denied tests compare forced one-step and multi-step results against `CartesianRattleChain::step_with_force`. This tests the dual force-covector law and the actual forced discrete map—not only tensor transformations. A small independent numerical transcription of the frozen equations gave one-step lifted-state differences below (5\times10^{-13}) for the two dense bases; these are preflight calculations, not Rust or physical test results.
+
+**Qualification status:** v0.1 algebraic checks and the force-free v0.2 one-step RATTLE comparison have passed the exact Rust 1.96 workflow at code head `f45a5e3` (27 tests, 0 failures, plus optimized replay). The forced v0.3 tests are newly authored and remain pending their own exact-head format/test/Clippy/replay run.
+
