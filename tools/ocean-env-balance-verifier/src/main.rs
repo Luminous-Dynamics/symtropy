@@ -125,7 +125,6 @@ struct Evidence {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ThermalObservation {
-    #[serde(flatten)]
     evidence: Evidence,
     station_id: String,
     station_role: String,
@@ -137,7 +136,6 @@ struct ThermalObservation {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct FlowSample {
-    #[serde(flatten)]
     evidence: Evidence,
     station_id: String,
     station_role: String,
@@ -156,7 +154,6 @@ struct ConcentrationPair {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ConcentrationSample {
-    #[serde(flatten)]
     evidence: Evidence,
     station_id: String,
     station_role: String,
@@ -555,7 +552,7 @@ mod tests {
 
     fn fixture() -> Bundle {
         serde_json::from_str(include_str!(
-            "../../../docs/research/port-energy-compute/OCEAN_ENV_MEASUREMENT_BUNDLE_V0_1.json"
+            "../../../docs/research/port-energy-compute/OCEAN_ENVIRONMENT_MEASUREMENT_BUNDLE_V0_1.json"
         )).expect("measurement bundle parses")
     }
     #[test]
