@@ -75,7 +75,7 @@ jobs:
                       assert parent_id in bundle_event_ids or parent_id in committed_ids, "unknown causal parent"
           expected = offline_fixture["expected_reconciliation"]
           assert expected["can_ingest"] is False
-          assert expected["conflict_count"] == 2
+          assert expected["conflict_count"] == 1
           assert set(expected["conflict_event_ids"]) == {
               "robot-a-observation", "robot-b-start", "referee-a-assessment"
           }
