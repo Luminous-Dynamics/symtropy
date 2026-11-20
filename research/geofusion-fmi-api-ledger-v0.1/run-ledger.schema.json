@@ -414,7 +414,8 @@
             "constant_over_declared_half_open_interval",
             "sample_at_interval_end",
             "sample_at_interval_start",
-            "interval_average"
+            "interval_average",
+            "integral_over_half_open_interval"
           ]
         }
       }
@@ -454,7 +455,8 @@
             "constant_over_declared_half_open_interval",
             "sample_at_interval_end",
             "sample_at_interval_start",
-            "interval_average"
+            "interval_average",
+            "integral_over_half_open_interval"
           ]
         }
       }
