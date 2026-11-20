@@ -17,6 +17,9 @@ NECESSARY_MODALITIES = {
     "non_speech_audio_required": {"audio"},
     "video_necessary": {"video"},
     "jointly_necessary": {"audio", "video"},
+    "dependent_redundant_views": {"audio", "video"},
+    "conflict_abstain_or_separate_hypotheses": {"audio", "video"},
+    "no_cross_modal_association": {"audio", "video"},
     "nuisance_invariant_pair": {"audio", "video"},
 }
 
@@ -182,6 +185,9 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
                 violations.append("missing_necessary_audio_requires_abstention")
             if "audio" in used:
                 violations.append("missing_audio_episode_cannot_claim_audio_use")
+        if necessity in {"conflict_abstain_or_separate_hypotheses", "no_cross_modal_association"}:
+            if not abstained and not {"audio", "video"} <= used:
+                violations.append("cross_modal_task_answered_without_both_modalities")
         if necessity == "dependent_redundant_views":
             if pred.get("claimed_independent_corroboration") is True:
                 violations.append("common_cause_views_claimed_as_independent_corroboration")
@@ -195,10 +201,14 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
             decision_correct, answer_correct = abstained, False
         else:
             answer_correct = (not abstained) and answer == label.get("truth_answer")
-            safe_abstention = necessity in {
-                "conflict_abstain_or_separate_hypotheses",
-                "no_cross_modal_association",
-            } and abstained
+            missing_required_modality = bool(required) and not required <= used
+            safe_abstention = abstained and (
+                missing_required_modality
+                or necessity in {
+                    "conflict_abstain_or_separate_hypotheses",
+                    "no_cross_modal_association",
+                }
+            )
             decision_correct = answer_correct or safe_abstention
         row = {
             "episode_id": episode_id, "necessity": necessity,
