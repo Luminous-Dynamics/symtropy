@@ -10,7 +10,7 @@ typedef struct {
 } GeothermalSource;
 
 FMI3_Export const char *fmi3GetVersion(void) {
-    return "3.0.2";
+    return "3.0";
 }
 
 FMI3_Export fmi3Instance fmi3InstantiateCoSimulation(
