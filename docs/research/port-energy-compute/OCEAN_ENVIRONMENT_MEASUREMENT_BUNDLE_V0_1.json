@@ -92,7 +92,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-1"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-1",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         },
         {
@@ -113,7 +115,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-2"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-2",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         },
         {
@@ -134,7 +138,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-3"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-3",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         },
         {
@@ -155,7 +161,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-4"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-4",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         },
         {
@@ -176,7 +184,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-5"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-5",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         }
       ],
@@ -197,7 +207,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-INTAKE"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-INTAKE",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         },
         {
@@ -216,7 +228,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-OUTFALL"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-OUTFALL",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         }
       ],
@@ -242,7 +256,9 @@
               "quality_state": "valid",
               "evidence_state": "synthetic",
               "source_rights_state": "synthetic_test_data_only",
-              "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-INTAKE"
+              "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-INTAKE",
+              "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+              "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
             }
           },
           "outfall": {
@@ -262,12 +278,91 @@
               "quality_state": "valid",
               "evidence_state": "synthetic",
               "source_rights_state": "synthetic_test_data_only",
-              "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-OUTFALL"
+              "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-OUTFALL",
+              "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+              "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
             }
           }
         }
       ],
-      "uncertainty_covariance_state": "paired_measurement_calibration_domains_independent"
+      "uncertainty_covariance_state": "paired_measurement_calibration_domains_independent",
+      "plume_concentration_observations": [
+        {
+          "analyte_id": "SYNTH-TRACE-ANALYTE-001",
+          "method_id": "SYNTH-LAB-METHOD-001",
+          "method_quality_state": "valid",
+          "evidence": {
+            "sample_id": "ENV-INT-001-PLUME-NEAR",
+            "interval_id": "ENV-INT-001",
+            "interval_start_utc": "2026-10-12T10:00:00Z",
+            "interval_end_utc": "2026-10-12T10:05:00Z",
+            "sensor_id": "SYNTH-LAB-PLUME-NEAR",
+            "calibration_id": "SYNTH-CAL-PLUME-NEAR-2026-09",
+            "calibration_state": "in_calibration",
+            "quality_state": "valid",
+            "evidence_state": "synthetic",
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-PLUME-NEAR",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
+          },
+          "station_id": "station-near_field_plume",
+          "station_role": "near_field_plume",
+          "concentration_mg_l": 0.0208,
+          "standard_uncertainty_mg_l": 0.0015,
+          "detection_limit_mg_l": 0.001
+        },
+        {
+          "analyte_id": "SYNTH-TRACE-ANALYTE-001",
+          "method_id": "SYNTH-LAB-METHOD-001",
+          "method_quality_state": "valid",
+          "evidence": {
+            "sample_id": "ENV-INT-001-PLUME-FAR",
+            "interval_id": "ENV-INT-001",
+            "interval_start_utc": "2026-10-12T10:00:00Z",
+            "interval_end_utc": "2026-10-12T10:05:00Z",
+            "sensor_id": "SYNTH-LAB-PLUME-FAR",
+            "calibration_id": "SYNTH-CAL-PLUME-FAR-2026-09",
+            "calibration_state": "in_calibration",
+            "quality_state": "valid",
+            "evidence_state": "synthetic",
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-PLUME-FAR",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
+          },
+          "station_id": "station-far_field_impact",
+          "station_role": "far_field_impact",
+          "concentration_mg_l": 0.0203,
+          "standard_uncertainty_mg_l": 0.0015,
+          "detection_limit_mg_l": 0.001
+        },
+        {
+          "analyte_id": "SYNTH-TRACE-ANALYTE-001",
+          "method_id": "SYNTH-LAB-METHOD-001",
+          "method_quality_state": "valid",
+          "evidence": {
+            "sample_id": "ENV-INT-001-PLUME-CONTROL",
+            "interval_id": "ENV-INT-001",
+            "interval_start_utc": "2026-10-12T10:00:00Z",
+            "interval_end_utc": "2026-10-12T10:05:00Z",
+            "sensor_id": "SYNTH-LAB-PLUME-CONTROL",
+            "calibration_id": "SYNTH-CAL-PLUME-CONTROL-2026-09",
+            "calibration_state": "in_calibration",
+            "quality_state": "valid",
+            "evidence_state": "synthetic",
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-PLUME-CONTROL",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
+          },
+          "station_id": "station-independent_reference_control",
+          "station_role": "independent_reference_control",
+          "concentration_mg_l": 0.02,
+          "standard_uncertainty_mg_l": 0.0015,
+          "detection_limit_mg_l": 0.001
+        }
+      ]
     },
     {
       "interval_id": "ENV-INT-002",
@@ -306,7 +401,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-1"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-1",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         },
         {
@@ -327,7 +424,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-2"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-2",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         },
         {
@@ -348,7 +447,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-3"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-3",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         },
         {
@@ -369,7 +470,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-4"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-4",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         },
         {
@@ -390,7 +493,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-5"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-5",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         }
       ],
@@ -411,7 +516,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-INTAKE"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-INTAKE",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         },
         {
@@ -430,7 +537,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-OUTFALL"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-OUTFALL",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         }
       ],
@@ -456,7 +565,9 @@
               "quality_state": "valid",
               "evidence_state": "synthetic",
               "source_rights_state": "synthetic_test_data_only",
-              "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-INTAKE"
+              "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-INTAKE",
+              "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+              "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
             }
           },
           "outfall": {
@@ -476,12 +587,91 @@
               "quality_state": "valid",
               "evidence_state": "synthetic",
               "source_rights_state": "synthetic_test_data_only",
-              "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-OUTFALL"
+              "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-OUTFALL",
+              "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+              "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
             }
           }
         }
       ],
-      "uncertainty_covariance_state": "paired_measurement_calibration_domains_independent"
+      "uncertainty_covariance_state": "paired_measurement_calibration_domains_independent",
+      "plume_concentration_observations": [
+        {
+          "analyte_id": "SYNTH-TRACE-ANALYTE-001",
+          "method_id": "SYNTH-LAB-METHOD-001",
+          "method_quality_state": "valid",
+          "evidence": {
+            "sample_id": "ENV-INT-002-PLUME-NEAR",
+            "interval_id": "ENV-INT-002",
+            "interval_start_utc": "2026-10-12T10:05:00Z",
+            "interval_end_utc": "2026-10-12T10:10:00Z",
+            "sensor_id": "SYNTH-LAB-PLUME-NEAR",
+            "calibration_id": "SYNTH-CAL-PLUME-NEAR-2026-09",
+            "calibration_state": "in_calibration",
+            "quality_state": "valid",
+            "evidence_state": "synthetic",
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-PLUME-NEAR",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
+          },
+          "station_id": "station-near_field_plume",
+          "station_role": "near_field_plume",
+          "concentration_mg_l": 0.0209,
+          "standard_uncertainty_mg_l": 0.0015,
+          "detection_limit_mg_l": 0.001
+        },
+        {
+          "analyte_id": "SYNTH-TRACE-ANALYTE-001",
+          "method_id": "SYNTH-LAB-METHOD-001",
+          "method_quality_state": "valid",
+          "evidence": {
+            "sample_id": "ENV-INT-002-PLUME-FAR",
+            "interval_id": "ENV-INT-002",
+            "interval_start_utc": "2026-10-12T10:05:00Z",
+            "interval_end_utc": "2026-10-12T10:10:00Z",
+            "sensor_id": "SYNTH-LAB-PLUME-FAR",
+            "calibration_id": "SYNTH-CAL-PLUME-FAR-2026-09",
+            "calibration_state": "in_calibration",
+            "quality_state": "valid",
+            "evidence_state": "synthetic",
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-PLUME-FAR",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
+          },
+          "station_id": "station-far_field_impact",
+          "station_role": "far_field_impact",
+          "concentration_mg_l": 0.0203,
+          "standard_uncertainty_mg_l": 0.0015,
+          "detection_limit_mg_l": 0.001
+        },
+        {
+          "analyte_id": "SYNTH-TRACE-ANALYTE-001",
+          "method_id": "SYNTH-LAB-METHOD-001",
+          "method_quality_state": "valid",
+          "evidence": {
+            "sample_id": "ENV-INT-002-PLUME-CONTROL",
+            "interval_id": "ENV-INT-002",
+            "interval_start_utc": "2026-10-12T10:05:00Z",
+            "interval_end_utc": "2026-10-12T10:10:00Z",
+            "sensor_id": "SYNTH-LAB-PLUME-CONTROL",
+            "calibration_id": "SYNTH-CAL-PLUME-CONTROL-2026-09",
+            "calibration_state": "in_calibration",
+            "quality_state": "valid",
+            "evidence_state": "synthetic",
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-PLUME-CONTROL",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
+          },
+          "station_id": "station-independent_reference_control",
+          "station_role": "independent_reference_control",
+          "concentration_mg_l": 0.02,
+          "standard_uncertainty_mg_l": 0.0015,
+          "detection_limit_mg_l": 0.001
+        }
+      ]
     },
     {
       "interval_id": "ENV-INT-003",
@@ -520,7 +710,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-1"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-1",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         },
         {
@@ -541,7 +733,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-2"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-2",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         },
         {
@@ -562,7 +756,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-3"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-3",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         },
         {
@@ -583,7 +779,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-4"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-4",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         },
         {
@@ -604,7 +802,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-5"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-5",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         }
       ],
@@ -625,7 +825,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-INTAKE"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-INTAKE",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         },
         {
@@ -644,7 +846,9 @@
             "quality_state": "valid",
             "evidence_state": "synthetic",
             "source_rights_state": "synthetic_test_data_only",
-            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-OUTFALL"
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-OUTFALL",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
           }
         }
       ],
@@ -670,7 +874,9 @@
               "quality_state": "valid",
               "evidence_state": "synthetic",
               "source_rights_state": "synthetic_test_data_only",
-              "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-INTAKE"
+              "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-INTAKE",
+              "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+              "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
             }
           },
           "outfall": {
@@ -690,12 +896,91 @@
               "quality_state": "valid",
               "evidence_state": "synthetic",
               "source_rights_state": "synthetic_test_data_only",
-              "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-OUTFALL"
+              "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-OUTFALL",
+              "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+              "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
             }
           }
         }
       ],
-      "uncertainty_covariance_state": "paired_measurement_calibration_domains_independent"
+      "uncertainty_covariance_state": "paired_measurement_calibration_domains_independent",
+      "plume_concentration_observations": [
+        {
+          "analyte_id": "SYNTH-TRACE-ANALYTE-001",
+          "method_id": "SYNTH-LAB-METHOD-001",
+          "method_quality_state": "valid",
+          "evidence": {
+            "sample_id": "ENV-INT-003-PLUME-NEAR",
+            "interval_id": "ENV-INT-003",
+            "interval_start_utc": "2026-10-12T10:10:00Z",
+            "interval_end_utc": "2026-10-12T10:15:00Z",
+            "sensor_id": "SYNTH-LAB-PLUME-NEAR",
+            "calibration_id": "SYNTH-CAL-PLUME-NEAR-2026-09",
+            "calibration_state": "in_calibration",
+            "quality_state": "valid",
+            "evidence_state": "synthetic",
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-PLUME-NEAR",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
+          },
+          "station_id": "station-near_field_plume",
+          "station_role": "near_field_plume",
+          "concentration_mg_l": 0.0208,
+          "standard_uncertainty_mg_l": 0.0015,
+          "detection_limit_mg_l": 0.001
+        },
+        {
+          "analyte_id": "SYNTH-TRACE-ANALYTE-001",
+          "method_id": "SYNTH-LAB-METHOD-001",
+          "method_quality_state": "valid",
+          "evidence": {
+            "sample_id": "ENV-INT-003-PLUME-FAR",
+            "interval_id": "ENV-INT-003",
+            "interval_start_utc": "2026-10-12T10:10:00Z",
+            "interval_end_utc": "2026-10-12T10:15:00Z",
+            "sensor_id": "SYNTH-LAB-PLUME-FAR",
+            "calibration_id": "SYNTH-CAL-PLUME-FAR-2026-09",
+            "calibration_state": "in_calibration",
+            "quality_state": "valid",
+            "evidence_state": "synthetic",
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-PLUME-FAR",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
+          },
+          "station_id": "station-far_field_impact",
+          "station_role": "far_field_impact",
+          "concentration_mg_l": 0.0203,
+          "standard_uncertainty_mg_l": 0.0015,
+          "detection_limit_mg_l": 0.001
+        },
+        {
+          "analyte_id": "SYNTH-TRACE-ANALYTE-001",
+          "method_id": "SYNTH-LAB-METHOD-001",
+          "method_quality_state": "valid",
+          "evidence": {
+            "sample_id": "ENV-INT-003-PLUME-CONTROL",
+            "interval_id": "ENV-INT-003",
+            "interval_start_utc": "2026-10-12T10:10:00Z",
+            "interval_end_utc": "2026-10-12T10:15:00Z",
+            "sensor_id": "SYNTH-LAB-PLUME-CONTROL",
+            "calibration_id": "SYNTH-CAL-PLUME-CONTROL-2026-09",
+            "calibration_state": "in_calibration",
+            "quality_state": "valid",
+            "evidence_state": "synthetic",
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-PLUME-CONTROL",
+            "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
+            "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
+          },
+          "station_id": "station-independent_reference_control",
+          "station_role": "independent_reference_control",
+          "concentration_mg_l": 0.02,
+          "standard_uncertainty_mg_l": 0.0015,
+          "detection_limit_mg_l": 0.001
+        }
+      ]
     }
   ]
 }
