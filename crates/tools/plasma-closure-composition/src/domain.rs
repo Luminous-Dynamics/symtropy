@@ -20,6 +20,8 @@ pub struct DomainAssemblyRequest {
     pub cell_ids: Vec<String>,
     pub internal_faces: Vec<FaceFluxBlendReport>,
     pub boundary_faces: Vec<BoundaryFluxReport>,
+    /// Dimensionless absolute tolerance for candidate weight sums.
+    pub weight_sum_tolerance: f64,
     /// Absolute tolerance in the declared conserved-state units.
     pub balance_tolerance: f64,
 }
@@ -55,6 +57,7 @@ pub enum DomainBalanceError {
     EmptyCellInventory,
     DuplicateCell(String),
     InvalidBalanceTolerance,
+    InvalidWeightSumTolerance,
     Compatibility(BlendError),
     DuplicateFace(String),
     UnknownCell { face_id: String, cell_id: String },
@@ -91,6 +94,12 @@ pub fn assemble_domain_balance(
     }
     if !request.balance_tolerance.is_finite() || request.balance_tolerance < 0.0 {
         return Err(DomainBalanceError::InvalidBalanceTolerance);
+    }
+    if !request.weight_sum_tolerance.is_finite()
+        || request.weight_sum_tolerance < 0.0
+        || request.weight_sum_tolerance >= 1.0
+    {
+        return Err(DomainBalanceError::InvalidWeightSumTolerance);
     }
     validate_compatibility(&request.compatibility)
         .map_err(DomainBalanceError::Compatibility)?;
@@ -153,7 +162,12 @@ pub fn assemble_domain_balance(
                 cell_id: face.right_cell_id.clone(),
             });
         }
-        validate_internal_face(face, component_count, request.balance_tolerance)?;
+        validate_internal_face(
+            face,
+            component_count,
+            request.weight_sum_tolerance,
+            request.balance_tolerance,
+        )?;
 
         contributions
             .get_mut(&face.left_cell_id)
@@ -300,7 +314,8 @@ pub fn assemble_domain_balance(
 fn validate_internal_face(
     face: &FaceFluxBlendReport,
     component_count: usize,
-    tolerance: f64,
+    weight_sum_tolerance: f64,
+    balance_tolerance: f64,
 ) -> Result<(), DomainBalanceError> {
     if face.candidate_receipts.is_empty()
         || face.candidate_receipts.len() != face.candidate_weights.len()
@@ -328,8 +343,13 @@ fn validate_internal_face(
         }
     }
     let weight_sum = compensated_sum(face.candidate_weights.iter().copied());
-    if !weight_sum.is_finite() || (weight_sum - 1.0).abs() > tolerance {
+    if !weight_sum.is_finite() || (weight_sum - 1.0).abs() > weight_sum_tolerance {
         return Err(DomainBalanceError::InvalidCandidateReceipt(
+            face.face_id.clone(),
+        ));
+    }
+    if !face.face_measure.is_finite() || face.face_measure <= 0.0 {
+        return Err(DomainBalanceError::InvalidInternalFaceReceipt(
             face.face_id.clone(),
         ));
     }
@@ -361,13 +381,17 @@ fn validate_internal_face(
         }
         let expected_residual =
             face.left_integrated_update[component] + face.right_integrated_update[component];
-        if (face.left_integrated_update[component] + face.integrated_flux[component]).abs()
-            > tolerance
+        let expected_integrated_flux = face.blended_flux[component] * face.face_measure;
+        if !expected_integrated_flux.is_finite()
+            || (face.integrated_flux[component] - expected_integrated_flux).abs()
+                > balance_tolerance
+            || (face.left_integrated_update[component] + face.integrated_flux[component]).abs()
+                > balance_tolerance
             || (face.right_integrated_update[component] - face.integrated_flux[component]).abs()
-                > tolerance
+                > balance_tolerance
             || (face.internal_balance_residual[component] - expected_residual).abs()
-                > tolerance
-            || expected_residual.abs() > tolerance
+                > balance_tolerance
+            || expected_residual.abs() > balance_tolerance
         {
             return Err(DomainBalanceError::InvalidInternalFaceReceipt(
                 face.face_id.clone(),
@@ -419,7 +443,10 @@ fn validate_boundary_face(
                 boundary.boundary_face_id.clone(),
             ));
         }
-        if (cell + outward).abs() > tolerance || residual.abs() > tolerance {
+        if (cell + outward).abs() > tolerance
+            || (residual - (cell + outward)).abs() > tolerance
+            || residual.abs() > tolerance
+        {
             return Err(DomainBalanceError::InvalidBoundaryReceipt(
                 boundary.boundary_face_id.clone(),
             ));
@@ -537,6 +564,7 @@ mod tests {
             cell_ids: cell_ids.into_iter().map(str::to_owned).collect(),
             internal_faces,
             boundary_faces,
+            weight_sum_tolerance: 1.0e-12,
             balance_tolerance: 1.0e-12,
         }
     }
