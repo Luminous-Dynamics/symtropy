@@ -1,0 +1,234 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "South African UAS operation eligibility corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "source_snapshot_id",
+    "source_snapshot_as_of",
+    "claim_ceiling",
+    "operations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "ZA-UAS-OPS-GATE-001"
+    },
+    "source_snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_snapshot_as_of": {
+      "type": "string",
+      "format": "date"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "operation_id",
+          "activity_class",
+          "aircraft_control_mode",
+          "aircraft_class",
+          "operating_visibility",
+          "payload_release_or_delivery",
+          "dangerous_goods_payload",
+          "multi_uas_operation",
+          "controlled_airspace",
+          "aircraft_serial_digest",
+          "operator_identity_digest",
+          "operation_scope_digest",
+          "operations_manual_revision_digest",
+          "assessment_time_unix_ms",
+          "approval_evidence"
+        ],
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "activity_class": {
+            "enum": [
+              "commercial",
+              "corporate",
+              "non_profit",
+              "private"
+            ]
+          },
+          "aircraft_control_mode": {
+            "enum": [
+              "remotely_piloted",
+              "autonomous",
+              "not_managed_in_real_time",
+              "other_or_unclassified"
+            ]
+          },
+          "aircraft_class": {
+            "enum": [
+              "class_1a",
+              "class_1b",
+              "class_1_other",
+              "class_2",
+              "outside_part101_class_1_or_2",
+              "unknown"
+            ]
+          },
+          "operating_visibility": {
+            "enum": [
+              "restricted_visual_line_of_sight",
+              "visual_line_of_sight",
+              "extended_visual_line_of_sight",
+              "beyond_visual_line_of_sight",
+              "beyond_radio_line_of_sight",
+              "unknown"
+            ]
+          },
+          "payload_release_or_delivery": {
+            "type": "boolean"
+          },
+          "dangerous_goods_payload": {
+            "type": "boolean"
+          },
+          "multi_uas_operation": {
+            "type": "boolean"
+          },
+          "controlled_airspace": {
+            "type": "boolean"
+          },
+          "aircraft_serial_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "operator_identity_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "operation_scope_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "operations_manual_revision_digest": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "assessment_time_unix_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "approval_evidence": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "requirement",
+                "state",
+                "evidence_record_id",
+                "source_reference",
+                "source_version",
+                "aircraft_serial_digest",
+                "operator_identity_digest",
+                "operation_scope_digest",
+                "operations_manual_revision_digest",
+                "valid_from_unix_ms",
+                "valid_until_unix_ms"
+              ],
+              "properties": {
+                "requirement": {
+                  "enum": [
+                    "uas_operating_certificate",
+                    "air_service_licence",
+                    "remote_pilot_licence",
+                    "remote_operator_letter_of_approval",
+                    "certificate_of_registration",
+                    "director_approved_payload_release_in_operations_manual",
+                    "director_approved_bvlos_in_operations_manual",
+                    "sa_cats101_bvlos_evidence",
+                    "director_approved_multi_uas_operation",
+                    "approved_single_rps_command_input_arrangement",
+                    "director_approved_controlled_airspace_operation"
+                  ]
+                },
+                "state": {
+                  "enum": [
+                    "caller_verified_current",
+                    "missing",
+                    "unknown",
+                    "stale",
+                    "expired",
+                    "revoked",
+                    "mismatched",
+                    "out_of_scope"
+                  ]
+                },
+                "evidence_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_reference": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "aircraft_serial_digest": {
+                  "type": "string",
+                  "pattern": "^sha256:[a-f0-9]{64}$"
+                },
+                "operator_identity_digest": {
+                  "type": "string",
+                  "pattern": "^sha256:[a-f0-9]{64}$"
+                },
+                "operation_scope_digest": {
+                  "type": "string",
+                  "pattern": "^sha256:[a-f0-9]{64}$"
+                },
+                "operations_manual_revision_digest": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "valid_from_unix_ms": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "valid_until_unix_ms": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
