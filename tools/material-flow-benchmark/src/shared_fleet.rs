@@ -1541,7 +1541,7 @@ mod tests {
         let canonical = canonicalize(&test);
         let (nodes, indices) = build_decision_nodes(&canonical).expect("valid tree");
         // In a two-region policy radix of three, action index two is idle.
-        let all_idle_mask = 2_u64.pow(nodes.len() as u32) - 1;
+        let all_idle_mask = 3_u64.pow(nodes.len() as u32) - 1;
         let metrics = simulate_scenario(
             &canonical,
             &canonical.scenarios[0],
