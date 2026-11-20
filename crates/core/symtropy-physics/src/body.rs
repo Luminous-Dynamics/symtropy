@@ -304,8 +304,15 @@ impl<const D: usize> RigidBody<D> {
         // Use the validated full bivector operator when the supplied physical
         // parameters are finite and positive; retain the compatibility
         // constructor behaviour for invalid legacy inputs.
-        if let Ok(operator) = RotationalInertiaOperator::<D>::isotropic(inertia) {
-            body.set_rotational_inertia_operator(operator);
+        if mass.is_finite()
+            && mass > 0.0
+            && radius.is_finite()
+            && radius > 0.0
+            && inertia.is_finite()
+        {
+            if let Ok(operator) = RotationalInertiaOperator::<D>::isotropic(inertia) {
+                body.set_rotational_inertia_operator(operator);
+            }
         }
         body
     }
