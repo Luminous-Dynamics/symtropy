@@ -1,0 +1,969 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_single_spin_nheg_density_level_entropy_and_j2_variation",
+  "status": "exact_convention_conversion_of_source_published_density_law",
+  "source": {
+    "paper": "Celik, Hajian & Kunz, An Exact Single-Rotating Near-Horizon Geometry in Einstein-Gauss-Bonnet Gravity",
+    "arxiv": "2605.15005v2",
+    "url": "https://arxiv.org/html/2605.15005v2",
+    "equations": [
+      "(21)",
+      "(22)",
+      "(23)",
+      "(24)",
+      "(25)"
+    ],
+    "note": "Published density law converted algebraically; not yet independently derived from k_xi."
+  },
+  "conventions": {
+    "source_action": "R+alpha_NH*L_GB",
+    "symtropy_action": "R+alpha_sym*L_GB/4",
+    "coupling_map": "alpha_sym=4*alpha_NH",
+    "beta": "2*a^2/alpha_sym",
+    "domain": "alpha_sym>0, 0<beta<1",
+    "epsilon": "cos(theta)",
+    "p": "1+beta*epsilon^4",
+    "q": "1-beta*epsilon^4"
+  },
+  "source_density_law": {
+    "equation": "delta S_density/(2*pi)=delta J2_density=2*n_H^a*delta Q_a",
+    "source_per_dtheta": "sin(theta)*P(Delta_plus,Delta_minus)/(512*pi*G*cos(theta)^3*Delta_minus^3*Delta_plus^2)*delta a",
+    "P_source": "419*Delta_minus^6+10730*Delta_minus^5*Delta_plus-40043*Delta_minus^4*Delta_plus^2+46828*Delta_minus^3*Delta_plus^3-14627*Delta_minus^2*Delta_plus^4-6262*Delta_minus*Delta_plus^5+3147*Delta_plus^6",
+    "P_after_normalization": "64*(alpha_sym/2)^6*(3*beta^6*epsilon^24-12*beta^5*epsilon^20-156*beta^4*epsilon^16-736*beta^3*epsilon^12+3536*beta^2*epsilon^8+2112*beta*epsilon^4-1600)"
+  },
+  "converted_density": {
+    "per_dtheta": "alpha_sym*sin(theta)*Q/(16*pi*G*epsilon^3*(1-beta*epsilon^4)^3*(1+beta*epsilon^4)^2)",
+    "per_depsilon_after_jacobian": "alpha_sym*Q/(16*pi*G*epsilon^3*(1-beta*epsilon^4)^3*(1+beta*epsilon^4)^2)",
+    "Q": "1600-2112*beta*epsilon^4-3536*beta^2*epsilon^8+736*beta^3*epsilon^12+156*beta^4*epsilon^16+12*beta^5*epsilon^20-3*beta^6*epsilon^24",
+    "epsilon_density_series": "100*alpha_sym/(pi*G*epsilon^3)-32*alpha_sym*beta*epsilon/(pi*G)-53*alpha_sym*beta^2*epsilon^5/(pi*G)+O(epsilon^9)",
+    "theta_density_series": "100*alpha_sym/(pi*G*epsilon^3)-50*alpha_sym/(pi*G*epsilon)+(-32*alpha_sym*beta/pi/G-25*alpha_sym/(2*pi*G))*epsilon+O(epsilon^3)",
+    "integrated_leading_divergence": "50*alpha_sym/(pi*G*epsilon^2)*delta a",
+    "logarithmic_divergence": "none in the epsilon-coordinate integral"
+  },
+  "angular_sign_structure": {
+    "t": "beta*epsilon^4",
+    "Q_t": "1600-2112*t-3536*t^2+736*t^3+156*t^4+12*t^5-3*t^6",
+    "Q_t_prime_Bernstein_coefficients_on_0_1": [
+      "-2112",
+      "-17632/5",
+      "-4720",
+      "-28152/5",
+      "-30916/5",
+      "-6310"
+    ],
+    "Q_t_strictly_decreasing_on_0_1": true,
+    "Q_t_at_zero": "1600",
+    "Q_t_at_one": "-3147",
+    "unique_root_in_0_1": {
+      "lower": "45150/100000",
+      "upper": "45151/100000",
+      "decimal": "0.451507047022546"
+    },
+    "density_sign": "positive for beta*epsilon^4 below the unique root and negative above; for beta greater than the root the angular density changes sign on the horizon section"
+  },
+  "comparison_with_wald_density": {
+    "local_wald_multiplier": "1+alpha_sym*R[h]/2 -> -5",
+    "density_law_is_distinct": "The source density-level phase-space variation is not identified with the local Wald/Jacobson-Myers density. Their differing leading signs and coefficients are retained as separate observables pending the full phase-space derivation.",
+    "full_k_xi_derivation_pending": true
+  },
+  "validation": {
+    "source_polynomial_conversion_exact": true,
+    "theta_density_conversion_exact": true,
+    "epsilon_jacobian_conversion_exact": true,
+    "epsilon_series_exact": true,
+    "leading_integral_coefficient_exact": true,
+    "Q_prime_strictly_negative_bernstein_exact": true,
+    "unique_density_sign_change_classified": true,
+    "independent_k_xi_derivation_performed": false,
+    "integrated_finite_charge_claimed": false
+  },
+  "reference_grid": {
+    "beta_values": [
+      "0.050000000000000003",
+      "0.10000000000000001",
+      "0.14999999999999999",
+      "0.20000000000000001",
+      "0.25000000000000000",
+      "0.29999999999999999",
+      "0.34999999999999998",
+      "0.40000000000000002",
+      "0.45000000000000001",
+      "0.50000000000000000",
+      "0.55000000000000004",
+      "0.59999999999999998",
+      "0.65000000000000002",
+      "0.69999999999999996",
+      "0.75000000000000000",
+      "0.80000000000000004",
+      "0.84999999999999998",
+      "0.90000000000000002",
+      "0.94999999999999996"
+    ],
+    "epsilon_values": [
+      "0.2",
+      "0.1",
+      "0.05",
+      "0.02",
+      "0.01"
+    ],
+    "point_count": 95,
+    "samples": [
+      {
+        "beta": "0.050000000000000003",
+        "epsilon": "0.20000000000000001",
+        "t_beta_epsilon4": "0.000080000000000000020",
+        "Q": "1599.8310173699767",
+        "density_per_dtheta_alpha_sym_G": "3898.3841917487525",
+        "density_per_depsilon_alpha_sym_G": "3978.7717046319422",
+        "integrated_leading_divergence_alpha_sym_G": "397.88735772973831"
+      },
+      {
+        "beta": "0.050000000000000003",
+        "epsilon": "0.10000000000000001",
+        "t_beta_epsilon4": "0.0000050000000000000013",
+        "Q": "1599.9894399116001",
+        "density_per_dtheta_alpha_sym_G": "31671.383111257266",
+        "density_per_depsilon_alpha_sym_G": "31830.937688375507",
+        "integrated_leading_divergence_alpha_sym_G": "1591.5494309189532"
+      },
+      {
+        "beta": "0.050000000000000003",
+        "epsilon": "0.050000000000000003",
+        "t_beta_epsilon4": "3.1250000000000008e-7",
+        "Q": "1599.9993399996547",
+        "density_per_dtheta_alpha_sym_G": "254329.37443514782",
+        "density_per_depsilon_alpha_sym_G": "254647.88348222838",
+        "integrated_leading_divergence_alpha_sym_G": "6366.1977236758130"
+      },
+      {
+        "beta": "0.050000000000000003",
+        "epsilon": "0.020000000000000000",
+        "t_beta_epsilon4": "8.0000000000000005e-9",
+        "Q": "1599.9999831039997",
+        "density_per_dtheta_alpha_sym_G": "3978077.7128046532",
+        "density_per_depsilon_alpha_sym_G": "3978873.5671114661",
+        "integrated_leading_divergence_alpha_sym_G": "39788.735772973829"
+      },
+      {
+        "beta": "0.050000000000000003",
+        "epsilon": "0.010000000000000000",
+        "t_beta_epsilon4": "5.0000000000000003e-10",
+        "Q": "1599.9999989440000",
+        "density_per_dtheta_alpha_sym_G": "31829397.024064720",
+        "density_per_depsilon_alpha_sym_G": "31830988.613286104",
+        "integrated_leading_divergence_alpha_sym_G": "159154.94309189531"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.20000000000000001",
+        "t_beta_epsilon4": "0.00016000000000000004",
+        "Q": "1599.6619894814148",
+        "density_per_dtheta_alpha_sym_G": "3898.2843508493506",
+        "density_per_depsilon_alpha_sym_G": "3978.6698049406937",
+        "integrated_leading_divergence_alpha_sym_G": "397.88735772973831"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.10000000000000001",
+        "t_beta_epsilon4": "0.000010000000000000003",
+        "Q": "1599.9788796464006",
+        "density_per_dtheta_alpha_sym_G": "31671.332435704178",
+        "density_per_depsilon_alpha_sym_G": "31830.886757528348",
+        "integrated_leading_divergence_alpha_sym_G": "1591.5494309189532"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.050000000000000003",
+        "t_beta_epsilon4": "6.2500000000000016e-7",
+        "Q": "1599.9986799986186",
+        "density_per_dtheta_alpha_sym_G": "254329.34900216840",
+        "density_per_depsilon_alpha_sym_G": "254647.85801739799",
+        "integrated_leading_divergence_alpha_sym_G": "6366.1977236758130"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.020000000000000000",
+        "t_beta_epsilon4": "1.6000000000000001e-8",
+        "Q": "1599.9999662079990",
+        "density_per_dtheta_alpha_sym_G": "3978077.7026207740",
+        "density_per_depsilon_alpha_sym_G": "3978873.5569255496",
+        "integrated_leading_divergence_alpha_sym_G": "39788.735772973829"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.010000000000000000",
+        "t_beta_epsilon4": "1.0000000000000001e-9",
+        "Q": "1599.9999978880001",
+        "density_per_dtheta_alpha_sym_G": "31829397.018972006",
+        "density_per_depsilon_alpha_sym_G": "31830988.608193140",
+        "integrated_leading_divergence_alpha_sym_G": "159154.94309189531"
+      },
+      {
+        "beta": "0.14999999999999999",
+        "epsilon": "0.20000000000000001",
+        "t_beta_epsilon4": "0.00024000000000000003",
+        "Q": "1599.4929163365750",
+        "density_per_dtheta_alpha_sym_G": "3898.1844834376848",
+        "density_per_depsilon_alpha_sym_G": "3978.5678781904794",
+        "integrated_leading_divergence_alpha_sym_G": "397.88735772973831"
+      },
+      {
+        "beta": "0.14999999999999999",
+        "epsilon": "0.10000000000000001",
+        "t_beta_epsilon4": "0.000015000000000000002",
+        "Q": "1599.9683192044024",
+        "density_per_dtheta_alpha_sym_G": "31671.281759311685",
+        "density_per_depsilon_alpha_sym_G": "31830.835825837548",
+        "integrated_leading_divergence_alpha_sym_G": "1591.5494309189532"
+      },
+      {
+        "beta": "0.14999999999999999",
+        "epsilon": "0.050000000000000003",
+        "t_beta_epsilon4": "9.3750000000000013e-7",
+        "Q": "1599.9980199968923",
+        "density_per_dtheta_alpha_sym_G": "254329.32356916255",
+        "density_per_depsilon_alpha_sym_G": "254647.83255254119",
+        "integrated_leading_divergence_alpha_sym_G": "6366.1977236758130"
+      },
+      {
+        "beta": "0.14999999999999999",
+        "epsilon": "0.020000000000000000",
+        "t_beta_epsilon4": "2.4000000000000000e-8",
+        "Q": "1599.9999493119979",
+        "density_per_dtheta_alpha_sym_G": "3978077.6924368935",
+        "density_per_depsilon_alpha_sym_G": "3978873.5467396318",
+        "integrated_leading_divergence_alpha_sym_G": "39788.735772973829"
+      },
+      {
+        "beta": "0.14999999999999999",
+        "epsilon": "0.010000000000000000",
+        "t_beta_epsilon4": "1.5000000000000000e-9",
+        "Q": "1599.9999968320001",
+        "density_per_dtheta_alpha_sym_G": "31829397.013879318",
+        "density_per_depsilon_alpha_sym_G": "31830988.603100199",
+        "integrated_leading_divergence_alpha_sym_G": "159154.94309189531"
+      },
+      {
+        "beta": "0.20000000000000001",
+        "epsilon": "0.20000000000000001",
+        "t_beta_epsilon4": "0.00032000000000000008",
+        "Q": "1599.3237979377188",
+        "density_per_dtheta_alpha_sym_G": "3898.0845894812678",
+        "density_per_depsilon_alpha_sym_G": "3978.4659243481424",
+        "integrated_leading_divergence_alpha_sym_G": "397.88735772973831"
+      },
+      {
+        "beta": "0.20000000000000001",
+        "epsilon": "0.10000000000000001",
+        "t_beta_epsilon4": "0.000020000000000000005",
+        "Q": "1599.9577585856059",
+        "density_per_dtheta_alpha_sym_G": "31671.231082079725",
+        "density_per_depsilon_alpha_sym_G": "31830.784893303055",
+        "integrated_leading_divergence_alpha_sym_G": "1591.5494309189532"
+      },
+      {
+        "beta": "0.20000000000000001",
+        "epsilon": "0.050000000000000003",
+        "t_beta_epsilon4": "0.0000012500000000000003",
+        "Q": "1599.9973599944751",
+        "density_per_dtheta_alpha_sym_G": "254329.29813613047",
+        "density_per_depsilon_alpha_sym_G": "254647.80708765803",
+        "integrated_leading_divergence_alpha_sym_G": "6366.1977236758130"
+      },
+      {
+        "beta": "0.20000000000000001",
+        "epsilon": "0.020000000000000000",
+        "t_beta_epsilon4": "3.2000000000000002e-8",
+        "Q": "1599.9999324159965",
+        "density_per_dtheta_alpha_sym_G": "3978077.6822530138",
+        "density_per_depsilon_alpha_sym_G": "3978873.5365537144",
+        "integrated_leading_divergence_alpha_sym_G": "39788.735772973829"
+      },
+      {
+        "beta": "0.20000000000000001",
+        "epsilon": "0.010000000000000000",
+        "t_beta_epsilon4": "2.0000000000000001e-9",
+        "Q": "1599.9999957760001",
+        "density_per_dtheta_alpha_sym_G": "31829397.008786619",
+        "density_per_depsilon_alpha_sym_G": "31830988.598007239",
+        "integrated_leading_divergence_alpha_sym_G": "159154.94309189531"
+      },
+      {
+        "beta": "0.25000000000000000",
+        "epsilon": "0.20000000000000001",
+        "t_beta_epsilon4": "0.00040000000000000007",
+        "Q": "1599.1546342871081",
+        "density_per_dtheta_alpha_sym_G": "3897.9846689475912",
+        "density_per_depsilon_alpha_sym_G": "3978.3639433805029",
+        "integrated_leading_divergence_alpha_sym_G": "397.88735772973831"
+      },
+      {
+        "beta": "0.25000000000000000",
+        "epsilon": "0.10000000000000001",
+        "t_beta_epsilon4": "0.000025000000000000005",
+        "Q": "1599.9471977900116",
+        "density_per_dtheta_alpha_sym_G": "31671.180404008195",
+        "density_per_depsilon_alpha_sym_G": "31830.733959924761",
+        "integrated_leading_divergence_alpha_sym_G": "1591.5494309189532"
+      },
+      {
+        "beta": "0.25000000000000000",
+        "epsilon": "0.050000000000000003",
+        "t_beta_epsilon4": "0.0000015625000000000003",
+        "Q": "1599.9966999913670",
+        "density_per_dtheta_alpha_sym_G": "254329.27270307197",
+        "density_per_depsilon_alpha_sym_G": "254647.78162274850",
+        "integrated_leading_divergence_alpha_sym_G": "6366.1977236758130"
+      },
+      {
+        "beta": "0.25000000000000000",
+        "epsilon": "0.020000000000000000",
+        "t_beta_epsilon4": "4.0000000000000001e-8",
+        "Q": "1599.9999155199944",
+        "density_per_dtheta_alpha_sym_G": "3978077.6720691342",
+        "density_per_depsilon_alpha_sym_G": "3978873.5263677980",
+        "integrated_leading_divergence_alpha_sym_G": "39788.735772973829"
+      },
+      {
+        "beta": "0.25000000000000000",
+        "epsilon": "0.010000000000000000",
+        "t_beta_epsilon4": "2.5000000000000001e-9",
+        "Q": "1599.9999947199999",
+        "density_per_dtheta_alpha_sym_G": "31829397.003693901",
+        "density_per_depsilon_alpha_sym_G": "31830988.592914272",
+        "integrated_leading_divergence_alpha_sym_G": "159154.94309189531"
+      },
+      {
+        "beta": "0.29999999999999999",
+        "epsilon": "0.20000000000000001",
+        "t_beta_epsilon4": "0.00048000000000000007",
+        "Q": "1598.9854253870037",
+        "density_per_dtheta_alpha_sym_G": "3897.8847218041246",
+        "density_per_depsilon_alpha_sym_G": "3978.2619352543611",
+        "integrated_leading_divergence_alpha_sym_G": "397.88735772973831"
+      },
+      {
+        "beta": "0.29999999999999999",
+        "epsilon": "0.10000000000000001",
+        "t_beta_epsilon4": "0.000030000000000000004",
+        "Q": "1599.9366368176197",
+        "density_per_dtheta_alpha_sym_G": "31671.129725097031",
+        "density_per_depsilon_alpha_sym_G": "31830.683025702609",
+        "integrated_leading_divergence_alpha_sym_G": "1591.5494309189532"
+      },
+      {
+        "beta": "0.29999999999999999",
+        "epsilon": "0.050000000000000003",
+        "t_beta_epsilon4": "0.0000018750000000000003",
+        "Q": "1599.9960399875688",
+        "density_per_dtheta_alpha_sym_G": "254329.24726998725",
+        "density_per_depsilon_alpha_sym_G": "254647.75615781272",
+        "integrated_leading_divergence_alpha_sym_G": "6366.1977236758130"
+      },
+      {
+        "beta": "0.29999999999999999",
+        "epsilon": "0.020000000000000000",
+        "t_beta_epsilon4": "4.8000000000000000e-8",
+        "Q": "1599.9998986239918",
+        "density_per_dtheta_alpha_sym_G": "3978077.6618852546",
+        "density_per_depsilon_alpha_sym_G": "3978873.5161818806",
+        "integrated_leading_divergence_alpha_sym_G": "39788.735772973829"
+      },
+      {
+        "beta": "0.29999999999999999",
+        "epsilon": "0.010000000000000000",
+        "t_beta_epsilon4": "3.0000000000000000e-9",
+        "Q": "1599.9999936639999",
+        "density_per_dtheta_alpha_sym_G": "31829396.998601198",
+        "density_per_depsilon_alpha_sym_G": "31830988.587821312",
+        "integrated_leading_divergence_alpha_sym_G": "159154.94309189531"
+      },
+      {
+        "beta": "0.34999999999999998",
+        "epsilon": "0.20000000000000001",
+        "t_beta_epsilon4": "0.00056000000000000006",
+        "Q": "1598.8161712396686",
+        "density_per_dtheta_alpha_sym_G": "3897.7847480183336",
+        "density_per_depsilon_alpha_sym_G": "3978.1598999365096",
+        "integrated_leading_divergence_alpha_sym_G": "397.88735772973831"
+      },
+      {
+        "beta": "0.34999999999999998",
+        "epsilon": "0.10000000000000001",
+        "t_beta_epsilon4": "0.000035000000000000004",
+        "Q": "1599.9260756684316",
+        "density_per_dtheta_alpha_sym_G": "31671.079045346214",
+        "density_per_depsilon_alpha_sym_G": "31830.632090636569",
+        "integrated_leading_divergence_alpha_sym_G": "1591.5494309189532"
+      },
+      {
+        "beta": "0.34999999999999998",
+        "epsilon": "0.050000000000000003",
+        "t_beta_epsilon4": "0.0000021875000000000002",
+        "Q": "1599.9953799830798",
+        "density_per_dtheta_alpha_sym_G": "254329.22183687615",
+        "density_per_depsilon_alpha_sym_G": "254647.73069285048",
+        "integrated_leading_divergence_alpha_sym_G": "6366.1977236758130"
+      },
+      {
+        "beta": "0.34999999999999998",
+        "epsilon": "0.020000000000000000",
+        "t_beta_epsilon4": "5.5999999999999999e-8",
+        "Q": "1599.9998817279888",
+        "density_per_dtheta_alpha_sym_G": "3978077.6517013721",
+        "density_per_depsilon_alpha_sym_G": "3978873.5059959614",
+        "integrated_leading_divergence_alpha_sym_G": "39788.735772973829"
+      },
+      {
+        "beta": "0.34999999999999998",
+        "epsilon": "0.010000000000000000",
+        "t_beta_epsilon4": "3.4999999999999999e-9",
+        "Q": "1599.9999926080000",
+        "density_per_dtheta_alpha_sym_G": "31829396.993508488",
+        "density_per_depsilon_alpha_sym_G": "31830988.582728349",
+        "integrated_leading_divergence_alpha_sym_G": "159154.94309189531"
+      },
+      {
+        "beta": "0.40000000000000002",
+        "epsilon": "0.20000000000000001",
+        "t_beta_epsilon4": "0.00064000000000000016",
+        "Q": "1598.6468718473641",
+        "density_per_dtheta_alpha_sym_G": "3897.6847475576574",
+        "density_per_depsilon_alpha_sym_G": "3978.0578373937183",
+        "integrated_leading_divergence_alpha_sym_G": "397.88735772973831"
+      },
+      {
+        "beta": "0.40000000000000002",
+        "epsilon": "0.10000000000000001",
+        "t_beta_epsilon4": "0.000040000000000000010",
+        "Q": "1599.9155143424471",
+        "density_per_dtheta_alpha_sym_G": "31671.028364755646",
+        "density_per_depsilon_alpha_sym_G": "31830.581154726551",
+        "integrated_leading_divergence_alpha_sym_G": "1591.5494309189532"
+      },
+      {
+        "beta": "0.40000000000000002",
+        "epsilon": "0.050000000000000003",
+        "t_beta_epsilon4": "0.0000025000000000000006",
+        "Q": "1599.9947199778999",
+        "density_per_dtheta_alpha_sym_G": "254329.19640373872",
+        "density_per_depsilon_alpha_sym_G": "254647.70522786191",
+        "integrated_leading_divergence_alpha_sym_G": "6366.1977236758130"
+      },
+      {
+        "beta": "0.40000000000000002",
+        "epsilon": "0.020000000000000000",
+        "t_beta_epsilon4": "6.4000000000000004e-8",
+        "Q": "1599.9998648319854",
+        "density_per_dtheta_alpha_sym_G": "3978077.6415174915",
+        "density_per_depsilon_alpha_sym_G": "3978873.4958100431",
+        "integrated_leading_divergence_alpha_sym_G": "39788.735772973829"
+      },
+      {
+        "beta": "0.40000000000000002",
+        "epsilon": "0.010000000000000000",
+        "t_beta_epsilon4": "4.0000000000000002e-9",
+        "Q": "1599.9999915520000",
+        "density_per_dtheta_alpha_sym_G": "31829396.988415789",
+        "density_per_depsilon_alpha_sym_G": "31830988.577635393",
+        "integrated_leading_divergence_alpha_sym_G": "159154.94309189531"
+      },
+      {
+        "beta": "0.45000000000000001",
+        "epsilon": "0.20000000000000001",
+        "t_beta_epsilon4": "0.00072000000000000015",
+        "Q": "1598.4775272123525",
+        "density_per_dtheta_alpha_sym_G": "3897.5847203895260",
+        "density_per_depsilon_alpha_sym_G": "3977.9557475927445",
+        "integrated_leading_divergence_alpha_sym_G": "397.88735772973831"
+      },
+      {
+        "beta": "0.45000000000000001",
+        "epsilon": "0.10000000000000001",
+        "t_beta_epsilon4": "0.000045000000000000010",
+        "Q": "1599.9049528396672",
+        "density_per_dtheta_alpha_sym_G": "31670.977683325265",
+        "density_per_depsilon_alpha_sym_G": "31830.530217972486",
+        "integrated_leading_divergence_alpha_sym_G": "1591.5494309189532"
+      },
+      {
+        "beta": "0.45000000000000001",
+        "epsilon": "0.050000000000000003",
+        "t_beta_epsilon4": "0.0000028125000000000006",
+        "Q": "1599.9940599720296",
+        "density_per_dtheta_alpha_sym_G": "254329.17097057487",
+        "density_per_depsilon_alpha_sym_G": "254647.67976284685",
+        "integrated_leading_divergence_alpha_sym_G": "6366.1977236758130"
+      },
+      {
+        "beta": "0.45000000000000001",
+        "epsilon": "0.020000000000000000",
+        "t_beta_epsilon4": "7.2000000000000009e-8",
+        "Q": "1599.9998479359815",
+        "density_per_dtheta_alpha_sym_G": "3978077.6313336105",
+        "density_per_depsilon_alpha_sym_G": "3978873.4856241248",
+        "integrated_leading_divergence_alpha_sym_G": "39788.735772973829"
+      },
+      {
+        "beta": "0.45000000000000001",
+        "epsilon": "0.010000000000000000",
+        "t_beta_epsilon4": "4.5000000000000006e-9",
+        "Q": "1599.9999904960000",
+        "density_per_dtheta_alpha_sym_G": "31829396.983323094",
+        "density_per_depsilon_alpha_sym_G": "31830988.572542448",
+        "integrated_leading_divergence_alpha_sym_G": "159154.94309189531"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.20000000000000001",
+        "t_beta_epsilon4": "0.00080000000000000015",
+        "Q": "1598.3081373368962",
+        "density_per_dtheta_alpha_sym_G": "3897.4846664813545",
+        "density_per_depsilon_alpha_sym_G": "3977.8536305003308",
+        "integrated_leading_divergence_alpha_sym_G": "397.88735772973831"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.10000000000000001",
+        "t_beta_epsilon4": "0.000050000000000000009",
+        "Q": "1599.8943911600920",
+        "density_per_dtheta_alpha_sym_G": "31670.927001055014",
+        "density_per_depsilon_alpha_sym_G": "31830.479280374315",
+        "integrated_leading_divergence_alpha_sym_G": "1591.5494309189532"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.050000000000000003",
+        "t_beta_epsilon4": "0.0000031250000000000006",
+        "Q": "1599.9933999654688",
+        "density_per_dtheta_alpha_sym_G": "254329.14553738476",
+        "density_per_depsilon_alpha_sym_G": "254647.65429780554",
+        "integrated_leading_divergence_alpha_sym_G": "6366.1977236758130"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.020000000000000000",
+        "t_beta_epsilon4": "8.0000000000000002e-8",
+        "Q": "1599.9998310399772",
+        "density_per_dtheta_alpha_sym_G": "3978077.6211497281",
+        "density_per_depsilon_alpha_sym_G": "3978873.4754382051",
+        "integrated_leading_divergence_alpha_sym_G": "39788.735772973829"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.010000000000000000",
+        "t_beta_epsilon4": "5.0000000000000001e-9",
+        "Q": "1599.9999894400000",
+        "density_per_dtheta_alpha_sym_G": "31829396.978230383",
+        "density_per_depsilon_alpha_sym_G": "31830988.567449480",
+        "integrated_leading_divergence_alpha_sym_G": "159154.94309189531"
+      },
+      {
+        "beta": "0.55000000000000004",
+        "epsilon": "0.20000000000000001",
+        "t_beta_epsilon4": "0.00088000000000000025",
+        "Q": "1598.1387022232568",
+        "density_per_dtheta_alpha_sym_G": "3897.3845858005352",
+        "density_per_depsilon_alpha_sym_G": "3977.7514860831984",
+        "integrated_leading_divergence_alpha_sym_G": "397.88735772973831"
+      },
+      {
+        "beta": "0.55000000000000004",
+        "epsilon": "0.10000000000000001",
+        "t_beta_epsilon4": "0.000055000000000000016",
+        "Q": "1599.8838293037225",
+        "density_per_dtheta_alpha_sym_G": "31670.876317944843",
+        "density_per_depsilon_alpha_sym_G": "31830.428341932002",
+        "integrated_leading_divergence_alpha_sym_G": "1591.5494309189532"
+      },
+      {
+        "beta": "0.55000000000000004",
+        "epsilon": "0.050000000000000003",
+        "t_beta_epsilon4": "0.0000034375000000000010",
+        "Q": "1599.9927399582170",
+        "density_per_dtheta_alpha_sym_G": "254329.12010416834",
+        "density_per_depsilon_alpha_sym_G": "254647.62883273783",
+        "integrated_leading_divergence_alpha_sym_G": "6366.1977236758130"
+      },
+      {
+        "beta": "0.55000000000000004",
+        "epsilon": "0.020000000000000000",
+        "t_beta_epsilon4": "8.8000000000000007e-8",
+        "Q": "1599.9998141439728",
+        "density_per_dtheta_alpha_sym_G": "3978077.6109658480",
+        "density_per_depsilon_alpha_sym_G": "3978873.4652522868",
+        "integrated_leading_divergence_alpha_sym_G": "39788.735772973829"
+      },
+      {
+        "beta": "0.55000000000000004",
+        "epsilon": "0.010000000000000000",
+        "t_beta_epsilon4": "5.5000000000000004e-9",
+        "Q": "1599.9999883840001",
+        "density_per_dtheta_alpha_sym_G": "31829396.973137688",
+        "density_per_depsilon_alpha_sym_G": "31830988.562356528",
+        "integrated_leading_divergence_alpha_sym_G": "159154.94309189531"
+      },
+      {
+        "beta": "0.59999999999999998",
+        "epsilon": "0.20000000000000001",
+        "t_beta_epsilon4": "0.00096000000000000013",
+        "Q": "1597.9692218736982",
+        "density_per_dtheta_alpha_sym_G": "3897.2844783144533",
+        "density_per_depsilon_alpha_sym_G": "3977.6493143080597",
+        "integrated_leading_divergence_alpha_sym_G": "397.88735772973831"
+      },
+      {
+        "beta": "0.59999999999999998",
+        "epsilon": "0.10000000000000001",
+        "t_beta_epsilon4": "0.000060000000000000008",
+        "Q": "1599.8732672705589",
+        "density_per_dtheta_alpha_sym_G": "31670.825633994646",
+        "density_per_depsilon_alpha_sym_G": "31830.377402645427",
+        "integrated_leading_divergence_alpha_sym_G": "1591.5494309189532"
+      },
+      {
+        "beta": "0.59999999999999998",
+        "epsilon": "0.050000000000000003",
+        "t_beta_epsilon4": "0.0000037500000000000005",
+        "Q": "1599.9920799502750",
+        "density_per_dtheta_alpha_sym_G": "254329.09467092549",
+        "density_per_depsilon_alpha_sym_G": "254647.60336764372",
+        "integrated_leading_divergence_alpha_sym_G": "6366.1977236758130"
+      },
+      {
+        "beta": "0.59999999999999998",
+        "epsilon": "0.020000000000000000",
+        "t_beta_epsilon4": "9.5999999999999999e-8",
+        "Q": "1599.9997972479675",
+        "density_per_dtheta_alpha_sym_G": "3978077.6007819646",
+        "density_per_depsilon_alpha_sym_G": "3978873.4550663671",
+        "integrated_leading_divergence_alpha_sym_G": "39788.735772973829"
+      },
+      {
+        "beta": "0.59999999999999998",
+        "epsilon": "0.010000000000000000",
+        "t_beta_epsilon4": "6.0000000000000000e-9",
+        "Q": "1599.9999873279999",
+        "density_per_dtheta_alpha_sym_G": "31829396.968044981",
+        "density_per_depsilon_alpha_sym_G": "31830988.557263568",
+        "integrated_leading_divergence_alpha_sym_G": "159154.94309189531"
+      },
+      {
+        "beta": "0.65000000000000002",
+        "epsilon": "0.20000000000000001",
+        "t_beta_epsilon4": "0.0010400000000000001",
+        "Q": "1597.7996962904824",
+        "density_per_dtheta_alpha_sym_G": "3897.1843439904774",
+        "density_per_depsilon_alpha_sym_G": "3977.5471151416104",
+        "integrated_leading_divergence_alpha_sym_G": "397.88735772973831"
+      },
+      {
+        "beta": "0.65000000000000002",
+        "epsilon": "0.10000000000000001",
+        "t_beta_epsilon4": "0.000065000000000000008",
+        "Q": "1599.8627050606021",
+        "density_per_dtheta_alpha_sym_G": "31670.774949204399",
+        "density_per_depsilon_alpha_sym_G": "31830.326462514568",
+        "integrated_leading_divergence_alpha_sym_G": "1591.5494309189532"
+      },
+      {
+        "beta": "0.65000000000000002",
+        "epsilon": "0.050000000000000003",
+        "t_beta_epsilon4": "0.0000040625000000000005",
+        "Q": "1599.9914199416423",
+        "density_per_dtheta_alpha_sym_G": "254329.06923765651",
+        "density_per_depsilon_alpha_sym_G": "254647.57790252342",
+        "integrated_leading_divergence_alpha_sym_G": "6366.1977236758130"
+      },
+      {
+        "beta": "0.65000000000000002",
+        "epsilon": "0.020000000000000000",
+        "t_beta_epsilon4": "1.0400000000000000e-7",
+        "Q": "1599.9997803519618",
+        "density_per_dtheta_alpha_sym_G": "3978077.5905980826",
+        "density_per_depsilon_alpha_sym_G": "3978873.4448804474",
+        "integrated_leading_divergence_alpha_sym_G": "39788.735772973829"
+      },
+      {
+        "beta": "0.65000000000000002",
+        "epsilon": "0.010000000000000000",
+        "t_beta_epsilon4": "6.5000000000000003e-9",
+        "Q": "1599.9999862719997",
+        "density_per_dtheta_alpha_sym_G": "31829396.962952260",
+        "density_per_depsilon_alpha_sym_G": "31830988.552170593",
+        "integrated_leading_divergence_alpha_sym_G": "159154.94309189531"
+      },
+      {
+        "beta": "0.69999999999999996",
+        "epsilon": "0.20000000000000001",
+        "t_beta_epsilon4": "0.0011200000000000001",
+        "Q": "1597.6301254758725",
+        "density_per_dtheta_alpha_sym_G": "3897.0841827959525",
+        "density_per_depsilon_alpha_sym_G": "3977.4448885505208",
+        "integrated_leading_divergence_alpha_sym_G": "397.88735772973831"
+      },
+      {
+        "beta": "0.69999999999999996",
+        "epsilon": "0.10000000000000001",
+        "t_beta_epsilon4": "0.000070000000000000007",
+        "Q": "1599.8521426738523",
+        "density_per_dtheta_alpha_sym_G": "31670.724263574011",
+        "density_per_depsilon_alpha_sym_G": "31830.275521539337",
+        "integrated_leading_divergence_alpha_sym_G": "1591.5494309189532"
+      },
+      {
+        "beta": "0.69999999999999996",
+        "epsilon": "0.050000000000000003",
+        "t_beta_epsilon4": "0.0000043750000000000005",
+        "Q": "1599.9907599323187",
+        "density_per_dtheta_alpha_sym_G": "254329.04380436096",
+        "density_per_depsilon_alpha_sym_G": "254647.55243737652",
+        "integrated_leading_divergence_alpha_sym_G": "6366.1977236758130"
+      },
+      {
+        "beta": "0.69999999999999996",
+        "epsilon": "0.020000000000000000",
+        "t_beta_epsilon4": "1.1200000000000000e-7",
+        "Q": "1599.9997634559556",
+        "density_per_dtheta_alpha_sym_G": "3978077.5804142021",
+        "density_per_depsilon_alpha_sym_G": "3978873.4346945290",
+        "integrated_leading_divergence_alpha_sym_G": "39788.735772973829"
+      },
+      {
+        "beta": "0.69999999999999996",
+        "epsilon": "0.010000000000000000",
+        "t_beta_epsilon4": "6.9999999999999998e-9",
+        "Q": "1599.9999852159997",
+        "density_per_dtheta_alpha_sym_G": "31829396.957859579",
+        "density_per_depsilon_alpha_sym_G": "31830988.547077656",
+        "integrated_leading_divergence_alpha_sym_G": "159154.94309189531"
+      },
+      {
+        "beta": "0.75000000000000000",
+        "epsilon": "0.20000000000000001",
+        "t_beta_epsilon4": "0.0012000000000000001",
+        "Q": "1597.4605094321316",
+        "density_per_dtheta_alpha_sym_G": "3896.9839946982179",
+        "density_per_depsilon_alpha_sym_G": "3977.3426345014582",
+        "integrated_leading_divergence_alpha_sym_G": "397.88735772973831"
+      },
+      {
+        "beta": "0.75000000000000000",
+        "epsilon": "0.10000000000000001",
+        "t_beta_epsilon4": "0.000075000000000000007",
+        "Q": "1599.8415801103106",
+        "density_per_dtheta_alpha_sym_G": "31670.673577103436",
+        "density_per_depsilon_alpha_sym_G": "31830.224579719696",
+        "integrated_leading_divergence_alpha_sym_G": "1591.5494309189532"
+      },
+      {
+        "beta": "0.75000000000000000",
+        "epsilon": "0.050000000000000003",
+        "t_beta_epsilon4": "0.0000046875000000000004",
+        "Q": "1599.9900999223046",
+        "density_per_dtheta_alpha_sym_G": "254329.01837103939",
+        "density_per_depsilon_alpha_sym_G": "254647.52697220357",
+        "integrated_leading_divergence_alpha_sym_G": "6366.1977236758130"
+      },
+      {
+        "beta": "0.75000000000000000",
+        "epsilon": "0.020000000000000000",
+        "t_beta_epsilon4": "1.2000000000000002e-7",
+        "Q": "1599.9997465599490",
+        "density_per_dtheta_alpha_sym_G": "3978077.5702303182",
+        "density_per_depsilon_alpha_sym_G": "3978873.4245086079",
+        "integrated_leading_divergence_alpha_sym_G": "39788.735772973829"
+      },
+      {
+        "beta": "0.75000000000000000",
+        "epsilon": "0.010000000000000000",
+        "t_beta_epsilon4": "7.5000000000000010e-9",
+        "Q": "1599.9999841599997",
+        "density_per_dtheta_alpha_sym_G": "31829396.952766862",
+        "density_per_depsilon_alpha_sym_G": "31830988.541984685",
+        "integrated_leading_divergence_alpha_sym_G": "159154.94309189531"
+      },
+      {
+        "beta": "0.80000000000000004",
+        "epsilon": "0.20000000000000001",
+        "t_beta_epsilon4": "0.0012800000000000003",
+        "Q": "1597.2908481615227",
+        "density_per_dtheta_alpha_sym_G": "3896.8837796645912",
+        "density_per_depsilon_alpha_sym_G": "3977.2403529610665",
+        "integrated_leading_divergence_alpha_sym_G": "397.88735772973831"
+      },
+      {
+        "beta": "0.80000000000000004",
+        "epsilon": "0.10000000000000001",
+        "t_beta_epsilon4": "0.000080000000000000020",
+        "Q": "1599.8310173699767",
+        "density_per_dtheta_alpha_sym_G": "31670.622889792590",
+        "density_per_depsilon_alpha_sym_G": "31830.173637055537",
+        "integrated_leading_divergence_alpha_sym_G": "1591.5494309189532"
+      },
+      {
+        "beta": "0.80000000000000004",
+        "epsilon": "0.050000000000000003",
+        "t_beta_epsilon4": "0.0000050000000000000013",
+        "Q": "1599.9894399116001",
+        "density_per_dtheta_alpha_sym_G": "254328.99293769131",
+        "density_per_depsilon_alpha_sym_G": "254647.50150700405",
+        "integrated_leading_divergence_alpha_sym_G": "6366.1977236758130"
+      },
+      {
+        "beta": "0.80000000000000004",
+        "epsilon": "0.020000000000000000",
+        "t_beta_epsilon4": "1.2800000000000001e-7",
+        "Q": "1599.9997296639419",
+        "density_per_dtheta_alpha_sym_G": "3978077.5600464344",
+        "density_per_depsilon_alpha_sym_G": "3978873.4143226868",
+        "integrated_leading_divergence_alpha_sym_G": "39788.735772973829"
+      },
+      {
+        "beta": "0.80000000000000004",
+        "epsilon": "0.010000000000000000",
+        "t_beta_epsilon4": "8.0000000000000005e-9",
+        "Q": "1599.9999831039997",
+        "density_per_dtheta_alpha_sym_G": "31829396.947674159",
+        "density_per_depsilon_alpha_sym_G": "31830988.536891729",
+        "integrated_leading_divergence_alpha_sym_G": "159154.94309189531"
+      },
+      {
+        "beta": "0.84999999999999998",
+        "epsilon": "0.20000000000000001",
+        "t_beta_epsilon4": "0.0013600000000000003",
+        "Q": "1597.1211416663093",
+        "density_per_dtheta_alpha_sym_G": "3896.7835376623766",
+        "density_per_depsilon_alpha_sym_G": "3977.1380438959741",
+        "integrated_leading_divergence_alpha_sym_G": "397.88735772973831"
+      },
+      {
+        "beta": "0.84999999999999998",
+        "epsilon": "0.10000000000000001",
+        "t_beta_epsilon4": "0.000085000000000000020",
+        "Q": "1599.8204544528521",
+        "density_per_dtheta_alpha_sym_G": "31670.572201641458",
+        "density_per_depsilon_alpha_sym_G": "31830.122693546862",
+        "integrated_leading_divergence_alpha_sym_G": "1591.5494309189532"
+      },
+      {
+        "beta": "0.84999999999999998",
+        "epsilon": "0.050000000000000003",
+        "t_beta_epsilon4": "0.0000053125000000000012",
+        "Q": "1599.9887799002047",
+        "density_per_dtheta_alpha_sym_G": "254328.96750431688",
+        "density_per_depsilon_alpha_sym_G": "254647.47604177817",
+        "integrated_leading_divergence_alpha_sym_G": "6366.1977236758130"
+      },
+      {
+        "beta": "0.84999999999999998",
+        "epsilon": "0.020000000000000000",
+        "t_beta_epsilon4": "1.3600000000000000e-7",
+        "Q": "1599.9997127679346",
+        "density_per_dtheta_alpha_sym_G": "3978077.5498625520",
+        "density_per_depsilon_alpha_sym_G": "3978873.4041367671",
+        "integrated_leading_divergence_alpha_sym_G": "39788.735772973829"
+      },
+      {
+        "beta": "0.84999999999999998",
+        "epsilon": "0.010000000000000000",
+        "t_beta_epsilon4": "8.5000000000000000e-9",
+        "Q": "1599.9999820479998",
+        "density_per_dtheta_alpha_sym_G": "31829396.942581464",
+        "density_per_depsilon_alpha_sym_G": "31830988.531798780",
+        "integrated_leading_divergence_alpha_sym_G": "159154.94309189531"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.20000000000000001",
+        "t_beta_epsilon4": "0.0014400000000000003",
+        "Q": "1596.9513899487549",
+        "density_per_dtheta_alpha_sym_G": "3896.6832686588618",
+        "density_per_depsilon_alpha_sym_G": "3977.0357072727957",
+        "integrated_leading_divergence_alpha_sym_G": "397.88735772973831"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.10000000000000001",
+        "t_beta_epsilon4": "0.000090000000000000019",
+        "Q": "1599.8098913589365",
+        "density_per_dtheta_alpha_sym_G": "31670.521512649899",
+        "density_per_depsilon_alpha_sym_G": "31830.071749193532",
+        "integrated_leading_divergence_alpha_sym_G": "1591.5494309189532"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.050000000000000003",
+        "t_beta_epsilon4": "0.0000056250000000000012",
+        "Q": "1599.9881198881189",
+        "density_per_dtheta_alpha_sym_G": "254328.94207091615",
+        "density_per_depsilon_alpha_sym_G": "254647.45057652597",
+        "integrated_leading_divergence_alpha_sym_G": "6366.1977236758130"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.020000000000000000",
+        "t_beta_epsilon4": "1.4400000000000002e-7",
+        "Q": "1599.9996958719269",
+        "density_per_dtheta_alpha_sym_G": "3978077.5396786691",
+        "density_per_depsilon_alpha_sym_G": "3978873.3939508465",
+        "integrated_leading_divergence_alpha_sym_G": "39788.735772973829"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.010000000000000000",
+        "t_beta_epsilon4": "9.0000000000000012e-9",
+        "Q": "1599.9999809919998",
+        "density_per_dtheta_alpha_sym_G": "31829396.937488750",
+        "density_per_depsilon_alpha_sym_G": "31830988.526705809",
+        "integrated_leading_divergence_alpha_sym_G": "159154.94309189531"
+      },
+      {
+        "beta": "0.94999999999999996",
+        "epsilon": "0.20000000000000001",
+        "t_beta_epsilon4": "0.0015200000000000003",
+        "Q": "1596.7815930111233",
+        "density_per_dtheta_alpha_sym_G": "3896.5829726213210",
+        "density_per_depsilon_alpha_sym_G": "3976.9333430581296",
+        "integrated_leading_divergence_alpha_sym_G": "397.88735772973831"
+      },
+      {
+        "beta": "0.94999999999999996",
+        "epsilon": "0.10000000000000001",
+        "t_beta_epsilon4": "0.000095000000000000019",
+        "Q": "1599.7993280882311",
+        "density_per_dtheta_alpha_sym_G": "31670.470822817893",
+        "density_per_depsilon_alpha_sym_G": "31830.020803995514",
+        "integrated_leading_divergence_alpha_sym_G": "1591.5494309189532"
+      },
+      {
+        "beta": "0.94999999999999996",
+        "epsilon": "0.050000000000000003",
+        "t_beta_epsilon4": "0.0000059375000000000012",
+        "Q": "1599.9874598753424",
+        "density_per_dtheta_alpha_sym_G": "254328.91663748908",
+        "density_per_depsilon_alpha_sym_G": "254647.42511124737",
+        "integrated_leading_divergence_alpha_sym_G": "6366.1977236758130"
+      },
+      {
+        "beta": "0.94999999999999996",
+        "epsilon": "0.020000000000000000",
+        "t_beta_epsilon4": "1.5199999999999998e-7",
+        "Q": "1599.9996789759184",
+        "density_per_dtheta_alpha_sym_G": "3978077.5294947848",
+        "density_per_depsilon_alpha_sym_G": "3978873.3837649249",
+        "integrated_leading_divergence_alpha_sym_G": "39788.735772973829"
+      },
+      {
+        "beta": "0.94999999999999996",
+        "epsilon": "0.010000000000000000",
+        "t_beta_epsilon4": "9.4999999999999990e-9",
+        "Q": "1599.9999799359998",
+        "density_per_dtheta_alpha_sym_G": "31829396.932396065",
+        "density_per_depsilon_alpha_sym_G": "31830988.521612871",
+        "integrated_leading_divergence_alpha_sym_G": "159154.94309189531"
+      }
+    ]
+  },
+  "claim_ceiling": "Convention-matched algebraic replay and asymptotic analysis of the source-published density law. It is not an independent derivation from k_xi, proof of charge integrability, or a finite integrated entropy/angular momentum."
+}

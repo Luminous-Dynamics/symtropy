@@ -1,0 +1,56 @@
+name: EGB NHEG density-law replay
+
+on:
+  push:
+    branches:
+      - research/egb-nheg-charge-densities-2026-11-20
+    paths:
+      - crates/domains/symtropy-lovelock5d/benchmarks/derive_nheg_charge_density.py
+      - crates/domains/symtropy-lovelock5d/benchmarks/nheg_charge_density_v1.json
+      - .github/workflows/nheg-charge-density.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nheg-charge-density
+  cancel-in-progress: false
+
+jobs:
+  exact-density-law:
+    name: Exact source density conversion and angular sign certificate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install pinned symbolic engine
+        run: python -m pip install --disable-pip-version-check sympy==1.14.0
+      - name: Replay source density conversion and assert gates
+        env:
+          PYTHONHASHSEED: "0"
+        run: |
+          OUT="$RUNNER_TEMP/nheg_charge_density_replay.json"
+          python crates/domains/symtropy-lovelock5d/benchmarks/derive_nheg_charge_density.py --output "$OUT"
+          python - "$OUT" <<'PY'
+          import json, sys
+          from pathlib import Path
+          data=json.loads(Path(sys.argv[1]).read_text())
+          v=data["validation"]
+          required=("source_polynomial_conversion_exact","theta_density_conversion_exact","epsilon_jacobian_conversion_exact","epsilon_series_exact","leading_integral_coefficient_exact","Q_prime_strictly_negative_bernstein_exact","unique_density_sign_change_classified")
+          for key in required:
+              assert v[key] is True, (key,v[key])
+          assert v["integrated_finite_charge_claimed"] is False
+          root=data["angular_sign_structure"]
+          assert root["Q_t_strictly_decreasing_on_0_1"] is True
+          assert root["unique_root_in_0_1"]["lower"] == "45150/100000"
+          assert root["unique_root_in_0_1"]["upper"] == "45151/100000"
+          grid=data["reference_grid"]
+          assert grid["point_count"] == 95 and len(grid["samples"]) == 95
+          print("PASS: source polynomial and coordinate-measure conversion")
+          print("PASS: exact epsilon density asymptotics and leading divergence")
+          print("PASS: unique sign transition from negative Bernstein coefficients")
+          PY
