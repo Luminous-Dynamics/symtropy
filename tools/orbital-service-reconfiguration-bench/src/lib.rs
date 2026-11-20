@@ -185,7 +185,7 @@ fn present(value: &str) -> bool {
 fn is_faulted(provider: &Provider, faults: &[Fault], tick: u64) -> bool {
     provider.failure_domains.iter().any(|domain| {
         faults.iter().any(|fault| {
-            fault.failure_domain_id == *domain
+            fault.failure_domain_id.as_str() == domain.as_str()
                 && fault.start_tick <= tick
                 && tick <= fault.end_tick
         })
@@ -447,7 +447,14 @@ fn evaluate_scenario(
                     && result.actual_reason == result.expected_reason;
             return result;
         };
-        let provider = providers[step.provider_id.as_str()];
+        let Some(provider) = providers.get(step.provider_id.as_str()).copied() else {
+            result.actual_status = ServiceStatus::Rejected;
+            result.actual_reason = "active_provider_missing".to_owned();
+            result.expected_result_matched =
+                result.actual_status == result.expected_status
+                    && result.actual_reason == result.expected_reason;
+            return result;
+        };
         let demand = demand_by_tick.get(&tick).copied().unwrap_or(0);
         let faulted = is_faulted(provider, &scenario.faults, tick);
         if faulted {
@@ -663,6 +670,53 @@ mod tests {
         assert_eq!(row.accepted_units, 10);
         assert_eq!(row.unmet_units, 10);
         assert_eq!(row.actual_status, ServiceStatus::ServiceShortfall);
+    }
+
+
+    #[test]
+    fn independent_fallback_restores_service_after_qualified_handoff() {
+        let report = evaluate(&fixture()).expect("service fixture evaluates");
+        let row = report.scenarios.iter()
+            .find(|row| row.case_id == "INDEPENDENT_ROBUST_FAILOVER_MEETS_FLOOR")
+            .expect("independent fallback case exists");
+        assert_eq!(row.actual_status, ServiceStatus::ServiceFloorMetSynthetic);
+        assert_eq!(row.accepted_units, 15);
+        assert_eq!(row.first_restored_tick, Some(3));
+    }
+
+    #[test]
+    fn candidate_qualification_is_checked_at_activation_even_before_demand() {
+        let report = evaluate(&fixture()).expect("service fixture evaluates");
+        let row = report.scenarios.iter()
+            .find(|row| row.case_id == "QUALIFICATION_EXPIRES_BEFORE_ACTIVATION")
+            .expect("expired qualification case exists");
+        assert_eq!(row.actual_status, ServiceStatus::Indeterminate);
+        assert_eq!(row.actual_reason, "candidate_robust_qualification_indeterminate");
+    }
+
+    #[test]
+    fn incomplete_handoff_is_not_hidden_by_nominal_capacity() {
+        let report = evaluate(&fixture()).expect("service fixture evaluates");
+        let row = report.scenarios.iter()
+            .find(|row| row.case_id == "HANDOFF_TOO_LONG")
+            .expect("long handoff case exists");
+        assert_eq!(row.actual_status, ServiceStatus::Rejected);
+        assert_eq!(row.actual_reason, "handoff_or_requalification_incomplete");
+    }
+
+    #[test]
+    fn service_schema_is_parseable_and_versioned() {
+        let schema: serde_json::Value =
+            serde_json::from_str(include_str!("../schemas/cases.schema.json"))
+                .expect("service schema parses");
+        assert_eq!(
+            schema["$schema"],
+            "https://json-schema.org/draft/2020-12/schema"
+        );
+        assert_eq!(
+            schema["properties"]["schema"]["const"],
+            "luminous.orbital-service-reconfiguration.corpus.v0.1"
+        );
     }
 
     #[test]
