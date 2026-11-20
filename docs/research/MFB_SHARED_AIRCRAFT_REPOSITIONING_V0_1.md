@@ -63,12 +63,13 @@ The current model does not authenticate a signature, prove that an observation c
 
 The committed fixture has two regions, three periods and two stochastic scenarios with a shared initial observation prefix. It creates five nonanticipative policy nodes and enumerates (3^5=243) policies (urban, rural, idle at each node).
 
-It reports three independently optimized policies over the same exact feasible policy set:
+It reports four independently optimized policies over the same exact feasible policy set:
 - **expected-cost optimal**: minimizes probability-weighted total cost;
 - **CVaR90 optimal**: minimizes the mean cost in the worst 10% probability tail;
-- **worst-case optimal**: minimizes the maximum scenario cost.
+- **worst-case cost optimal**: minimizes the maximum scenario cost;
+- **service-robust**: minimizes maximum unserved units, using expected cost as a deterministic tie-breaker.
 
-Each policy includes its own nonanticipative decisions. Every outcome, including truck-only and fixed-initial-region baselines, reports expected cost, CVaR90 and worst-case cost. CVaR uses fractional probability mass at the 90th-percentile boundary rather than simply taking the most expensive whole scenario. Risk objectives change economic preference only; they never relax the weather, permission, reposition-evidence or protected-reserve hard gates.
+Each policy includes its own nonanticipative decisions. Every outcome, including truck-only and fixed-initial-region baselines, reports expected cost, CVaR90 and worst-case cost and unserved demand. CVaR uses fractional probability mass at the 90th-percentile boundary rather than simply taking the most expensive whole scenario. Risk/service objectives change economic preference only; they never relax the weather, permission, reposition-evidence or protected-reserve hard gates.
 
 It also reports:
 - truck-only baseline;
@@ -146,24 +147,28 @@ The fixture contains synthetic assumptions and does not model a physical aircraf
 
 ## Risk-aware policy comparison
 
-The first exact oracle minimized expected cost only. That can hide low-probability, high-impact service failures. The current increment solves three separate exact objectives over the identical admissible policy set:
+The exact solver evaluates four distinct objectives over the identical admissible nonanticipative policy set:
 
-[
-min_pi mathbb{E}[C(pi)]
-]
+- **Expected cost:** minimize probability-weighted total cost.
+- **CVaR90:** minimize average cost in the worst 10% probability tail.
+- **Minimax cost:** minimize maximum scenario cost.
+- **Service robust:** lexicographically minimize worst-case unserved units, then expected cost.
 
-[
-min_pi operatorname{CVaR}_{0.90}(C(pi))
-]
+For CVaR90, the algorithm sorts scenario costs from highest to lowest and consumes exactly 1,000 probability basis points, splitting a scenario's probability mass if the 90th-percentile boundary falls inside it. Choosing the worst whole scenario is not generally equivalent to CVaR when scenarios have unequal probabilities.
 
-[
-min_pi max_{omega in Omega} C_omega(pi)
-]
+A separate `synthetic-two-region-shared-aircraft-tail-risk.json` fixture has a 5% rare rural-demand-spike scenario and a shared 95% initial observation prefix. The exact oracle still enumerates five nonanticipative nodes and 243 policies. Under its deliberately synthetic cost assumptions:
 
-For CVaR90, the algorithm sorts scenario costs from highest to lowest and consumes exactly 1,000 probability basis points, splitting a scenario's probability mass if the 90th-percentile boundary falls inside it. This is important: choosing the worst whole scenario is not generally equivalent to CVaR when scenarios have unequal probabilities.
+| Objective / baseline | Expected cost | CVaR90 cost | Worst-case cost | Worst-case unserved |
+|---|---:|---:|---:|---:|
+| Expected-cost optimal | 524 | 866 | 1,246 | 22 |
+| CVaR90 optimal | 527 | 825 | 1,156 | 21 |
+| Worst-case cost optimal | 570 | 848 | 1,156 | 21 |
+| Service-robust | 526 | 825 | 1,156 | 21 |
+| Fixed initial-region baseline | 531 | 873 | 1,253 | 23 |
+| Truck-only baseline | 591 | 933 | 1,313 | 25 |
 
-The report now includes four independently optimized policies over the same feasible set: expected-cost-optimal, CVaR90-cost-optimal, minimax-cost, and **service-robust** (minimum worst-case unserved units). Each has its own nonanticipative decision map. Every policy outcome and the truck-only/fixed-assignment baselines report both cost and unserved-demand distributions (expected, CVaR90 and worst case).
+This makes the trade-offs explicit rather than hiding them in a weighted objective. In this fixture, CVaR90 optimization reduces CVaR by 41 units (866→825) while increasing expected cost by 3 units (524→527); minimax optimization reduces worst-case cost by 90 units (1,246→1,156) while increasing expected cost by 46 units (524→570). These numbers only pin synthetic fixture arithmetic. They are not field savings, probability calibration, or a guarantee outside the supplied scenario set.
 
-A unit test pins the fractional-tail arithmetic: a 5% scenario costing 100 and a 95% scenario costing 20 produces CVaR90 of 60, not 100 or 20. The frozen two-scenario fleet fixture also checks that the risk-optimal policies are no worse on their own objective than the expected-cost-optimal policy.
+A unit test separately pins fractional-tail arithmetic: a 5% scenario costing 100 and a 95% scenario costing 20 produces CVaR90 of 60, not 100 or 20. Another test ensures the stress fixture yields distinct expected-cost, CVaR90, minimax-cost and service-robust policies. Hard safety/permission constraints remain outside all four objectives.
 
-The separate service-robust policy minimizes the maximum unserved units across the supplied scenarios, with expected cost as a deterministic tie-breaker. It prevents cost-only tail metrics from concealing a poor service outcome. This remains a finite-scenario risk measure, not a calibrated probability forecast or a tail-risk guarantee outside the supplied scenario set. Next steps are to add stress/adversarial scenarios with probability provenance, distributionally robust ambiguity sets, chance constraints for service-level requirements, and out-of-sample calibration. Hard safety/permission constraints remain outside all four economic/service objectives.
+Next steps are distributionally robust ambiguity sets, chance constraints for explicit service-level requirements, probability-source provenance, held-out stress scenarios and out-of-sample calibration. CVaR over supplied scenarios is not a calibrated guarantee against distribution shift.
