@@ -32,18 +32,34 @@ jobs:
           python-version: "3.12"
       - name: Install pinned JSON Schema validator
         run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
-      - name: Validate schemas and candidate submission
+      - name: Validate schemas and reference submissions
         run: |
           python - <<'PY'
           import json
           from jsonschema import Draft202012Validator
           base = "research/av-modality-necessity-v0/schemas/"
-          sub_schema = json.load(open(base + "policy-submission-v1.schema.json", encoding="utf-8"))
-          score_schema = json.load(open(base + "scorecard-v1.schema.json", encoding="utf-8"))
-          Draft202012Validator.check_schema(sub_schema)
-          Draft202012Validator.check_schema(score_schema)
+          schema_paths = [
+              base + "policy-submission-v1.schema.json",
+              base + "scorecard-v1.schema.json",
+              base + "arm-run-v1.schema.json",
+              base + "ablation-tournament-scorecard-v1.schema.json",
+          ]
+          schemas = {}
+          for path in schema_paths:
+              schema = json.load(open(path, encoding="utf-8"))
+              Draft202012Validator.check_schema(schema)
+              schemas[path.split("/")[-1]] = schema
           submission = json.load(open("research/av-modality-necessity-v0/fixtures/agent/reference-submission-v1.json", encoding="utf-8"))
-          Draft202012Validator(sub_schema).validate(submission)
+          Draft202012Validator(schemas["policy-submission-v1.schema.json"]).validate(submission)
+          arms = [
+              "arm-video-only-v1.json",
+              "arm-audio-only-v1.json",
+              "arm-audio-video-v1.json",
+          ]
+          for filename in arms:
+              path = "research/av-modality-necessity-v0/fixtures/agent/" + filename
+              run = json.load(open(path, encoding="utf-8"))
+              Draft202012Validator(schemas["arm-run-v1.schema.json"]).validate(run)
           PY
       - name: Run adversarial evaluator tests
         run: python -m unittest discover -s tools/av-modality-necessity-evaluator -p "test_*.py" -v
@@ -54,6 +70,34 @@ jobs:
             --truth research/av-modality-necessity-v0/fixtures/evaluator-only/modality-truth-v1.json \
             --submission research/av-modality-necessity-v0/fixtures/agent/reference-submission-v1.json \
             --output /tmp/av-modality-reference-scorecard.json
+      - name: Run matched A-only / V-only / A+V tournament
+        run: |
+          python tools/av-modality-necessity-evaluator/compare_arms.py \
+            --workload research/av-modality-necessity-v0/fixtures/agent/workload-v1.json \
+            --truth research/av-modality-necessity-v0/fixtures/evaluator-only/modality-truth-v1.json \
+            --video-only research/av-modality-necessity-v0/fixtures/agent/arm-video-only-v1.json \
+            --audio-only research/av-modality-necessity-v0/fixtures/agent/arm-audio-only-v1.json \
+            --audio-video research/av-modality-necessity-v0/fixtures/agent/arm-audio-video-v1.json \
+            --output /tmp/av-modality-ablation-tournament.json
+      - name: Validate ablation tournament and matched gains
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          schema_path = "research/av-modality-necessity-v0/schemas/ablation-tournament-scorecard-v1.schema.json"
+          schema = json.load(open(schema_path, encoding="utf-8"))
+          result = json.load(open("/tmp/av-modality-ablation-tournament.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(result)
+          arms = result["per_arm"]
+          assert arms["audio_video"]["hard_violation_count"] == 0
+          assert arms["video_only"]["hard_violation_count"] == 0
+          assert arms["audio_only"]["hard_violation_count"] == 0
+          comparisons = result["paired_answer_comparisons"]
+          assert comparisons["audio_video_vs_video_only"]["overall"]["candidate_answer_wins"] > 0
+          assert comparisons["audio_video_vs_audio_only"]["overall"]["candidate_answer_wins"] > 0
+          assert arms["audio_video"]["answer_accuracy"] > arms["video_only"]["answer_accuracy"]
+          assert arms["audio_video"]["answer_accuracy"] > arms["audio_only"]["answer_accuracy"]
+          PY
       - name: Validate exact scorecard
         run: |
           python - <<'PY'
