@@ -271,7 +271,10 @@
               "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
               "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
             },
-            "sample_collection_method": "synthetic_flow_proportional_composite"
+            "sample_collection_method": "synthetic_flow_proportional_composite",
+            "sample_preservation_state": "synthetic_documented",
+            "chain_of_custody_id": "SYNTH-COC-ENV-INT-001-SYNTH-TRACE-ANALYTE-001-intake",
+            "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001"
           },
           "outfall": {
             "station_id": "station-outfall",
@@ -294,7 +297,10 @@
               "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
               "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
             },
-            "sample_collection_method": "synthetic_flow_proportional_composite"
+            "sample_collection_method": "synthetic_flow_proportional_composite",
+            "sample_preservation_state": "synthetic_documented",
+            "chain_of_custody_id": "SYNTH-COC-ENV-INT-001-SYNTH-TRACE-ANALYTE-001-outfall",
+            "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001"
           }
         }
       ],
@@ -324,7 +330,10 @@
           "concentration_mg_l": 0.0208,
           "standard_uncertainty_mg_l": 0.0015,
           "detection_limit_mg_l": 0.001,
-          "sample_collection_method": "synthetic_flow_proportional_composite"
+          "sample_collection_method": "synthetic_flow_proportional_composite",
+          "sample_preservation_state": "synthetic_documented",
+          "chain_of_custody_id": "SYNTH-COC-ENV-INT-001-SYNTH-TRACE-ANALYTE-001-near_field_plume",
+          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001"
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -350,7 +359,10 @@
           "concentration_mg_l": 0.0203,
           "standard_uncertainty_mg_l": 0.0015,
           "detection_limit_mg_l": 0.001,
-          "sample_collection_method": "synthetic_flow_proportional_composite"
+          "sample_collection_method": "synthetic_flow_proportional_composite",
+          "sample_preservation_state": "synthetic_documented",
+          "chain_of_custody_id": "SYNTH-COC-ENV-INT-001-SYNTH-TRACE-ANALYTE-001-far_field_impact",
+          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001"
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -376,7 +388,10 @@
           "concentration_mg_l": 0.02,
           "standard_uncertainty_mg_l": 0.0015,
           "detection_limit_mg_l": 0.001,
-          "sample_collection_method": "synthetic_flow_proportional_composite"
+          "sample_collection_method": "synthetic_flow_proportional_composite",
+          "sample_preservation_state": "synthetic_documented",
+          "chain_of_custody_id": "SYNTH-COC-ENV-INT-001-SYNTH-TRACE-ANALYTE-001-independent_reference_control",
+          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001"
         }
       ],
       "hydraulic_pairing_state": "residence_time_aligned_synthetic",
@@ -591,7 +606,10 @@
               "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
               "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
             },
-            "sample_collection_method": "synthetic_flow_proportional_composite"
+            "sample_collection_method": "synthetic_flow_proportional_composite",
+            "sample_preservation_state": "synthetic_documented",
+            "chain_of_custody_id": "SYNTH-COC-ENV-INT-002-SYNTH-TRACE-ANALYTE-001-intake",
+            "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002"
           },
           "outfall": {
             "station_id": "station-outfall",
@@ -614,7 +632,10 @@
               "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
               "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
             },
-            "sample_collection_method": "synthetic_flow_proportional_composite"
+            "sample_collection_method": "synthetic_flow_proportional_composite",
+            "sample_preservation_state": "synthetic_documented",
+            "chain_of_custody_id": "SYNTH-COC-ENV-INT-002-SYNTH-TRACE-ANALYTE-001-outfall",
+            "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002"
           }
         }
       ],
@@ -644,7 +665,10 @@
           "concentration_mg_l": 0.0209,
           "standard_uncertainty_mg_l": 0.0015,
           "detection_limit_mg_l": 0.001,
-          "sample_collection_method": "synthetic_flow_proportional_composite"
+          "sample_collection_method": "synthetic_flow_proportional_composite",
+          "sample_preservation_state": "synthetic_documented",
+          "chain_of_custody_id": "SYNTH-COC-ENV-INT-002-SYNTH-TRACE-ANALYTE-001-near_field_plume",
+          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002"
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -670,7 +694,10 @@
           "concentration_mg_l": 0.0203,
           "standard_uncertainty_mg_l": 0.0015,
           "detection_limit_mg_l": 0.001,
-          "sample_collection_method": "synthetic_flow_proportional_composite"
+          "sample_collection_method": "synthetic_flow_proportional_composite",
+          "sample_preservation_state": "synthetic_documented",
+          "chain_of_custody_id": "SYNTH-COC-ENV-INT-002-SYNTH-TRACE-ANALYTE-001-far_field_impact",
+          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002"
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -696,7 +723,10 @@
           "concentration_mg_l": 0.02,
           "standard_uncertainty_mg_l": 0.0015,
           "detection_limit_mg_l": 0.001,
-          "sample_collection_method": "synthetic_flow_proportional_composite"
+          "sample_collection_method": "synthetic_flow_proportional_composite",
+          "sample_preservation_state": "synthetic_documented",
+          "chain_of_custody_id": "SYNTH-COC-ENV-INT-002-SYNTH-TRACE-ANALYTE-001-independent_reference_control",
+          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002"
         }
       ],
       "hydraulic_pairing_state": "residence_time_aligned_synthetic",
@@ -911,7 +941,10 @@
               "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
               "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
             },
-            "sample_collection_method": "synthetic_flow_proportional_composite"
+            "sample_collection_method": "synthetic_flow_proportional_composite",
+            "sample_preservation_state": "synthetic_documented",
+            "chain_of_custody_id": "SYNTH-COC-ENV-INT-003-SYNTH-TRACE-ANALYTE-001-intake",
+            "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003"
           },
           "outfall": {
             "station_id": "station-outfall",
@@ -934,7 +967,10 @@
               "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
               "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
             },
-            "sample_collection_method": "synthetic_flow_proportional_composite"
+            "sample_collection_method": "synthetic_flow_proportional_composite",
+            "sample_preservation_state": "synthetic_documented",
+            "chain_of_custody_id": "SYNTH-COC-ENV-INT-003-SYNTH-TRACE-ANALYTE-001-outfall",
+            "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003"
           }
         }
       ],
@@ -964,7 +1000,10 @@
           "concentration_mg_l": 0.0208,
           "standard_uncertainty_mg_l": 0.0015,
           "detection_limit_mg_l": 0.001,
-          "sample_collection_method": "synthetic_flow_proportional_composite"
+          "sample_collection_method": "synthetic_flow_proportional_composite",
+          "sample_preservation_state": "synthetic_documented",
+          "chain_of_custody_id": "SYNTH-COC-ENV-INT-003-SYNTH-TRACE-ANALYTE-001-near_field_plume",
+          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003"
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -990,7 +1029,10 @@
           "concentration_mg_l": 0.0203,
           "standard_uncertainty_mg_l": 0.0015,
           "detection_limit_mg_l": 0.001,
-          "sample_collection_method": "synthetic_flow_proportional_composite"
+          "sample_collection_method": "synthetic_flow_proportional_composite",
+          "sample_preservation_state": "synthetic_documented",
+          "chain_of_custody_id": "SYNTH-COC-ENV-INT-003-SYNTH-TRACE-ANALYTE-001-far_field_impact",
+          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003"
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -1016,7 +1058,10 @@
           "concentration_mg_l": 0.02,
           "standard_uncertainty_mg_l": 0.0015,
           "detection_limit_mg_l": 0.001,
-          "sample_collection_method": "synthetic_flow_proportional_composite"
+          "sample_collection_method": "synthetic_flow_proportional_composite",
+          "sample_preservation_state": "synthetic_documented",
+          "chain_of_custody_id": "SYNTH-COC-ENV-INT-003-SYNTH-TRACE-ANALYTE-001-independent_reference_control",
+          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003"
         }
       ],
       "hydraulic_pairing_state": "residence_time_aligned_synthetic",
