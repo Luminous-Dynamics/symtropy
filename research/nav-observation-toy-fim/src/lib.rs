@@ -166,6 +166,16 @@ impl fmt::Display for SelectionError {
 
 impl std::error::Error for SelectionError {}
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DesignCriterion {
+    /// Maximize the determinant of Fisher information (D-optimality).
+    DOptimal,
+    /// Minimize trace(J^-1), the sum of marginal variances (A-optimality).
+    AOptimal,
+    /// Maximize the weakest information eigenvalue (E-optimality).
+    EOptimal,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Selection {
     pub action_ids: Vec<String>,
@@ -266,23 +276,39 @@ fn selection_for_mask(
 /// Compare information quality without folding physical/resource cost into a
 /// made-up scalar. Prefer rank, then D-optimality for full-rank cases, and
 /// observable-direction information (trace) for rank-deficient cases.
-fn compare_information(a: &Selection, b: &Selection) -> Ordering {
+fn compare_information(
+    a: &Selection,
+    b: &Selection,
+    criterion: DesignCriterion,
+) -> Ordering {
     match a.rank.cmp(&b.rank) {
         Ordering::Equal => {}
         other => return other,
     }
 
-    if a.rank == 2 {
-        a.log_determinant
+    if a.rank < 2 {
+        // All three criteria are undefined or degenerate for rank-deficient
+        // 2D geometry; compare only information in the observable subspace.
+        return a.fisher.trace().total_cmp(&b.fisher.trace());
+    }
+
+    match criterion {
+        DesignCriterion::DOptimal => a
+            .log_determinant
             .unwrap_or(f64::NEG_INFINITY)
-            .total_cmp(&b.log_determinant.unwrap_or(f64::NEG_INFINITY))
-    } else {
-        a.fisher.trace().total_cmp(&b.fisher.trace())
+            .total_cmp(&b.log_determinant.unwrap_or(f64::NEG_INFINITY)),
+        DesignCriterion::AOptimal => b
+            .a_optimal_trace_inverse
+            .unwrap_or(f64::INFINITY)
+            .total_cmp(&a.a_optimal_trace_inverse.unwrap_or(f64::INFINITY)),
+        DesignCriterion::EOptimal => a
+            .minimum_eigenvalue
+            .total_cmp(&b.minimum_eigenvalue),
     }
 }
 
-fn prefer_plan(a: &Selection, b: &Selection) -> bool {
-    match compare_information(a, b) {
+fn prefer_plan(a: &Selection, b: &Selection, criterion: DesignCriterion) -> bool {
+    match compare_information(a, b, criterion) {
         Ordering::Greater => true,
         Ordering::Less => false,
         Ordering::Equal => match a.total_cost_units.cmp(&b.total_cost_units) {
@@ -310,6 +336,34 @@ pub fn exhaustive_select_with_tolerance(
     budget_units: u32,
     rank_tolerance: f64,
 ) -> Result<Selection, SelectionError> {
+    exhaustive_select_with_tolerance_and_criterion(
+        actions,
+        budget_units,
+        rank_tolerance,
+        DesignCriterion::DOptimal,
+    )
+}
+
+/// Exhaustively optimize one explicit design criterion under a hard budget.
+pub fn exhaustive_select_with_criterion(
+    actions: &[RangeAction],
+    budget_units: u32,
+    criterion: DesignCriterion,
+) -> Result<Selection, SelectionError> {
+    exhaustive_select_with_tolerance_and_criterion(
+        actions,
+        budget_units,
+        DEFAULT_RANK_TOLERANCE,
+        criterion,
+    )
+}
+
+pub fn exhaustive_select_with_tolerance_and_criterion(
+    actions: &[RangeAction],
+    budget_units: u32,
+    rank_tolerance: f64,
+    criterion: DesignCriterion,
+) -> Result<Selection, SelectionError> {
     if !rank_tolerance.is_finite() || rank_tolerance < 0.0 {
         return Err(SelectionError::InvalidRankTolerance);
     }
@@ -325,7 +379,7 @@ pub fn exhaustive_select_with_tolerance(
         }
         if best
             .as_ref()
-            .is_none_or(|current| prefer_plan(&candidate, current))
+            .is_none_or(|current| prefer_plan(&candidate, current, criterion))
         {
             best = Some(candidate);
         }
@@ -340,6 +394,15 @@ pub fn exhaustive_select_with_tolerance(
 pub fn greedy_select(
     actions: &[RangeAction],
     budget_units: u32,
+) -> Result<Selection, SelectionError> {
+    greedy_select_with_criterion(actions, budget_units, DesignCriterion::DOptimal)
+}
+
+/// Deterministic greedy baseline for an explicitly selected design criterion.
+pub fn greedy_select_with_criterion(
+    actions: &[RangeAction],
+    budget_units: u32,
+    criterion: DesignCriterion,
 ) -> Result<Selection, SelectionError> {
     let ordered = canonical_actions(actions)?;
     let mut current = selection_for_mask(&ordered, 0, DEFAULT_RANK_TOLERANCE)?;
@@ -371,13 +434,13 @@ pub fn greedy_select(
                 DEFAULT_RANK_TOLERANCE,
             )?;
 
-            if compare_information(&candidate, &current) != Ordering::Greater {
+            if compare_information(&candidate, &current, criterion) != Ordering::Greater {
                 continue;
             }
 
             if best_next
                 .as_ref()
-                .is_none_or(|best| prefer_plan(&candidate, best))
+                .is_none_or(|best| prefer_plan(&candidate, best, criterion))
             {
                 best_next = Some(candidate);
             }
@@ -553,6 +616,45 @@ mod tests {
             exhaustive_select(&extreme, 2),
             Err(SelectionError::InvalidSigma("east".to_owned()))
         );
+    }
+
+
+    #[test]
+    fn design_criteria_can_select_different_geometries() {
+        let actions = vec![
+            RangeAction::new("a-east-precise", 0.0, 0.1, 1),
+            RangeAction::new("b-north-weak", std::f64::consts::FRAC_PI_2, 1.0, 1),
+            RangeAction::new("c-diagonal", std::f64::consts::FRAC_PI_4, 1.0 / 10.0_f64.sqrt(), 1),
+            RangeAction::new("d-antidiagonal", 3.0 * std::f64::consts::FRAC_PI_4, 1.0 / 9.0_f64.sqrt(), 1),
+        ];
+
+        let d_opt = exhaustive_select_with_criterion(&actions, 2, DesignCriterion::DOptimal).unwrap();
+        let a_opt = exhaustive_select_with_criterion(&actions, 2, DesignCriterion::AOptimal).unwrap();
+        let e_opt = exhaustive_select_with_criterion(&actions, 2, DesignCriterion::EOptimal).unwrap();
+
+        assert_eq!(d_opt.rank, 2);
+        assert_eq!(a_opt.rank, 2);
+        assert_eq!(e_opt.rank, 2);
+        assert!(d_opt.fisher.determinant() > a_opt.fisher.determinant());
+        assert!(a_opt.a_optimal_trace_inverse.unwrap() < d_opt.a_optimal_trace_inverse.unwrap());
+        assert!(e_opt.minimum_eigenvalue > d_opt.minimum_eigenvalue);
+        assert_eq!(
+            a_opt.action_ids,
+            vec!["c-diagonal".to_owned(), "d-antidiagonal".to_owned()]
+        );
+        assert_eq!(a_opt.action_ids, e_opt.action_ids);
+    }
+
+    #[test]
+    fn criterion_specific_greedy_respects_the_same_budget() {
+        for criterion in [
+            DesignCriterion::DOptimal,
+            DesignCriterion::AOptimal,
+            DesignCriterion::EOptimal,
+        ] {
+            let selected = greedy_select_with_criterion(&candidate_set(), 2, criterion).unwrap();
+            assert!(selected.total_cost_units <= 2);
+        }
     }
 
     #[test]
