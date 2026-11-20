@@ -6,7 +6,7 @@ on:
       - research/plasma-metriplectic-audit-v0-1-2026-11-20
     paths:
       - "crates/tools/plasma-metriplectic-audit/**"
-      - "benchmarks/plasma/metriplectic-audit-v0.json"
+      - "benchmarks/plasma/metriplectic-audit-*.json"
       - ".github/workflows/plasma-metriplectic-audit.yml"
   pull_request:
     paths:
@@ -36,3 +36,12 @@ jobs:
         run: cargo clippy --locked --manifest-path crates/tools/plasma-metriplectic-audit/Cargo.toml --all-targets -- -D warnings
       - name: Audit mixed reversible-dissipative fixture
         run: cargo run --locked --manifest-path crates/tools/plasma-metriplectic-audit/Cargo.toml -- benchmarks/plasma/metriplectic-audit-v0.json
+      - name: Confirm an indefinite dissipator fails closed
+        shell: bash
+        run: |
+          report="$(mktemp)"
+          if cargo run --locked --manifest-path crates/tools/plasma-metriplectic-audit/Cargo.toml -- benchmarks/plasma/metriplectic-audit-indefinite-v0.json >"$report"; then
+            echo "indefinite dissipator unexpectedly returned exit 0"
+            exit 1
+          fi
+          jq -e '.body.disposition == "rejected" and any(.body.findings[]; .code == "dissipative_operator_not_positive_semidefinite")' "$report" >/dev/null
