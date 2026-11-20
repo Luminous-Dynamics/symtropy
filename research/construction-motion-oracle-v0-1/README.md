@@ -131,3 +131,14 @@ The Linux differential benchmark now has two separate scaling sections:
 - ifc_ids_preflight_scaling: prebuilt typed IFC/IDS source inputs are cloned before timing, then the preflight compiler is measured at 100, 1,000 and 10,000 in-scope entities. Report p50/p95/p99 and entities/second. This isolates preflight validation from source fixture construction.
 
 Neither lane includes cryptographic signature verification, canonical digest recomputation, actual IFC STEP parsing, IDS XML interpretation, external geometry/clash engine runtime, storage I/O or network consensus. The synthetic receipts are accepted as preverified inputs solely to measure the reducer/compiler layer; their digest strings are not signed proof. Results are one-host engineering baselines, never robot-safety or field-productivity evidence.
+
+
+### Verified stop-tube dispatch
+
+Integrated dispatch now requires both the longitudinal sensor-to-stop distance budget and an explicit full-body stopping-tube occupancy assessment. The stop-tube receipt represents the union of stopping trajectories for every possible trigger point across the complete nominal motion time domain and binds all body/tool/payload primitives to the same trajectory, composite envelope, configuration, frame, transform, brake qualification, operating condition, scenario context and site clock.
+
+The occupancy receipt must identify the exact stop-tube digest and assert that its complete primitive/time domain was assessed. The integrated dependency graph has a dedicated StoppingTubeEnvelope node. Missing coverage, a nominal-only occupancy assessment, an understated stop bound or a context mismatch prevents readiness.
+
+See docs/verified-stop-tube-dispatch-benchmark-v0.1.md, schema/stop-tube-envelope-v0.1.schema.json and examples/stop-tube-envelope-synthetic-v0.1.json. The schema/fixture are checked in the pinned Draft 2020-12 CI lane. The Rust unit suite covers stop-tube occupancy mismatch, incomplete primitive/continuous-time coverage, undersized distance/time bounds, configuration mismatch and missing evidence dependencies.
+
+Claim ceiling: the Rust gate verifies receipt structure and cross-artifact binding. It does not independently generate the swept stop geometry, verify real signatures, measure braking, qualify physical sensors, issue a safety permit or authorize actuation. The envelope producer and occupancy assessor still need independent qualification.
