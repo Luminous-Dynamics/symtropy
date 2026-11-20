@@ -122,7 +122,12 @@
     "cumulative_energy_endpoint_resolution_bound_and_declared_tolerance",
     "interval_integrated_energy_error_per_source_interval",
     "exactly_once_interval_energy_consumption_count",
-    "receiver_trajectory_error_given_integrated_macro_step_energy"
+    "receiver_trajectory_error_given_integrated_macro_step_energy",
+    "implicit_coupling_residual_history_by_time_window",
+    "implicit_participant_internal_tolerance_vs_outer_tolerance",
+    "quasi_newton_history_filter_preconditioner_and_relaxation",
+    "coupling_bounds_policy_and_limiter_activation_receipt",
+    "checkpoint_restore_and_rejected_iteration_cost"
   ],
   "hard_gates": {
     "false_conservation_closures": 0,
@@ -140,7 +145,11 @@
     "cumulative_energy_counter_resolution_bound_within_declared_budget": true,
     "interval_energy_transfers_exactly_once": true,
     "power_and_energy_units_never_interchanged": true,
-    "cumulative_counter_reset_epoch_explicit": true
+    "cumulative_counter_reset_epoch_explicit": true,
+    "implicit_convergence_criteria_all_satisfied_per_time_window": true,
+    "implicit_participant_tolerance_ratio_disclosed": true,
+    "implicit_state_restore_cost_included": true,
+    "coupling_bound_policy_and_activations_reported": true
   },
   "stretch_objectives": [
     "Pareto_improve_trajectory_error_balance_residual_and_latency",
@@ -209,6 +218,18 @@
     {
       "id": "ssp_tools_matrix_current",
       "url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "id": "precice_implicit_coupling_and_convergence_measures",
+      "url": "https://precice.org/docs/configuration/basics/coupling/"
+    },
+    {
+      "id": "precice_iqn_ils_and_acceleration",
+      "url": "https://precice.org/configuration-acceleration"
+    },
+    {
+      "id": "precice_bounds_violation_policy",
+      "url": "https://precice.org/configuration-xml-reference/"
     }
   ],
   "claim_ceiling": "A comparative result qualifies only the exact pinned FMU artifacts, tool versions, FMI lane, models, capability subset, parameters, communication policy, tolerances, output times and compute budget tested. It does not establish general FMI conformance, universal master superiority, real geothermal/fusion plant performance, equipment safety, economics or physical validation.",
@@ -661,5 +682,32 @@
     "policy": "Probe each exact FMU capability and importer support. Unsupported combinations are NOT_EVALUABLE. Do not silently emulate; do not compare tools across different capability subsets."
   },
   "ssp_tool_matrix_snapshot_date": "2026-11-20",
-  "ssp_tool_matrix_source": "https://ssp-standard.org/tools/"
+  "ssp_tool_matrix_source": "https://ssp-standard.org/tools/",
+  "implicit_coupling_qualification": {
+    "comparator": "preCICE 3.5.0; adjacent method reference, not an FMI master",
+    "methods": [
+      "parallel-implicit",
+      "serial-implicit",
+      "IQN-ILS",
+      "IQN-IMVJ"
+    ],
+    "required_receipts": [
+      "minimum_and_maximum_iterations_per_time_window",
+      "every_convergence_measure_and_normalized_residual",
+      "relative_absolute_or_combined_thresholds",
+      "participant_internal_solver_tolerance",
+      "quasi_newton_history_reuse",
+      "preconditioner_and_QR_filter",
+      "initial_relaxation_and_bounds_violation_policy",
+      "checkpoint_restore_cost",
+      "rejected_iterations_and_wall_cpu_time"
+    ],
+    "guidance": "Record participant solver tolerance and sensitivity; preCICE documentation suggests participant internal convergence approximately two orders of magnitude tighter than the coupling convergence criterion as a starting point, not a universal theorem.",
+    "gate": "All mandatory convergence criteria must be satisfied in each time window; absent participant rollback/checkpoint makes an implicit comparator NOT_EVALUABLE unless an independently qualified equivalent state policy is provided.",
+    "sources": [
+      "https://precice.org/docs/configuration/basics/coupling/",
+      "https://precice.org/configuration-acceleration",
+      "https://precice.org/configuration-xml-reference/"
+    ]
+  }
 }
