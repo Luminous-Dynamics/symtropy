@@ -738,7 +738,7 @@ fn find_concurrent_mutations(
     let mut occurrences = Vec::<(String, SiteMutationKey)>::new();
     for event_id in topological_order {
         if let Some(event) = events.get(event_id) {
-            if let Some(key) = mutation_key(&event.payload) {
+            for key in mutation_keys(&event.payload) {
                 occurrences.push((event.event_id.clone(), key));
             }
         }
@@ -776,52 +776,59 @@ fn find_concurrent_mutations(
     conflicts
 }
 
-fn mutation_key(payload: &SiteEventPayload) -> Option<SiteMutationKey> {
+fn mutation_keys(payload: &SiteEventPayload) -> Vec<SiteMutationKey> {
     match payload {
         SiteEventPayload::WorkPackagePublished { .. } => {
-            Some(SiteMutationKey::ActiveWorkPackage)
+            vec![SiteMutationKey::ActiveWorkPackage]
         }
         SiteEventPayload::StationQualified {
             package_sha256,
             station_id,
             ..
-        } => Some(SiteMutationKey::Station {
+        } => vec![SiteMutationKey::Station {
             package_sha256: package_sha256.clone(),
             station_id: station_id.clone(),
-        }),
+        }],
         SiteEventPayload::ExecutionStarted {
             package_sha256,
             entity_id,
+            attempt_id,
             ..
         }
-        | SiteEventPayload::HumanWaiverIssued {
+        | SiteEventPayload::RobotObservationRecorded {
             package_sha256,
-            waiver: crate::field_layout_acceptance::HumanWaiver {
-                design_entity_id: entity_id,
-                ..
-            },
-        } => Some(SiteMutationKey::Entity {
-            package_sha256: package_sha256.clone(),
-            entity_id: entity_id.clone(),
-        }),
-        SiteEventPayload::RobotObservationRecorded {
-            package_sha256,
+            entity_id,
             attempt_id,
             ..
         }
         | SiteEventPayload::ExecutionInterrupted {
             package_sha256,
+            entity_id,
             attempt_id,
             ..
         }
         | SiteEventPayload::RefereeAssessmentRecorded {
             package_sha256,
+            entity_id,
             attempt_id,
             ..
-        } => Some(SiteMutationKey::Attempt {
+        } => vec![
+            SiteMutationKey::Entity {
+                package_sha256: package_sha256.clone(),
+                entity_id: entity_id.clone(),
+            },
+            SiteMutationKey::Attempt {
+                package_sha256: package_sha256.clone(),
+                attempt_id: attempt_id.clone(),
+            },
+        ],
+        SiteEventPayload::HumanWaiverIssued {
+            package_sha256,
+            waiver,
+        } => vec![SiteMutationKey::Entity {
             package_sha256: package_sha256.clone(),
-            attempt_id: attempt_id.clone(),
-        }),
+            entity_id: waiver.design_entity_id.clone(),
+        }],
     }
 }
 
@@ -1332,4 +1339,51 @@ mod tests {
         assert!(plan.can_ingest());
         assert_eq!(plan.ordered_events.len(), 1);
     }
+
+    #[test]
+    fn start_of_a_second_attempt_conflicts_with_an_existing_entity_attempt() {
+        let robot_a = journal(
+            "journal-robot-a",
+            "robot-a",
+            vec![entry(
+                1,
+                None,
+                "robot-observation-a",
+                '1',
+                "robot-a",
+                SiteActorRole::Robot,
+                &[],
+                observation_payload("attempt-a"),
+            )],
+        );
+        let robot_b = journal(
+            "journal-robot-b",
+            "robot-b",
+            vec![entry(
+                1,
+                None,
+                "start-attempt-b",
+                '2',
+                "robot-b",
+                SiteActorRole::Robot,
+                &[],
+                SiteEventPayload::ExecutionStarted {
+                    package_sha256: digest('a'),
+                    entity_id: "entity-1".into(),
+                    attempt_id: "attempt-b".into(),
+                    station_qualification_event_id: "station-1".into(),
+                },
+            )],
+        );
+        let plan = reconcile(&[robot_a, robot_b]).unwrap();
+        assert!(!plan.can_ingest());
+        assert!(plan.concurrent_mutations.iter().any(|conflict| {
+            conflict.key
+                == SiteMutationKey::Entity {
+                    package_sha256: digest('a'),
+                    entity_id: "entity-1".into(),
+                }
+        }));
+    }
+
 }
