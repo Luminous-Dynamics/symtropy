@@ -350,11 +350,14 @@ fn validate_bundle(raw: &[u8], value: &Value) -> Value {
                 state_fresh = false;
                 global_blockers.push("current state is future-dated or expired at the decision time".to_owned());
             } else {
-                let age = now.timestamp() - observed.timestamp();
+                let age_ms = now.timestamp_millis() - observed.timestamp_millis();
                 let maximum_age = decision.get("max_state_age_seconds").and_then(Value::as_i64).unwrap_or(0);
-                if maximum_age <= 0 || age > maximum_age {
+                let maximum_age_ms = maximum_age.saturating_mul(1_000);
+                if maximum_age <= 0 || age_ms > maximum_age_ms {
                     state_fresh = false;
-                    global_blockers.push(format!("current state age {age}s exceeds the maximum permitted freshness"));
+                    global_blockers.push(format!(
+                        "current state age {age_ms}ms exceeds the maximum permitted freshness of {maximum_age_ms}ms"
+                    ));
                 }
             }
         }
@@ -791,6 +794,22 @@ mod tests {
     fn stale_current_state_forces_abstention() {
         let mut value = fixture("proposed");
         value["decision"]["decision_time"] = json!("2026-11-20T05:01:00Z");
+        assert_eq!(audit(&value)["runtime_decision"], "ABSTAIN_CURRENT_STATE_NOT_ADMISSIBLE");
+    }
+
+    #[test]
+    fn subsecond_freshness_overrun_is_not_truncated_to_whole_seconds() {
+        let mut value = fixture("proposed");
+        value["current_state"]["observed_at"] = json!("2026-11-20T04:59:29.500Z");
+        value["current_state"]["state_sha256"] = json!("");
+        let state_digest = canonical_digest(&value["current_state"], Some("state_sha256")).unwrap();
+        value["current_state"]["state_sha256"] = json!(state_digest.clone());
+        for candidate in value["candidates"].as_array_mut().unwrap() {
+            candidate["precondition_state_sha256"] = json!(state_digest);
+            candidate["action_digest_sha256"] = json!("");
+            let action_digest = canonical_digest(candidate, Some("action_digest_sha256")).unwrap();
+            candidate["action_digest_sha256"] = json!(action_digest);
+        }
         assert_eq!(audit(&value)["runtime_decision"], "ABSTAIN_CURRENT_STATE_NOT_ADMISSIBLE");
     }
 
