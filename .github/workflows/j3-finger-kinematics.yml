@@ -1,0 +1,37 @@
+name: J3 Finger Kinematics Reference
+
+on:
+  pull_request:
+    paths:
+      - 'benchmarks/j3-finger-kinematics/v0.1/**'
+      - '.github/workflows/j3-finger-kinematics.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'benchmarks/j3-finger-kinematics/v0.1/**'
+      - '.github/workflows/j3-finger-kinematics.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: j3-finger-kinematics-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/j3-finger-kinematics/v0.1/Cargo.toml -- --check
+      - name: Run kinematics reference tests
+        run: cargo test --manifest-path benchmarks/j3-finger-kinematics/v0.1/Cargo.toml --locked
+      - name: Run Clippy
+        run: cargo clippy --manifest-path benchmarks/j3-finger-kinematics/v0.1/Cargo.toml --all-targets --locked -- -D warnings
