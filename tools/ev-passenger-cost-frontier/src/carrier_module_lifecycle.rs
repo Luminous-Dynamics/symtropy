@@ -224,6 +224,21 @@ fn valid_nonnegative(value: Option<f64>) -> bool {
     value.is_none_or(|number| number.is_finite() && (0.0..=1_000_000.0).contains(&number))
 }
 
+fn evidence_reference_is_valid(class: EvidenceClass, reference: &str) -> bool {
+    let reference = reference.trim();
+    if reference.is_empty() {
+        return false;
+    }
+    match class {
+        EvidenceClass::Unknown => reference.starts_with("unknown://"),
+        EvidenceClass::Synthetic => reference.starts_with("synthetic://"),
+        EvidenceClass::Measured | EvidenceClass::IndependentTest => {
+            !reference.starts_with("unknown://") && !reference.starts_with("synthetic://")
+        }
+    }
+}
+
+
 fn annual_event_rate(event: &LifecycleEvent) -> Option<f64> {
     match event.event_class {
         EventClass::Planned => {
@@ -291,9 +306,13 @@ fn validate_catalog(
     {
         errors.push("labour_rate_per_technician_hour: must be finite and nonnegative".into());
     }
-    if catalog.annual_operating_hours_evidence_reference.trim().is_empty()
-        || catalog.labour_rate_evidence_reference.trim().is_empty()
-    {
+    if !evidence_reference_is_valid(
+        catalog.annual_operating_hours_evidence_class,
+        &catalog.annual_operating_hours_evidence_reference,
+    ) || !evidence_reference_is_valid(
+        catalog.labour_rate_evidence_class,
+        &catalog.labour_rate_evidence_reference,
+    ) {
         errors.push("annual operating-hours and labour-rate evidence references are required, including explicit unknown references".into());
     }
     if catalog.profiles.is_empty() || catalog.profiles.len() > MAX_PROFILES {
@@ -343,8 +362,11 @@ fn validate_catalog(
         {
             errors.push(format!("profiles[{profile_index}]: acquisition cost requires evidence and amortization horizon"));
         }
-        if profile.acquisition_cost_evidence_reference.trim().is_empty() {
-            errors.push(format!("profiles[{profile_index}]: acquisition cost needs an explicit source/unknown reference"));
+        if !evidence_reference_is_valid(
+            profile.acquisition_cost_evidence_class,
+            &profile.acquisition_cost_evidence_reference,
+        ) {
+            errors.push(format!("profiles[{profile_index}]: acquisition cost evidence reference does not match its evidence class"));
         }
         if profile.events.is_empty() || profile.events.len() > MAX_EVENTS_PER_PROFILE {
             errors.push(format!("profiles[{profile_index}].events: expected 1..={MAX_EVENTS_PER_PROFILE}"));
@@ -360,8 +382,11 @@ fn validate_catalog(
             if event.event_id.trim().is_empty() || !event_ids.insert(event.event_id.as_str()) {
                 errors.push(format!("profiles[{profile_index}].events[{event_index}]: event identity must be nonempty and unique"));
             }
-            if event.frequency_evidence_reference.trim().is_empty() {
-                errors.push(format!("profiles[{profile_index}].events[{event_index}]: frequency evidence reference is required"));
+            if !evidence_reference_is_valid(
+                event.frequency_evidence_class,
+                &event.frequency_evidence_reference,
+            ) {
+                errors.push(format!("profiles[{profile_index}].events[{event_index}]: frequency evidence reference does not match its evidence class"));
             }
             if !valid_nonnegative(event.annual_occurrences_per_module)
                 || event.annual_occurrences_per_module.is_some_and(|count| count > MAX_ANNUAL_OCCURRENCES)
@@ -443,8 +468,8 @@ fn validate_catalog(
                 if task.crew_size.is_some_and(|crew| crew == 0 || crew > 100_000) {
                     errors.push(format!("profiles[{profile_index}].events[{event_index}].tasks[{task_index}].crew_size: invalid crew count"));
                 }
-                if task.evidence_reference.trim().is_empty() {
-                    errors.push(format!("profiles[{profile_index}].events[{event_index}].tasks[{task_index}]: evidence reference required, including explicit unknown"));
+                if !evidence_reference_is_valid(task.evidence_class, &task.evidence_reference) {
+                    errors.push(format!("profiles[{profile_index}].events[{event_index}].tasks[{task_index}]: task evidence reference does not match its evidence class"));
                 }
                 let has_measurement = task.elapsed_downtime_minutes_per_event.is_some()
                     || task.technician_minutes_per_event.is_some()
