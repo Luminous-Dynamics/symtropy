@@ -35,8 +35,13 @@ pub struct DispatchEnvelopeBinding {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OccupancyAssessmentReceipt {
-    /// The assessed envelope digest must exactly match the requested envelope.
+    /// The assessed envelope digest must exactly match the requested composite envelope.
     pub assessed_envelope_sha256: String,
+    /// Exact stop-tube digest included in the composite envelope assessment.
+    pub assessed_stop_tube_sha256: String,
+    /// True only when every stop-tube primitive and its full time domain were
+    /// included in broad- and narrow-phase occupancy evaluation.
+    pub stop_tube_coverage_complete: bool,
     pub primitive_manifest_sha256: String,
     pub site_snapshot_sha256: String,
     pub site_ledger_sequence: u64,
