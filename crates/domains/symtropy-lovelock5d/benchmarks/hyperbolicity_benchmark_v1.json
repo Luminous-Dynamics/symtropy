@@ -81,5 +81,32 @@
     "hyperbolicity inferred from curvature invariants or Noether flux positivity",
     "pure-EGB conclusion inferred from dCS/sGB or black-string result"
   ],
-  "claim_ceiling": "Protocol and exact GR/static reference ladder only. No hyperbolicity result for the target rotating EGB black-hole branch is claimed."
+  "claim_ceiling": "The static BD characteristic threshold is exact within the convention-matched static spherical Lovelock sector analysis. It does not prove strong hyperbolicity of any specified evolution gauge, does not classify rotating backgrounds, and does not establish mode stability or EFT validity.",
+  "qualification_layers": {
+    "physical_characteristic_sector_signature": "Gauge-invariant sector effective metrics where symmetry permits; static BD result is an exact control.",
+    "gauge_fixed_strong_hyperbolicity": "A specified gauge-fixed first-order evolution system must have real speeds and a complete uniformly controlled eigenbasis; formulation-dependent.",
+    "mode_stability": "Separate spectral stability problem, only after the evolution problem is sufficiently well posed.",
+    "eft_validity": "Independent operator/cutoff and perturbative-control domain."
+  },
+  "gauge_formulation_references": [
+    {
+      "paper": "Papallo & Reall (2017), On the local well-posedness of Lovelock and Horndeski theories",
+      "doi": "10.1103/PhysRevD.96.044019",
+      "finding": "standard harmonic-gauge Lovelock equations are not strongly hyperbolic on generic weak-field backgrounds"
+    },
+    {
+      "paper": "Kovacs & Reall (2020), Well-posed formulation of Lovelock and Horndeski theories",
+      "doi": "10.1103/PhysRevD.101.124003",
+      "finding": "modified-harmonic formulations are strongly hyperbolic at weak coupling"
+    }
+  ],
+  "static_bd_result": {
+    "reference_artifact": "static_bd_characteristic_speeds_v1.json",
+    "critical_lambda": "sqrt(2)-1",
+    "first_supercritical_value_on_001_grid": "0.42",
+    "coupling_grid": "0.00,0.01,...,3.00",
+    "grid_point_count": 301,
+    "supercritical_static_control_count": 259,
+    "caution": "Static BD classification only; does not classify the rotating Akribeia benchmark at omega=0.33."
+  }
 }
