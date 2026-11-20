@@ -18,6 +18,7 @@ pub mod mode_options;
 pub mod observation;
 pub mod procedure;
 pub mod simulation;
+pub mod za_uas_ops_gate;
 pub mod transaction;
 
 pub const SCHEMA_VERSION: u16 = 1;
