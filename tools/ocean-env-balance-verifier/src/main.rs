@@ -23,6 +23,7 @@ struct Bundle {
     pairing_contract: PairingContract,
     equation_contract: EquationContract,
     ogc_sensorthings_mapping: OgcMapping,
+    uncertainty_simulation: UncertaintySimulation,
     interval_records: Vec<IntervalRecord>,
 }
 #[derive(Debug, Deserialize)]
@@ -95,6 +96,20 @@ struct DatastreamResultEncoding {
     result_encoding: String,
     unit_location: String,
     legacy_unit_of_measurement: String,
+}
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct UncertaintySimulation {
+    framework: String,
+    framework_references: Vec<String>,
+    algorithm: String,
+    seed: u32,
+    draws_per_interval: usize,
+    lower_95_percentile: f64,
+    upper_95_percentile: f64,
+    maximum_relative_standard_uncertainty_difference_from_first_order: f64,
+    distribution_assumption: String,
+    acceptance_rule: String,
 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -244,6 +259,24 @@ struct PollutantResult {
     net_added_standard_uncertainty_kg_day: f64,
     net_added_to_standard_uncertainty_ratio: f64,
     net_flux_resolution_status: String,
+    net_flux_monte_carlo: DistributionSummary,
+    net_flux_uncertainty_comparison: UncertaintyComparison,
+}
+#[derive(Debug, Serialize)]
+struct DistributionSummary {
+    draw_count: usize,
+    seed: u32,
+    mean: f64,
+    standard_uncertainty: f64,
+    lower_95_percentile: f64,
+    upper_95_percentile: f64,
+}
+#[derive(Debug, Serialize)]
+struct UncertaintyComparison {
+    first_order_standard_uncertainty: f64,
+    monte_carlo_standard_uncertainty: f64,
+    relative_standard_uncertainty_difference: f64,
+    status: String,
 }
 #[derive(Debug, Serialize)]
 struct IntervalResult {
@@ -264,6 +297,8 @@ struct IntervalResult {
     thermal_power_standard_uncertainty_kw: f64,
     thermal_power_hydraulic_alignment_standard_uncertainty_kw: f64,
     hydraulic_residence_time_standard_uncertainty_seconds: f64,
+    thermal_power_monte_carlo: DistributionSummary,
+    thermal_power_uncertainty_comparison: UncertaintyComparison,
     station_anomalies: Vec<StationAnomaly>,
     pollutant_station_anomalies: Vec<StationConcentrationAnomaly>,
     pollutant_results: Vec<PollutantResult>,
@@ -288,6 +323,88 @@ struct Report {
     claim_ceiling: String,
 }
 
+#[derive(Debug)]
+struct DeterministicNormalRng {
+    state: u32,
+    spare: Option<f64>,
+}
+impl DeterministicNormalRng {
+    fn new(seed: u32) -> Self {
+        Self { state: if seed == 0 { 0xA341_316C } else { seed }, spare: None }
+    }
+    fn uniform_open(&mut self) -> f64 {
+        self.state ^= self.state << 13;
+        self.state ^= self.state >> 17;
+        self.state ^= self.state << 5;
+        (self.state as f64 + 0.5) / 4_294_967_296.0
+    }
+    fn standard_normal(&mut self) -> f64 {
+        if let Some(value) = self.spare.take() {
+            return value;
+        }
+        let u1 = self.uniform_open().max(f64::MIN_POSITIVE);
+        let u2 = self.uniform_open();
+        let radius = (-2.0 * u1.ln()).sqrt();
+        let angle = std::f64::consts::TAU * u2;
+        self.spare = Some(radius * angle.sin());
+        radius * angle.cos()
+    }
+}
+fn percentile(sorted: &[f64], p: f64) -> f64 {
+    let position = (sorted.len().saturating_sub(1)) as f64 * p;
+    let lower = position.floor() as usize;
+    let upper = position.ceil() as usize;
+    if lower == upper {
+        sorted[lower]
+    } else {
+        let fraction = position - lower as f64;
+        sorted[lower] + (sorted[upper] - sorted[lower]) * fraction
+    }
+}
+fn summarize_distribution(values: &mut [f64], seed: u32, lower: f64, upper: f64)
+    -> Result<DistributionSummary, String> {
+    if values.len() < 2 {
+        return Err("Monte Carlo sample requires at least two draws".into());
+    }
+    for value in values.iter() {
+        finite(*value, "Monte Carlo output")?;
+    }
+    let mean = values.iter().sum::<f64>() / values.len() as f64;
+    let sum_sq = values.iter().map(|v| (v - mean).powi(2)).sum::<f64>();
+    let standard_uncertainty = (sum_sq / (values.len() - 1) as f64).sqrt();
+    values.sort_by(|a, b| a.total_cmp(b));
+    let lo = percentile(values, lower);
+    let hi = percentile(values, upper);
+    finite(mean, "Monte Carlo mean")?;
+    positive(standard_uncertainty, "Monte Carlo standard uncertainty")?;
+    Ok(DistributionSummary {
+        draw_count: values.len(),
+        seed,
+        mean,
+        standard_uncertainty,
+        lower_95_percentile: lo,
+        upper_95_percentile: hi,
+    })
+}
+fn compare_uncertainty(first_order: f64, monte_carlo: f64, tolerance: f64)
+    -> Result<UncertaintyComparison, String> {
+    positive(first_order, "first-order standard uncertainty")?;
+    positive(monte_carlo, "Monte Carlo standard uncertainty")?;
+    let relative = (monte_carlo - first_order).abs() / first_order;
+    finite(relative, "relative uncertainty difference")?;
+    if relative > tolerance {
+        return Err(format!(
+            "Monte Carlo/first-order uncertainty disagreement {:.6} exceeds declared tolerance {:.6}; uncertainty model review required",
+            relative, tolerance
+        ));
+    }
+    Ok(UncertaintyComparison {
+        first_order_standard_uncertainty: first_order,
+        monte_carlo_standard_uncertainty: monte_carlo,
+        relative_standard_uncertainty_difference: relative,
+        status: "MONTE_CARLO_CROSSCHECK_WITHIN_DECLARED_TOLERANCE".into(),
+    })
+}
 fn finite(value: f64, name: &str) -> Result<(), String> {
     if !value.is_finite() {
         return Err(format!("{name} must be finite"));
@@ -394,7 +511,69 @@ fn validate_evidence(
     }
     Ok(())
 }
-fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<IntervalResult, String> {
+#[allow(clippy::too_many_arguments)]
+fn monte_carlo_thermal_and_mass_flux(
+    config: &UncertaintySimulation,
+    seed: u32,
+    rho: f64, u_rho: f64,
+    cp: f64, u_cp: f64,
+    intake_temp: f64, u_intake_temp: f64,
+    outfall_temp: f64, u_outfall_temp: f64, outfall_temp_rate: f64,
+    intake_flow: f64, u_intake_flow: f64,
+    outfall_flow: f64, u_outfall_flow: f64, outfall_flow_rate: f64,
+    intake_concentration: f64, u_intake_concentration: f64,
+    outfall_concentration: f64, u_outfall_concentration: f64, outfall_concentration_rate: f64,
+    lag_standard_uncertainty_seconds: f64,
+) -> Result<(DistributionSummary, DistributionSummary), String> {
+    if config.draws_per_interval < 10_000 || config.seed == 0
+        || config.algorithm != "deterministic_xorshift32_box_muller_v0_1" {
+        return Err("unsupported or insufficient Monte Carlo configuration".into());
+    }
+    let mut rng = DeterministicNormalRng::new(seed);
+    let mut thermal = Vec::with_capacity(config.draws_per_interval);
+    let mut net_flux = Vec::with_capacity(config.draws_per_interval);
+    for _ in 0..config.draws_per_interval {
+        let rho_draw = rho + u_rho * rng.standard_normal();
+        let cp_draw = cp + u_cp * rng.standard_normal();
+        let intake_flow_draw = intake_flow + u_intake_flow * rng.standard_normal();
+        let outfall_flow_draw = outfall_flow
+            + u_outfall_flow * rng.standard_normal();
+        let lag_draw = lag_standard_uncertainty_seconds * rng.standard_normal();
+        let outfall_flow_draw = outfall_flow_draw + outfall_flow_rate * lag_draw;
+        let intake_temp_draw = intake_temp + u_intake_temp * rng.standard_normal();
+        let outfall_temp_draw = outfall_temp + u_outfall_temp * rng.standard_normal()
+            + outfall_temp_rate * lag_draw;
+        let intake_concentration_draw = intake_concentration
+            + u_intake_concentration * rng.standard_normal();
+        let outfall_concentration_draw = outfall_concentration
+            + u_outfall_concentration * rng.standard_normal()
+            + outfall_concentration_rate * lag_draw;
+        for (name, value) in [
+            ("sampled density", rho_draw), ("sampled heat capacity", cp_draw),
+            ("sampled intake flow", intake_flow_draw), ("sampled outfall flow", outfall_flow_draw),
+            ("sampled intake concentration", intake_concentration_draw),
+            ("sampled outfall concentration", outfall_concentration_draw),
+        ] {
+            positive(value, name)?;
+        }
+        let thermal_kw = rho_draw * cp_draw * outfall_flow_draw
+            * (outfall_temp_draw - intake_temp_draw) / 1000.0;
+        let net_flux_g_s = outfall_concentration_draw * outfall_flow_draw
+            - intake_concentration_draw * intake_flow_draw;
+        finite(thermal_kw, "Monte Carlo thermal output")?;
+        finite(net_flux_g_s, "Monte Carlo pollutant output")?;
+        thermal.push(thermal_kw);
+        net_flux.push(net_flux_g_s);
+    }
+    let thermal_summary = summarize_distribution(
+        &mut thermal, seed, config.lower_95_percentile, config.upper_95_percentile
+    )?;
+    let flux_summary = summarize_distribution(
+        &mut net_flux, seed, config.lower_95_percentile, config.upper_95_percentile
+    )?;
+    Ok((thermal_summary, flux_summary))
+}
+fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index: usize) -> Result<IntervalResult, String> {
     let start_seconds = parse_utc_timestamp(&interval.interval_start_utc)
         .ok_or_else(|| format!("interval {} has invalid UTC start", interval.interval_id))?;
     let end_seconds = parse_utc_timestamp(&interval.interval_end_utc)
@@ -553,6 +732,28 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
     let u_q_out_lag = outfall_flow.temporal_rate_m3_s_per_s.abs() * u_lag;
     let u_q_out_total = (u_q_out_instrument.powi(2) + u_q_out_lag.powi(2)).sqrt();
     finite(thermal_kw, "thermal_power_kw")?;
+    let simulation_seed = bundle.uncertainty_simulation.seed.wrapping_add(interval_index as u32);
+    let (thermal_monte_carlo, _) = monte_carlo_thermal_and_mass_flux(
+        &bundle.uncertainty_simulation,
+        simulation_seed,
+        rho, u_rho, cp, u_cp,
+        intake_temp, temperatures["intake"].standard_uncertainty_deg_c,
+        outfall_temp, temperatures["outfall"].standard_uncertainty_deg_c,
+        temperatures["outfall"].temporal_rate_deg_c_per_s,
+        q_in, u_q_in, q_out, u_q_out_instrument,
+        outfall_flow.temporal_rate_m3_s_per_s,
+        interval.concentration_pairs[0].intake.concentration_mg_l,
+        interval.concentration_pairs[0].standard_uncertainty_mg_l,
+        interval.concentration_pairs[0].outfall.concentration_mg_l,
+        interval.concentration_pairs[0].outfall.standard_uncertainty_mg_l,
+        interval.concentration_pairs[0].outfall.temporal_rate_mg_l_per_s,
+        u_lag,
+    )?;
+    let thermal_uncertainty_comparison = compare_uncertainty(
+        u_thermal_kw,
+        thermal_monte_carlo.standard_uncertainty,
+        bundle.uncertainty_simulation.maximum_relative_standard_uncertainty_difference_from_first_order,
+    )?;
     nonnegative(u_thermal_kw, "thermal_power_standard_uncertainty_kw")?;
 
     let water_residual = q_out - q_in;
@@ -645,6 +846,36 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
         let net = fout - fin;
         let u_net = (u_fin.powi(2) + u_fout.powi(2)).sqrt();
         positive(u_net, "net pollutant flux standard uncertainty")?;
+        let mut mc_rng = DeterministicNormalRng::new(simulation_seed);
+        let mut net_flux_draws = Vec::with_capacity(bundle.uncertainty_simulation.draws_per_interval);
+        for _ in 0..bundle.uncertainty_simulation.draws_per_interval {
+            let qin_draw = q_in + u_q_in * mc_rng.standard_normal();
+            let qout_instr_draw = q_out + u_q_out_instrument * mc_rng.standard_normal();
+            let lag_draw = u_lag * mc_rng.standard_normal();
+            let qout_draw = qout_instr_draw + outfall_flow.temporal_rate_m3_s_per_s * lag_draw;
+            let cin_draw = pair.intake.concentration_mg_l + pair.intake.standard_uncertainty_mg_l * mc_rng.standard_normal();
+            let cout_draw = pair.outfall.concentration_mg_l
+                + pair.outfall.standard_uncertainty_mg_l * mc_rng.standard_normal()
+                + pair.outfall.temporal_rate_mg_l_per_s * lag_draw;
+            positive(qin_draw, "Monte Carlo intake flow")?;
+            positive(qout_draw, "Monte Carlo outfall flow")?;
+            positive(cin_draw, "Monte Carlo intake concentration")?;
+            positive(cout_draw, "Monte Carlo outfall concentration")?;
+            let draw = cout_draw * qout_draw - cin_draw * qin_draw;
+            finite(draw, "Monte Carlo net pollutant flux")?;
+            net_flux_draws.push(draw);
+        }
+        let net_flux_monte_carlo = summarize_distribution(
+            &mut net_flux_draws,
+            simulation_seed,
+            bundle.uncertainty_simulation.lower_95_percentile,
+            bundle.uncertainty_simulation.upper_95_percentile,
+        )?;
+        let net_flux_uncertainty_comparison = compare_uncertainty(
+            u_net,
+            net_flux_monte_carlo.standard_uncertainty,
+            bundle.uncertainty_simulation.maximum_relative_standard_uncertainty_difference_from_first_order,
+        )?;
         let resolution_ratio = net.abs() / u_net;
         let resolution_status = if resolution_ratio < 1.0 {
             "BELOW_1_STANDARD_UNCERTAINTY_UNRESOLVED"
@@ -670,6 +901,8 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
             net_added_standard_uncertainty_kg_day:u_net * 86.4,
             net_added_to_standard_uncertainty_ratio:resolution_ratio,
             net_flux_resolution_status:resolution_status.into(),
+            net_flux_monte_carlo,
+            net_flux_uncertainty_comparison,
         });
         let matching_plume: Vec<&PlumeConcentrationObservation> =
             interval.plume_concentration_observations.iter()
@@ -779,6 +1012,8 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
         thermal_power_standard_uncertainty_kw:u_thermal_kw,
         thermal_power_hydraulic_alignment_standard_uncertainty_kw:u_thermal_kw_lag,
         hydraulic_residence_time_standard_uncertainty_seconds:u_lag,
+        thermal_power_monte_carlo:thermal_monte_carlo,
+        thermal_power_uncertainty_comparison:thermal_uncertainty_comparison,
         station_anomalies,
         pollutant_station_anomalies,
         pollutant_results,
@@ -835,6 +1070,21 @@ fn validate(bundle: &Bundle) -> Result<Report, String> {
         || !bundle.pairing_contract.water_balance_screen.purpose.contains("not a discharge permit") {
         return Err("water-balance screen must remain a metrology check, not permit compliance".into());
     }
+    let simulation = &bundle.uncertainty_simulation;
+    if simulation.framework.trim().is_empty()
+        || simulation.framework_references.len() < 2
+        || simulation.algorithm != "deterministic_xorshift32_box_muller_v0_1"
+        || simulation.seed == 0
+        || simulation.draws_per_interval < 10_000
+        || !(0.0 < simulation.lower_95_percentile
+            && simulation.lower_95_percentile < simulation.upper_95_percentile
+            && simulation.upper_95_percentile < 1.0)
+        || !(0.0 < simulation.maximum_relative_standard_uncertainty_difference_from_first_order
+            && simulation.maximum_relative_standard_uncertainty_difference_from_first_order <= 0.20)
+        || !simulation.distribution_assumption.contains("common normal hydraulic-residence-time")
+        || !simulation.acceptance_rule.contains("no qualified measurement receipt") {
+        return Err("Monte Carlo uncertainty simulation contract incomplete or out of bounds".into());
+    }
     let mapping = &bundle.ogc_sensorthings_mapping;
     if mapping.standard != "OGC SensorThings API 2.0"
         || mapping.standard_url != "https://docs.ogc.org/is/23-019/23-019.html"
@@ -860,11 +1110,11 @@ fn validate(bundle: &Bundle) -> Result<Report, String> {
     let mut interval_ids = HashSet::new();
     let mut results = Vec::new();
     let mut total_thermal_kwh = 0.0;
-    for interval in &bundle.interval_records {
+    for (interval_index, interval) in bundle.interval_records.iter().enumerate() {
         if !interval_ids.insert(interval.interval_id.as_str()) {
             return Err(format!("duplicate interval_id {}", interval.interval_id));
         }
-        let result = validate_interval(bundle, interval)?;
+        let result = validate_interval(bundle, interval, interval_index)?;
         let start = parse_utc_timestamp(&interval.interval_start_utc)
             .ok_or_else(|| format!("interval {} start timestamp invalid", interval.interval_id))?;
         let end = parse_utc_timestamp(&interval.interval_end_utc)
@@ -928,6 +1178,23 @@ mod tests {
         serde_json::from_str(include_str!(
             "../../../docs/research/port-energy-compute/OCEAN_ENVIRONMENT_MEASUREMENT_BUNDLE_V0_1.json"
         )).expect("measurement bundle parses")
+    }
+    #[test]
+    fn monte_carlo_distribution_is_deterministic_for_a_fixed_seed() {
+        let mut a = DeterministicNormalRng::new(20261120);
+        let mut b = DeterministicNormalRng::new(20261120);
+        for _ in 0..100 {
+            assert_eq!(a.standard_normal().to_bits(), b.standard_normal().to_bits());
+        }
+        let report = validate(&fixture()).expect("fixture validates");
+        assert!(report.interval_results.iter().all(|interval|
+            interval.thermal_power_monte_carlo.draw_count == 50_000
+                && interval.thermal_power_uncertainty_comparison.relative_standard_uncertainty_difference <= 0.05
+                && interval.pollutant_results.iter().all(|p|
+                    p.net_flux_monte_carlo.draw_count == 50_000
+                        && p.net_flux_uncertainty_comparison.relative_standard_uncertainty_difference <= 0.05
+                )
+        ));
     }
     #[test]
     fn sha256_receipt_uses_standard_known_vector() {
