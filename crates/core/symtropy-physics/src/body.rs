@@ -2085,7 +2085,9 @@ mod nd_ball_mass_property_tests {
                 && (body.inertia[1] - expected).abs() < 1.0e-12
                 && (body.inertia[2] - expected).abs() < 1.0e-12
         );
-    }    #[test]
+    }
+
+    #[test]
     fn legacy_dynamic_sphere_alias_retains_three_dimensional_result() {
         let legacy = RigidBody::<3>::dynamic_sphere(
             BodyHandle(204),
