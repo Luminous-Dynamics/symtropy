@@ -194,9 +194,11 @@
     "pole_limit_K_160_over_alpha_sym_squared": true,
     "full_EGB_field_equations_independently_replayed": true,
     "Lanczos_tensor_formula_from_source_Eq3": true,
-    "all_25_EGB_frame_equations_exactly_zero": true
+    "all_25_EGB_frame_equations_exactly_zero": true,
+    "single_eta_wrong_index_raising_negative_control_rejected": true,
+    "independent_second_symbolic_EGB_contraction_crosscheck": true
   },
-  "claim_ceiling": "Independent Cartan coframe, Levi-Civita connection, Riemann/Ricci contractions, Lanczos tensor and exact local EGB field-equation replay for the source-reported near-horizon geometry. No global asymptotically-flat completion, finite horizon charges, hyperbolicity, or stability result is claimed.",
+  "claim_ceiling": "The coframe-derived Levi-Civita geometry and exact local Einstein-Gauss-Bonnet frame equations are independently checked by Cartan and a second symbolic Lanczos contraction. The global asymptotically-flat completion, compact finite-area horizon, finite standard charges, strong hyperbolicity and stability remain unestablished.",
   "gauss_bonnet": {
     "lagrangian_scalar": "6*(x^2*y^2+x^2*y*z+x^2*y_2+x^2*z^2+x^2*z_2+4*y^4+12*y^3*z+4*y^2*y_2+4*y^2*z^2+4*y^2*z_2+8*y*y_2*z)",
     "lanczos_tensor_nonzero_frame_components": {
@@ -236,5 +238,55 @@
     },
     "tensor_formula": "H_ab=2*(R*R_ab-2*R_ac*R^c_b-2*R^{cd}*R_acbd+R_a^{cde}*R_bcde)-0.5*eta_ab*L_GB",
     "index_raising_note": "R^{cd} is raised on both indices; for diagonal Ricci in an orthonormal frame R^{cc}=eta_c^2 R_cc=R_cc, so no single eta_c factor appears in that contraction."
+  },
+  "independent_crosscheck": {
+    "method": "Second SymPy 1.14.0 implementation evaluated the frozen Cartan curvature 2-forms, formed R_ab, R, L_GB, G_ab and H_ab from the tensor contractions, then rationalized with x^2,y^2,z^2,y*z,y_2,z_2.",
+    "python": "3.13.5",
+    "exact_domain": "alpha_sym>0, 0<beta<1, 0<c=cos(theta)^2<1",
+    "field_equation": "G_ab + alpha_sym/4*H_ab",
+    "all_25_components_exactly_zero": true,
+    "exact_zero_component_count": 25,
+    "negative_control": "Insert a single eta_c in R^{cc}*R_{a c b c}, incorrectly raising Ricci only once",
+    "wrong_residuals_general": {
+      "1,1": "-32/(alpha_sym*(beta*c^2-1)*(beta*c^2+1)^2)",
+      "2,2": "32/(alpha_sym*(beta*c^2-1)^2*(beta*c^2+1))",
+      "3,3": "32/(alpha_sym*(beta*c^2-1)^2*(beta*c^2+1))",
+      "4,4": "-32/(alpha_sym*(beta*c^2-1)*(beta*c^2+1)^2)"
+    },
+    "wrong_residual_count": 4,
+    "exact_sample": {
+      "alpha_sym": "1",
+      "beta": "1/2",
+      "c": "1/2"
+    },
+    "wrong_residuals_sample": {
+      "0,0": "0",
+      "0,1": "0",
+      "0,2": "0",
+      "0,3": "0",
+      "0,4": "0",
+      "1,0": "0",
+      "1,1": "16384/567",
+      "1,2": "0",
+      "1,3": "0",
+      "1,4": "0",
+      "2,0": "0",
+      "2,1": "0",
+      "2,2": "16384/441",
+      "2,3": "0",
+      "2,4": "0",
+      "3,0": "0",
+      "3,1": "0",
+      "3,2": "0",
+      "3,3": "16384/441",
+      "3,4": "0",
+      "4,0": "0",
+      "4,1": "0",
+      "4,2": "0",
+      "4,3": "0",
+      "4,4": "16384/567"
+    },
+    "index_raising_explanation": "For a diagonal covariant Ricci tensor in a Lorentzian orthonormal frame, R^{cc}=eta_c*eta_c*R_cc=R_cc. A lone eta_c is an invalid single raise.",
+    "independence_boundary": "This second calculation consumes the frozen Cartan curvature forms; it independently checks the Lanczos contractions and rationalized EGB residuals, not an independently constructed coordinate-basis Riemann tensor."
   }
 }
