@@ -91,6 +91,9 @@
         },
         {
           "$ref": "#/$defs/capacity_reservation_released"
+        },
+        {
+          "$ref": "#/$defs/composite_resource_reservation_committed"
         }
       ]
     }
@@ -1208,6 +1211,26 @@
         },
         "release_receipt_sha256": {
           "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "composite_resource_reservation_committed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "exclusive_reservation",
+        "capacity_commit"
+      ],
+      "properties": {
+        "kind": {
+          "const": "composite_resource_reservation_committed"
+        },
+        "exclusive_reservation": {
+          "$ref": "#/$defs/space_time_reservation"
+        },
+        "capacity_commit": {
+          "$ref": "#/$defs/capacity_reservation_commit"
         }
       }
     }
