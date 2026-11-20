@@ -41,13 +41,24 @@ where `k=UA/C`, `theta_c=(1-alpha)Q0/UA`, `a=((1-alpha)A/C) k/(k^2+omega^2)`, `b
 
 The integral of the sinusoidal input, sinusoidal temperature terms and exponential transient is evaluated analytically. The implementation uses midpoint/sinc forms for trigonometric interval integrals to avoid cancellation for narrow communication windows, and `expm1` for the exponential transient integral.
 
-### C. Zero-order-hold communication ladder
 
-The crate also samples the same sinusoidal source at each communication interval's left endpoint and holds that input constant over the interval. It solves each held interval exactly, then compares the final temperature against the continuous sinusoidal reference. A frozen 15-to-960-step ladder in the JSON fixture shows the expected approximately first-order global convergence of left-endpoint zero-order hold for this smooth input. This is a mathematical discretization study, not an OMSimulator or commercial-master performance result.
+### C. Exact interval-average flux exchange
+
+The reference also computes the exact average of the sinusoidal source over each communication interval:
+
+`Q_bar[k] = (1 / dt) * integral(Q_source(t), t_k..t_(k+1))`
+
+The receiver holds this average constant during the interval and applies the exact piecewise-constant state transition. Therefore the energy supplied during each interval is exact for the declared sinusoidal source, even though the thermal trajectory remains an approximation to continuous forcing.
+
+This is a conservative *oracle/method reference*, not a universally causal master policy. It requires a known/forecast waveform or a source FMU that can publish an integrated interval flux. A generic importer cannot infer the future interval integral from a single point sample. The frozen fixture compares it with left-endpoint zero-order hold over the same 15–960 communication grids: at 15 steps, endpoint error falls from about 0.01019 K to 0.0001283 K (about 79.4× lower), and the observed global convergence is approximately second order. These are oracle calculations, not measured OMSimulator or commercial-tool results.
+
+### D. Zero-order-hold communication ladder
+
+The crate also samples the same sinusoidal source at each communication interval's left endpoint and holds that input constant over the interval. It solves each held interval exactly, then compares the final temperature against the continuous sinusoidal reference. A frozen 15-to-960-step ladder in the JSON fixture shows the expected approximately first-order global convergence of left-endpoint zero-order hold. This is a mathematical discretization study, not an OMSimulator or commercial-master performance result.
 
 ## Frozen known answers
 
-The machine-readable inputs, decimal reference values and zero-order-hold grid errors are in `fixtures/known-answers.v0.1.json`. Rust tests verify the frozen cases, partition invariance for constant inputs, zero-amplitude reduction, monotonic grid refinement and approximately first-order communication convergence.
+The machine-readable inputs, decimal reference values and both communication-grid ladders are in `fixtures/known-answers.v0.1.json`. Rust tests verify the frozen cases, partition invariance for constant inputs, zero-amplitude reduction, exact interval-average source energy, monotonic grid refinement, and first- versus second-order convergence.
 
 ## Run
 
