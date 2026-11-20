@@ -49,6 +49,7 @@ jobs:
           path: |
             research/geofusion-analytic-fmu-pair-v0.1/build/stage/*.fmu
             research/geofusion-analytic-fmu-pair-v0.1/build/stage/artifact-digests.sha256
+            research/geofusion-analytic-fmu-pair-v0.1/build/stage/fmi3-api-transcript.json
             research/geofusion-analytic-fmu-pair-v0.1/build/GeothermalSource.so
             research/geofusion-analytic-fmu-pair-v0.1/build/HeatExchangerBuffer.so
           if-no-files-found: error
