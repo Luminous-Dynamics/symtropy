@@ -139,7 +139,13 @@ Malformed/non-finite/inverted numerical intervals, invalid negative timing bound
 
 No energy integral is emitted by this M1 crate. A future energy result must include a separate, validated sampling/interpolation/quadrature error bound and preserve time-varying power intervals.
 
-## 6. Synthetic known-answer fixtures
+## 6. Machine-readable evidence contract
+
+The authoritative JSON Schema is `synchronized_port_metrology.schema.json`. It validates the three-record batch structure and the complete torque/velocity channel fields, including canonical units, interval objects, calibration and traceability metadata, timing inputs, slew-bound provenance, system boundary and operating conditions. The schema checks shape and declared enums only; it cannot establish that an external certificate, raw-trace digest, clock mapping or slew bound is genuine or fit for purpose.
+
+The companion known-answer file is `examples/synchronized-port-known-answer.json`. All scenario IDs and measurement provenance are explicitly synthetic.
+
+## 7. Synthetic known-answer fixtures
 
 `examples/synchronized-port-known-answer.json` contains three synthetic records:
 
@@ -149,7 +155,7 @@ No energy integral is emitted by this M1 crate. A future energy result must incl
 
 The measurement IDs, sensor serials, certificate/reference URIs, raw-trace digests, calibration entries and source records are synthetic placeholders. No traceable physical or actuator performance measurement is represented.
 
-## 7. Run
+## 8. Run
 
 Dependency-free crate, Rust 1.96:
 
@@ -163,7 +169,7 @@ Dedicated workflow: .github/workflows/actuator-synchronized-metrology.yml. The l
 
 Twenty-nine Rust tests cover rectangular interval multiplication, negative, zero-crossing and reverse-quadrant power, clock/slew expansion, filter-delay compensation, expired calibration, serial mismatch, incomplete traceability, different clocks/instants, uncertainty-vs-bound semantics, boundary/condition mismatch, missing slew provenance, calibration range limits, preserved vendor evidence, wrong channel kinds, invalid intervals, traceability/clock-map abstention, raw-trace receipt preservation, signed filter group delay, timing overflow, time-expanded sensor-range violation, unit mismatch rejection, and valid use of a calibrated subrange narrower than the sensor hardware range.
 
-## 8. M0–M5 promotion
+## 9. M0–M5 promotion
 
 - **M0:** inventory measurands, sensor chains, clocks, system boundaries, calibration and uncertainty sources.
 - **M1:** bounded synchronized-port arithmetic and fail-closed provenance semantics.
@@ -172,6 +178,6 @@ Twenty-nine Rust tests cover rectangular interval multiplication, negative, zero
 - **M4:** synchronized versus deliberately skewed dynamic task/impact traces with independently measured timing error.
 - **M5:** calibration drift, transducer overload, remounting and post-service requalification.
 
-## 9. Claim ceiling
+## 10. Claim ceiling
 
 M1 computes a bounded instantaneous mechanical-port power interval from externally supplied bounds. It does not calibrate sensors, establish traceability, validate slew or clock bounds, infer electrical regeneration, integrate energy, qualify a dynamometer or establish human-robot safety. Physical evaluation needs a separate metrology/test plan, competent operators, rated guarded fixtures, traceable calibrations and predeclared stop limits.
