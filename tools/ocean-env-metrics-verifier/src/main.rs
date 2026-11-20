@@ -90,6 +90,7 @@ fn validate(catalog: &Value) -> Result<String, String> {
         "claim_ceiling", "primary_standard", "supporting_standards", "official_metrics",
         "marine_extension_metrics", "sensor_package", "site_evidence_record_contract",
         "spatial_sampling_design", "non_compensatory_gates", "aggregation_policy",
+        "goos_eov_alignment", "biodiversity_data_interoperability",
     ].into_iter().collect();
     for key in catalog.as_object().unwrap().keys() {
         if !allowed_root.contains(key.as_str()) {
