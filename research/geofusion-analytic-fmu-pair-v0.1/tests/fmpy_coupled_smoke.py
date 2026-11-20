@@ -290,6 +290,19 @@ def main() -> int:
         raise AssertionError(f"unexpected API transcript cardinality: steps={len(steps)} sets={len(sets)}")
     if len([e for e in gets if e["status"] == "ok"]) != 4:
         raise AssertionError("expected four successful Float64 get calls (two source, two exchanger)")
+    successful_hx_gets = [
+        event for event in gets
+        if event["status"] == "ok" and event["federate_id"] == "heat-exchanger-buffer"
+    ]
+    if len(successful_hx_gets) != 2:
+        raise AssertionError("expected two successful heat-exchanger output observations")
+    for index, event in enumerate(successful_hx_gets, start=1):
+        if event["payload"]["value_references"] != [31, 32, 33, 34]:
+            raise AssertionError("heat-exchanger getFloat64 must preserve all three fluxes and stored-energy state")
+        state_value = event["payload"]["values"][3]
+        expected_energy_j = 10_000.0 * index
+        if state_value["value"] != expected_energy_j or state_value["raw_f64_bits"] != f64_bits(expected_energy_j):
+            raise AssertionError("stored-energy state observation differs from the frozen interval-end answer")
     if not any(e["function"] == "fmi3GetFloat64" and e["status"] in ("error", "exception")
                for e in events):
         raise AssertionError("the invalid value-reference call was not preserved as a failed API event")
