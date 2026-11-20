@@ -1505,8 +1505,8 @@ mod tests {
         fn make_b() -> RigidBody<3> {
             let operator = RotationalInertiaOperator::<3>::try_from_row_major(vec![
                 2.0, -0.2, 0.1,
-                -0.2, 5.0, 0.3,
-                0.1, 0.3, 3.0,
+                -0.2, 4.6, 0.3,
+                0.1, 0.3, 3.4,
             ])
             .unwrap();
             let mut body = RigidBody::<3>::dynamic_sphere(
