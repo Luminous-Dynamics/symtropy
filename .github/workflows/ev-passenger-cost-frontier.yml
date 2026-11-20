@@ -35,6 +35,8 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_design_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/schemas/ev_carrier_module_processes_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_processes_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/schemas/ev_carrier_lifecycle_profiles_v0_1.schema.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_carrier_lifecycle_profiles_v0_1.json
           jq -e '
             .benchmark_id == "EV-PUBLIC-COMPONENT-BENCHMARKS-001"
             and .observed_as_of == "2026-10-20"
@@ -121,7 +123,27 @@ jobs:
             and all(.results[] | select(.config_id == "mobile-drone-station-trailer-production-intent-unknown"); .status == "indeterminate" and .equivalent_good_vehicle_capacity_per_year == null)
             and all(.results[]; .base_factory_production_release_ready == false)
           ' ev-carrier-module-factory-report.json
-          sha256sum \
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_carrier_lifecycle_screen -- \
+            ev-carrier-module-factory-report.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_carrier_lifecycle_profiles_v0_1.json \
+            > ev-carrier-lifecycle-report.json
+          jq -e '
+            .benchmark_id == "EV-CARRIER-LIFECYCLE-001"
+            and .base_factory_benchmark_id == "EV-FACTORY-DESIGN-001"
+            and .scenario_count == 144
+            and .result_count == 180
+            and ([.results[].config_id] | unique | length == 5)
+            and ([.results[] | select(.architecture == "truck_only_baseline")] | length == 36)
+            and ([.results[] | select(.architecture == "mobile_drone_station_trailer")] | length == 36)
+            and ([.results[] | select(.architecture == "integrated_enclosed_bay")] | length == 36)
+            and all(.results[]; .whole_life_cost_ranking_eligible == false)
+            and all(.results[]; .module_production_release_ready == false)
+            and all(.results[] | select(.architecture == "truck_only_baseline"); .total_annual_direct_service_cost == 0 and .base_vehicle_maintenance_included == false)
+            and all(.results[] | select(.architecture == "detachable_drone_pod" or .architecture == "amr_cargo_handoff"); .planned_annual_direct_cost != null and .unplanned_annual_direct_cost == null and .total_annual_direct_service_cost == null and .single_module_downtime_fraction == null)
+            and all(.results[] | select(.architecture == "integrated_enclosed_bay" or .architecture == "mobile_drone_station_trailer"); .status == "indeterminate" and .total_annual_direct_service_cost == null)
+            and all(.results[]; .release_attempt_without_complete_evidence_count == 0)
+          ' ev-carrier-lifecycle-report.json
+sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_component_public_benchmarks_v0_1.json \
@@ -135,7 +157,11 @@ jobs:
             tools/ev-passenger-cost-frontier/src/carrier_module_factory.rs \
             tools/ev-passenger-cost-frontier/src/lib.rs \
             tools/ev-passenger-cost-frontier/src/bin/ev_carrier_module_factory_screen.rs \
-            ev-passenger-cost-report.json ev-localization-cost-report.json ev-factory-design-report.json ev-carrier-module-factory-report.json > ev-passenger-cost-report.sha256
+            tools/ev-passenger-cost-frontier/schemas/ev_carrier_lifecycle_profiles_v0_1.schema.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_carrier_lifecycle_profiles_v0_1.json \
+            tools/ev-passenger-cost-frontier/src/carrier_lifecycle.rs \
+            tools/ev-passenger-cost-frontier/src/bin/ev_carrier_lifecycle_screen.rs \
+            ev-passenger-cost-report.json ev-localization-cost-report.json ev-factory-design-report.json ev-carrier-module-factory-report.json ev-carrier-lifecycle-report.json > ev-passenger-cost-report.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: ev-passenger-cost-frontier-report
@@ -144,7 +170,10 @@ jobs:
             ev-localization-cost-report.json
             ev-factory-design-report.json
             ev-carrier-module-factory-report.json
+            ev-carrier-lifecycle-report.json
             tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_processes_v0_1.json
+            tools/ev-passenger-cost-frontier/schemas/ev_carrier_lifecycle_profiles_v0_1.schema.json
+            tools/ev-passenger-cost-frontier/fixtures/ev_carrier_lifecycle_profiles_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/ev_carrier_module_processes_v0_1.schema.json
             ev-passenger-cost-report.sha256
           if-no-files-found: error
