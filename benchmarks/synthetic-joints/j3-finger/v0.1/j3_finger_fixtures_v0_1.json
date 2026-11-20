@@ -1,0 +1,115 @@
+{
+  "schema": "luminous.synthetic_joint_j3_finger_fixtures",
+  "version": "0.1.0",
+  "evidence_class": "source_transcription_plus_synthetic_analytic_known_answer",
+  "source_reference": {
+    "name": "PACT: Pose-Robust Actuation Co-Design for Tendon-Driven Robotic Hands",
+    "citation": "Kumar et al., arXiv:2611.05302 (2026-11-03)",
+    "status": "arxiv_preprint",
+    "finger_dof": 4,
+    "flexion_tendon_count": 4,
+    "abduction_adduction_actuator_count": 1,
+    "tendon_topology": "N+1 asymmetric pull-only flexion tendons",
+    "pose_library": [
+      {"id": 1, "name": "small_tip_pinch", "joint_angles_deg": [0, 60, 60, 30]},
+      {"id": 2, "name": "medium_pad_pinch", "joint_angles_deg": [0, 45, 45, 20]},
+      {"id": 3, "name": "large_pad_pinch", "joint_angles_deg": [0, 25, 30, 15]},
+      {"id": 4, "name": "medium_tripod", "joint_angles_deg": [0, 40, 50, 25]},
+      {"id": 5, "name": "small_tripod", "joint_angles_deg": [0, 55, 60, 30]},
+      {"id": 6, "name": "extended_reach", "joint_angles_deg": [0, 15, 20, 10]},
+      {"id": 7, "name": "deep_flexion", "joint_angles_deg": [0, 70, 70, 35]},
+      {"id": 8, "name": "abducted_pinch", "joint_angles_deg": [15, 45, 45, 20]}
+    ],
+    "routing_matrix_units": "m of tendon travel per radian of joint motion (source moment arms converted from mm to m)",
+    "routing_matrix_rows": ["MCP_AA", "MCP_FE", "PIP_FE", "DIP_FE"],
+    "routing_matrix_columns": ["m1", "m2", "m3", "M"],
+    "routing_matrix_m": [
+      [0.0030, -0.0030, 0.0, 0.0],
+      [0.0069, -0.0030, -0.0080, 0.0056],
+      [-0.0034, -0.0030, 0.0, 0.0046],
+      [-0.0069, 0.0, 0.0, 0.0031]
+    ],
+    "capstan_diameters_mm": [12.7, 11.0, 13.0, 36.0],
+    "low_torque_actuator": {
+      "motor": "GB2204",
+      "assigned_tendons": ["m1", "m2", "m3"],
+      "gear_ratio": 5.0,
+      "rotor_inertia_kg_m2": 6.8e-7,
+      "continuous_output_torque_Nm": 0.14,
+      "peak_output_torque_Nm": 0.40,
+      "output_speed_rpm": 512
+    },
+    "high_torque_actuator": {
+      "motor": "RobStride QDD-05",
+      "assigned_tendon": "M",
+      "gear_ratio": 7.75,
+      "rotor_inertia_kg_m2": 3.0e-6,
+      "continuous_output_torque_Nm": 1.14,
+      "peak_output_torque_Nm": 5.4,
+      "output_speed_rpm": 480
+    },
+    "source_task_requirements": {
+      "opposing_truncated_coulomb_friction_cones_mu": 0.5,
+      "palmar_force_limit_N": 15.0,
+      "dorsal_force_limit_N": 4.0,
+      "minimum_isolated_flexion_extension_bandwidth_Hz": 5.0
+    },
+    "reported_optimization_results": {
+      "baseline_minimum_pose_coverage": 0.24,
+      "shared_design_minimum_pose_coverage": 0.88,
+      "shared_design_maximum_pose_coverage": 1.0,
+      "minimum_predicted_FE_bandwidth_Hz": 5.0,
+      "post_loss_worst_pose_coverage": 0.75,
+      "force_magnitude_below_frictionless_prediction_percent": 24.5,
+      "force_direction_error_deg": 14.82,
+      "effective_joint_transmission_efficiencies": {
+        "MCP": 0.86,
+        "PIP": 0.76,
+        "DIP": 0.68
+      }
+    },
+    "physical_validation_boundary": {
+      "validated_pose_ids": [1],
+      "actuator_current_limit_fraction_of_peak": 0.5,
+      "steady_state_sample_duration_s": 5.0,
+      "repetitions_per_actuator_combination": 5,
+      "fingertip_instrument": "six-axis ATI Mini40 load cell",
+      "whole_hand_grasp_stability_validated": false
+    }
+  },
+  "synthetic_fixtures": [
+    {
+      "id": "j3-001",
+      "case": "identity_routing_directional_force_limit",
+      "routing_matrix": [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],
+      "fingertip_jacobian": [[1,0,0,0],[0,1,0,0],[0,0,1,0]],
+      "unit_force_direction": [1,0,0],
+      "tendon_max_tensions_N": [10,10,10,10],
+      "max_abduction_torque_Nm": 2.0,
+      "expected": {
+        "directional_force_capacity_N": 12.0,
+        "tendon_tensions_N": [10,0,0,0],
+        "abduction_torque_Nm": 2.0
+      }
+    },
+    {
+      "id": "j3-002",
+      "case": "virtual_work",
+      "routing_matrix": [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],
+      "joint_velocity_rad_s": [0.1,0.2,-0.1,0.3],
+      "tendon_tensions_N": [10,20,30,40],
+      "abduction_torque_Nm": 2.0,
+      "expected": {
+        "tendon_length_rates_m_s": [-0.1,-0.2,0.1,-0.3],
+        "joint_power_W": 14.2,
+        "actuator_power_W": 14.2
+      }
+    }
+  ],
+  "negative_controls": [
+    {"id":"j3-negative-001","case":"rank_deficient_routing_matrix","expected":"reject_inverse_and_force_capacity"},
+    {"id":"j3-negative-002","case":"unreachable_task_direction","expected":"reject_zero_joint_torque_direction"},
+    {"id":"j3-negative-003","case":"negative_tendon_limit_or_non_unit_force_direction","expected":"reject_input"},
+    {"id":"j3-negative-004","case":"non_finite_actuator_limit","expected":"reject_input"}
+  ]
+}
