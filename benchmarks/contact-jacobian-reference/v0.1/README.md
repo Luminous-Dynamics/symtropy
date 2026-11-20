@@ -25,7 +25,7 @@ This reference uses explicit 3D vector/matrix arithmetic and the standard cross 
 ## Known-answer fixtures
 
 - **Isotropic sphere:** 2 kg, radius 0.5 m; inverse effective mass is 1.75 kg^-1.
-- **Anisotropic cuboid:** 2 kg, dimensions 2 x 1 x 0.5 m; selected face contact gives 0.8 kg^-1 rather than the spherical shortcut's 1.75 kg^-1.
+- **Anisotropic cuboid:** 2 kg, dimensions 2 x 1 x 0.5 m; selected face contact gives 0.8 kg^-1. If its principal moments are passed to a scalar mean-of-reciprocal-axes approximation, that shortcut gives 1.117647 kg^-1. This comparison is conditional because the current production vector's frame semantics still need the M0/M2 API audit.
 - **Rotated cuboid:** rotating inertia, contact point and normal together preserves effective mass.
 - **Endpoint composition:** a fixed endpoint contributes zero; dynamic/dynamic contact adds both endpoint responses.
 - **Work closure:** midpoint contact work equals pair kinetic-energy change from rest for equal-and-opposite impulses.
