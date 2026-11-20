@@ -1010,7 +1010,7 @@ mod tests {
             unit("B", interval(5.0, 6.0), interval(41.0, 43.0)),
         ])).unwrap();
         let assessment = &report.unit_assessments[0];
-        assert_eq!(assessment.torque_source_reference.as_deref(), Some("https://example.invalid/torque/A"));
+        assert_eq!(assessment.torque_source_reference.as_deref(), Some("urn:synthetic:paired-actuator-sharing:v0.1:torque:A"));
         assert_eq!(assessment.capability_digest.as_deref(), Some("capability-A-v1"));
         assert_eq!(assessment.current_calibration_digest.as_deref(), Some("current-cal-A"));
         assert_eq!(assessment.thermal_calibration_digest.as_deref(), Some("cal-temperature-A"));
