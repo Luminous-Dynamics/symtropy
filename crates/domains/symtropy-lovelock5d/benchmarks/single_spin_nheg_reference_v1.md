@@ -137,6 +137,23 @@ At fixed \(\beta\), using \(a^2=\beta\alpha_{sym}/2\),
 \]
 The source notes that the standard entropy and \(J_\psi\) integrals are therefore infinite/ill-defined in this local geometry under the standard integration prescription. This does not get repaired by a finite scalar curvature invariant.
 
+The cutoff is not merely sampled numerically. With
+[
+c(\beta)=\frac{\pi(1-\beta)}{2\sqrt{2(1+\beta)}},
+]
+the exact dimensionless cap area obeys
+[
+\frac{A_H(\epsilon)}{\alpha_{sym}^{3/2}\Delta\psi}
+=c(\beta)(\epsilon^{-2}+\beta\epsilon^2-1-\beta),
+]
+and hence
+[
+\frac{\epsilon^2A_H(\epsilon)}
+{\alpha_{sym}^{3/2}\Delta\psi\,c(\beta)}
+=1-(1+\beta)\epsilon^2+\beta\epsilon^4.
+]
+The machine fixture includes 20 cutoff checks for four couplings and five angular cutoffs. This exact ratio converges quadratically to one as the cutoff approaches the pole, while the unscaled area diverges as \(\epsilon^{-2}\).
+
 ## 6. Paradigm shift: report a regularity vector, never one boolean
 
 Every candidate should carry independent outcomes:
