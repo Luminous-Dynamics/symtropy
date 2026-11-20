@@ -114,10 +114,22 @@ jobs:
           base = "research/av-long-horizon-evidence-v0/"
           submission_schema = json.load(open(base + "schemas/submission-v1.schema.json", encoding="utf-8"))
           scorecard_schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
-          Draft202012Validator.check_schema(submission_schema)
-          Draft202012Validator.check_schema(scorecard_schema)
+          arm_schema = json.load(open(base + "schemas/memory-arm-run-v1.schema.json", encoding="utf-8"))
+          tournament_schema = json.load(open(base + "schemas/memory-tournament-scorecard-v1.schema.json", encoding="utf-8"))
+          for schema in (submission_schema, scorecard_schema, arm_schema, tournament_schema):
+              Draft202012Validator.check_schema(schema)
           submission = json.load(open(base + "fixtures/agent/reference-submission-v1.json", encoding="utf-8"))
           Draft202012Validator(submission_schema).validate(submission)
+          arms = [
+              "memory-arm-recent-window-v1.json",
+              "memory-arm-summary-only-v1.json",
+              "memory-arm-episodic-retrieval-v1.json",
+              "memory-arm-evidence-ledger-v1.json",
+          ]
+          for filename in arms:
+              run = json.load(open(base + "fixtures/agent/" + filename, encoding="utf-8"))
+              Draft202012Validator(arm_schema).validate(run)
+              Draft202012Validator(submission_schema).validate(run["submission"])
           PY
       - name: Run long-horizon evaluator unit and adversarial tests
         run: python -m unittest discover -s tools/av-modality-necessity-evaluator -p "test_long_horizon_evaluate.py" -v
@@ -144,4 +156,37 @@ jobs:
           assert actual["totals"]["answer_correct_count"] == 8
           assert actual["totals"]["decision_correct_count"] == 9
           assert actual["totals"]["hard_violation_count"] == 0
+          PY
+
+      - name: Run matched four-condition memory tournament tests
+        run: python -m unittest discover -s tools/av-modality-necessity-evaluator -p "test_compare_memory_conditions.py" -v
+      - name: Run recent-window / summary / episodic / evidence-ledger tournament
+        run: |
+          python tools/av-modality-necessity-evaluator/compare_memory_conditions.py \
+            --workload research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json \
+            --truth research/av-long-horizon-evidence-v0/fixtures/evaluator-only/truth-v1.json \
+            --recent-window research/av-long-horizon-evidence-v0/fixtures/agent/memory-arm-recent-window-v1.json \
+            --summary-only research/av-long-horizon-evidence-v0/fixtures/agent/memory-arm-summary-only-v1.json \
+            --episodic-retrieval research/av-long-horizon-evidence-v0/fixtures/agent/memory-arm-episodic-retrieval-v1.json \
+            --evidence-ledger research/av-long-horizon-evidence-v0/fixtures/agent/memory-arm-evidence-ledger-v1.json \
+            --output /tmp/av-long-horizon-memory-tournament.json
+      - name: Validate matched memory tournament known answers
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-long-horizon-evidence-v0/"
+          schema = json.load(open(base + "schemas/memory-tournament-scorecard-v1.schema.json", encoding="utf-8"))
+          actual = json.load(open("/tmp/av-long-horizon-memory-tournament.json", encoding="utf-8"))
+          expected = json.load(open(base + "fixtures/expected/memory-tournament-summary-v1.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(actual)
+          for condition, metrics in expected["per_condition"].items():
+              for key, value in metrics.items():
+                  assert actual["per_condition"][condition][key] == value, (condition, key, actual["per_condition"][condition][key], value)
+          for comparison, metrics in expected["paired"].items():
+              for key, value in metrics.items():
+                  assert actual["evidence_ledger_paired_comparisons"][comparison][key] == value, (comparison, key)
+          for condition, resource in actual["per_condition"].items():
+              assert resource["resource_usage"]["measurement_status"] == "synthetic_reference"
+              assert resource["resource_usage"]["memory_bytes_total"] is None
           PY
