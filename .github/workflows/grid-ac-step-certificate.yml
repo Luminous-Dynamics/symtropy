@@ -62,6 +62,25 @@ jobs:
                   assert receipt["topologyStateSha256"] == planner[step["stepId"]]["topologyStateSha256"]
                   assert receipt["dispatchStateSha256"] == planner[step["stepId"]]["dispatchStateSha256"]
 
+                  declared = set(case["networkModel"]["requiredConstraintTypes"])
+                  assessed = [item for item in receipt["constraintAssessments"] if item["status"] != "not_applicable"]
+                  assessed_types = {item["constraintType"] for item in assessed}
+                  assert declared <= assessed_types, f"{name}/{step['stepId']}: omitted required AC constraint category"
+                  for item in assessed:
+                      if item["status"] == "pass":
+                          assert item["margin"] >= 0, f"{name}/{step['stepId']}: pass with negative margin"
+                      if item["status"] == "fail":
+                          assert item["margin"] < 0, f"{name}/{step['stepId']}: fail without negative margin"
+                  if receipt["solverStatus"] == "converged":
+                      assert receipt["convergence"]["iterationCount"] > 0
+                      assert receipt["convergence"]["powerBalanceResidual"] <= receipt["convergence"]["residualTolerance"]
+                  if receipt["operatingPointStatus"] == "feasible":
+                      assert receipt["solverStatus"] == "converged"
+                      assert all(item["status"] in ("pass", "not_applicable") for item in receipt["constraintAssessments"])
+                      assert receipt["sourceCoverage"]["allIslandsHaveQualifiedSource"] is True
+                  if receipt["solverStatus"] in ("not_converged", "error", "not_run"):
+                      assert receipt["operatingPointStatus"] == "unknown"
+
               if name == "accepted-static-ac-only":
                   assert all(item["solverStatus"] == "converged" and item["operatingPointStatus"] == "feasible" for item in receipts)
                   assert case["intertemporalReceipt"]["status"] == "accepted"
