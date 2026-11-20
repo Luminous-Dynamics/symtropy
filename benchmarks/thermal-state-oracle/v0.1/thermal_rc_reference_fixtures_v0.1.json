@@ -1,0 +1,77 @@
+{
+  "schema_version": "0.1.0",
+  "model_class": "single_node_linear_thermal_rc",
+  "claim_ceiling": "Synthetic analytic fixtures only. These values do not identify or validate a physical actuator thermal model.",
+  "fixtures": [
+    {
+      "id": "cooling_tau_one",
+      "description": "Zero-power cooling over one thermal time constant.",
+      "parameters": {
+        "heat_capacity_j_per_k": 100.0,
+        "conductance_w_per_k": 10.0,
+        "initial_temperature_c": 30.0,
+        "ambient_temperature_c": 20.0,
+        "heat_loss_w": 0.0,
+        "duration_s": 10.0
+      },
+      "expected_final_temperature_c": 23.678794411714423,
+      "expected_tolerance_c": 1e-12
+    },
+    {
+      "id": "heating_halfway_to_equilibrium",
+      "description": "Constant heating over ln(2) thermal time constants.",
+      "parameters": {
+        "heat_capacity_j_per_k": 100.0,
+        "conductance_w_per_k": 10.0,
+        "initial_temperature_c": 20.0,
+        "ambient_temperature_c": 20.0,
+        "heat_loss_w": 50.0,
+        "duration_s": 6.931471805599453
+      },
+      "expected_final_temperature_c": 22.5,
+      "expected_tolerance_c": 1e-12
+    },
+    {
+      "id": "adiabatic_heating",
+      "description": "Zero-conductance limit with constant heat input.",
+      "parameters": {
+        "heat_capacity_j_per_k": 100.0,
+        "conductance_w_per_k": 0.0,
+        "initial_temperature_c": 20.0,
+        "ambient_temperature_c": 20.0,
+        "heat_loss_w": 20.0,
+        "duration_s": 5.0
+      },
+      "expected_final_temperature_c": 21.0,
+      "expected_tolerance_c": 1e-12
+    },
+    {
+      "id": "cold_start_time_to_limit",
+      "description": "Cold-start time to 25 C for a constant 60 W heat input.",
+      "parameters": {
+        "heat_capacity_j_per_k": 100.0,
+        "conductance_w_per_k": 10.0,
+        "initial_temperature_c": 20.0,
+        "ambient_temperature_c": 20.0,
+        "heat_loss_w": 60.0,
+        "limit_temperature_c": 25.0
+      },
+      "expected_time_to_limit_s": 17.91759469228055,
+      "expected_tolerance_s": 1e-12
+    },
+    {
+      "id": "hot_start_time_to_limit",
+      "description": "Hot-start time to the same 25 C limit under the same heat input.",
+      "parameters": {
+        "heat_capacity_j_per_k": 100.0,
+        "conductance_w_per_k": 10.0,
+        "initial_temperature_c": 23.0,
+        "ambient_temperature_c": 20.0,
+        "heat_loss_w": 60.0,
+        "limit_temperature_c": 25.0
+      },
+      "expected_time_to_limit_s": 10.986122886681098,
+      "expected_tolerance_s": 1e-12
+    }
+  ]
+}
