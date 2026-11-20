@@ -1396,6 +1396,76 @@ fn verify_final_service_trajectory_bundle(
     Ok((trajectory, service_report))
 }
 
+fn add_service_source_attestations(
+    trajectory: &ServiceTrajectoryRecord,
+    receipt: &RunReceipt,
+    case_sha256: &str,
+    proposal_set_sha256: &str,
+    producer_profiles: &[ClaimProducerProfile],
+    expected_artifacts: &mut BTreeMap<String, String>,
+    requirements: &mut Vec<ExpectedAttestationBinding>,
+    errors: &mut Vec<String>,
+) {
+    let evidence_provider_id = trajectory
+        .producer
+        .evidence_provider_id
+        .as_deref()
+        .unwrap_or_default();
+    let evidence_profile = match profile_for(
+        producer_profiles,
+        SignerRole::EvidenceProvider,
+        evidence_provider_id,
+    ) {
+        Ok(profile) => profile.clone(),
+        Err(error) => {
+            errors.push(format!("service evidence producer profile: {error}"));
+            return;
+        }
+    };
+    let service_profile = match profile_for_role(
+        producer_profiles,
+        SignerRole::ServiceProvider,
+    ) {
+        Ok(profile) => profile,
+        Err(error) => {
+            errors.push(format!("service trajectory producer profile: {error}"));
+            return;
+        }
+    };
+
+    if evidence_profile.issuer_id == service_profile.issuer_id {
+        errors.push(
+            "service source EvidenceProvider and derived ServiceProvider must be distinct producer identities"
+                .to_string(),
+        );
+        return;
+    }
+
+    let parents = canonical_parent_digests(vec![
+        case_sha256.to_string(),
+        proposal_set_sha256.to_string(),
+    ]);
+    for source in &trajectory.source_artifacts {
+        add_attested_artifact(
+            expected_artifacts,
+            requirements,
+            &source.artifact_ref,
+            &source.sha256,
+            SignerRole::EvidenceProvider,
+            &evidence_profile.issuer_id,
+            "power-restoration/service-source-evidence/v1",
+            &receipt.run_id,
+            case_sha256,
+            0,
+            proposal_set_sha256,
+            &evidence_profile.tool_source_commit,
+            &evidence_profile.tool_configuration_sha256,
+            parents.clone(),
+            errors,
+        );
+    }
+}
+
 pub fn verify_restoration_claim_evidence(
     bundle_root: &Path,
     case: &BenchmarkCase,
@@ -2139,14 +2209,16 @@ pub fn verify_restoration_claim_evidence(
             max_artifact_bytes,
         ) {
             Ok((trajectory, service_report)) => {
-                for source in &trajectory.source_artifacts {
-                    add_expected_artifact(
-                        &mut expected_artifacts,
-                        &source.artifact_ref,
-                        &source.sha256,
-                        &mut errors,
-                    );
-                }
+                add_service_source_attestations(
+                    &trajectory,
+                    receipt,
+                    &case_sha256,
+                    &proposal_set_sha,
+                    producer_profiles,
+                    &mut expected_artifacts,
+                    &mut requirements,
+                    &mut errors,
+                );
                 service_trajectory_audit = Some(service_report);
             }
             Err(service_errors) => errors.extend(service_errors),
