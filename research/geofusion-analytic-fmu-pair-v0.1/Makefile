@@ -40,10 +40,8 @@ package: $(BUILD)/GeothermalSource.so $(BUILD)/HeatExchangerBuffer.so
 	cp third_party/FMI-3.0.2/LICENSE.txt $(STAGE)/geothermal/licenses/FMI-3.0.2-LICENSE.txt
 	cp third_party/FMI-3.0.2/LICENSE.txt $(STAGE)/heat-exchanger/licenses/FMI-3.0.2-LICENSE.txt
 	find $(STAGE) -type f -exec touch -d @$(SOURCE_DATE_EPOCH) {} +
-	cd $(STAGE)/geothermal && find . -type f -printf '%P
-' | LC_ALL=C sort | $(ZIP) -X -q ../GeoFusion-GeothermalSource.fmu -@
-	cd $(STAGE)/heat-exchanger && find . -type f -printf '%P
-' | LC_ALL=C sort | $(ZIP) -X -q ../GeoFusion-HeatExchangerBuffer.fmu -@
+	cd $(STAGE)/geothermal && find . -type f -printf '%P\n' | LC_ALL=C sort | $(ZIP) -X -q ../GeoFusion-GeothermalSource.fmu -@
+	cd $(STAGE)/heat-exchanger && find . -type f -printf '%P\n' | LC_ALL=C sort | $(ZIP) -X -q ../GeoFusion-HeatExchangerBuffer.fmu -@
 	cd $(STAGE) && sha256sum *.fmu > artifact-digests.sha256
 	cd $(BUILD) && sha256sum GeothermalSource.so HeatExchangerBuffer.so >> stage/artifact-digests.sha256
 
