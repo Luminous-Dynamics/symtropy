@@ -1,0 +1,318 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-stop-tube-build-report-v0.1.json",
+  "title": "Construction Stop-Tube Build Report v0.1",
+  "description": "Machine-readable output from the restricted fixed-orientation, fixed-tangent stop-tube geometry builder. It is a conservative 4D outer-box cover under the declared model, not a physical safety certificate.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "builder_model",
+    "builder_build_sha256",
+    "nominal_report_sha256",
+    "trajectory_sha256",
+    "primitive_manifest_sha256",
+    "frame_sha256",
+    "frame_id",
+    "transform_sha256",
+    "design_revision_sha256",
+    "site_epoch",
+    "robot_id",
+    "robot_configuration_sha256",
+    "tool_configuration_sha256",
+    "payload_configuration_sha256",
+    "collision_model_sha256",
+    "stopping_profile_sha256",
+    "stopping_qualification_receipt_sha256",
+    "robot_brake_configuration_sha256",
+    "operating_condition_sha256",
+    "scenario_context_sha256",
+    "site_clock_domain_id",
+    "trigger_domain_sha256",
+    "trigger_domain_start_ms",
+    "trigger_domain_end_ms",
+    "trigger_domain_duration_ms",
+    "maximum_trigger_window_ms",
+    "conservative_stop_distance_bound_mm",
+    "conservative_stop_time_bound_ms",
+    "stop_coverage_duration_ms",
+    "primitive_count",
+    "trigger_window_count",
+    "slice_count",
+    "trigger_domain_coverage_complete",
+    "primitive_coverage_complete",
+    "continuous_time_coverage_complete",
+    "conservative_outer_bound",
+    "valid_until_tick",
+    "slices"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-stop-tube-build/0.1"
+    },
+    "builder_model": {
+      "const": "fixed-orientation-fixed-tangent-translation/0.1"
+    },
+    "builder_build_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "nominal_report_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "trajectory_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "primitive_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "frame_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "frame_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "transform_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "design_revision_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "site_epoch": {
+      "type": "string",
+      "minLength": 1
+    },
+    "robot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "robot_configuration_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "tool_configuration_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "payload_configuration_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "collision_model_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "stopping_profile_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "stopping_qualification_receipt_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "robot_brake_configuration_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "operating_condition_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "scenario_context_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "site_clock_domain_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trigger_domain_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "trigger_domain_start_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "trigger_domain_end_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "trigger_domain_duration_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "maximum_trigger_window_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "conservative_stop_distance_bound_mm": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "conservative_stop_time_bound_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "stop_coverage_duration_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "primitive_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "trigger_window_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "slice_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "trigger_domain_coverage_complete": {
+      "const": true
+    },
+    "primitive_coverage_complete": {
+      "const": true
+    },
+    "continuous_time_coverage_complete": {
+      "const": true
+    },
+    "conservative_outer_bound": {
+      "const": true
+    },
+    "valid_until_tick": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "slices": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/slice"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "properties": {
+        "trigger_domain_end_ms": {
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    {
+      "properties": {
+        "trigger_domain_duration_ms": {
+          "maximum": 18446744073709552000
+        }
+      }
+    },
+    {
+      "properties": {
+        "stop_coverage_duration_ms": {
+          "minimum": 1
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "coordinate": {
+      "type": "integer",
+      "minimum": -9223372036854776000,
+      "maximum": 9223372036854776000
+    },
+    "bounds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x",
+            "y",
+            "z"
+          ],
+          "properties": {
+            "x": {
+              "$ref": "#/$defs/coordinate"
+            },
+            "y": {
+              "$ref": "#/$defs/coordinate"
+            },
+            "z": {
+              "$ref": "#/$defs/coordinate"
+            }
+          }
+        },
+        "max": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x",
+            "y",
+            "z"
+          ],
+          "properties": {
+            "x": {
+              "$ref": "#/$defs/coordinate"
+            },
+            "y": {
+              "$ref": "#/$defs/coordinate"
+            },
+            "z": {
+              "$ref": "#/$defs/coordinate"
+            }
+          }
+        }
+      }
+    },
+    "slice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primitive_id",
+        "source_slice_index",
+        "trigger_window_index",
+        "trigger_start_ms",
+        "trigger_end_ms",
+        "occupancy_start_ms",
+        "occupancy_end_ms",
+        "bounds"
+      ],
+      "properties": {
+        "primitive_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_slice_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trigger_window_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trigger_start_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trigger_end_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "occupancy_start_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "occupancy_end_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "bounds": {
+          "$ref": "#/$defs/bounds"
+        }
+      }
+    }
+  }
+}
