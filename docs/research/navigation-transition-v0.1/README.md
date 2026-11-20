@@ -35,7 +35,7 @@ The important outcome is not always a coordinate. It can be a qualified estimate
 
 ## Initial synthetic transition coverage
 
-The current fixture contains twelve authored synthetic episodes:
+The current fixture contains fourteen authored synthetic episodes:
 
 | Case | Environment transition / challenge | Main failure mode |
 |---|---|---|
@@ -51,8 +51,10 @@ The current fixture contains twelve authored synthetic episodes:
 | Benign airborne camera loss | Camera obscuration while GNSS/INS and air data remain valid | Avoid false service loss from a noncritical modality fault |
 | Space occultation and reacquisition | Optical target loss → relative reacquisition → absolute reference requalification | Separate relative recovery from absolute-state restoration |
 | Indoor observability recovery | Geometry collapse → new viewpoint → repeated independent constraints | Condition-aware recovery rather than sensor-count heuristics |
+| Protection-level cap saturation negative control | Persistent GNSS bias → PL ceiling reached while true error exceeds the cap | A bounded-looking protection level must not remain NORMAL when no longer a defensible overbound |
+| Heavy-tailed residual integrity case | Non-Gaussian GNSS residual bursts during urban degradation | Compare Gaussian covariance and heavy-tail uncertainty claims on matched held-out episodes |
 
-These are synthetic contract fixtures, not measured sensor traces or physical-world claims. The corpus now reaches the 12-episode lower bound of the proposed 12–20 preregistration range and includes positive controls for independent sources, valid reacquisition, benign faults and observability recovery. Exact seeds, a full JSON Schema run, semantic-validator execution, independent oracle qualification, rights-admitted datasets and held-out execution remain open.
+These are synthetic contract fixtures, not measured sensor traces or physical-world claims. The 14-case corpus is within the proposed 12–20 preregistration range and includes positive controls for independent sources, valid reacquisition, benign faults and observability recovery, plus negative controls for protection-level saturation and heavy-tailed residuals. Exact seeds, a full JSON Schema run, semantic-validator execution, independent oracle qualification, rights-admitted datasets and held-out execution remain open.
 
 ## External comparison anchors
 
@@ -148,7 +150,7 @@ The 20% figure is a falsifiable research hypothesis, not a claimed result or a u
 ## Current artifacts
 
 - `nav_transition_case.schema.json`: JSON Schema Draft 2020-12 authoring contract for a single case.
-- `fixtures/nav_transition_cases.v0.1.json`: twelve synthetic episodes with an explicit controller/evaluator split.
+- `fixtures/nav_transition_cases.v0.1.json`: fourteen synthetic episodes with an explicit controller/evaluator split.
 
 The schema verifies structure only. A later semantic validator must enforce cross-reference integrity (case/source/frame/time IDs), monotonic event schedules, interval consistency, frame/body compatibility, source-clock-to-time-basis correlation, transformation validity, source common-mode graph correctness, oracle separation and expected-state logic. Schema syntax and fixture validity have not yet been independently checked or executed in CI.
 
@@ -180,3 +182,5 @@ This is not a navigation estimator, a real-time runtime-assurance controller, a 
 10. `nav.air.benign-vision-degradation-control.v0.1`
 11. `nav.space.occultation-reacquisition.v0.1`
 12. `nav.indoor.observability-recovery.v0.1`
+13. `nav.integrity.protection-level-cap-saturation.negative.v0.1`
+14. `nav.land.heavy-tail-residual-integrity.v0.1`
