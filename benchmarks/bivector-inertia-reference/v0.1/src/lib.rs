@@ -289,6 +289,9 @@ impl PrincipalInertia {
         impulse_world: &Bivector,
         omega_before_world: &Bivector,
     ) -> Result<f64, InertiaError> {
+        if omega_before_world.dimension != self.dimension {
+            return Err(InertiaError::DimensionMismatch);
+        }
         let delta_omega = self.apply_inverse_world(body_to_world_rotation, impulse_world)?;
         let mut omega_after = omega_before_world.clone();
         for i in 0..self.dimension {
@@ -688,6 +691,49 @@ mod tests {
         assert_eq!(
             PrincipalInertia::new(vec![1.0, 1.0, 10.0]),
             Err(InertiaError::NonRealizablePrincipalMoments)
+        );
+    }
+
+
+    #[test]
+    fn world_kinetic_energy_matches_direct_rotated_second_moment_trace() {
+        let inertia = PrincipalInertia::new(vec![3.0, 4.0, 5.0]).expect("realizable");
+        let rotation = rotate_3d_xz_quarter_turn();
+        let omega_world = Bivector::new(3, vec![0.3, -0.7, 1.1]).expect("omega");
+        let energy = inertia
+            .kinetic_energy_world(&rotation, &omega_world)
+            .expect("operator energy");
+
+        let c_body = vec![
+            vec![3.0, 0.0, 0.0],
+            vec![0.0, 2.0, 0.0],
+            vec![0.0, 0.0, 1.0],
+        ];
+        let c_world = direct_product(
+            &direct_product(&rotation, &c_body),
+            &direct_transpose(&rotation),
+        );
+        let omega_matrix = omega_world.to_matrix();
+        let omega_t_omega = direct_product(&direct_transpose(&omega_matrix), &omega_matrix);
+        let mut direct_trace = 0.0;
+        for i in 0..3 {
+            for j in 0..3 {
+                direct_trace += omega_t_omega[i][j] * c_world[j][i];
+            }
+        }
+        let direct_energy = 0.5 * direct_trace;
+        close(energy, direct_energy, 1.0e-12);
+    }
+
+    #[test]
+    fn midpoint_work_rejects_a_mismatched_pre_impulse_velocity_dimension() {
+        let inertia = PrincipalInertia::new(vec![3.0, 4.0, 5.0]).expect("inertia");
+        let identity = identity_matrix(3).expect("identity");
+        let impulse = Bivector::new(3, vec![1.0, 0.0, 0.0]).expect("impulse");
+        let wrong_omega = Bivector::new(2, vec![0.0]).expect("wrong dimension");
+        assert_eq!(
+            inertia.midpoint_mechanical_work(&identity, &impulse, &wrong_omega),
+            Err(InertiaError::DimensionMismatch)
         );
     }
 
