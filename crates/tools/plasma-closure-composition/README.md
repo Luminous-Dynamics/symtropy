@@ -16,7 +16,7 @@ For candidate fluxes F_k and declared weights w_k, the primitive computes:
 
 Weights are checked against an explicit absolute tolerance and are not renormalized. Candidates are sorted by stable expert ID before accumulation, and a compensated sum is used for both the weight total and each flux component.
 
-Every candidate must be explicitly Qualified, carry syntactically valid profile/model SHA-256 identities, and match the request's exact compatibility key: governing model, conserved state, closure quantity, species scope, normalization, units, frame, geometry, mesh digest, staggering, boundary semantics, discrete operator, solver build, spatial dimension and component count.
+Every candidate must be explicitly Qualified, carry syntactically valid profile/model SHA-256 identities, and match the request's exact compatibility key: governing model, conserved state, closure quantity, component-layout identity (component meaning/order/units), species scope, normalization, units, frame, geometry, mesh digest, staggering, boundary semantics, discrete operator, solver build, spatial dimension and component count.
 
 The input flux is oriented from the request's left cell toward its right cell. The face is evaluated once. Both integrated cell contributions are derived from the same integrated flux:
 
@@ -59,7 +59,7 @@ This is accounting only. It does not solve sheath, conducting-wall, absorbing, r
 
 ## Deterministic domain-balance assembly
 
-The `domain` module consumes the internal-face and external-boundary receipts and reconstructs per-cell integrated updates in stable face-identity order. It refuses duplicate/missing cell and face identities, schema or compatibility mismatches, malformed candidate receipts, non-finite contributions, and receipts whose integrated flux does not match the declared face measure.
+The `domain` module consumes the internal-face and external-boundary receipts and reconstructs per-cell integrated updates in stable face-identity order. It refuses duplicate/missing cell and face identities, schema or compatibility mismatches, unqualified or malformed candidate receipts, inconsistent declared/recomputed weight sums, non-finite contributions, and receipts whose integrated flux does not match the declared face measure. Component layout is explicit so two vectors with the same length but different semantics or ordering cannot be blended.
 
 It independently checks:
 - each internal face applies equal-and-opposite contributions to its two cells;
