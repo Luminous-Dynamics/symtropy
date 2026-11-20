@@ -505,6 +505,7 @@ mod tests {
             physics_model_id: "synthetic-conservation-law".into(),
             conserved_state_id: "density-momentum-energy".into(),
             closure_quantity_id: "closure-flux".into(),
+            component_layout_id: "density-momentum-flux-v1".into(),
             species_scope_id: "single-species".into(),
             normalization_id: "dimensionless-v1".into(),
             units_id: "normalized-flux-v1".into(),
