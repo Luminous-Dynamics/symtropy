@@ -1,0 +1,669 @@
+{
+  "schema_version": "ocean-dc-environmental-metrics-v0.1",
+  "fixture_id": "OCEAN-DC-ENVIRONMENT-METRICS-SYNTH-001",
+  "as_of": "2026-11-20",
+  "synthetic_catalog_only": true,
+  "claim_ceiling": "This file is a metric and metrology catalogue. It contains no site measurement, environmental baseline, permit limit, sensor reading, ecological result or site clearance.",
+  "primary_standard": {
+    "id": "ITU-T L.1312 (07/2026)",
+    "title": "Guidelines on multi-dimensional environmental metrics and management for data centres",
+    "approved": "2026-07-29",
+    "status": "in_force",
+    "url": "https://www.itu.int/rec/T-REC-L.1312-202607-I/en",
+    "metric_count": 14
+  },
+  "supporting_standards": [
+    {
+      "id": "ISO/IEC 30134-2:2026",
+      "topic": "PUE",
+      "url": "https://www.iso.org/standard/30134-2"
+    },
+    {
+      "id": "ISO/IEC 30134-6:2021",
+      "topic": "ERF",
+      "url": "https://www.iso.org/standard/30134-6"
+    },
+    {
+      "id": "ISO/IEC 30134-8:2022",
+      "topic": "CUE",
+      "url": "https://www.iso.org/standard/30134-8"
+    },
+    {
+      "id": "ISO/IEC 30134-9:2022",
+      "topic": "WUE",
+      "url": "https://www.iso.org/standard/30134-9"
+    }
+  ],
+  "official_metrics": [
+    {
+      "metric_id": "ITU-PUE",
+      "name": "Power usage effectiveness",
+      "dimension": "energy_efficiency",
+      "unit": "dimensionless",
+      "direction": "lower_is_better",
+      "definition": "Annual total data-centre energy divided by annual IT equipment energy over the same continuous 12-month period; use dPUE/iPUE/mPUE labels where appropriate.",
+      "lifecycle_stages": [
+        "construction_design",
+        "operation"
+      ],
+      "boundary": "data_centre_energy_boundary_and_IT_energy_boundary",
+      "standard_reference": "ISO/IEC 30134-2:2026 via ITU-T L.1312",
+      "comparison_rule": "Compare equivalent meter boundary, period and measurement category. A design target is not an operational annual measurement."
+    },
+    {
+      "metric_id": "ITU-ERF",
+      "name": "Energy reuse factor",
+      "dimension": "energy_efficiency",
+      "unit": "dimensionless_0_to_1",
+      "direction": "higher_is_better",
+      "definition": "Energy reused by another party divided by total data-centre energy; measure thermal energy at the logical handoff boundary.",
+      "lifecycle_stages": [
+        "construction_design",
+        "operation"
+      ],
+      "boundary": "data_centre_energy_input_and_external_energy_reuse_handoff",
+      "standard_reference": "ISO/IEC 30134-6 via ITU-T L.1312",
+      "comparison_rule": "Credit only metered energy delivered and accepted at the handoff; do not credit theoretical heat-reuse potential."
+    },
+    {
+      "metric_id": "ITU-SUE",
+      "name": "Space usage effectiveness",
+      "dimension": "resource_efficiency",
+      "unit": "dimensionless_0_to_1",
+      "direction": "higher_is_better",
+      "definition": "IT equipment area divided by total data-centre area.",
+      "lifecycle_stages": [
+        "construction_design"
+      ],
+      "boundary": "defined_data_centre_area",
+      "standard_reference": "Green Grid definition cited by ITU-T L.1312",
+      "comparison_rule": "Use the same definition of facility and IT equipment area."
+    },
+    {
+      "metric_id": "ITU-WUE",
+      "name": "Water usage effectiveness",
+      "dimension": "resource_efficiency",
+      "unit": "m3_per_kWh_IT",
+      "direction": "lower_is_better",
+      "definition": "Data-centre water consumption divided by IT equipment energy; report the selected ISO/IEC 30134-9 WUE category.",
+      "lifecycle_stages": [
+        "construction_design",
+        "operation"
+      ],
+      "boundary": "water_consumption_and_IT_energy",
+      "standard_reference": "ISO/IEC 30134-9 via ITU-T L.1312",
+      "comparison_rule": "State category 1/2/3. Compare only identical categories and periods. Report seawater intake and return separately; WUE alone does not characterise marine intake/outfall effects."
+    },
+    {
+      "metric_id": "ITU-P-RECLAIMED",
+      "name": "Proportion of reclaimed and other non-potable water",
+      "dimension": "resource_efficiency",
+      "unit": "percent_0_to_100",
+      "direction": "higher_is_better",
+      "definition": "Consumption of reclaimed/non-potable water divided by total data-centre water withdrawal.",
+      "lifecycle_stages": [
+        "construction_design",
+        "operation"
+      ],
+      "boundary": "water_sources_and_consumption",
+      "standard_reference": "ITU-T L.1312 section 6.3",
+      "comparison_rule": "The recommendation's denominator excludes seawater. Do not use this metric to imply that seawater intake is negligible; account for seawater separately."
+    },
+    {
+      "metric_id": "ITU-WEEE-RR",
+      "name": "Reuse and recycling rate",
+      "dimension": "resource_efficiency",
+      "unit": "percent_0_to_100",
+      "direction": "higher_is_better",
+      "definition": "Reused or recycled waste electrical and electronic equipment divided by total WEEE generated in the evaluation period.",
+      "lifecycle_stages": [
+        "operation",
+        "decommission"
+      ],
+      "boundary": "equipment_retirement_and_waste_chain",
+      "standard_reference": "ITU-T L.1312; ITU-T L.1032 cited",
+      "comparison_rule": "Declare whether numerator and denominator use count, mass or volume; mass is preferred for lifecycle material accounting."
+    },
+    {
+      "metric_id": "ITU-REF",
+      "name": "Renewable energy factor",
+      "dimension": "ghg_efficiency",
+      "unit": "percent_0_to_100",
+      "direction": "higher_is_better",
+      "definition": "Renewable energy owned and controlled by the data centre divided by total data-centre energy consumption.",
+      "lifecycle_stages": [
+        "construction_design",
+        "operation"
+      ],
+      "boundary": "renewable_generation_and_data_centre_consumption",
+      "standard_reference": "ISO/IEC 30134-3 via ITU-T L.1312",
+      "comparison_rule": "Keep REF separate from hourly carbon-free matching and contractual certificates; declare time matching and ownership/control."
+    },
+    {
+      "metric_id": "ITU-CUE",
+      "name": "Carbon usage effectiveness",
+      "dimension": "ghg_efficiency",
+      "unit": "kgCO2e_per_kWh_IT",
+      "direction": "lower_is_better",
+      "definition": "Annual data-centre CO2e emissions divided by IT equipment energy demand.",
+      "lifecycle_stages": [
+        "construction_design",
+        "operation"
+      ],
+      "boundary": "defined_annual_scope_and_IT_energy",
+      "standard_reference": "ISO/IEC 30134-8 via ITU-T L.1312",
+      "comparison_rule": "State scopes, emissions factors, time resolution and treatment of purchased electricity and backup fuel."
+    },
+    {
+      "metric_id": "ITU-GHGEF",
+      "name": "Greenhouse gas emission factor",
+      "dimension": "ghg_efficiency",
+      "unit": "kgCO2e_per_kWh",
+      "direction": "lower_is_better",
+      "definition": "GHG emissions associated with the relevant energy consumption divided by the energy quantity under the declared boundary.",
+      "lifecycle_stages": [
+        "construction_design",
+        "operation"
+      ],
+      "boundary": "declared_energy_source_and_emissions_boundary",
+      "standard_reference": "ITU-T L.1312 section 6.4",
+      "comparison_rule": "State grid/contract/generation factors, location and temporal granularity; do not conflate average and marginal factors."
+    },
+    {
+      "metric_id": "ITU-AIR-POLLUTANTS",
+      "name": "Air pollutant mass concentration",
+      "dimension": "environmental_impact",
+      "unit": "g_per_m3_or_standard_method_unit",
+      "direction": "lower_is_better",
+      "definition": "Mass of a measured air pollutant component per gas volume.",
+      "lifecycle_stages": [
+        "construction",
+        "operation",
+        "decommission"
+      ],
+      "boundary": "emission_source_and_receptor_or_stack_sampling_boundary",
+      "standard_reference": "ITU-T L.1312 section 6.5",
+      "comparison_rule": "List pollutant species, sampling method, location, averaging period and detection limit."
+    },
+    {
+      "metric_id": "ITU-WATER-POLLUTANTS",
+      "name": "Water pollutant mass concentration",
+      "dimension": "environmental_impact",
+      "unit": "mg_per_L",
+      "direction": "lower_is_better",
+      "definition": "Mass of a measured pollutant component per sample volume.",
+      "lifecycle_stages": [
+        "construction",
+        "operation",
+        "decommission"
+      ],
+      "boundary": "intake_outfall_and_reference_water_sampling_boundary",
+      "standard_reference": "ITU-T L.1312 section 6.5; ISO 18191 method reference",
+      "comparison_rule": "Use paired upstream/reference and discharge samples, flow context, species/analyte list, uncertainty and detection limits."
+    },
+    {
+      "metric_id": "ITU-LAND-POLLUTANTS",
+      "name": "Land pollution mass concentration",
+      "dimension": "environmental_impact",
+      "unit": "mg_per_kg_dry_soil",
+      "direction": "lower_is_better",
+      "definition": "Mass of a measured land pollutant per dry mass of soil.",
+      "lifecycle_stages": [
+        "construction",
+        "operation",
+        "decommission"
+      ],
+      "boundary": "defined_soil_sampling_locations_and_depths",
+      "standard_reference": "ITU-T L.1312 section 6.5",
+      "comparison_rule": "Declare analytes, soil depth, dry-matter basis, sampling method and background reference."
+    },
+    {
+      "metric_id": "ITU-OUTDOOR-NOISE",
+      "name": "Outdoor noise",
+      "dimension": "environmental_impact",
+      "unit": "dB_A_LpT",
+      "direction": "lower_is_better",
+      "definition": "Equivalent continuous A-weighted sound pressure level measured at the digital infrastructure emitter/property boundary.",
+      "lifecycle_stages": [
+        "construction",
+        "operation",
+        "decommission"
+      ],
+      "boundary": "site_boundary_and_receptor_locations",
+      "standard_reference": "ITU-T L.1312 section 6.5; ITU-T L.1510 cited",
+      "comparison_rule": "State day/night window, averaging period, background noise and applicable land-use/receptor context. Underwater radiated noise is a separate marine extension."
+    },
+    {
+      "metric_id": "ITU-MSA",
+      "name": "Mean species abundance",
+      "dimension": "environmental_impact",
+      "unit": "percent_0_to_100",
+      "direction": "higher_is_better",
+      "definition": "Mean abundance of original species relative to an undisturbed baseline; ITU-T describes baseline abundance before construction and post-construction abundance over a defined area.",
+      "lifecycle_stages": [
+        "construction",
+        "operation",
+        "maintenance",
+        "decommission"
+      ],
+      "boundary": "predeclared_impact_and_reference_ecosystem_area",
+      "standard_reference": "ITU-T L.1312 section 6.5; GLOBIO method cited",
+      "comparison_rule": "Use independently designed ecological baseline and reference/control stations; disclose taxa, season, sampling effort, spatial support and uncertainty. Do not treat one MSA score as complete proof of no harm."
+    }
+  ],
+  "marine_extension_metrics": [
+    {
+      "metric_id": "MARINE-SEAWATER-INTAKE",
+      "name": "Seawater intake flow and cumulative volume",
+      "unit": "m3_per_s_and_m3",
+      "direction": "report_separately",
+      "purpose": "Quantify withdrawal/recirculation at each intake and distinguish single-pass from recirculating cooling.",
+      "required_context": [
+        "intake_location_and_depth",
+        "flow_meter_identity",
+        "calibration",
+        "timebase",
+        "operating_mode",
+        "screening_or_filtration_state"
+      ]
+    },
+    {
+      "metric_id": "MARINE-SEAWATER-RETURN",
+      "name": "Seawater return flow and cumulative volume",
+      "unit": "m3_per_s_and_m3",
+      "direction": "report_separately",
+      "purpose": "Quantify discharge and enable a mass/heat balance; report bypass, purge and cleaning discharges separately.",
+      "required_context": [
+        "outfall_location_and_depth",
+        "flow_meter_identity",
+        "calibration",
+        "timebase",
+        "treatment_or_additive_state"
+      ]
+    },
+    {
+      "metric_id": "MARINE-THERMAL-DELTA",
+      "name": "Intake-to-return temperature difference",
+      "unit": "degC",
+      "direction": "bounded_by_site_specific_permit_and_ecology",
+      "purpose": "Quantify thermal alteration at the outfall and support heat-load calculation.",
+      "required_context": [
+        "paired_synchronized_temperature_sensors",
+        "flow",
+        "sensor_uncertainty",
+        "ambient_reference"
+      ]
+    },
+    {
+      "metric_id": "MARINE-THERMAL-FLUX",
+      "name": "Net thermal energy discharged or reused",
+      "unit": "kW_and_MWh_th",
+      "direction": "minimize_unreused_unpermitted_load",
+      "purpose": "Calculate mass-flow-weighted thermal energy using calibrated flow and paired temperatures; separately report accepted external reuse.",
+      "required_context": [
+        "mass_or_volume_flow",
+        "paired_temperatures",
+        "fluid_properties_assumption",
+        "handoff_meter_for_reused_heat"
+      ]
+    },
+    {
+      "metric_id": "MARINE-TEMP-PROFILE",
+      "name": "Seasonal seawater temperature and salinity profile",
+      "unit": "degC_and_PSU",
+      "direction": "coverage_and_uncertainty",
+      "purpose": "Characterise depth-resolved thermal resource and seasonal variability rather than assuming cold ocean conditions.",
+      "required_context": [
+        "depth",
+        "time",
+        "conductivity_salinity_sensor",
+        "temperature_calibration",
+        "seasonal_coverage"
+      ]
+    },
+    {
+      "metric_id": "MARINE-HYDRODYNAMICS",
+      "name": "Current, wave and mixing state",
+      "unit": "m_per_s_and_m",
+      "direction": "coverage_and_uncertainty",
+      "purpose": "Describe dilution, dispersion, intake recirculation, structural loading and marine access constraints.",
+      "required_context": [
+        "instrument_method",
+        "measurement_depth",
+        "location",
+        "timebase",
+        "quality_flags"
+      ]
+    },
+    {
+      "metric_id": "MARINE-WATER-CHEMISTRY",
+      "name": "Marine water chemistry and dissolved oxygen",
+      "unit": "pH_mg_per_L_mg_per_L",
+      "direction": "no_unapproved_deviation_from_site_baseline_or_limit",
+      "purpose": "Detect chemical changes associated with cooling, corrosion products, cleaning, biocide or discharge.",
+      "required_context": [
+        "pH",
+        "dissolved_oxygen",
+        "conductivity",
+        "turbidity",
+        "temperature",
+        "analyte_specific_lab_results"
+      ]
+    },
+    {
+      "metric_id": "MARINE-SEDIMENT",
+      "name": "Seabed sediment and contaminant condition",
+      "unit": "method_specific",
+      "direction": "no_unapproved_disturbance_or_pollution",
+      "purpose": "Detect deposition, scour, resuspension and land/sea-floor pollutants over construction, operation and maintenance.",
+      "required_context": [
+        "station_coordinates",
+        "sampling_depth",
+        "grain_size",
+        "analytes",
+        "dry_mass_basis",
+        "baseline_and_reference"
+      ]
+    },
+    {
+      "metric_id": "MARINE-UNDERWATER-NOISE",
+      "name": "Underwater radiated noise",
+      "unit": "dB_re_1uPa_with_spectrum",
+      "direction": "bounded_by_species_and_site_specific_assessment",
+      "purpose": "Characterise construction, pumps, cooling, vessels and maintenance noise; do not substitute outdoor dB(A).",
+      "required_context": [
+        "hydrophone_sensitivity_calibration",
+        "frequency_band",
+        "source_level_or_received_level",
+        "range_depth",
+        "ambient_noise",
+        "duty_cycle"
+      ]
+    },
+    {
+      "metric_id": "MARINE-BENTHIC-ECOSYSTEM",
+      "name": "Benthic habitat and taxon abundance",
+      "unit": "taxon_and_habitat_specific",
+      "direction": "no_unapproved_decline",
+      "purpose": "Provide ecology-specific evidence alongside MSA, including benthic assemblages and sensitive habitats.",
+      "required_context": [
+        "independent_ecologist",
+        "repeatable_survey_protocol",
+        "reference_control_stations",
+        "seasonal_context",
+        "taxonomic_resolution",
+        "uncertainty"
+      ]
+    },
+    {
+      "metric_id": "MARINE-FOULING",
+      "name": "Biofouling and invasive species observations",
+      "unit": "coverage_and_taxa",
+      "direction": "no_unapproved_introduction_or_spread",
+      "purpose": "Track cooling-loop and intake structures as ecological vectors and explain thermal performance drift.",
+      "required_context": [
+        "inspection_method",
+        "species_identification",
+        "location",
+        "time",
+        "cleaning_method",
+        "waste_disposition"
+      ]
+    },
+    {
+      "metric_id": "MARINE-INTAKE-IMPACTS",
+      "name": "Entrainment and impingement observation",
+      "unit": "organisms_per_volume_or_effort",
+      "direction": "minimize_and_permit_bound",
+      "purpose": "Characterise organism interactions with screens and intakes; use non-invasive observation and approved methods.",
+      "required_context": [
+        "sampling_method",
+        "intake_flow",
+        "taxa",
+        "size_classes",
+        "season",
+        "independent_ecological_review"
+      ]
+    }
+  ],
+  "sensor_package": [
+    {
+      "sensor_class": "facility_energy_meters",
+      "measurements": [
+        "grid_import_export",
+        "on_site_generation",
+        "UPS_losses",
+        "BESS_charge_discharge",
+        "IT_PDU_energy",
+        "cooling_pump_energy",
+        "fan_chiller_auxiliary_energy"
+      ],
+      "placement": "electrical_points_of_common_coupling_and_subsystem_boundaries",
+      "cadence": "interval_metering with synchronized raw interval data",
+      "minimum_evidence": [
+        "meter_serial_and_class",
+        "calibration_or_verification",
+        "CT_VT_ratio",
+        "wiring_diagram",
+        "time_sync",
+        "uncertainty_budget"
+      ]
+    },
+    {
+      "sensor_class": "thermal_hydraulic_loop",
+      "measurements": [
+        "primary_supply_return_temperature",
+        "secondary_supply_return_temperature",
+        "intake_outfall_temperature",
+        "flow",
+        "differential_pressure",
+        "pump_state_and_power"
+      ],
+      "placement": "paired sensors at heat exchanger boundaries and intake/outfall",
+      "cadence": "continuous synchronized telemetry; retain raw intervals",
+      "minimum_evidence": [
+        "sensor_serial",
+        "temperature_traceable_calibration",
+        "flow_meter_calibration",
+        "installation_location",
+        "time_sync",
+        "uncertainty_budget"
+      ]
+    },
+    {
+      "sensor_class": "ocean_profile_and_hydrodynamics",
+      "measurements": [
+        "temperature_depth_profile",
+        "conductivity_salinity",
+        "current_velocity_direction",
+        "wave_state",
+        "turbidity"
+      ],
+      "placement": "intake/outfall depths plus independent reference stations and depth profiles",
+      "cadence": "continuous or repeat campaigns sufficient to cover seasonal and event variability",
+      "minimum_evidence": [
+        "instrument_model",
+        "deployment_depth",
+        "coordinates_and_datum",
+        "calibration",
+        "biofouling_inspection",
+        "timebase",
+        "QC"
+      ]
+    },
+    {
+      "sensor_class": "water_quality",
+      "measurements": [
+        "pH",
+        "dissolved_oxygen",
+        "conductivity",
+        "turbidity",
+        "nutrients_if_relevant",
+        "metals_and_pollutants_by_lab_method"
+      ],
+      "placement": "paired intake, outfall, plume and reference/control stations",
+      "cadence": "continuous in-situ variables plus laboratory sampling at regulator/ecologist-approved interval",
+      "minimum_evidence": [
+        "sample_chain_of_custody",
+        "lab_accreditation_and_method",
+        "detection_limits",
+        "blank_duplicate_spike_controls",
+        "location_depth",
+        "time",
+        "uncertainty"
+      ]
+    },
+    {
+      "sensor_class": "ecology_and_habitat",
+      "measurements": [
+        "benthic_taxa_abundance",
+        "habitat_class",
+        "MSA_inputs",
+        "entrainment_impingement_observations",
+        "biofouling_taxa"
+      ],
+      "placement": "predeclared impact zone and independent reference/control stations",
+      "cadence": "baseline before works and repeated seasonal surveys through construction, operation, maintenance and decommission",
+      "minimum_evidence": [
+        "independent_ecologist",
+        "survey_protocol",
+        "taxonomic_resolution",
+        "season_effort",
+        "coordinates",
+        "raw_observation_archive",
+        "QC_and_uncertainty"
+      ]
+    },
+    {
+      "sensor_class": "underwater_acoustics",
+      "measurements": [
+        "underwater_radiated_noise_spectrum",
+        "ambient_noise",
+        "duty_cycle"
+      ],
+      "placement": "source and receptor hydrophone locations at surveyed ranges/depths",
+      "cadence": "construction and operating modes, including vessel/maintenance events",
+      "minimum_evidence": [
+        "hydrophone_sensitivity_calibration",
+        "recorder_chain_calibration",
+        "frequency_band",
+        "coordinates_depth",
+        "ambient_reference",
+        "time_sync"
+      ]
+    },
+    {
+      "sensor_class": "meteorology_and_sea_state",
+      "measurements": [
+        "wind",
+        "air_temperature",
+        "precipitation",
+        "wave_height_period_direction",
+        "storm_event_flags"
+      ],
+      "placement": "co-located metocean reference appropriate to candidate site",
+      "cadence": "continuous through representative seasonal and storm windows",
+      "minimum_evidence": [
+        "instrument_calibration",
+        "site_coordinates",
+        "timebase",
+        "QC",
+        "data_completeness"
+      ]
+    }
+  ],
+  "site_evidence_record_contract": {
+    "required_fields": [
+      "record_id",
+      "metric_id",
+      "value",
+      "unit",
+      "interval_start_utc",
+      "interval_end_utc",
+      "location_coordinates_and_datum",
+      "depth_or_elevation",
+      "sensor_or_method_id",
+      "calibration_reference",
+      "uncertainty",
+      "quality_state",
+      "source_rights",
+      "raw_data_digest",
+      "processing_version",
+      "custody_receipt"
+    ],
+    "quality_states": [
+      "valid",
+      "provisional",
+      "unknown",
+      "invalid",
+      "quarantined"
+    ],
+    "evidence_states": [
+      "measured",
+      "modelled",
+      "synthetic",
+      "unavailable"
+    ],
+    "rule": "unknown, provisional, unavailable, synthetic, stale, uncalibrated or conflicting evidence cannot be presented as measured zero or used to satisfy an environmental gate.",
+    "time_rule": "Store UTC timestamps and retain source clock/time synchronisation evidence; do not silently interpolate gaps across environmental events.",
+    "uncertainty_rule": "Report the uncertainty budget and detection limit with every numeric result; an outfall below detection limit is not proof that no pollutant exists."
+  },
+  "spatial_sampling_design": {
+    "required_station_roles": [
+      "intake",
+      "outfall",
+      "near_field_plume",
+      "far_field_impact",
+      "independent_reference_control"
+    ],
+    "rule": "Station positions and depths are set by independent hydrography/ecology and the applicable consent; do not invent a fixed plume radius or station spacing before site survey.",
+    "lifecycle_phases": [
+      "pre_construction_baseline",
+      "construction",
+      "commissioning",
+      "normal_operation",
+      "maintenance_and_cleaning",
+      "incident_or_abnormal_discharge",
+      "decommission",
+      "post_decommission_recovery"
+    ],
+    "seasonal_rule": "Baseline and follow-up sampling must represent material seasonal conditions and relevant event windows; a single survey is not a lifecycle baseline."
+  },
+  "non_compensatory_gates": [
+    {
+      "gate_id": "ENV-GATE-01",
+      "condition": "active_hydrothermal_vent_or_protected_exclusion_intersection",
+      "disposition": "reject_industrial_site_candidate"
+    },
+    {
+      "gate_id": "ENV-GATE-02",
+      "condition": "required_environmental_baseline_missing_or_not_rights_reviewed",
+      "disposition": "site_clearance_unknown_and_blocked"
+    },
+    {
+      "gate_id": "ENV-GATE-03",
+      "condition": "permit_or_regulator_discharge_limit_unknown_or_not_met",
+      "disposition": "block_discharge_and_site_clearance"
+    },
+    {
+      "gate_id": "ENV-GATE-04",
+      "condition": "unexplained_heat_or_water_mass_balance_outside_uncertainty_budget",
+      "disposition": "quarantine_result_and_investigate"
+    },
+    {
+      "gate_id": "ENV-GATE-05",
+      "condition": "water_quality_or_ecological_trigger_exceeded",
+      "disposition": "reduce_or_stop_affected_operation_per_approved_response_plan"
+    },
+    {
+      "gate_id": "ENV-GATE-06",
+      "condition": "sensor_calibration_timebase_rights_or_custody_unknown",
+      "disposition": "evidence_unknown_no_clearance"
+    }
+  ],
+  "aggregation_policy": {
+    "optional_itu_comprehensive_metric": "May be reported as supplementary per ITU-T L.1312 with published normalization, best/worst values and weights.",
+    "project_rule": "Publish raw metric values, dimensions, uncertainty and life-cycle stage. Never let a composite score offset protected-habitat exclusion, legal noncompliance, unknown baseline, unsafe discharge or a failed ecological hard gate.",
+    "environmental_claim_ceiling": "No claim of zero ecological harm can be inferred from PUE, WUE, REF, CUE or a single MSA result."
+  }
+}
