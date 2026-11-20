@@ -1,0 +1,703 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/geofusion-fmi-api-ledger-v0.1/research/geofusion-fmi-api-ledger-v0.1/run-ledger.schema.json",
+  "title": "GeoFusion FMI API Exchange Ledger v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "ledger_id",
+    "evidence_class",
+    "created_utc",
+    "fmi_standard_release",
+    "master",
+    "artifacts",
+    "federates",
+    "events",
+    "commit_barriers",
+    "state_checkpointing",
+    "normalized_trace_artifact_id",
+    "energy_contract_artifact_id",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "ledger_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic_fixture",
+        "instrumented_runtime"
+      ]
+    },
+    "created_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "fmi_standard_release": {
+      "const": "3.0.2"
+    },
+    "master": {
+      "$ref": "#/$defs/master"
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "federates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/federate"
+      }
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/event"
+      }
+    },
+    "commit_barriers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/barrier"
+      }
+    },
+    "state_checkpointing": {
+      "$ref": "#/$defs/checkpoint"
+    },
+    "normalized_trace_artifact_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "energy_contract_artifact_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "bits": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "role",
+        "path",
+        "byte_length",
+        "sha256",
+        "executable",
+        "synthetic_stub"
+      ],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "enum": [
+            "fmu_package",
+            "model_description",
+            "platform_binary",
+            "master_executable",
+            "normalized_trace",
+            "energy_contract",
+            "serialized_fmu_state"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "executable": {
+          "type": "boolean"
+        },
+        "synthetic_stub": {
+          "type": "boolean"
+        }
+      }
+    },
+    "master": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "master_id",
+        "name",
+        "version",
+        "algorithm_id",
+        "platform",
+        "artifact_id",
+        "collector_mode"
+      ],
+      "properties": {
+        "master_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "algorithm_id": {
+          "type": "string"
+        },
+        "platform": {
+          "type": "string"
+        },
+        "artifact_id": {
+          "type": "string"
+        },
+        "collector_mode": {
+          "enum": [
+            "instrumented_c_api_boundary",
+            "fixture_authored_not_runtime_instrumented"
+          ]
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "can_handle_variable_communication_step_size",
+        "can_interpolate_inputs",
+        "can_return_early_after_intermediate_update",
+        "has_event_mode",
+        "can_get_and_set_fmu_state",
+        "can_serialize_fmu_state",
+        "can_run_asynchronously",
+        "provides_intermediate_update"
+      ],
+      "properties": {
+        "can_handle_variable_communication_step_size": {
+          "type": "boolean"
+        },
+        "can_interpolate_inputs": {
+          "type": "boolean"
+        },
+        "can_return_early_after_intermediate_update": {
+          "type": "boolean"
+        },
+        "has_event_mode": {
+          "type": "boolean"
+        },
+        "can_get_and_set_fmu_state": {
+          "type": "boolean"
+        },
+        "can_serialize_fmu_state": {
+          "type": "boolean"
+        },
+        "can_run_asynchronously": {
+          "type": "boolean"
+        },
+        "provides_intermediate_update": {
+          "type": "boolean"
+        }
+      }
+    },
+    "clock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clock_id",
+        "master_clock_id",
+        "model_time_unit",
+        "mapping_digest",
+        "nanoseconds_per_model_time_numerator",
+        "nanoseconds_per_model_time_denominator"
+      ],
+      "properties": {
+        "clock_id": {
+          "type": "string"
+        },
+        "master_clock_id": {
+          "type": "string"
+        },
+        "model_time_unit": {
+          "const": "s"
+        },
+        "mapping_digest": {
+          "type": "string"
+        },
+        "nanoseconds_per_model_time_numerator": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "nanoseconds_per_model_time_denominator": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "variable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value_reference",
+        "name",
+        "fmi_type",
+        "causality",
+        "variability",
+        "unit",
+        "port_id",
+        "carrier",
+        "boundary_id",
+        "port_role"
+      ],
+      "properties": {
+        "value_reference": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "fmi_type": {
+          "const": "Float64"
+        },
+        "causality": {
+          "enum": [
+            "input",
+            "output"
+          ]
+        },
+        "variability": {
+          "enum": [
+            "continuous",
+            "discrete",
+            "tunable",
+            "fixed",
+            "constant"
+          ]
+        },
+        "unit": {
+          "type": "string"
+        },
+        "port_id": {
+          "type": "string"
+        },
+        "carrier": {
+          "type": "string"
+        },
+        "boundary_id": {
+          "type": "string"
+        },
+        "port_role": {
+          "enum": [
+            "coupling_source",
+            "coupling_sink",
+            "terminal_sink"
+          ]
+        }
+      }
+    },
+    "federate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "federate_id",
+        "model_name",
+        "fmi_model_description_version",
+        "interface_type",
+        "model_identifier",
+        "platform",
+        "artifacts",
+        "clock",
+        "capabilities",
+        "variables"
+      ],
+      "properties": {
+        "federate_id": {
+          "type": "string"
+        },
+        "model_name": {
+          "type": "string"
+        },
+        "fmi_model_description_version": {
+          "const": "3.0"
+        },
+        "interface_type": {
+          "const": "CoSimulation"
+        },
+        "model_identifier": {
+          "type": "string"
+        },
+        "platform": {
+          "type": "string"
+        },
+        "artifacts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "package",
+            "model_description",
+            "platform_binary"
+          ],
+          "properties": {
+            "package": {
+              "type": "string"
+            },
+            "model_description": {
+              "type": "string"
+            },
+            "platform_binary": {
+              "type": "string"
+            }
+          }
+        },
+        "clock": {
+          "$ref": "#/$defs/clock"
+        },
+        "capabilities": {
+          "$ref": "#/$defs/capabilities"
+        },
+        "variables": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/variable"
+          }
+        }
+      }
+    },
+    "interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_interval_id",
+        "start_master_ns",
+        "end_master_ns",
+        "sampling_semantics"
+      ],
+      "properties": {
+        "source_interval_id": {
+          "type": "string"
+        },
+        "start_master_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_master_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sampling_semantics": {
+          "enum": [
+            "constant_over_declared_half_open_interval",
+            "sample_at_interval_end",
+            "sample_at_interval_start",
+            "interval_average"
+          ]
+        }
+      }
+    },
+    "value": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value_reference",
+        "value",
+        "raw_f64_bits",
+        "port_id",
+        "source_interval_id"
+      ],
+      "properties": {
+        "value_reference": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "value": {
+          "type": "number"
+        },
+        "raw_f64_bits": {
+          "$ref": "#/$defs/bits"
+        },
+        "port_id": {
+          "type": "string"
+        },
+        "source_interval_id": {
+          "type": "string"
+        },
+        "transfer_id": {
+          "type": "string"
+        }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "interface_type": {
+          "const": "CoSimulation"
+        },
+        "early_return_allowed": {
+          "type": "boolean"
+        },
+        "event_mode_used": {
+          "type": "boolean"
+        },
+        "instance_name": {
+          "type": "string"
+        },
+        "visible": {
+          "type": "boolean"
+        },
+        "logging_on": {
+          "type": "boolean"
+        },
+        "resource_path": {
+          "type": "string"
+        },
+        "required_intermediate_variables": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "transition": {
+          "enum": [
+            "enter",
+            "exit"
+          ]
+        },
+        "tolerance_defined": {
+          "type": "boolean"
+        },
+        "tolerance_bits": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/bits"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "start_time_bits": {
+          "$ref": "#/$defs/bits"
+        },
+        "stop_time_defined": {
+          "type": "boolean"
+        },
+        "stop_time_bits": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/bits"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "interval": {
+          "$ref": "#/$defs/interval"
+        },
+        "value_references": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "n_value_references": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value"
+          }
+        },
+        "attempt_id": {
+          "type": "string"
+        },
+        "current_communication_point_bits": {
+          "$ref": "#/$defs/bits"
+        },
+        "communication_step_size_bits": {
+          "$ref": "#/$defs/bits"
+        },
+        "last_successful_time_bits": {
+          "$ref": "#/$defs/bits"
+        },
+        "early_return": {
+          "type": "boolean"
+        },
+        "event_handling_needed": {
+          "type": "boolean"
+        },
+        "terminate_simulation": {
+          "type": "boolean"
+        },
+        "no_set_fmu_state_prior_to_current_point": {
+          "type": "boolean"
+        },
+        "master_start_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "master_end_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "state_artifact_id": {
+          "type": "string"
+        },
+        "checkpoint_id": {
+          "type": "string"
+        },
+        "reason_code": {
+          "type": "string"
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "event_id",
+        "federate_id",
+        "kind",
+        "call_symbol",
+        "status",
+        "payload"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "event_id": {
+          "type": "string"
+        },
+        "federate_id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "instance_created",
+            "initialization_mode",
+            "set_float64",
+            "get_float64",
+            "do_step",
+            "state_snapshot",
+            "state_restore",
+            "terminate",
+            "free_instance"
+          ]
+        },
+        "call_symbol": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "discard",
+            "error",
+            "fatal",
+            "pending"
+          ]
+        },
+        "payload": {
+          "$ref": "#/$defs/payload"
+        }
+      }
+    },
+    "barrier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "barrier_id",
+        "sequence",
+        "master_time_ns",
+        "federate_ids",
+        "attempt_ids"
+      ],
+      "properties": {
+        "barrier_id": {
+          "type": "string"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "master_time_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "federate_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "attempt_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "reason_code",
+        "snapshot_artifact_ids"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "available",
+            "unavailable",
+            "not_used"
+          ]
+        },
+        "reason_code": {
+          "type": "string"
+        },
+        "snapshot_artifact_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
