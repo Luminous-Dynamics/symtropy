@@ -50,6 +50,7 @@
         "parameterSetRef",
         "parameterSetSha256",
         "modelClass",
+        "requiredConstraintTypes",
         "applicabilityRef",
         "limitPolicyRef"
       ],
@@ -85,6 +86,23 @@
         "limitPolicyRef": {
           "type": "string",
           "minLength": 1
+        },
+        "requiredConstraintTypes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "bus_voltage",
+              "branch_thermal",
+              "transformer_loading",
+              "generator_pq",
+              "inverter_capability",
+              "power_balance",
+              "island_source",
+              "other_declared"
+            ]
+          }
         }
       }
     },
