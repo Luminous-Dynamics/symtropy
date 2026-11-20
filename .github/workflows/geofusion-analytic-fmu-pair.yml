@@ -32,8 +32,13 @@ jobs:
       - name: Build, package and direct C-API smoke
         working-directory: research/geofusion-analytic-fmu-pair-v0.1
         run: make clean all
-      - name: Install pinned independent FMI importer
-        run: python -m pip install --disable-pip-version-check --requirement research/geofusion-analytic-fmu-pair-v0.1/tests/requirements.txt
+      - name: Download and verify pinned independent FMI importer wheel
+        run: |
+          mkdir -p /tmp/fmpy-wheel
+          python -m pip download --disable-pip-version-check --only-binary=:all: --no-deps --dest /tmp/fmpy-wheel FMPy==0.3.32
+          echo "b379deb9417b842028003a288d00c1c5f138d1580e1ff12cc6c42a98719cecf0  /tmp/fmpy-wheel/fmpy-0.3.32-py3-none-any.whl" | sha256sum --check
+      - name: Install verified FMPy wheel and its dependencies
+        run: python -m pip install --disable-pip-version-check /tmp/fmpy-wheel/fmpy-0.3.32-py3-none-any.whl
       - name: Validate and execute coupled FMUs through FMPy
         working-directory: research/geofusion-analytic-fmu-pair-v0.1
         run: python tests/fmpy_coupled_smoke.py
