@@ -225,7 +225,8 @@ fn validate(catalog: &Value) -> Result<String, String> {
         let ctx = format!("non_compensatory_gates[{i}]");
         required_string(gate, "condition", &ctx)?;
         let disposition = required_string(gate, "disposition", &ctx)?;
-        if disposition.contains("allow") || disposition.contains("approve") {
+        let normalized = disposition.to_ascii_lowercase();
+        if normalized.starts_with("allow") || normalized.starts_with("approve") || normalized == "pass" {
             return Err(format!("{ctx} weakens a non-compensatory gate"));
         }
     }
@@ -283,7 +284,7 @@ mod tests {
     fn weakening_any_environmental_gate_is_rejected() {
         let mut v = fixture();
         v["non_compensatory_gates"][0]["disposition"] = Value::String("allow_if_pue_is_good".into());
-        assert!(validate(&v).unwrap_err().contains("weakens a non-compensatory gate"));
+        assert!(validate(&v).unwrap_err().contains("disposition was weakened or changed"));
     }
     #[test]
     fn missing_calibration_and_custody_fields_are_rejected() {
