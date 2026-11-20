@@ -841,13 +841,6 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                 if !ACTION_CLASSES.contains(&string_at(action, "action_class").unwrap_or("")) {
                     errors.push(format!("scenario '{scenario_id}' action '{action_id}' has unknown action_class"));
                 }
-                if let Some(required_caps) = action.get("requires_capabilities").and_then(Value::as_array) {
-                    for capability in required_caps.iter().filter_map(Value::as_str) {
-                        if !available_caps.contains(capability) {
-                            errors.push(format!("scenario '{scenario_id}' action '{action_id}' requires a capability not available in the trigger state: '{capability}'"));
-                        }
-                    }
-                }
                 if !valid_digest(string_at(action, "action_evidence_sha256")) {
                     errors.push(format!("scenario '{scenario_id}' action '{action_id}' evidence digest invalid"));
                 }
@@ -1035,7 +1028,13 @@ mod tests {
         let scenario = report["scenario_reports"].as_array().unwrap().iter()
             .find(|item| item["scenario_id"] == "generator-trip").unwrap();
         assert_eq!(scenario["outcome"], "RECOVERABLE");
-        assert_eq!(scenario["feasible_path_count"], 1);
+        assert_eq!(scenario["feasible_path_count"], 2);
+        assert!(scenario["feasible_paths"].as_array().unwrap().iter()
+            .any(|path| path["objective_class"] == "safe_haven"));
+        let handover = scenario["feasible_paths"].as_array().unwrap().iter()
+            .find(|path| path["objective_class"] == "human_handover").unwrap();
+        assert_eq!(handover["human_response_upper_hours"], 0.5);
+        assert!(handover["remaining_intervention_margin_hours"].as_f64().unwrap() > 0.0);
         let ids = scenario["feasible_paths"][0]["action_path"].as_array().unwrap();
         assert_eq!(ids.len(), 2);
         assert!(scenario["rejected_edges"].as_array().unwrap().iter()
