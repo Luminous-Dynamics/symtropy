@@ -561,6 +561,46 @@ mod tests {
     }
 
     #[test]
+    fn mobile_source_connection_requires_permitted_current_power_interface() {
+        let case = case();
+        let proposal = proposal(ActionKind::ConnectMobileSource);
+        let before = state(&case);
+        let mut after = before.clone();
+        after.step = 1;
+        after.mobile_source_connections.insert("MPS-1".to_string(), Some("N5".to_string()));
+        let envelope = envelope(&case, &proposal, &before, &after, ActionExecutionOutcome::Applied);
+        let report = audit_transition(&case, &proposal, &before, &after, &envelope).unwrap();
+        assert_eq!(report.result_status, "supported_transition_state_delta_verified");
+    }
+
+    #[test]
+    fn mobile_source_cannot_connect_from_a_different_road_location() {
+        let case = case();
+        let proposal = proposal(ActionKind::ConnectMobileSource);
+        let mut before = state(&case);
+        before.mobile_source_road_positions.insert("MPS-1".to_string(), "R1".to_string());
+        let mut after = before.clone();
+        after.step = 1;
+        after.mobile_source_connections.insert("MPS-1".to_string(), Some("N5".to_string()));
+        let envelope = envelope(&case, &proposal, &before, &after, ActionExecutionOutcome::Applied);
+        assert!(audit_transition(&case, &proposal, &before, &after, &envelope).is_err());
+    }
+
+    #[test]
+    fn mobile_source_disconnect_is_recomputed() {
+        let case = case();
+        let proposal = proposal(ActionKind::DisconnectMobileSource);
+        let mut before = state(&case);
+        before.mobile_source_connections.insert("MPS-1".to_string(), Some("N5".to_string()));
+        let mut after = before.clone();
+        after.step = 1;
+        after.mobile_source_connections.insert("MPS-1".to_string(), None);
+        let envelope = envelope(&case, &proposal, &before, &after, ActionExecutionOutcome::Applied);
+        let report = audit_transition(&case, &proposal, &before, &after, &envelope).unwrap();
+        assert_eq!(report.result_status, "supported_transition_state_delta_verified");
+    }
+
+    #[test]
     fn unrelated_successor_mutation_is_rejected() {
         let case = case();
         let proposal = proposal(ActionKind::SetSwitchState);
