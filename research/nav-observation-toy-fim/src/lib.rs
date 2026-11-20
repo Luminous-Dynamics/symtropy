@@ -66,16 +66,23 @@ impl Fisher2 {
     }
 
     pub fn determinant(self) -> f64 {
-        self.xx * self.yy - self.xy * self.xy
+        // FMA reduces cancellation for nearly rank-deficient 2x2 matrices.
+        self.xx.mul_add(self.yy, -(self.xy * self.xy))
     }
 
     pub fn eigenvalues(self) -> (f64, f64) {
         let trace = self.trace();
-        let discriminant = ((self.xx - self.yy).powi(2) + 4.0 * self.xy.powi(2)).sqrt();
+        let discriminant = (self.xx - self.yy).hypot(2.0 * self.xy);
         let maximum = 0.5 * (trace + discriminant);
-        // A theoretically PSD Fisher matrix can acquire a tiny negative
-        // minimum eigenvalue from floating-point roundoff.
-        let minimum = (0.5 * (trace - discriminant)).max(0.0);
+        // Computing (trace - discriminant) / 2 directly loses significant
+        // digits when the minimum eigenvalue is much smaller than the maximum.
+        // For a PSD 2x2 matrix, lambda_min = det(J) / lambda_max is better
+        // conditioned. Tiny negative roundoff in det is clamped to zero.
+        let minimum = if maximum > 0.0 {
+            (self.determinant() / maximum).max(0.0)
+        } else {
+            0.0
+        };
         (minimum, maximum)
     }
 
@@ -104,7 +111,24 @@ impl Fisher2 {
             return None;
         }
         let (minimum, maximum) = self.eigenvalues();
-        Some(maximum / minimum)
+        let value = maximum / minimum;
+        value.is_finite().then_some(value)
+    }
+
+    /// A-optimal criterion: trace(J^-1), defined only for full-rank geometry.
+    ///
+    /// Smaller values indicate less total marginal variance in the local
+    /// linearized 2D model. This is not a calibrated posterior covariance.
+    pub fn a_optimal_trace_inverse(self, relative_tolerance: f64) -> Option<f64> {
+        if self.rank(relative_tolerance) < 2 {
+            return None;
+        }
+        let determinant = self.determinant();
+        if !determinant.is_finite() || determinant <= 0.0 {
+            return None;
+        }
+        let value = self.trace() / determinant;
+        value.is_finite().then_some(value)
     }
 }
 
@@ -117,6 +141,7 @@ pub enum SelectionError {
     InvalidSigma(String),
     ZeroCost(String),
     InvalidRankTolerance,
+    NonFiniteInformation,
     CostOverflow,
 }
 
@@ -133,6 +158,7 @@ impl fmt::Display for SelectionError {
             Self::InvalidSigma(id) => write!(f, "range noise variance/precision is invalid: {id}"),
             Self::ZeroCost(id) => write!(f, "action cost must be positive: {id}"),
             Self::InvalidRankTolerance => write!(f, "rank tolerance must be finite and nonnegative"),
+            Self::NonFiniteInformation => write!(f, "Fisher information overflowed or became non-finite"),
             Self::CostOverflow => write!(f, "total action cost overflowed u32"),
         }
     }
@@ -146,7 +172,9 @@ pub struct Selection {
     pub total_cost_units: u32,
     pub fisher: Fisher2,
     pub rank: u8,
+    pub minimum_eigenvalue: f64,
     pub log_determinant: Option<f64>,
+    pub a_optimal_trace_inverse: Option<f64>,
     pub condition_number: Option<f64>,
 }
 
@@ -207,12 +235,30 @@ fn selection_for_mask(
         }
     }
 
+    let determinant = fisher.determinant();
+    let trace = fisher.trace();
+    if !fisher.xx.is_finite()
+        || !fisher.xy.is_finite()
+        || !fisher.yy.is_finite()
+        || !trace.is_finite()
+        || !determinant.is_finite()
+    {
+        return Err(SelectionError::NonFiniteInformation);
+    }
+
+    let (minimum_eigenvalue, _) = fisher.eigenvalues();
+    if !minimum_eigenvalue.is_finite() {
+        return Err(SelectionError::NonFiniteInformation);
+    }
+
     Ok(Selection {
         action_ids,
         total_cost_units,
         fisher,
         rank: fisher.rank(rank_tolerance),
+        minimum_eigenvalue,
         log_determinant: fisher.log_determinant(rank_tolerance),
+        a_optimal_trace_inverse: fisher.a_optimal_trace_inverse(rank_tolerance),
         condition_number: fisher.condition_number(rank_tolerance),
     })
 }
@@ -381,6 +427,8 @@ mod tests {
         assert_eq!(matrix.rank(DEFAULT_RANK_TOLERANCE), 2);
         assert!((matrix.determinant() - 1.0).abs() < 1.0e-12);
         assert!((matrix.condition_number(DEFAULT_RANK_TOLERANCE).unwrap() - 1.0).abs() < 1.0e-12);
+        assert!((matrix.a_optimal_trace_inverse(DEFAULT_RANK_TOLERANCE).unwrap() - 2.0).abs() < 1.0e-12);
+        assert!((matrix.eigenvalues().0 - 1.0).abs() < 1.0e-12);
     }
 
     #[test]
@@ -416,6 +464,8 @@ mod tests {
         let greedy = greedy_select(&actions, 2).unwrap();
 
         assert!(greedy.total_cost_units <= 2);
+        assert!((exact.fisher.determinant() - 1.0).abs() < 1.0e-12);
+        assert!((greedy.fisher.determinant() - 0.5).abs() < 1.0e-12);
         assert!(greedy.fisher.determinant() < exact.fisher.determinant());
     }
 
@@ -429,6 +479,80 @@ mod tests {
 
         assert_eq!(forward.action_ids, backward.action_ids);
         assert_eq!(forward.fisher, backward.fisher);
+    }
+
+
+    #[test]
+    fn common_rotation_preserves_rank_and_determinant() {
+        let original = candidate_set();
+        let rotated = original
+            .iter()
+            .map(|item| {
+                RangeAction::new(
+                    item.id.clone(),
+                    item.line_of_sight_rad + 0.731,
+                    item.sigma_m,
+                    item.cost_units,
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let before = exhaustive_select(&original, 2).unwrap();
+        let after = exhaustive_select(&rotated, 2).unwrap();
+
+        assert_eq!(before.rank, after.rank);
+        assert!((before.fisher.determinant() - after.fisher.determinant()).abs() < 1.0e-12);
+        assert!((before.fisher.trace() - after.fisher.trace()).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn uniform_noise_scale_changes_information_by_inverse_square() {
+        let original = vec![
+            RangeAction::new("east", 0.0, 1.0, 1),
+            RangeAction::new("north", std::f64::consts::FRAC_PI_2, 1.0, 1),
+        ];
+        let scaled = original
+            .iter()
+            .map(|item| {
+                RangeAction::new(
+                    item.id.clone(),
+                    item.line_of_sight_rad,
+                    item.sigma_m * 2.0,
+                    item.cost_units,
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let before = exhaustive_select(&original, 2).unwrap();
+        let after = exhaustive_select(&scaled, 2).unwrap();
+
+        assert!((after.fisher.trace() - before.fisher.trace() / 4.0).abs() < 1.0e-12);
+        assert!((after.fisher.determinant() - before.fisher.determinant() / 16.0).abs() < 1.0e-12);
+        assert_eq!(after.rank, 2);
+    }
+
+    #[test]
+    fn near_collinear_geometry_is_not_misreported_as_well_conditioned() {
+        let mut matrix = Fisher2::default();
+        matrix.add_range(0.0, 1.0);
+        matrix.add_range(1.0e-8, 1.0);
+
+        assert_eq!(matrix.rank(DEFAULT_RANK_TOLERANCE), 1);
+        assert_eq!(matrix.condition_number(DEFAULT_RANK_TOLERANCE), None);
+        assert_eq!(matrix.a_optimal_trace_inverse(DEFAULT_RANK_TOLERANCE), None);
+        assert!(matrix.eigenvalues().0 < 1.0e-14);
+    }
+
+    #[test]
+    fn precision_overflow_is_rejected_before_scoring() {
+        let extreme = vec![
+            RangeAction::new("east", 0.0, 1.0e-160, 1),
+            RangeAction::new("north", std::f64::consts::FRAC_PI_2, 1.0e-160, 1),
+        ];
+        assert_eq!(
+            exhaustive_select(&extreme, 2),
+            Err(SelectionError::InvalidSigma("east".to_owned()))
+        );
     }
 
     #[test]
