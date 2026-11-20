@@ -505,8 +505,16 @@ pub fn audit_transition(
 
         match execution.outcome {
             ActionExecutionOutcome::Applied => applied_action_count += 1,
-            ActionExecutionOutcome::Rejected if !physical => rejected_action_count += 1,
-            ActionExecutionOutcome::Failed if !physical => failed_action_count += 1,
+            ActionExecutionOutcome::Rejected => {
+                if !physical {
+                    rejected_action_count += 1;
+                }
+            }
+            ActionExecutionOutcome::Failed => {
+                if !physical {
+                    failed_action_count += 1;
+                }
+            }
             ActionExecutionOutcome::NotAttempted => not_attempted_action_count += 1,
         }
         match apply_supported_action(action, execution, case, &mut expected_successor) {
