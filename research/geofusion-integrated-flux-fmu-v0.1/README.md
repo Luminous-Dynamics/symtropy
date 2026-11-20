@@ -56,11 +56,13 @@ Build/package:
 make clean package
 ~~~
 
-Run the importer test with pinned FMPy 0.3.32:
+Run the complete local qualification suite with pinned FMPy 0.3.32 and its dependencies installed:
 
 ~~~sh
-python3 tests/fmpy_flux_smoke.py
+make test
 ~~~
+
+This runs the per-library FMI symbol/capability audit, deterministic SSP build/verify tests and the FMPy runtime handshake test.
 
 The smoke validates both FMUs, executes two different communication intervals (0–30 s, 30–120 s), compares cumulative and per-interval source energy against the analytic integral, checks the producer/receiver lastSuccessfulTime chain, verifies exact interval energy allocation, and injects negative-J, duplicate-consumption and stale-step controls.
 
