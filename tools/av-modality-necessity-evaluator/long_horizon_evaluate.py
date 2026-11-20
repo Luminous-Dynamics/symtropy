@@ -378,7 +378,7 @@ def evaluate(
 
         if label.get("independence_claim_allowed") is False and prediction.get("claimed_independent_corroboration") is True:
             violations.append("common_cause_views_claimed_independent")
-        if not required <= valid_current_refs and not any(
+        if not abstained and not required <= valid_current_refs and not any(
             code in violations for code in (
                 "current_reference_uses_superseded_observation",
                 "current_reference_not_in_episode_evidence",
