@@ -14,7 +14,7 @@
     "case_schema": "./nav_transition_case.schema.json",
     "synthetic_cases": "./fixtures/nav_transition_cases.v0.1.json"
   },
-  "case_count": 7,
+  "case_count": 8,
   "case_ids": [
     "nav.land.open-urban-tunnel.v0.1",
     "nav.surface-to-underwater-acoustic-loss.v0.1",
@@ -22,7 +22,8 @@
     "nav.space-orbit-optical-relative-reacquisition.v0.1",
     "nav.common-mode-false-independence.negative.v0.1",
     "nav.frame-time-basis-mismatch.negative.v0.1",
-    "nav.lunar-body-fixed-to-local-terrain.v0.1"
+    "nav.lunar-body-fixed-to-local-terrain.v0.1",
+    "nav.independent-multimodal-positive.v0.1"
   ],
   "controller_evaluator_separation": {
     "controller_input": "Each case controller_stream only",
