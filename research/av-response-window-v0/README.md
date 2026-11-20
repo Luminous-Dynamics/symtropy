@@ -157,3 +157,18 @@ If controller_permission_event_ref is supplied, it must resolve to assistant_spe
 All referenced lifecycle event IDs must be unique. Response timestamps must equal the ticks of the referenced renderer events. Output stop request, playback start and output stop acknowledgement must have a causal ordering, and the output-stop acknowledgement must identify its request. A response that only contains a permission event, a stop request without acknowledgement, or a natural end mislabeled as a stop is rejected.
 
 The finite fixture uses timing_evidence_mode=synthetic_reference and a synthetic logical-tick relation. It validates the data contract only. Future measured submissions must use timing_evidence_mode=renderer_qualified and a SHA-256 identifier for the independently qualified clock relation. The evaluator's digest check validates identifier shape only; it does not prove the mapping or authenticate hardware. Symthaea #13014 owns the real controller/renderer trace bridge and independent clock-qualification evidence.
+
+### CPAL 0.17.3 renderer-clock interpretation
+
+The current Symthaea live-voice implementation uses CPAL 0.17.x in src/voice/audio_out.rs. CPAL 0.17.3's OutputCallbackInfo exposes an OutputStreamTimestamp with a callback instant and a predicted playback instant (the expected DAC delivery time). The callback currently ignores that metadata. CPAL StreamInstant is monotonic for one stream lifetime, but the origin is not guaranteed to be shared across streams. The response-window adapter must therefore preserve stream ID/generation and use same-stream arithmetic only unless an independent clock transform is qualified.
+
+Important limits:
+- CPAL playback time is a predicted device/DAC schedule timestamp, not an acoustic loopback or listener-position measurement.
+- CPAL callback time is not automatically comparable with controller now_ns, std::time::Instant, another output stream, or the benchmark's replay tick.
+- A callback that observes a silent buffer is not acoustic confirmation of silence at a microphone; independent loopback is needed for that stronger claim.
+- Current LiveVoice stop() clears the synthesis/push flag while the ring buffer can still drain. The callback must confirm that old queued frames are no longer being emitted before an OutputStopped receipt is created.
+
+CPAL 0.17.3 API references:
+- OutputCallbackInfo: https://docs.rs/cpal/0.17.3/cpal/struct.OutputCallbackInfo.html
+- OutputStreamTimestamp: https://docs.rs/cpal/0.17.3/cpal/struct.OutputStreamTimestamp.html
+- StreamInstant: https://docs.rs/cpal/0.17.3/cpal/struct.StreamInstant.html
