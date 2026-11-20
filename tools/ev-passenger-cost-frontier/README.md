@@ -56,3 +56,20 @@ The overlay inherits productive minutes/cell-year, shifts, target good-carrier t
 This is an incremental capacity/resource overlay, not a second factory costing engine. Base building, general overhead, site labor/energy rates and vehicle assembly costs remain with `ev_factory_frontier`. Module production release remains false in v0.1, including synthetic-screen passes.
 
 Research dossier: [EV Carrier Module Manufacturing Screen v0.1](../../docs/research/EV_CARRIER_MODULE_MANUFACTURING_SCREEN_V0_1.md).
+
+
+## EV-CARRIER-LIFECYCLE-001 — module lifecycle and serviceability screen
+
+The `ev_carrier_lifecycle_screen` binary consumes `ev_carrier_module_factory_screen` output and adds module build cost, scheduled inspection burden, fault intervention repair-versus-replacement comparison, parts wait, technician hours and per-module maintenance time fraction.
+
+Run after the module factory overlay:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_carrier_lifecycle_screen -- \
+  ev-carrier-module-factory-report.json \
+  tools/ev-passenger-cost-frontier/fixtures/ev_carrier_lifecycle_v0_1.json
+```
+
+The unscheduled event rate is calculated only from an explicit event count divided by an explicit module-year exposure denominator. The tool does not infer failures from synthetic task examples. A stale/unknown post-maintenance test cannot qualify a service path; the evaluator never grants return-to-service authority or production release. The single-module maintenance-time fraction is not fleet availability.
+
+Dossier: [EV Carrier Lifecycle and Serviceability Screen v0.1](../../docs/research/EV_CARRIER_LIFECYCLE_AND_SERVICEABILITY_V0_1.md). Compose generic task semantics from [AERO-SERVICE-LOOP-001 #4056](https://github.com/Luminous-Dynamics/symtropy/issues/4056) and lifecycle comparisons from [EV-BENCH-001 #2164](https://github.com/Luminous-Dynamics/symtropy/issues/2164).
