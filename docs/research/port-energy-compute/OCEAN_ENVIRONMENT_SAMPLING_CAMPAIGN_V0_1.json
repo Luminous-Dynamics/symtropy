@@ -301,7 +301,9 @@
       "measurement_uncertainty",
       "quality_state",
       "source_rights",
-      "raw_data_digest"
+      "raw_data_digest",
+      "laboratory_batch_independence_domain",
+      "laboratory_batch_common_standard_uncertainty_mg_l"
     ],
     "qc_controls": [
       "sensor_calibration_and_drift_review",
