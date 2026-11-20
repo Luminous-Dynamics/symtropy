@@ -60,6 +60,18 @@ The CLI emits a deterministic JSON receipt that binds the exact fixture bytes wi
 
 No result grants operational, docking, valve, propulsion, safety, mission or command authority.
 
+## Adversarial shortcut baselines (same frozen corpus)
+
+A separate baseline replay measured how three intentionally weak compatibility rules behave on these exact 30 synthetic pairs. Here, a **false-compatible** result includes an oracle-rejected or oracle-indeterminate pair that the shortcut accepts.
+
+| Shortcut baseline | Baseline accepts | False-compatible | False-incompatible |
+|---|---:|---:|---:|
+| Shared standard label only | 30 | 27 | 0 |
+| Matching project ICD + geometry profile IDs only | 28 | 25 | 0 |
+| Fluid temperature/pressure interval overlap only (capture-only skips fluid) | 28 | 25 | 0 |
+
+These are synthetic adversarial-corpus results, not measured industry failure rates and not a comparison against a vendor's production conformance system. They show why no single label, identifier or overlap check can stand in for full-envelope compatibility plus identity, evidence and scope checks.
+
 ## Benchmarks and competitive comparison
 
 The first baselines are deliberately weak:
