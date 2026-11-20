@@ -630,6 +630,9 @@ fn validate_stream_separation(
             if !trajectory.work_milestones.is_empty() {
                 errors.push("modelled/measured service stream must not carry work milestones".to_string());
             }
+            if trajectory.samples.is_empty() {
+                errors.push("modelled/measured service stream requires per-load/per-interval samples".to_string());
+            }
             if errors.is_empty() {
                 Ok(None)
             } else {
@@ -801,7 +804,8 @@ fn summarize_service(
 
     let unknown_or_conflicting = unknown_count + conflicting_count;
     let complete = unknown_or_conflicting == 0;
-    let aggregate_score_match = if complete {
+    let run_completed = receipt.run_status == RunStatus::Completed;
+    let aggregate_score_match = if complete && run_completed {
         match (&receipt.aggregate_score, &receipt.final_service_trajectory) {
             (Some(score), Some(final_ref)) => {
                 let score_matches = score.metric_id == case.objective.metric
@@ -825,7 +829,7 @@ fn summarize_service(
         }
     } else {
         if receipt.aggregate_score.is_some() {
-            errors.push("run receipt publishes an aggregate score despite unknown/conflicting delivered-service intervals".to_string());
+            errors.push("run receipt publishes an aggregate score despite incomplete run or unknown/conflicting delivered-service intervals".to_string());
         }
         None
     };
@@ -865,6 +869,8 @@ fn summarize_service(
             ServiceStreamKind::MeasuredService => "measured_service_and_score_reconciled".to_string(),
             _ => "invalid_service_stream".to_string(),
         }
+    } else if !run_completed {
+        "service_trajectory_recomputed_for_incomplete_run".to_string()
     } else {
         "service_trajectory_recomputed_without_completed_score".to_string()
     };
@@ -901,7 +907,6 @@ pub fn audit_service_trajectory(
     receipt: &RunReceipt,
     case: &BenchmarkCase,
 ) -> Result<ServiceTrajectoryAuditReport, Vec<String>> {
-    validate_case(case);
     qualify_run_receipt(receipt, case)
         .map_err(|errors| errors.into_iter().map(|error| format!("run receipt: {error}")).collect::<Vec<_>>())?;
     validate_common(trajectory, receipt, case)?;
@@ -935,7 +940,7 @@ pub fn audit_service_trajectory(
         });
     }
 
-    validate_parent_service_artifacts(trajectory, receipt, &mut Vec::new());
+    validate_parent_service_artifacts(trajectory, receipt)?;
     summarize_service(trajectory, receipt, case)
 }
 
