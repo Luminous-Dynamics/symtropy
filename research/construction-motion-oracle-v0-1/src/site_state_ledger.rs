@@ -116,6 +116,8 @@ pub enum SiteEventPayload {
         frame_sha256: String,
         transform_sha256: String,
         calibration_sha256: String,
+        site_clock_domain_id: String,
+        valid_until_tick: u64,
     },
     ExecutionStarted {
         package_sha256: String,
@@ -268,6 +270,8 @@ struct StationQualification {
     package_sha256: String,
     station_id: String,
     calibration_sha256: String,
+    site_clock_domain_id: String,
+    valid_until_tick: u64,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -545,10 +549,15 @@ impl SiteStateLedger {
                 frame_sha256,
                 transform_sha256,
                 calibration_sha256,
+                site_clock_domain_id,
+                valid_until_tick,
             } => {
                 require_role(event.actor_role, SiteActorRole::Surveyor)?;
-                if station_id.trim().is_empty() {
+                if station_id.trim().is_empty() || site_clock_domain_id.trim().is_empty() {
                     return Err(SiteLedgerError::EmptyStationId);
+                }
+                if *valid_until_tick == 0 {
+                    return Err(SiteLedgerError::StationQualificationContextMismatch);
                 }
                 if !is_sha256(calibration_sha256) {
                     return Err(SiteLedgerError::InvalidCalibrationDigest);
@@ -566,6 +575,8 @@ impl SiteStateLedger {
                         package_sha256: package_sha256.clone(),
                         station_id: station_id.clone(),
                         calibration_sha256: calibration_sha256.clone(),
+                        site_clock_domain_id: site_clock_domain_id.clone(),
+                        valid_until_tick: *valid_until_tick,
                     },
                 })
             }
@@ -1312,6 +1323,8 @@ mod tests {
                 frame_sha256: digest('c'),
                 transform_sha256: digest('d'),
                 calibration_sha256: digest('9'),
+                site_clock_domain_id: "site-clock-01".into(),
+                valid_until_tick: 10_000,
             },
         )
     }
@@ -1741,6 +1754,8 @@ mod tests {
             frame_sha256: digest('c'),
             transform_sha256: digest('d'),
             calibration_sha256: digest('9'),
+            site_clock_domain_id: "site-clock-01".into(),
+            valid_until_tick: 10_000,
         };
         assert_eq!(
             ledger.apply(event),
