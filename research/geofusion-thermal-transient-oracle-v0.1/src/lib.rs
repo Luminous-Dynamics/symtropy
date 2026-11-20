@@ -5,8 +5,6 @@
 //! This is a synthetic benchmark oracle. It is not a physical geothermal or
 //! heat-exchanger model, an FMI master, or an energy-accounting authority.
 
-use std::f64::consts::PI;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ModelError {
     NonFiniteParameter,
@@ -307,6 +305,7 @@ impl ThermalModel {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::f64::consts::PI;
 
     fn close(actual: f64, expected: f64, tolerance: f64) {
         assert!(
