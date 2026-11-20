@@ -1456,4 +1456,37 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn stop_tube_trigger_domain_must_match_the_dispatch_envelope_trigger_domain() {
+        let (ledger, _, station_event_id) = setup_ledger();
+        let mut request = make_request(&ledger, station_event_id);
+        request.stopping_envelope.trigger_domain_sha256 = digest('1');
+        let graph = make_graph(&request, &ledger);
+        assert_eq!(
+            check_integrated_dispatch_readiness(&ledger, &graph, &request),
+            Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeContextMismatch(
+                "trigger domain"
+            ))
+        );
+    }
+
+    #[test]
+    fn changing_trigger_domain_dependency_invalidates_integrated_readiness() {
+        let (ledger, _, station_event_id) = setup_ledger();
+        let request = make_request(&ledger, station_event_id);
+        let mut graph = make_graph(&request, &ledger);
+        graph
+            .apply_revision(&[EvidenceRevisionChange {
+                node_id: request.evidence_nodes.trigger_domain.clone(),
+                new_version_sha256: digest('1'),
+                reason: "hazard trigger window changed".into(),
+            }])
+            .unwrap();
+        assert_eq!(
+            check_integrated_dispatch_readiness(&ledger, &graph, &request),
+            Err(IntegratedDispatchReadinessFailure::EvidenceSnapshotNotCurrent)
+        );
+    }
+
 }
