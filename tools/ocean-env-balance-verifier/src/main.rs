@@ -87,6 +87,12 @@ struct IntervalRecord {
     interval_id: String,
     interval_start_utc: String,
     interval_end_utc: String,
+    outfall_window_start_utc: String,
+    outfall_window_end_utc: String,
+    hydraulic_pairing_state: String,
+    hydraulic_residence_time_seconds: u64,
+    hydraulic_residence_time_standard_uncertainty_seconds: f64,
+    transport_lag_basis: String,
     time_sync_state: String,
     measured_clock_offset_ms: u64,
     maximum_clock_offset_ms: u64,
@@ -165,6 +171,10 @@ struct ConcentrationSample {
     concentration_mg_l: f64,
     standard_uncertainty_mg_l: f64,
     detection_limit_mg_l: f64,
+    sample_collection_method: String,
+    sample_preservation_state: String,
+    chain_of_custody_id: String,
+    laboratory_batch_id: String,
 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -178,6 +188,10 @@ struct PlumeConcentrationObservation {
     concentration_mg_l: f64,
     standard_uncertainty_mg_l: f64,
     detection_limit_mg_l: f64,
+    sample_collection_method: String,
+    sample_preservation_state: String,
+    chain_of_custody_id: String,
+    laboratory_batch_id: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -298,14 +312,21 @@ fn parse_utc_timestamp(value: &str) -> Option<i64> {
     let days = era * 146097 + day_of_era - 719468;
     Some(days * 86400 + hour * 3600 + minute * 60 + second)
 }
-fn validate_evidence(e: &Evidence, interval: &IntervalRecord, ids: &mut HashSet<String>) -> Result<(), String> {
+fn validate_evidence(
+    e: &Evidence,
+    interval: &IntervalRecord,
+    expected_start: &str,
+    expected_end: &str,
+    ids: &mut HashSet<String>,
+    calibration_domains: &mut HashSet<String>,
+) -> Result<(), String> {
     if e.sample_id.trim().is_empty() || !ids.insert(e.sample_id.clone()) {
         return Err(format!("empty or duplicate sample_id {}", e.sample_id));
     }
     if e.interval_id != interval.interval_id
-        || e.interval_start_utc != interval.interval_start_utc
-        || e.interval_end_utc != interval.interval_end_utc {
-        return Err(format!("sample {} is not exactly paired to interval {}", e.sample_id, interval.interval_id));
+        || e.interval_start_utc != expected_start
+        || e.interval_end_utc != expected_end {
+        return Err(format!("sample {} is not paired to the residence-time-adjusted window for interval {}", e.sample_id, interval.interval_id));
     }
     for (name, value) in [
         ("sensor_id", e.sensor_id.as_str()),
@@ -317,6 +338,9 @@ fn validate_evidence(e: &Evidence, interval: &IntervalRecord, ids: &mut HashSet<
         if value.trim().is_empty() {
             return Err(format!("sample {} missing {name}", e.sample_id));
         }
+    }
+    if !calibration_domains.insert(e.calibration_independence_domain.as_str()) {
+        return Err(format!("sample {} shares a calibration independence domain; covariance model required", e.sample_id));
     }
     if e.calibration_state != "in_calibration" {
         return Err(format!("sample {} calibration is not current", e.sample_id));
@@ -345,9 +369,24 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
         .ok_or_else(|| format!("interval {} has invalid UTC start", interval.interval_id))?;
     let end_seconds = parse_utc_timestamp(&interval.interval_end_utc)
         .ok_or_else(|| format!("interval {} has invalid UTC end", interval.interval_id))?;
-    if interval.interval_id.trim().is_empty() || end_seconds <= start_seconds {
+    let outfall_start = parse_utc_timestamp(&interval.outfall_window_start_utc)
+        .ok_or_else(|| format!("interval {} has invalid outfall UTC start", interval.interval_id))?;
+    let outfall_end = parse_utc_timestamp(&interval.outfall_window_end_utc)
+        .ok_or_else(|| format!("interval {} has invalid outfall UTC end", interval.interval_id))?;
+    if interval.interval_id.trim().is_empty() || end_seconds <= start_seconds
+        || outfall_end <= outfall_start {
         return Err(format!("interval {} has invalid UTC window", interval.interval_id));
     }
+    if interval.hydraulic_pairing_state != "residence_time_aligned_synthetic"
+        || interval.transport_lag_basis != "synthetic_tracer_characterization_assumption_not_measured"
+        || interval.hydraulic_residence_time_seconds == 0
+        || !((outfall_start - start_seconds) == interval.hydraulic_residence_time_seconds as i64)
+        || !((outfall_end - end_seconds) == interval.hydraulic_residence_time_seconds as i64)
+        || (end_seconds - start_seconds) != (outfall_end - outfall_start) {
+        return Err(format!("interval {} is not a valid residence-time-aligned intake/outfall pair", interval.interval_id));
+    }
+    nonnegative(interval.hydraulic_residence_time_standard_uncertainty_seconds,
+        "hydraulic_residence_time_standard_uncertainty_seconds")?;
     if interval.time_sync_state != bundle.pairing_contract.required_time_sync_state {
         return Err(format!("interval {} time sync is not qualified", interval.interval_id));
     }
@@ -380,11 +419,18 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
         return Err(format!("interval {} lacks an explicit paired-input covariance assessment", interval.interval_id));
     }
     let mut sample_ids = HashSet::new();
+    let mut calibration_domains = HashSet::new();
     let mut temperatures = std::collections::HashMap::new();
     let mut station_ids = HashSet::new();
     let mut thermal_calibration_domains = HashSet::new();
     for observation in &interval.thermal_observations {
-        validate_evidence(&observation.evidence, interval, &mut sample_ids)?;
+        let (expected_start, expected_end) = if observation.station_role == "intake" {
+            (&interval.interval_start_utc, &interval.interval_end_utc)
+        } else {
+            (&interval.outfall_window_start_utc, &interval.outfall_window_end_utc)
+        };
+        validate_evidence(&observation.evidence, interval, expected_start, expected_end,
+            &mut sample_ids, &mut calibration_domains)?;
         if !REQUIRED_ROLES.contains(&observation.station_role.as_str()) {
             return Err(format!("unknown thermal station role {}", observation.station_role));
         }
@@ -412,7 +458,13 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
     }
     let mut flows = std::collections::HashMap::new();
     for flow in &interval.flow_samples {
-        validate_evidence(&flow.evidence, interval, &mut sample_ids)?;
+        let (expected_start, expected_end) = if flow.station_role == "intake" {
+            (&interval.interval_start_utc, &interval.interval_end_utc)
+        } else {
+            (&interval.outfall_window_start_utc, &interval.outfall_window_end_utc)
+        };
+        validate_evidence(&flow.evidence, interval, expected_start, expected_end,
+            &mut sample_ids, &mut calibration_domains)?;
         if flow.station_id.trim().is_empty()
             || !["intake", "outfall"].contains(&flow.station_role.as_str())
             || flows.contains_key(flow.station_role.as_str()) {
@@ -424,9 +476,6 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
     }
     let intake_flow = flows.get("intake").copied().ok_or("missing intake flow")?;
     let outfall_flow = flows.get("outfall").copied().ok_or("missing outfall flow")?;
-    if intake_flow.evidence.calibration_independence_domain == outfall_flow.evidence.calibration_independence_domain {
-        return Err("shared calibration independence domain for intake/outfall flow requires covariance model".into());
-    }
     if temperatures["intake"].station_id != intake_flow.station_id
         || temperatures["outfall"].station_id != outfall_flow.station_id {
         return Err(format!("interval {} flow meters do not match the paired thermal stations", interval.interval_id));
@@ -437,10 +486,6 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
     }
     if interval.plume_concentration_observations.len() != interval.concentration_pairs.len() * 3 {
         return Err(format!("interval {} must have exactly three plume/reference samples per analyte", interval.interval_id));
-    }
-    if temperatures["intake"].evidence.calibration_independence_domain
-        == temperatures["outfall"].evidence.calibration_independence_domain {
-        return Err("shared calibration independence domain for paired thermal inputs requires covariance model".into());
     }
     let intake_temp = temperatures["intake"].temperature_deg_c;
     let outfall_temp = temperatures["outfall"].temperature_deg_c;
@@ -500,16 +545,24 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
             || pair.method_id.trim().is_empty() || pair.method_quality_state != "valid" {
             return Err(format!("interval {} has invalid/duplicate analyte or method", interval.interval_id));
         }
-        validate_evidence(&pair.intake.evidence, interval, &mut sample_ids)?;
-        validate_evidence(&pair.outfall.evidence, interval, &mut sample_ids)?;
+        validate_evidence(&pair.intake.evidence, interval,
+            &interval.interval_start_utc, &interval.interval_end_utc,
+            &mut sample_ids, &mut calibration_domains)?;
+        validate_evidence(&pair.outfall.evidence, interval,
+            &interval.outfall_window_start_utc, &interval.outfall_window_end_utc,
+            &mut sample_ids, &mut calibration_domains)?;
+        for (sample, role) in [(&pair.intake, "intake"), (&pair.outfall, "outfall")] {
+            if sample.sample_collection_method != "synthetic_flow_proportional_composite"
+                || sample.sample_preservation_state != "synthetic_documented"
+                || sample.chain_of_custody_id.trim().is_empty()
+                || sample.laboratory_batch_id.trim().is_empty() {
+                return Err(format!("analyte {} {role} sample lacks collection, preservation or custody metadata", pair.analyte_id));
+            }
+        }
         if pair.intake.station_role != "intake" || pair.outfall.station_role != "outfall"
             || pair.intake.station_id != intake_flow.station_id
             || pair.outfall.station_id != outfall_flow.station_id {
             return Err(format!("analyte {} concentration samples do not match flow stations", pair.analyte_id));
-        }
-        if pair.intake.evidence.calibration_independence_domain
-            == pair.outfall.evidence.calibration_independence_domain {
-            return Err(format!("analyte {} shares a calibration domain; covariance model required", pair.analyte_id));
         }
         for (sample, name) in [(&pair.intake, "intake"), (&pair.outfall, "outfall")] {
             nonnegative(sample.concentration_mg_l, "concentration_mg_l")?;
@@ -566,8 +619,14 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
         calibration_domains.insert(pair.intake.evidence.calibration_independence_domain.as_str());
         calibration_domains.insert(pair.outfall.evidence.calibration_independence_domain.as_str());
         for sample in matching_plume {
-            validate_evidence(&sample.evidence, interval, &mut sample_ids)?;
+            validate_evidence(&sample.evidence, interval,
+                &interval.outfall_window_start_utc, &interval.outfall_window_end_utc,
+                &mut sample_ids, &mut calibration_domains)?;
             if sample.method_id != pair.method_id || sample.method_quality_state != "valid"
+                || sample.sample_collection_method != "synthetic_flow_proportional_composite"
+                || sample.sample_preservation_state != "synthetic_documented"
+                || sample.chain_of_custody_id.trim().is_empty()
+                || sample.laboratory_batch_id.trim().is_empty()
                 || !required_plume_roles.contains(&sample.station_role.as_str())
                 || plume_by_role.contains_key(sample.station_role.as_str()) {
                 return Err(format!("analyte {} has invalid or duplicate plume sample", pair.analyte_id));
@@ -576,9 +635,6 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
                 .ok_or_else(|| format!("analyte {} plume sample has no thermal station", pair.analyte_id))?;
             if sample.station_id != station.station_id {
                 return Err(format!("analyte {} plume sample station identity mismatch", pair.analyte_id));
-            }
-            if !calibration_domains.insert(sample.evidence.calibration_independence_domain.as_str()) {
-                return Err(format!("analyte {} has a shared calibration domain; covariance model required", pair.analyte_id));
             }
             nonnegative(sample.concentration_mg_l, "plume concentration_mg_l")?;
             nonnegative(sample.standard_uncertainty_mg_l, "plume concentration uncertainty")?;
@@ -663,7 +719,7 @@ fn validate(bundle: &Bundle) -> Result<Report, String> {
         || !bundle.standards_context.nonlinear_model_policy.contains("Monte Carlo")
         || !bundle.standards_context.water_sampling_reference.contains("ISO 5667-10:2026")
         || bundle.standards_context.water_sampling_url.trim().is_empty()
-        || !bundle.standards_context.observation_interoperability.contains("SensorThings")
+        || !bundle.standards_context.observation_interoperability.contains("SensorThings API 2.0")
         || bundle.standards_context.observation_interoperability_url.trim().is_empty() {
         return Err("standards context incomplete".into());
     }
@@ -691,16 +747,25 @@ fn validate(bundle: &Bundle) -> Result<Report, String> {
         return Err("water-balance screen must remain a metrology check, not permit compliance".into());
     }
     let mapping = &bundle.ogc_sensorthings_mapping;
-    if mapping.standard != "OGC SensorThings API Part 1: Sensing 1.1"
+    if mapping.standard != "OGC SensorThings API 2.0"
+        || mapping.standard_url != "https://docs.ogc.org/is/23-019/23-019.html"
+        || mapping.publication_date != "2026-11-04"
         || mapping.entity_mapping.station_or_platform != "Thing"
         || mapping.entity_mapping.station_location != "Location"
         || mapping.entity_mapping.sensor_and_calibration_identity != "Sensor"
         || mapping.entity_mapping.measured_property != "ObservedProperty"
         || mapping.entity_mapping.sensor_and_property_series != "Datastream"
         || mapping.entity_mapping.individual_measurement != "Observation"
-        || mapping.entity_mapping.intake_outfall_or_reference_station != "FeatureOfInterest"
+        || mapping.entity_mapping.station_or_sampled_environment_feature != "Feature"
+        || mapping.entity_mapping.observation_proximate_feature_link != "ProximateFeatureOfInterest"
+        || mapping.entity_mapping.datastream_proximate_feature_link != "ProximateFeatureOfInterest"
+        || mapping.entity_mapping.datastream_ultimate_feature_link != "UltimateFeatureOfInterest"
+        || mapping.datastream_result_encoding.result_type != "SWE-Common JSON structure description"
+        || mapping.datastream_result_encoding.result_encoding != "SWE-Common encoding descriptor"
+        || !mapping.datastream_result_encoding.unit_location.contains("part of resultType")
+        || !mapping.datastream_result_encoding.legacy_unit_of_measurement.contains("not used in v2.0")
         || mapping.data_model_policy.trim().is_empty() {
-        return Err("OGC SensorThings entity mapping incomplete or unsupported".into());
+        return Err("OGC SensorThings 2.0 entity, Feature relationship or SWE-Common result mapping incomplete".into());
     }
 
     let mut interval_ids = HashSet::new();
@@ -834,6 +899,21 @@ mod tests {
         b.interval_records[0].thermal_observations[0].evidence.calibration_valid_until_utc =
             "2026-10-12T09:59:59Z".into();
         assert!(validate(&b).unwrap_err().contains("calibration validity does not cover"));
+    }
+    #[test]
+    fn uncorrected_same_time_outfall_sample_is_rejected() {
+        let mut b = fixture();
+        b.interval_records[0].thermal_observations[1].evidence.interval_start_utc =
+            b.interval_records[0].interval_start_utc.clone();
+        b.interval_records[0].thermal_observations[1].evidence.interval_end_utc =
+            b.interval_records[0].interval_end_utc.clone();
+        assert!(validate(&b).unwrap_err().contains("residence-time-adjusted window"));
+    }
+    #[test]
+    fn missing_chain_of_custody_is_rejected() {
+        let mut b = fixture();
+        b.interval_records[0].concentration_pairs[0].outfall.chain_of_custody_id.clear();
+        assert!(validate(&b).unwrap_err().contains("custody metadata"));
     }
     #[test]
     fn missing_far_field_chemistry_sample_is_rejected() {
