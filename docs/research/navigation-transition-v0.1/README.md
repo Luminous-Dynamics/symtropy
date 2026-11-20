@@ -35,7 +35,7 @@ The important outcome is not always a coordinate. It can be a qualified estimate
 
 ## Initial synthetic transition coverage
 
-The current fixture contains eight authored examples:
+The current fixture contains twelve authored synthetic episodes:
 
 | Case | Environment transition / challenge | Main failure mode |
 |---|---|---|
@@ -47,8 +47,12 @@ The current fixture contains eight authored examples:
 | Frame/time-basis mismatch | Deliberate frame and time association error | Silent coordinate or timestamp laundering |
 | Lunar body-fixed → local surface | Moon body-fixed state to local terrain frame | Body identity and epoch-bound transform |
 | Independent multimodal positive control | UWB + LiDAR + IMU with distinct declared failure domains | Correct acceptance of genuinely independent evidence |
+| Valid land reacquisition positive control | Tunnel GNSS loss → fresh GNSS + transform + profile requalification | Recovery must not occur on source availability alone |
+| Benign airborne camera loss | Camera obscuration while GNSS/INS and air data remain valid | Avoid false service loss from a noncritical modality fault |
+| Space occultation and reacquisition | Optical target loss → relative reacquisition → absolute reference requalification | Separate relative recovery from absolute-state restoration |
+| Indoor observability recovery | Geometry collapse → new viewpoint → repeated independent constraints | Condition-aware recovery rather than sensor-count heuristics |
 
-These are synthetic contract fixtures, not measured sensor traces or physical-world claims. The corpus is not yet the full 12–20 episode preregistration target. It must gain positive controls for genuinely independent sources, valid reacquisition, benign faults and recoverable map/frame transitions before any benchmark run is preregistered.
+These are synthetic contract fixtures, not measured sensor traces or physical-world claims. The corpus now reaches the 12-episode lower bound of the proposed 12–20 preregistration range; exact seeds, oracle qualification and held-out execution remain open. It must gain positive controls for genuinely independent sources, valid reacquisition, benign faults and recoverable map/frame transitions before any benchmark run is preregistered.
 
 ## External comparison anchors
 
@@ -144,15 +148,15 @@ The 20% figure is a falsifiable research hypothesis, not a claimed result or a u
 ## Current artifacts
 
 - `nav_transition_case.schema.json`: JSON Schema Draft 2020-12 authoring contract for a single case.
-- `fixtures/nav_transition_cases.v0.1.json`: seven synthetic examples with an explicit controller/evaluator split.
+- `fixtures/nav_transition_cases.v0.1.json`: twelve synthetic episodes with an explicit controller/evaluator split.
 
 The schema verifies structure only. A later semantic validator must enforce cross-reference integrity (case/source/frame/time IDs), monotonic event schedules, interval consistency, frame/body compatibility, source-clock-to-time-basis correlation, transformation validity, source common-mode graph correctness, oracle separation and expected-state logic. Schema syntax and fixture validity have not yet been independently checked or executed in CI.
 
 ## P0 work still required
 
-1. Add positive-control episodes for genuinely independent source combinations, valid recovery, benign false-alarm controls and known-answer frame/time transformations.
+1. Preserve the independent-source, valid-recovery and benign-loss controls; add known-answer frame/time transformations and additional domain-held-out episodes.
 2. Add a semantic validator and mutation tests; a JSON Schema pass alone cannot establish cross-field correctness.
-3. Freeze a 12–20 case corpus and exact seed list before held-out evaluation.
+3. Freeze the current 12-case corpus, exact seed list, profiles and primary outcomes before held-out evaluation.
 4. Bind the independent oracle manifest and source rights state using the existing EMSR receipt/ground-truth owners.
 5. Audit each scenario against the exact Symtropy physics/model-capability census. Unsupported physical effects remain abstract or UNKNOWN; no convenient coefficients are invented.
 6. Reproduce matched baselines on the exact data release and metric definitions before claiming any SOTA comparison.
@@ -160,3 +164,19 @@ The schema verifies structure only. A later semantic validator must enforce cros
 ## Explicit non-claims
 
 This is not a navigation estimator, a real-time runtime-assurance controller, a flight/maritime/mine/space safety case, airworthiness/seaworthiness certification, an operational PNT service or physical navigation authority. No RF attack generation, emitter targeting, kinetic cueing or physical actuation is in scope. Synthetic success does not establish field performance.
+
+
+### Frozen v0.1 case IDs
+
+1. `nav.land.open-urban-tunnel.v0.1`
+2. `nav.surface-to-underwater-acoustic-loss.v0.1`
+3. `nav.air-gnss-integrity-degradation.v0.1`
+4. `nav.space-orbit-optical-relative-reacquisition.v0.1`
+5. `nav.common-mode-false-independence.negative.v0.1`
+6. `nav.frame-time-basis-mismatch.negative.v0.1`
+7. `nav.lunar-body-fixed-to-local-terrain.v0.1`
+8. `nav.independent-multimodal-positive.v0.1`
+9. `nav.land.valid-reacquisition-positive.v0.1`
+10. `nav.air.benign-vision-degradation-control.v0.1`
+11. `nav.space.occultation-reacquisition.v0.1`
+12. `nav.indoor.observability-recovery.v0.1`
