@@ -52,6 +52,11 @@ The source's dimensionless static coupling (x=(3pi/4)alpha_{NH}/M) then becomes
 =rac{lambda}{2+lambda}},qquad lambda=alpha_{sym}/r_H^2.
 ]
 This creates an exact bridge between the static BD boundary of the existence atlas and the Symtropy coupling parameter.
+At fixed (alpha_{sym}), these expressions also satisfy the static first law exactly:
+[
+rac{dM}{dr_H}=T_Hrac{dS}{dr_H},qquad J=0.
+]
+The replay script verifies both this identity and the (x=lambda/(2+lambda)) conversion.
 
 ## Exact local attractor data
 
