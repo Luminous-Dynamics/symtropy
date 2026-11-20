@@ -1,0 +1,72 @@
+name: AV Modality Necessity Scoring Reference
+
+on:
+  push:
+    paths:
+      - "research/av-modality-necessity-v0/**"
+      - "tools/av-modality-necessity-evaluator/**"
+      - ".github/workflows/av-modality-necessity-scoring.yml"
+  pull_request:
+    paths:
+      - "research/av-modality-necessity-v0/**"
+      - "tools/av-modality-necessity-evaluator/**"
+      - ".github/workflows/av-modality-necessity-scoring.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: av-modality-necessity-scoring
+  cancel-in-progress: true
+
+jobs:
+  scoring-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate schemas and candidate submission
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-modality-necessity-v0/schemas/"
+          sub_schema = json.load(open(base + "policy-submission-v1.schema.json", encoding="utf-8"))
+          score_schema = json.load(open(base + "scorecard-v1.schema.json", encoding="utf-8"))
+          Draft202012Validator.check_schema(sub_schema)
+          Draft202012Validator.check_schema(score_schema)
+          submission = json.load(open("research/av-modality-necessity-v0/fixtures/agent/reference-submission-v1.json", encoding="utf-8"))
+          Draft202012Validator(sub_schema).validate(submission)
+          PY
+      - name: Run adversarial evaluator tests
+        run: python -m unittest discover -s tools/av-modality-necessity-evaluator -p "test_*.py" -v
+      - name: Score finite known-answer submission
+        run: |
+          python tools/av-modality-necessity-evaluator/evaluate.py \
+            --workload research/av-modality-necessity-v0/fixtures/agent/workload-v1.json \
+            --truth research/av-modality-necessity-v0/fixtures/evaluator-only/modality-truth-v1.json \
+            --submission research/av-modality-necessity-v0/fixtures/agent/reference-submission-v1.json \
+            --output /tmp/av-modality-reference-scorecard.json
+      - name: Validate exact scorecard
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-modality-necessity-v0/"
+          schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          actual = json.load(open("/tmp/av-modality-reference-scorecard.json", encoding="utf-8"))
+          expected = json.load(open(base + "fixtures/expected/reference-scorecard-v1.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(actual)
+          assert actual == expected, "reference scorecard differs from frozen known answer"
+          assert actual["totals"]["episode_count"] == 13
+          assert actual["totals"]["decision_correct_count"] == 13
+          assert actual["totals"]["hard_violation_count"] == 0
+          assert len(actual["paired_groups"]) == 4
+          PY
