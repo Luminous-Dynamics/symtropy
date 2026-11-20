@@ -8,6 +8,7 @@ Finite-dimensional audit of a supplied GENERIC / metriplectic operator contract.
     cargo test --locked --manifest-path crates/tools/plasma-metriplectic-audit/Cargo.toml
     cargo clippy --locked --manifest-path crates/tools/plasma-metriplectic-audit/Cargo.toml --all-targets -- -D warnings
     cargo run --locked --manifest-path crates/tools/plasma-metriplectic-audit/Cargo.toml -- benchmarks/plasma/metriplectic-audit-v0.json
+    cargo run --locked --manifest-path crates/tools/plasma-metriplectic-audit/Cargo.toml -- benchmarks/plasma/metriplectic-audit-indefinite-v0.json
 
 ## Algebraic contract
 
@@ -23,7 +24,7 @@ The audit checks:
 - grad(E) · du/dt = 0;
 - grad(S) · du/dt >= 0.
 
-The minimum eigenvalue of the scale-normalized symmetric part of M is computed using a symmetric Jacobi iteration **only when the symmetry residual passes its declared tolerance**; otherwise the PSD eigenvalue is null/unscoreable and the operator is rejected. Material asymmetry is never silently repaired. A rank-deficient positive-semidefinite M is allowed.
+The minimum eigenvalue of the scale-normalized symmetric part of M is computed using a symmetric Jacobi iteration **only when the symmetry residual passes its declared tolerance**; otherwise the PSD eigenvalue is null/unscoreable and the operator is rejected. Material asymmetry is never silently repaired. A rejected operator returns CLI exit code 1; malformed input or audit failure returns 2. CI includes an indefinite-dissipator negative control requiring a nonzero exit and the specific PSD finding. A rank-deficient positive-semidefinite M is allowed.
 
 ## Important claim boundary
 
