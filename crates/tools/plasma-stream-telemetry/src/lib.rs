@@ -139,6 +139,7 @@ pub struct LatencyMetrics {
     pub transport_latency_ns: Option<u64>,
     pub queue_wait_ns: Option<u64>,
     pub processing_latency_ns: Option<u64>,
+    pub post_processing_decision_latency_ns: Option<u64>,
     pub acquisition_to_decision_ns: Option<u64>,
     pub downstream_ack_latency_ns: Option<u64>,
     pub source_age_at_decision_ns: Option<u64>,
@@ -194,6 +195,7 @@ pub struct ReplaySummary {
     pub transport_latency: Option<LatencyDistribution>,
     pub queue_wait: Option<LatencyDistribution>,
     pub processing_latency: Option<LatencyDistribution>,
+    pub post_processing_decision_latency: Option<LatencyDistribution>,
     pub acquisition_to_decision_latency: Option<LatencyDistribution>,
     pub source_age_at_decision: Option<LatencyDistribution>,
     pub downstream_ack_latency: Option<LatencyDistribution>,
@@ -404,6 +406,12 @@ fn collect_latency(
     latency_distribution(
         reports
             .iter()
+            .filter(|report| {
+                !matches!(
+                    report.disposition,
+                    EventDisposition::Duplicate | EventDisposition::OutOfOrder
+                )
+            })
             .filter_map(|report| select(&report.metrics))
             .collect(),
     )
@@ -419,6 +427,7 @@ fn empty_metrics(spec: &StreamSpec, sequence_gap: bool) -> LatencyMetrics {
         transport_latency_ns: None,
         queue_wait_ns: None,
         processing_latency_ns: None,
+        post_processing_decision_latency_ns: None,
         acquisition_to_decision_ns: None,
         downstream_ack_latency_ns: None,
         source_age_at_decision_ns: None,
@@ -492,6 +501,7 @@ fn report_event(
                         let transport = interval(acquisition, receive, spec.max_clock_uncertainty_ns);
                         let queue = interval(receive, start, spec.max_clock_uncertainty_ns);
                         let processing = interval(start, end, spec.max_clock_uncertainty_ns);
+                        let post_processing = interval(end, decision, spec.max_clock_uncertainty_ns);
                         let total = interval(acquisition, decision, spec.max_clock_uncertainty_ns);
                         let age = interval(source, decision, spec.max_clock_uncertainty_ns);
 
@@ -503,6 +513,7 @@ fn report_event(
                             && transport.is_ok()
                             && queue.is_ok()
                             && processing.is_ok()
+                            && post_processing.is_ok()
                             && total.is_ok()
                             && age.is_ok()
                             && total_uncertainty.is_some();
@@ -513,6 +524,7 @@ fn report_event(
                         } else {
                             metrics.source_to_acquisition_latency_ns =
                                 source_to_acquisition.as_ref().ok().map(|item| item.0);
+                            let mut cadence_unqualified = false;
                             if let Some((previous_sequence, previous_stamp)) = previous_source
                                 && event.sequence_number > previous_sequence
                             {
@@ -536,6 +548,7 @@ fn report_event(
                                         }
                                     }
                                     _ => {
+                                        cadence_unqualified = true;
                                         findings.push(
                                             "source cadence cannot be compared under the declared clock budget"
                                                 .to_owned(),
@@ -546,6 +559,8 @@ fn report_event(
                             metrics.transport_latency_ns = transport.as_ref().ok().map(|item| item.0);
                             metrics.queue_wait_ns = queue.as_ref().ok().map(|item| item.0);
                             metrics.processing_latency_ns = processing.as_ref().ok().map(|item| item.0);
+                            metrics.post_processing_decision_latency_ns =
+                                post_processing.as_ref().ok().map(|item| item.0);
                             metrics.acquisition_to_decision_ns = total.as_ref().ok().map(|item| item.0);
                             metrics.source_age_at_decision_ns = age.as_ref().ok().map(|item| item.0);
                             metrics.clock_uncertainty_bound_ns = total_uncertainty;
@@ -558,7 +573,8 @@ fn report_event(
                             if sequence_gap {
                                 findings.push("one or more sequence numbers were skipped".to_owned());
                             }
-                            let cadence_degraded = metrics.source_period_consistent == Some(false);
+                            let cadence_degraded =
+                                cadence_unqualified || metrics.source_period_consistent == Some(false);
                             if deadline_missed {
                                 findings.push("decision completed after the acquisition-relative deadline".to_owned());
                                 EventDisposition::DeadlineMissed
@@ -723,11 +739,21 @@ pub fn replay_trace(request: &ReplayRequest) -> Result<ReplayReport, String> {
     };
     let deadline_qualified_decisions = reports
         .iter()
-        .filter(|report| report.metrics.deadline_missed.is_some())
+        .filter(|report| {
+            !matches!(
+                report.disposition,
+                EventDisposition::Duplicate | EventDisposition::OutOfOrder
+            ) && report.metrics.deadline_missed.is_some()
+        })
         .count();
     let deadline_misses = reports
         .iter()
-        .filter(|report| report.metrics.deadline_missed == Some(true))
+        .filter(|report| {
+            !matches!(
+                report.disposition,
+                EventDisposition::Duplicate | EventDisposition::OutOfOrder
+            ) && report.metrics.deadline_missed == Some(true)
+        })
         .count();
     let deadline_miss_rate_ppm = if deadline_qualified_decisions == 0 {
         None
@@ -767,6 +793,9 @@ pub fn replay_trace(request: &ReplayRequest) -> Result<ReplayReport, String> {
         transport_latency: collect_latency(&reports, |metrics| metrics.transport_latency_ns),
         queue_wait: collect_latency(&reports, |metrics| metrics.queue_wait_ns),
         processing_latency: collect_latency(&reports, |metrics| metrics.processing_latency_ns),
+        post_processing_decision_latency: collect_latency(&reports, |metrics| {
+            metrics.post_processing_decision_latency_ns
+        }),
         acquisition_to_decision_latency: collect_latency(&reports, |metrics| {
             metrics.acquisition_to_decision_ns
         }),
@@ -1122,6 +1151,69 @@ mod tests {
         let row = &report.body.reports[0];
         assert_eq!(row.metrics.source_to_acquisition_latency_ns, Some(110));
         assert_eq!(row.metrics.transport_latency_ns, Some(11));
+    }
+
+    #[test]
+    fn decision_before_processing_completion_is_clock_unqualified() {
+        let mut input = event(1, 900, 1000);
+        input.processing_end_time = Some(stamp(1050));
+        input.decision_time = Some(stamp(1040));
+        let report = replay_trace(&request(vec![input])).expect("replay");
+        assert_eq!(report.body.reports[0].disposition, EventDisposition::ClockUnqualified);
+        assert_eq!(
+            report.body.reports[0].metrics.post_processing_decision_latency_ns,
+            None
+        );
+    }
+
+    #[test]
+    fn duplicate_and_out_of_order_events_are_excluded_from_latency_statistics() {
+        let mut first = event(5, 900, 1000);
+        first.processing_end_time = Some(stamp(1090));
+        first.decision_time = Some(stamp(1100));
+        let mut duplicate = event(5, 1000, 1100);
+        duplicate.processing_end_time = Some(stamp(1200));
+        duplicate.decision_time = Some(stamp(1210));
+        let mut out_of_order = event(4, 1000, 1200);
+        out_of_order.processing_end_time = Some(stamp(1300));
+        out_of_order.decision_time = Some(stamp(1310));
+
+        let report = replay_trace(&request(vec![first, duplicate, out_of_order]))
+            .expect("replay");
+        assert_eq!(report.body.summary.deadline_qualified_decisions, 1);
+        assert_eq!(report.body.summary.deadline_misses, 1);
+        assert_eq!(
+            report.body.summary.acquisition_to_decision_latency
+                .as_ref()
+                .expect("one unique decision")
+                .sample_count,
+            1
+        );
+    }
+
+    #[test]
+    fn unqualified_cadence_check_degrades_event_instead_of_calling_it_on_time() {
+        let mut input = request(vec![event(1, 900, 1000), event(2, 1000, 1100)]);
+        input.events[0].source_time.uncertainty_ns = 20;
+        input.spec.max_clock_uncertainty_ns = 20;
+        let report = replay_trace(&input).expect("replay");
+        let second = &report.body.reports[1];
+        assert_eq!(second.disposition, EventDisposition::Degraded);
+        assert_eq!(second.metrics.source_period_consistent, None);
+        assert!(second.findings.iter().any(|item| item.contains("cadence cannot be compared")));
+    }
+
+    #[test]
+    fn post_processing_decision_latency_is_reported() {
+        let mut input = event(1, 900, 1000);
+        input.processing_end_time = Some(stamp(1030));
+        input.decision_time = Some(stamp(1045));
+        let report = replay_trace(&request(vec![input])).expect("replay");
+        assert_eq!(report.body.reports[0].disposition, EventDisposition::OnTimeValid);
+        assert_eq!(
+            report.body.reports[0].metrics.post_processing_decision_latency_ns,
+            Some(15)
+        );
     }
 
     #[test]
