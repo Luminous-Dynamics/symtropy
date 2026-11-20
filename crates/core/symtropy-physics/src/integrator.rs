@@ -49,9 +49,9 @@ pub enum IntegratorError {
 /// Checked integration entry point.
 ///
 /// Rejects zero, negative, NaN, and infinite timesteps; non-finite gravity;
-/// and non-finite dynamic-body position or velocity before mutating state or
-/// clearing force/torque accumulators. The existing non-finite force/torque
-/// accumulator sanitization policy remains unchanged.
+/// and non-finite or malformed dynamic-body position, velocity, or orientation
+/// before mutating state or clearing force/torque accumulators. The existing
+/// non-finite force/torque accumulator sanitization policy remains unchanged.
 ///
 /// Semi-implicit (velocity-first) Euler updates velocity before position.
 /// For separable Hamiltonian systems, the undamped fixed-step map is
