@@ -40,11 +40,9 @@ struct MetricContract {
 
 #[derive(Clone)]
 struct MetricInterval {
-    value: f64,
     lower: f64,
     upper: f64,
     coverage: f64,
-    unit: String,
 }
 
 fn string_at<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
@@ -172,7 +170,7 @@ fn parse_metrics(
             continue;
         }
         if parsed.insert(metric.to_owned(), MetricInterval {
-            value, lower, upper, coverage, unit: unit.to_owned(),
+            lower, upper, coverage,
         }).is_some() {
             errors.push(format!("{label} duplicates metric '{metric}'"));
         }
@@ -269,7 +267,7 @@ fn validate_action(
 ) -> Vec<String> {
     let id = string_at(action, "action_id").unwrap_or("unknown");
     let mut blockers = Vec::<String>::new();
-    if string_set(action.get("allowed_scenario_classes").unwrap_or(&Value::Null)).contains(scenario_class) == false {
+    if !string_set(action.get("allowed_scenario_classes").unwrap_or(&Value::Null)).contains(scenario_class) {
         blockers.push(format!("action '{id}' is not admitted for scenario class '{scenario_class}'"));
     }
     let capabilities = string_set(from.get("capabilities").unwrap_or(&Value::Null));
@@ -369,6 +367,20 @@ fn validate_action(
         }
     }
 
+    let from_components = from.get("components").and_then(Value::as_object);
+    let to_components = to.get("components").and_then(Value::as_object);
+    let mut actual_component_changes = BTreeSet::<String>::new();
+    if let (Some(before), Some(after)) = (from_components, to_components) {
+        let all_ids = before.keys().chain(after.keys()).cloned().collect::<BTreeSet<_>>();
+        for component_id in all_ids {
+            if before.get(&component_id) != after.get(&component_id) {
+                actual_component_changes.insert(component_id);
+            }
+        }
+    } else {
+        blockers.push(format!("action '{id}' source/successor component registry is missing"));
+    }
+
     let changes = action.get("component_changes").and_then(Value::as_array);
     let mut seen_changes = BTreeSet::<String>::new();
     if let Some(changes) = changes {
@@ -387,6 +399,10 @@ fn validate_action(
                 blockers.push(format!("action '{id}' component change '{component_id}' lacks evidence"));
             }
         }
+    }
+
+    if actual_component_changes != seen_changes {
+        blockers.push(format!("action '{id}' component_changes do not exactly cover every source/successor availability change"));
     }
 
     let checkpoints = action.get("checkpoints").and_then(Value::as_array);
@@ -469,7 +485,7 @@ struct SearchContext<'a> {
 }
 
 impl<'a> SearchContext<'a> {
-    fn terminal_blockers(&self, terminal: &Value) -> Vec<String> {
+    fn terminal_blockers(terminal: &Value) -> Vec<String> {
         let id = string_at(terminal, "terminal_id").unwrap_or("unknown");
         let class = string_at(terminal, "terminal_class").unwrap_or("");
         let expected_kind = match class {
@@ -505,11 +521,6 @@ impl<'a> SearchContext<'a> {
         {
             blockers.push(format!("terminal '{id}' access, availability or service is not verified"));
         }
-        if string_at(terminal, "operating_envelope_sha256") != self.state_by_id.values().next()
-            .and_then(|_| None::<&str>)
-        {
-            // The actual operating-envelope comparison is performed in validate_scenario.
-        }
         blockers
     }
 
@@ -527,9 +538,29 @@ impl<'a> SearchContext<'a> {
             self.fatal.push(format!("scenario '{}' exceeded max_paths_per_scenario", self.scenario_id));
             return;
         }
+        let current_state = self.state_by_id.get(current_state_id).copied().unwrap_or(&Value::Null);
+        let mut current_state_blockers = Vec::<String>::new();
+        let current_metrics = parse_metrics(
+            current_state.get("resource_metrics").unwrap_or(&Value::Null),
+            self.contract,
+            self.record_status,
+            &format!("current state '{current_state_id}'"),
+            &mut current_state_blockers,
+        );
+        let (floor_blockers, _) = conservative_margins(
+            &current_metrics,
+            self.contract,
+            &format!("current state '{current_state_id}'"),
+        );
+        current_state_blockers.extend(floor_blockers);
+        if string_at(current_state, "hard_gate_disposition") != Some("pass") {
+            current_state_blockers.push(format!("current state '{current_state_id}' hard-gate disposition is not PASS"));
+        }
+
         if let Some(terminals) = self.terminals_by_state.get(current_state_id).cloned() {
             for terminal in terminals {
-                let mut blockers = self.terminal_blockers(terminal);
+                let mut blockers = Self::terminal_blockers(terminal);
+                blockers.extend(current_state_blockers.clone());
                 let terminal_id = string_at(terminal, "terminal_id").unwrap_or("unknown").to_owned();
                 if blockers.is_empty() {
                     let terminal_class = string_at(terminal, "terminal_class").unwrap_or("").to_owned();
@@ -564,13 +595,11 @@ impl<'a> SearchContext<'a> {
             let to_id = string_at(action, "to_state_id").unwrap_or("").to_owned();
             let from = self.state_by_id.get(current_state_id).copied().unwrap_or(&Value::Null);
             let to = self.state_by_id.get(&to_id).copied().unwrap_or(&Value::Null);
-            let mut blockers = validate_action(
+            let mut blockers = current_state_blockers.clone();
+            blockers.extend(validate_action(
                 action, self.scenario_class, from, to, self.contract,
                 self.hard_gate_roster, self.record_status,
-            );
-            if string_at(from, "hard_gate_disposition") != Some("pass") {
-                blockers.push(format!("current state '{current_state_id}' hard-gate disposition is not PASS"));
-            }
+            ));
             if visited.contains(&to_id) {
                 blockers.push(format!("action '{action_id}' creates a cycle/repeated state '{to_id}'"));
             }
@@ -635,8 +664,6 @@ fn validate_scenario(
     let actions = actions.unwrap();
     let terminals = terminals.unwrap();
     let mut state_by_id = BTreeMap::<String,&Value>::new();
-    let mut resource_initial_digest: Option<String> = None;
-    let mut initial_snapshot_match = true;
     for state in states {
         let id = string_at(state,"state_id").unwrap_or("").to_owned();
         if state_by_id.insert(id.clone(),state).is_some() {
@@ -648,26 +675,20 @@ fn validate_scenario(
             &format!("state '{id}'"),&mut errors,
         );
         if id == string_at(scenario,"trigger_state_id").unwrap_or("") {
-            let canonical_metrics = state.get("resource_metrics").unwrap_or(&Value::Null);
-            let digest = array_digest(canonical_metrics).unwrap_or_default();
-            resource_initial_digest = Some(digest);
-            let (blockers,_) = conservative_margins(&metrics,contract,&format!("trigger state '{id}'"));
-            if !blockers.is_empty() {
-                errors.extend(blockers);
-            }
+            let _ = metrics;
         }
         if string_at(state,"hard_gate_disposition").is_none() {
             errors.push(format!("state '{id}' is missing hard-gate disposition"));
         }
     }
-    if resource_initial_digest.is_none() {
+    if !state_by_id.contains_key(string_at(scenario,"trigger_state_id").unwrap_or("")) {
         errors.push(format!("scenario '{scenario_id}' trigger_state_id is missing"));
     }
     if let Some(actions) = scenario.get("actions").and_then(Value::as_array) {
         let mut action_ids = BTreeSet::<String>::new();
         for action in actions {
             let id = string_at(action,"action_id").unwrap_or("").to_owned();
-            if action_ids.insert(id.clone()) == false {
+            if !action_ids.insert(id.clone()) {
                 errors.push(format!("scenario '{scenario_id}' duplicates action '{id}'"));
             }
             digest_field_matches(action,"action_sha256",Some("action_sha256"),&mut errors,&format!("action '{id}'"));
