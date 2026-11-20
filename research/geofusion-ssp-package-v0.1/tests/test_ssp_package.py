@@ -233,7 +233,11 @@ class SSPPackageTests(unittest.TestCase):
 <ssd:SystemStructureDescription xmlns:ssd="http://ssp-standard.org/SSP1/SystemStructureDescription"
  xmlns:ssc="http://ssp-standard.org/SSP1/SystemStructureCommon" version="2.0" name="&ext;"/>
 """
-        with self.assertRaisesRegex(ssp.QualificationError, "DTD declarations"):
+        # With entity resolution and DTD loading disabled, libxml2 rejects
+        # the external-entity reference during parsing. A malformed-XML
+        # refusal is acceptable here; the important contract is no expansion
+        # and no filesystem/network resolution.
+        with self.assertRaises(ssp.QualificationError):
             ssp.validate_ssd(evil)
 
     def test_symlink_fmu_input_is_rejected(self):
