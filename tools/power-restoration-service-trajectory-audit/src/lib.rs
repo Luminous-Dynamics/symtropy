@@ -175,6 +175,9 @@ pub struct ServiceTrajectoryAuditReport {
     pub run_id: String,
     pub case_sha256: String,
     pub stream_kind: ServiceStreamKind,
+    pub service_id: String,
+    pub service_type: String,
+    pub service_boundary_id: String,
     pub interval_duration_seconds: u32,
     pub horizon_steps: u32,
     pub sample_count: usize,
@@ -1009,6 +1012,9 @@ fn summarize_service(
         run_id: receipt.run_id.clone(),
         case_sha256: receipt.case.case_sha256.clone(),
         stream_kind: trajectory.stream_kind,
+        service_id: trajectory.service_id.clone(),
+        service_type: trajectory.service_type.clone(),
+        service_boundary_id: trajectory.service_boundary_id.clone(),
         interval_duration_seconds,
         horizon_steps: case.timebase.horizon_steps,
         sample_count: trajectory.samples.len(),
@@ -1047,6 +1053,9 @@ pub fn audit_service_trajectory(
             run_id: receipt.run_id.clone(),
             case_sha256: receipt.case.case_sha256.clone(),
             stream_kind: trajectory.stream_kind,
+            service_id: trajectory.service_id.clone(),
+            service_type: trajectory.service_type.clone(),
+            service_boundary_id: trajectory.service_boundary_id.clone(),
             interval_duration_seconds: trajectory.timebase.interval_duration_seconds,
             horizon_steps: case.timebase.horizon_steps,
             sample_count: trajectory.samples.len(),
@@ -1120,8 +1129,9 @@ pub fn aggregate_cascade_endpoint_availability(
         || mapping.case_sha256 != case_sha
         || report.stream_kind != ServiceStreamKind::ModelledService
             && report.stream_kind != ServiceStreamKind::MeasuredService
-        || mapping.service_id != report.load_summaries.first().map(|_| report.trajectory_id.as_str()).unwrap_or("")
-            && mapping.service_id.is_empty()
+        || mapping.service_id != report.service_id
+        || mapping.service_type != report.service_type
+        || mapping.service_boundary_id != report.service_boundary_id
         || !valid_id(&mapping.mapping_id)
         || !valid_id(&mapping.service_id)
         || mapping.service_type != "electricity"
