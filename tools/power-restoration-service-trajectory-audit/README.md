@@ -77,7 +77,7 @@ Forecast/work streams, unknown/conflicting trajectories, incomplete runs or scor
     cargo fmt --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --all -- --check
     cargo clippy --locked --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --all-targets -- -D warnings
     cargo test --locked --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --all-targets
-    cargo run --locked --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --bin power-restoration-service-trajectory-audit -- trajectory.json run-receipt.json benchmark-case.json
+    cargo run --locked --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --bin power-restoration-service-trajectory-audit -- trajectory.json run-receipt.json benchmark-case.json [cascade-endpoint-mapping.json]
 
 CLI exit codes:
 - 0: complete modelled/measured service trajectory and aggregate weighted-energy score reconcile;
@@ -88,13 +88,14 @@ CLI exit codes:
 ## Tests
 
 20 authored Rust tests cover:
-- full measured-service weighted-kWh hand calculation and cascade adapter output;
+- full measured-service weighted-kWh hand calculation, per-load cascade output and explicit multi-load endpoint aggregation;
 - modelled versus measured producer roles;
 - planned forecast and observed work non-promotion;
 - unknown/conflicting data handling;
 - exact load × interval coverage, order, timestamps and demand denominator;
 - sample evidence, source inventory, calibration and parent-artifact binding;
-- scorer mismatch, incomplete run and forecast-as-final negative controls.
+- scorer mismatch, incomplete run and forecast-as-final negative controls;
+- exact load-to-cascade mapping coverage, source-digest binding and demand-weighted multi-load endpoint aggregation.
 
 Tests are authored, not considered passed until exact-head Rust CI executes.
 
