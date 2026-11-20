@@ -21,6 +21,17 @@ const METRICS: [(&str, &str, &str); 11] = [
     ("comfort_breach_minutes_rolling_24h", "min", "lte"),
 ];
 const NUMERIC_TOLERANCE: f64 = 1e-9;
+const ACTION_CLASSES: [&str; 9] = [
+    "load_shed",
+    "divert_to_safe_haven",
+    "shore_resupply",
+    "repair",
+    "controlled_hold",
+    "human_handover",
+    "change_sail_configuration",
+    "switch_power_mode",
+    "continue_route",
+];
 
 #[derive(Clone)]
 struct ContractMetric {
@@ -239,8 +250,16 @@ fn apply_action(
     let action_id = string_at(action, "action_id").unwrap_or("unknown");
     let mut reasons = Vec::<String>::new();
 
-    if string_at(action, "action_class").is_none_or(str::is_empty) {
-        reasons.push("missing_action_class".to_owned());
+    let action_class = string_at(action, "action_class").unwrap_or("");
+    if !ACTION_CLASSES.contains(&action_class) {
+        reasons.push("unknown_action_class".to_owned());
+    }
+    if ["shore_resupply", "controlled_hold", "human_handover"].contains(&action_class) {
+        if string_at(action, "authority_receipt_ref").is_none_or(str::is_empty)
+            || !valid_digest(string_at(action, "authority_receipt_sha256"))
+        {
+            reasons.push("action_requires_authority_receipt".to_owned());
+        }
     }
     let trigger = string_at(scenario, "trigger_class").unwrap_or("");
     let allowed_triggers = action.get("trigger_classes").and_then(Value::as_array);
@@ -391,7 +410,8 @@ fn terminal_status(
     terminal: &Value,
     scenario_time: Option<DateTime<FixedOffset>>,
     elapsed_hours: f64,
-) -> Result<(), String> {
+    intervention_deadline_hours: f64,
+) -> Result<f64, String> {
     let terminal_id = string_at(terminal, "terminal_id").unwrap_or("unknown");
     if string_at(terminal, "receipt_sha256") != canonical_digest(terminal, Some("receipt_sha256")).as_deref() {
         return Err(format!("terminal_receipt_digest_mismatch:{terminal_id}"));
@@ -422,11 +442,29 @@ fn terminal_status(
         "safe_haven" | "controlled_safe_hold" => {
             service_status == "not_required" || service_status == "verified"
         }
+        "human_handover" => service_status == "verified",
         _ => false,
     };
     if !service_ok {
         return Err(format!("terminal_service_not_verified:{terminal_id}"));
     }
+    let human_response_upper_hours = if objective == "human_handover" {
+        let acknowledged = terminal.get("human_acknowledged").and_then(Value::as_bool) == Some(true);
+        let role = string_at(terminal, "human_authority_role").unwrap_or("");
+        let communications = valid_digest(string_at(terminal, "communications_evidence_sha256"));
+        let response = number_at(terminal, "human_response_upper_hours").unwrap_or(f64::NAN);
+        if !acknowledged || role.is_empty() || role == "not_applicable" || !communications
+            || !response.is_finite() || response < 0.0
+        {
+            return Err(format!("human_handover_acknowledgement_or_comms_unverified:{terminal_id}"));
+        }
+        if elapsed_hours + response > intervention_deadline_hours + NUMERIC_TOLERANCE {
+            return Err(format!("human_handover_response_after_intervention_deadline:{terminal_id}"));
+        }
+        response
+    } else {
+        0.0
+    };
     let deadline = parse_time(string_at(terminal, "arrival_deadline_at"))
         .ok_or_else(|| format!("terminal_deadline_invalid:{terminal_id}"))?;
     let valid_until = parse_time(string_at(terminal, "receipt_valid_until"))
@@ -441,7 +479,7 @@ fn terminal_status(
     if arrival > valid_until {
         return Err(format!("terminal_receipt_expired_before_arrival:{terminal_id}"));
     }
-    Ok(())
+    Ok(human_response_upper_hours)
 }
 
 fn action_digest_valid(action: &Value) -> bool {
@@ -466,6 +504,8 @@ fn explore_paths(
     depth_limit: usize,
     deadline_hours: f64,
     max_paths: usize,
+    max_expanded_edges: usize,
+    expanded_edges: &mut usize,
     feasible_paths: &mut Vec<Value>,
     rejected_edges: &mut Vec<Value>,
     errors: &mut Vec<String>,
@@ -484,6 +524,11 @@ fn explore_paths(
         return;
     }
     for action in outgoing {
+        if *expanded_edges >= max_expanded_edges {
+            *search_truncated = true;
+            break;
+        }
+        *expanded_edges += 1;
         if feasible_paths.len() >= max_paths {
             *search_truncated = true;
             break;
@@ -537,13 +582,29 @@ fn explore_paths(
             .collect::<Vec<_>>();
         for terminal in node_terminals {
             let terminal_id = string_at(terminal, "terminal_id").unwrap_or("unknown").to_owned();
-            match terminal_status(terminal, parse_time(string_at(scenario, "decision_time")), total_upper) {
-                Ok(()) => feasible_paths.push(json!({
+            let terminal_objective = string_at(terminal, "objective_class").unwrap_or("");
+            if (terminal_objective == "human_handover") != (string_at(action, "action_class") == Some("human_handover")) {
+                rejected_edges.push(json!({
+                    "action_id":action_id,
+                    "terminal_id":terminal_id,
+                    "reasons":["human_handover_action_terminal_mismatch"]
+                }));
+                continue;
+            }
+            match terminal_status(
+                terminal,
+                parse_time(string_at(scenario, "decision_time")),
+                total_upper,
+                deadline_hours
+            ) {
+                Ok(human_response_upper_hours) => feasible_paths.push(json!({
                     "action_path":path,
                     "terminal_id":terminal_id,
-                    "objective_class":string_at(terminal,"objective_class"),
+                    "objective_class":terminal_objective,
                     "duration_hours_lower":total_lower,
                     "duration_hours_upper":total_upper,
+                    "human_response_upper_hours":human_response_upper_hours,
+                    "remaining_intervention_margin_hours":(deadline_hours-total_upper-human_response_upper_hours).max(0.0),
                     "minimum_inter_sample_margin_by_metric":accumulated_margins
                 })),
                 Err(reason) => rejected_edges.push(json!({
@@ -558,7 +619,8 @@ fn explore_paths(
         explore_paths(
             scenario, contract, actions, terminals, next_node, next_state,
             total_lower, total_upper, path, visited_nodes, accumulated_margins,
-            depth_limit, deadline_hours, max_paths, feasible_paths, rejected_edges, errors, search_truncated
+            depth_limit, deadline_hours, max_paths, max_expanded_edges, expanded_edges,
+            feasible_paths, rejected_edges, errors, search_truncated
         );
         visited_nodes.remove(next_node);
         *accumulated_margins = previous_margins;
@@ -633,8 +695,13 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     let limits = value.get("graph_limits").unwrap_or(&Value::Null);
     let max_paths = limits.get("max_paths_per_scenario").and_then(Value::as_u64).unwrap_or(0) as usize;
     let max_depth = limits.get("max_action_depth").and_then(Value::as_u64).unwrap_or(0) as usize;
-    if max_paths == 0 || max_paths > 4096 || max_depth == 0 || max_depth > 32 {
-        errors.push("graph limits must be within 1..4096 paths and 1..32 action depth".to_owned());
+    let max_action_count = limits.get("max_action_count_per_scenario").and_then(Value::as_u64).unwrap_or(0) as usize;
+    let max_expanded_edges = limits.get("max_expanded_edges_per_scenario").and_then(Value::as_u64).unwrap_or(0) as usize;
+    if max_paths == 0 || max_paths > 4096 || max_depth == 0 || max_depth > 32
+        || max_action_count == 0 || max_action_count > 512
+        || max_expanded_edges == 0 || max_expanded_edges > 16384
+    {
+        errors.push("graph limits must be within 1..4096 paths, 1..32 depth, 1..512 actions and 1..16384 expansions".to_owned());
     }
 
     let scenarios = value.get("scenarios").and_then(Value::as_array);
@@ -642,6 +709,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         errors.push("scenarios must be a non-empty array".to_owned());
     }
     let mut scenario_ids = BTreeSet::<String>::new();
+    let mut scenario_triggers = BTreeSet::<String>::new();
     let mut scenario_hash_rows = Vec::<String>::new();
     if let Some(scenarios) = scenarios {
         for scenario in scenarios {
@@ -652,6 +720,13 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             let trigger = string_at(scenario, "trigger_class").unwrap_or("");
             if !triggers.iter().any(|item| item == trigger) {
                 errors.push(format!("scenario '{scenario_id}' uses an unregistered trigger class"));
+            }
+            if !scenario_triggers.insert(trigger.to_owned()) {
+                errors.push(format!("trigger class '{trigger}' appears in more than one recovery scenario"));
+            }
+            let expected_outcome = string_at(scenario, "expected_outcome").unwrap_or("");
+            if !["recoverable", "abstain"].contains(&expected_outcome) {
+                errors.push(format!("scenario '{scenario_id}' has invalid expected_outcome"));
             }
             if string_at(scenario, "scenario_class") != Some(trigger) {
                 errors.push(format!("scenario '{scenario_id}' scenario_class/trigger_class mismatch"));
@@ -697,6 +772,15 @@ fn validate(raw: &[u8], value: &Value) -> Value {
 
             let actions = scenario.get("actions").and_then(Value::as_array).cloned().unwrap_or_default();
             let terminals = scenario.get("terminals").and_then(Value::as_array).cloned().unwrap_or_default();
+            if actions.len() > max_action_count {
+                errors.push(format!("scenario '{scenario_id}' exceeds max_action_count_per_scenario"));
+            }
+            let available_caps = scenario.get("available_capabilities").and_then(Value::as_array)
+                .map(|items| items.iter().filter_map(Value::as_str).collect::<BTreeSet<_>>())
+                .unwrap_or_default();
+            if available_caps.len() != scenario.get("available_capabilities").and_then(Value::as_array).map_or(0, Vec::len) {
+                errors.push(format!("scenario '{scenario_id}' has missing/duplicate capability IDs"));
+            }
             let mut action_ids = BTreeSet::<String>::new();
             for action in &actions {
                 let action_id = string_at(action, "action_id").unwrap_or("");
@@ -705,6 +789,16 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                 }
                 if !action_digest_valid(action) {
                     errors.push(format!("scenario '{scenario_id}' action '{action_id}' digest/evidence invalid"));
+                }
+                if !ACTION_CLASSES.contains(&string_at(action, "action_class").unwrap_or("")) {
+                    errors.push(format!("scenario '{scenario_id}' action '{action_id}' has unknown action_class"));
+                }
+                if let Some(required_caps) = action.get("requires_capabilities").and_then(Value::as_array) {
+                    for capability in required_caps.iter().filter_map(Value::as_str) {
+                        if !available_caps.contains(capability) {
+                            errors.push(format!("scenario '{scenario_id}' action '{action_id}' requires a capability not available in the trigger state: '{capability}'"));
+                        }
+                    }
                 }
                 if !valid_digest(string_at(action, "action_evidence_sha256")) {
                     errors.push(format!("scenario '{scenario_id}' action '{action_id}' evidence digest invalid"));
@@ -727,6 +821,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             let mut feasible_paths = Vec::<Value>::new();
             let mut rejected_edges = Vec::<Value>::new();
             let mut search_truncated = false;
+            let mut expanded_edges = 0_usize;
             let mut path = Vec::<String>::new();
             let mut visited_nodes = BTreeSet::<String>::new();
             visited_nodes.insert("start".to_owned());
@@ -734,8 +829,8 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             explore_paths(
                 scenario, &contract_map, &actions, &terminals, "start", state,
                 0.0, 0.0, &mut path, &mut visited_nodes, &mut margins,
-                depth_limit.min(max_depth), deadline, max_paths,
-                &mut feasible_paths, &mut rejected_edges, &mut errors, &mut search_truncated
+                depth_limit.min(max_depth), deadline, max_paths, max_expanded_edges,
+                &mut expanded_edges, &mut feasible_paths, &mut rejected_edges, &mut errors, &mut search_truncated
             );
 
             let actual_recoverable = !feasible_paths.is_empty();
@@ -756,11 +851,16 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                 "outcome":outcome,
                 "enumeration_complete":!search_truncated,
                 "feasible_path_count":feasible_paths.len(),
+                "expanded_edge_count":expanded_edges,
                 "feasible_paths":feasible_paths,
                 "rejected_edges":rejected_edges,
                 "claim_ceiling":"bounded_action_graph_only"
             }));
         }
+    }
+    let declared_triggers = triggers.iter().cloned().collect::<BTreeSet<_>>();
+    if scenario_triggers != declared_triggers {
+        errors.push("scenario trigger coverage must match the registered trigger roster exactly once".to_owned());
     }
     scenario_hash_rows.sort();
     let scenario_set_digest = sha256_hex(scenario_hash_rows.join("").as_bytes());
