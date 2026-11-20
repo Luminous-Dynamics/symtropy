@@ -96,9 +96,9 @@ The adapter requires the exact source receipt schemas and frozen commits, and jo
 - capture: client ID, interface ID/revision, frame, epoch and accepted-for-handoff status with no authority grant;
 - fluid: receiver ID, the same interface ID/revision, fluid class/ID, phase, accepted receiver mass, temperature, pressure and metrology uncertainty.
 
-The returned bundle contains SHA-256 digests of the exact composition fixture and all three receipt files, pinned source commits and the joined service record. The bundle command fails closed on schema/commit mismatch, receiver or interface mismatch, rejected status or insufficient accepted mass.
+The returned bundle contains SHA-256 digests of the exact composition fixture, all three source receipt files, and the three source input fixtures. It checks each receipt's embedded `campaign_sha256` / `fixture_sha256` against the exact supplied source-input bytes, checks source input evidence class and claim ceiling against the receipt report, verifies pinned source commits and receipt schemas, and returns the joined service record. It fails closed on input-byte, schema/commit, receiver, interface, destination, evidence-class or claim-ceiling mismatch, rejected status or insufficient accepted mass.
 
-The receipt-bundle unit tests currently use synthetic receipt-shaped values. The adapter is ready to consume the three file outputs, but no cross-repository CI artifact ingestion has yet been claimed. A valid bundle remains synthetic software evidence because all three current source fixtures are synthetic and their upstream resource/orbit/capture/fluid evidence inputs are not hardware-qualified or authenticated.
+The receipt-bundle unit tests currently use synthetic receipt-shaped values and verify exact source-input digests. The adapter is now exercised by a focused cross-repository workflow that checks out the three exact pinned source commits, builds each independent CLI, generates each source receipt from its checked-out fixture, supplies the original fixture bytes to the adapter, and emits one integrated bundle. A valid bundle remains synthetic software evidence because all three current source fixtures are synthetic and their upstream resource/orbit/capture/fluid evidence inputs are not hardware-qualified or authenticated.
 
 
 ## Industry maturity crosscheck — 19 November 2026
