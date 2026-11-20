@@ -319,3 +319,107 @@ mod tests {
         );
     }
 }
+
+
+#[cfg(test)]
+mod motor_step_tests {
+    use super::*;
+    use crate::constraint::MotorStepState;
+    use crate::joints::MotorDrive;
+    use symtropy_math::Point;
+
+    fn run_motor_iterations(iterations: usize) -> (f64, f64, f64) {
+        let mut a = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut b =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let motor = MotorDrive {
+            target_pos: 1.0,
+            target_vel: 0.0,
+            kp: 2.0,
+            kd: 0.0,
+            max_force: 10.0,
+        };
+        let joint = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0).with_motor(motor);
+        let mut state = MotorStepState::default();
+
+        for _ in 0..iterations {
+            joint.solve_velocity_with_state(&mut a, &mut b, 0.1, None, &mut state);
+        }
+
+        let receipt = state.take_work_receipt().expect("one aggregated work receipt");
+        assert_eq!(state.take_work_receipt(), None);
+        (state.accumulated_impulse(), b.linear_velocity[0], receipt)
+    }
+
+    #[test]
+    fn prismatic_motor_budget_and_work_are_not_multiplied_by_solver_iterations() {
+        let reference = run_motor_iterations(1);
+        for iterations in [2, 4, 8] {
+            let result = run_motor_iterations(iterations);
+            assert!((result.0 - reference.0).abs() < 1.0e-12);
+            assert!((result.1 - reference.1).abs() < 1.0e-12);
+            assert!((result.2 - reference.2).abs() < 1.0e-12);
+        }
+        assert!((reference.0 - 0.2).abs() < 1.0e-12);
+        assert!((reference.1 - 0.2).abs() < 1.0e-12);
+        assert!((reference.2 - 0.02).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn prismatic_static_endpoint_receives_full_dynamic_response() {
+        let mut anchor = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut moving =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 2.0);
+        let motor = MotorDrive {
+            target_pos: 1.0,
+            target_vel: 0.0,
+            kp: 2.0,
+            kd: 0.0,
+            max_force: 10.0,
+        };
+        let joint = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0).with_motor(motor);
+        let mut state = MotorStepState::default();
+
+        joint.solve_velocity_with_state(&mut anchor, &mut moving, 0.1, None, &mut state);
+
+        // 2 N applied for 0.1 s to a 2 kg body -> 0.1 m/s.
+        assert!((moving.linear_velocity[0] - 0.1).abs() < 1.0e-12);
+        assert!((anchor.linear_velocity[0]).abs() < 1.0e-12);
+        assert!((state.accumulated_impulse() - 0.2).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn prismatic_motor_impulse_respects_one_step_effort_cap() {
+        let mut a = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut b =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let motor = MotorDrive {
+            target_pos: 100.0,
+            target_vel: 0.0,
+            kp: 100.0,
+            kd: 0.0,
+            max_force: 1.0,
+        };
+        let joint = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0).with_motor(motor);
+        let mut state = MotorStepState::default();
+
+        for _ in 0..8 {
+            joint.solve_velocity_with_state(&mut a, &mut b, 0.1, None, &mut state);
+        }
+
+        assert!((state.accumulated_impulse() - 0.1).abs() < 1.0e-12);
+        assert!((b.linear_velocity[0] - 0.1).abs() < 1.0e-12);
+    }
+}
