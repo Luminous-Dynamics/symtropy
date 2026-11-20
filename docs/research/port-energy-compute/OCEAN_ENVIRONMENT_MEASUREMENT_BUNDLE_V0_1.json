@@ -25,10 +25,21 @@
     "required_time_sync_state": "synchronized",
     "maximum_clock_offset_ms": 250,
     "pair_rule": "Every flow, thermal and concentration observation in an interval must use the exact same interval_id, interval_start_utc and interval_end_utc; clock offset must not exceed the declared limit.",
-    "water_balance_screen": {
+    "flow_closure_boundary": {
+      "mode": "single_pass_once_through_no_side_streams_synthetic",
+      "included_streams": [
+        "intake",
+        "outfall"
+      ],
+      "excluded_side_streams": [],
+      "storage_change_assumption": "zero_within_each_synthetic_interval",
+      "boundary_completeness_state": "synthetic_assumed_complete",
+      "rule": "This closure screen is only applicable to the explicitly declared single-pass, no-side-stream fixture. A real system with purge, bleed, bypass, recirculation, cleaning, leakage, evaporation, storage/holdup change or multiple outlets requires a full signed multi-stream mass balance and cannot use this two-meter screen."
+    },
+    "flow_closure_screen": {
       "method": "absolute outfall-minus-intake flow residual divided by combined standard uncertainty",
       "maximum_absolute_z_score": 2,
-      "purpose": "instrument/boundary consistency screen only; not a discharge permit or ecological threshold"
+      "purpose": "instrument-flow closure screen for this declared synthetic single-pass boundary only; not a full water mass balance, discharge permit or ecological threshold"
     }
   },
   "equation_contract": {
