@@ -31,12 +31,13 @@ fn run() -> Result<ExitCode, String> {
     let fixture: Fixture = serde_json::from_slice(&input)
         .map_err(|error| format!("invalid fixture JSON: {error}"))?;
     let report = evaluate(&fixture)?;
+    let benchmark_result = report.result.clone();
     let receipt = json!({
         "receipt_schema": "luminous.orbital-interface-conformance.receipt.v0.1",
         "validator_version": env!("CARGO_PKG_VERSION"),
         "source_commit": source_commit,
         "fixture_sha256": sha256_hex(&input),
-        "result": report.result,
+        "result": benchmark_result,
         "report": report,
         "authority_granted": false
     });
