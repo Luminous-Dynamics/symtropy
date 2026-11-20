@@ -19,6 +19,7 @@ pub struct RunReceipt {
     pub objective: ObjectiveIdentity,
     pub hardware: HardwareProfile,
     pub budget: ExecutionBudget,
+    pub observed_usage: ObservedUsage,
     pub run_status: RunStatus,
     pub terminal_reason: Option<TerminalReason>,
     pub decision_steps: Vec<DecisionRecord>,
@@ -115,6 +116,17 @@ pub struct ExecutionBudget {
     pub api_cost_limit_microusd: Option<u64>,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ObservedUsage {
+    pub elapsed_wall_clock_ms: u64,
+    pub solver_time_ms: u64,
+    pub maximum_solver_gap_basis_points: Option<u32>,
+    pub total_input_tokens: u64,
+    pub total_output_tokens: u64,
+    pub total_api_cost_microusd: u64,
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum RunStatus {
@@ -145,6 +157,8 @@ pub struct DecisionRecord {
     pub observation: Option<ArtifactRef>,
     pub planner_outcome: PlannerOutcome,
     pub planner_latency_ms: Option<u64>,
+    pub solver_time_ms: Option<u64>,
+    pub solver_gap_basis_points: Option<u32>,
     pub planner_output: Option<ArtifactRef>,
     pub retry_count: u32,
     pub input_tokens: Option<u64>,
@@ -305,6 +319,8 @@ fn validate_component(component: &ComponentIdentity, label: &str, errors: &mut V
 fn no_execution_payload(step: &DecisionRecord, label: &str, errors: &mut Vec<String>) {
     if step.observation.is_some()
         || step.planner_latency_ms.is_some()
+        || step.solver_time_ms.is_some()
+        || step.solver_gap_basis_points.is_some()
         || step.planner_output.is_some()
         || step.input_tokens.is_some()
         || step.output_tokens.is_some()
@@ -359,16 +375,20 @@ fn validate_decision(
         errors.push(format!("{label} executed step has a not-run stage outcome"));
     }
 
-    if let Some(value) = step.planner_latency_ms {
-        if value == 0 {
-            errors.push(format!("{label} planner latency must be positive when measured"));
-        }
+    if step.planner_latency_ms.is_none_or(|value| value == 0) {
+        errors.push(format!("{label} executed planner stage must record positive end-to-end latency"));
+    }
+    if step.solver_gap_basis_points.is_some_and(|value| value > 10_000) {
+        errors.push(format!("{label} solver gap cannot exceed 10,000 basis points"));
+    }
+    if step.solver_gap_basis_points.is_some() != step.solver_time_ms.is_some() {
+        errors.push(format!("{label} solver time and gap measurements must be recorded together"));
     }
     if step.input_tokens.is_some() != step.output_tokens.is_some() {
         errors.push(format!("{label} token accounting must report input and output together"));
     }
-    if step.api_cost_microusd.is_some() && step.planner_outcome == PlannerOutcome::NotRun {
-        errors.push(format!("{label} API cost cannot exist for a planner stage that did not run"));
+    if step.api_cost_microusd.is_none() {
+        errors.push(format!("{label} must record API cost (zero for a local/no-charge planner)"));
     }
 
     match step.planner_outcome {
@@ -599,8 +619,43 @@ fn validate_run(receipt: &RunReceipt, case: &BenchmarkCase) -> Vec<String> {
     if receipt.budget.wall_clock_limit_ms == 0
         || receipt.budget.solver_time_limit_ms == Some(0)
         || receipt.budget.solver_gap_limit_basis_points.is_some_and(|value| value > 10_000)
+        || receipt.observed_usage.elapsed_wall_clock_ms == 0
+        || receipt.observed_usage.maximum_solver_gap_basis_points.is_some_and(|value| value > 10_000)
     {
-        errors.push("wall-clock/solver budget or gap limit is invalid".to_string());
+        errors.push("wall-clock/solver budget or observed usage is invalid".to_string());
+    }
+
+    let sum_optional = |selector: fn(&DecisionRecord) -> Option<u64>| -> u64 {
+        receipt.decision_steps.iter()
+            .filter(|step| step.disposition == StepDisposition::Executed)
+            .filter_map(selector)
+            .sum()
+    };
+    let expected_input = sum_optional(|step| step.input_tokens);
+    let expected_output = sum_optional(|step| step.output_tokens);
+    let expected_cost = sum_optional(|step| step.api_cost_microusd);
+    let expected_solver_time = sum_optional(|step| step.solver_time_ms);
+    let expected_gap = receipt.decision_steps.iter()
+        .filter(|step| step.disposition == StepDisposition::Executed)
+        .filter_map(|step| step.solver_gap_basis_points)
+        .max();
+    if receipt.observed_usage.total_input_tokens != expected_input
+        || receipt.observed_usage.total_output_tokens != expected_output
+        || receipt.observed_usage.total_api_cost_microusd != expected_cost
+        || receipt.observed_usage.solver_time_ms != expected_solver_time
+        || receipt.observed_usage.maximum_solver_gap_basis_points != expected_gap
+    {
+        errors.push("run-level observed usage totals do not equal the complete per-decision usage records".to_string());
+    }
+    if receipt.observed_usage.elapsed_wall_clock_ms > receipt.budget.wall_clock_limit_ms
+        || receipt.budget.solver_time_limit_ms.is_some_and(|limit| receipt.observed_usage.solver_time_ms > limit)
+        || receipt.budget.solver_gap_limit_basis_points.is_some_and(|limit| receipt.observed_usage.maximum_solver_gap_basis_points.is_some_and(|gap| gap > limit))
+        || receipt.budget.token_limit.is_some_and(|limit| expected_input.saturating_add(expected_output) > limit)
+        || receipt.budget.api_cost_limit_microusd.is_some_and(|limit| expected_cost > limit)
+    {
+        if receipt.run_status == RunStatus::Completed {
+            errors.push("completed run exceeded one or more declared execution budgets".to_string());
+        }
     }
 
     let horizon = case.timebase.horizon_steps as usize;
@@ -614,6 +669,16 @@ fn validate_run(receipt: &RunReceipt, case: &BenchmarkCase) -> Vec<String> {
         validate_decision(step, receipt, case, &case_sha, &mut errors);
     }
 
+    let expected_not_run_reason = match receipt.terminal_reason {
+        Some(TerminalReason::RestorationComplete) => Some(NotRunReason::RestorationComplete),
+        Some(TerminalReason::HorizonExhausted) => Some(NotRunReason::HorizonExhausted),
+        Some(TerminalReason::OperatorStopped) => Some(NotRunReason::OperatorStopped),
+        Some(TerminalReason::RunAborted) => Some(NotRunReason::RunAborted),
+        Some(TerminalReason::DeadlineExceeded) => Some(NotRunReason::DeadlineExceeded),
+        Some(TerminalReason::SystemFailure) => Some(NotRunReason::SystemFailure),
+        Some(TerminalReason::EvidenceIncomplete) => Some(NotRunReason::EvidenceIncomplete),
+        None => None,
+    };
     let mut saw_not_run_tail = false;
     let mut seen_abort_tail = false;
     for step in &receipt.decision_steps {
@@ -626,15 +691,27 @@ fn validate_run(receipt: &RunReceipt, case: &BenchmarkCase) -> Vec<String> {
                 if receipt.run_status != RunStatus::Completed {
                     errors.push("not_run_after_termination is only valid for a completed run".to_string());
                 }
+                if step.not_run_reason != expected_not_run_reason {
+                    errors.push("not_run_after_termination reason must match the run terminal reason".to_string());
+                }
             }
             StepDisposition::NotRunAfterAbort => {
                 seen_abort_tail = true;
                 if receipt.run_status == RunStatus::Completed {
                     errors.push("not_run_after_abort is invalid for a completed run".to_string());
                 }
+                if step.not_run_reason != expected_not_run_reason {
+                    errors.push("not_run_after_abort reason must match the run terminal reason".to_string());
+                }
             }
             StepDisposition::Executed => {}
         }
+    }
+
+    if receipt.run_status != RunStatus::Completed
+        && receipt.decision_steps.iter().any(|step| step.disposition == StepDisposition::NotRunAfterTermination)
+    {
+        errors.push("aborted/timed-out/incomplete runs must use not_run_after_abort for the remaining horizon".to_string());
     }
 
     match receipt.run_status {
@@ -831,6 +908,27 @@ mod tests {
         });
         let report = qualify(&receipt, &case()).expect("failed attempt remains a valid run event");
         assert_eq!(report.transitions_failed, 1);
+    }
+
+    #[test]
+    fn not_run_tail_reason_must_match_terminal_reason() {
+        let mut receipt = fixture();
+        receipt.decision_steps[1].not_run_reason = Some(NotRunReason::HorizonExhausted);
+        assert!(qualify(&receipt, &case()).is_err());
+    }
+
+    #[test]
+    fn run_level_usage_totals_must_match_per_step_accounting() {
+        let mut receipt = fixture();
+        receipt.observed_usage.total_api_cost_microusd += 1;
+        assert!(qualify(&receipt, &case()).is_err());
+    }
+
+    #[test]
+    fn completed_run_cannot_exceed_declared_budget() {
+        let mut receipt = fixture();
+        receipt.observed_usage.elapsed_wall_clock_ms = receipt.budget.wall_clock_limit_ms + 1;
+        assert!(qualify(&receipt, &case()).is_err());
     }
 
     #[test]
