@@ -337,6 +337,9 @@ fn validate_internal_face(
             || !expert_ids.insert(receipt.expert_id.clone())
             || !weight.is_finite()
             || *weight < 0.0
+            || !receipt.weight.is_finite()
+            || receipt.weight < 0.0
+            || (receipt.weight - *weight).abs() > weight_sum_tolerance
         {
             return Err(DomainBalanceError::InvalidCandidateReceipt(
                 face.face_id.clone(),
@@ -777,6 +780,17 @@ mod tests {
             assemble_domain_balance(&request(
                 vec!["cell-0", "cell-1"],
                 vec![wrong_weight_sum],
+                vec![],
+            )),
+            Err(DomainBalanceError::InvalidCandidateReceipt(_))
+        ));
+
+        let mut reassigned_weight = internal_face("reassigned-weight", "cell-0", "cell-1", vec![1.0, 1.0]);
+        reassigned_weight.candidate_receipts[0].weight = 0.5;
+        assert!(matches!(
+            assemble_domain_balance(&request(
+                vec!["cell-0", "cell-1"],
+                vec![reassigned_weight],
                 vec![],
             )),
             Err(DomainBalanceError::InvalidCandidateReceipt(_))
