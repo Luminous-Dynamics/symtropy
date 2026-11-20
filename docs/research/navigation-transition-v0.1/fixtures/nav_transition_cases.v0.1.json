@@ -5,7 +5,7 @@
   "status": "draft_not_run",
   "claim_ceiling": "synthetic_transition_contract_only",
   "schema_ref": "./nav_transition_case.schema.json",
-  "case_count": 7,
+  "case_count": 8,
   "controller_evaluator_separation": "Each case's controller_stream is the only scenario observation input. evaluator_only must be withheld from the subject process and may be mounted only by the independent scorer.",
   "cases": [
     {
@@ -2769,6 +2769,323 @@
         "Moon is a distinct reference body; Earth geodetic coordinates must not be reused as lunar coordinates.",
         "All terrain geometry is synthetic; no lunar landing site, hazard map or operational route is represented.",
         "A network partition does not by itself invalidate local navigation evidence."
+      ]
+    },
+    {
+      "schema_version": "nav-transition-case/v0.1",
+      "case_id": "nav.independent-multimodal-positive.v0.1",
+      "revision": 1,
+      "status": "draft_not_run",
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_transition_contract_only",
+      "domain_path": [
+        "indoor",
+        "urban"
+      ],
+      "source_registry": [
+        {
+          "source_id": "src.uwb.independent",
+          "modality": "uwb",
+          "configuration_ref": "cfg.synthetic.independent.v0.1",
+          "calibration_ref": "cal.synthetic.uwb.1",
+          "clock_domain_ref": "clock.uwb.boot.1",
+          "failure_domains": [
+            "fd.uwb.anchors.1",
+            "fd.uwb.clock.1",
+            "fd.uwb.power.1",
+            "fd.uwb.calibration.1"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.lidar.independent",
+          "modality": "lidar",
+          "configuration_ref": "cfg.synthetic.independent.v0.1",
+          "calibration_ref": "cal.synthetic.lidar.1",
+          "clock_domain_ref": "clock.lidar.boot.1",
+          "failure_domains": [
+            "fd.lidar.device.1",
+            "fd.lidar.clock.1",
+            "fd.lidar.power.1",
+            "fd.lidar.calibration.1"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.imu.independent",
+          "modality": "imu",
+          "configuration_ref": "cfg.synthetic.independent.v0.1",
+          "calibration_ref": "cal.synthetic.imu.1",
+          "clock_domain_ref": "clock.imu.boot.1",
+          "failure_domains": [
+            "fd.imu.device.1",
+            "fd.imu.clock.1",
+            "fd.imu.power.1",
+            "fd.imu.calibration.1"
+          ],
+          "qualification_status": "synthetic_fixture"
+        }
+      ],
+      "phases": [
+        {
+          "phase_id": "phase.indoor.initialize",
+          "environment": "indoor",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "frame.indoor.enu",
+            "frame_kind": "local_enu",
+            "body_id": "earth",
+            "origin_ref": "origin.synthetic.indoor.positive.1",
+            "epoch_ref": "epoch.wgs84.2025",
+            "parent_frame_id": "frame.earth.ecef"
+          },
+          "time_basis": {
+            "time_basis_id": "time.utc",
+            "kind": "utc",
+            "clock_or_scale_id": "scale.utc",
+            "epoch_ref": "epoch.utc",
+            "uncertainty_s": 0.001
+          },
+          "measurement_classes": [
+            "uwb",
+            "lidar",
+            "imu"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "NORMAL"
+        },
+        {
+          "phase_id": "phase.indoor.track",
+          "environment": "indoor",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "frame.indoor.enu",
+            "frame_kind": "local_enu",
+            "body_id": "earth",
+            "origin_ref": "origin.synthetic.indoor.positive.1",
+            "epoch_ref": "epoch.wgs84.2025",
+            "parent_frame_id": "frame.earth.ecef"
+          },
+          "time_basis": {
+            "time_basis_id": "time.utc",
+            "kind": "utc",
+            "clock_or_scale_id": "scale.utc",
+            "epoch_ref": "epoch.utc",
+            "uncertainty_s": 0.001
+          },
+          "measurement_classes": [
+            "uwb",
+            "lidar",
+            "imu"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "NORMAL"
+        }
+      ],
+      "transitions": [
+        {
+          "transition_id": "tr.indoor-independent-reacquisition",
+          "from_phase": "phase.indoor.initialize",
+          "to_phase": "phase.indoor.track",
+          "offset_ms": 5000,
+          "kind": "sensor_reacquisition",
+          "expected_state": "NORMAL",
+          "notes": "Three independently declared modalities and failure domains contribute after explicit per-source clock correlations."
+        }
+      ],
+      "controller_stream": [
+        {
+          "observation_id": "obs.uwb.clock",
+          "offset_ms": 0,
+          "event_kind": "clock_status",
+          "source_id": "src.uwb.independent",
+          "modality": "uwb",
+          "frame_id": "frame.indoor.enu",
+          "time_basis_id": "time.utc",
+          "observation_class": "clock_correlation",
+          "components": null,
+          "units": null,
+          "payload_digest": null,
+          "notes": "Synthetic source-clock correlation; unique clock and calibration evidence."
+        },
+        {
+          "observation_id": "obs.lidar.clock",
+          "offset_ms": 0,
+          "event_kind": "clock_status",
+          "source_id": "src.lidar.independent",
+          "modality": "lidar",
+          "frame_id": "frame.indoor.enu",
+          "time_basis_id": "time.utc",
+          "observation_class": "clock_correlation",
+          "components": null,
+          "units": null,
+          "payload_digest": null,
+          "notes": "Synthetic source-clock correlation; unique clock and calibration evidence."
+        },
+        {
+          "observation_id": "obs.imu.clock",
+          "offset_ms": 0,
+          "event_kind": "clock_status",
+          "source_id": "src.imu.independent",
+          "modality": "imu",
+          "frame_id": "frame.indoor.enu",
+          "time_basis_id": "time.utc",
+          "observation_class": "clock_correlation",
+          "components": null,
+          "units": null,
+          "payload_digest": null,
+          "notes": "Synthetic source-clock correlation; unique clock and calibration evidence."
+        },
+        {
+          "observation_id": "obs.uwb.range",
+          "offset_ms": 1000,
+          "event_kind": "measurement",
+          "source_id": "src.uwb.independent",
+          "modality": "uwb",
+          "frame_id": "frame.indoor.enu",
+          "time_basis_id": "time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            4.2,
+            5.1,
+            3.8
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Synthetic UWB ranges to independently inventoried anchors."
+        },
+        {
+          "observation_id": "obs.lidar.geometry",
+          "offset_ms": 1000,
+          "event_kind": "measurement",
+          "source_id": "src.lidar.independent",
+          "modality": "lidar",
+          "frame_id": "frame.indoor.enu",
+          "time_basis_id": "time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            1,
+            0.1,
+            0
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Synthetic geometric landmark observation."
+        },
+        {
+          "observation_id": "obs.imu.motion",
+          "offset_ms": 1000,
+          "event_kind": "measurement",
+          "source_id": "src.imu.independent",
+          "modality": "imu",
+          "frame_id": "frame.indoor.enu",
+          "time_basis_id": "time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            0.1,
+            0,
+            9.80665
+          ],
+          "units": "m/s2",
+          "payload_digest": null,
+          "notes": "Synthetic inertial measurement."
+        }
+      ],
+      "faults": [],
+      "evaluator_only": {
+        "reference_class": "synthetic_oracle",
+        "reference_sources": [
+          "oracle.independent-positive.truth.v0.1"
+        ],
+        "truth_states": [
+          {
+            "truth_id": "truth.independent.0",
+            "offset_ms": 0,
+            "body_id": "earth",
+            "frame_id": "frame.indoor.enu",
+            "position_m": [
+              0,
+              0,
+              0
+            ],
+            "velocity_mps": [
+              0,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.independent.1",
+            "offset_ms": 1000,
+            "body_id": "earth",
+            "frame_id": "frame.indoor.enu",
+            "position_m": [
+              0.2,
+              0.1,
+              0
+            ],
+            "velocity_mps": [
+              0.2,
+              0.1,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.independent.2",
+            "offset_ms": 5000,
+            "body_id": "earth",
+            "frame_id": "frame.indoor.enu",
+            "position_m": [
+              1,
+              0.5,
+              0
+            ],
+            "velocity_mps": [
+              0.2,
+              0.1,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        ],
+        "event_labels": []
+      },
+      "expected_dispositions": [
+        {
+          "at_offset_ms": 0,
+          "expected_state": "NORMAL",
+          "minimum_evidence_condition": "Each modality has current calibration/configuration, distinct declared sensor/clock/power failure domains and a valid clock conversion into the declared comparison basis.",
+          "reason_code": "INDEPENDENT_POSITIVE_INITIAL"
+        },
+        {
+          "at_offset_ms": 1000,
+          "expected_state": "NORMAL",
+          "minimum_evidence_condition": "Independent UWB, LiDAR and IMU observations are mutually consistent within the declared synthetic profile; no unsupported trust-to-covariance shortcut.",
+          "reason_code": "INDEPENDENT_POSITIVE_CORROBORATION"
+        }
+      ],
+      "assumptions": [
+        "All measurements and ground truth are synthetic and are not a physical calibration or field trial.",
+        "The source inventories intentionally declare distinct sensor, clock, power and calibration failure domains; the benchmark must verify the declarations rather than infer independence from source count.",
+        "Clock correlations are synthetic and are not evidence of a real time-transfer service.",
+        "This positive control is designed to catch a system that abstains from every multi-source fusion case instead of recognizing a truly independent admissible set."
       ]
     }
   ]
