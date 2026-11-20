@@ -514,7 +514,7 @@
   ],
   "state_checkpointing": {
     "status": "unavailable",
-    "reason_code": "CAPABILITY_NOT_ADVERTISED",
+    "reason_code": "SERIALIZATION_CAPABILITY_NOT_ADVERTISED",
     "snapshot_artifact_ids": []
   },
   "normalized_trace_artifact_id": "trace-stub",
