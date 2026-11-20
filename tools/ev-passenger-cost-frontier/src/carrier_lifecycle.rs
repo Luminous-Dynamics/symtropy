@@ -373,7 +373,10 @@ fn validate_inputs(factory: &FactoryModuleReport, catalog: &LifecycleCatalog) ->
         if !finite_nonnegative(profile.labor_cost_per_hour) || !finite_nonnegative(profile.annual_operating_hours_per_module) {
             errors.push(format!("profiles[{profile_index}]: labor rate and operating hours must be finite and nonnegative"));
         }
-        if profile.annual_operating_hours_per_module.is_some_and(|v| v <= 0.0) {
+        if profile.labor_cost_per_hour.is_some_and(|v| v > MAX_MONEY_PER_EVENT) {
+            errors.push(format!("profiles[{profile_index}].labor_cost_per_hour: exceeds v0.1 money ceiling"));
+        }
+        if profile.annual_operating_hours_per_module.is_some_and(|v| v <= 0.0 || v > 8_784.0) {
             errors.push(format!("profiles[{profile_index}].annual_operating_hours_per_module: must be positive when known"));
         }
         if let Some(factory_config_id) = &profile.factory_config_id {
@@ -411,7 +414,9 @@ fn validate_inputs(factory: &FactoryModuleReport, catalog: &LifecycleCatalog) ->
             if event.occurrence_evidence_reference.trim().is_empty() || event.occurrence_basis.trim().is_empty() {
                 errors.push(format!("profiles[{profile_index}].events[{event_index}]: occurrence reference and basis are required"));
             }
-            if event.event_class == EventClass::Planned && event.occurrences_per_module_year.is_none() {
+            if event.event_class == EventClass::Planned && event.occurrences_per_module_year.is_none()
+                && event.occurrence_evidence_class != EvidenceClass::Unknown
+            {
                 errors.push(format!("profiles[{profile_index}].events[{event_index}]: planned frequency must be explicit"));
             }
             if !finite_nonnegative(event.occurrences_per_module_year)
