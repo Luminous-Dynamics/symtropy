@@ -12,6 +12,7 @@ A conventional Pareto plot can make a vendor claim, a paper-reported result, an 
 
 This M1 reference prevents those comparisons by construction:
 - evidence classes are preserved per objective and hard constraint;
+- each objective has a point estimate plus source-supported lower/upper bounds; point estimates are not used for dominance;
 - only candidates in the same evidence lane can dominate each other;
 - a comparison front is limited to one identical system boundary, operating-condition digest, mission-set digest and bounded stress-set digest;
 - a known negative robust margin creates an explicit violation receipt;
@@ -68,7 +69,7 @@ The input `minimum_robust_margin` is expected to be the minimum constraint margi
 
 ## 5. Pareto semantics
 
-Each objective definition declares a name, unit and direction (minimize or maximize). Candidate observations must match the exact metric name/order and units. Duplicate candidate IDs, duplicate objective/constraint definitions, non-finite values, missing dimensions, mismatched units or stale evidence configuration are rejected.
+Each objective definition declares a name, unit and direction (minimize or maximize). Each candidate objective supplies a point estimate and evidence-supported lower/upper bounds. For a minimization objective, A can dominate B only when A's upper bound is no greater than B's lower bound; for maximization, A's lower bound must be no less than B's upper bound. If intervals overlap, candidates remain non-dominated even when one point estimate looks better. The point estimate is retained for display, not used to establish robust dominance. Missing bounds make a candidate Unknown. Candidate observations must match the exact metric name/order and units. Duplicate candidate IDs, duplicate objective/constraint definitions, non-finite values, missing dimensions, bounds that invert or exclude the point estimate, mismatched units or stale evidence configuration are rejected.
 
 Candidate A dominates candidate B only when:
 - both are robust-feasible in the same evidence lane and same exact comparison cohort;
@@ -125,13 +126,14 @@ This changes the industry gap from "there are no benchmark numbers" to "there ar
 
 ## 7. Synthetic known-answer fixture
 
-`examples/robust-pareto-known-answer.json` contains eight synthetic candidate records:
+`examples/robust-pareto-known-answer.json` contains ten synthetic candidate records:
 - two independent candidates in the same cohort, with one dominating the other;
 - a source-author candidate on a different mission set;
 - vendor and model candidates on separate conditional evidence lanes;
 - a calibrated-model torque-margin candidate with a complete synthetic grouped-conformal receipt (the receipt does not calibrate its mass, energy, coverage or thermal metrics);
 - an unknown-mass candidate;
-- an independently evidenced candidate with a known negative thermal margin.
+- an independently evidenced candidate with a known negative thermal margin;
+- two same-lane candidates whose point estimates suggest a ranking but whose objective intervals overlap, so neither robustly dominates the other.
 
 Every numeric value and source entry is a fixture placeholder. It is not actuator data or an industry ranking.
 
@@ -147,13 +149,13 @@ cargo clippy --manifest-path benchmarks/synthetic-joints/robust-actuator-pareto/
 
 Dedicated workflow: `.github/workflows/robust-actuator-pareto.yml`. The authoring environment has no local Cargo/rustc/rustfmt; exact-head CI is required before compilation, formatting or Clippy is reported as passing.
 
-Thirty-three Rust tests cover mixed objective directions, trade-off preservation, evidence-lane isolation, hard violation, unknown margin/evidence, known violation with unrelated unknowns, duplicate IDs, shape/unit/non-finite validation, equal objective vectors, missing objectives/source, stale configuration/conditions, metric names, mission/stress/system-boundary cohort isolation, explicit violation receipts, complete candidate retention, calibrated predictions remaining Conditional, no cross-lane dominance, missing/stale/insufficient calibration rejection, torque-only receipt use and calibration provenance in violation receipts.
+Thirty-seven Rust tests cover mixed objective directions, trade-off preservation, evidence-lane isolation, hard violation, unknown margin/evidence, known violation with unrelated unknowns, duplicate IDs, shape/unit/non-finite validation, equal objective vectors, missing objectives/source, stale configuration/conditions, metric names, mission/stress/system-boundary cohort isolation, explicit violation receipts, complete candidate retention, calibrated predictions remaining Conditional, no cross-lane dominance, missing/stale/insufficient calibration rejection, torque-only receipt use, calibration provenance in violation receipts, overlapping objective intervals that prevent false dominance, disjoint intervals that allow robust dominance, missing interval abstention, and malformed interval rejection.
 
 ## 9. M1–M5 roadmap
 
 - **M0:** freeze objective/constraint definitions, system boundaries, mission sets, stress sets, source/metric denominators and evidence classes.
 - **M1:** known-answer evidence-lane filtering and robust feasibility dispositions.
-- **M2:** independently recompute robust margins, validate stress-set coverage, add objective intervals, deeper Pareto ranks and hypervolume with a frozen reference point.
+- **M2:** independently recompute robust margins and objective intervals, validate stress-set/interval coverage, add deeper Pareto ranks and hypervolume with a frozen reference point.
 - **M3:** link candidate records to instrumented actuator traces, calibration records and exact build/configuration digests.
 - **M4:** multi-task robot comparison with held-out payloads/poses and all failed or aborted results retained.
 - **M5:** service/aging remeasurement and post-service Pareto-front migration.
