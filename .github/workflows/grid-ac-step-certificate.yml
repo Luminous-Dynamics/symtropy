@@ -1,0 +1,75 @@
+name: Per-step AC operating-point certificate contract
+
+on:
+  pull_request:
+    paths:
+      - "tools/grid-ac-step-certificate/**"
+      - ".github/workflows/grid-ac-step-certificate.yml"
+  push:
+    paths:
+      - "tools/grid-ac-step-certificate/**"
+      - ".github/workflows/grid-ac-step-certificate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    name: Validate per-step AC receipt completeness and mismatch rejection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate schema and hostile AC receipt cases
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("tools/grid-ac-step-certificate")
+          schema = json.loads((root / "per-step-ac-certificate-v0.1.schema.json").read_text())
+          fixtures = {
+              "accepted-static-ac-only": json.loads((root / "fixtures/accepted-static-ac-only-v0.1.json").read_text()),
+              "dc-feasible-ac-infeasible": json.loads((root / "fixtures/dc-feasible-ac-infeasible-v0.1.json").read_text()),
+          }
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER)
+          for name, case in fixtures.items():
+              errors = sorted(validator.iter_errors(case), key=lambda error: list(error.path))
+              assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
+
+              steps = case["evaluationGrid"]["steps"]
+              step_ids = [item["stepId"] for item in steps]
+              assert len(step_ids) == len(set(step_ids))
+              receipts = case["acStepReceipts"]
+              receipt_ids = [item["stepId"] for item in receipts]
+              assert len(receipt_ids) == len(set(receipt_ids)), f"{name}: duplicate per-step receipt"
+              assert set(receipt_ids) == set(step_ids), f"{name}: every evaluation step requires exactly one AC receipt"
+
+              planner = {item["stepId"]: item for item in case["plannerSummary"]["stepResults"]}
+              by_step = {item["stepId"]: item for item in receipts}
+              for step in steps:
+                  receipt = by_step[step["stepId"]]
+                  assert receipt["topologyStateSha256"] == step["topologyStateSha256"]
+                  assert receipt["dispatchStateSha256"] == step["dispatchStateSha256"]
+                  assert receipt["topologyStateSha256"] == planner[step["stepId"]]["topologyStateSha256"]
+                  assert receipt["dispatchStateSha256"] == planner[step["stepId"]]["dispatchStateSha256"]
+
+              if name == "accepted-static-ac-only":
+                  assert all(item["solverStatus"] == "converged" and item["operatingPointStatus"] == "feasible" for item in receipts)
+                  assert case["intertemporalReceipt"]["status"] == "accepted"
+                  assert case["dynamicProtectionReceipt"]["status"] == "not_assessed"
+              else:
+                  failed = [item for item in receipts if item["operatingPointStatus"] == "infeasible"]
+                  assert len(failed) == 1 and failed[0]["stepId"] == "s1"
+                  assert planner["s1"]["plannerStatus"] == "feasible"
+                  assert any(item["status"] == "fail" for item in failed[0]["constraintAssessments"])
+          print("PASS: exact per-step receipt coverage, topology/dispatch digest binding, DC-vs-AC hostile control and static/dynamic separation")
+          PY
