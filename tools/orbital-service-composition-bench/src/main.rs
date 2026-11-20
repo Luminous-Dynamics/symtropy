@@ -53,28 +53,40 @@ fn run_fixture(args: &mut impl Iterator<Item = String>) -> Result<ExitCode, Stri
 
 fn run_compose(args: &mut impl Iterator<Item = String>) -> Result<ExitCode, String> {
     let composition_fixture_path = args.next().ok_or_else(|| {
-        "usage: orbital-service-composition-bench compose <composition-cases.json> <delivery-receipt.json> <capture-receipt.json> <fluid-receipt.json> --source-commit <40-hex-sha>"
+        "usage: orbital-service-composition-bench compose <composition-cases.json> <delivery-receipt.json> <delivery-campaign.json> <capture-receipt.json> <capture-fixture.json> <fluid-receipt.json> <fluid-fixture.json> --source-commit <40-hex-sha>"
             .to_owned()
     })?;
-    let delivery_path = args.next().ok_or_else(|| "missing delivery receipt path".to_owned())?;
-    let capture_path = args.next().ok_or_else(|| "missing capture receipt path".to_owned())?;
-    let fluid_path = args.next().ok_or_else(|| "missing fluid receipt path".to_owned())?;
+    let delivery_receipt_path = args.next().ok_or_else(|| "missing delivery receipt path".to_owned())?;
+    let delivery_campaign_path = args.next().ok_or_else(|| "missing delivery campaign input path".to_owned())?;
+    let capture_receipt_path = args.next().ok_or_else(|| "missing capture receipt path".to_owned())?;
+    let capture_fixture_path = args.next().ok_or_else(|| "missing capture fixture input path".to_owned())?;
+    let fluid_receipt_path = args.next().ok_or_else(|| "missing fluid receipt path".to_owned())?;
+    let fluid_fixture_path = args.next().ok_or_else(|| "missing fluid fixture input path".to_owned())?;
     let commit = source_commit(args)?;
 
     let composition_fixture_bytes = fs::read(&composition_fixture_path)
         .map_err(|error| format!("cannot read composition fixture {composition_fixture_path}: {error}"))?;
-    let delivery_bytes = fs::read(&delivery_path)
-        .map_err(|error| format!("cannot read delivery receipt {delivery_path}: {error}"))?;
-    let capture_bytes = fs::read(&capture_path)
-        .map_err(|error| format!("cannot read capture receipt {capture_path}: {error}"))?;
-    let fluid_bytes = fs::read(&fluid_path)
-        .map_err(|error| format!("cannot read fluid receipt {fluid_path}: {error}"))?;
+    let delivery_receipt_bytes = fs::read(&delivery_receipt_path)
+        .map_err(|error| format!("cannot read delivery receipt {delivery_receipt_path}: {error}"))?;
+    let delivery_campaign_bytes = fs::read(&delivery_campaign_path)
+        .map_err(|error| format!("cannot read delivery campaign {delivery_campaign_path}: {error}"))?;
+    let capture_receipt_bytes = fs::read(&capture_receipt_path)
+        .map_err(|error| format!("cannot read capture receipt {capture_receipt_path}: {error}"))?;
+    let capture_fixture_bytes = fs::read(&capture_fixture_path)
+        .map_err(|error| format!("cannot read capture fixture {capture_fixture_path}: {error}"))?;
+    let fluid_receipt_bytes = fs::read(&fluid_receipt_path)
+        .map_err(|error| format!("cannot read fluid receipt {fluid_receipt_path}: {error}"))?;
+    let fluid_fixture_bytes = fs::read(&fluid_fixture_path)
+        .map_err(|error| format!("cannot read fluid fixture {fluid_fixture_path}: {error}"))?;
 
     let bundle = compose_receipt_bundle(
         &composition_fixture_bytes,
-        &delivery_bytes,
-        &capture_bytes,
-        &fluid_bytes,
+        &delivery_receipt_bytes,
+        &delivery_campaign_bytes,
+        &capture_receipt_bytes,
+        &capture_fixture_bytes,
+        &fluid_receipt_bytes,
+        &fluid_fixture_bytes,
     )?;
     let result = bundle.result.clone();
     let receipt = serde_json::json!({
@@ -102,7 +114,7 @@ fn run() -> Result<ExitCode, String> {
         Some("fixture") => run_fixture(&mut args),
         Some("compose") => run_compose(&mut args),
         _ => Err(
-            "usage: orbital-service-composition-bench fixture <cases.json> --source-commit <sha> | compose <cases.json> <delivery.json> <capture.json> <fluid.json> --source-commit <sha>"
+            "usage: orbital-service-composition-bench fixture <cases.json> --source-commit <sha> | compose <cases.json> <delivery.json> <delivery-campaign.json> <capture.json> <capture-fixture.json> <fluid.json> <fluid-fixture.json> --source-commit <sha>"
                 .to_owned(),
         ),
     }
