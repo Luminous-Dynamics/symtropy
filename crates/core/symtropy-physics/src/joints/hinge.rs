@@ -791,7 +791,6 @@ mod tests {
 
         struct WorkRecorder {
             work_by_body: HashMap<BodyHandle, f64>,
-            dissipated: f64,
         }
         impl crate::world::PhysicsCallback<3> for WorkRecorder {
             fn modulate_force(&self, _body: BodyHandle, force: &SVector<f64, 3>) -> SVector<f64, 3> {
@@ -804,9 +803,7 @@ mod tests {
                 1.0
             }
             fn on_collision(&mut self, _event: &crate::contact::CollisionEvent<3>) {}
-            fn record_dissipation(&mut self, energy: f64) {
-                self.dissipated += energy;
-            }
+            fn record_dissipation(&mut self, _energy: f64) {}
             fn record_work(&mut self, body: BodyHandle, work_joules: f64) {
                 *self.work_by_body.entry(body).or_default() += work_joules;
             }
