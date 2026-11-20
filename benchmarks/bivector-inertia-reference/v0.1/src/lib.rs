@@ -642,6 +642,38 @@ mod tests {
         close(work, energy_after - energy_before, 1.0e-12);
     }
 
+
+    #[test]
+    fn kinetic_energy_is_invariant_under_body_frame_rotation() {
+        let inertia = PrincipalInertia::new(vec![3.0, 4.0, 5.0]).expect("realizable");
+        let rotation = rotate_3d_xz_quarter_turn();
+        let omega_body = Bivector::new(3, vec![0.2, -0.4, 0.8]).expect("omega");
+        let omega_world = rotate_bivector(&rotation, &omega_body).expect("rotated omega");
+
+        let energy_body_frame = inertia
+            .kinetic_energy_world(&identity_matrix(3).expect("identity"), &omega_body)
+            .expect("body-frame energy");
+        let energy_world_frame = inertia
+            .kinetic_energy_world(&rotation, &omega_world)
+            .expect("world-frame energy");
+        close(energy_body_frame, energy_world_frame, 1.0e-12);
+    }
+
+    #[test]
+    fn reflected_basis_is_not_accepted_as_a_physical_rotation() {
+        let inertia = PrincipalInertia::new(vec![3.0, 4.0, 5.0]).expect("inertia");
+        let reflection = vec![
+            vec![-1.0, 0.0, 0.0],
+            vec![0.0, 1.0, 0.0],
+            vec![0.0, 0.0, 1.0],
+        ];
+        let impulse = Bivector::new(3, vec![1.0, 0.0, 0.0]).expect("impulse");
+        assert_eq!(
+            inertia.apply_inverse_world(&reflection, &impulse),
+            Err(InertiaError::InvalidRotation)
+        );
+    }
+
     #[test]
     fn invalid_and_non_realizable_principal_moments_are_rejected() {
         assert_eq!(PrincipalInertia::new(vec![1.0]), Err(InertiaError::InvalidDimension));
