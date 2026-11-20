@@ -13,12 +13,28 @@ It is not a scheduler or executor. A valid proposal is not necessarily feasible,
 
 ## Action vocabulary
 
+Physical/recovery actions:
+
 - move_crew: repair crew to a road-network node;
 - repair_fault: qualified crew to a known fault;
 - move_mobile_source: mobile source to a road node;
 - connect_mobile_source / disconnect_mobile_source: mobile source at an explicitly permitted power node;
 - set_switch_state: grid-operator actor sets a known switch explicitly open or closed;
 - wait: system no-op with no target.
+
+Active information acquisition:
+
+- observe_scada: current telemetry for a known power node or branch;
+- observe_calls: reports associated with a known load or node;
+- observe_network_model: request the current network-model artifact;
+- crew_inspect: qualified repair crew inspects a known fault;
+- read_fault_indicator: request an indicator observation for a known fault;
+- test_switch: grid-operator actor requests a test of a known switch;
+- simulate_switch: system requests a counterfactual switch state for a known switch (the executor must use a clone and prove no live-state mutation);
+- forecast_load: request a forecast for a known load;
+- escalate_to_human: explicit system escalation with no target.
+
+Information actions may start without prior evidence because their purpose is to acquire evidence. This exception does not apply to repair, movement, connection or switch-state changes.
 
 There is deliberately no toggle action. Setting an explicit desired state is idempotent and safe to retry at the proposal layer.
 
@@ -30,7 +46,7 @@ Every proposal is bound to:
 - one decision step equal to the observation step;
 - planner ID/revision, source commit, configuration digest and optional prompt digest.
 
-Every action repeats the exact observation reference/decision step and includes one or more precondition evidence references. Evidence may be older than the current step but never from a future step. Each action also carries an authority-requirement reference. A reference names a requirement; this crate does not prove that the actor holds the authority.
+Every action repeats the exact observation reference/decision step. Physical/recovery actions require one or more precondition evidence references. Information requests may start with an empty precondition-evidence list because their purpose is to obtain evidence. Any evidence they later return is a separate result artifact; it cannot be used before its arrival epoch. Existing evidence may be older than the current step but never from a future step. Each action also carries an authority-requirement reference. A reference names a requirement; this crate does not prove that the actor holds the authority.
 
 ## Scope
 
@@ -43,7 +59,9 @@ Validated:
 - road-node/power-node/fault/switch target references;
 - repair crew has the fault's declared skill;
 - mobile-source connection target is in its permitted-node set;
-- explicit switch target state and no unknown action type.
+- explicit switch target state and no unknown action type;
+- typed active-sensing requests with correct actor/target semantics;
+- initial information requests are permitted without prior evidence while physical actions remain evidence-gated.
 
 Not validated:
 - radiality after a proposed switch;
@@ -58,13 +76,13 @@ Those belong to independent authority, transition, electrical and service valida
 
 LARA, MILP, CP-SAT, heuristic and Symthaea adapters all emit this same envelope. The independent transition engine receives the same case and observation and decides whether each proposed action can be applied. Invalid proposals stay in the denominator of the invalid-action rate; no adapter may silently repair or discard invalid outputs before scoring.
 
-## Synthetic fixture
+## Synthetic fixtures
 
-The bundled proposal points at the six-node synthetic case from #6346. It proposes one repair action for F23-A by CREW-A at decision step 4, using a step-3 inspection evidence reference. The fixture is only a data-contract example, not a repair recommendation or execution plan.
+The bundled repair proposal points at the six-node synthetic case from #6346 and proposes one repair action for F23-A by CREW-A at decision step 4, using a step-3 inspection evidence reference. The second fixture requests SCADA for node N3 at step 0 with no prior evidence. Both are data-contract examples, not an execution plan or actual observation.
 
 ## Verification
 
-There are 25 authored Rust unit tests. They cover case digest binding, canonical case identity, actor/action pairing, target refs, crew skill, mobile-source permitted nodes, explicit switch state, rejection of toggle, future evidence rejection, exact observation binding, duplicate actions/evidence, authority and provenance digest requirements, and deterministic receipts.
+There are 36 authored Rust unit tests. They cover case digest binding, canonical case identity, actor/action pairing, target refs, crew skill, mobile-source permitted nodes, explicit switch state, rejection of toggle, future evidence rejection, exact observation binding, duplicate actions/evidence, authority and provenance digest requirements, and deterministic receipts.
 
 The authoring environment has no Rust toolchain. Tests are authored but not locally executed; CI must pass on the exact PR head before qualification.
 
