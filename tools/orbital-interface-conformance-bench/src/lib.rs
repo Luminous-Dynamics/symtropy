@@ -22,6 +22,7 @@ pub enum DecisionStatus {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Fixture {
     pub schema: String,
     pub evidence_class: String,
@@ -30,6 +31,7 @@ pub struct Fixture {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct ConformanceCase {
     pub case_id: String,
     pub at_tick: u64,
@@ -44,6 +46,7 @@ pub struct ConformanceCase {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct InterfaceProfile {
     pub profile_id: Option<String>,
     pub role: Option<String>,
@@ -60,6 +63,7 @@ pub struct InterfaceProfile {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct MechanicalProfile {
     pub geometry_profile_id: Option<String>,
     pub max_alignment_error: Option<Scalar>,
@@ -69,6 +73,7 @@ pub struct MechanicalProfile {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct FluidProfile {
     pub connector_profile_id: Option<String>,
     pub fluid_class: Option<String>,
@@ -80,12 +85,14 @@ pub struct FluidProfile {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Scalar {
     pub value: Option<f64>,
     pub unit: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Interval {
     pub min: Option<f64>,
     pub max: Option<f64>,
@@ -93,6 +100,7 @@ pub struct Interval {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct EvidenceEnvelope {
     pub evidence_class: Option<String>,
     pub claim_ceiling: Option<String>,
@@ -106,6 +114,7 @@ pub struct EvidenceEnvelope {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct CompatibilityMap {
     pub icd_id: Option<String>,
     pub provider_revision: Option<String>,
@@ -511,7 +520,7 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
             DecisionStatus::Indeterminate => indeterminate += 1,
         }
         let matched = actual.status == case.expected_status
-            && actual.reason == case.expected_reason;
+            && actual.reason == case.expected_reason.as_str();
         if !matched {
             mismatches += 1;
         }
@@ -649,6 +658,31 @@ mod tests {
         assert_eq!(
             evaluate_case(&data.cases[0]).status,
             DecisionStatus::Rejected
+        );
+    }
+
+
+    #[test]
+    fn unknown_profile_fields_are_rejected() {
+        let mut value: serde_json::Value =
+            serde_json::from_str(include_str!("../fixtures/v0.1/cases.json"))
+                .expect("frozen fixture parses as JSON");
+        value["cases"][0]["provider"]["unrecognized_extension"] = serde_json::json!(true);
+        assert!(serde_json::from_value::<Fixture>(value).is_err());
+    }
+
+    #[test]
+    fn published_json_schema_is_parseable_and_versioned() {
+        let schema: serde_json::Value =
+            serde_json::from_str(include_str!("../schemas/cases.schema.json"))
+                .expect("published JSON Schema parses");
+        assert_eq!(
+            schema["$schema"],
+            "https://json-schema.org/draft/2020-12/schema"
+        );
+        assert_eq!(
+            schema["properties"]["schema"]["const"],
+            "luminous.orbital-interface-conformance.corpus.v0.1"
         );
     }
 
