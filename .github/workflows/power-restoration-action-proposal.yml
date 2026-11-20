@@ -54,10 +54,11 @@ jobs:
           assert information_proposal["actions"][0]["preconditionEvidence"] == []
           canonical = json.dumps(case, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
           digest = hashlib.sha256(canonical).hexdigest()
-          assert digest == proposal["caseSha256"]
-          assert proposal["caseRef"] == "power-restoration-case://" + case["caseId"]
-          assert proposal["decisionStep"] == proposal["observation"]["observedStep"]
-          assert all(action["decisionStep"] == proposal["decisionStep"] and action["observationRef"] == proposal["observation"]["observationRef"] for action in proposal["actions"])
+          for candidate in (proposal, information_proposal):
+              assert digest == candidate["caseSha256"]
+              assert candidate["caseRef"] == "power-restoration-case://" + case["caseId"]
+              assert candidate["decisionStep"] == candidate["observation"]["observedStep"]
+              assert all(action["decisionStep"] == candidate["decisionStep"] and action["observationRef"] == candidate["observation"]["observationRef"] for action in candidate["actions"])
           print("PASS: proposal schema, canonical case digest and observation epoch binding")
           PY
       - name: Check Rust formatting
