@@ -10,11 +10,11 @@
     "operating_envelope_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
     "service_contract_sha256": "b1ec7a64f4b20c3cd7944c1825d287b683a5b98f38edf9fa02ef346cdc9d80b3",
     "trigger_roster_sha256": "603293f010f1eb0606a7330364bf9f137d74f3e7705596ee9bc80b0a8a686321",
-    "hard_gate_roster_sha256": "39f4d5882c3cf249517f00e7c6ca414a4c02a4dbabedcc9f6a380153618f936c",
+    "hard_gate_roster_sha256": "521b43cf71eb79198809c461785861142ee63da849b82c841a482f347bc0fc7b",
     "scenario_set_sha256": "85a899aa01dfe7bba0bfed17e30a869d6dfcfe3bf6bb5735b4b5ef5702c858df",
     "mission_window_start": "2026-11-20T10:00:00Z",
     "mission_window_end": "2026-11-21T10:00:00Z",
-    "mission_snapshot_sha256": "e340ea16e9ee5aa483cc331bac27d08fa8e139e85d13465f6cf8a7e18f20fef5"
+    "mission_snapshot_sha256": "8d4f7c983220f4fdf884e053b2d8e80f1e09798b0d7d1d8e3af208f2735adf9e"
   },
   "service_contract": [
     {
@@ -147,8 +147,8 @@
     "watermaker_trip"
   ],
   "hard_gate_roster": [
-    "stability_envelope",
     "navigation_access",
+    "stability_envelope",
     "traffic_compliance"
   ],
   "graph_limits": {
