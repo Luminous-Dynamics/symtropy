@@ -84,7 +84,8 @@ pub struct TrustedKey {
     pub revoked_at_unix_ms: Option<u64>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ExpectedAttestationBinding {
     pub predicate_type: String,
     pub artifact_uri: String,
