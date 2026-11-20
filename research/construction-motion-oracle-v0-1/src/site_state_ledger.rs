@@ -1545,6 +1545,8 @@ mod tests {
                 frame_sha256: digest('c'),
                 transform_sha256: digest('d'),
                 calibration_sha256: digest('9'),
+                site_clock_domain_id: "site-clock-01".into(),
+                valid_until_tick: 10_000,
             },
         );
         assert_eq!(
@@ -2248,6 +2250,8 @@ mod tests {
                     frame_sha256: digest('c'),
                     transform_sha256: digest('d'),
                     calibration_sha256: digest('9'),
+                    site_clock_domain_id: "site-clock-01".into(),
+                    valid_until_tick: 10_000,
                 },
             );
             station.event_sha256 = event_digest;
