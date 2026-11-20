@@ -100,3 +100,31 @@ The R2/R3 figures are internal aspirations, not current results. For a superiori
 The evaluator is benchmark tooling only. It does not implement a voice floor controller, TTS pipeline, cancellation queue, microphone driver, streaming scheduler or a full-duplex runtime. It composes with existing Symthaea #5169 and #12837 and Symtropy #6201/#6253/#6249.
 
 The initial suite qualifies synthetic timing semantics only. It does not measure microphone-to-speaker latency, acoustic echo/cancellation, hardware playback, human-rated response quality, real-world WRR, or SOTA superiority. Real latency requires instrumented monotonic-clock telemetry with clock qualification; replay ticks are never milliseconds.
+
+
+## Additional speech-floor baseline: Full-Duplex-Bench v3
+
+The benchmark matrix should also include [Full-Duplex-Bench](https://github.com/DanielLin94144/Full-Duplex-Bench), especially v3. The official repository describes v3 as 100 human-recorded disfluent speech examples across 79 scenarios and 12 speakers, spanning four domains with one-to-three tool calls. Its evaluator reports tool-selection F1, argument accuracy, strict scenario pass rate and first-response / first-tool-call / task-completion latency.
+
+This is complementary rather than directly mergeable with DIVE:
+- Full-Duplex-Bench v1/v1.5 isolates pause handling, backchannels, interruption and overlapping speakers.
+- v2 adds live WebRTC/WebSocket evaluation and a dynamic examiner.
+- v3 adds real disfluency and multi-step tool execution.
+- DIVE adds visual engagement, task-specific response windows and response-quality separation.
+- OmniInteract adds streaming A/V triggers, response slots, interruption and context continuity.
+
+**Data access and licensing matter:** the upstream README states that its CANDOR pause-handling and smooth turn-taking subsets were removed from the shared Drive in November 2026 and are available only from BetterUp under the CANDOR Corpus License. Do not use old copies or re-upload them. The synthetic and v1.5 sets remain distinct from CANDOR; check upstream per-subset terms before use. The v3 repository labels its own code/data under CC BY-NC 4.0; preserve attribution and noncommercial restrictions, and review any third-party API/model provider terms separately.
+
+For our matched comparison, use the currently distributed, rights-qualified v3 corpus for disfluency/tool-chain behavior and the available synthetic/v1.5 overlap subset for interruption tests. Report its own official tool F1, strict pass rate and latency separately; do not combine them with AV WRR into one blended score.
+
+A useful composed evaluation plan is therefore:
+1. DIVE: visual/speech proactive intervention and response-window alignment.
+2. OmniInteract: native online A/V trigger handling, proactive response and continuity.
+3. Full-Duplex-Bench v3: human disfluency, turn-taking, interruption and multi-step tool execution.
+4. StreamArena: hour-scale retrospection, proactive monitoring and tool use.
+5. Our synthetic counterfactual, evidence-memory and response-window suites: source provenance, modality necessity, causality, cancellation, and known-answer evaluator semantics.
+
+Primary upstream references:
+- Full-Duplex-Bench main repository and latest data availability notice: https://github.com/DanielLin94144/Full-Duplex-Bench
+- Full-Duplex-Bench v3 paper: https://arxiv.org/abs/2604.04847
+- Full-Duplex-Bench v2 paper: https://arxiv.org/abs/2510.07838
