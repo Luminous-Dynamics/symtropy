@@ -82,9 +82,28 @@ The resulting status is deliberately scoped: a completed synthetic case is repor
 - Ed25519 uses \`verify_strict\`, rejecting weak public keys and noncanonical/malleable signatures under the selected library policy.
 - Trust roots are digest-pinned out of band. Key IDs, producer identities, allowed roles, validity intervals and revocation are checked.
 - Attestation payloads bind predicate type, subject URI/digest, run ID, case digest, decision step, proposal digest, tool source commit/configuration, expiry and parent artifact digests.
-- Role separation compares public-key fingerprints rather than key-ID strings, so aliases for the same key do not bypass the separation check. A public key cannot authenticate multiple producer identities, even within one role.
+- Role separation compares public-key fingerprints rather than key-ID strings, so aliases for the same key do not bypass the separation check. A public key cannot authenticate multiple producer identities, even within one role. The `ActuationWitness` role is distinct from planner, transition engine, electrical validator and scorer roles.
 - The bundle resolver returns an opaque `VerifiedBundle` type with a private constructor. The high-level attestation-set verifier accepts only that type, so downstream code cannot manufacture a success-shaped manifest report without first resolving and hashing artifact bytes.
 - The attestation-set verifier requires an exact caller-declared set of subject/role obligations, rejects missing, duplicate and unexpected envelopes, verifies all bindings and enforces role separation.
+
+## Independent actuation-witness verification
+
+The artifact verifier also exposes \`verify_no_actuation_witness\` for a distinct \`ActuationWitness\` signer role. This is intended for physical operations whose transition record says they were rejected before actuation.
+
+The verifier requires:
+- the no-actuation witness receipt and its serialized Ed25519 envelope to be present as exact-byte artifacts in a \`VerifiedBundle\`;
+- a trusted, separately pinned witness issuer/key authorized for \`ActuationWitness\`;
+- exact run, case, decision, proposal, action ID/kind, command ID/digest, controller/device identity and challenge nonce binding;
+- \`rejectionBoundary=before_actuation\`, \`actuationAcquired=false\`, \`queueDispatched=false\`, \`driverAcquired=false\` and \`outputTransitionObserved=false\`;
+- a fresh, unexpired witness and monotonic sequence greater than the last known sequence;
+- a one-time 256-bit challenge nonce not previously consumed by the supplied replay state;
+- an attestation over the canonical receipt, with the command and proposal digests as parents.
+
+A single public key cannot satisfy both TransitionEngine and ActuationWitness roles; the global role-separation check compares key fingerprints across all roles and issuer identities. The replay state is an in-memory guard. The caller must persist it transactionally across crashes/restarts; this library does not provide a durable nonce ledger or command queue.
+
+The witness authenticates the bounded statement that the trusted adapter did not acquire/dispatch the command. It does **not** independently prove equipment contacts/position, absence of all alternate actuation paths, electrical safety or operator authority. Hardware feedback is reported separately and contradictory/movement feedback is rejected. When the feedback is unavailable, that limitation remains explicit.
+
+The high-level restoration claim verifier does not yet parse transition envelopes and automatically derive these witness obligations. The current API is a reusable signed-witness primitive; full transition-to-claim-package integration remains tracked by #6447.
 
 ## Operational requirements and limitations
 
