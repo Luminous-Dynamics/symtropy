@@ -499,7 +499,7 @@
         }
       },
       "expected_status": "rejected",
-      "expected_reason": "alignment_envelope_not_contained"
+      "expected_reason": "alignment_error_exceeds_client_tolerance"
     },
     {
       "case_id": "CONTACT_FORCE_OUTSIDE",
