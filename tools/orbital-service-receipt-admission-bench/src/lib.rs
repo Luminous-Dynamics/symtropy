@@ -151,6 +151,9 @@ pub struct Summary {
     pub false_service_success_claims: usize,
     pub duplicate_replays: usize,
     pub superseded_receipts: usize,
+    pub late_receipts: usize,
+    pub total_receiver_accepted_mass_g: u64,
+    pub total_conservative_receiver_accepted_mass_g: u64,
     pub authority_grants: usize,
 }
 
@@ -779,7 +782,9 @@ fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioR
                 event_time_tick: receipt.event_time_tick,
                 observed_at_tick: receipt.observed_at_tick,
                 provider_id: receipt.provider_id.clone(),
-                accepted_receiver_mass_g: mass,
+                accepted_receiver_mass_g: mass.accepted_mass_g,
+                measurement_uncertainty_g: mass.uncertainty_g,
+                conservative_accepted_mass_g: mass.conservative_mass_g,
                 counted: false,
                 duplicate_replay: true,
                 superseded: false,
@@ -931,6 +936,9 @@ pub fn evaluate(fixture: &ServiceFixture) -> Result<Report, String> {
         false_service_success_claims: 0,
         duplicate_replays: 0,
         superseded_receipts: 0,
+        late_receipts: 0,
+        total_receiver_accepted_mass_g: 0,
+        total_conservative_receiver_accepted_mass_g: 0,
         authority_grants: 0,
     };
     for scenario in &fixture.scenarios {
@@ -956,6 +964,11 @@ pub fn evaluate(fixture: &ServiceFixture) -> Result<Report, String> {
         }
         summary.duplicate_replays += row.duplicate_replays;
         summary.superseded_receipts += row.superseded_receipts;
+        summary.late_receipts += row.late_receipts;
+        summary.total_receiver_accepted_mass_g = summary.total_receiver_accepted_mass_g
+            .saturating_add(row.accepted_receiver_mass_g);
+        summary.total_conservative_receiver_accepted_mass_g = summary.total_conservative_receiver_accepted_mass_g
+            .saturating_add(row.conservative_receiver_accepted_mass_g);
         rows.push(row);
     }
     Ok(Report {
