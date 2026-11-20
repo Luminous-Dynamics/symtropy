@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MFB published truck-drone paper summary verifier input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "citation_doi",
+    "title",
+    "publication_date",
+    "source_url",
+    "dataset_name",
+    "dataset_year",
+    "dataset_route_count",
+    "dataset_metro_count",
+    "dataset_license",
+    "raw_dataset_loaded",
+    "truck_count",
+    "shared_drone_fleet_size",
+    "aircraft_platform",
+    "battery_feasibility_enforced",
+    "baseline",
+    "collaborative",
+    "narrative_collaborative_truck_energy_wh",
+    "reported_makespan_reduction_tenths_percent",
+    "reported_truck_energy_reduction_tenths_percent",
+    "reported_total_energy_reduction_tenths_percent",
+    "reported_distance_increase_tenths_percent"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "MFB-SOTA-CICEK-2026-SUMMARY-001"
+    },
+    "citation_doi": {
+      "const": "10.3390/drones10070476"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "publication_date": {
+      "const": "2026-06-23"
+    },
+    "source_url": {
+      "const": "https://www.mdpi.com/2504-446X/10/7/476"
+    },
+    "dataset_name": {
+      "const": "2021 Amazon Last Mile Routing Research Challenge Dataset"
+    },
+    "dataset_year": {
+      "const": 2018
+    },
+    "dataset_route_count": {
+      "const": 9184
+    },
+    "dataset_metro_count": {
+      "const": 5
+    },
+    "dataset_license": {
+      "const": "CC-BY-NC-4.0"
+    },
+    "raw_dataset_loaded": {
+      "type": "boolean"
+    },
+    "truck_count": {
+      "const": 3
+    },
+    "shared_drone_fleet_size": {
+      "const": 10
+    },
+    "aircraft_platform": {
+      "const": "DJI Matrice 100"
+    },
+    "battery_feasibility_enforced": {
+      "type": "boolean"
+    },
+    "baseline": {
+      "$ref": "#/$defs/caseMetrics"
+    },
+    "collaborative": {
+      "$ref": "#/$defs/caseMetrics"
+    },
+    "narrative_collaborative_truck_energy_wh": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000000
+    },
+    "reported_makespan_reduction_tenths_percent": {
+      "type": "integer",
+      "minimum": -100000,
+      "maximum": 100000
+    },
+    "reported_truck_energy_reduction_tenths_percent": {
+      "type": "integer",
+      "minimum": -100000,
+      "maximum": 100000
+    },
+    "reported_total_energy_reduction_tenths_percent": {
+      "type": "integer",
+      "minimum": -100000,
+      "maximum": 100000
+    },
+    "reported_distance_increase_tenths_percent": {
+      "type": "integer",
+      "minimum": -100000,
+      "maximum": 100000
+    }
+  },
+  "$defs": {
+    "caseMetrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "makespan_minutes",
+        "truck_energy_wh",
+        "drone_energy_wh",
+        "total_energy_wh",
+        "system_distance_meters",
+        "truck_served_customers",
+        "drone_served_customers",
+        "energy_per_delivery_hundredths_wh"
+      ],
+      "properties": {
+        "makespan_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "truck_energy_wh": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000
+        },
+        "drone_energy_wh": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000
+        },
+        "total_energy_wh": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000
+        },
+        "system_distance_meters": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000
+        },
+        "truck_served_customers": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "drone_served_customers": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "energy_per_delivery_hundredths_wh": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000
+        }
+      }
+    }
+  }
+}
