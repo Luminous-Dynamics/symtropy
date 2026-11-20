@@ -9,6 +9,10 @@ description = "Offline content-addressed artifact and signed attestation verifie
 
 [dependencies]
 ed25519-dalek = { version = "=3.0.0", default-features = true }
+power-restoration-benchmark-case = { path = "../power-restoration-benchmark-case" }
+power-restoration-action-proposal = { path = "../power-restoration-action-proposal" }
+power-restoration-run-receipt = { path = "../power-restoration-run-receipt" }
+power-restoration-observation-evidence = { path = "../power-restoration-observation-evidence" }
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.154"
 sha2 = "=0.10.9"
