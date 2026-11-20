@@ -50,3 +50,14 @@ Unknown electrical parameters remain null/referenced, never invented. The exampl
 ## Claim boundary
 
 Source inventory and data-only schema only. No LARA run, binary import, licence clearance, objective reproduction, electrical simulation, operational feasibility, SOTA comparison or field restoration result is claimed.
+
+## Expanded comparator set (17–20 November 2026)
+
+The comparison set now includes four distinct problem families beyond LARA:
+
+1. **Explainable Agentic AI for Distribution System Load Restoration** (Chowdhury & Li, arXiv:2611.22016, 17 Nov 2026). Five agent roles; constrained feasible-action lists; receding-horizon plan generation; deterministic pandapower AC checks; IEEE 33/69/118; 250 scenarios per topology split 200/25/25; DQN, Actor-Critic, MCTS and SingleLLMAgent baselines. The preprint reports ~25.8% average weighted-load improvement over its single-agent ablation, alongside 94.64k vs 25.38k tokens and 26.06 vs 21.25 min per scenario. Treat as a mandatory paper comparator, not a reproduced result or general topology-transfer proof.
+2. **Multi-stage unbalanced M-SOP restoration** (SEGAN 2026, DOI 10.1016/j.segan.2026.102576). Unbalanced three-phase, pre-event/fault-isolation/service-restoration phases, asymmetric VSC ports and soft-open-point support. This motivates per-phase evidence rather than a balanced-only AC certificate.
+3. **Hybrid AC/DC restoration with VSC FIDs and storage** (Journal of Energy Storage 2026, DOI 10.1016/j.est.2026.123636). 207-node hybrid AC/DC system with black-start ESS, multiple VSC modes, cold-load pickup and rolling-horizon MILP. This is a separate network class.
+4. **Frequency-dynamics-aware restoration** (PSCC 2026 / DOI 10.1016/j.epsr.2026.113573). IEEE 9-bus work demonstrates static-optimal switching can violate dynamic frequency constraints. Static AC is not a dynamic-stability certificate.
+
+These are not one leaderboard. Match the network class, action set, physical model, objective, uncertainty, resource constraints and verification boundary before comparison.
