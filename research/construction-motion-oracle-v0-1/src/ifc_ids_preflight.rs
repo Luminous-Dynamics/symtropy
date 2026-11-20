@@ -94,6 +94,12 @@ pub struct IfcSourceEntity {
     /// The 22-character compressed IFC GlobalId from the source model.
     pub global_id: String,
     pub entity_type: FieldLayoutEntityType,
+    /// Digest of the canonical source IFC entity record, including exact
+    /// source properties and relationships consumed by this work package.
+    pub source_entity_sha256: String,
+    /// Digest of the construction-relevant entity projection under this
+    /// revision. It intentionally excludes unrelated project objects.
+    pub entity_revision_sha256: String,
     /// Digest of canonical geometry and placement extracted from the IFC object.
     pub geometry_sha256: String,
     /// IDS property requirements selected for this object by the project spec.
@@ -146,6 +152,8 @@ pub struct IfcIdsWorkPackageInput {
 pub struct SourceEntityBinding {
     pub design_entity_id: String,
     pub ifc_global_id: String,
+    pub source_entity_sha256: String,
+    pub entity_revision_sha256: String,
     pub geometry_sha256: String,
     pub required_ids_properties: Vec<String>,
     pub ids_applicability_receipt_sha256: String,
@@ -192,6 +200,8 @@ pub enum IfcIdsPreflightError {
     InvalidAcceptanceProfileDigest,
     InvalidGlobalId(String),
     DuplicateGlobalId(String),
+    InvalidSourceEntityDigest(String),
+    InvalidEntityRevisionDigest(String),
     InvalidGeometryDigest(String),
     GeometryPreflightContextMismatch { global_id: String },
     InvalidGeometryPreflightReceipt { global_id: String },
@@ -336,6 +346,16 @@ pub fn preflight_ifc_ids_work_package(
 
         if !source_entity.in_work_scope {
             continue;
+        }
+        if !is_sha256(&source_entity.source_entity_sha256) {
+            errors.push(IfcIdsPreflightError::InvalidSourceEntityDigest(
+                source_entity.global_id.clone(),
+            ));
+        }
+        if !is_sha256(&source_entity.entity_revision_sha256) {
+            errors.push(IfcIdsPreflightError::InvalidEntityRevisionDigest(
+                source_entity.global_id.clone(),
+            ));
         }
         if !is_sha256(&source_entity.geometry_sha256) {
             errors.push(IfcIdsPreflightError::InvalidGeometryDigest(
@@ -497,6 +517,8 @@ pub fn preflight_ifc_ids_work_package(
         source_entity_bindings.push(SourceEntityBinding {
             design_entity_id,
             ifc_global_id: source_entity.global_id.clone(),
+            source_entity_sha256: source_entity.source_entity_sha256.clone(),
+            entity_revision_sha256: source_entity.entity_revision_sha256.clone(),
             geometry_sha256: source_entity.geometry_sha256.clone(),
             required_ids_properties: source_entity.required_ids_properties.clone(),
             ids_applicability_receipt_sha256: source_entity
@@ -684,6 +706,8 @@ mod tests {
                 IfcSourceEntity {
                     global_id: global_id('0'),
                     entity_type: FieldLayoutEntityType::Line,
+                    source_entity_sha256: digest('1'),
+                    entity_revision_sha256: digest('2'),
                     geometry_sha256: digest('9'),
                     required_ids_properties: vec![
                         "Pset_WallCommon.IsExternal".into(),
@@ -716,6 +740,8 @@ mod tests {
                 IfcSourceEntity {
                     global_id: global_id('1'),
                     entity_type: FieldLayoutEntityType::Point,
+                    source_entity_sha256: digest('3'),
+                    entity_revision_sha256: digest('4'),
                     geometry_sha256: digest('a'),
                     required_ids_properties: vec!["Pset_Layout.MarkingClass".into()],
                     delivered_ids_properties: vec!["Pset_Layout.MarkingClass".into()],
