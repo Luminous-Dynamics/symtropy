@@ -74,6 +74,8 @@ struct EquationContract {
     pollutant_mass_flux_kg_day: String,
     net_pollutant_mass_flux_g_s: String,
     net_pollutant_mass_flux_standard_uncertainty_g_s: String,
+    laboratory_batch_common_mode_contribution_g_s: String,
+    outfall_pollutant_flux_standard_uncertainty_g_s: String,
     covariance_assumption: String,
 }
 #[derive(Debug, Deserialize)]
@@ -1160,6 +1162,8 @@ fn validate(bundle: &Bundle) -> Result<Report, String> {
         || !bundle.equation_contract.pollutant_mass_flux_g_s.contains("flow_m3_s")
         || !bundle.equation_contract.net_pollutant_mass_flux_g_s.contains("outfall")
         || !bundle.equation_contract.net_pollutant_mass_flux_g_s.contains("intake")
+        || !bundle.equation_contract.laboratory_batch_common_mode_contribution_g_s.contains("Q_out - Q_in")
+        || !bundle.equation_contract.outfall_pollutant_flux_standard_uncertainty_g_s.contains("Q_out")
         || !bundle.equation_contract.covariance_assumption.contains("shared laboratory-batch") {
         return Err("equation and covariance contract incomplete".into());
     }
@@ -1168,6 +1172,8 @@ fn validate(bundle: &Bundle) -> Result<Report, String> {
         bundle.equation_contract.thermal_power_standard_uncertainty_kw.as_str(),
         bundle.equation_contract.pollutant_mass_flux_kg_day.as_str(),
         bundle.equation_contract.net_pollutant_mass_flux_standard_uncertainty_g_s.as_str(),
+        bundle.equation_contract.laboratory_batch_common_mode_contribution_g_s.as_str(),
+        bundle.equation_contract.outfall_pollutant_flux_standard_uncertainty_g_s.as_str(),
     ] {
         if rule.trim().is_empty() {
             return Err("uncertainty or unit-conversion equation missing".into());
