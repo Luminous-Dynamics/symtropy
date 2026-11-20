@@ -58,7 +58,9 @@
         "critical_clash_count": 0,
         "unresolved_geometry_issue_count": 0,
         "evaluation_receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-      }
+      },
+      "source_entity_sha256": "0000000000000000000000000000000000000000000000000000000000000001",
+      "entity_revision_sha256": "0000000000000000000000000000000000000000000000000000000000000002"
     },
     {
       "global_id": "1111111111111111111111",
@@ -94,7 +96,9 @@
         "critical_clash_count": 0,
         "unresolved_geometry_issue_count": 0,
         "evaluation_receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-      }
+      },
+      "source_entity_sha256": "0000000000000000000000000000000000000000000000000000000000000002",
+      "entity_revision_sha256": "0000000000000000000000000000000000000000000000000000000000000003"
     },
     {
       "global_id": "2222222222222222222222",
@@ -118,7 +122,9 @@
         "critical_clash_count": 0,
         "unresolved_geometry_issue_count": 0,
         "evaluation_receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-      }
+      },
+      "source_entity_sha256": "0000000000000000000000000000000000000000000000000000000000000003",
+      "entity_revision_sha256": "0000000000000000000000000000000000000000000000000000000000000004"
     }
   ],
   "coordinate_context": {
