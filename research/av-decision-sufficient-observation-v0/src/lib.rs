@@ -117,7 +117,7 @@ fn best_decision(
 
     let mut best_index = 0;
     let mut best_risk = f64::INFINITY;
-    for decision_index in 0..decision_count {
+    for (decision_index, _) in decisions.iter().enumerate() {
         let risk = posterior
             .iter()
             .zip(losses.iter())
