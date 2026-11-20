@@ -9,7 +9,7 @@
 use nalgebra::SVector;
 use symtropy_math::Point;
 
-use crate::body::{BodyHandle, RigidBody};
+use crate::body::{BodyHandle, CapsuleBodyConstructionError, RigidBody};
 use crate::joints::{HingeJoint, MotorDrive};
 use crate::world::PhysicsWorld;
 
@@ -39,6 +39,26 @@ impl Default for LinkSpec {
             motor_damping: None,
         }
     }
+}
+
+/// Errors returned by the checked articulated-chain builder.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ChainBuildError {
+    /// The base position contains a NaN or infinity.
+    NonFiniteBasePosition,
+    /// A link's capsule length, radius, or mass is invalid.
+    InvalidLinkGeometry { index: usize },
+    /// A link has invalid hinge plane indices.
+    InvalidHingePlanes { index: usize },
+    /// A link's angle-limit interval is not finite and strictly increasing.
+    InvalidAngleLimits { index: usize },
+    /// A link's motor settings are invalid.
+    InvalidMotorSettings { index: usize },
+    /// Exact capsule mass-property construction failed.
+    CapsuleConstruction {
+        index: usize,
+        source: CapsuleBodyConstructionError,
+    },
 }
 
 /// An articulated chain in a physics world.
@@ -102,28 +122,82 @@ impl ChainBuilder {
     }
 
     /// Build the chain in the physics world.
+    ///
+    /// This compatibility convenience method expects valid link specifications.
+    /// Call `try_build` when configuration errors must be handled explicitly.
     pub fn build(self, world: &mut PhysicsWorld<3>) -> ArticulatedChain {
-        // Static base (small sphere)
+        self.try_build(world)
+            .unwrap_or_else(|error| panic!("invalid articulated-chain specification: {error:?}"))
+    }
+
+    /// Validate and construct the complete chain before mutating the world.
+    ///
+    /// Each link is a centered solid capsule whose total axial length equals
+    /// `LinkSpec::length` and whose radius equals `LinkSpec::radius`. Its
+    /// exact analytical mass distribution is attached as a full bivector
+    /// inertia operator; the former spherical-inertia substitution is removed.
+    pub fn try_build(
+        self,
+        world: &mut PhysicsWorld<3>,
+    ) -> Result<ArticulatedChain, ChainBuildError> {
+        if !self.base_pos.0.iter().all(|value| value.is_finite()) {
+            return Err(ChainBuildError::NonFiniteBasePosition);
+        }
+
+        // Construct and validate every link first. An invalid later link must
+        // not leave a partially inserted chain in the PhysicsWorld.
+        let mut prepared_links = Vec::with_capacity(self.links.len());
+        let mut pos = self.base_pos.0;
+        for (index, spec) in self.links.iter().enumerate() {
+            if !spec.length.is_finite()
+                || spec.length <= 0.0
+                || !spec.radius.is_finite()
+                || spec.radius <= 0.0
+                || spec.length < 2.0 * spec.radius
+                || !spec.mass.is_finite()
+                || spec.mass <= 0.0
+            {
+                return Err(ChainBuildError::InvalidLinkGeometry { index });
+            }
+            if spec.plane_a >= 3 || spec.plane_b >= 3 || spec.plane_a == spec.plane_b {
+                return Err(ChainBuildError::InvalidHingePlanes { index });
+            }
+            if let Some((min, max)) = spec.angle_limits {
+                if !min.is_finite() || !max.is_finite() || min >= max {
+                    return Err(ChainBuildError::InvalidAngleLimits { index });
+                }
+            }
+            if spec.motor_max_force.is_some_and(|force| !force.is_finite() || force <= 0.0)
+                || spec.motor_damping.is_some_and(|damping| !damping.is_finite() || damping < 0.0)
+            {
+                return Err(ChainBuildError::InvalidMotorSettings { index });
+            }
+
+            pos[2] -= spec.length;
+            let link_pos = Point::new([pos[0], pos[1], pos[2]]);
+            let cylinder_half_height = 0.5 * spec.length - spec.radius;
+            let link_body = RigidBody::<3>::try_dynamic_solid_capsule_3d(
+                BodyHandle(0),
+                link_pos,
+                cylinder_half_height,
+                spec.radius,
+                2,
+                spec.mass,
+            )
+            .map_err(|source| ChainBuildError::CapsuleConstruction { index, source })?;
+            prepared_links.push(link_body);
+        }
+
         let base = world.add_body(RigidBody::static_body(
             BodyHandle(0), // overwritten by add_body
             self.base_pos,
             Box::new(symtropy_math::Sphere::new(Point::origin(), 0.05)),
         ));
 
-        let mut links = Vec::with_capacity(self.links.len());
+        let mut links = Vec::with_capacity(prepared_links.len());
         let mut prev = base;
-        let mut pos = self.base_pos.0;
-
-        for spec in &self.links {
-            pos[2] -= spec.length;
-            let link_pos = Point::new([pos[0], pos[1], pos[2]]);
-            let handle = world.add_body(RigidBody::dynamic_sphere(
-                BodyHandle(0),
-                link_pos,
-                spec.radius.max(0.01),
-                spec.mass,
-            ));
-
+        for (spec, link_body) in self.links.iter().zip(prepared_links) {
+            let handle = world.add_body(link_body);
             let anchor_a: SVector<f64, 3> = SVector::from([0.0, 0.0, -spec.length * 0.5]);
             let anchor_b: SVector<f64, 3> = SVector::from([0.0, 0.0, spec.length * 0.5]);
 
@@ -140,8 +214,8 @@ impl ChainBuilder {
             }
             if let Some(max_force) = spec.motor_max_force {
                 let mut motor = MotorDrive::new(0.0, max_force);
-                if let Some(d) = spec.motor_damping {
-                    motor.kd = d;
+                if let Some(damping) = spec.motor_damping {
+                    motor.kd = damping;
                 }
                 hinge = hinge.with_motor(motor);
             }
@@ -151,11 +225,11 @@ impl ChainBuilder {
             prev = handle;
         }
 
-        ArticulatedChain {
+        Ok(ArticulatedChain {
             base,
             links,
             num_joints: self.links.len(),
-        }
+        })
     }
 }
 
@@ -171,6 +245,62 @@ mod tests {
 
     fn world_with_gravity() -> PhysicsWorld<3> {
         PhysicsWorld::new(SVector::from([0.0, 0.0, -9.81]))
+    }
+
+    #[test]
+    fn checked_chain_builder_uses_exact_capsule_geometry_and_mass_properties() {
+        let mut world = world_with_gravity();
+        let chain = ChainBuilder::new()
+            .base_position(Point::new([0.0, 0.0, 2.0]))
+            .add_link(LinkSpec {
+                mass: 1.0,
+                length: 0.5,
+                radius: 0.03,
+                ..Default::default()
+            })
+            .try_build(&mut world)
+            .expect("valid capsule link");
+
+        let link = world.body(chain.tip()).expect("inserted link");
+        let capsule = link
+            .collider
+            .as_any()
+            .downcast_ref::<symtropy_math::CompoundShape<3>>()
+            .expect("COM-bound constructor returns a compound");
+        assert_eq!(capsule.children().len(), 1);
+        let shape = capsule.children()[0]
+            .1
+            .as_any()
+            .downcast_ref::<symtropy_math::Capsule<3>>()
+            .expect("articulation link must use capsule geometry");
+        assert!((shape.half_height - 0.22).abs() < 1.0e-12);
+        assert_eq!(shape.radius, 0.03);
+        assert_eq!(shape.axis, 2);
+        assert_eq!(
+            link.rotational_inertia_model(),
+            crate::body::RotationalInertiaModel::ValidatedSpatialBivectorOperator
+        );
+        assert!(!link.rotational_inertia_approximate);
+        assert_eq!(link.mass, 1.0);
+    }
+
+    #[test]
+    fn checked_chain_builder_rejects_invalid_link_without_mutating_world() {
+        let mut world = world_with_gravity();
+        let result = ChainBuilder::new()
+            .base_position(Point::new([0.0, 0.0, 2.0]))
+            .add_link(LinkSpec {
+                mass: 1.0,
+                length: 0.2,
+                radius: 0.15,
+                ..Default::default()
+            })
+            .try_build(&mut world);
+        assert!(matches!(
+            result,
+            Err(ChainBuildError::InvalidLinkGeometry { index: 0 })
+        ));
+        assert_eq!(world.body_count(), 0);
     }
 
     #[test]
