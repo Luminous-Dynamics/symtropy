@@ -13,6 +13,12 @@ pub use ifc_ids_preflight::{
     SUPPORTED_IDS_VERSION, SUPPORTED_IFC_SCHEMA_RELEASE, preflight_ifc_ids_work_package,
 };
 pub mod site_state_ledger;
+pub mod site_journal_reconciliation;
+pub use site_journal_reconciliation::{
+    ConcurrentSiteMutation, OfflineSiteJournal, OfflineSiteJournalEntry, ReconciledSiteJournalEvent,
+    SiteJournalCheckpoint, SiteJournalCommittedContext, SiteJournalReconciliationError,
+    SiteJournalReconciliationPlan, SiteMutationKey, reconcile_site_journal_bundle,
+};
 pub use field_layout_acceptance::{
     CrewHours, DesignIntentEntity, DesignIntentManifest, EntityAcceptanceResult, EntityScoreReason,
     FieldAcceptanceError, FieldAcceptanceProfile, FieldAcceptanceScore, FieldEntityObservation,
