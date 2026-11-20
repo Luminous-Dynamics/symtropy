@@ -135,7 +135,7 @@ struct IntervalRecord {
     hydraulic_residence_time_standard_uncertainty_seconds: f64,
     transport_lag_basis: String,
     time_sync_state: String,
-    measured_clock_offset_ms: u64,
+    measured_clock_offset_ms: i64,
     maximum_clock_offset_ms: u64,
     rights_state: String,
     quality_state: String,
@@ -170,6 +170,7 @@ struct Evidence {
     quality_state: String,
     evidence_state: String,
     source_rights_state: String,
+    clock_offset_ms: i64,
     calibration_independence_domain: String,
     calibration_valid_from_utc: String,
     calibration_valid_until_utc: String,
@@ -495,6 +496,7 @@ fn validate_evidence(
     expected_end: &str,
     ids: &mut HashSet<String>,
     calibration_domains: &mut HashSet<String>,
+    clock_offset_limit_ms: u64,
 ) -> Result<(), String> {
     if e.sample_id.trim().is_empty() || !ids.insert(e.sample_id.clone()) {
         return Err(format!("empty or duplicate sample_id {}", e.sample_id));
@@ -514,6 +516,9 @@ fn validate_evidence(
         if value.trim().is_empty() {
             return Err(format!("sample {} missing {name}", e.sample_id));
         }
+    }
+    if e.clock_offset_ms.unsigned_abs() > clock_offset_limit_ms {
+        return Err(format!("sample {} clock offset exceeds tolerance", e.sample_id));
     }
     if !calibration_domains.insert(e.calibration_independence_domain.as_str()) {
         return Err(format!("sample {} shares a calibration independence domain; covariance model required", e.sample_id));
@@ -661,7 +666,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index:
         return Err(format!("interval {} time sync is not qualified", interval.interval_id));
     }
     let limit = bundle.pairing_contract.maximum_clock_offset_ms.min(interval.maximum_clock_offset_ms);
-    if interval.measured_clock_offset_ms > limit {
+    if interval.measured_clock_offset_ms.unsigned_abs() > limit {
         return Err(format!("interval {} clock offset exceeds tolerance", interval.interval_id));
     }
     if interval.rights_state != "synthetic_test_data_only"
@@ -701,7 +706,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index:
             (&interval.outfall_window_start_utc, &interval.outfall_window_end_utc)
         };
         validate_evidence(&observation.evidence, interval, expected_start, expected_end,
-            &mut sample_ids, &mut calibration_domains)?;
+            &mut sample_ids, &mut calibration_domains, limit)?;
         if !REQUIRED_ROLES.contains(&observation.station_role.as_str()) {
             return Err(format!("unknown thermal station role {}", observation.station_role));
         }
@@ -971,7 +976,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index:
         for sample in matching_plume {
             validate_evidence(&sample.evidence, interval,
                 &interval.outfall_window_start_utc, &interval.outfall_window_end_utc,
-                &mut sample_ids, &mut calibration_domains)?;
+                &mut sample_ids, &mut calibration_domains, limit)?;
             if sample.method_id != pair.method_id || sample.method_quality_state != "valid"
                 || sample.sample_collection_method != "synthetic_flow_proportional_composite"
                 || sample.sample_preservation_state != "synthetic_documented"
@@ -1303,6 +1308,12 @@ mod tests {
                 p.net_flux_resolution_status == "BELOW_1_STANDARD_UNCERTAINTY_UNRESOLVED"
             ) && interval.pollutant_station_anomalies.len() == 5
         ));
+    }
+    #[test]
+    fn individual_sensor_clock_skew_is_rejected_even_when_interval_clock_is_valid() {
+        let mut b = fixture();
+        b.interval_records[0].thermal_observations[2].evidence.clock_offset_ms = -251;
+        assert!(validate(&b).unwrap_err().contains("sample ENV-INT-001-temperature-3-1 clock offset exceeds"));
     }
     #[test]
     fn expired_calibration_is_rejected() {
