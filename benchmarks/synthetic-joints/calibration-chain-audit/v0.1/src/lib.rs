@@ -464,6 +464,10 @@ pub fn audit_calibration_chain(
                 "last calibration link terminates at {}, not declared terminal reference {}",
                 link.reference_standard_id, record.terminal_reference_id
             ));
+        } else if link.reference_standard_reference != record.terminal_reference_source {
+            return Err(
+                "last calibration link terminal-reference source does not match the chain record".to_owned(),
+            );
         }
 
         match validate_link(link, record.measurement_day, &record.measurand_unit)? {
@@ -618,7 +622,7 @@ mod tests {
             measurement_day: 150,
             measurand_unit: "N m".to_owned(),
             terminal_reference_id: "national-torque-reference".to_owned(),
-            terminal_reference_source: "https://example.invalid/national-torque-reference".to_owned(),
+            terminal_reference_source: "https://example.invalid/standards/national-torque-reference".to_owned(),
             chain_digest: "ordered-calibration-chain-digest-v1".to_owned(),
             links: vec![
                 link("link-1", "torque-sensor-01", "transfer-standard-01", 0.02),
@@ -803,7 +807,32 @@ mod tests {
     }
 
     #[test]
-    fn chain_019_receipt_preserves_each_link_reference_and_uncertainty_kind() {
+    fn chain_019_terminal_reference_source_must_match_last_calibration_link() {
+        let mut value = record();
+        value.terminal_reference_source = "https://example.invalid/other-reference".to_owned();
+        assert!(audit_calibration_chain(&value).is_err());
+    }
+
+    #[test]
+    fn chain_020_statistical_only_chain_retains_check_and_link_receipts() {
+        let mut value = record();
+        value.links[0].uncertainty_kind = LinkUncertaintyKind::StandardUncertainty;
+        value.links[0].uncertainty_value = Some(0.01);
+        value.links[0].uncertainty_source_kind = UncertaintySourceKind::TypeB;
+        value.links[0].distribution_reference =
+            Some("https://example.invalid/distribution/type-b".to_owned());
+        let report = audit_calibration_chain(&value).unwrap();
+        assert_eq!(report.disposition, ChainDisposition::StatisticalUncertaintyOnly);
+        assert_eq!(report.pre_use_check, value.pre_use_check);
+        assert_eq!(report.post_use_check, value.post_use_check);
+        assert_eq!(report.link_receipts[0].uncertainty_source_kind, UncertaintySourceKind::TypeB);
+        assert_eq!(report.link_receipts[0].distribution_reference.as_deref(), Some("https://example.invalid/distribution/type-b"));
+        assert!(report.reasons.is_empty());
+        assert_eq!(report.statistical_notes.len(), 1);
+    }
+
+    #[test]
+    fn chain_021_receipt_preserves_each_link_reference_and_uncertainty_kind() {
         let mut value = record();
         value.links[0].uncertainty_kind = LinkUncertaintyKind::StandardUncertainty;
         value.links[0].uncertainty_value = Some(0.01);
