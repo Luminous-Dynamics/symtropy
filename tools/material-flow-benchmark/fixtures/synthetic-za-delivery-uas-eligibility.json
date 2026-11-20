@@ -1,0 +1,829 @@
+{
+  "schema_version": 1,
+  "source_snapshot_id": "ZA-SACAA-PART101-2026-11-20",
+  "source_references": [
+    "https://www.caa.co.za/industry-information/uas/",
+    "https://www.gov.za/sites/default/files/gcis_document/202303/48228rg11556gon3170.pdf",
+    "https://api.acts.co.za/civil-aviation-act-2009/nr425_101_05_11_beyond_visual-.php",
+    "https://api.acts.co.za/civil-aviation-act-2009/nr425_101_05_2_landing_on_road.php",
+    "https://api.acts.co.za/civil-aviation-act-2009/nr425_101_05_15_operations_in_.php",
+    "https://api.acts.co.za/civil-aviation-act-2009/nr425_101_05_16a_multi-unmanne.php",
+    "https://api.acts.co.za/civil-aviation-act-2009/nr425_101_05_8_c2_operational_.php",
+    "https://api.acts.co.za/civil-aviation-act-2009/nr425_101_01_1_applicability.php",
+    "https://api.acts.co.za/civil-aviation-act-2009/nr425_101_01_2_private_operati.php"
+  ],
+  "cases": [
+    {
+      "case_id": "commercial-rvlos-delivery",
+      "assessment_time_utc": "2026-11-20T05:00:00Z",
+      "operator": {
+        "operator_id": "operator-01",
+        "activity_class": "commercial"
+      },
+      "aircraft": {
+        "aircraft_id": "aircraft-01",
+        "configuration_id": "delivery-uav-v1",
+        "uas_class": "class1_b",
+        "autonomous_control": false
+      },
+      "pilot": {
+        "pilot_id": "pilot-01"
+      },
+      "operation": {
+        "operation_id": "parcel-route-a",
+        "operation_scope_digest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "visual_flight_mode": "restricted_vlos",
+        "rlos_command_link_available": true,
+        "rlos_command_link_evidence_reference": "synthetic://za-uas/c2-link/parcel-route-a",
+        "payload_release_or_delivery": true,
+        "multi_uas_operation": false,
+        "public_road_takeoff_or_landing": false,
+        "controlled_airspace": false,
+        "restricted_or_prohibited_airspace": false,
+        "within_ten_km_of_aerodrome": false,
+        "property_owner_permission_required": true,
+        "dangerous_goods_payload": false,
+        "near_manned_aircraft": false,
+        "over_or_within_fifty_m_of_public_road": false,
+        "over_public_road": false,
+        "rps_id": "rps-01",
+        "operations_manual_revision": "om-rev-03"
+      },
+      "approvals": {
+        "air_service_licence": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-asl",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_reference": "synthetic://za-uas/approvals/asl"
+        },
+        "uas_operator_certificate": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-uasoc",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_reference": "synthetic://za-uas/approvals/uasoc"
+        },
+        "aircraft_letter_of_approval": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-rla",
+          "authority": "synthetic-authority",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_reference": "synthetic://za-uas/approvals/rla"
+        },
+        "remote_pilot_licence": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-rpl",
+          "authority": "synthetic-authority",
+          "subject_id": "pilot-01",
+          "operation_scope_digest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_reference": "synthetic://za-uas/approvals/rpl"
+        },
+        "aircraft_certificate_of_registration": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-cofr",
+          "authority": "synthetic-authority",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_reference": "synthetic://za-uas/approvals/cofr"
+        },
+        "operations_manual_scope": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "om-rev-03",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_reference": "synthetic://za-uas/approvals/operations-manual"
+        },
+        "director_payload_release_approval": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-payload-release",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_reference": "synthetic://za-uas/approvals/payload-release"
+        },
+        "director_bvlos_approval": null,
+        "sa_cats_101_bvlos_compliance": null,
+        "sa_cats_101_c2_compliance": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-c2-compliance",
+          "authority": "synthetic-authority",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_reference": "synthetic://za-uas/approvals/c2-compliance"
+        },
+        "director_class_3_applicability": null,
+        "director_multi_uas_approval": null,
+        "director_rps_topology_approval": null,
+        "director_public_road_approval": null,
+        "local_authority_public_road_approval": null,
+        "airspace_approval": null,
+        "property_owner_permission": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-property-permission",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_reference": "synthetic://za-uas/approvals/property-permission"
+        },
+        "dangerous_goods_director_approval": null,
+        "part_92_dangerous_goods_compliance": null,
+        "director_public_road_overflight_approval": null,
+        "public_road_closure_evidence": null,
+        "public_road_safety_controls": null,
+        "multi_uas_uses_command_inputs_only": null
+      }
+    },
+    {
+      "case_id": "commercial-bvlos-approval-missing",
+      "assessment_time_utc": "2026-11-20T05:00:00Z",
+      "operator": {
+        "operator_id": "operator-01",
+        "activity_class": "commercial"
+      },
+      "aircraft": {
+        "aircraft_id": "aircraft-01",
+        "configuration_id": "delivery-uav-v1",
+        "uas_class": "class1_b",
+        "autonomous_control": false
+      },
+      "pilot": {
+        "pilot_id": "pilot-01"
+      },
+      "operation": {
+        "operation_id": "parcel-route-bvlos",
+        "operation_scope_digest_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "visual_flight_mode": "bvlos",
+        "rlos_command_link_available": true,
+        "rlos_command_link_evidence_reference": "synthetic://za-uas/c2-link/parcel-route-a",
+        "payload_release_or_delivery": true,
+        "multi_uas_operation": false,
+        "public_road_takeoff_or_landing": false,
+        "controlled_airspace": false,
+        "restricted_or_prohibited_airspace": false,
+        "within_ten_km_of_aerodrome": false,
+        "property_owner_permission_required": true,
+        "dangerous_goods_payload": false,
+        "near_manned_aircraft": false,
+        "over_or_within_fifty_m_of_public_road": false,
+        "over_public_road": false,
+        "rps_id": "rps-01",
+        "operations_manual_revision": "om-rev-03"
+      },
+      "approvals": {
+        "air_service_licence": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-asl",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_reference": "synthetic://za-uas/approvals/asl"
+        },
+        "uas_operator_certificate": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-uasoc",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_reference": "synthetic://za-uas/approvals/uasoc"
+        },
+        "aircraft_letter_of_approval": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-rla",
+          "authority": "synthetic-authority",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_reference": "synthetic://za-uas/approvals/rla"
+        },
+        "remote_pilot_licence": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-rpl",
+          "authority": "synthetic-authority",
+          "subject_id": "pilot-01",
+          "operation_scope_digest_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_reference": "synthetic://za-uas/approvals/rpl"
+        },
+        "aircraft_certificate_of_registration": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-cofr",
+          "authority": "synthetic-authority",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_reference": "synthetic://za-uas/approvals/cofr"
+        },
+        "operations_manual_scope": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "om-rev-03",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_reference": "synthetic://za-uas/approvals/operations-manual"
+        },
+        "director_payload_release_approval": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-payload-release",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_reference": "synthetic://za-uas/approvals/payload-release"
+        },
+        "director_bvlos_approval": null,
+        "sa_cats_101_bvlos_compliance": null,
+        "sa_cats_101_c2_compliance": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-c2-compliance",
+          "authority": "synthetic-authority",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_reference": "synthetic://za-uas/approvals/c2-compliance"
+        },
+        "director_class_3_applicability": null,
+        "director_multi_uas_approval": null,
+        "director_rps_topology_approval": null,
+        "director_public_road_approval": null,
+        "local_authority_public_road_approval": null,
+        "airspace_approval": null,
+        "property_owner_permission": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-property-permission",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_reference": "synthetic://za-uas/approvals/property-permission"
+        },
+        "dangerous_goods_director_approval": null,
+        "part_92_dangerous_goods_compliance": null,
+        "director_public_road_overflight_approval": null,
+        "public_road_closure_evidence": null,
+        "public_road_safety_controls": null,
+        "multi_uas_uses_command_inputs_only": null
+      }
+    },
+    {
+      "case_id": "autonomous-aircraft-regime-unresolved",
+      "assessment_time_utc": "2026-11-20T05:00:00Z",
+      "operator": {
+        "operator_id": "operator-01",
+        "activity_class": "commercial"
+      },
+      "aircraft": {
+        "aircraft_id": "aircraft-01",
+        "configuration_id": "delivery-uav-v1",
+        "uas_class": "class1_b",
+        "autonomous_control": true
+      },
+      "pilot": {
+        "pilot_id": "pilot-01"
+      },
+      "operation": {
+        "operation_id": "autonomous-route",
+        "operation_scope_digest_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "visual_flight_mode": "restricted_vlos",
+        "rlos_command_link_available": true,
+        "rlos_command_link_evidence_reference": "synthetic://za-uas/c2-link/parcel-route-a",
+        "payload_release_or_delivery": true,
+        "multi_uas_operation": false,
+        "public_road_takeoff_or_landing": false,
+        "controlled_airspace": false,
+        "restricted_or_prohibited_airspace": false,
+        "within_ten_km_of_aerodrome": false,
+        "property_owner_permission_required": true,
+        "dangerous_goods_payload": false,
+        "near_manned_aircraft": false,
+        "over_or_within_fifty_m_of_public_road": false,
+        "over_public_road": false,
+        "rps_id": "rps-01",
+        "operations_manual_revision": "om-rev-03"
+      },
+      "approvals": {
+        "air_service_licence": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-asl",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_reference": "synthetic://za-uas/approvals/asl"
+        },
+        "uas_operator_certificate": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-uasoc",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_reference": "synthetic://za-uas/approvals/uasoc"
+        },
+        "aircraft_letter_of_approval": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-rla",
+          "authority": "synthetic-authority",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_reference": "synthetic://za-uas/approvals/rla"
+        },
+        "remote_pilot_licence": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-rpl",
+          "authority": "synthetic-authority",
+          "subject_id": "pilot-01",
+          "operation_scope_digest_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_reference": "synthetic://za-uas/approvals/rpl"
+        },
+        "aircraft_certificate_of_registration": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-cofr",
+          "authority": "synthetic-authority",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_reference": "synthetic://za-uas/approvals/cofr"
+        },
+        "operations_manual_scope": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "om-rev-03",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_reference": "synthetic://za-uas/approvals/operations-manual"
+        },
+        "director_payload_release_approval": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-payload-release",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_reference": "synthetic://za-uas/approvals/payload-release"
+        },
+        "director_bvlos_approval": null,
+        "sa_cats_101_bvlos_compliance": null,
+        "sa_cats_101_c2_compliance": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-c2-compliance",
+          "authority": "synthetic-authority",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_reference": "synthetic://za-uas/approvals/c2-compliance"
+        },
+        "director_class_3_applicability": null,
+        "director_multi_uas_approval": null,
+        "director_rps_topology_approval": null,
+        "director_public_road_approval": null,
+        "local_authority_public_road_approval": null,
+        "airspace_approval": null,
+        "property_owner_permission": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-property-permission",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_reference": "synthetic://za-uas/approvals/property-permission"
+        },
+        "dangerous_goods_director_approval": null,
+        "part_92_dangerous_goods_compliance": null,
+        "director_public_road_overflight_approval": null,
+        "public_road_closure_evidence": null,
+        "public_road_safety_controls": null,
+        "multi_uas_uses_command_inputs_only": null
+      }
+    },
+    {
+      "case_id": "multi-uas-director-approval-missing",
+      "assessment_time_utc": "2026-11-20T05:00:00Z",
+      "operator": {
+        "operator_id": "operator-01",
+        "activity_class": "commercial"
+      },
+      "aircraft": {
+        "aircraft_id": "aircraft-01",
+        "configuration_id": "delivery-uav-v1",
+        "uas_class": "class1_b",
+        "autonomous_control": false
+      },
+      "pilot": {
+        "pilot_id": "pilot-01"
+      },
+      "operation": {
+        "operation_id": "multi-uas-route",
+        "operation_scope_digest_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "visual_flight_mode": "restricted_vlos",
+        "rlos_command_link_available": true,
+        "rlos_command_link_evidence_reference": "synthetic://za-uas/c2-link/parcel-route-a",
+        "payload_release_or_delivery": true,
+        "multi_uas_operation": true,
+        "public_road_takeoff_or_landing": false,
+        "controlled_airspace": false,
+        "restricted_or_prohibited_airspace": false,
+        "within_ten_km_of_aerodrome": false,
+        "property_owner_permission_required": true,
+        "dangerous_goods_payload": false,
+        "near_manned_aircraft": false,
+        "over_or_within_fifty_m_of_public_road": false,
+        "over_public_road": false,
+        "rps_id": "rps-01",
+        "operations_manual_revision": "om-rev-03"
+      },
+      "approvals": {
+        "air_service_licence": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-asl",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "source_reference": "synthetic://za-uas/approvals/asl"
+        },
+        "uas_operator_certificate": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-uasoc",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "source_reference": "synthetic://za-uas/approvals/uasoc"
+        },
+        "aircraft_letter_of_approval": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-rla",
+          "authority": "synthetic-authority",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "source_reference": "synthetic://za-uas/approvals/rla"
+        },
+        "remote_pilot_licence": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-rpl",
+          "authority": "synthetic-authority",
+          "subject_id": "pilot-01",
+          "operation_scope_digest_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "source_reference": "synthetic://za-uas/approvals/rpl"
+        },
+        "aircraft_certificate_of_registration": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-cofr",
+          "authority": "synthetic-authority",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "source_reference": "synthetic://za-uas/approvals/cofr"
+        },
+        "operations_manual_scope": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "om-rev-03",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "source_reference": "synthetic://za-uas/approvals/operations-manual"
+        },
+        "director_payload_release_approval": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-payload-release",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "source_reference": "synthetic://za-uas/approvals/payload-release"
+        },
+        "director_bvlos_approval": null,
+        "sa_cats_101_bvlos_compliance": null,
+        "sa_cats_101_c2_compliance": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-c2-compliance",
+          "authority": "synthetic-authority",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "source_reference": "synthetic://za-uas/approvals/c2-compliance"
+        },
+        "director_class_3_applicability": null,
+        "director_multi_uas_approval": null,
+        "director_rps_topology_approval": null,
+        "director_public_road_approval": null,
+        "local_authority_public_road_approval": null,
+        "airspace_approval": null,
+        "property_owner_permission": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-property-permission",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "source_reference": "synthetic://za-uas/approvals/property-permission"
+        },
+        "dangerous_goods_director_approval": null,
+        "part_92_dangerous_goods_compliance": null,
+        "director_public_road_overflight_approval": null,
+        "public_road_closure_evidence": null,
+        "public_road_safety_controls": null,
+        "multi_uas_uses_command_inputs_only": null
+      }
+    },
+    {
+      "case_id": "public-road-overflight-missing-controls",
+      "assessment_time_utc": "2026-11-20T05:00:00Z",
+      "operator": {
+        "operator_id": "operator-01",
+        "activity_class": "commercial"
+      },
+      "aircraft": {
+        "aircraft_id": "aircraft-01",
+        "configuration_id": "delivery-uav-v1",
+        "uas_class": "class1_b",
+        "autonomous_control": false
+      },
+      "pilot": {
+        "pilot_id": "pilot-01"
+      },
+      "operation": {
+        "operation_id": "road-overflight-route",
+        "operation_scope_digest_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "visual_flight_mode": "restricted_vlos",
+        "rlos_command_link_available": true,
+        "rlos_command_link_evidence_reference": "synthetic://za-uas/c2-link/parcel-route-a",
+        "payload_release_or_delivery": true,
+        "multi_uas_operation": false,
+        "public_road_takeoff_or_landing": false,
+        "controlled_airspace": false,
+        "restricted_or_prohibited_airspace": false,
+        "within_ten_km_of_aerodrome": false,
+        "property_owner_permission_required": true,
+        "dangerous_goods_payload": false,
+        "near_manned_aircraft": false,
+        "over_or_within_fifty_m_of_public_road": true,
+        "over_public_road": true,
+        "rps_id": "rps-01",
+        "operations_manual_revision": "om-rev-03"
+      },
+      "approvals": {
+        "air_service_licence": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-asl",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "source_reference": "synthetic://za-uas/approvals/asl"
+        },
+        "uas_operator_certificate": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-uasoc",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "source_reference": "synthetic://za-uas/approvals/uasoc"
+        },
+        "aircraft_letter_of_approval": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-rla",
+          "authority": "synthetic-authority",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "source_reference": "synthetic://za-uas/approvals/rla"
+        },
+        "remote_pilot_licence": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-rpl",
+          "authority": "synthetic-authority",
+          "subject_id": "pilot-01",
+          "operation_scope_digest_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "source_reference": "synthetic://za-uas/approvals/rpl"
+        },
+        "aircraft_certificate_of_registration": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-cofr",
+          "authority": "synthetic-authority",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "source_reference": "synthetic://za-uas/approvals/cofr"
+        },
+        "operations_manual_scope": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "om-rev-03",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "source_reference": "synthetic://za-uas/approvals/operations-manual"
+        },
+        "director_payload_release_approval": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-payload-release",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "source_reference": "synthetic://za-uas/approvals/payload-release"
+        },
+        "director_bvlos_approval": null,
+        "sa_cats_101_bvlos_compliance": null,
+        "sa_cats_101_c2_compliance": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-c2-compliance",
+          "authority": "synthetic-authority",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "source_reference": "synthetic://za-uas/approvals/c2-compliance"
+        },
+        "director_class_3_applicability": null,
+        "director_multi_uas_approval": null,
+        "director_rps_topology_approval": null,
+        "director_public_road_approval": null,
+        "local_authority_public_road_approval": null,
+        "airspace_approval": null,
+        "property_owner_permission": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-property-permission",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "source_reference": "synthetic://za-uas/approvals/property-permission"
+        },
+        "dangerous_goods_director_approval": null,
+        "part_92_dangerous_goods_compliance": null,
+        "director_public_road_overflight_approval": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-road-director-approval",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "source_reference": "synthetic://za-uas/approvals/road-director-approval"
+        },
+        "public_road_closure_evidence": null,
+        "public_road_safety_controls": null,
+        "multi_uas_uses_command_inputs_only": null
+      }
+    },
+    {
+      "case_id": "beyond-radio-link-unsupported",
+      "assessment_time_utc": "2026-11-20T05:00:00Z",
+      "operator": {
+        "operator_id": "operator-01",
+        "activity_class": "commercial"
+      },
+      "aircraft": {
+        "aircraft_id": "aircraft-01",
+        "configuration_id": "delivery-uav-v1",
+        "uas_class": "class1_b",
+        "autonomous_control": false
+      },
+      "pilot": {
+        "pilot_id": "pilot-01"
+      },
+      "operation": {
+        "operation_id": "brlos-route",
+        "operation_scope_digest_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "visual_flight_mode": "brlos",
+        "rlos_command_link_available": true,
+        "rlos_command_link_evidence_reference": "synthetic://za-uas/c2-link/parcel-route-a",
+        "payload_release_or_delivery": true,
+        "multi_uas_operation": false,
+        "public_road_takeoff_or_landing": false,
+        "controlled_airspace": false,
+        "restricted_or_prohibited_airspace": false,
+        "within_ten_km_of_aerodrome": false,
+        "property_owner_permission_required": true,
+        "dangerous_goods_payload": false,
+        "near_manned_aircraft": false,
+        "over_or_within_fifty_m_of_public_road": false,
+        "over_public_road": false,
+        "rps_id": "rps-01",
+        "operations_manual_revision": "om-rev-03"
+      },
+      "approvals": {
+        "air_service_licence": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-asl",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "source_reference": "synthetic://za-uas/approvals/asl"
+        },
+        "uas_operator_certificate": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-uasoc",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "source_reference": "synthetic://za-uas/approvals/uasoc"
+        },
+        "aircraft_letter_of_approval": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-rla",
+          "authority": "synthetic-authority",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "source_reference": "synthetic://za-uas/approvals/rla"
+        },
+        "remote_pilot_licence": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-rpl",
+          "authority": "synthetic-authority",
+          "subject_id": "pilot-01",
+          "operation_scope_digest_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "source_reference": "synthetic://za-uas/approvals/rpl"
+        },
+        "aircraft_certificate_of_registration": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-cofr",
+          "authority": "synthetic-authority",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "source_reference": "synthetic://za-uas/approvals/cofr"
+        },
+        "operations_manual_scope": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "om-rev-03",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "source_reference": "synthetic://za-uas/approvals/operations-manual"
+        },
+        "director_payload_release_approval": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-payload-release",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "source_reference": "synthetic://za-uas/approvals/payload-release"
+        },
+        "director_bvlos_approval": null,
+        "sa_cats_101_bvlos_compliance": null,
+        "sa_cats_101_c2_compliance": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-c2-compliance",
+          "authority": "synthetic-authority",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "source_reference": "synthetic://za-uas/approvals/c2-compliance"
+        },
+        "director_class_3_applicability": null,
+        "director_multi_uas_approval": null,
+        "director_rps_topology_approval": null,
+        "director_public_road_approval": null,
+        "local_authority_public_road_approval": null,
+        "airspace_approval": null,
+        "property_owner_permission": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "record_id": "synthetic-record-property-permission",
+          "authority": "synthetic-authority",
+          "subject_id": "operator-01",
+          "operation_scope_digest_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "source_reference": "synthetic://za-uas/approvals/property-permission"
+        },
+        "dangerous_goods_director_approval": null,
+        "part_92_dangerous_goods_compliance": null,
+        "director_public_road_overflight_approval": null,
+        "public_road_closure_evidence": null,
+        "public_road_safety_controls": null,
+        "multi_uas_uses_command_inputs_only": null
+      }
+    }
+  ]
+}
