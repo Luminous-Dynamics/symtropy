@@ -228,5 +228,17 @@
         }
       ]
     }
-  ]
+  ],
+  "jurisdictional_operating_envelope": {
+    "jurisdiction_profile_id": "ZA-UAS-OPS-GATE-001-v0.1-2026-11-20",
+    "source_snapshot_id": "SACAA-UAS-PART101-SNAPSHOT-2026-11-20",
+    "jurisdiction_code": "ZA",
+    "operator_activity_class": "commercial",
+    "review_status": "eligible_for_external_operator_review",
+    "operator_identity_reference": "synthetic://za-uas/operator",
+    "aircraft_configuration_reference": "synthetic://za-uas/aircraft-config",
+    "operations_manual_revision_reference": "synthetic://za-uas/operations-manual/rev-0",
+    "subject_scope_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "evidence_reference": "synthetic://za-uas/review-envelope"
+  }
 }
