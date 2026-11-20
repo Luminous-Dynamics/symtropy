@@ -1,3 +1,5 @@
+pub mod entropy;
+
 //! Composition of already-qualified specialist closure fluxes.
 //!
 //! This is not a router, plasma solver, or physical referee. It validates
