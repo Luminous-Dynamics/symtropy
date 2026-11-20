@@ -312,6 +312,7 @@ pub struct SelectionReceipt {
     pub estimated_cost: f64,
     pub cost_units_id: String,
     pub cost_uncertainty_upper_bound: f64,
+    pub cost_upper_bound: f64,
     pub cost_measurement_receipt_sha256: String,
     pub estimator_sha256: String,
     pub calibration_receipt_sha256: String,
@@ -529,6 +530,7 @@ pub fn evaluate_adaptive_policy(
             || cost.estimated_cost <= 0.0
             || !cost.uncertainty_upper_bound.is_finite()
             || cost.uncertainty_upper_bound < 0.0
+            || !(cost.estimated_cost + cost.uncertainty_upper_bound).is_finite()
             || cost.cost_units_id.trim().is_empty()
         {
             excluded.push(excluded(candidate, ExclusionReason::InvalidCostEvidence));
@@ -704,9 +706,9 @@ pub fn evaluate_adaptive_policy(
     }
 
     selectable.sort_by(|left, right| {
-        left.cost
-            .estimated_cost
-            .total_cmp(&right.cost.estimated_cost)
+        (left.cost.estimated_cost + left.cost.uncertainty_upper_bound)
+            .total_cmp(&(right.cost.estimated_cost + right.cost.uncertainty_upper_bound))
+            .then_with(|| left.cost.estimated_cost.total_cmp(&right.cost.estimated_cost))
             .then_with(|| {
                 left.candidate
                     .profile_sha256
@@ -813,6 +815,7 @@ fn selection_receipt(
         estimated_cost: item.cost.estimated_cost,
         cost_units_id: item.cost.cost_units_id.clone(),
         cost_uncertainty_upper_bound: item.cost.uncertainty_upper_bound,
+        cost_upper_bound: item.cost.estimated_cost + item.cost.uncertainty_upper_bound,
         cost_measurement_receipt_sha256: item.cost.measurement_receipt_sha256.clone(),
         estimator_sha256: item.error.estimator_sha256.clone(),
         calibration_receipt_sha256: item.error.calibration_receipt_sha256.clone(),
@@ -1480,6 +1483,20 @@ mod tests {
             panic!("cross-profile error evidence reuse must be refused");
         };
         assert_eq!(excluded[0].reason, ExclusionReason::EvidenceIdentityMismatch);
+    }
+
+
+    #[test]
+    fn cost_receipts_must_bind_profile_model_compatibility_solver_and_hardware() {
+        let mut candidate = moment_candidate('a', 8, 0.01, 1.0);
+        if let Evidence::Qualified(cost) = &mut candidate.cost_evidence {
+            cost.solver_build_sha256 = digest('e');
+        }
+        let decision = evaluate_adaptive_policy(&request(vec![candidate])).unwrap();
+        let PolicyDecision::Refused { excluded, .. } = decision else {
+            panic!("stale solver cost evidence must be refused");
+        };
+        assert_eq!(excluded[0].reason, ExclusionReason::CostEvidenceIdentityMismatch);
     }
 
     #[test]
