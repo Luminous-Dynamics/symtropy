@@ -1363,6 +1363,7 @@ mod tests {
         let first_report = evaluate_shared_fleet(&first).expect("first report");
         first.regions.reverse();
         first.reposition_links.reverse();
+        first.scenarios.reverse();
         for scenario in &mut first.scenarios {
             for period in &mut scenario.periods {
                 period.observations.reverse();
