@@ -133,6 +133,14 @@ Biodiversity observations should be capable of interoperating with OBIS and its 
 
 The catalog provides candidate Darwin Core terms for event/date, sampling protocol, sample size, occurrence, basis of record, taxon, coordinates/datum and depth. This is a starting mapping, not a claim that this v0.1 file is a complete OBIS publication profile. Before publishing, confirm the current OBIS Manual, node requirements, sensitive-location restrictions and provider rights. Preserve quality flags rather than deleting or silently upgrading failed observations.
 
+## 4.2 Adaptive field-campaign design
+
+The [OCEAN_ENVIRONMENT_SAMPLING_CAMPAIGN_V0_1.json](OCEAN_ENVIRONMENT_SAMPLING_CAMPAIGN_V0_1.json) adds an event-aware field-campaign layer. It stratifies evidence collection by season, hydrodynamic regime, IT/thermal load, water operations, abnormal events and lifecycle phase. It requires pre-registered primary contrasts, a minimum detectable effect before confirmatory data, a power model that accounts for spatial/temporal dependence and an independent reference/control.
+
+The contract also separates latent ecological state from method-specific detection probability. **Non-detection is not absence** where effort, visibility, acoustic background, taxonomic resolution or detection probability are unknown. Adaptive sampling may increase information gain, but cannot silently drop inconvenient stations, endpoints, seasons or events.
+
+It reuses [OCEAN-OBSERVATION-ALLOCATION-001 #2069](https://github.com/Luminous-Dynamics/symtropy/issues/2069), [OCEAN-OBSERVATION-SEQUENTIAL-DESIGN-001 #2077](https://github.com/Luminous-Dynamics/symtropy/issues/2077) and [MARINE-MEASUREMENT-VOI-IDENTIFIABILITY-001](https://github.com/Luminous-Dynamics/symthaea/issues/11559). Its Rust verifier lives in `tools/ocean-env-campaign-verifier/`.
+
 ## 4.3 Executable measurement pipeline
 
 The v0.1 paired measurement bundle and Rust verifier now extend this metric catalogue into an executable evidence path:
