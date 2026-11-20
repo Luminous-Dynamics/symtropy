@@ -76,6 +76,28 @@ jobs:
             and .truck_only_baseline.expected_aerial_deliveries == 0
           ' mfb-l1-evidence/shared-aircraft-report.json
           cat mfb-l1-evidence/shared-aircraft-report.json
+      - name: Evaluate shared-aircraft rare-event risk stress fixture
+        run: |
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-evaluate-shared-fleet -- tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft-tail-risk.json > mfb-l1-evidence/shared-aircraft-tail-risk-report.json
+          jq -e '
+            .scenario_count == 2
+            and .nonanticipative_policy_node_count == 5
+            and .exact_policy_count_evaluated == 243
+            and .optimized_policy.expected_total_cost_units == 524
+            and .optimized_policy.cvar90_total_cost_units == 866
+            and .optimized_policy.worst_case_total_cost_units == 1246
+            and .cvar90_optimal_policy.expected_total_cost_units == 527
+            and .cvar90_optimal_policy.cvar90_total_cost_units == 825
+            and .worst_case_optimal_policy.expected_total_cost_units == 570
+            and .worst_case_optimal_policy.worst_case_total_cost_units == 1156
+            and .service_robust_optimal_policy.expected_total_cost_units == 526
+            and .service_robust_optimal_policy.worst_case_unserved_units == 21
+            and .fixed_initial_region_baseline.expected_total_cost_units == 531
+            and .truck_only_baseline.expected_total_cost_units == 591
+            and .physical_dispatch_authorized == false
+            and .dispatch_commands_emitted == false
+          ' mfb-l1-evidence/shared-aircraft-tail-risk-report.json
+          cat mfb-l1-evidence/shared-aircraft-tail-risk-report.json
       - name: Validate synthetic 3D cargo-bay loading
         run: |
           mkdir -p mfb-l1-evidence
@@ -256,6 +278,8 @@ jobs:
             echo
             echo "[shared_aircraft_fixture_digest]"
             sha256sum tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft.json
+            sha256sum tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft-tail-risk.json
+            sha256sum mfb-l1-evidence/shared-aircraft-tail-risk-report.json
             echo
             echo "[shared_aircraft_source_digest]"
             sha256sum tools/material-flow-benchmark/src/shared_fleet.rs
