@@ -106,7 +106,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-1",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_deg_c_per_s": 0.00015
         },
         {
           "station_id": "station-outfall",
@@ -129,7 +130,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-2",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_deg_c_per_s": 0.00035
         },
         {
           "station_id": "station-near_field_plume",
@@ -152,7 +154,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-3",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_deg_c_per_s": 0.00018
         },
         {
           "station_id": "station-far_field_impact",
@@ -175,7 +178,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-4",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_deg_c_per_s": 0.00005
         },
         {
           "station_id": "station-independent_reference_control",
@@ -198,7 +202,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-5",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_deg_c_per_s": 0.00002
         }
       ],
       "flow_samples": [
@@ -221,7 +226,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-INTAKE",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_m3_s_per_s": 6e-7
         },
         {
           "station_id": "station-outfall",
@@ -242,7 +248,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-OUTFALL",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_m3_s_per_s": 0.0000012
         }
       ],
       "concentration_pairs": [
@@ -274,7 +281,8 @@
             "sample_collection_method": "synthetic_flow_proportional_composite",
             "sample_preservation_state": "synthetic_documented",
             "chain_of_custody_id": "SYNTH-COC-ENV-INT-001-SYNTH-TRACE-ANALYTE-001-intake",
-            "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001"
+            "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001",
+            "temporal_rate_mg_l_per_s": 0.000012
           },
           "outfall": {
             "station_id": "station-outfall",
@@ -300,11 +308,12 @@
             "sample_collection_method": "synthetic_flow_proportional_composite",
             "sample_preservation_state": "synthetic_documented",
             "chain_of_custody_id": "SYNTH-COC-ENV-INT-001-SYNTH-TRACE-ANALYTE-001-outfall",
-            "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001"
+            "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001",
+            "temporal_rate_mg_l_per_s": 0.000035
           }
         }
       ],
-      "uncertainty_covariance_state": "paired_measurement_calibration_domains_independent",
+      "uncertainty_covariance_state": "independent_instrument_domains_with_common_hydraulic_lag_covariance_propagated_via_temporal_sensitivities",
       "plume_concentration_observations": [
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -333,7 +342,8 @@
           "sample_collection_method": "synthetic_flow_proportional_composite",
           "sample_preservation_state": "synthetic_documented",
           "chain_of_custody_id": "SYNTH-COC-ENV-INT-001-SYNTH-TRACE-ANALYTE-001-near_field_plume",
-          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001"
+          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001",
+          "temporal_rate_mg_l_per_s": 0.000028
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -362,7 +372,8 @@
           "sample_collection_method": "synthetic_flow_proportional_composite",
           "sample_preservation_state": "synthetic_documented",
           "chain_of_custody_id": "SYNTH-COC-ENV-INT-001-SYNTH-TRACE-ANALYTE-001-far_field_impact",
-          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001"
+          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001",
+          "temporal_rate_mg_l_per_s": 0.000008
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -391,7 +402,8 @@
           "sample_collection_method": "synthetic_flow_proportional_composite",
           "sample_preservation_state": "synthetic_documented",
           "chain_of_custody_id": "SYNTH-COC-ENV-INT-001-SYNTH-TRACE-ANALYTE-001-independent_reference_control",
-          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001"
+          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001",
+          "temporal_rate_mg_l_per_s": 0.000003
         }
       ],
       "hydraulic_pairing_state": "residence_time_aligned_synthetic",
@@ -441,7 +453,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-1",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_deg_c_per_s": 0.00015
         },
         {
           "station_id": "station-outfall",
@@ -464,7 +477,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-2",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_deg_c_per_s": 0.00035
         },
         {
           "station_id": "station-near_field_plume",
@@ -487,7 +501,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-3",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_deg_c_per_s": 0.00018
         },
         {
           "station_id": "station-far_field_impact",
@@ -510,7 +525,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-4",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_deg_c_per_s": 0.00005
         },
         {
           "station_id": "station-independent_reference_control",
@@ -533,7 +549,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-5",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_deg_c_per_s": 0.00002
         }
       ],
       "flow_samples": [
@@ -556,7 +573,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-INTAKE",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_m3_s_per_s": 6e-7
         },
         {
           "station_id": "station-outfall",
@@ -577,7 +595,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-OUTFALL",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_m3_s_per_s": 0.0000012
         }
       ],
       "concentration_pairs": [
@@ -609,7 +628,8 @@
             "sample_collection_method": "synthetic_flow_proportional_composite",
             "sample_preservation_state": "synthetic_documented",
             "chain_of_custody_id": "SYNTH-COC-ENV-INT-002-SYNTH-TRACE-ANALYTE-001-intake",
-            "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002"
+            "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002",
+            "temporal_rate_mg_l_per_s": 0.000012
           },
           "outfall": {
             "station_id": "station-outfall",
@@ -635,11 +655,12 @@
             "sample_collection_method": "synthetic_flow_proportional_composite",
             "sample_preservation_state": "synthetic_documented",
             "chain_of_custody_id": "SYNTH-COC-ENV-INT-002-SYNTH-TRACE-ANALYTE-001-outfall",
-            "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002"
+            "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002",
+            "temporal_rate_mg_l_per_s": 0.000035
           }
         }
       ],
-      "uncertainty_covariance_state": "paired_measurement_calibration_domains_independent",
+      "uncertainty_covariance_state": "independent_instrument_domains_with_common_hydraulic_lag_covariance_propagated_via_temporal_sensitivities",
       "plume_concentration_observations": [
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -668,7 +689,8 @@
           "sample_collection_method": "synthetic_flow_proportional_composite",
           "sample_preservation_state": "synthetic_documented",
           "chain_of_custody_id": "SYNTH-COC-ENV-INT-002-SYNTH-TRACE-ANALYTE-001-near_field_plume",
-          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002"
+          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002",
+          "temporal_rate_mg_l_per_s": 0.000028
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -697,7 +719,8 @@
           "sample_collection_method": "synthetic_flow_proportional_composite",
           "sample_preservation_state": "synthetic_documented",
           "chain_of_custody_id": "SYNTH-COC-ENV-INT-002-SYNTH-TRACE-ANALYTE-001-far_field_impact",
-          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002"
+          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002",
+          "temporal_rate_mg_l_per_s": 0.000008
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -726,7 +749,8 @@
           "sample_collection_method": "synthetic_flow_proportional_composite",
           "sample_preservation_state": "synthetic_documented",
           "chain_of_custody_id": "SYNTH-COC-ENV-INT-002-SYNTH-TRACE-ANALYTE-001-independent_reference_control",
-          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002"
+          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002",
+          "temporal_rate_mg_l_per_s": 0.000003
         }
       ],
       "hydraulic_pairing_state": "residence_time_aligned_synthetic",
@@ -776,7 +800,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-1",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_deg_c_per_s": 0.00015
         },
         {
           "station_id": "station-outfall",
@@ -799,7 +824,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-2",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_deg_c_per_s": 0.00035
         },
         {
           "station_id": "station-near_field_plume",
@@ -822,7 +848,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-3",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_deg_c_per_s": 0.00018
         },
         {
           "station_id": "station-far_field_impact",
@@ -845,7 +872,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-4",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_deg_c_per_s": 0.00005
         },
         {
           "station_id": "station-independent_reference_control",
@@ -868,7 +896,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-5",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_deg_c_per_s": 0.00002
         }
       ],
       "flow_samples": [
@@ -891,7 +920,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-INTAKE",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_m3_s_per_s": 6e-7
         },
         {
           "station_id": "station-outfall",
@@ -912,7 +942,8 @@
             "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-OUTFALL",
             "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
             "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-          }
+          },
+          "temporal_rate_m3_s_per_s": 0.0000012
         }
       ],
       "concentration_pairs": [
@@ -944,7 +975,8 @@
             "sample_collection_method": "synthetic_flow_proportional_composite",
             "sample_preservation_state": "synthetic_documented",
             "chain_of_custody_id": "SYNTH-COC-ENV-INT-003-SYNTH-TRACE-ANALYTE-001-intake",
-            "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003"
+            "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003",
+            "temporal_rate_mg_l_per_s": 0.000012
           },
           "outfall": {
             "station_id": "station-outfall",
@@ -970,11 +1002,12 @@
             "sample_collection_method": "synthetic_flow_proportional_composite",
             "sample_preservation_state": "synthetic_documented",
             "chain_of_custody_id": "SYNTH-COC-ENV-INT-003-SYNTH-TRACE-ANALYTE-001-outfall",
-            "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003"
+            "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003",
+            "temporal_rate_mg_l_per_s": 0.000035
           }
         }
       ],
-      "uncertainty_covariance_state": "paired_measurement_calibration_domains_independent",
+      "uncertainty_covariance_state": "independent_instrument_domains_with_common_hydraulic_lag_covariance_propagated_via_temporal_sensitivities",
       "plume_concentration_observations": [
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -1003,7 +1036,8 @@
           "sample_collection_method": "synthetic_flow_proportional_composite",
           "sample_preservation_state": "synthetic_documented",
           "chain_of_custody_id": "SYNTH-COC-ENV-INT-003-SYNTH-TRACE-ANALYTE-001-near_field_plume",
-          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003"
+          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003",
+          "temporal_rate_mg_l_per_s": 0.000028
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -1032,7 +1066,8 @@
           "sample_collection_method": "synthetic_flow_proportional_composite",
           "sample_preservation_state": "synthetic_documented",
           "chain_of_custody_id": "SYNTH-COC-ENV-INT-003-SYNTH-TRACE-ANALYTE-001-far_field_impact",
-          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003"
+          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003",
+          "temporal_rate_mg_l_per_s": 0.000008
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -1061,7 +1096,8 @@
           "sample_collection_method": "synthetic_flow_proportional_composite",
           "sample_preservation_state": "synthetic_documented",
           "chain_of_custody_id": "SYNTH-COC-ENV-INT-003-SYNTH-TRACE-ANALYTE-001-independent_reference_control",
-          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003"
+          "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003",
+          "temporal_rate_mg_l_per_s": 0.000003
         }
       ],
       "hydraulic_pairing_state": "residence_time_aligned_synthetic",
