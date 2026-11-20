@@ -1187,14 +1187,14 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_027_training_calibration_test_splits_must_be_distinct() {
+    fn sensor_transfer_006_training_calibration_test_splits_must_be_distinct() {
         let mut invalid = plan(0.25);
         invalid.test_split_digest = invalid.calibration_split_digest.clone();
         assert!(evaluate_sensor_transfer(&invalid, &known_calibration(), &known_test()).is_err());
     }
 
     #[test]
-    fn sensor_transfer_027_installation_leakage_between_calibration_and_test_rejects() {
+    fn sensor_transfer_007_installation_leakage_between_calibration_and_test_rejects() {
         let calibration = known_calibration();
         let mut test = known_test();
         test.installations[0].installation_id = calibration.installations[0].installation_id.clone();
@@ -1202,7 +1202,7 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_027_sensor_serial_leakage_between_splits_rejects() {
+    fn sensor_transfer_008_sensor_serial_leakage_between_splits_rejects() {
         let calibration = known_calibration();
         let mut test = known_test();
         test.installations[0].sensor_serial = calibration.installations[0].sensor_serial.clone();
@@ -1210,7 +1210,7 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_027_training_installation_or_sensor_cannot_leak() {
+    fn sensor_transfer_009_training_installation_or_sensor_cannot_leak() {
         let mut invalid = plan(0.25);
         invalid.training_installation_ids.push("cal-a".to_owned());
         assert!(evaluate_sensor_transfer(&invalid, &known_calibration(), &known_test()).is_err());
@@ -1221,7 +1221,7 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_027_duplicate_sample_ids_reject() {
+    fn sensor_transfer_010_duplicate_sample_ids_reject() {
         let mut calibration = known_calibration();
         calibration.installations[1].observations[0].sample_id =
             calibration.installations[0].observations[0].sample_id.clone();
@@ -1229,14 +1229,14 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_027_calibration_must_be_in_declared_condition_domain() {
+    fn sensor_transfer_011_calibration_must_be_in_declared_condition_domain() {
         let mut calibration = known_calibration();
         calibration.installations[0].observations[0].temperature_c = 100.0;
         assert!(evaluate_sensor_transfer(&plan(0.25), &calibration, &known_test()).is_err());
     }
 
     #[test]
-    fn sensor_transfer_027_any_ood_test_sample_abstains_whole_installation() {
+    fn sensor_transfer_012_any_ood_test_sample_abstains_whole_installation() {
         let mut test = known_test();
         test.installations[0].observations[1].joint_angle_rad = 3.5;
         let report = evaluate_sensor_transfer(&plan(0.25), &known_calibration(), &test).unwrap();
@@ -1245,14 +1245,14 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_027_direction_and_reference_quadrant_must_agree() {
+    fn sensor_transfer_013_direction_and_reference_quadrant_must_agree() {
         let mut calibration = known_calibration();
         calibration.installations[0].observations[0].direction = TorqueDirection::ForwardRegenerating;
         assert!(evaluate_sensor_transfer(&plan(0.25), &calibration, &known_test()).is_err());
     }
 
     #[test]
-    fn sensor_transfer_027_only_independent_external_reference_is_accepted() {
+    fn sensor_transfer_014_only_independent_external_reference_is_accepted() {
         let mut calibration = known_calibration();
         calibration.installations[0].reference_evidence_class = ReferenceEvidenceClass::VendorPhysical;
         assert!(evaluate_sensor_transfer(&plan(0.25), &calibration, &known_test()).is_err());
@@ -1263,7 +1263,7 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_027_model_feature_boundary_sensor_and_domain_digest_mismatch_rejects() {
+    fn sensor_transfer_015_model_feature_boundary_sensor_and_domain_digest_mismatch_rejects() {
         let mut test = known_test();
         test.model_digest = "different-model".to_owned();
         assert!(evaluate_sensor_transfer(&plan(0.25), &known_calibration(), &test).is_err());
@@ -1274,7 +1274,7 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_027_wrong_reference_method_or_boundary_rejects() {
+    fn sensor_transfer_016_wrong_reference_method_or_boundary_rejects() {
         let mut test = known_test();
         test.reference_method_digest = "other-reference-method".to_owned();
         assert!(evaluate_sensor_transfer(&plan(0.25), &known_calibration(), &test).is_err());
@@ -1285,7 +1285,7 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_027_inverted_or_nonfinite_intervals_reject() {
+    fn sensor_transfer_017_inverted_or_nonfinite_intervals_reject() {
         let mut test = known_test();
         test.installations[0].observations[0].compensated_torque_nm =
             NumericInterval { lower: 2.0, upper: 1.0 };
@@ -1297,7 +1297,7 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_027_invalid_domain_edges_or_alpha_reject() {
+    fn sensor_transfer_018_invalid_domain_edges_or_alpha_reject() {
         let mut invalid = plan(0.0);
         assert!(evaluate_sensor_transfer(&invalid, &known_calibration(), &known_test()).is_err());
 
@@ -1307,14 +1307,14 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_027_calibration_and_test_groups_need_same_frozen_trajectory_length() {
+    fn sensor_transfer_019_calibration_and_test_groups_need_same_frozen_trajectory_length() {
         let mut test = known_test();
         test.installations[0].observations.pop();
         assert!(evaluate_sensor_transfer(&plan(0.25), &known_calibration(), &test).is_err());
     }
 
     #[test]
-    fn sensor_transfer_027_stratified_reports_cover_angle_temperature_speed_and_direction() {
+    fn sensor_transfer_020_stratified_reports_cover_angle_temperature_speed_and_direction() {
         let report = evaluate_sensor_transfer(&plan(0.25), &known_calibration(), &known_test()).unwrap();
         assert!(!report.strata.is_empty());
         assert!(report.strata.iter().all(|stratum| stratum.sample_count > 0));
@@ -1323,7 +1323,7 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_027_empty_in_domain_test_cohort_has_no_fake_zero_coverage() {
+    fn sensor_transfer_021_empty_in_domain_test_cohort_has_no_fake_zero_coverage() {
         let mut test = known_test();
         for installation in &mut test.installations {
             for observation in &mut installation.observations {
@@ -1337,7 +1337,7 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_027_wilson_interval_contains_observed_installation_coverage() {
+    fn sensor_transfer_022_wilson_interval_contains_observed_installation_coverage() {
         let report = evaluate_sensor_transfer(&plan(0.25), &known_calibration(), &known_test()).unwrap();
         assert!(report.wilson_95_lower.unwrap() <= 0.5);
         assert!(report.wilson_95_upper.unwrap() >= 0.5);
@@ -1346,7 +1346,7 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_027_evidence_receipts_survive_in_installation_results() {
+    fn sensor_transfer_023_evidence_receipts_survive_in_installation_results() {
         let report = evaluate_sensor_transfer(&plan(0.25), &known_calibration(), &known_test()).unwrap();
         assert_eq!(
             report.installations[0].reference_source_reference,
@@ -1363,7 +1363,7 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_027_static_hold_and_reverse_quadrants_are_supported() {
+    fn sensor_transfer_024_static_hold_and_reverse_quadrants_are_supported() {
         let mut calibration = known_calibration();
         let mut hold = calibration.installations[0].observations[0].clone();
         hold.sample_id = "cal-a-static".to_owned();
@@ -1392,7 +1392,7 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_027_training_flexspline_and_reducer_serials_cannot_leak() {
+    fn sensor_transfer_025_training_flexspline_and_reducer_serials_cannot_leak() {
         let mut invalid = plan(0.25);
         invalid.training_flexspline_serials.push("flex-cal-a".to_owned());
         assert!(evaluate_sensor_transfer(&invalid, &known_calibration(), &known_test()).is_err());
@@ -1403,7 +1403,7 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_027_shared_reducer_or_flexspline_across_splits_rejects() {
+    fn sensor_transfer_026_shared_reducer_or_flexspline_across_splits_rejects() {
         let calibration = known_calibration();
         let mut test = known_test();
         test.installations[0].reducer_serial = calibration.installations[0].reducer_serial.clone();
