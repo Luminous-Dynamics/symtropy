@@ -293,7 +293,8 @@ def validate_ssd(ssd_bytes: bytes) -> dict:
         raise QualificationError(f"SystemStructure.ssd: expected SSD version {SSD_VERSION}")
 
     try:
-        schema_doc = etree.parse(str(SCHEMA_PATH))
+        schema_parser = etree.XMLParser(resolve_entities=False, no_network=True, load_dtd=False)
+        schema_doc = etree.parse(str(SCHEMA_PATH), schema_parser)
         schema = etree.XMLSchema(schema_doc)
         schema.assertValid(root)
     except (OSError, etree.XMLSyntaxError, etree.XMLSchemaParseError, etree.DocumentInvalid) as error:
