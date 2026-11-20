@@ -10,6 +10,7 @@
     "qualification_receipt_sha256",
     "robot_brake_configuration_sha256",
     "operating_condition_sha256",
+    "scenario_context_sha256",
     "maximum_qualified_speed_mm_s",
     "maximum_detection_to_brake_latency_ms",
     "maximum_positive_acceleration_mm_s2",
@@ -53,6 +54,9 @@
     "additional_distance_guard_mm": {
       "type": "number",
       "minimum": 0
+    },
+    "scenario_context_sha256": {
+      "$ref": "#/$defs/sha256"
     }
   },
   "$defs": {
