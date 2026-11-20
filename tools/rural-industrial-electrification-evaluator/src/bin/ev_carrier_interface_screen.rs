@@ -55,6 +55,7 @@ struct PortEvidence {
     classification: EvidenceClass,
     source_reference: String,
     scoped_configuration_digest: String,
+    profile_digest: String,
     report_digest: Option<String>,
     valid_until: Option<String>,
 }
@@ -79,6 +80,9 @@ struct PairEvidence {
     source_reference: String,
     vehicle_configuration_digest: String,
     module_configuration_digest: String,
+    vehicle_profile_digest: String,
+    module_profile_digest: String,
+    compatibility_profile_digest: String,
     report_digest: Option<String>,
     valid_until: Option<String>,
 }
@@ -121,6 +125,15 @@ struct PairResult {
     pair_id: String,
     vehicle_port_id: String,
     module_port_id: String,
+    vehicle_revision: String,
+    module_revision: String,
+    vehicle_mating_profile_id: String,
+    module_mating_profile_id: String,
+    vehicle_profile_digest: String,
+    module_profile_digest: String,
+    compatibility_profile_id: String,
+    compatibility_profile_reference: String,
+    compatibility_profile_digest: String,
     family: Option<InterfaceFamily>,
     disposition: Disposition,
     reason_codes: Vec<String>,
@@ -132,6 +145,7 @@ struct PairResult {
 struct InterfaceControlReport {
     schema_version: &'static str,
     programme_id: String,
+    evaluated_at_utc: String,
     input_vehicle_configuration_digest: String,
     input_module_configuration_digest: String,
     pair_count: usize,
@@ -232,6 +246,9 @@ fn validate_input(input: &InterfaceControlInput) -> Result<(), Vec<String>> {
         if !valid_digest(&port.evidence.scoped_configuration_digest) {
             errors.push(format!("{prefix}.evidence.scoped_configuration_digest: invalid SHA-256 digest"));
         }
+        if !valid_digest(&port.evidence.profile_digest) {
+            errors.push(format!("{prefix}.evidence.profile_digest: invalid SHA-256 digest"));
+        }
         if let Some(digest) = &port.evidence.report_digest {
             if !valid_digest(digest) {
                 errors.push(format!("{prefix}.evidence.report_digest: invalid SHA-256 digest"));
@@ -267,6 +284,9 @@ fn validate_input(input: &InterfaceControlInput) -> Result<(), Vec<String>> {
         for (field, value) in [
             ("qualification_evidence.vehicle_configuration_digest", pair.qualification_evidence.vehicle_configuration_digest.as_str()),
             ("qualification_evidence.module_configuration_digest", pair.qualification_evidence.module_configuration_digest.as_str()),
+            ("qualification_evidence.vehicle_profile_digest", pair.qualification_evidence.vehicle_profile_digest.as_str()),
+            ("qualification_evidence.module_profile_digest", pair.qualification_evidence.module_profile_digest.as_str()),
+            ("qualification_evidence.compatibility_profile_digest", pair.qualification_evidence.compatibility_profile_digest.as_str()),
         ] {
             if !valid_digest(value) {
                 errors.push(format!("{prefix}.{field}: invalid SHA-256 digest"));
@@ -351,6 +371,10 @@ fn assess_pair(
                 reasons.push(format!("{name}:EVIDENCE_SCOPE_MISMATCH"));
                 evidence_ready = false;
             }
+            if port.evidence.profile_digest != port.profile_digest {
+                reasons.push(format!("{name}:PROFILE_EVIDENCE_DIGEST_MISMATCH"));
+                evidence_ready = false;
+            }
             if !evidence_is_current_and_qualified(
                 port.evidence.classification,
                 port.evidence.report_digest.as_deref(),
@@ -367,6 +391,13 @@ fn assess_pair(
             || pair_evidence.module_configuration_digest != *module_digest
         {
             reasons.push("PAIR_EVIDENCE_SCOPE_MISMATCH".into());
+            evidence_ready = false;
+        }
+        if pair_evidence.vehicle_profile_digest != vehicle.profile_digest
+            || pair_evidence.module_profile_digest != module.profile_digest
+            || pair_evidence.compatibility_profile_digest != pair.compatibility_profile_digest
+        {
+            reasons.push("PAIR_PROFILE_EVIDENCE_DIGEST_MISMATCH".into());
             evidence_ready = false;
         }
         if !evidence_is_current_and_qualified(
@@ -400,6 +431,15 @@ fn assess_pair(
         pair_id: pair.pair_id.clone(),
         vehicle_port_id: vehicle.port_id.clone(),
         module_port_id: module.port_id.clone(),
+        vehicle_revision: vehicle.revision.clone(),
+        module_revision: module.revision.clone(),
+        vehicle_mating_profile_id: vehicle.mating_profile_id.clone(),
+        module_mating_profile_id: module.mating_profile_id.clone(),
+        vehicle_profile_digest: vehicle.profile_digest.clone(),
+        module_profile_digest: module.profile_digest.clone(),
+        compatibility_profile_id: pair.compatibility_profile_id.clone(),
+        compatibility_profile_reference: pair.compatibility_profile_reference.clone(),
+        compatibility_profile_digest: pair.compatibility_profile_digest.clone(),
         family: (vehicle.family == module.family).then_some(vehicle.family),
         disposition,
         reason_codes: reasons,
@@ -422,6 +462,7 @@ fn evaluate(input: &InterfaceControlInput) -> Result<InterfaceControlReport, Vec
     Ok(InterfaceControlReport {
         schema_version: SCHEMA_VERSION,
         programme_id: input.programme_id.clone(),
+        evaluated_at_utc: input.evaluated_at_utc.clone(),
         input_vehicle_configuration_digest: input.vehicle_configuration.configuration_digest.clone(),
         input_module_configuration_digest: input.module_configuration.configuration_digest.clone(),
         pair_count: results.len(),
@@ -536,6 +577,7 @@ mod tests {
             } else {
                 module_digest.clone()
             };
+            port.evidence.profile_digest = port.profile_digest.clone();
         }
         for pair in &mut input.interface_pairs {
             pair.qualification_evidence.classification = EvidenceClass::IndependentlyQualified;
@@ -572,6 +614,11 @@ mod tests {
         pair.qualification_evidence.valid_until = Some("2027-01-01T00:00:00Z".into());
         pair.qualification_evidence.vehicle_configuration_digest = vehicle_digest;
         pair.qualification_evidence.module_configuration_digest = module_digest;
+        let vehicle_profile = input.ports.iter().find(|port| port.port_id == pair.vehicle_port_id).expect("vehicle port").profile_digest.clone();
+        let module_profile = input.ports.iter().find(|port| port.port_id == pair.module_port_id).expect("module port").profile_digest.clone();
+        pair.qualification_evidence.vehicle_profile_digest = vehicle_profile;
+        pair.qualification_evidence.module_profile_digest = module_profile;
+        pair.qualification_evidence.compatibility_profile_digest = pair.compatibility_profile_digest.clone();
         let report = evaluate(&input).expect("complete current evidence");
         let hv = report.results.iter().find(|item| item.pair_id == "vehicle-pod-hv-power").expect("HV result");
         assert_eq!(hv.disposition, Disposition::Compatible);
