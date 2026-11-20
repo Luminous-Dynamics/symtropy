@@ -2756,7 +2756,7 @@ mod tests {
     fn service_sources_require_distinct_evidence_provider_attestations() {
         let (root, bundle, case, receipt, final_ref) =
             final_service_bundle_fixture(true);
-        let (trajectory, _) = verify_final_service_trajectory_bundle(
+        let (trajectory, report) = verify_final_service_trajectory_bundle(
             &root,
             &bundle,
             &final_ref,
@@ -2768,10 +2768,34 @@ mod tests {
         let mut expected_artifacts = BTreeMap::new();
         let mut requirements = Vec::new();
         let mut errors = Vec::new();
+        let service_profiles = service_provider_profiles();
+        let service_profile = profile_for_role(
+            &service_profiles,
+            SignerRole::ServiceProvider,
+        ).unwrap();
+        let case_sha = canonical_case_sha256(&case).unwrap();
+        let proposals_sha = proposal_set_sha256(&receipt).unwrap();
+        add_attested_artifact(
+            &mut expected_artifacts,
+            &mut requirements,
+            &trajectory.artifact_uri,
+            &report.trajectory_sha256,
+            SignerRole::ServiceProvider,
+            &service_profile.issuer_id,
+            "power-restoration/final-service-trajectory/v1",
+            &receipt.run_id,
+            &case_sha,
+            case.timebase.horizon_steps.saturating_sub(1),
+            &proposals_sha,
+            &service_profile.tool_source_commit,
+            &service_profile.tool_configuration_sha256,
+            Vec::new(),
+            &mut errors,
+        );
         add_service_source_attestations(
             &trajectory,
             &receipt,
-            &canonical_case_sha256(&case).unwrap(),
+            &case_sha,
             &proposal_set_sha256(&receipt).unwrap(),
             &service_provider_profiles(),
             &mut expected_artifacts,
