@@ -1136,6 +1136,7 @@ pub fn aggregate_cascade_endpoint_availability(
         || !valid_id(&mapping.service_id)
         || mapping.service_type != "electricity"
         || mapping.service_boundary_id != "load-terminal"
+        || mapping.mapping_source_sha256 != mapping.mapping_sha256
         || !is_lower_hex(&mapping.mapping_sha256, 64)
         || !valid_id(&mapping.mapping_source_ref)
         || !is_lower_hex(&mapping.mapping_source_sha256, 64)
@@ -1374,6 +1375,56 @@ mod tests {
         });
     }
 
+    fn reconciled_report(
+        case: &BenchmarkCase,
+        receipt: &mut RunReceipt,
+        trajectory: &mut ServiceTrajectoryRecord,
+    ) -> ServiceTrajectoryAuditReport {
+        trajectory.parent_service_artifacts = receipt.decision_steps.iter()
+            .filter(|step| step.disposition == StepDisposition::Executed
+                && step.service_outcome == ServiceOutcome::Scored)
+            .filter_map(|step| step.service_trajectory.as_ref())
+            .map(|artifact| ServiceSourceArtifact {
+                artifact_ref: artifact.artifact_ref.clone(),
+                sha256: artifact.sha256.clone(),
+            }).collect();
+        let loads: BTreeMap<&str, _> = case.network.loads.iter()
+            .map(|load| (load.load_id.as_str(), load)).collect();
+        let expected = trajectory.samples.iter().map(|sample| {
+            sample.delivered_kwh.unwrap_or(0.0)
+                * loads[sample.load_id.as_str()].priority_weight
+        }).sum::<f64>();
+        bind_final_and_score(trajectory, receipt, expected);
+        audit_service_trajectory(trajectory, receipt, case).unwrap()
+    }
+
+    fn cascade_mapping(
+        report: &ServiceTrajectoryAuditReport,
+        case: &BenchmarkCase,
+    ) -> CascadeEndpointMapping {
+        let rows = case.network.loads.iter().map(|load| CascadeLoadMappingRow {
+            load_id: load.load_id.clone(),
+            cascade_node_id: if load.load_id == "L5" {
+                "cascade-clinic-electricity".to_string()
+            } else {
+                "cascade-community-electricity".to_string()
+            },
+            service_type: report.service_type.clone(),
+        }).collect::<Vec<_>>();
+        let rows_sha256 = canonical_sha256(&rows).unwrap();
+        CascadeEndpointMapping {
+            mapping_id: "mapping-feeder-loads-to-cascade-v1".to_string(),
+            case_sha256: report.case_sha256.clone(),
+            service_id: report.service_id.clone(),
+            service_type: report.service_type.clone(),
+            service_boundary_id: report.service_boundary_id.clone(),
+            mapping_sha256: rows_sha256.clone(),
+            mapping_source_ref: "mapping://feeder-to-cascade/v1".to_string(),
+            mapping_source_sha256: rows_sha256,
+            rows,
+        }
+    }
+
     #[test]
     fn measured_service_recomputes_weighted_kwh_and_exports_cascade_input() {
         let case = case();
@@ -1484,6 +1535,82 @@ mod tests {
         assert_eq!(report.result_status, "service_trajectory_recomputed_for_incomplete_run");
         assert!(report.weighted_delivered_kwh.is_some());
         assert!(per_load_cascade_availability(&report).is_err());
+    }
+
+    #[test]
+    fn cascade_endpoint_mapping_uses_demand_weighted_service_not_plain_mean() {
+        let case = case();
+        let mut receipt = receipt(&case);
+        let mut trajectory = fully_served_trajectory(&case, &receipt);
+        for sample in &mut trajectory.samples {
+            match sample.load_id.as_str() {
+                "L4" => {
+                    sample.status = ServiceSampleStatus::Unavailable;
+                    sample.delivered_kwh = Some(0.0);
+                }
+                "L5" => {
+                    sample.delivered_kwh = Some(sample.demand_kwh * 0.5);
+                }
+                _ => {}
+            }
+        }
+        let report = reconciled_report(&case, &mut receipt, &mut trajectory);
+        let mapping = cascade_mapping(&report, &case);
+        let availability =
+            aggregate_cascade_endpoint_availability(&report, &case, &mapping).unwrap();
+        let household = &availability["cascade-community-electricity"];
+        let clinic = &availability["cascade-clinic-electricity"];
+        assert_eq!(household.len(), case.timebase.horizon_steps as usize);
+        assert_eq!(clinic, &vec![0.5; case.timebase.horizon_steps as usize]);
+
+        let l3 = expected_demand_kwh(180.0, 300);
+        let l4 = expected_demand_kwh(260.0, 300);
+        let l6 = expected_demand_kwh(140.0, 300);
+        let expected_household = (l3 + l6) / (l3 + l4 + l6);
+        assert!(nearly_equal(household[0], expected_household));
+        assert!(!nearly_equal(household[0], 2.0 / 3.0));
+    }
+
+    #[test]
+    fn cascade_endpoint_mapping_requires_exact_load_coverage() {
+        let case = case();
+        let mut receipt = receipt(&case);
+        let mut trajectory = fully_served_trajectory(&case, &receipt);
+        let report = reconciled_report(&case, &mut receipt, &mut trajectory);
+        let mut mapping = cascade_mapping(&report, &case);
+        mapping.rows.pop();
+        mapping.mapping_sha256 = canonical_sha256(&mapping.rows).unwrap();
+        mapping.mapping_source_sha256 = mapping.mapping_sha256.clone();
+        assert!(aggregate_cascade_endpoint_availability(&report, &case, &mapping).is_err());
+    }
+
+    #[test]
+    fn cascade_endpoint_mapping_rejects_duplicate_or_foreign_loads() {
+        let case = case();
+        let mut receipt = receipt(&case);
+        let mut trajectory = fully_served_trajectory(&case, &receipt);
+        let report = reconciled_report(&case, &mut receipt, &mut trajectory);
+        let mut mapping = cascade_mapping(&report, &case);
+        mapping.rows[1].load_id = mapping.rows[0].load_id.clone();
+        mapping.mapping_sha256 = canonical_sha256(&mapping.rows).unwrap();
+        mapping.mapping_source_sha256 = mapping.mapping_sha256.clone();
+        assert!(aggregate_cascade_endpoint_availability(&report, &case, &mapping).is_err());
+    }
+
+    #[test]
+    fn cascade_endpoint_mapping_rejects_changed_source_digest_and_wrong_case() {
+        let case = case();
+        let mut receipt = receipt(&case);
+        let mut trajectory = fully_served_trajectory(&case, &receipt);
+        let report = reconciled_report(&case, &mut receipt, &mut trajectory);
+        let mapping = cascade_mapping(&report, &case);
+        let mut bad_digest = mapping.clone();
+        bad_digest.mapping_source_sha256 = "0".repeat(64);
+        assert!(aggregate_cascade_endpoint_availability(&report, &case, &bad_digest).is_err());
+
+        let mut bad_case = mapping;
+        bad_case.case_sha256 = "f".repeat(64);
+        assert!(aggregate_cascade_endpoint_availability(&report, &case, &bad_case).is_err());
     }
 
     #[test]
