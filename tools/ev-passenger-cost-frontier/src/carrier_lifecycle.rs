@@ -67,7 +67,7 @@ enum Status {
 }
 
 #[derive(Debug, Deserialize)]
-struct ModuleFactoryReport {
+pub struct ModuleFactoryReport {
     schema_version: String,
     benchmark_id: String,
     results: Vec<FactoryScenario>,
@@ -256,10 +256,9 @@ fn sum_path(
         }
     }
 
-    for required in expected_phases {
-        if !phases_seen.contains(required) {
-            blocked.push(format!("required_phase_missing:{required:?}"));
-        }
+    let observed_phases: Vec<PhaseKind> = path.phases.iter().map(|phase| phase.phase).collect();
+    if observed_phases != expected_phases {
+        blocked.push("service_phase_order_or_identity_mismatch".into());
     }
 
     let parts_wait = match path.parts_wait_hours {
@@ -487,6 +486,7 @@ fn validate_catalog(
             || profile.horizon_years > MAX_HORIZON_YEARS
             || !profile.annual_operating_hours_per_module.is_finite()
             || profile.annual_operating_hours_per_module <= 0.0
+            || profile.annual_operating_hours_per_module > 8_760.0
         {
             errors.push(format!("profiles[{index}]: invalid v0.1 currency, year, horizon or annual exposure"));
         }
@@ -506,6 +506,9 @@ fn validate_catalog(
             if value.is_some_and(|number| !number.is_finite() || number < 0.0 || number > MAX_INPUT_VALUE) {
                 errors.push(format!("profiles[{index}].{name}: must be finite, nonnegative and within v0.1 numeric limits"));
             }
+        }
+        if profile.scheduled_inspections_per_module_year.is_some_and(|value| value > MAX_EVENTS_PER_YEAR) {
+            errors.push(format!("profiles[{index}].scheduled_inspections_per_module_year: exceeds v0.1 event-rate limit"));
         }
         if profile.equipment_amortization_years.is_some_and(|value| value <= 0.0) {
             errors.push(format!("profiles[{index}].equipment_amortization_years: must be positive"));
@@ -835,7 +838,6 @@ mod tests {
             architecture: "detachable_drone_pod".into(),
             evidence_class: EvidenceClass::Synthetic,
             target_good_vehicles_per_year: 1_000,
-            modules_per_good_vehicle: 1,
             target_good_modules_per_year: Some(1_000),
             equivalent_good_vehicle_capacity_per_year: Some(1_000),
             good_vehicle_capacity_margin_per_year: Some(0),
@@ -915,6 +917,30 @@ mod tests {
         assert_eq!(result.status, Status::Blocked);
         assert_eq!(result.selected_fault_path, None);
         assert!(!result.return_to_service_authority_granted);
+    }
+
+    #[test]
+    fn service_phase_reordering_blocks_the_path() {
+        let mut test = profile();
+        test.repair_path.phases.swap(0, 1);
+        let result = evaluate_pair(&factory_row(), &test);
+        assert!(result
+            .repair_path
+            .blocked_reasons
+            .contains(&"service_phase_order_or_identity_mismatch".into()));
+        assert_eq!(result.selected_fault_path, None);
+    }
+
+    #[test]
+    fn unknown_service_path_evidence_remains_indeterminate() {
+        let mut test = profile();
+        test.repair_path.evidence_class = EvidenceClass::Unknown;
+        let result = evaluate_pair(&factory_row(), &test);
+        assert!(result
+            .repair_path
+            .missing_fields
+            .contains(&"service_path_evidence".into()));
+        assert_eq!(result.status, Status::Indeterminate);
     }
 
     #[test]
