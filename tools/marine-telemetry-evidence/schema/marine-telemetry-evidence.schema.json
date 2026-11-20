@@ -263,7 +263,10 @@
           "calibration_evidence_sha256",
           "calibration_valid_from",
           "calibration_valid_until",
-          "observation_sha256"
+          "observation_sha256",
+          "device_identity_ref",
+          "identity_evidence_sha256",
+          "calibration_chain_id"
         ],
         "properties": {
           "sample_id": {
@@ -400,6 +403,18 @@
           "observation_sha256": {
             "type": "string",
             "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "device_identity_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "identity_evidence_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "calibration_chain_id": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
