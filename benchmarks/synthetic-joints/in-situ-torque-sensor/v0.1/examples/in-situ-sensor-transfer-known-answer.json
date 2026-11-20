@@ -124,7 +124,8 @@
               "upper": 20.1
             }
           }
-        ]
+        ],
+        "synchronized_metrology_receipt_digest": "synced-metrology-receipt-cal-a"
       },
       {
         "installation_id": "cal-b",
@@ -179,7 +180,8 @@
               "upper": 25.1
             }
           }
-        ]
+        ],
+        "synchronized_metrology_receipt_digest": "synced-metrology-receipt-cal-b"
       },
       {
         "installation_id": "cal-c",
@@ -234,7 +236,8 @@
               "upper": 40.1
             }
           }
-        ]
+        ],
+        "synchronized_metrology_receipt_digest": "synced-metrology-receipt-cal-c"
       }
     ]
   },
@@ -300,7 +303,8 @@
               "upper": 20.1
             }
           }
-        ]
+        ],
+        "synchronized_metrology_receipt_digest": "synced-metrology-receipt-test-a"
       },
       {
         "installation_id": "test-b",
@@ -355,7 +359,8 @@
               "upper": 25.1
             }
           }
-        ]
+        ],
+        "synchronized_metrology_receipt_digest": "synced-metrology-receipt-test-b"
       },
       {
         "installation_id": "test-ood",
@@ -410,7 +415,8 @@
               "upper": 20.1
             }
           }
-        ]
+        ],
+        "synchronized_metrology_receipt_digest": "synced-metrology-receipt-test-ood"
       }
     ]
   },
