@@ -117,7 +117,7 @@ No validated Longqi electrical-generation capacity, commercial heat-extraction d
 ### 4.2 More plausible South African alternatives
 
 - **Coastal/port seawater heat exchange:** test a closed-loop heat exchanger that keeps data-centre coolant physically separated from seawater. Model seasonal source temperatures, fouling, biosecurity, corrosion, intake/outfall impacts, pump energy and fallback cooling.
-- **Northern KwaZulu-Natal OTEC research:** South African marine spatial-planning material identifies theoretical thermal-gradient potential offshore of northern KZN at depths around 1,000 m. Treat this as a resource-screening lead, not a bankable or proven generation site. OTEC should have an independent feasibility case and should not be a prerequisite for data-centre backup power.
+- **Northern KwaZulu-Natal OTEC research:** South African marine spatial-planning material identifies theoretical thermal-gradient potential offshore of northern KZN at depths around 1,000 m, but explicitly states that preliminary assessments had not yet identified possible sites. Treat this as a resource-screening lead, not a site recommendation or bankable generation resource. A 2026 OTEC review reports typical 1.5–3.0% thermal efficiencies for pilot-scale closed-cycle systems (1–50 kW), with heat-exchanger losses and parasitic pumping power as major constraints. OTEC should have an independent feasibility case and should not be a prerequisite for data-centre backup power.
 - **Wave / offshore wind / current:** consider only with measured resource, survivability, maintenance, grid/export and environmental evidence. South African national assessments identify potential in waves, offshore wind and the Agulhas Current, but local marine renewable deployment and commercial maturity remain limited.
 - **Battery / grid-forming / dispatchable reserve:** qualify black-start, islanding, load shedding, cooling ride-through and restart at the port/coastal facility. This is the near-term route to dependable continuity; ocean generation can be integrated later when its own performance is established.
 
@@ -138,7 +138,7 @@ Distances above are screening estimates, not cable route lengths or navigation d
 
 ### 5.2 Port of Ngqura / Coega — shore-first integration candidate
 
-Continue the existing paired-site pre-feasibility work; do not infer a firm connection offer from public capacity estimates. The 2025 PtX Hub/CSIR port connection assessment describes Port of Ngqura supply through a 132/11 kV substation at Coega with 50 MVA installed capacity and 25 MVA firm supply capacity at that substation. The report remains a pre-feasibility assessment: actual project connection capacity, protection, fault level, export/import limits, redundancy, cost and timeline require utility studies and a formal application.
+Continue the existing paired-site pre-feasibility work; do not infer a firm connection offer from public capacity estimates. The 2025 PtX Hub/CSIR port connection assessment describes Port of Ngqura supply through a 132/11 kV substation at Coega with 50 MVA installed capacity and 25 MVA firm supply capacity at that substation. It estimates 19 MVA spare port load capacity by comparing the 25 MVA firm supply with the 6 MVA NMD, but that arithmetic is not a new-project connection offer or a guarantee that this capacity remains available. The report is a pre-feasibility screen: actual project connection capacity, protection, fault level, export/import limits, redundancy, cost and timeline require utility studies and a formal application.
 
 Best first use: a 100–250 kW IT shore-side demonstrator with an instrumented seawater heat-exchanger loop, renewable/storage integration, workload placement and local marine observation services. Preserve conventional service access.
 
@@ -165,13 +165,24 @@ Do not claim superiority from depth, PUE, a single server-failure result or rene
 | Cooling survivability | Seasonal temperature, heat rejection, pump energy, fouling and fallback data | No loss of required service under one cooling-train failure; zero unqualified environmental discharge |
 | Cyber isolation | External attack-surface inventory, identity dependencies, privileged access and signed update tests | No public management-plane exposure; zero unauthorized destructive action in negative-control exercises |
 | Physical resilience | Surveyed threats, detection coverage, retrieval and repair exercise | Demonstrated detection/containment and bounded restoration under site-specific scenarios; no depth-only pass |
-| Energy performance | Matched workload, facility meter boundary, network/pump/auxiliary loads | Measured PUE ≤1.15 as parity goal; lower only if annual, independently metered and seasonally representative |
+| Energy performance | Matched workload, facility meter boundary, network/pump/auxiliary loads | Measured PUE ≤1.15 as parity goal; stretch ≤1.10 only after annual, independently metered and seasonally representative evidence |
 | Environmental performance | Baseline habitat, intake/outfall, noise, thermal plume, sediment and lifecycle inventory | No placement in active vent habitat; no unapproved habitat disturbance; full monitoring and public incident reporting |
+| Service-normalized efficiency | Identical accepted workload, output quality, deadlines and complete facility/network/cooling boundary | ≥10% lower energy per accepted service unit than a matched shore-based control; ≥20% stretch, with no quality or resilience regression |
 | Whole-life economics | CAPEX, OPEX, deployment vessel, retrieval, repairs, cable, spares, insurance, decommissioning | Must beat a shore-based control on lifecycle cost per accepted service without weakening hard gates |
 
 **Non-compensatory rule:** a low PUE cannot offset a failed restore, unauthorized data egress, unsafe operating dependency, unacceptable ecological impact, or inability to recover the pod. Report Pareto trade-offs, not one weighted score.
 
 ### 6.1 Matched competitor comparison
+
+### 6.1.1 Current reference points
+
+- **Microsoft Project Natick:** the Northern Isles research module was deployed at about 117 ft (36 m), with 240 kW, 12 racks and 864 servers. Microsoft retrieved it after a two-year deployment; the five-year figure was a planned maintenance-free design objective, not a five-year operating result. A later trade account reported 6 server failures among 855 underwater servers versus 8 among 135 land servers, while explicitly warning that the cohorts were not directly comparable. This is evidence of feasibility and a useful experimental reference, not a universal reliability or security benchmark.
+- **Hainan UDC:** China's government reported the first commercial facility operating from March 2023 and an additional 2025 module capable of housing more than 400 high-performance servers. It is an established subsea compute deployment, not an independent whole-lifecycle benchmark.
+- **Shanghai Lingang UDC:** an official 2026 update reports the 2.3 MW first phase in operation from February, with later reporting saying the demonstration entered operation in May 2026. The 24 MW value is the planned total project capacity. Government/operator reporting gives PUE around/no higher than 1.15 and describes energy and freshwater savings; these should be treated as project claims until independently metered boundaries, annual data and commissioning records are available.
+
+The proposed measured PUE ≤1.15 target is therefore a **parity target**, not an assertion of superiority. The differentiator must be service-normalized energy, recovery independence, network and power resilience, local workloads, whole-life economics and independently evidenced environmental performance.
+
+### 6.1.2 Matched competitor comparison
 
 Compare the same workload, quality threshold, service volume, latency class, climate period, carbon boundary and redundancy level across:
 - a conventional land-based data centre;
@@ -215,6 +226,11 @@ No public synthetic value in the current benchmark may be re-labelled as an obse
 ## 9. Evidence and references
 
 - Microsoft Research, Project Natick facts and figures (240 kW, 12 racks, 864 servers, deployment at EMEC): https://www.microsoft.com/en-us/research/project/natick/facts-and-figures/
+- Microsoft, Project Natick retrieved after its two-year trial: https://news.microsoft.com/source/features/sustainability/project-natick-underwater-datacenter/
+- China State Council/Xinhua, Hainan underwater cluster and 2025 module: https://english.www.gov.cn/news/202502/19/content_WS67b5a14dc6d0868f4e8efcaa.html
+- Shanghai municipal portal, 2.3 MW first phase operational and 24 MW planned capacity: https://touch.shio.gov.cn/jsp/jjxw_detail_en.jsp?id=20260210183337707
+- Shanghai municipal portal, Lingang demonstration operation and reported 24.0 MW plan/PUE claims: https://english.shanghai.gov.cn/en-Latest-WhatsNew/20260601/89a94ac072f842eeacf82fcf0cce8261.html
+- 2026 systematic review of OTEC thermodynamic efficiency, pilot scale and parasitic losses: https://doi.org/10.1080/17445302.2026.2727646
 - Microsoft, Project Natick two-year trial summary (117 ft deployment): https://news.microsoft.com/source/features/sustainability/project-natick-underwater-datacenter/
 - Canadian Centre for Cyber Security, *Cyber security considerations for submarine cables* (deep-water physical threats and layered mitigations): https://www.cyber.gc.ca/en/guidance/cyber-security-considerations-submarine-cables-itsp20001
 - 2026 *Marine Policy*, *Mapping undersea cable risk from bathymetry to geopolitics*: https://doi.org/10.1016/j.marpol.2025.107012
