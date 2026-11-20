@@ -1,0 +1,416 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:marine-telemetry-evidence-gateway:0.1.0",
+  "title": "Marine Telemetry Evidence Gateway Batch",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scorecard_id",
+    "record_status",
+    "decision_cutoff",
+    "signal_contracts",
+    "signal_contracts_sha256",
+    "source_registry",
+    "source_registry_sha256",
+    "observations",
+    "observations_sha256",
+    "batch_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "scorecard_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "record_status": {
+      "enum": [
+        "synthetic",
+        "shadow_replay",
+        "measured_campaign",
+        "published_reproduction"
+      ]
+    },
+    "decision_cutoff": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "signal_contracts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "signal_id",
+          "unit",
+          "minimum_value",
+          "maximum_value",
+          "max_observation_age_seconds",
+          "max_future_clock_skew_seconds",
+          "max_clock_uncertainty_seconds",
+          "max_measurement_uncertainty",
+          "max_source_disagreement",
+          "minimum_independent_sources",
+          "minimum_coverage_fraction"
+        ],
+        "properties": {
+          "signal_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minimum_value": {
+            "type": "number"
+          },
+          "maximum_value": {
+            "type": "number"
+          },
+          "max_observation_age_seconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "max_future_clock_skew_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "max_clock_uncertainty_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "max_measurement_uncertainty": {
+            "type": "number",
+            "minimum": 0
+          },
+          "max_source_disagreement": {
+            "type": "number",
+            "minimum": 0
+          },
+          "minimum_independent_sources": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16
+          },
+          "minimum_coverage_fraction": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "signal_contracts_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "source_registry": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "transport",
+          "gateway_id",
+          "network_segment_id",
+          "power_domain_id",
+          "calibration_chain_id",
+          "failure_domains",
+          "device_identity_ref",
+          "identity_status",
+          "identity_evidence_sha256",
+          "trust_status",
+          "firmware_sha256",
+          "decoder_id",
+          "decoder_version",
+          "decoder_sha256",
+          "active_boot_epoch_id",
+          "active_boot_epoch_ordinal"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "transport": {
+            "enum": [
+              "nmea2000_can",
+              "iec61162_450_ethernet",
+              "synthetic"
+            ]
+          },
+          "gateway_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "network_segment_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "power_domain_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "calibration_chain_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "failure_domains": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "device_identity_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "identity_status": {
+            "enum": [
+              "verified",
+              "unverified",
+              "revoked"
+            ]
+          },
+          "identity_evidence_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "trust_status": {
+            "enum": [
+              "qualified",
+              "quarantined",
+              "revoked"
+            ]
+          },
+          "firmware_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "decoder_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "decoder_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "decoder_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "active_boot_epoch_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "active_boot_epoch_ordinal": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "source_registry_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sample_id",
+          "source_id",
+          "gateway_ingest_index",
+          "boot_epoch_id",
+          "boot_epoch_ordinal",
+          "source_sequence",
+          "boot_epoch_transition_ref",
+          "boot_epoch_transition_sha256",
+          "observed_at",
+          "received_at",
+          "clock_quality",
+          "clock_offset_seconds",
+          "clock_uncertainty_seconds",
+          "time_sync_evidence_sha256",
+          "transport",
+          "gateway_id",
+          "raw_frame_hex",
+          "raw_frame_sha256",
+          "firmware_sha256",
+          "decoder_id",
+          "decoder_version",
+          "decoder_sha256",
+          "signal_id",
+          "value",
+          "unit",
+          "uncertainty",
+          "quality",
+          "calibration_id",
+          "calibration_evidence_sha256",
+          "calibration_valid_from",
+          "calibration_valid_until",
+          "observation_sha256"
+        ],
+        "properties": {
+          "sample_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "gateway_ingest_index": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "boot_epoch_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "boot_epoch_ordinal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "source_sequence": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "boot_epoch_transition_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "boot_epoch_transition_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "clock_quality": {
+            "enum": [
+              "synchronized",
+              "holdover",
+              "unknown"
+            ]
+          },
+          "clock_offset_seconds": {
+            "type": "number"
+          },
+          "clock_uncertainty_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "time_sync_evidence_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "transport": {
+            "enum": [
+              "nmea2000_can",
+              "iec61162_450_ethernet",
+              "synthetic"
+            ]
+          },
+          "gateway_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "raw_frame_hex": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-fA-F]{2}){2,256}$"
+          },
+          "raw_frame_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "firmware_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "decoder_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "decoder_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "decoder_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "signal_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uncertainty": {
+            "type": "number",
+            "minimum": 0
+          },
+          "quality": {
+            "enum": [
+              "good",
+              "suspect",
+              "bad"
+            ]
+          },
+          "calibration_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "calibration_evidence_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "calibration_valid_from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "calibration_valid_until": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "observation_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        }
+      }
+    },
+    "observations_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "batch_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    }
+  }
+}
