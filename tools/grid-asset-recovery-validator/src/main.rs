@@ -1,3 +1,4 @@
+// Rust formatting for this validator is enforced by its exact-head CI workflow.
 mod scheduler;
 
 use scheduler::{AvailabilityWindow, ResourceCalendarException, ResourceOutageWindow, ResourceProfile, ResourceRequirement, SchedulePolicy, ScheduledTask, TaskSpec, exact_small_schedule, exact_small_service_schedule, schedule_with_policy, weighted_unserved_energy_mwh};
