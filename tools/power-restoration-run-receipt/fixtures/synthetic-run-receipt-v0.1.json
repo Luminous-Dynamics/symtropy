@@ -1,0 +1,288 @@
+{
+  "receipt": {
+    "schemaVersion": "0.1.0",
+    "runId": "synthetic-feeder-run-0001",
+    "runStatus": "completed",
+    "maturity": "synthetic_fixture",
+    "caseRef": "power-restoration-case://synthetic-feeder-repair-mps-six-node-v1",
+    "caseSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "pairedScenarioId": "synthetic-feeder-case-A",
+    "replicateId": "seed-2026-01",
+    "randomSeed": 20260101,
+    "planner": {
+      "plannerId": "matched-heuristic-planner",
+      "plannerRevision": "adapter-fixture-v1",
+      "sourceCommit": "1111111111111111111111111111111111111111",
+      "configurationSha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "promptSha256": null,
+      "modelId": "deterministic-heuristic",
+      "modelRevision": "not-applicable",
+      "provider": "local",
+      "quantization": "not-applicable"
+    },
+    "adapter": {
+      "componentId": "common-action-adapter",
+      "revision": "v1.0.0",
+      "sourceCommit": "3333333333333333333333333333333333333333",
+      "configurationSha256": "4444444444444444444444444444444444444444444444444444444444444444"
+    },
+    "transitionEngine": {
+      "componentId": "independent-transition-engine",
+      "revision": "v1.0.0",
+      "sourceCommit": "5555555555555555555555555555555555555555",
+      "configurationSha256": "6666666666666666666666666666666666666666666666666666666666666666"
+    },
+    "independentValidator": {
+      "componentId": "independent-action-validator",
+      "revision": "v1.0.0",
+      "sourceCommit": "7777777777777777777777777777777777777777",
+      "configurationSha256": "8888888888888888888888888888888888888888888888888888888888888888"
+    },
+    "independentScorer": {
+      "componentId": "independent-service-scorer",
+      "revision": "v1.0.0",
+      "sourceCommit": "9999999999999999999999999999999999999999",
+      "configurationSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "hardware": {
+      "operatingSystem": "Linux",
+      "architecture": "x86_64",
+      "cpuModel": "Synthetic CI CPU",
+      "cpuCores": 4,
+      "ramBytes": 17179869184,
+      "gpuModel": null,
+      "gpuVramBytes": null,
+      "runtimeName": "native",
+      "runtimeVersion": "1.0",
+      "containerImageSha256": null
+    },
+    "budget": {
+      "wallClockLimitMs": 120000,
+      "decisionLimitMs": 5000,
+      "tokenLimit": 20000,
+      "toolCallLimit": 3,
+      "solverTimeLimitMs": 10000,
+      "solverRelativeGapLimit": 0.01,
+      "apiCostLimit": {
+        "amount": 2.5,
+        "currency": "USD"
+      }
+    },
+    "measuredUsage": {
+      "wallClockMs": 100000,
+      "cpuTimeMs": 45000,
+      "gpuTimeMs": null,
+      "inputTokens": 1200,
+      "outputTokens": 300,
+      "toolCalls": 1,
+      "solverCalls": 0,
+      "apiRetries": 0,
+      "timeoutCount": 1,
+      "humanOverrideCount": 0,
+      "apiCost": {
+        "amount": 1.2,
+        "currency": "USD"
+      }
+    },
+    "decisionEpochs": [
+      {
+        "decisionStep": 0,
+        "observationRef": "synthetic://observations/step-0",
+        "observationSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "observationStep": 0,
+        "observationTimeMs": 0,
+        "decisionTimeMs": 50,
+        "proposalRef": "synthetic://proposals/step-0",
+        "proposalSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      {
+        "decisionStep": 1,
+        "observationRef": "synthetic://observations/step-1",
+        "observationSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "observationStep": 1,
+        "observationTimeMs": 20000,
+        "decisionTimeMs": 20050,
+        "proposalRef": "synthetic://proposals/step-1",
+        "proposalSha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    ],
+    "attempts": [
+      {
+        "attemptId": "attempt-000",
+        "sequence": 0,
+        "decisionStep": 0,
+        "attemptKind": "planner_call",
+        "outcome": "succeeded",
+        "actionId": null,
+        "proposalSha256": null,
+        "validatorReceiptId": null,
+        "transitionReceiptId": null,
+        "latencyMs": 80,
+        "inputTokens": 400,
+        "outputTokens": 100,
+        "cost": null,
+        "failureRef": null
+      },
+      {
+        "attemptId": "attempt-001",
+        "sequence": 1,
+        "decisionStep": 0,
+        "attemptKind": "action_submission",
+        "outcome": "rejected",
+        "actionId": "action-unsafe-close",
+        "proposalSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "validatorReceiptId": "validator-reject-000",
+        "transitionReceiptId": null,
+        "latencyMs": 5,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "cost": null,
+        "failureRef": "synthetic://failure/rejected-unsafe-switch"
+      },
+      {
+        "attemptId": "attempt-002",
+        "sequence": 2,
+        "decisionStep": 1,
+        "attemptKind": "planner_call",
+        "outcome": "succeeded",
+        "actionId": null,
+        "proposalSha256": null,
+        "validatorReceiptId": null,
+        "transitionReceiptId": null,
+        "latencyMs": 90,
+        "inputTokens": 800,
+        "outputTokens": 200,
+        "cost": null,
+        "failureRef": null
+      },
+      {
+        "attemptId": "attempt-003",
+        "sequence": 3,
+        "decisionStep": 1,
+        "attemptKind": "action_submission",
+        "outcome": "applied",
+        "actionId": "action-safe-repair",
+        "proposalSha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "validatorReceiptId": "validator-accept-001",
+        "transitionReceiptId": "transition-applied-001",
+        "latencyMs": 7,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "cost": null,
+        "failureRef": null
+      },
+      {
+        "attemptId": "attempt-004",
+        "sequence": 4,
+        "decisionStep": 1,
+        "attemptKind": "tool_call",
+        "outcome": "timed_out",
+        "actionId": null,
+        "proposalSha256": null,
+        "validatorReceiptId": null,
+        "transitionReceiptId": null,
+        "latencyMs": 5000,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "cost": null,
+        "failureRef": "synthetic://failure/tool-timeout-004"
+      }
+    ],
+    "declaredAttemptCount": 5,
+    "attemptLogComplete": true,
+    "validatorReceipts": [
+      {
+        "receiptId": "validator-reject-000",
+        "decisionStep": 0,
+        "proposalSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "status": "rejected",
+        "validator": {
+          "componentId": "independent-action-validator",
+          "revision": "v1.0.0",
+          "sourceCommit": "7777777777777777777777777777777777777777",
+          "configurationSha256": "8888888888888888888888888888888888888888888888888888888888888888"
+        },
+        "rejectedActionIds": [
+          "action-unsafe-close"
+        ],
+        "receiptSha256": "1212121212121212121212121212121212121212121212121212121212121212"
+      },
+      {
+        "receiptId": "validator-accept-001",
+        "decisionStep": 1,
+        "proposalSha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "status": "accepted",
+        "validator": {
+          "componentId": "independent-action-validator",
+          "revision": "v1.0.0",
+          "sourceCommit": "7777777777777777777777777777777777777777",
+          "configurationSha256": "8888888888888888888888888888888888888888888888888888888888888888"
+        },
+        "rejectedActionIds": [],
+        "receiptSha256": "1313131313131313131313131313131313131313131313131313131313131313"
+      }
+    ],
+    "transitionReceipts": [
+      {
+        "receiptId": "transition-applied-001",
+        "decisionStep": 1,
+        "proposalSha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "status": "applied",
+        "engine": {
+          "componentId": "independent-transition-engine",
+          "revision": "v1.0.0",
+          "sourceCommit": "5555555555555555555555555555555555555555",
+          "configurationSha256": "6666666666666666666666666666666666666666666666666666666666666666"
+        },
+        "stateBeforeSha256": "1414141414141414141414141414141414141414141414141414141414141414",
+        "stateAfterSha256": "1515151515151515151515151515151515151515151515151515151515151515",
+        "appliedActionIds": [
+          "action-safe-repair"
+        ],
+        "failedActionIds": [],
+        "receiptSha256": "1616161616161616161616161616161616161616161616161616161616161616"
+      }
+    ],
+    "trajectorySha256": "1717171717171717171717171717171717171717171717171717171717171717",
+    "scoringReceipt": {
+      "scorer": {
+        "componentId": "independent-service-scorer",
+        "revision": "v1.0.0",
+        "sourceCommit": "9999999999999999999999999999999999999999",
+        "configurationSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "caseSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "trajectorySha256": "1717171717171717171717171717171717171717171717171717171717171717",
+      "scoreDefinitionRef": "synthetic://score-definition/power-fabric-v1",
+      "outputSha256": "1818181818181818181818181818181818181818181818181818181818181818",
+      "acceptanceStatus": "accepted",
+      "acceptanceRef": "synthetic://scorer-acceptance/run-0001",
+      "acceptanceSha256": "1919191919191919191919191919191919191919191919191919191919191919",
+      "metrics": [
+        {
+          "metricId": "weighted-energy-not-served",
+          "unit": "kWh",
+          "value": 125,
+          "beneficiaryScope": "community",
+          "cohortId": "feeder-all-customers"
+        },
+        {
+          "metricId": "time-to-90pct-restoration",
+          "unit": "minute",
+          "value": 73,
+          "beneficiaryScope": null,
+          "cohortId": null
+        },
+        {
+          "metricId": "potable-water-shortfall",
+          "unit": "m3",
+          "value": 4.5,
+          "beneficiaryScope": "town_municipality",
+          "cohortId": "water-essential-services"
+        }
+      ]
+    }
+  },
+  "receiptSha256": null,
+  "collectorAttestation": null
+}
