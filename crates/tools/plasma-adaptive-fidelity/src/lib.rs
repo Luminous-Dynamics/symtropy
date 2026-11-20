@@ -501,10 +501,6 @@ pub fn evaluate_adaptive_policy(
             excluded.push(excluded(candidate, ExclusionReason::ErrorUnitsMismatch));
             continue;
         }
-        if candidate.cost_units_id != request.cost_units_id {
-            excluded.push(excluded(candidate, ExclusionReason::CostUnitsMismatch));
-            continue;
-        }
         if error.calibration_coverage < request.minimum_calibration_coverage {
             excluded.push(excluded(candidate, ExclusionReason::CalibrationCoverageTooLow));
             continue;
@@ -712,23 +708,7 @@ pub fn evaluate_adaptive_policy(
 
     if selectable.is_empty() {
         excluded.extend(transition_rejections);
-        let current_unresolved = current_candidate.is_some()
-            && current_eligible.is_none()
-            && excluded.iter().any(|item| {
-                item.profile_sha256
-                    == request.current_profile_sha256.clone().unwrap_or_default()
-                    && matches!(
-                        item.reason,
-                        ExclusionReason::WellPosednessUnknown
-                            | ExclusionReason::ErrorEvidenceUnknown
-                    )
-            });
-        return Ok(if current_unresolved {
-            PolicyDecision::Unknown {
-                reason: UnknownReason::CurrentModelEvidenceUnresolved,
-                excluded,
-            }
-        } else if current_candidate.is_some() && urgent_refinement {
+        return Ok(if current_candidate.is_some() && urgent_refinement {
             PolicyDecision::Refused {
                 reason: RefusalReason::NoSafeRefinementAvailable,
                 excluded,
