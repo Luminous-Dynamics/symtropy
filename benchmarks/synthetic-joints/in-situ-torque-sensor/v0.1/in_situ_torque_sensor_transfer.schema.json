@@ -1,0 +1,411 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/synthetic-joints/in-situ-torque-sensor/v0.1/in_situ_torque_sensor_transfer.schema.json",
+  "title": "In-Situ Torque Sensor Transfer Calibration Profile v0.1",
+  "description": "Installation-grouped calibration and held-out transfer evaluation for angle/temperature/direction-aware in-situ torque compensation. The schema does not verify physical evidence or statistical assumptions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "plan",
+    "calibration",
+    "test",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plan": {
+      "$ref": "#/$defs/plan"
+    },
+    "calibration": {
+      "$ref": "#/$defs/dataset"
+    },
+    "test": {
+      "$ref": "#/$defs/dataset"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lower",
+        "upper"
+      ],
+      "properties": {
+        "lower": {
+          "type": "number"
+        },
+        "upper": {
+          "type": "number"
+        }
+      },
+      "description": "Closed torque or condition interval; lower <= upper is checked by the evaluator."
+    },
+    "direction": {
+      "enum": [
+        "forward_motoring",
+        "forward_regenerating",
+        "reverse_motoring",
+        "reverse_regenerating",
+        "static_hold"
+      ]
+    },
+    "domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "joint_angle_rad",
+        "temperature_c",
+        "maximum_absolute_speed_rad_s",
+        "supported_directions",
+        "angle_sector_edges_rad",
+        "temperature_band_edges_c",
+        "speed_band_edges_rad_s"
+      ],
+      "properties": {
+        "joint_angle_rad": {
+          "$ref": "#/$defs/interval"
+        },
+        "temperature_c": {
+          "$ref": "#/$defs/interval"
+        },
+        "maximum_absolute_speed_rad_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "supported_directions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/direction"
+          }
+        },
+        "angle_sector_edges_rad": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "number"
+          }
+        },
+        "temperature_band_edges_c": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "number"
+          }
+        },
+        "speed_band_edges_rad_s": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_digest",
+        "feature_schema_digest",
+        "training_split_digest",
+        "calibration_split_digest",
+        "test_split_digest",
+        "system_boundary_digest",
+        "sensor_family_digest",
+        "reference_method_digest",
+        "domain_digest",
+        "target_miscoverage_alpha",
+        "reference_evidence_class",
+        "training_installation_ids",
+        "training_sensor_serials",
+        "training_flexspline_serials",
+        "training_reducer_serials",
+        "domain"
+      ],
+      "properties": {
+        "model_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feature_schema_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "training_split_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_split_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "test_split_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "system_boundary_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sensor_family_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_method_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "domain_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_miscoverage_alpha": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "reference_evidence_class": {
+          "const": "independent_physical"
+        },
+        "training_installation_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "training_sensor_serials": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "training_flexspline_serials": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "training_reducer_serials": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "domain": {
+          "$ref": "#/$defs/domain"
+        }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "split_digest",
+        "model_digest",
+        "feature_schema_digest",
+        "system_boundary_digest",
+        "sensor_family_digest",
+        "reference_method_digest",
+        "domain_digest",
+        "installations"
+      ],
+      "properties": {
+        "split_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feature_schema_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "system_boundary_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sensor_family_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_method_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "domain_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "installations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/installation"
+          }
+        }
+      }
+    },
+    "installation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "installation_id",
+        "sensor_serial",
+        "flexspline_serial",
+        "reducer_serial",
+        "installation_digest",
+        "sensor_assembly_digest",
+        "calibration_digest",
+        "reference_calibration_digest",
+        "reference_evidence_class",
+        "reference_source_reference",
+        "reference_method",
+        "reference_raw_trace_digest",
+        "sensor_raw_trace_digest",
+        "observations"
+      ],
+      "properties": {
+        "installation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sensor_serial": {
+          "type": "string",
+          "minLength": 1
+        },
+        "flexspline_serial": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reducer_serial": {
+          "type": "string",
+          "minLength": 1
+        },
+        "installation_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sensor_assembly_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_calibration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_evidence_class": {
+          "enum": [
+            "independent_physical",
+            "source_author_physical",
+            "vendor_physical",
+            "unknown"
+          ]
+        },
+        "reference_source_reference": {
+          "type": "string",
+          "minLength": 1,
+          "format": "uri"
+        },
+        "reference_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_raw_trace_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sensor_raw_trace_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/observation"
+          }
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_id",
+        "joint_angle_rad",
+        "temperature_c",
+        "angular_speed_rad_s",
+        "direction",
+        "raw_torque_nm",
+        "compensated_torque_nm",
+        "reference_torque_nm"
+      ],
+      "properties": {
+        "sample_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joint_angle_rad": {
+          "type": "number"
+        },
+        "temperature_c": {
+          "type": "number"
+        },
+        "angular_speed_rad_s": {
+          "type": "number"
+        },
+        "direction": {
+          "$ref": "#/$defs/direction"
+        },
+        "raw_torque_nm": {
+          "$ref": "#/$defs/interval"
+        },
+        "compensated_torque_nm": {
+          "$ref": "#/$defs/interval"
+        },
+        "reference_torque_nm": {
+          "$ref": "#/$defs/interval"
+        }
+      }
+    }
+  }
+}
