@@ -30,7 +30,7 @@ The implementation pins a source snapshot ID in each report. The dated reference
 7. CAR 101.05.16A multi-UAS operations: https://api.acts.co.za/civil-aviation-act-2009/nr425_101_05_16a_multi-unmanne.php
 8. Government Notice 7844, Government Gazette 55226, 21 August 2026 — Thirty-third Amendment: https://www.gov.za/documents/latest?o=3&page=16
 
-The current consolidated applicability display attributes the autonomous-UAS exclusion in 101.01.1(3)(a) to the 26th Amendment (R.3170, GG48228, 17 March 2023). The Thirty-third Amendment in August 2026 changed other Part 101 provisions, including 101.01.2 and 101.04.3. The rules must therefore be tracked by individual regulation and source version; do not assume a later amendment to one provision changed all Part 101 applicability rules.
+The current consolidated applicability display attributes the autonomous-UAS exclusion in 101.01.1(3)(a) to the 26th Amendment (R.3170, GG48228, 17 March 2023). The Thirty-third Amendment in August 2026 changed other Part 101 provisions, including 101.01.2 and 101.04.3. The current 101.04.3(7) text says an operation under Part 101 may only be conducted by a holder of a current UASOC **and OpSpec**. The gate therefore models OpSpec as a separate evidence item, not as an implied attribute of the UASOC. The rules must be tracked by individual regulation and source version; do not assume a later amendment to one provision changed all Part 101 applicability rules.
 
 The SACAA public information also describes RLOS and reserves BRLOS for future use. The model deliberately rejects BRLOS under the v0.1 snapshot. BVLOS is not treated as synonymous with BRLOS; the profile requires the specific Director-approved UASOC Operations Manual scope and SA-CATS 101 evidence.
 
@@ -45,8 +45,8 @@ The contract distinguishes:
 - evidence subject: aircraft serial digest, operator identity digest, operation-scope digest and Operations Manual revision where approval is manual-scoped.
 
 The current public SACAA matrix shows the following high-level distinction:
-- Commercial operation requires an ASL, UASOC, RLA, RPL and Certificate of Registration.
-- Corporate and non-profit rows show UASOC, RLA, RPL and Certificate of Registration; they do not show an ASL requirement in that matrix.
+- Commercial operation requires an ASL, UASOC, current OpSpec, RLA, RPL and Certificate of Registration.
+- Corporate and non-profit rows show UASOC, current OpSpec, RLA, RPL and Certificate of Registration; they do not show an ASL requirement in that matrix.
 - Private operations have narrow exceptions and conditions, including Class 1A/1B and R-VLOS. A private-use exception is not a commercial parcel-delivery pathway.
 
 Additional operation-specific requirements:
