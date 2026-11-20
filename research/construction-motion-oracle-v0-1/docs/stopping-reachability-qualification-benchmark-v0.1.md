@@ -92,7 +92,8 @@ Every dynamics qualification should bind:
 - maximum acceleration during that latency;
 - minimum net deceleration and minimum braking-jerk build-up rate;
 - test campaign, independent metrology, timebase, calibration and uncertainty budget;
-- environmental / target condition domain and explicit exclusions.
+- environmental / target condition domain and explicit exclusions;
+- a shared scenario-context digest binding the stopping and detection test strata.
 
 The qualification record must be derived from independent measurements over a declared test matrix. The runtime evaluator must reject speed, robot or condition profiles outside that domain. A profile digest is an identifier, not proof; the consumer must verify canonical evidence bytes and signatures.
 
