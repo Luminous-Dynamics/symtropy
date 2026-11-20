@@ -174,23 +174,11 @@ struct Decision {
 }
 
 impl Decision {
-    fn floor_met() -> Self {
-        Self { status: AdmissionStatus::ServiceFloorMetSynthetic, reason: "receiver_accepted_service_floor_met" }
-    }
-    fn partial() -> Self {
-        Self { status: AdmissionStatus::PartialServiceSynthetic, reason: "receiver_accepted_service_below_required_floor" }
-    }
-    fn shortfall() -> Self {
-        Self { status: AdmissionStatus::ServiceShortfall, reason: "no_receiver_accepted_service" }
-    }
     fn indeterminate(reason: &'static str) -> Self {
         Self { status: AdmissionStatus::Indeterminate, reason }
     }
     fn rejected(reason: &'static str) -> Self {
         Self { status: AdmissionStatus::Rejected, reason }
-    }
-    fn disputed(reason: &'static str) -> Self {
-        Self { status: AdmissionStatus::Disputed, reason }
     }
 }
 
@@ -993,7 +981,7 @@ mod tests {
     #[test]
     fn frozen_receipt_corpus_matches_independent_expected_outcomes() {
         let report = evaluate(&fixture()).expect("receipt fixture evaluates");
-        assert_eq!(report.summary.scenario_count, 35);
+        assert_eq!(report.summary.scenario_count, 36);
         assert_eq!(report.summary.expected_result_mismatches, 0);
         assert_eq!(report.summary.false_service_success_claims, 0);
         assert_eq!(report.summary.authority_grants, 0);
@@ -1018,7 +1006,9 @@ mod tests {
             .expect("idempotent replay case exists");
         assert_eq!(row.actual_status, AdmissionStatus::ServiceFloorMetSynthetic);
         assert_eq!(row.duplicate_replays, 1);
-        assert_eq!(row.accepted_receiver_mass_g, 1_140_000);
+        assert_eq!(row.accepted_receiver_mass_g, 1_143_000);
+        assert_eq!(row.conservative_receiver_accepted_mass_g, 1_140_000);
+        assert_eq!(row.total_measurement_uncertainty_g, 3_000);
     }
 
     #[test]
@@ -1098,7 +1088,8 @@ mod tests {
         assert_eq!(row.actual_status, AdmissionStatus::ServiceFloorMetSynthetic);
         assert_eq!(row.superseded_receipts, 1);
         assert_eq!(row.duplicate_replays, 1);
-        assert_eq!(row.accepted_receiver_mass_g, 1_140_000);
+        assert_eq!(row.accepted_receiver_mass_g, 1_143_000);
+        assert_eq!(row.conservative_receiver_accepted_mass_g, 1_140_000);
     }
 
     #[test]
@@ -1118,7 +1109,40 @@ mod tests {
             .find(|row| row.case_id == "OUT_OF_ORDER_RECEIPT_ARRIVAL")
             .expect("out-of-order case exists");
         assert_eq!(row.actual_status, AdmissionStatus::ServiceFloorMetSynthetic);
-        assert_eq!(row.accepted_receiver_mass_g, 1_140_000);
+        assert_eq!(row.accepted_receiver_mass_g, 1_143_000);
+        assert_eq!(row.conservative_receiver_accepted_mass_g, 1_140_000);
+    }
+
+
+    #[test]
+    fn gross_mass_above_floor_is_partial_when_conservative_mass_is_below_floor() {
+        let report = evaluate(&fixture()).expect("receipt fixture evaluates");
+        let row = report.scenarios.iter()
+            .find(|row| row.case_id == "GROSS_ABOVE_FLOOR_CONSERVATIVE_BELOW")
+            .expect("conservative-boundary case exists");
+        assert_eq!(row.actual_status, AdmissionStatus::PartialServiceSynthetic);
+        assert_eq!(row.accepted_receiver_mass_g, 1_141_000);
+        assert_eq!(row.conservative_receiver_accepted_mass_g, 1_138_000);
+        assert!(row.accepted_receiver_mass_g >= row.required_receiver_accepted_mass_g);
+        assert!(row.conservative_receiver_accepted_mass_g < row.required_receiver_accepted_mass_g);
+    }
+
+    #[test]
+    fn seven_exact_source_artifact_digest_fields_are_required() {
+        let data = fixture();
+        let case = data.scenarios.iter()
+            .find(|case| case.case_id == "NOMINAL_COMPLETE_RECEIPT_CHAIN")
+            .expect("nominal scenario exists");
+        let receipt = &case.receipts[0];
+        let value: serde_json::Value = serde_json::from_str(&receipt.composition_receipt_json)
+            .expect("composition receipt parses");
+        let artifacts = &value["bundle"]["artifact_sha256"];
+        for key in [
+            "composition_fixture", "delivery_receipt", "delivery_campaign",
+            "capture_receipt", "capture_fixture", "fluid_receipt", "fluid_fixture"
+        ] {
+            assert!(artifacts[key].as_str().is_some_and(|value| valid_hex(value, 64)));
+        }
     }
 
     #[test]
