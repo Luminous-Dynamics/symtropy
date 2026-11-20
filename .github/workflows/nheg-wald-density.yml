@@ -1,0 +1,83 @@
+name: EGB NHEG Wald density replay
+
+on:
+  push:
+    branches:
+      - research/egb-nheg-wald-densities-2026-11-20
+    paths:
+      - crates/domains/symtropy-lovelock5d/benchmarks/derive_nheg_wald_density.py
+      - crates/domains/symtropy-lovelock5d/benchmarks/nheg_wald_density_v1.json
+      - .github/workflows/nheg-wald-density.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nheg-wald-density-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  exact-wald-density:
+    name: Exact Wald density and regulator transformation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned symbolic engine
+        run: python -m pip install --disable-pip-version-check sympy==1.14.0
+
+      - name: Replay exact Wald density and cutoff primitive
+        env:
+          PYTHONHASHSEED: "0"
+        run: |
+          python crates/domains/symtropy-lovelock5d/benchmarks/derive_nheg_wald_density.py \\
+            --output "$RUNNER_TEMP/nheg_wald_density_replay.json"
+
+      - name: Check Wald divergence and defining-function mutation
+        env:
+          REPLAY_JSON: ${{ runner.temp }}/nheg_wald_density_replay.json
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          data=json.loads(Path(os.environ["REPLAY_JSON"]).read_text())
+          v=data["validation"]
+          required=(
+              "coupling_conversion_exact",
+              "wald_multiplier_exact",
+              "wald_density_exact",
+              "wald_density_primitive_exact",
+              "cutoff_entropy_derivative_exact",
+              "leading_density_coefficient_exact",
+              "leading_entropy_divergence_exact",
+              "area_regulator_shift_exact",
+              "wald_regulator_shift_exact",
+              "finite_physical_entropy_not_claimed",
+          )
+          for key in required:
+              assert v[key] is True, (key,v[key])
+          grid=data["reference_grid"]
+          assert grid["point_count"]==95 and len(grid["samples"])==95
+          regulator=data["regulator_sensitivity"]
+          assert "fixed geodesic-defining-function gauge" in regulator["gauge_caveat"]
+          print("PASS: exact Wald density and integrated cutoff expression.")
+          print("PASS: correct leading negative Wald divergence and -5 regulator-shift ratio.")
+          print("PASS: finite entropy not claimed.")
+          PY
+
+      - name: Preserve exact replay receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: egb-nheg-wald-density-exact-replay
+          path: ${{ runner.temp }}/nheg_wald_density_replay.json
+          if-no-files-found: error
+          retention-days: 30
