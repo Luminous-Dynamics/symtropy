@@ -935,6 +935,9 @@ mod tests {
     fn sharing_013_unknown_current_or_torque_never_becomes_zero_or_equal() {
         let mut a = unit("A", interval(4.0, 5.0), interval(40.0, 42.0));
         a.torque_evidence_class = EvidenceClass::Unknown;
+        a.torque_source_reference = None;
+        a.torque_method = None;
+        a.torque_calibration_digest = None;
         let report = evaluate_joint(&input(vec![
             a,
             unit("B", interval(5.0, 6.0), interval(41.0, 43.0)),
@@ -949,7 +952,9 @@ mod tests {
     fn sharing_014_vendor_and_model_evidence_are_preserved() {
         let mut a = unit("A", interval(4.0, 5.0), interval(40.0, 42.0));
         a.torque_evidence_class = EvidenceClass::ModelDerived;
+        a.torque_source_reference = Some("urn:model:paired-actuator:torque-A".to_owned());
         a.thermal_evidence_class = EvidenceClass::VendorPhysical;
+        a.thermal_source_reference = Some("urn:vendor:paired-actuator:thermal-A".to_owned());
         let report = evaluate_joint(&input(vec![
             a,
             unit("B", interval(5.0, 6.0), interval(41.0, 43.0)),
@@ -1085,6 +1090,37 @@ mod tests {
             unit("B", interval(5.0, 6.0), interval(41.0, 43.0)),
         ])).unwrap();
         assert_eq!(report.evidence_qualification, EvidenceQualification::Incomplete);
+    }
+
+    #[test]
+    fn sharing_030_fully_independent_required_inputs_have_physical_qualification() {
+        let mut a = unit("A", interval(4.0, 5.0), interval(40.0, 42.0));
+        let mut b = unit("B", interval(5.0, 6.0), interval(41.0, 43.0));
+        for unit in [&mut a, &mut b] {
+            unit.torque_evidence_class = EvidenceClass::IndependentPhysical;
+            unit.torque_source_reference = Some(format!("urn:measurement:torque:{}", unit.actuator_id));
+            unit.capability_evidence_class = EvidenceClass::IndependentPhysical;
+            unit.capability_source_reference = Some(format!("urn:measurement:capability:{}", unit.actuator_id));
+            unit.thermal_evidence_class = EvidenceClass::IndependentPhysical;
+            unit.thermal_source_reference = Some(format!("urn:measurement:thermal:{}", unit.actuator_id));
+        }
+        let report = evaluate_joint(&input(vec![a, b])).unwrap();
+        assert_eq!(report.evidence_qualification, EvidenceQualification::FullyIndependentPhysical);
+    }
+
+    #[test]
+    fn sharing_031_physical_vendor_and_source_author_inputs_are_not_called_independent() {
+        let mut a = unit("A", interval(4.0, 5.0), interval(40.0, 42.0));
+        let mut b = unit("B", interval(5.0, 6.0), interval(41.0, 43.0));
+        a.torque_evidence_class = EvidenceClass::SourceAuthorPhysical;
+        a.torque_source_reference = Some("https://example.org/measurement/author-run".to_owned());
+        b.thermal_evidence_class = EvidenceClass::VendorPhysical;
+        b.thermal_source_reference = Some("https://vendor.example/thermal/certificate".to_owned());
+        let report = evaluate_joint(&input(vec![a, b])).unwrap();
+        assert_eq!(
+            report.evidence_qualification,
+            EvidenceQualification::PhysicalWithNonIndependentSources
+        );
     }
 
     #[test]
