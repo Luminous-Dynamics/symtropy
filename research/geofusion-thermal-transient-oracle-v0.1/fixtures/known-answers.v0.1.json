@@ -286,5 +286,36 @@
       }
     ],
     "claim_ceiling": "Policy primitive only. Input error estimates and event times are supplied by other owners; this function does not estimate local error, execute FMI calls, or infer events."
+  },
+  "integrated_flux_handshake": {
+    "source_policy": "difference_of_two_successful_cumulative_energy_observations",
+    "causality": "causal_after_producer_interval_completion; consumes no future source sample",
+    "source_observations": {
+      "previous_cumulative_energy_j": 0,
+      "current_cumulative_energy_j": 68333461.00984275,
+      "master_interval_ns": [
+        0,
+        120000000000
+      ]
+    },
+    "derived_interval_energy_j": 68333461.00984275,
+    "receiver_average_power_w": 569445.5084153563,
+    "receiver_model": "exact_piecewise_constant_response_to_declared_interval_energy_as_average_power",
+    "expected": {
+      "theta_start_k": 2,
+      "theta_end_k": 2.989979327511903,
+      "energy_input_j": 68333461.00984275,
+      "energy_service_j": 27333384.4039371,
+      "energy_loss_j": 31100283.330786623,
+      "storage_delta_j": 9899793.275119029,
+      "residual_j": 0
+    },
+    "comparison": {
+      "continuous_sinusoidal_reference_theta_end_k": 3.02923898271592,
+      "one_window_exact_interval_average_theta_end_k": 2.989979327511903,
+      "trajectory_error_vs_continuous_k": 0.039259655204017,
+      "source_energy_error_j": 0
+    },
+    "claim_ceiling": "The producer-reported cumulative interval energy is used as an exact declared J input; the oracle cannot prove that an arbitrary producer integrated its physical flux correctly. The receiver uses average power over the interval, so the within-window trajectory is approximate even though the macro-interval input energy is exact. A scalar energy observation is not a serialized FMU checkpoint."
   }
 }
