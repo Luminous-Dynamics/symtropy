@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::fmt::Write as _;
 use std::collections::HashSet;
 
 const FIXTURE_SCHEMA: &str = "luminous.orbital-interface-conformance.corpus.v0.1";
@@ -174,7 +175,11 @@ impl Decision {
 
 pub fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+    let mut output = String::with_capacity(64);
+    for byte in digest {
+        write!(&mut output, "{byte:02x}").expect("writing to String is infallible");
+    }
+    output
 }
 
 pub fn is_hex_digest(value: &str, expected_len: usize) -> bool {
@@ -633,7 +638,7 @@ mod tests {
     }
 
     #[test]
-    fn malformed_source_commit_and_artifact_digest_are_rejected() {
+    fn malformed_source_commit_is_rejected() {
         let mut data = fixture();
         let evidence = data.cases[0]
             .provider
