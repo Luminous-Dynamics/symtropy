@@ -882,6 +882,40 @@ pub fn validate_and_evaluate(
 mod tests {
     use super::*;
 
+    fn unknown_cost(name: &str) -> EvidenceBoundCost {
+        EvidenceBoundCost {
+            amount: None,
+            evidence_class: EvidenceClass::Unknown,
+            evidence_reference: format!("unknown://lifecycle/{name}"),
+        }
+    }
+
+    fn measured_cost(amount: f64, name: &str) -> EvidenceBoundCost {
+        EvidenceBoundCost {
+            amount: Some(amount),
+            evidence_class: EvidenceClass::Measured,
+            evidence_reference: format!("measurement://lifecycle/{name}"),
+        }
+    }
+
+    fn supply_complete_cost_basis(catalog: &mut LifecycleCatalog) {
+        catalog.downtime_cost_per_unavailable_hour =
+            measured_cost(25.0, "downtime-value");
+        let profile = &mut catalog.profiles[0];
+        profile.annualized_factory_capex_per_module_year =
+            measured_cost(100.0, "allocated-factory-capex");
+        profile.annual_spares_inventory_cost_per_module_year =
+            measured_cost(50.0, "spares-inventory");
+        profile.annual_logistics_cost_per_module_year =
+            measured_cost(15.0, "service-logistics");
+        profile.annual_energy_cost_per_module_year =
+            measured_cost(20.0, "module-energy");
+        profile.annual_warranty_cost_per_module_year =
+            measured_cost(10.0, "warranty");
+        profile.annual_end_of_life_cost_per_module_year =
+            measured_cost(5.0, "end-of-life");
+    }
+
     fn task(phase: ServicePhase) -> LifecycleTask {
         LifecycleTask {
             phase,
@@ -903,6 +937,12 @@ mod tests {
             acquisition_cost_evidence_class: EvidenceClass::Unknown,
             acquisition_cost_evidence_reference: "unknown://acquisition-cost".into(),
             amortization_years: None,
+            annualized_factory_capex_per_module_year: unknown_cost("factory-capex"),
+            annual_spares_inventory_cost_per_module_year: unknown_cost("spares"),
+            annual_logistics_cost_per_module_year: unknown_cost("logistics"),
+            annual_energy_cost_per_module_year: unknown_cost("energy"),
+            annual_warranty_cost_per_module_year: unknown_cost("warranty"),
+            annual_end_of_life_cost_per_module_year: unknown_cost("end-of-life"),
             events: vec![
                 LifecycleEvent {
                     event_id: "annual-inspection".into(),
@@ -973,6 +1013,7 @@ mod tests {
             labour_rate_per_technician_hour: None,
             labour_rate_evidence_class: EvidenceClass::Unknown,
             labour_rate_evidence_reference: "unknown://labour-rate".into(),
+            downtime_cost_per_unavailable_hour: unknown_cost("downtime-value"),
             profiles: vec![profile("pod", "detachable_drone_pod")],
             claim_ceiling: "synthetic lifecycle task screen".into(),
         }
@@ -1018,6 +1059,7 @@ mod tests {
             .find(|event| event.event_class == EventClass::Unscheduled).unwrap();
         unscheduled.observed_event_count = Some(2);
         unscheduled.exposure_module_years = Some(10.0);
+        supply_complete_cost_basis(&mut catalog);
 
         let mut factory_report = factory();
         factory_report.results[0].status = "passes_evidence_backed_screen".into();
@@ -1136,6 +1178,7 @@ mod tests {
             .find(|event| event.event_class == EventClass::Unscheduled).unwrap();
         unscheduled.observed_event_count = Some(1);
         unscheduled.exposure_module_years = Some(10.0);
+        supply_complete_cost_basis(&mut catalog);
 
         let report = validate_and_evaluate(&factory(), &catalog).expect("complete service data");
         assert_eq!(report.results[0].status, LifecycleStatus::SyntheticScreen);
