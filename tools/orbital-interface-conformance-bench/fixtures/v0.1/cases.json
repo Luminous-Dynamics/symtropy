@@ -3579,7 +3579,7 @@
         }
       },
       "expected_status": "indeterminate",
-      "expected_reason": "incomplete_evidence_envelope"
+      "expected_reason": "missing_evidence_scope"
     },
     {
       "case_id": "WRONG_SOURCE_COMMIT_SHAPE",
