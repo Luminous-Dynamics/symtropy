@@ -123,6 +123,18 @@ fn validate_contract(value: &Value, errors: &mut Vec<String>) -> BTreeMap<String
     contract
 }
 
+fn initial_resource_digest(state: &Value) -> Option<String> {
+    let items = state.get("resource_metrics")?.as_array()?;
+    let projection = items.iter().map(|item| json!({
+        "metric": item.get("metric")?,
+        "unit": item.get("unit")?,
+        "value": item.get("value")?,
+        "lower_bound": item.get("lower_bound")?,
+        "upper_bound": item.get("upper_bound")?
+    })).collect::<Option<Vec<_>>>()?;
+    array_digest(&Value::Array(projection))
+}
+
 fn parse_metrics(
     items: &Value,
     contract: &BTreeMap<String, MetricContract>,
@@ -648,7 +660,10 @@ fn validate_scenario(
     scenario: &Value,
     scenario_class: &str,
     contract: &BTreeMap<String,MetricContract>,
+    capability_registry: &BTreeSet<String>,
+    component_registry: &BTreeSet<String>,
     hard_gate_roster: &BTreeSet<String>,
+    expected_initial_digest: &str,
     record_status: &str,
     snapshot: &Value,
 ) -> Value {
@@ -670,12 +685,26 @@ fn validate_scenario(
             errors.push(format!("scenario '{scenario_id}' duplicates state '{id}'"));
         }
         digest_field_matches(state,"state_sha256",Some("state_sha256"),&mut errors,&format!("state '{id}'"));
-        let metrics = parse_metrics(
+        let _metrics = parse_metrics(
             state.get("resource_metrics").unwrap_or(&Value::Null),contract,record_status,
             &format!("state '{id}'"),&mut errors,
         );
+        let state_component_ids = state.get("components").and_then(Value::as_object)
+            .map(|items| items.keys().cloned().collect::<BTreeSet<_>>())
+            .unwrap_or_default();
+        if state_component_ids != *component_registry {
+            errors.push(format!("state '{id}' component set does not match the frozen component registry"));
+        }
+        let state_capabilities = string_set(state.get("capabilities").unwrap_or(&Value::Null));
+        for unknown in state_capabilities.difference(capability_registry) {
+            errors.push(format!("state '{id}' declares unknown capability '{unknown}'"));
+        }
         if id == string_at(scenario,"trigger_state_id").unwrap_or("") {
-            let _ = metrics;
+            match initial_resource_digest(state) {
+                Some(calculated) if calculated == expected_initial_digest => {}
+                Some(_) => errors.push(format!("scenario '{scenario_id}' trigger state does not match frozen initial resource state")),
+                None => errors.push(format!("scenario '{scenario_id}' trigger state has no canonical resource digest")),
+            }
         }
         if string_at(state,"hard_gate_disposition").is_none() {
             errors.push(format!("state '{id}' is missing hard-gate disposition"));
@@ -697,7 +726,16 @@ fn validate_scenario(
             if !state_by_id.contains_key(from) || !state_by_id.contains_key(to) {
                 errors.push(format!("action '{id}' references an undeclared from/to state"));
             }
-            let _ = (from,to);
+            for capability in string_set(action.get("required_capabilities").unwrap_or(&Value::Null)) {
+                if !capability_registry.contains(&capability) {
+                    errors.push(format!("action '{id}' requires capability '{capability}' outside the frozen registry"));
+                }
+            }
+            for component in string_set(action.get("required_components_available").unwrap_or(&Value::Null)) {
+                if !component_registry.contains(&component) {
+                    errors.push(format!("action '{id}' requires component '{component}' outside the frozen registry"));
+                }
+            }
         }
     }
     let mut terminal_ids = BTreeSet::<String>::new();
@@ -833,6 +871,20 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     let caps=string_set(value.get("capability_registry").unwrap_or(&Value::Null));
     let components=string_set(value.get("component_registry").unwrap_or(&Value::Null));
     let hard_gate_roster=string_set(value.get("hard_gate_roster").unwrap_or(&Value::Null));
+    let scenario_values = scenarios.cloned().unwrap_or_default();
+    let first_trigger_digest = scenario_values.first()
+        .and_then(|scenario| {
+            let trigger_id = string_at(scenario, "trigger_state_id")?;
+            let states = scenario.get("states")?.as_array()?;
+            let state = states.iter().find(|state| string_at(state, "state_id") == Some(trigger_id))?;
+            initial_resource_digest(state)
+        })
+        .unwrap_or_default();
+    if !digest_valid(Some(&first_trigger_digest))
+        || string_at(snapshot, "initial_resource_state_sha256") != Some(first_trigger_digest.as_str())
+    {
+        errors.push("initial_resource_state_sha256 does not match the canonical trigger resource state".to_owned());
+    }
     let mut reports=Vec::<Value>::new();
     let mut seen_classes=BTreeSet::<String>::new();
     let mut seen_scenarios=BTreeSet::<String>::new();
@@ -850,7 +902,10 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                 errors.push(format!("unknown recovery scenario class '{class}'"));
             }
             validate_state_digests(scenario,&mut errors);
-            reports.push(validate_scenario(scenario,&class,&contract,&hard_gate_roster,record_status,snapshot));
+            reports.push(validate_scenario(
+                scenario,&class,&contract,&caps,&components,&hard_gate_roster,
+                &first_trigger_digest,record_status,snapshot
+            ));
         }
     }
     if seen_classes!=expected_roster {
