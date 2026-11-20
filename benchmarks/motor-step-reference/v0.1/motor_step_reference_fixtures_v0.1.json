@@ -1,0 +1,54 @@
+{
+  "schema_version": "0.1.0",
+  "model_class": "scalar_accumulated_motor_impulse",
+  "claim_ceiling": "Synthetic scalar generalized-coordinate reference only. Not a production constraint solver, hinge inertia model, contact solver or electrical energy model.",
+  "known_answers": [
+    {
+      "id": "iteration-invariance",
+      "maximum_effort": 100.0,
+      "duration_s": 0.1,
+      "effective_inverse_mass": 0.5,
+      "initial_relative_velocity": 0.0,
+      "target_relative_velocity": 3.0,
+      "solver_iterations": [1, 2, 4, 8],
+      "expected_total_impulse": 6.0,
+      "expected_generalized_mechanical_work_j": 9.0
+    },
+    {
+      "id": "single-step-effort-cap",
+      "maximum_effort": 2.0,
+      "duration_s": 0.1,
+      "effective_inverse_mass": 0.5,
+      "initial_relative_velocity": 0.0,
+      "target_relative_velocity": 10.0,
+      "solver_iterations": 8,
+      "expected_total_impulse": 0.2,
+      "expected_maximum_impulse": 0.2
+    },
+    {
+      "id": "static-endpoint",
+      "inverse_mass_a": 0.0,
+      "inverse_mass_b": 0.25,
+      "target_relative_velocity": 2.0,
+      "expected_effective_inverse_mass": 0.25,
+      "expected_relative_velocity_after": 2.0
+    },
+    {
+      "id": "positive-work",
+      "effective_inverse_mass": 0.2,
+      "initial_relative_velocity": 1.0,
+      "target_relative_velocity": 3.0,
+      "expected_generalized_mechanical_work_j": 20.0,
+      "expected_kinetic_energy_change_j": 20.0
+    },
+    {
+      "id": "negative-braking-work",
+      "effective_inverse_mass": 0.5,
+      "initial_relative_velocity": 3.0,
+      "target_relative_velocity": 1.0,
+      "expected_generalized_mechanical_work_j": -8.0,
+      "expected_kinetic_energy_change_j": -8.0,
+      "electrical_regeneration_claim": false
+    }
+  ]
+}
