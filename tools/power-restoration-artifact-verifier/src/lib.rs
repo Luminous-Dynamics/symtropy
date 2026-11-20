@@ -1096,6 +1096,7 @@ pub fn verify_restoration_claim_evidence(
     let mut evidence_item_count = 0;
     let mut all_sources = BTreeMap::<String, &SourceProvenance>::new();
     let mut evidence_by_ref = BTreeMap::<String, EvidenceArtifact>::new();
+    let mut evidence_presentation_step = BTreeMap::<String, u32>::new();
 
     for (proposal_id, (proposal, proposal_step)) in &expected_batch_proposals {
         let Some(batch) = actual_batches.get(proposal_id) else {
@@ -1198,19 +1199,22 @@ pub fn verify_restoration_claim_evidence(
                     }
                 };
                 let evidence_uri = format!("power-fabric://evidence/{}", item.evidence_id);
-                if let Some(previous) = evidence_by_ref.insert(item.evidence_id.clone(), item.clone()) {
-                    if previous != *item {
-                        errors.push(format!(
-                            "evidence ID {} changes content or timing across batches",
-                            item.evidence_id
-                        ));
+                for evidence_key in [item.evidence_id.clone(), evidence_uri.clone()] {
+                    if let Some(previous) = evidence_by_ref.insert(evidence_key.clone(), item.clone()) {
+                        if previous != *item {
+                            errors.push(format!(
+                                "evidence key {evidence_key} changes content or timing across batches"
+                            ));
+                        }
                     }
-                }
-                if let Some(previous) = evidence_by_ref.insert(evidence_uri.clone(), item.clone()) {
-                    if previous != *item {
-                        errors.push(format!(
-                            "evidence URI {evidence_uri} changes content or timing across batches"
-                        ));
+                    if let Some(previous_step) =
+                        evidence_presentation_step.insert(evidence_key.clone(), batch.presentation_step)
+                    {
+                        if previous_step != batch.presentation_step {
+                            errors.push(format!(
+                                "evidence key {evidence_key} is presented at multiple decision epochs"
+                            ));
+                        }
                     }
                 }
                 add_attested_artifact(
@@ -1362,11 +1366,16 @@ pub fn verify_restoration_claim_evidence(
                             step.decision_step, action.action_id, precondition.evidence_ref
                         ));
                     }
+                    let result_presentation_step = evidence_presentation_step
+                        .get(&precondition.evidence_ref)
+                        .copied()
+                        .unwrap_or(u32::MAX);
                     if evidence.available_step > step.decision_step
                         || evidence.observed_step > step.decision_step
+                        || result_presentation_step > step.decision_step
                     {
                         errors.push(format!(
-                            "decision {} action {} cites future evidence {}",
+                            "decision {} action {} cites future or not-yet-presented evidence {}",
                             step.decision_step, action.action_id, precondition.evidence_ref
                         ));
                     } else if step.decision_step.saturating_sub(evidence.observed_step)
