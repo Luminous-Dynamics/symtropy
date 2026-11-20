@@ -14,6 +14,9 @@ The strongest recent systems do not simply process more frames. They specialize 
 |---|---|---|---|
 | HERMES (ACL 2026) | Training-free hierarchical KV-cache memory for streaming video | Authors report 10× faster time-to-first-token, up to 68% fewer video tokens than uniform sampling, and up to 11.4% gain on streaming datasets | Match quality with lower cache/token cost; compare exact same backbone and input schedule |
 | StreamArena / StreamMind (2026) | Hour-scale open-ended interaction, historical recall, proactive monitoring and tools; two-tier frontend/backend workers | 243 videos averaging 88.8 min; 3,646 tasks. Public v2: StreamMind-Qwen RTP/HR/Tool/Pro 44.9/40.8/57.1/19.4; mixed multi-backbone 55.9/49.1/70.2/23.3. Paper reports 66.2% lower pooled query-to-answer latency than offline Qwen3.5-397B-A17B on that same backbone | Flagship long-horizon comparator; report model composition explicitly, preserve original AV evidence in memory, isolate deadlines from background load, score cancellation and as-known retrieval |
+| OmniPro (2026) | Omni-modal proactive streaming video understanding; 2,700 human-verified samples, 9 subtasks, 3 cognitive levels; Probe and Online protocols | 84% of samples require audio. Authors report audio gains but large variation in modality use, degradation over time, and weak non-speech audio understanding | Add an audio-necessity / modality-isolation track, with non-speech sound and long-horizon degradation scored separately |
+| VSAS-Bench (CVPR Findings 2026) | Real-time visual streaming assistant benchmark, synchronous and asynchronous protocols | More than 18,000 annotations. Authors report adapted Qwen3-VL-4B exceeds Dispider by 3% under the asynchronous protocol | Mandatory strong general-VLM adaptation baseline; avoid assuming purpose-built streaming models or native HDC/CfC automatically win |
+| StreamAV-Bench (2026) | Streaming audio-video generation: progressive instruction adherence/long-horizon stability plus interactive response/state retention | 13 representative systems over 32 fine-grained dimensions; reports temporal drift and interactive responsiveness bottlenecks | Adjacent benchmark only for Melothaea / generated-world outputs; do not compare its generation metrics to perception/QA results |
 | StreamScout (arXiv 2609.00291) | Progressive retrieval depth: recent glance → uniform look-back → query-salient retrieval, with stop/escalate | StreamScout-S reports +14.65 OVO-Bench points over Qwen3-VL-8B with 59% fewer tokens and 1.04 s average answer time | Beat or match its quality-cost frontier while adding evidence lineage, decision-value accounting and historical source verification |
 | OASIS (CVPR 2026) | Query-conditioned hierarchical event memory / temporal routing | On the paper's StreamingBench experiment, Qwen3-VL-8B Real-Time All: 72.83 → 78.22; Misleading Context Understanding: 35.74 → 49.60 | Reproduce matched backbone uplift, then test if bitemporal/proof-aware evidence packets improve late contradiction and source-grounding tasks |
 | ProactiveBench / LiveProBench (arXiv 2609.12658) | One-second streaming evaluation without explicit response cue; response window, early/late, silence and duplicate behavior | Paper reports premature responses outnumber missed responses for four of six evaluated systems | Measure silence, false intervention, missed window and duplicate-trigger rates independently |
@@ -29,6 +32,9 @@ The strongest recent systems do not simply process more frames. They specialize 
 
 - HERMES, ACL Anthology: https://aclanthology.org/2026.acl-long.381/
 - StreamArena / StreamMind paper: https://arxiv.org/abs/2608.05703 ; public benchmark and v2 leaderboard: https://github.com/JIA-Lab-research/StreamArena
+- OmniPro: https://arxiv.org/abs/2605.18577
+- VSAS-Bench: https://openaccess.thecvf.com/content/CVPR2026F/html/Vasu_VSAS-Bench_Real-Time_Evaluation_of_Visual_Streaming_Assistant_Models_CVPRF_2026_paper.html
+- StreamAV-Bench: https://arxiv.org/abs/2608.26336
 - StreamScout, arXiv: https://arxiv.org/abs/2609.00291
 - OASIS, CVPR Open Access: https://openaccess.thecvf.com/content/CVPR2026/html/Liang_OASIS_On-Demand_Hierarchical_Event_Memory_for_Streaming_Video_Reasoning_CVPR_2026_paper.html
 - LiveProBench / ProactiveBench, arXiv: https://arxiv.org/abs/2609.12658
@@ -59,6 +65,14 @@ Do not cite the v2 mixed score as if one model achieved it: the public toolkit d
 The paper's 66.2% pooled query-to-answer latency reduction is a same-Qwen3.5-397B-A17B comparison between StreamMind and offline processing, but it excludes continuous stream processing completed before the query. Report both continuous monitoring/maintenance cost and query-triggered latency; query latency alone does not capture total resource use.
 
 SPOT-Bench's public status also matters: detection tasks are released in full, while interaction/intervention include representative validation subsets and their held-out test challenge is scheduled for a later release. We can reproduce the live detection leaderboard now, but should not imply its full interaction/intervention held-out benchmark is publicly scoreable today.
+
+## Additional benchmark interpretation (20 Nov 2026)
+
+**OmniPro is the missing audio challenge.** Its 2,700 human-verified samples, nine subtasks and three cognitive levels explicitly isolate audio dependence; 84% require audio. Its Probe protocol can test content understanding around annotated triggers, while Online tests autonomous timing and response behavior. Its reported long-stream degradation and weak non-speech audio dimension argue for separate non-speech and long-horizon stress strata, not one aggregate audio score. https://arxiv.org/abs/2605.18577
+
+**VSAS-Bench is a warning against straw-man baselines.** It has more than 18,000 annotations and synchronous/asynchronous evaluation. Its authors report that adapted Qwen3-VL-4B surpasses Dispider by 3% in the asynchronous protocol. We should therefore include a carefully adapted strong general VLM as a first-class baseline, not merely compare Symthaea against streaming-specialist architectures. https://openaccess.thecvf.com/content/CVPR2026F/html/Vasu_VSAS-Bench_Real-Time_Evaluation_of_Visual_Streaming_Assistant_Models_CVPRF_2026_paper.html
+
+**StreamAV-Bench must remain a separate generation lane.** It evaluates streaming audio-video generation, temporal stability and interactive control, not perception of externally generated sensor streams. It is directly relevant to Melothaea and generated interactive worlds, but not a substitute leaderboard for AV perception. https://arxiv.org/abs/2608.26336
 
 ## The paradigm shifts these results imply
 
