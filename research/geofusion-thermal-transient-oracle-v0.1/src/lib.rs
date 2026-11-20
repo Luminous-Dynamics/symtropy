@@ -103,12 +103,14 @@ pub struct CausalPredictorResult {
 
 /// Propose a communication interval from numerical, interface and physical error.
 ///
-/// The controller uses the maximum normalized error across three independent
-/// gates. It does not trade an energy violation against a smaller trajectory
-/// error. A rejected attempt shrinks the next interval; an accepted attempt
-/// may grow it by at most 2x. The final proposal is fenced at the earliest
-/// known event/clock tick. If the event is due now, the caller must process
-/// that event rather than take a zero-length doStep.
+/// The controller uses the maximum normalized numerical/interface/energy
+/// error across three independent gates. Model uncertainty is evaluated as a
+/// separate stop condition because reducing the communication step cannot
+/// repair missing calibration or uncertain parameters. It does not trade an
+/// energy violation against a smaller trajectory error. A rejected attempt
+/// shrinks the next interval; an accepted attempt may grow it by at most 2x.
+/// The final proposal is fenced at the earliest known event/clock tick. If the
+/// event is due now, the caller must process that event rather than doStep.
 ///
 /// This function is a deterministic policy primitive, not an FMI master:
 /// it does not execute an FMU, manufacture an error estimate, or infer an
