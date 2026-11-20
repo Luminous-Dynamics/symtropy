@@ -2843,12 +2843,12 @@ mod tests {
         publish_capacity_resource_catalog(&mut ledger);
         publish_capacity_snapshot(&mut ledger, '3', '4', 2, 2, 3);
 
-        ledger
-            .apply(capacity_reservation_event(&ledger, "weighted-existing-1", 1, 20, 50))
-            .unwrap();
-        ledger
-            .apply(capacity_reservation_event(&ledger, "weighted-existing-2", 1, 20, 50))
-            .unwrap();
+        let first_existing =
+            capacity_reservation_event(&ledger, "weighted-existing-1", 1, 20, 50);
+        ledger.apply(first_existing).unwrap();
+        let second_existing =
+            capacity_reservation_event(&ledger, "weighted-existing-2", 1, 20, 50);
+        ledger.apply(second_existing).unwrap();
 
         let (exclusive_reservation, capacity_commit) =
             composite_reservations_for(&ledger, "must-fail", 1);
@@ -2886,7 +2886,8 @@ mod tests {
         publish_capacity_resource_catalog(&mut ledger);
         publish_capacity_snapshot(&mut ledger, '3', '4', 2, 2, 3);
 
-        let existing = reservation_for(&ledger, "exclusive-existing", 20, 50, 15, 14, 450);
+        let (mut existing, _) = composite_reservations_for(&ledger, "existing", 1);
+        existing.reservation_id = "exclusive-existing".into();
         commit_reservation_event(&mut ledger, existing, "exclusive-existing-event", '8')
             .unwrap();
 
