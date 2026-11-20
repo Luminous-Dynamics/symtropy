@@ -1,0 +1,232 @@
+{
+  "schema_version": "ocean-compute-industry-evidence-ledger-v0.1",
+  "fixture_id": "OCEAN-COMPUTE-INDUSTRY-REF-001",
+  "as_of": "2026-11-20",
+  "claim_ceiling": "Structured public-reference ledger for benchmark design only. Government, operator and survey claims retain their original evidence class; they are not independently audited as-built data unless explicitly stated. Comparisons must preserve scope, meter boundary and date.",
+  "references": [
+    {
+      "reference_id": "NATICK-2020-2021",
+      "project": "Microsoft Project Natick — Northern Isles (SSDC-002)",
+      "geography": "European Marine Energy Centre, Scotland, UK",
+      "status": "retrieved research demonstrator",
+      "metrics": [
+        {
+          "metric": "electrical_power_consumption",
+          "value": 240,
+          "unit": "kW",
+          "evidence_class": "project_design_and_project_report",
+          "source_url": "https://www.microsoft.com/en-us/research/project/natick/facts-and-figures/"
+        },
+        {
+          "metric": "server_count",
+          "value": 864,
+          "unit": "servers",
+          "evidence_class": "project_specification",
+          "source_url": "https://www.microsoft.com/en-us/research/project/natick/facts-and-figures/"
+        },
+        {
+          "metric": "rack_count",
+          "value": 12,
+          "unit": "racks",
+          "evidence_class": "project_specification",
+          "source_url": "https://www.microsoft.com/en-us/research/project/natick/facts-and-figures/"
+        },
+        {
+          "metric": "storage_capacity",
+          "value": 27.6,
+          "unit": "PB",
+          "evidence_class": "project_specification",
+          "source_url": "https://www.microsoft.com/en-us/research/project/natick/facts-and-figures/"
+        },
+        {
+          "metric": "maintenance_free_operation_target",
+          "value": 5,
+          "unit": "years",
+          "evidence_class": "design_target_not_completed_trial",
+          "source_url": "https://www.microsoft.com/en-us/research/project/natick/facts-and-figures/"
+        }
+      ],
+      "comparability_warning": "Do not treat the five-year maintenance-free target as the completed operating duration. A two-year retrieved research trial is not a commercial lifecycle or cyber-resilience certification. Do not generalize non-matched server-failure cohorts."
+    },
+    {
+      "reference_id": "HAINAN-UDC-2023-2025",
+      "project": "Hainan underwater data centre and intelligent computing cluster",
+      "geography": "Lingshui, Hainan, China",
+      "status": "reported commercial operation",
+      "metrics": [
+        {
+          "metric": "first_facility_commenced_operation",
+          "value": "2023-03",
+          "unit": "YYYY-MM",
+          "evidence_class": "government_report_of_operator_deployment",
+          "source_url": "https://english.www.gov.cn/news/202502/19/content_WS67b5a14dc6d0868f4e8efcaa.html"
+        },
+        {
+          "metric": "new_module_server_capacity",
+          "value": 400,
+          "unit": "servers minimum",
+          "evidence_class": "government_report_of_project_capacity",
+          "source_url": "https://english.www.gov.cn/news/202502/19/content_WS67b5a14dc6d0868f4e8efcaa.html"
+        },
+        {
+          "metric": "reported_cluster_compute_equivalence",
+          "value": 30000,
+          "unit": "high-end gaming PCs",
+          "evidence_class": "operator_or_media_claim_not_standardized_benchmark",
+          "source_url": "https://english.www.gov.cn/news/202502/19/content_WS67b5a14dc6d0868f4e8efcaa.html"
+        }
+      ],
+      "comparability_warning": "Public reporting does not provide a fully matched, independently audited annual PUE, lifecycle cost, service-normalized energy, recovery RPO/RTO or physical/cyber threat benchmark."
+    },
+    {
+      "reference_id": "SHANGHAI-LINGANG-2026",
+      "project": "Shanghai Lingang underwater data centre",
+      "geography": "Offshore Lingang, Shanghai, China",
+      "status": "first-phase demonstration in operation; larger project planned",
+      "metrics": [
+        {
+          "metric": "first_phase_capacity",
+          "value": 2.3,
+          "unit": "MW",
+          "evidence_class": "municipal_government_reported_operating_demonstration",
+          "source_url": "https://english.shanghai.gov.cn/en-Latest-WhatsNew/20260601/89a94ac072f842eeacf82fcf0cce8261.html"
+        },
+        {
+          "metric": "overall_two_phase_plan",
+          "value": 24,
+          "unit": "MW",
+          "evidence_class": "project_plan_not_commissioned_capacity",
+          "source_url": "https://english.shanghai.gov.cn/en-Policies/20260807/e366514466bc4c86b51a8d13bd3797fd.html"
+        },
+        {
+          "metric": "renewable_electricity_share",
+          "value": 95,
+          "unit": "percent minimum",
+          "evidence_class": "municipal_government_report_of_project_claim",
+          "source_url": "https://english.shanghai.gov.cn/en-Policies/20260807/e366514466bc4c86b51a8d13bd3797fd.html"
+        },
+        {
+          "metric": "phase_two_pue_target",
+          "value": 1.15,
+          "unit": "PUE maximum target",
+          "evidence_class": "project_design_target_not_independent_annual_measurement",
+          "source_url": "https://english.shanghai.gov.cn/en-Strength-Scitechcenter/20250611/c60460fe62e440d08b62be991cade0c9.html"
+        }
+      ],
+      "comparability_warning": "The 24 MW figure is the planned overall capacity; the first phase is 2.3 MW. Renewable share and PUE figures must retain their published project-claim/design-target status until independent interval meter data, system boundary and commissioning records are available."
+    },
+    {
+      "reference_id": "UPTIME-GLOBAL-2026",
+      "project": "Uptime Institute Global Data Center Survey 2026",
+      "geography": "Global operator survey",
+      "status": "published survey benchmark",
+      "metrics": [
+        {
+          "metric": "annual_facility_average_pue",
+          "value": 1.52,
+          "unit": "PUE",
+          "evidence_class": "survey_average_equal_facility_weight",
+          "source_url": "https://intelligence.uptimeinstitute.com/resource/uptime-institute-global-data-center-survey-2026"
+        },
+        {
+          "metric": "capacity_weighted_pue_analysis",
+          "value": 1.36,
+          "unit": "PUE",
+          "evidence_class": "survey_data_reanalysis_weighted_by_facility_size",
+          "source_url": "https://intelligence.uptimeinstitute.com/resource/growing-pue-advantage-larger-data-centers"
+        },
+        {
+          "metric": "leading_new_facility_pue",
+          "value": 1.3,
+          "unit": "PUE or lower",
+          "evidence_class": "survey_and_industry_reported_leading_facility_range",
+          "source_url": "https://intelligence.uptimeinstitute.com/resource/growing-pue-advantage-larger-data-centers"
+        },
+        {
+          "metric": "serious_or_severe_share_of_outages",
+          "value": 10,
+          "unit": "percent approximately",
+          "evidence_class": "survey_reported",
+          "source_url": "https://uptimeinstitute.com/uptime_assets/77a6191bef6c85cb4ac9bfb169ddc313cae517030b48709697b1f80bc10edc90-uptime-institute-global-data-center-survey-results-2026.pdf"
+        }
+      ],
+      "comparability_warning": "Survey statistics are not a controlled engineering trial. Equal-facility and capacity-weighted averages answer different questions. Do not compare site PUE without equivalent meter boundaries, mixed-use handling, annual period and climate."
+    },
+    {
+      "reference_id": "ISO-IEC-30134-2-2026",
+      "project": "ISO/IEC 30134-2:2026 — PUE measurement",
+      "geography": "International standard",
+      "status": "published edition 2, January 2026",
+      "metrics": [
+        {
+          "metric": "edition",
+          "value": 2,
+          "unit": "edition",
+          "evidence_class": "standard_metadata",
+          "source_url": "https://www.iso.org/standard/30134-2"
+        }
+      ],
+      "comparability_warning": "Use the applicable 2026 text and measurement category. State mixed-use PUE variant and treatment of on-site generation/unaccounted energy."
+    },
+    {
+      "reference_id": "NGQURA-WAVE-FEASIBILITY-2026",
+      "project": "Port of Ngqura breakwater wave-energy feasibility study",
+      "geography": "Ngqura / Coega, Eastern Cape, South Africa",
+      "status": "feasibility announcement; subject to development and permitting",
+      "metrics": [
+        {
+          "metric": "potential_installed_capacity",
+          "value": 8.3,
+          "unit": "MW",
+          "evidence_class": "company_announced_feasibility_result_not_installed_or_firm_generation",
+          "source_url": "https://www.sec.gov/Archives/edgar/data/1846715/000121390026016925/ea027651301ex99-1_ecowave.htm"
+        }
+      ],
+      "comparability_warning": "No hourly net output, capacity factor, storm availability, maintenance profile, firm capacity or grid connection is admitted. Do not translate installed MW directly into annual MWh or autonomy."
+    },
+    {
+      "reference_id": "ENTSOE-DC-FLEX-2026",
+      "project": "ENTSO-E — Data centres and the power system (April 2026)",
+      "geography": "European power-system analysis; workload taxonomy is a reference, not a South African grid rule",
+      "status": "published system report",
+      "metrics": [
+        {
+          "metric": "workload_flexibility_taxonomy",
+          "value": "AI/ML training and batch/data processing generally have higher time/geographic shift potential; inference medium/low; transactional real-time very low",
+          "unit": "qualitative classification",
+          "evidence_class": "systematic_report_assessment",
+          "source_url": "https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Reports/2026/FINAL_ENTSO-E_Data_Centres_260430.pdf"
+        }
+      ],
+      "comparability_warning": "The flexible fraction depends on each workload, incentive and operator constraints. Do not infer that all compute is dispatchable or that a scheduler delivers fast grid response."
+    },
+    {
+      "reference_id": "IEA4E-DC-FLEX-2026",
+      "project": "IEA 4E EDNA — Data Centres and Flexibility (July 2026)",
+      "geography": "International review",
+      "status": "published policy/technology review",
+      "metrics": [
+        {
+          "metric": "flexibility_dimensions",
+          "value": "market-serving, grid-serving and system-serving; workload, supporting infrastructure and additional flexibility assets",
+          "unit": "framework",
+          "evidence_class": "published_review",
+          "source_url": "https://www.iea-4e.org/edna/publications/data-centres-and-flexibility/"
+        }
+      ],
+      "comparability_warning": "Potential flexibility is not necessarily deployed flexibility; assess technical, economic and operational barriers locally."
+    }
+  ],
+  "project_target_ladder": {
+    "pue_annual_measured_max": 1.15,
+    "pue_stretch_annual_measured_max": 1.1,
+    "accepted_service_energy_reduction_minimum_percent": 10,
+    "accepted_service_energy_reduction_stretch_percent": 20,
+    "hourly_carbon_free_match_minimum_percent": 90,
+    "hourly_carbon_free_match_stretch_percent": 95,
+    "warm_recovery_rpo_minutes": 15,
+    "warm_recovery_rto_hours": 4,
+    "immutable_cleanroom_rto_hours": 72,
+    "claim_ceiling": "All are proposed objectives, not project results. Require matched workloads, identical service quality/deadlines, complete meter boundaries and independent evidence."
+  }
+}
