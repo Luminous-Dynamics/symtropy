@@ -1,0 +1,12 @@
+[package]
+name = "taskspace-capability-field"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+# Keep this no-dependency analytic reference separate from the root workspace.
+[workspace]
