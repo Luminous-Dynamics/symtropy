@@ -103,3 +103,36 @@ This tranche reuses #10644, #9075/#9177, #6249 and #6201. It does not create a s
 3. Add a matched memory-condition tournament under exact memory/token budgets.
 4. Connect the existing Symthaea memory owner and causal AV consumer without duplicating their runtime systems.
 5. Move truth/media to a restricted evaluation service for blind, rights-qualified tests.
+
+## Candidate submission and deterministic evaluator (v1)
+
+The first evaluator tranche is now implemented:
+
+- schemas/submission-v1.schema.json: candidate policy answer/abstention, confidence, memory condition, cited and current observation references, independence/cross-clock claims and evidence/response ticks.
+- schemas/scorecard-v1.schema.json: answer/decision accuracy, coverage, selective accuracy, source-citation completeness/precision, hard violations and deadline misses.
+- tools/av-long-horizon-evidence-evaluator/evaluate.py: standard-library-only deterministic scorer.
+- tools/av-long-horizon-evidence-evaluator/test_evaluate.py: adversarial cases for duplicate delivery, source identity, correction/supersession, common-cause dependence, absent-event false memory, clock incomparability, revocation, citations and timing.
+- fixtures/agent/reference-submission-v1.json: authored finite reference evidence-ledger policy.
+- fixtures/expected/reference-scorecard-summary-v1.json: frozen reference totals.
+- The exact-head workflow now validates both schemas, runs the evaluator test suite, scores the reference submission and compares the expected totals.
+
+Run the reference scorer:
+
+    python3 tools/av-long-horizon-evidence-evaluator/evaluate.py \
+      --workload research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json \
+      --truth research/av-long-horizon-evidence-v0/fixtures/evaluator-only/truth-v1.json \
+      --submission research/av-long-horizon-evidence-v0/fixtures/agent/reference-submission-v1.json \
+      --output /tmp/av-long-horizon-reference-scorecard.json
+
+The evaluator requires the submission's evidence cutoff to equal the query tick. This prevents a policy from moving the evidence horizon backwards to make required observations appear unavailable. It verifies citations against the actual stream, requires required source references for answers, tracks the original observation identity across duplicate delivery, rejects revoked evidence after revocation, rejects superseded observations as the current state, and detects false independent-corroboration and cross-clock-order claims.
+
+The finite reference submission produces eight correct event answers and one correct absent-event abstention: 8/9 answer accuracy, 8/9 coverage, 9/9 safe-decision accuracy, 9/9 complete source-citation sets, zero hard violations and zero deadline misses. The mean citation precision is 8.5/9 because the correction case intentionally cites both the superseded historical observation and the current replacement while marking only the replacement as current. These values are synthetic evaluator known answers, not learned-model scores.
+
+### Interpretation boundaries
+
+- Historical evidence may remain cited to explain a correction, but the superseded source cannot be claimed as current.
+- Revoked evidence cannot remain eligible support after the revocation event becomes available.
+- Re-delivery of the same observation reference is not a new event; distinct-event counts operate on unique source observation identities, not transport deliveries.
+- An absent-event query is a success only when the policy abstains without inventing a supporting observation.
+- Within-clock sequence reasoning does not license cross-clock ordering. Different domains/generations remain incomparable until an existing owner supplies a qualified transform.
+- The current scorecard does not yet compare the four memory conditions or measure memory bytes, retrieval latency or energy. Those will require a separate matched run envelope and measured telemetry.
