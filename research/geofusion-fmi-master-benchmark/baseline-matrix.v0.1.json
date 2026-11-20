@@ -108,7 +108,12 @@
     "false_closure_and_false_qualification",
     "invalid_input_and_unsupported_feature_refusal",
     "deterministic_receipt_replay",
-    "SSP component_connection_parameter_and_unit_semantics_round_trip"
+    "SSP component_connection_parameter_and_unit_semantics_round_trip",
+    "predictor_future_sample_leakage_count",
+    "predictor_error_against_observed_interval_integral",
+    "envelope_limiter_activation_count_and_max_correction",
+    "predictor_uncertainty_calibration_and_rejected_step_decisions",
+    "FMI_early_return_event_mode_clock_tick_and_derivative_semantics"
   ],
   "hard_gates": {
     "false_conservation_closures": 0,
@@ -117,7 +122,10 @@
     "silent_extrapolation": false,
     "exact_carrier_boundary_interval_model_binding": true,
     "deterministic_receipts_for_deterministic_inputs": true,
-    "failures_timeouts_unsupported_in_denominator": true
+    "failures_timeouts_unsupported_in_denominator": true,
+    "causal_lane_future_sample_reads": 0,
+    "predictor_limiter_corrections_must_be_recorded": true,
+    "no_unqualified_error_bound_claim": true
   },
   "stretch_objectives": [
     "Pareto_improve_trajectory_error_balance_residual_and_latency",
@@ -177,6 +185,14 @@
     },
     {
       "id": "ssp_tool_support_matrix",
+      "url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "id": "fmi_implementers_guide_snapshot_2026_10_06",
+      "url": "https://modelica.github.io/fmi-guides/main/fmi-guide/"
+    },
+    {
+      "id": "ssp_tools_matrix_current",
       "url": "https://ssp-standard.org/tools/"
     }
   ],
@@ -388,6 +404,34 @@
       "evidence_url": "https://ssp-standard.org/tools/"
     },
     {
+      "tool": "Dymola",
+      "vendor": "Dassault Systèmes",
+      "declared_import": [
+        "1.0",
+        "2.0"
+      ],
+      "declared_export": [
+        "1.0",
+        "2.0"
+      ],
+      "benchmark_lane": "ssp_2_0_1_independent_candidate",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "Scilab/Xcos",
+      "vendor": "Dassault Systèmes",
+      "declared_import": [
+        "2.0"
+      ],
+      "declared_export": [
+        "2.0"
+      ],
+      "benchmark_lane": "ssp_2_0_1_independent_candidate",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
       "tool": "OMSimulator",
       "vendor": "OpenModelica",
       "declared_import": [
@@ -438,6 +482,41 @@
       "benchmark_lane": "ssp_1_0_legacy_compatibility",
       "exact_product_build": "must_pin_before_run",
       "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "Simcenter Studio",
+      "vendor": "Siemens",
+      "declared_import": [],
+      "declared_export": [
+        "1.0"
+      ],
+      "benchmark_lane": "ssp_1_0_export_only",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "OpenMCx",
+      "vendor": "Eclipse Foundation",
+      "declared_import": [
+        "1.0"
+      ],
+      "declared_export": [],
+      "benchmark_lane": "ssp_1_0_import_only",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "Ecos",
+      "vendor": "NTNU Ålesund",
+      "declared_import": [
+        "1.0"
+      ],
+      "declared_export": [
+        "1.0"
+      ],
+      "benchmark_lane": "ssp_1_0_legacy_compatibility",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
     }
   ],
   "ssp_round_trip_protocol": {
@@ -473,6 +552,89 @@
       "canonical_graph_diff"
     ],
     "unsupported_or_inaccessible_disposition": "NOT_EVALUABLE",
-    "no_round_trip_claim_without_both_import_and_export_runs": true
+    "no_round_trip_claim_without_both_import_and_export_runs": true,
+    "additional_ssp_2_candidates": [
+      "Dymola",
+      "Scilab/Xcos"
+    ],
+    "no_one_way_support_counts_as_full_roundtrip": true
+  },
+  "co_sim_predictor_tracks": [
+    {
+      "id": "zoh_baseline",
+      "data_access": "current_sample_only",
+      "causality": "causal",
+      "order_on_smooth_waveform": "first_order_global",
+      "reference_role": "baseline"
+    },
+    {
+      "id": "causal_bounded_linear",
+      "data_access": "current_and_previous_committed_source_samples",
+      "causality": "causal",
+      "order_on_smooth_waveform": "approximately_second_order_global",
+      "limiter": "explicit_power_envelope_projection_with_receipt",
+      "reference_role": "deployable_predictor_candidate",
+      "evidence": "PR #6344 analytic oracle ladder"
+    },
+    {
+      "id": "exact_interval_average",
+      "data_access": "whole_future_interval_waveform_or_integral",
+      "causality": "non_causal_unless_source_publishes_interval_integral",
+      "reference_role": "oracle_upper_bound_not_master_win"
+    },
+    {
+      "id": "derivative_assisted",
+      "data_access": "advertised_FMI_output_or_directional_adjoint_derivatives",
+      "causality": "capability_conditional",
+      "reference_role": "research_candidate"
+    },
+    {
+      "id": "implicit_iterative",
+      "data_access": "multiple_coupling_iterations_and_checkpointing",
+      "causality": "capability_conditional",
+      "reference_role": "adjacent_preCICE_IQN_ILS_method_reference"
+    }
+  ],
+  "advanced_fmi3_feature_campaign": {
+    "guide_snapshot": "2026-10-06",
+    "features": [
+      {
+        "feature": "early_return",
+        "model_description_flags": [
+          "mightReturnEarlyFromDoStep",
+          "canReturnEarlyAfterIntermediateUpdate"
+        ],
+        "required_observation": "lastSuccessfulTime exactness and event flags"
+      },
+      {
+        "feature": "external_event_mode",
+        "model_description_flags": [
+          "hasEventMode"
+        ],
+        "required_observation": "eventHandlingNeeded, Event Mode transitions, event iteration"
+      },
+      {
+        "feature": "clocks",
+        "model_description_flags": [
+          "clock"
+        ],
+        "required_observation": "tick time, tick cause, activation order and scheduler decisions"
+      },
+      {
+        "feature": "directional_derivatives",
+        "model_description_flags": [
+          "providesDirectionalDerivatives"
+        ],
+        "required_observation": "seed vector, value references, derivative output, accuracy against finite-difference reference"
+      },
+      {
+        "feature": "adjoint_derivatives",
+        "model_description_flags": [
+          "providesAdjointDerivatives"
+        ],
+        "required_observation": "adjoint seed, value references, gradient output, accuracy against reference"
+      }
+    ],
+    "policy": "Probe each exact FMU capability and importer support. Unsupported combinations are NOT_EVALUABLE. Do not silently emulate; do not compare tools across different capability subsets."
   }
 }
