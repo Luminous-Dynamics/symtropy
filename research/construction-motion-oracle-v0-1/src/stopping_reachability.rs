@@ -684,6 +684,8 @@ mod tests {
             sensor_profile_sha256: "bad".into(),
             detection_qualification_receipt_sha256: digest('6'),
             target_condition_sha256: digest('7'),
+            scenario_context_sha256: digest('8'),
+            maximum_qualified_approach_speed_mm_s: 1_500.0,
             minimum_qualified_detection_distance_mm: 1_000.0,
         };
         assert_eq!(
