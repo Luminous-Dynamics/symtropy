@@ -1,0 +1,83 @@
+name: Orbital Service Receipt Admission Reference
+
+on:
+  push:
+    branches: ["research/orbital-service-receipt-admission-v0-1"]
+    paths:
+      - "tools/orbital-service-receipt-admission-bench/**"
+      - ".github/workflows/orbital-service-receipt-admission-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/orbital-service-receipt-admission-bench/**"
+      - ".github/workflows/orbital-service-receipt-admission-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: orbital-service-receipt-admission-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  receipt-admission:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      BENCHMARK_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact benchmark head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Generate standalone lockfile
+        run: cargo generate-lockfile --manifest-path tools/orbital-service-receipt-admission-bench/Cargo.toml
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/orbital-service-receipt-admission-bench/Cargo.toml -- --check
+
+      - name: Run unit tests
+        run: cargo test --locked --manifest-path tools/orbital-service-receipt-admission-bench/Cargo.toml --all-targets
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path tools/orbital-service-receipt-admission-bench/Cargo.toml --all-targets -- -D warnings
+
+      - name: Replay exact-byte receipt corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_commit="$(git rev-parse HEAD)"
+          test "$actual_commit" = "$BENCHMARK_COMMIT"
+          cargo run --locked --quiet --manifest-path tools/orbital-service-receipt-admission-bench/Cargo.toml -- \
+            tools/orbital-service-receipt-admission-bench/fixtures/v0.1/cases.json \
+            --source-commit "$actual_commit" > orbital-service-receipt-admission-receipt.json
+          jq -e --arg expected_commit "$BENCHMARK_COMMIT" '
+            .receipt_schema == "luminous.orbital-service-receipt-admission.receipt.v0.1"
+            and .source_commit == $expected_commit
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and .result == "pass"
+            and .report.evidence_class == "synthetic"
+            and .report.claim_ceiling == "synthetic-receiver-accepted-service-receipt-admission-only"
+            and .report.summary.scenario_count == 35
+            and .report.summary.expected_result_mismatches == 0
+            and .report.summary.false_service_success_claims == 0
+            and .report.summary.authority_grants == 0
+            and .authority_granted == false
+          ' orbital-service-receipt-admission-receipt.json
+
+      - name: Upload reproducible receipt-admission report
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-service-receipt-admission-${{ github.event.pull_request.head.sha || github.sha }}
+          path: orbital-service-receipt-admission-receipt.json
+          if-no-files-found: error
+          retention-days: 30
