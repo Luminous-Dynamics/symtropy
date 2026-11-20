@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-long-horizon-evidence-v0",
+  "warning": "Evaluator-only truth. Keep outside candidate process, filesystem namespace, credentials, logs and build artifacts for blind evaluations.",
+  "episodes": [
+    {
+      "episode_id": "lh-001-delayed-recall-10m",
+      "expected_decision": "answer",
+      "expected_answer": "door-impact",
+      "required_observation_refs": [
+        "obs-door-impact"
+      ],
+      "query_as_of_tick": 600
+    },
+    {
+      "episode_id": "lh-002-repeated-event-dedup",
+      "expected_decision": "answer",
+      "expected_answer": "four_distinct_taps",
+      "required_observation_refs": [
+        "obs-tap-1",
+        "obs-tap-2",
+        "obs-tap-3",
+        "obs-tap-4"
+      ],
+      "excluded_duplicate_refs": [
+        "obs-tap-2-replay"
+      ],
+      "query_as_of_tick": 900
+    },
+    {
+      "episode_id": "lh-003-correction-supersession",
+      "expected_decision": "answer",
+      "expected_answer": "corrected_machine_state",
+      "required_observation_refs": [
+        "obs-machine-state-corrected"
+      ],
+      "superseded_refs": [
+        "obs-machine-state-v1"
+      ],
+      "query_as_of_tick": 1800
+    },
+    {
+      "episode_id": "lh-004-common-cause-dependence",
+      "expected_decision": "answer",
+      "expected_answer": "dependent_views_not_independent",
+      "required_observation_refs": [
+        "obs-impact-video",
+        "obs-impact-audio"
+      ],
+      "shared_dependency_group": "root-shared-impact-4",
+      "independence_claim_allowed": false,
+      "query_as_of_tick": 1200
+    },
+    {
+      "episode_id": "lh-005-nuisance-interference",
+      "expected_decision": "answer",
+      "expected_answer": "target-alarm",
+      "required_observation_refs": [
+        "obs-target-alarm"
+      ],
+      "query_as_of_tick": 3600
+    },
+    {
+      "episode_id": "lh-006-absent-event-false-memory",
+      "expected_decision": "abstain",
+      "expected_answer": null,
+      "required_observation_refs": [],
+      "absent_event_class": "glass-breaking",
+      "query_as_of_tick": 900
+    },
+    {
+      "episode_id": "lh-007-cross-clock-and-event-order",
+      "expected_decision": "answer",
+      "expected_answer": "within_clock_order_only",
+      "required_observation_refs": [
+        "obs-camera-action",
+        "obs-mic-sound",
+        "obs-camera-reset",
+        "obs-mic-after-reset"
+      ],
+      "cross_clock_comparison": "incomparable_without_qualified_transform",
+      "query_as_of_tick": 7200
+    },
+    {
+      "episode_id": "lh-008-memory-revocation",
+      "expected_decision": "answer",
+      "expected_answer": "only_public_action_remains_eligible",
+      "required_observation_refs": [
+        "obs-public-action"
+      ],
+      "revoked_refs": [
+        "obs-private-utterance"
+      ],
+      "query_as_of_tick": 3600
+    },
+    {
+      "episode_id": "lh-009-compression-retention",
+      "expected_decision": "answer",
+      "expected_answer": "rare-vibration",
+      "required_observation_refs": [
+        "obs-rare-vibration"
+      ],
+      "query_as_of_tick": 5400
+    }
+  ]
+}
