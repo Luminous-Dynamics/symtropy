@@ -1,0 +1,17 @@
+[package]
+name = "power-restoration-run-receipt"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Immutable planner-to-service restoration benchmark run receipt qualifier"
+
+[dependencies]
+power-restoration-benchmark-case = { path = "../power-restoration-benchmark-case" }
+power-restoration-action-proposal = { path = "../power-restoration-action-proposal" }
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+sha2 = "=0.10.9"
+
+[workspace]
