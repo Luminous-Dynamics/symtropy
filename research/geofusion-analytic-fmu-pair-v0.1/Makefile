@@ -11,13 +11,13 @@ COMMON_HEADERS := $(FMI_HEADERS)/fmi3Functions.h $(FMI_HEADERS)/fmi3FunctionType
 .PHONY: all package test clean
 all: package test
 
-$(BUILD)/GeothermalSource.so: src/geothermal_source.c $(COMMON_HEADERS)
+$(BUILD)/GeothermalSource.so: src/geothermal_source.c src/fmi3_unsupported.c $(COMMON_HEADERS)
 	mkdir -p $(BUILD)
-	$(CC) $(CFLAGS) -I$(FMI_HEADERS) $(LDFLAGS) -o $@ $< -lm
+	$(CC) $(CFLAGS) -I$(FMI_HEADERS) $(LDFLAGS) -o $@ src/geothermal_source.c src/fmi3_unsupported.c -lm
 
-$(BUILD)/HeatExchangerBuffer.so: src/heat_exchanger_buffer.c $(COMMON_HEADERS)
+$(BUILD)/HeatExchangerBuffer.so: src/heat_exchanger_buffer.c src/fmi3_unsupported.c $(COMMON_HEADERS)
 	mkdir -p $(BUILD)
-	$(CC) $(CFLAGS) -I$(FMI_HEADERS) $(LDFLAGS) -o $@ $< -lm
+	$(CC) $(CFLAGS) -I$(FMI_HEADERS) $(LDFLAGS) -o $@ src/heat_exchanger_buffer.c src/fmi3_unsupported.c -lm
 
 $(BUILD)/fmi3_smoke: tests/fmi3_smoke.c $(COMMON_HEADERS)
 	mkdir -p $(BUILD)
@@ -31,8 +31,8 @@ package: $(BUILD)/GeothermalSource.so $(BUILD)/HeatExchangerBuffer.so
 	cp model-description/heat-exchanger-buffer.xml $(STAGE)/heat-exchanger/modelDescription.xml
 	cp $(BUILD)/GeothermalSource.so $(STAGE)/geothermal/binaries/x86_64-linux/GeothermalSource.so
 	cp $(BUILD)/HeatExchangerBuffer.so $(STAGE)/heat-exchanger/binaries/x86_64-linux/HeatExchangerBuffer.so
-	cp src/geothermal_source.c $(STAGE)/geothermal/sources/
-	cp src/heat_exchanger_buffer.c $(STAGE)/heat-exchanger/sources/
+	cp src/geothermal_source.c src/fmi3_unsupported.c $(STAGE)/geothermal/sources/
+	cp src/heat_exchanger_buffer.c src/fmi3_unsupported.c $(STAGE)/heat-exchanger/sources/
 	cp $(COMMON_HEADERS) $(STAGE)/geothermal/sources/
 	cp $(COMMON_HEADERS) $(STAGE)/heat-exchanger/sources/
 	cp third_party/FMI-3.0.2/LICENSE.txt $(STAGE)/geothermal/licenses/FMI-3.0.2-LICENSE.txt
@@ -43,6 +43,7 @@ package: $(BUILD)/GeothermalSource.so $(BUILD)/HeatExchangerBuffer.so
 	cd $(STAGE)/heat-exchanger && find . -type f -printf '%P
 ' | LC_ALL=C sort | $(ZIP) -X -q ../GeoFusion-HeatExchangerBuffer.fmu -@
 	cd $(STAGE) && sha256sum *.fmu > artifact-digests.sha256
+	cd $(BUILD) && sha256sum GeothermalSource.so HeatExchangerBuffer.so >> stage/artifact-digests.sha256
 
 test: package $(BUILD)/fmi3_smoke
 	$(BUILD)/fmi3_smoke $(STAGE)/geothermal/binaries/x86_64-linux/GeothermalSource.so $(STAGE)/heat-exchanger/binaries/x86_64-linux/HeatExchangerBuffer.so
