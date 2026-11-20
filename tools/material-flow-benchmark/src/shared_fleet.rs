@@ -1142,6 +1142,12 @@ mod tests {
             probability_ambiguity_expected_cost(&costs, 1_000).expect("10% TV radius"),
             32
         );
+        assert_eq!(
+            probability_ambiguity_expected_cost(&costs, 10_000).expect("full TV radius"),
+            100
+        );
+        assert!(probability_ambiguity_expected_cost(&costs, 10_001).is_err());
+        assert!(probability_ambiguity_expected_cost(&[(100_u128, 5_000_u16)], 100).is_err());
         let reversed = vec![(20_u128, 9_500_u16), (100_u128, 500_u16)];
         assert_eq!(
             probability_ambiguity_expected_cost(&reversed, 1_000).expect("permuted scenarios"),
@@ -1164,6 +1170,17 @@ mod tests {
             report.distributionally_robust_optimal_policy
                 .probability_ambiguity_expected_cost_units
                 <= report.optimized_policy.probability_ambiguity_expected_cost_units
+        );
+        assert!(
+            report.distributionally_robust_optimal_policy
+                .probability_ambiguity_expected_cost_units
+                <= report.fixed_initial_region_baseline
+                    .probability_ambiguity_expected_cost_units
+        );
+        assert!(
+            report.distributionally_robust_optimal_policy
+                .probability_ambiguity_expected_cost_units
+                <= report.truck_only_baseline.probability_ambiguity_expected_cost_units
         );
     }
 
