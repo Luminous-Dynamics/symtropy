@@ -104,3 +104,43 @@ jobs:
             .stream_events[0].source_dependency_group == .stream_events[1].source_dependency_group' research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json
           jq -e '.episodes[] | select(.episode_id == "lh-008-memory-revocation") |
             any(.stream_events[]; .kind == "revocation" and .target_observation_ref == "obs-private-utterance")' research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json
+
+      - name: Validate candidate submission and scorecard schemas
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-long-horizon-evidence-v0/"
+          submission_schema = json.load(open(base + "schemas/submission-v1.schema.json", encoding="utf-8"))
+          scorecard_schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          Draft202012Validator.check_schema(submission_schema)
+          Draft202012Validator.check_schema(scorecard_schema)
+          submission = json.load(open(base + "fixtures/agent/reference-submission-v1.json", encoding="utf-8"))
+          Draft202012Validator(submission_schema).validate(submission)
+          PY
+      - name: Run long-horizon evaluator unit and adversarial tests
+        run: python -m unittest discover -s tools/av-long-horizon-evidence-evaluator -p "test_*.py" -v
+      - name: Score finite known-answer memory submission
+        run: |
+          python tools/av-long-horizon-evidence-evaluator/evaluate.py \
+            --workload research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json \
+            --truth research/av-long-horizon-evidence-v0/fixtures/evaluator-only/truth-v1.json \
+            --submission research/av-long-horizon-evidence-v0/fixtures/agent/reference-submission-v1.json \
+            --output /tmp/av-long-horizon-reference-scorecard.json
+      - name: Validate reference scorecard known answers
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-long-horizon-evidence-v0/"
+          schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          actual = json.load(open("/tmp/av-long-horizon-reference-scorecard.json", encoding="utf-8"))
+          expected = json.load(open(base + "fixtures/expected/reference-scorecard-summary-v1.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(actual)
+          assert actual["memory_condition"] == expected["memory_condition"]
+          for key, value in expected["totals"].items():
+              assert actual["totals"][key] == value, (key, actual["totals"][key], value)
+          assert actual["totals"]["answer_correct_count"] == 8
+          assert actual["totals"]["decision_correct_count"] == 9
+          assert actual["totals"]["hard_violation_count"] == 0
+          PY
