@@ -354,6 +354,12 @@ fn digest_hex(bytes: &[u8]) -> String {
     digest.iter().map(|b| format!("{b:02x}")).collect()
 }
 
+fn touch_payload(p: &Payload) {
+    let _ = (
+        &p.resource_path, &p.state_artifact_id, &p.checkpoint_id, &p.reason_code,
+    );
+}
+
 fn audit(ledger: Ledger, artifact_root: &Path) -> Result<AuditReport, String> {
     for (value, name) in [
         (&ledger.schema_version, "schema_version"),
@@ -407,8 +413,10 @@ fn audit(ledger: Ledger, artifact_root: &Path) -> Result<AuditReport, String> {
             return Err(format!("synthetic artifact must be an explicitly non-executable stub: {}", artifact.artifact_id));
         }
     }
-    if !artifacts.contains_key(ledger.master.artifact_id.as_str()) {
-        return Err("master executable artifact reference is missing".into());
+    let master_artifact = artifacts.get(ledger.master.artifact_id.as_str())
+        .ok_or("master executable artifact reference is missing")?;
+    if master_artifact.role != "master_executable" {
+        return Err("master artifact has the wrong role".into());
     }
     let trace_artifact = artifacts.get(ledger.normalized_trace_artifact_id.as_str())
         .ok_or("normalized trace artifact reference is missing")?;
@@ -440,13 +448,23 @@ fn audit(ledger: Ledger, artifact_root: &Path) -> Result<AuditReport, String> {
         if f.capabilities.can_serialize_fmu_state && !f.capabilities.can_get_and_set_fmu_state {
             return Err(format!("{} advertises canSerializeFMUState without canGetAndSetFMUState", f.federate_id));
         }
+        let _capability_profile = (
+            f.capabilities.can_handle_variable_communication_step_size,
+            f.capabilities.can_interpolate_inputs,
+            f.capabilities.can_return_early_after_intermediate_update,
+            f.capabilities.has_event_mode,
+            f.capabilities.can_run_asynchronously,
+            f.capabilities.provides_intermediate_update,
+        );
         if federates.insert(f.federate_id.as_str(), f).is_some() {
             return Err(format!("duplicate federate {}", f.federate_id));
         }
         let mut map = HashMap::new();
         for v in &f.variables {
-            if v.fmi_type != "Float64" || !["input", "output"].contains(&v.causality.as_str()) {
-                return Err(format!("{} variable {} outside Float64 input/output profile", f.federate_id, v.name));
+            if v.fmi_type != "Float64" || !["input", "output"].contains(&v.causality.as_str())
+                || !["continuous", "discrete", "tunable", "fixed", "constant"].contains(&v.variability.as_str())
+                || !["coupling_source", "coupling_sink", "terminal_sink"].contains(&v.port_role.as_str()) {
+                return Err(format!("{} variable {} outside the declared Float64 physical-port profile", f.federate_id, v.name));
             }
             for (value, label) in [
                 (&v.name, "variable.name"), (&v.unit, "variable.unit"),
@@ -488,6 +506,7 @@ fn audit(ledger: Ledger, artifact_root: &Path) -> Result<AuditReport, String> {
         let f = federates.get(event.federate_id.as_str())
             .ok_or_else(|| format!("unknown federate in event {}", event.event_id))?;
         let state = life.get_mut(event.federate_id.as_str()).expect("federate lifecycle exists");
+        touch_payload(&event.payload);
         let expected_symbol = match event.kind.as_str() {
             "instance_created" => "fmi3InstantiateCoSimulation",
             "initialization_mode" => if event.payload.transition.as_deref() == Some("enter") { "fmi3EnterInitializationMode" } else { "fmi3ExitInitializationMode" },
@@ -545,7 +564,9 @@ fn audit(ledger: Ledger, artifact_root: &Path) -> Result<AuditReport, String> {
                     return Err(format!("input set after step at {}", event.event_id));
                 }
                 let interval = event.payload.interval.as_ref().ok_or("missing exchange interval")?;
-                if interval.start_master_ns < 0 || interval.start_master_ns >= interval.end_master_ns {
+                if interval.start_master_ns < 0 || interval.start_master_ns >= interval.end_master_ns
+                    || !["constant_over_declared_half_open_interval", "sample_at_interval_end",
+                        "sample_at_interval_start", "interval_average"].contains(&interval.sampling_semantics.as_str()) {
                     return Err(format!("invalid exchange interval at {}", event.event_id));
                 }
                 let refs = event.payload.value_references.as_ref().ok_or("missing value references")?;
@@ -621,6 +642,15 @@ fn audit(ledger: Ledger, artifact_root: &Path) -> Result<AuditReport, String> {
         }
     }
     if steps.is_empty() { return Err("ledger contains no doStep attempts".into()); }
+
+    for value in &value_records {
+        let step = steps.values().find(|s| s.federate_id == value.federate_id
+            && s.start_master_ns == value.interval.start_master_ns
+            && s.end_master_ns == value.interval.end_master_ns);
+        if step.is_none() {
+            return Err(format!("exchanged value interval has no matching successful doStep for port {}", value.variable.port_id));
+        }
+    }
 
     let mut transfer_reads: HashMap<&str, &ValueRecord> = HashMap::new();
     let mut transfer_writes: HashMap<&str, &ValueRecord> = HashMap::new();
@@ -711,12 +741,12 @@ fn audit(ledger: Ledger, artifact_root: &Path) -> Result<AuditReport, String> {
         return Err("energy-contract interval does not match exchanged values".into());
     }
 
-    let has_state_capabilities = ledger.federates.iter().any(|f|
-        f.capabilities.can_get_and_set_fmu_state || f.capabilities.can_serialize_fmu_state
+    let has_serialized_state_capability = ledger.federates.iter().any(|f|
+        f.capabilities.can_get_and_set_fmu_state && f.capabilities.can_serialize_fmu_state
     );
     if ledger.state_checkpointing.status == "unavailable" {
-        if !ledger.state_checkpointing.snapshot_artifact_ids.is_empty() || has_state_capabilities
-            || ledger.state_checkpointing.reason_code != "CAPABILITY_NOT_ADVERTISED" {
+        if !ledger.state_checkpointing.snapshot_artifact_ids.is_empty() || has_serialized_state_capability
+            || ledger.state_checkpointing.reason_code != "SERIALIZATION_CAPABILITY_NOT_ADVERTISED" {
             return Err("state-checkpoint unavailable disposition conflicts with capabilities/artifacts".into());
         }
     } else if ledger.state_checkpointing.status == "available" {
