@@ -53,6 +53,8 @@ jobs:
           name: geofusion-integrated-flux-fmi-3.0.2-pair
           path: |
             research/geofusion-integrated-flux-fmu-v0.1/build/stage/*.fmu
+            research/geofusion-integrated-flux-fmu-v0.1/build/stage/*.ssp
             research/geofusion-integrated-flux-fmu-v0.1/build/stage/artifact-digests.sha256
-            research/geofusion-integrated-flux-fmu-v0.1/tests/fmpy_flux_smoke.py
+            research/geofusion-integrated-flux-fmu-v0.1/tests/*.py
+            research/geofusion-integrated-flux-fmu-v0.1/ssp/*.py
           if-no-files-found: error
