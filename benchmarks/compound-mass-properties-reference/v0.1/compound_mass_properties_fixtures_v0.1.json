@@ -1,13 +1,7 @@
 {
   "schema_version":"0.1.0",
   "model_class":"compound_full_second_moment_tensor",
-  "units":{
-    "mass":"kg",
-    "centroid":"m",
-    "second_moment_tensor":"kg m^2",
-    "angular_impulse":"N m s",
-    "angular_velocity":"rad/s"
-  },
+  "units":{"mass":"kg","centroid":"m","second_moment_tensor":"kg m^2","angular_impulse":"N m s","angular_velocity":"rad/s"},
   "claim_ceiling":"Synthetic mathematical fixtures only. Not a measured mass-property dataset or production physics validation.",
   "governing_relations":{
     "compound_mass":"M = sum_k m_k",
