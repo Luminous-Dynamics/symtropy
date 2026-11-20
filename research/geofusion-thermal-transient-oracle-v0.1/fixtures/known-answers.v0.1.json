@@ -1,0 +1,48 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "GEOFUSION-THERMAL-TRANSIENT-ORACLE-001",
+  "model": "C*d(theta)/dt = (1-alpha)*Q_source - UA*theta",
+  "units": {
+    "heat_capacity": "J/K",
+    "loss_conductance": "W/K",
+    "source_power": "W",
+    "temperature_excess": "K",
+    "time": "s",
+    "energy": "J"
+  },
+  "parameters": {
+    "heat_capacity_j_per_k": 10000000,
+    "loss_conductance_w_per_k": 100000,
+    "service_fraction": 0.4
+  },
+  "piecewise_constant": {
+    "initial_theta_k": 1.5,
+    "source_power_w": 500000,
+    "duration_s": 60,
+    "expected": {
+      "theta_end_k": 2.1767825458589605,
+      "energy_input_j": 30000000,
+      "energy_service_j": 12000000,
+      "energy_loss_j": 11232174.541410396,
+      "storage_delta_j": 6767825.458589605,
+      "residual_j": 0
+    }
+  },
+  "sinusoidal": {
+    "mean_power_w": 500000,
+    "amplitude_w": 100000,
+    "period_s": 400,
+    "initial_theta_k": 2,
+    "start_time_s": 0,
+    "end_time_s": 120,
+    "expected": {
+      "theta_end_k": 3.02923898271592,
+      "energy_input_j": 68333461.00984275,
+      "energy_service_j": 27333384.4039371,
+      "energy_loss_j": 30707686.77874645,
+      "storage_delta_j": 10292389.8271592,
+      "residual_j": 0
+    }
+  },
+  "claim_ceiling": "Synthetic closed-form mathematical oracle only. No FMU, master, physical heat exchanger or geothermal plant qualification."
+}
