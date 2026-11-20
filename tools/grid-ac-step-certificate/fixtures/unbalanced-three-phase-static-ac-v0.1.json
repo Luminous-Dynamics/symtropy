@@ -1,0 +1,276 @@
+{
+  "schemaVersion": "0.1.0",
+  "caseId": "unbalanced-three-phase-static-ac-synthetic-001",
+  "caseMaturity": "synthetic_fixture",
+  "scenarioRef": "synthetic://scenario/three-phase-unbalanced",
+  "scheduleRef": "synthetic://schedule/three-phase-candidate",
+  "networkModel": {
+    "modelRef": "synthetic://network-model/unbalanced-three-phase-feeder/v1",
+    "modelRevision": "1.0.0",
+    "parameterSetRef": "synthetic://network-parameters/unbalanced-feeder/v1",
+    "parameterSetSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "modelClass": "unbalanced_three_phase",
+    "requiredPhases": [
+      "A",
+      "B",
+      "C"
+    ],
+    "applicabilityRef": "synthetic://applicability/phase-specific-feeder-model",
+    "limitPolicyRef": "synthetic://limits/three-phase-v1"
+  },
+  "evaluationGrid": {
+    "timeOriginRef": "synthetic://time-origin/u0",
+    "timeZone": "UTC",
+    "stepDurationSeconds": 300,
+    "steps": [
+      {
+        "stepId": "u0",
+        "stepIndex": 0,
+        "startSeconds": 0,
+        "endSeconds": 300,
+        "boundaryKind": "initial_state",
+        "topologyStateSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "dispatchStateSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+    ]
+  },
+  "plannerSummary": {
+    "plannerRef": "synthetic://planner/dc-opf/v1",
+    "plannerRevision": "1",
+    "plannerModelRef": "synthetic://planner-model/dc-opf",
+    "feasibilityModel": "dc_opf",
+    "stepResults": [
+      {
+        "stepId": "u0",
+        "plannerStatus": "feasible",
+        "topologyStateSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "dispatchStateSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+    ]
+  },
+  "acStepReceipts": [
+    {
+      "receiptId": "ac-u0-unbalanced",
+      "stepId": "u0",
+      "receiptMaturity": "synthetic_fixture",
+      "solverRef": "synthetic://solver/three-phase-ac",
+      "solverVersion": "1.0.0",
+      "solverBuildSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "solverConfigurationRef": "synthetic://solver-config/3phase",
+      "inputManifestRef": "synthetic://ac-input/u0",
+      "inputManifestSha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "outputArtifactRef": "synthetic://ac-output/u0",
+      "outputArtifactSha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "networkModelRef": "synthetic://network-model/unbalanced-three-phase-feeder/v1",
+      "parameterSetRef": "synthetic://network-parameters/unbalanced-feeder/v1",
+      "topologyStateSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "dispatchStateSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "modelClass": "unbalanced_three_phase",
+      "solverStatus": "converged",
+      "operatingPointStatus": "feasible",
+      "convergence": {
+        "iterationCount": 12,
+        "powerBalanceResidual": 0.000001,
+        "residualUnit": "MVA",
+        "residualTolerance": 0.00001,
+        "convergenceCriteriaRef": "synthetic://criteria/3phase"
+      },
+      "sourceCoverage": {
+        "energizedIslands": [
+          {
+            "islandRef": "synthetic://island/three-phase",
+            "slackOrGridFormingSourceRef": "synthetic://source/grid-former"
+          }
+        ],
+        "allIslandsHaveQualifiedSource": true
+      },
+      "constraintAssessments": [
+        {
+          "constraintId": "voltage-A",
+          "constraintType": "bus_voltage",
+          "subjectRef": "bus-7-A",
+          "phaseRef": "A",
+          "measuredValue": 0.99,
+          "unit": "p.u.",
+          "lowerLimit": 0.95,
+          "upperLimit": 1.05,
+          "limitEvidenceRef": "synthetic://limit/phase-voltage",
+          "margin": 0.040000000000000036,
+          "marginUnit": "p.u.",
+          "status": "pass"
+        },
+        {
+          "constraintId": "voltage-B",
+          "constraintType": "bus_voltage",
+          "subjectRef": "bus-7-B",
+          "phaseRef": "B",
+          "measuredValue": 0.97,
+          "unit": "p.u.",
+          "lowerLimit": 0.95,
+          "upperLimit": 1.05,
+          "limitEvidenceRef": "synthetic://limit/phase-voltage",
+          "margin": 0.020000000000000018,
+          "marginUnit": "p.u.",
+          "status": "pass"
+        },
+        {
+          "constraintId": "voltage-C",
+          "constraintType": "bus_voltage",
+          "subjectRef": "bus-7-C",
+          "phaseRef": "C",
+          "measuredValue": 0.96,
+          "unit": "p.u.",
+          "lowerLimit": 0.95,
+          "upperLimit": 1.05,
+          "limitEvidenceRef": "synthetic://limit/phase-voltage",
+          "margin": 0.010000000000000009,
+          "marginUnit": "p.u.",
+          "status": "pass"
+        },
+        {
+          "constraintId": "thermal-A",
+          "constraintType": "branch_thermal",
+          "subjectRef": "line-4-7-A",
+          "phaseRef": "A",
+          "measuredValue": 82,
+          "unit": "percent",
+          "lowerLimit": null,
+          "upperLimit": 100,
+          "limitEvidenceRef": "synthetic://limit/phase-thermal",
+          "margin": 18,
+          "marginUnit": "percentage_points",
+          "status": "pass"
+        },
+        {
+          "constraintId": "thermal-B",
+          "constraintType": "branch_thermal",
+          "subjectRef": "line-4-7-B",
+          "phaseRef": "B",
+          "measuredValue": 91,
+          "unit": "percent",
+          "lowerLimit": null,
+          "upperLimit": 100,
+          "limitEvidenceRef": "synthetic://limit/phase-thermal",
+          "margin": 9,
+          "marginUnit": "percentage_points",
+          "status": "pass"
+        },
+        {
+          "constraintId": "thermal-C",
+          "constraintType": "branch_thermal",
+          "subjectRef": "line-4-7-C",
+          "phaseRef": "C",
+          "measuredValue": 95,
+          "unit": "percent",
+          "lowerLimit": null,
+          "upperLimit": 100,
+          "limitEvidenceRef": "synthetic://limit/phase-thermal",
+          "margin": 5,
+          "marginUnit": "percentage_points",
+          "status": "pass"
+        },
+        {
+          "constraintId": "transformer-loading",
+          "constraintType": "transformer_loading",
+          "subjectRef": "TX1",
+          "phaseRef": null,
+          "measuredValue": 84,
+          "unit": "percent",
+          "lowerLimit": null,
+          "upperLimit": 100,
+          "limitEvidenceRef": "synthetic://limit/transformer",
+          "margin": 16,
+          "marginUnit": "percentage_points",
+          "status": "pass"
+        },
+        {
+          "constraintId": "generator-pq",
+          "constraintType": "generator_pq",
+          "subjectRef": "GEN1",
+          "phaseRef": null,
+          "measuredValue": 0.6,
+          "unit": "p.u.",
+          "lowerLimit": 0,
+          "upperLimit": 0.9,
+          "limitEvidenceRef": "synthetic://limit/generator-pq",
+          "margin": 0.3,
+          "marginUnit": "p.u.",
+          "status": "pass"
+        },
+        {
+          "constraintId": "inverter-capability",
+          "constraintType": "inverter_capability",
+          "subjectRef": "MPS1",
+          "phaseRef": null,
+          "measuredValue": 0.7,
+          "unit": "MVA",
+          "lowerLimit": null,
+          "upperLimit": 1,
+          "limitEvidenceRef": "synthetic://limit/inverter",
+          "margin": 0.3,
+          "marginUnit": "MVA",
+          "status": "pass"
+        },
+        {
+          "constraintId": "power-balance",
+          "constraintType": "power_balance",
+          "subjectRef": "system",
+          "phaseRef": null,
+          "measuredValue": 0.000001,
+          "unit": "MVA",
+          "lowerLimit": null,
+          "upperLimit": 0.00001,
+          "limitEvidenceRef": "synthetic://limit/power-balance",
+          "margin": 0.000009,
+          "marginUnit": "MVA",
+          "status": "pass"
+        },
+        {
+          "constraintId": "island-source",
+          "constraintType": "island_source",
+          "subjectRef": "synthetic://island/main",
+          "phaseRef": null,
+          "measuredValue": 1,
+          "unit": "count",
+          "lowerLimit": 1,
+          "upperLimit": null,
+          "limitEvidenceRef": "synthetic://limit/source-count",
+          "margin": 0,
+          "marginUnit": "count",
+          "status": "pass"
+        }
+      ],
+      "scopeLimitations": [
+        "Synthetic unbalanced steady-state AC snapshot only",
+        "No frequency, transient or protection qualification"
+      ],
+      "independentAcceptanceRef": "synthetic://acceptance/unbalanced-static-ac/u0"
+    }
+  ],
+  "intertemporalReceipt": {
+    "receiptRef": "synthetic://intertemporal/three-phase",
+    "receiptSha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "status": "accepted",
+    "coveredStepIds": [
+      "u0"
+    ],
+    "checks": [
+      {
+        "checkId": "phase-resource-continuity",
+        "status": "pass",
+        "evidenceRef": "synthetic://continuity/3phase"
+      }
+    ],
+    "modelLimitations": [
+      "Single-step fixture"
+    ]
+  },
+  "dynamicProtectionReceipt": {
+    "receiptRef": "synthetic://dynamic/three-phase-not-assessed",
+    "receiptSha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "status": "not_assessed",
+    "coveredStepIds": [],
+    "qualificationDomains": []
+  },
+  "claimBoundary": "Synthetic per-phase static AC receipt only; not a physical or dynamic qualification"
+}
