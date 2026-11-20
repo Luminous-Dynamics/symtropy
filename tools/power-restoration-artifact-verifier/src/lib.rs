@@ -148,6 +148,71 @@ impl VerifiedBundle {
     pub fn report(&self) -> &BundleVerificationReport {
         &self.report
     }
+
+    /// Re-read a previously verified artifact and re-check its exact bytes
+    /// immediately before a consumer parses them. This avoids parsing a
+    /// stale path after the bundle directory has changed since verification.
+    pub fn read_verified_artifact_bytes(
+        &self,
+        bundle_root: &Path,
+        artifact_uri: &str,
+        max_artifact_bytes: u64,
+    ) -> Result<Vec<u8>, Vec<String>> {
+        let Some(artifact) = self.report.verified_artifacts.iter()
+            .find(|artifact| artifact.artifact_uri == artifact_uri)
+        else {
+            return Err(vec![format!(
+                "artifact {artifact_uri} is not part of the verified bundle"
+            )]);
+        };
+
+        if artifact.byte_length == 0 || artifact.byte_length > max_artifact_bytes {
+            return Err(vec![format!(
+                "verified artifact {artifact_uri} exceeds the requested byte limit"
+            )]);
+        }
+        let relative_path = validate_relative_path(&artifact.relative_path)
+            .map_err(|error| vec![format!("verified artifact {artifact_uri}: {error}")])?;
+        let root_metadata = fs::symlink_metadata(bundle_root)
+            .map_err(|error| vec![format!("cannot inspect bundle root: {error}")])?;
+        if root_metadata.file_type().is_symlink() || !root_metadata.is_dir() {
+            return Err(vec!["bundle root must be a real directory, not a symlink".to_string()]);
+        }
+        let canonical_root = fs::canonicalize(bundle_root)
+            .map_err(|error| vec![format!("cannot canonicalize bundle root: {error}")])?;
+        let mut current = canonical_root.clone();
+        let components: Vec<_> = relative_path.components().collect();
+        for (index, component) in components.iter().enumerate() {
+            current.push(component.as_os_str());
+            let metadata = fs::symlink_metadata(&current)
+                .map_err(|error| vec![format!("verified artifact path component is missing: {error}")])?;
+            if metadata.file_type().is_symlink() {
+                return Err(vec!["verified artifact paths may not traverse symlinks".to_string()]);
+            }
+            if index + 1 < components.len() && !metadata.is_dir() {
+                return Err(vec!["non-final verified artifact path component is not a directory".to_string()]);
+            }
+            if index + 1 == components.len() && !metadata.is_file() {
+                return Err(vec!["verified artifact target must be a regular file".to_string()]);
+            }
+        }
+        let canonical_target = fs::canonicalize(&current)
+            .map_err(|error| vec![format!("cannot canonicalize verified artifact path: {error}")])?;
+        if !canonical_target.starts_with(&canonical_root) {
+            return Err(vec!["verified artifact path escapes the bundle root".to_string()]);
+        }
+
+        let bytes = fs::read(&canonical_target)
+            .map_err(|error| vec![format!("cannot re-read verified artifact bytes: {error}")])?;
+        if bytes.len() as u64 != artifact.byte_length
+            || sha256_hex(&bytes) != artifact.sha256
+        {
+            return Err(vec![format!(
+                "artifact {artifact_uri} changed after bundle verification"
+            )]);
+        }
+        Ok(bytes)
+    }
 }
 
 fn valid_id(value: &str) -> bool {
