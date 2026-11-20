@@ -1146,15 +1146,9 @@ pub fn verify_restoration_claim_evidence(
                 unsuccessful_observation_request_count += report.unsuccessful_request_count
                     + report.pending_request_count;
                 evidence_item_count += report.evidence_count;
-                if report.stale_at_presentation_count > 0
-                    || report.conflicting_evidence_count > 0
-                    || report.unverified_evidence_count > 0
-                {
-                    errors.push(format!(
-                        "observation batch {} contains stale, conflicting or unverified evidence",
-                        batch.batch_id
-                    ));
-                }
+                // Degraded observations remain part of the episode and denominator.
+                // Admissibility is enforced at point-of-use below: only evidence actually
+                // cited as an action precondition must be current, fresh and presented.
             }
             Err(batch_errors) => errors.extend(
                 batch_errors
@@ -1826,6 +1820,27 @@ mod tests {
         )
         .expect("write test artifact");
         root
+    }
+
+    #[test]
+    fn stale_unused_observation_does_not_invalidate_a_run_claim() {
+        let (mut batch, proposal, case) = {
+            let batch: EvidenceBatch = serde_json::from_str(include_str!(
+                "../fixtures/synthetic-observation-evidence-batch-v0.1.json"
+            )).unwrap();
+            let proposal: power_restoration_action_proposal::ActionProposal = serde_json::from_str(include_str!(
+                "../../power-restoration-action-proposal/fixtures/synthetic-information-request-proposal-v0.1.json"
+            )).unwrap();
+            let case: power_restoration_benchmark_case::BenchmarkCase = serde_json::from_str(include_str!(
+                "../../power-restoration-benchmark-case/fixtures/synthetic-restoration-case-v0.1.json"
+            )).unwrap();
+            (batch, proposal, case)
+        };
+        batch.results[0].evidence[0].quality = EvidenceQuality::Stale;
+        let report = validate_evidence_batch(&batch, &proposal, &case).unwrap();
+        assert_eq!(report.stale_at_presentation_count, 1);
+        // It remains a valid, visible observation record. A later proposal
+        // citing it as a precondition is rejected by the integrated gate.
     }
 
     #[test]
