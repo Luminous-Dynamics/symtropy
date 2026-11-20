@@ -115,6 +115,26 @@ class ArmTournamentTests(unittest.TestCase):
             report["paired_answer_comparisons"]["audio_video_vs_audio_only"]["overall"]["candidate_answer_wins"], 1
         )
 
+    def test_av_arm_does_not_get_abstention_credit_for_ignoring_available_audio(self):
+        runs = copy.deepcopy(self.runs)
+        row = next(
+            item for item in runs[2]["submission"]["predictions"]
+            if item["episode_id"] == "audio-a"
+        )
+        row.update(answer=None, confidence=0.0, abstained=True,
+                   used_modalities=["video"], cited_observation_refs=[ "v-audio-a" ])
+        report = comparator.compare_arms(self.workload, self.truth, runs)
+        result = next(
+            item for item in report["per_arm"]["audio_video"]["resource_usage"].items()
+        )
+        self.assertEqual(result[0], "measurement_status")
+        single_report = comparator.evaluate(
+            self.workload, self.truth, runs[2]["submission"],
+            permitted_modalities={"audio", "video"},
+        )
+        scored = next(x for x in single_report["per_episode"] if x["episode_id"] == "audio-a")
+        self.assertFalse(scored["decision_correct"])
+
     def test_mismatched_hardware_is_rejected(self):
         runs = copy.deepcopy(self.runs)
         runs[0]["hardware_id"] = "different-hardware"
