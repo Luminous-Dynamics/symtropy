@@ -1092,6 +1092,22 @@ mod tests {
                 });
             }
         }
+        let mut source_artifacts = vec![
+            ServiceSourceArtifact {
+                artifact_ref: "meter-capture://synthetic-run-0001".to_string(),
+                sha256: "4".repeat(64),
+            },
+            ServiceSourceArtifact {
+                artifact_ref: "calibration://meter-set-001".to_string(),
+                sha256: "3".repeat(64),
+            },
+        ];
+        for sample in &samples {
+            source_artifacts.push(ServiceSourceArtifact {
+                artifact_ref: sample.evidence_ref.clone().unwrap(),
+                sha256: sample.evidence_sha256.clone().unwrap(),
+            });
+        }
         ServiceTrajectoryRecord {
             schema_version: "0.1.0".to_string(),
             trajectory_id: "service-trajectory-0001".to_string(),
@@ -1119,16 +1135,7 @@ mod tests {
                 calibration_artifact_ref: Some("calibration://meter-set-001".to_string()),
                 calibration_artifact_sha256: Some("3".repeat(64)),
             },
-            source_artifacts: vec![
-                ServiceSourceArtifact {
-                    artifact_ref: "meter-capture://synthetic-run-0001".to_string(),
-                    sha256: "4".repeat(64),
-                },
-                ServiceSourceArtifact {
-                    artifact_ref: "calibration://meter-set-001".to_string(),
-                    sha256: "3".repeat(64),
-                },
-            ],
+            source_artifacts,
             samples,
             work_milestones: Vec::new(),
             parent_service_artifacts: vec![ServiceSourceArtifact {
@@ -1206,6 +1213,7 @@ mod tests {
         let mut trajectory = fully_served_trajectory(&case, &receipt);
         trajectory.stream_kind = ServiceStreamKind::PlannedForecast;
         trajectory.artifact_uri = "synthetic://forecast".to_string();
+        trajectory.parent_service_artifacts.clear();
         let report = audit_service_trajectory(&trajectory, &receipt, &case).unwrap();
         assert_eq!(report.result_status, "forecast_only_not_realized_service");
         assert!(report.weighted_delivered_kwh.is_none());
@@ -1272,16 +1280,17 @@ mod tests {
         trajectory.samples[0].delivered_kwh = None;
         trajectory.samples[0].unknown_reason = None;
         trajectory.samples[0].conflict_reason = Some("two meters disagree".to_string());
-        trajectory.samples[0].conflict_evidence = vec![
-            ServiceSourceArtifact {
-                artifact_ref: "meter://A/load-L3/step-0".to_string(),
-                sha256: "7".repeat(64),
-            },
-            ServiceSourceArtifact {
-                artifact_ref: "meter://B/load-L3/step-0".to_string(),
-                sha256: "8".repeat(64),
-            },
-        ];
+        let conflict_a = ServiceSourceArtifact {
+            artifact_ref: "meter://A/load-L3/step-0".to_string(),
+            sha256: "7".repeat(64),
+        };
+        let conflict_b = ServiceSourceArtifact {
+            artifact_ref: "meter://B/load-L3/step-0".to_string(),
+            sha256: "8".repeat(64),
+        };
+        trajectory.samples[0].conflict_evidence = vec![conflict_a.clone(), conflict_b.clone()];
+        trajectory.source_artifacts.push(conflict_a);
+        trajectory.source_artifacts.push(conflict_b);
         trajectory.parent_service_artifacts = receipt.decision_steps.iter()
             .filter(|step| step.disposition == StepDisposition::Executed
                 && step.service_outcome == ServiceOutcome::Scored)
