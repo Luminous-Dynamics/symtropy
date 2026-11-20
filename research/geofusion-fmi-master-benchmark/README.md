@@ -78,21 +78,6 @@ Sources:
 - [preCICE coupling scheme configuration](https://precice.org/docs/configuration/basics/coupling/)
 - [OpenModelica current User Guide — FMI support table](https://openmodelica.org/doc/OpenModelicaUsersGuide/OpenModelicaUsersGuide-latest.pdf)
 
-## 3B. Release maturity and compatibility lanes (snapshot: 20 Nov 2026)
-
-| Tool / lane | Exact snapshot | Maturity treatment |
-|---|---|---|
-| OMSimulator production comparator | 2.1.3 | Latest stable 2.1 line; use for production-stability baseline |
-| OMSimulator development lane | 3.0.0 | Development-only tag; testing/iteration only; production v3 planned as 3.1 |
-| FMPy importer | 0.3.32 | Latest published PyPI release in this snapshot; pin wheel digest, retain wheel; no PyPI provenance attestation reported |
-| OpenModelica FMI 2 lane | FMI 2.0.5 | Documented supported; keep separate mature lane |
-| OpenModelica FMI 3 lane | FMI 3.0.2 | Documented experimental; exploratory lane only |
-
-FMPy wheel SHA-256: `b379deb9417b842028003a288d00c1c5f138d1580e1ff12cc6c42a98719cecf0`.
-
-A benchmark receipt must include tool release, commit, binary hash, dependency manifest, FMI version, FMU capability flags and unsupported-feature dispositions. A development build and a stable production release must never share one undifferentiated ranking.
-
-
 ## 3B. Verified release-maturity snapshot (20 November 2026)
 
 | Tool / lane | Verified release or branch | Qualification treatment |
