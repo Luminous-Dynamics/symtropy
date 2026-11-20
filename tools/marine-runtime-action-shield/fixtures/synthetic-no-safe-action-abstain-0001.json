@@ -1,0 +1,2268 @@
+{
+  "schema_version": "0.1.0",
+  "scorecard_id": "MARINE-RUNTIME-ACTION-SHIELD-NO-SAFE-ACTION-SYNTHETIC-0001",
+  "record_status": "synthetic",
+  "claim_ceiling": "one_step_runtime_decision_receipt_only",
+  "mission_snapshot": {
+    "mission_id": "SYNTHETIC-RUNTIME-SHIELD-MISSION-0001",
+    "craft_configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "actuator_configuration_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "service_contract_sha256": "456c3b0ba1d7d7bcdecf9aea7c8772dca02e4f90b55bb8f42ce4e6f2a0f2d6c0",
+    "hard_gate_roster_sha256": "06aa7cd3b1774ff243b1f963d538f429726ddf027bc7e4cf6329153b4478af3d",
+    "scenario_roster_sha256": "8e7e650c658c1cbfb64ab325f86cbe793f3b8bd06501fa9a78aad07a21dc2cfd",
+    "disturbance_roster_sha256": "b6ceccbbf98050b3c951769fc793b2a9a7044ac0933f92e14b0a2640008f7e19",
+    "model_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "operating_domain_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "mission_snapshot_sha256": "7489837f79d387bd925055b89645ff90ed8b0a9a5df0d29d50caeac6397c58e5"
+  },
+  "service_contract": [
+    {
+      "metric": "energy_reserve_kwh",
+      "unit": "kWh",
+      "operator": "gte",
+      "floor_value": 4,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "freshwater_usable_l",
+      "unit": "L",
+      "operator": "gte",
+      "floor_value": 80,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "food_reserve_days",
+      "unit": "day",
+      "operator": "gte",
+      "floor_value": 3,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "waste_capacity_margin_days",
+      "unit": "day",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "critical_spares_coverage_days",
+      "unit": "day",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "power_service_availability",
+      "unit": "fraction",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "potable_water_service_availability",
+      "unit": "fraction",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "sanitation_service_availability",
+      "unit": "fraction",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "refrigeration_service_availability",
+      "unit": "fraction",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "crew_workload_hours_rolling_24h",
+      "unit": "h",
+      "operator": "lte",
+      "floor_value": 12,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "comfort_breach_minutes_rolling_24h",
+      "unit": "min",
+      "operator": "lte",
+      "floor_value": 60,
+      "minimum_coverage_fraction": 0.95
+    }
+  ],
+  "hard_gate_roster": [
+    "stability-envelope",
+    "traffic-compliance",
+    "operating-domain"
+  ],
+  "scenario_roster": [
+    "adverse_forecast_error",
+    "common_cause_generation_watermaker_outage",
+    "main_generation_outage",
+    "nominal",
+    "watermaker_outage"
+  ],
+  "disturbance_roster": [
+    {
+      "scenario_class": "adverse_forecast_error",
+      "disturbance_id": "synthetic-disturbance-1",
+      "disturbance_sha256": "85aa6a95efa2fcbd4fb9d02e1d098ae833c543841ce14f86e11b80fb2b8e7282"
+    },
+    {
+      "scenario_class": "common_cause_generation_watermaker_outage",
+      "disturbance_id": "synthetic-disturbance-2",
+      "disturbance_sha256": "1dfc3a7ef4126dd31bf028a041840bf01b02677012ea61fd9104d63d022e348c"
+    },
+    {
+      "scenario_class": "main_generation_outage",
+      "disturbance_id": "synthetic-disturbance-3",
+      "disturbance_sha256": "e4ccc5f2baf3a12164de59b441535dcfba520ea132c33b83ceddc240a91afd83"
+    },
+    {
+      "scenario_class": "nominal",
+      "disturbance_id": "synthetic-disturbance-4",
+      "disturbance_sha256": "0b1bc928bc9828fdc3031cc701e8ace9e62bb97bff59c4531dbf986c261bfb1f"
+    },
+    {
+      "scenario_class": "watermaker_outage",
+      "disturbance_id": "synthetic-disturbance-5",
+      "disturbance_sha256": "594dd899771822c347257a5e6d1874d61c37fe9a1d1c4932d89da65696890ceb"
+    }
+  ],
+  "current_state": {
+    "state_sequence": 42,
+    "observed_at": "2026-11-20T04:59:50Z",
+    "valid_until": "2026-11-20T05:00:30Z",
+    "craft_configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "actuator_configuration_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "model_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "operating_domain_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "available_capabilities": [
+      "steering",
+      "sail-handling",
+      "propulsion",
+      "crew-watch"
+    ],
+    "resource_metrics": [
+      {
+        "metric": "energy_reserve_kwh",
+        "unit": "kWh",
+        "value": 20,
+        "lower_bound": 19.9,
+        "upper_bound": 20.1,
+        "coverage_fraction": 1,
+        "evidence_sha256": "4181c6a4b7c7bff8bbbae6e4fe2e43011d97f35c3446b4eb312e958a66df34ce"
+      },
+      {
+        "metric": "freshwater_usable_l",
+        "unit": "L",
+        "value": 120,
+        "lower_bound": 119.9,
+        "upper_bound": 120.1,
+        "coverage_fraction": 1,
+        "evidence_sha256": "81cf945f82ec6cb089c04d9e5e55d863cb1869ca04150477dde66af5aa6562f5"
+      },
+      {
+        "metric": "food_reserve_days",
+        "unit": "day",
+        "value": 10,
+        "lower_bound": 9.9,
+        "upper_bound": 10.1,
+        "coverage_fraction": 1,
+        "evidence_sha256": "157690a6c9f7246e7f10453438137bb537cd80d87c3cc11d1f5c5f84d9b38fc7"
+      },
+      {
+        "metric": "waste_capacity_margin_days",
+        "unit": "day",
+        "value": 4,
+        "lower_bound": 3.9,
+        "upper_bound": 4.1,
+        "coverage_fraction": 1,
+        "evidence_sha256": "cd74eee3a7c25425495dba8390df0cffefa866e4754003bb8999cf860fd160f5"
+      },
+      {
+        "metric": "critical_spares_coverage_days",
+        "unit": "day",
+        "value": 4,
+        "lower_bound": 3.9,
+        "upper_bound": 4.1,
+        "coverage_fraction": 1,
+        "evidence_sha256": "7a36ab53d89177064d5fad3afbfc3392064882171398bbfa534dde7bbdd7e1cc"
+      },
+      {
+        "metric": "power_service_availability",
+        "unit": "fraction",
+        "value": 1,
+        "lower_bound": 0.9,
+        "upper_bound": 1.1,
+        "coverage_fraction": 1,
+        "evidence_sha256": "156898031e0b891c9beae2e7ee02d936f41f2936ca27954ac763c72b2fb3d863"
+      },
+      {
+        "metric": "potable_water_service_availability",
+        "unit": "fraction",
+        "value": 1,
+        "lower_bound": 0.9,
+        "upper_bound": 1.1,
+        "coverage_fraction": 1,
+        "evidence_sha256": "581ddd06b44506bf6bb2c135036481604bc0c7b2c19f5f88ca452a3827eb70a2"
+      },
+      {
+        "metric": "sanitation_service_availability",
+        "unit": "fraction",
+        "value": 1,
+        "lower_bound": 0.9,
+        "upper_bound": 1.1,
+        "coverage_fraction": 1,
+        "evidence_sha256": "9abca0ad188ace0b9947ad7a54329a332918aa16ef4a117f6dea3352e96a4a07"
+      },
+      {
+        "metric": "refrigeration_service_availability",
+        "unit": "fraction",
+        "value": 1,
+        "lower_bound": 0.9,
+        "upper_bound": 1.1,
+        "coverage_fraction": 1,
+        "evidence_sha256": "7934173b35b4d4aac7c8ec5512b8dbe4d6b4817903b52b4a0711814fecef75f2"
+      },
+      {
+        "metric": "crew_workload_hours_rolling_24h",
+        "unit": "h",
+        "value": 6,
+        "lower_bound": 5.9,
+        "upper_bound": 6.1,
+        "coverage_fraction": 1,
+        "evidence_sha256": "5f3283aa82078bcc7f9677704dd3e8c82664001f8015dbb617ffc22b5d2f5440"
+      },
+      {
+        "metric": "comfort_breach_minutes_rolling_24h",
+        "unit": "min",
+        "value": 20,
+        "lower_bound": 19.9,
+        "upper_bound": 20.1,
+        "coverage_fraction": 1,
+        "evidence_sha256": "c525bdf32147600e5eb7b603e5d6e579449c4f2d220b9239c1f97abf8f79ce18"
+      }
+    ],
+    "state_sha256": "d6b9770be71bb288840042028e9f871658c2dd2c9f22d497a113e117b623320a"
+  },
+  "decision": {
+    "decision_time": "2026-11-20T05:00:00Z",
+    "max_state_age_seconds": 30,
+    "permit_ttl_seconds": 15,
+    "permit_nonce_sha256": "2c71c3d493501e68d580f366a2bc6ad1e23a4a925a5b2d0dc4ced5a1d76fbaf0"
+  },
+  "permit_registry": {
+    "consumed_nonce_sha256": []
+  },
+  "authority_scope": {
+    "scope": "runtime_decision_receipt_only",
+    "authority_ref": "SYNTHETIC-DECISION-RECEIPT-AUTHORITY",
+    "authority_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "candidates": [
+    {
+      "candidate_id": "candidate-continue-course",
+      "role": "proposed",
+      "fallback_priority": 0,
+      "action_id": "maintain-course",
+      "required_capabilities": [
+        "steering"
+      ],
+      "precondition_state_sequence": 42,
+      "precondition_state_sha256": "d6b9770be71bb288840042028e9f871658c2dd2c9f22d497a113e117b623320a",
+      "craft_configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "actuator_configuration_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "model_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "operating_domain_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "transition_relation_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "action_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "duration_seconds": 600,
+      "scenario_successors": [
+        {
+          "scenario_class": "adverse_forecast_error",
+          "disturbance_sha256": "85aa6a95efa2fcbd4fb9d02e1d098ae833c543841ce14f86e11b80fb2b8e7282",
+          "successor_state_sha256": "8db3c50b252d68032b6bf2836fb3aa55f9dd7cf9b67ee4047d2e348ebc364d39",
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 19,
+              "lower_bound": 18.8,
+              "upper_bound": 19.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "2aaec05605a06b04646da1705d8a2004047209f6685db5182e5bd884dab8670d"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 120,
+              "lower_bound": 119.8,
+              "upper_bound": 120.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "67ca91dcbaaf089b03ff0e5f79b62d04067d9c5458e549783516eb80fd5d9025"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.8,
+              "upper_bound": 10.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "67fea8fc18b4cdf47755f9a40e67c28af170d02cc798e1029d7d2f4c293c17ea"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "ea4c428e178864921e31755fa0a6a027aee078b1b923ba3ad56da3f585c118b5"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "e5fd67d190234c6f52dfc39f650bf58b066051c1dbf9fb31cf12b879cc6d14dc"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "b3ea0a99479c83cec8328a6e56e1851d75dbcaf4ff02dfe71f0cdb3e22a21730"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "8a24177a8bcb28bb35d408a2f7558c54e9e8ebdad348c5ff17df84af66fb7f39"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "f112c944df1e3d9e2c1468581e716ceddaa88c72f2d0d7cb73920fc8f79e7fb3"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "90bf7791e2ab8ce4fd64dfd1fa2e7f05745d96465aa99d5847f292d4155ef2e0"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 6,
+              "lower_bound": 5.8,
+              "upper_bound": 6.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "e1bd0911effe6b876b2a36aefffc908160beec141a93bd4906179db2f113e44a"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 20,
+              "lower_bound": 19.8,
+              "upper_bound": 20.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "030507ca5f58c8bb933c0605db43dc1b9a3ea9b170399d1fd4a66c8406704171"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability-envelope",
+              "status": "pass",
+              "evidence_sha256": "95f2fe8901883d2718342c101512e0514cb114413e78e4f48b9a904b00f7cea6"
+            },
+            {
+              "gate_id": "traffic-compliance",
+              "status": "pass",
+              "evidence_sha256": "6e912e3abb104a350c6fe55f1fdc82029896320c102f307728b740b7afb59e71"
+            },
+            {
+              "gate_id": "operating-domain",
+              "status": "pass",
+              "evidence_sha256": "1a81fe3010257c65485430d2e258954fc695165b360c82c8ebf4caaa6a0d6112"
+            }
+          ],
+          "recoverability": {
+            "status": "reachable",
+            "minimum_intervention_margin_seconds": 900,
+            "required_intervention_margin_seconds": 300,
+            "evidence_sha256": "75d983e35be480d5ab51743e041aac5f5c219f7b907e666c6311c329e9faa350"
+          }
+        },
+        {
+          "scenario_class": "common_cause_generation_watermaker_outage",
+          "disturbance_sha256": "1dfc3a7ef4126dd31bf028a041840bf01b02677012ea61fd9104d63d022e348c",
+          "successor_state_sha256": "332087f98c843dffdd75a2cb9d79a9ec0fe42bcdfbdb99016047be619f1be3e3",
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 19,
+              "lower_bound": 18.8,
+              "upper_bound": 19.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "542acf62c5fe2af7bfea78862a85c6e2b00326e0c4318ca611c526f1cb5d7a5c"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 60,
+              "lower_bound": 59.8,
+              "upper_bound": 60.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "9852753fb012fd624f555829b495d16b5263fee94524d20fdc15e2ac8735a000"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.8,
+              "upper_bound": 10.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "0e8020285ab544b3981eb796ece4f2d5c911ea3f7c9b2266596b458f0450b5fa"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "ee5077a853513562494a689683cd5fafe1c32377495264a44f3a1ee0f7006cae"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "65e9df04efdf7ab3e39986472ae308d26391f7747e767767e05567ddb8353865"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "6f88f6e8543d475a251b1a983e299bc52b11445dcbd18c8ca71e8343cfddd1a8"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "14aa8e05141827bdc1eea95ee25d11b3ba37957b6989c7e9100407e13dd44d81"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "6c501b452bc8adda5899bc026f520052a4fac2c75323a8db53f9fa8d8c9bece4"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "b59d8f2f203f3e1b06a32a4fc46e7417ec8c0819300ef0dfe95656cbac913dfd"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 6,
+              "lower_bound": 5.8,
+              "upper_bound": 6.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "74834fb68566638087af0f7e6ff2074f3f89cc58ad45985f4cc77fb6745eb55e"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 20,
+              "lower_bound": 19.8,
+              "upper_bound": 20.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "f70efb33f86c2ec62d6e8a112dd26f728fd27bc1c3f68bfa45efb652fd251bb3"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability-envelope",
+              "status": "pass",
+              "evidence_sha256": "de606801d0e5acda9b787b6ececf22f7e85cebee0f15c783a63cef28833f95ad"
+            },
+            {
+              "gate_id": "traffic-compliance",
+              "status": "pass",
+              "evidence_sha256": "f636701f39c3ff3453d2749e729f1d3e56827e0e032bbf7ace8402b71dcf1075"
+            },
+            {
+              "gate_id": "operating-domain",
+              "status": "pass",
+              "evidence_sha256": "add2c3e4e64c9873ea2705d4d8a57c88c8f1adac8910228c3a2ee67c8cf2cc1c"
+            }
+          ],
+          "recoverability": {
+            "status": "reachable",
+            "minimum_intervention_margin_seconds": 900,
+            "required_intervention_margin_seconds": 300,
+            "evidence_sha256": "744a735e7296e91615f5933d7667718d3c0fa6ecf9f5ac1cd3dcdf5aa8339f4b"
+          }
+        },
+        {
+          "scenario_class": "main_generation_outage",
+          "disturbance_sha256": "e4ccc5f2baf3a12164de59b441535dcfba520ea132c33b83ceddc240a91afd83",
+          "successor_state_sha256": "b488ef78ab641cbeb4a9e7136fa986dca91f6453649df6b55d3826a97125ed49",
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 19,
+              "lower_bound": 18.8,
+              "upper_bound": 19.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "d381ab9e9905f8e9ab0052b1d398706783b485f9e89205267900236d131bf2d4"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 120,
+              "lower_bound": 119.8,
+              "upper_bound": 120.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "012ee11635ee8ed32eb2c02cab7e46ffbbee13439e39b1c13aab89bad241bd86"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.8,
+              "upper_bound": 10.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "3274e99b79df26fb77f59b1c3f3ac5e1c1142adb843c48acead524368c0cf8d2"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "0b5f9050ffd209ea4f59723d8483754a6b0ada9acbfae6cbb51cd3d4524d5676"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "77bbfecbe0f5c1340c36be469f3fb96137b7614e582938e213dca0556c8664c9"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "5d75de3de723116b62792af7a5fb695b0b5946e0e2a6523aaf8f160faa70cef8"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "c52896e06201ad81eee09326d666422a2e1f60b04ffe3dc97f01ec54c91488fc"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "6f6d35c62e36d241d335df1410a52d16a25378a0006203ae7b9a4816dbaeeedd"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "cd223969821ae4a522cbd328d2d0600c3962f6a9908b46455d5467f7a82307c9"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 6,
+              "lower_bound": 5.8,
+              "upper_bound": 6.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "c2748a25d6e9b1429691a4830c2a2acb52b8185742912927f99f163fdba65de0"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 20,
+              "lower_bound": 19.8,
+              "upper_bound": 20.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "45a74a26d306c4e7f3b2082a7a345d38d7a25be7ae6d4c547a8abb0c07a670ed"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability-envelope",
+              "status": "pass",
+              "evidence_sha256": "263077131c6e329e45f31a545cef1b89271def681b63b2f7d45790c19b6991b4"
+            },
+            {
+              "gate_id": "traffic-compliance",
+              "status": "pass",
+              "evidence_sha256": "1f7303434735b0757d5e96a730cffca7bedf72ddf4421f366c8e15ed049c41fd"
+            },
+            {
+              "gate_id": "operating-domain",
+              "status": "pass",
+              "evidence_sha256": "a9b902238dbfdbfcea83d604b725a789932173d854030307e7de0f8b2bcf1246"
+            }
+          ],
+          "recoverability": {
+            "status": "reachable",
+            "minimum_intervention_margin_seconds": 900,
+            "required_intervention_margin_seconds": 300,
+            "evidence_sha256": "1c336b3b77ea86cac75a255db8af964dc798fed0d7bff1567479dddd389d4fc2"
+          }
+        },
+        {
+          "scenario_class": "nominal",
+          "disturbance_sha256": "0b1bc928bc9828fdc3031cc701e8ace9e62bb97bff59c4531dbf986c261bfb1f",
+          "successor_state_sha256": "cb43d34fc6b2b5787e27efa8464868c4bc20eaf529a0c812aaa0ac5ebce2bc40",
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 19,
+              "lower_bound": 18.8,
+              "upper_bound": 19.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "9d16d8405cd91e9a955ec6a64c23bc961fefca398841621b930280df6ce61299"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 120,
+              "lower_bound": 119.8,
+              "upper_bound": 120.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "5dad3c2986f209699ad33e3a02e1d705c4369d4ac9048b0abcc96dbd89a2353b"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.8,
+              "upper_bound": 10.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "7d99ede0323426f51d500246e74eae7a42ea66a9dd13b26f47ab0c8706039bab"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "8e195da1d6cea1e5d46850743c78962572a05096ef1e8893cea994b9023dd337"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "7c1a37b0ea76787911747295fffabffd22fb85b97d21061529779223f1d468dd"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "4df3d2c22bb062b7a5b2a20c0d6dc311d7ff3dfb005cc3e2e3ded5ddc89a8ef4"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "5cbbe5f0acf72c323f6a0900ccb5d1f4b3b4aa50d80b4c50bf2b839fa6fbbb85"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "999dc6596e24aee78e387cf01991f67ecbea20ae1c4f8e8a0f66c340cfac7dfe"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "d5b4a15a69de148b87a56ea88771734a70d0ccec8bec715116f6ade2f293875b"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 6,
+              "lower_bound": 5.8,
+              "upper_bound": 6.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "0b9dd79156a13808fe27717a8c2202c9843178a917345b9c3174e458f3be6cfa"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 20,
+              "lower_bound": 19.8,
+              "upper_bound": 20.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "d05dc38e96229c51a4a6bb2e6e780f807b45e34a1b0ce5028fa925751e31ccae"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability-envelope",
+              "status": "pass",
+              "evidence_sha256": "f4fa3e128413a094b297e46ff98042730b2d790dcbadd6adf9d51432f24e6b18"
+            },
+            {
+              "gate_id": "traffic-compliance",
+              "status": "pass",
+              "evidence_sha256": "b4613d3b3f636c340bb06192d5a7cb75699124d3d2cc560d82c1a36d469228d9"
+            },
+            {
+              "gate_id": "operating-domain",
+              "status": "pass",
+              "evidence_sha256": "33148abcf779172c3aab2fe4afda38bf59d9a89751e4e5cf1ff80df76de70f10"
+            }
+          ],
+          "recoverability": {
+            "status": "reachable",
+            "minimum_intervention_margin_seconds": 900,
+            "required_intervention_margin_seconds": 300,
+            "evidence_sha256": "9c1e5668c8fff75ea8de35d3b8cd630292676d3236ec954a71d93b628b0534ad"
+          }
+        },
+        {
+          "scenario_class": "watermaker_outage",
+          "disturbance_sha256": "594dd899771822c347257a5e6d1874d61c37fe9a1d1c4932d89da65696890ceb",
+          "successor_state_sha256": "c9c7040428ab72ba045e4cefff42c49a998e7df42af4ed61d53ec961aa330f19",
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 19,
+              "lower_bound": 18.8,
+              "upper_bound": 19.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "15f5e883361e48af4e3a2d0146b163b8a6c954d7044a2e915b717fc052ab03c3"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 120,
+              "lower_bound": 119.8,
+              "upper_bound": 120.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "3c3abfacfc69feedf69d6da9d29c0e0309530f3409dcbfa699a0bf54404871c8"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.8,
+              "upper_bound": 10.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "354068bb5fb1bcb6fddde403f7612f905b7fe727ae251f8c066cd38e86fd8ef4"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "e4b27645db82a4b0cc9dc8af014772cdaba8a92b38c8f1176e20f3fd69b8a27c"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "603de527f39b7cd725c64256977f1fef17733db5220977405ba9c3b8918b0418"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "9670dd86cd6412be6b1117b88a6596512cc2a45168a23e9d31334b4228c49591"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "ddcf107afa1cc0d3d7291a36641d96b7c793d11e8a75a0ecda956e7bc8d87f1b"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "7195114d4dee85b00454963e148c974e6cb543931000a4cbd4c225e06be33cde"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "2b921e9e79ed48e3d6f47bddb513cb622411e3f6db42e9a6ea63431e6fcdbd79"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 6,
+              "lower_bound": 5.8,
+              "upper_bound": 6.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "f8a00c70b56fecbbb59467f2d1e2a9380e965568112f78ffbb6e015f497bdedd"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 20,
+              "lower_bound": 19.8,
+              "upper_bound": 20.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "8debe2cd37a54cba9e89a3f5ef6bb94cc0ea9f03e22bbb113bfe2a91bdc8b45c"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability-envelope",
+              "status": "pass",
+              "evidence_sha256": "e84433461ffaaf1db6625f0e67c220fe1a23f2a8fad12c6eee8602164d19e79e"
+            },
+            {
+              "gate_id": "traffic-compliance",
+              "status": "pass",
+              "evidence_sha256": "6e0ed348547d4167bec8129868e06e6c42e0fca16d91c15304c839103c1e0f7c"
+            },
+            {
+              "gate_id": "operating-domain",
+              "status": "pass",
+              "evidence_sha256": "528523794fe5c981bb0363cf7619a7e40d72d0c072aeaece7a972e4a2b7af0b6"
+            }
+          ],
+          "recoverability": {
+            "status": "reachable",
+            "minimum_intervention_margin_seconds": 900,
+            "required_intervention_margin_seconds": 300,
+            "evidence_sha256": "f268d225f51f23b35c328df149600ff0e5011a10107252d6d3e653eb74daa922"
+          }
+        }
+      ],
+      "action_digest_sha256": "ba8d12874b84c169a23512ac0ecbfcd7872b6cac9a7cfbce5f2b9a1617d3765c"
+    },
+    {
+      "candidate_id": "fallback-reduce-speed",
+      "role": "fallback",
+      "fallback_priority": 1,
+      "action_id": "reduce-speed",
+      "required_capabilities": [
+        "sail-handling"
+      ],
+      "precondition_state_sequence": 42,
+      "precondition_state_sha256": "d6b9770be71bb288840042028e9f871658c2dd2c9f22d497a113e117b623320a",
+      "craft_configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "actuator_configuration_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "model_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "operating_domain_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "transition_relation_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "action_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "duration_seconds": 600,
+      "scenario_successors": [
+        {
+          "scenario_class": "adverse_forecast_error",
+          "disturbance_sha256": "85aa6a95efa2fcbd4fb9d02e1d098ae833c543841ce14f86e11b80fb2b8e7282",
+          "successor_state_sha256": "8db3c50b252d68032b6bf2836fb3aa55f9dd7cf9b67ee4047d2e348ebc364d39",
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 19,
+              "lower_bound": 18.8,
+              "upper_bound": 19.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "2aaec05605a06b04646da1705d8a2004047209f6685db5182e5bd884dab8670d"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 120,
+              "lower_bound": 119.8,
+              "upper_bound": 120.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "67ca91dcbaaf089b03ff0e5f79b62d04067d9c5458e549783516eb80fd5d9025"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.8,
+              "upper_bound": 10.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "67fea8fc18b4cdf47755f9a40e67c28af170d02cc798e1029d7d2f4c293c17ea"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "ea4c428e178864921e31755fa0a6a027aee078b1b923ba3ad56da3f585c118b5"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "e5fd67d190234c6f52dfc39f650bf58b066051c1dbf9fb31cf12b879cc6d14dc"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "b3ea0a99479c83cec8328a6e56e1851d75dbcaf4ff02dfe71f0cdb3e22a21730"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "8a24177a8bcb28bb35d408a2f7558c54e9e8ebdad348c5ff17df84af66fb7f39"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "f112c944df1e3d9e2c1468581e716ceddaa88c72f2d0d7cb73920fc8f79e7fb3"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "90bf7791e2ab8ce4fd64dfd1fa2e7f05745d96465aa99d5847f292d4155ef2e0"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 6,
+              "lower_bound": 5.8,
+              "upper_bound": 6.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "e1bd0911effe6b876b2a36aefffc908160beec141a93bd4906179db2f113e44a"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 20,
+              "lower_bound": 19.8,
+              "upper_bound": 20.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "030507ca5f58c8bb933c0605db43dc1b9a3ea9b170399d1fd4a66c8406704171"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability-envelope",
+              "status": "pass",
+              "evidence_sha256": "95f2fe8901883d2718342c101512e0514cb114413e78e4f48b9a904b00f7cea6"
+            },
+            {
+              "gate_id": "traffic-compliance",
+              "status": "pass",
+              "evidence_sha256": "6e912e3abb104a350c6fe55f1fdc82029896320c102f307728b740b7afb59e71"
+            },
+            {
+              "gate_id": "operating-domain",
+              "status": "pass",
+              "evidence_sha256": "1a81fe3010257c65485430d2e258954fc695165b360c82c8ebf4caaa6a0d6112"
+            }
+          ],
+          "recoverability": {
+            "status": "reachable",
+            "minimum_intervention_margin_seconds": 900,
+            "required_intervention_margin_seconds": 300,
+            "evidence_sha256": "75d983e35be480d5ab51743e041aac5f5c219f7b907e666c6311c329e9faa350"
+          }
+        },
+        {
+          "scenario_class": "common_cause_generation_watermaker_outage",
+          "disturbance_sha256": "1dfc3a7ef4126dd31bf028a041840bf01b02677012ea61fd9104d63d022e348c",
+          "successor_state_sha256": "5992685039c457b24e9ff3d9f4fe79a0e58028676769a46a41e2d8fb3f85baab",
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 19,
+              "lower_bound": 18.8,
+              "upper_bound": 19.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "542acf62c5fe2af7bfea78862a85c6e2b00326e0c4318ca611c526f1cb5d7a5c"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 120,
+              "lower_bound": 119.8,
+              "upper_bound": 120.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "9852753fb012fd624f555829b495d16b5263fee94524d20fdc15e2ac8735a000"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.8,
+              "upper_bound": 10.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "0e8020285ab544b3981eb796ece4f2d5c911ea3f7c9b2266596b458f0450b5fa"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "ee5077a853513562494a689683cd5fafe1c32377495264a44f3a1ee0f7006cae"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "65e9df04efdf7ab3e39986472ae308d26391f7747e767767e05567ddb8353865"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "6f88f6e8543d475a251b1a983e299bc52b11445dcbd18c8ca71e8343cfddd1a8"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "14aa8e05141827bdc1eea95ee25d11b3ba37957b6989c7e9100407e13dd44d81"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "6c501b452bc8adda5899bc026f520052a4fac2c75323a8db53f9fa8d8c9bece4"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "b59d8f2f203f3e1b06a32a4fc46e7417ec8c0819300ef0dfe95656cbac913dfd"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 6,
+              "lower_bound": 5.8,
+              "upper_bound": 6.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "74834fb68566638087af0f7e6ff2074f3f89cc58ad45985f4cc77fb6745eb55e"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 20,
+              "lower_bound": 19.8,
+              "upper_bound": 20.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "f70efb33f86c2ec62d6e8a112dd26f728fd27bc1c3f68bfa45efb652fd251bb3"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability-envelope",
+              "status": "pass",
+              "evidence_sha256": "de606801d0e5acda9b787b6ececf22f7e85cebee0f15c783a63cef28833f95ad"
+            },
+            {
+              "gate_id": "traffic-compliance",
+              "status": "pass",
+              "evidence_sha256": "f636701f39c3ff3453d2749e729f1d3e56827e0e032bbf7ace8402b71dcf1075"
+            },
+            {
+              "gate_id": "operating-domain",
+              "status": "pass",
+              "evidence_sha256": "add2c3e4e64c9873ea2705d4d8a57c88c8f1adac8910228c3a2ee67c8cf2cc1c"
+            }
+          ],
+          "recoverability": {
+            "status": "reachable",
+            "minimum_intervention_margin_seconds": 900,
+            "required_intervention_margin_seconds": 300,
+            "evidence_sha256": "744a735e7296e91615f5933d7667718d3c0fa6ecf9f5ac1cd3dcdf5aa8339f4b"
+          }
+        },
+        {
+          "scenario_class": "main_generation_outage",
+          "disturbance_sha256": "e4ccc5f2baf3a12164de59b441535dcfba520ea132c33b83ceddc240a91afd83",
+          "successor_state_sha256": "7bd93e70b47c35713d6790638dfbf4f366ce36eadb161db4818e520f4088804c",
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 3,
+              "lower_bound": 2.8,
+              "upper_bound": 3.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "d381ab9e9905f8e9ab0052b1d398706783b485f9e89205267900236d131bf2d4"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 120,
+              "lower_bound": 119.8,
+              "upper_bound": 120.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "012ee11635ee8ed32eb2c02cab7e46ffbbee13439e39b1c13aab89bad241bd86"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.8,
+              "upper_bound": 10.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "3274e99b79df26fb77f59b1c3f3ac5e1c1142adb843c48acead524368c0cf8d2"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "0b5f9050ffd209ea4f59723d8483754a6b0ada9acbfae6cbb51cd3d4524d5676"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "77bbfecbe0f5c1340c36be469f3fb96137b7614e582938e213dca0556c8664c9"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "5d75de3de723116b62792af7a5fb695b0b5946e0e2a6523aaf8f160faa70cef8"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "c52896e06201ad81eee09326d666422a2e1f60b04ffe3dc97f01ec54c91488fc"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "6f6d35c62e36d241d335df1410a52d16a25378a0006203ae7b9a4816dbaeeedd"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "cd223969821ae4a522cbd328d2d0600c3962f6a9908b46455d5467f7a82307c9"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 6,
+              "lower_bound": 5.8,
+              "upper_bound": 6.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "c2748a25d6e9b1429691a4830c2a2acb52b8185742912927f99f163fdba65de0"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 20,
+              "lower_bound": 19.8,
+              "upper_bound": 20.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "45a74a26d306c4e7f3b2082a7a345d38d7a25be7ae6d4c547a8abb0c07a670ed"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability-envelope",
+              "status": "pass",
+              "evidence_sha256": "263077131c6e329e45f31a545cef1b89271def681b63b2f7d45790c19b6991b4"
+            },
+            {
+              "gate_id": "traffic-compliance",
+              "status": "pass",
+              "evidence_sha256": "1f7303434735b0757d5e96a730cffca7bedf72ddf4421f366c8e15ed049c41fd"
+            },
+            {
+              "gate_id": "operating-domain",
+              "status": "pass",
+              "evidence_sha256": "a9b902238dbfdbfcea83d604b725a789932173d854030307e7de0f8b2bcf1246"
+            }
+          ],
+          "recoverability": {
+            "status": "reachable",
+            "minimum_intervention_margin_seconds": 900,
+            "required_intervention_margin_seconds": 300,
+            "evidence_sha256": "1c336b3b77ea86cac75a255db8af964dc798fed0d7bff1567479dddd389d4fc2"
+          }
+        },
+        {
+          "scenario_class": "nominal",
+          "disturbance_sha256": "0b1bc928bc9828fdc3031cc701e8ace9e62bb97bff59c4531dbf986c261bfb1f",
+          "successor_state_sha256": "cb43d34fc6b2b5787e27efa8464868c4bc20eaf529a0c812aaa0ac5ebce2bc40",
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 19,
+              "lower_bound": 18.8,
+              "upper_bound": 19.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "9d16d8405cd91e9a955ec6a64c23bc961fefca398841621b930280df6ce61299"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 120,
+              "lower_bound": 119.8,
+              "upper_bound": 120.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "5dad3c2986f209699ad33e3a02e1d705c4369d4ac9048b0abcc96dbd89a2353b"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.8,
+              "upper_bound": 10.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "7d99ede0323426f51d500246e74eae7a42ea66a9dd13b26f47ab0c8706039bab"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "8e195da1d6cea1e5d46850743c78962572a05096ef1e8893cea994b9023dd337"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "7c1a37b0ea76787911747295fffabffd22fb85b97d21061529779223f1d468dd"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "4df3d2c22bb062b7a5b2a20c0d6dc311d7ff3dfb005cc3e2e3ded5ddc89a8ef4"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "5cbbe5f0acf72c323f6a0900ccb5d1f4b3b4aa50d80b4c50bf2b839fa6fbbb85"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "999dc6596e24aee78e387cf01991f67ecbea20ae1c4f8e8a0f66c340cfac7dfe"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "d5b4a15a69de148b87a56ea88771734a70d0ccec8bec715116f6ade2f293875b"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 6,
+              "lower_bound": 5.8,
+              "upper_bound": 6.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "0b9dd79156a13808fe27717a8c2202c9843178a917345b9c3174e458f3be6cfa"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 20,
+              "lower_bound": 19.8,
+              "upper_bound": 20.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "d05dc38e96229c51a4a6bb2e6e780f807b45e34a1b0ce5028fa925751e31ccae"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability-envelope",
+              "status": "pass",
+              "evidence_sha256": "f4fa3e128413a094b297e46ff98042730b2d790dcbadd6adf9d51432f24e6b18"
+            },
+            {
+              "gate_id": "traffic-compliance",
+              "status": "pass",
+              "evidence_sha256": "b4613d3b3f636c340bb06192d5a7cb75699124d3d2cc560d82c1a36d469228d9"
+            },
+            {
+              "gate_id": "operating-domain",
+              "status": "pass",
+              "evidence_sha256": "33148abcf779172c3aab2fe4afda38bf59d9a89751e4e5cf1ff80df76de70f10"
+            }
+          ],
+          "recoverability": {
+            "status": "reachable",
+            "minimum_intervention_margin_seconds": 900,
+            "required_intervention_margin_seconds": 300,
+            "evidence_sha256": "9c1e5668c8fff75ea8de35d3b8cd630292676d3236ec954a71d93b628b0534ad"
+          }
+        },
+        {
+          "scenario_class": "watermaker_outage",
+          "disturbance_sha256": "594dd899771822c347257a5e6d1874d61c37fe9a1d1c4932d89da65696890ceb",
+          "successor_state_sha256": "c9c7040428ab72ba045e4cefff42c49a998e7df42af4ed61d53ec961aa330f19",
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 19,
+              "lower_bound": 18.8,
+              "upper_bound": 19.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "15f5e883361e48af4e3a2d0146b163b8a6c954d7044a2e915b717fc052ab03c3"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 120,
+              "lower_bound": 119.8,
+              "upper_bound": 120.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "3c3abfacfc69feedf69d6da9d29c0e0309530f3409dcbfa699a0bf54404871c8"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.8,
+              "upper_bound": 10.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "354068bb5fb1bcb6fddde403f7612f905b7fe727ae251f8c066cd38e86fd8ef4"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "e4b27645db82a4b0cc9dc8af014772cdaba8a92b38c8f1176e20f3fd69b8a27c"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "603de527f39b7cd725c64256977f1fef17733db5220977405ba9c3b8918b0418"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "9670dd86cd6412be6b1117b88a6596512cc2a45168a23e9d31334b4228c49591"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "ddcf107afa1cc0d3d7291a36641d96b7c793d11e8a75a0ecda956e7bc8d87f1b"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "7195114d4dee85b00454963e148c974e6cb543931000a4cbd4c225e06be33cde"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "2b921e9e79ed48e3d6f47bddb513cb622411e3f6db42e9a6ea63431e6fcdbd79"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 6,
+              "lower_bound": 5.8,
+              "upper_bound": 6.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "f8a00c70b56fecbbb59467f2d1e2a9380e965568112f78ffbb6e015f497bdedd"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 20,
+              "lower_bound": 19.8,
+              "upper_bound": 20.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "8debe2cd37a54cba9e89a3f5ef6bb94cc0ea9f03e22bbb113bfe2a91bdc8b45c"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability-envelope",
+              "status": "pass",
+              "evidence_sha256": "e84433461ffaaf1db6625f0e67c220fe1a23f2a8fad12c6eee8602164d19e79e"
+            },
+            {
+              "gate_id": "traffic-compliance",
+              "status": "pass",
+              "evidence_sha256": "6e0ed348547d4167bec8129868e06e6c42e0fca16d91c15304c839103c1e0f7c"
+            },
+            {
+              "gate_id": "operating-domain",
+              "status": "pass",
+              "evidence_sha256": "528523794fe5c981bb0363cf7619a7e40d72d0c072aeaece7a972e4a2b7af0b6"
+            }
+          ],
+          "recoverability": {
+            "status": "reachable",
+            "minimum_intervention_margin_seconds": 900,
+            "required_intervention_margin_seconds": 300,
+            "evidence_sha256": "f268d225f51f23b35c328df149600ff0e5011a10107252d6d3e653eb74daa922"
+          }
+        }
+      ],
+      "action_digest_sha256": "5e8f3871f911085a3e93e0468b77d3820ba374b6c62e58fc8a8c69b935969829"
+    },
+    {
+      "candidate_id": "fallback-divert-refuge",
+      "role": "fallback",
+      "fallback_priority": 2,
+      "action_id": "divert-refuge",
+      "required_capabilities": [
+        "steering",
+        "crew-watch"
+      ],
+      "precondition_state_sequence": 42,
+      "precondition_state_sha256": "d6b9770be71bb288840042028e9f871658c2dd2c9f22d497a113e117b623320a",
+      "craft_configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "actuator_configuration_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "model_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "operating_domain_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "transition_relation_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "action_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "duration_seconds": 600,
+      "scenario_successors": [
+        {
+          "scenario_class": "adverse_forecast_error",
+          "disturbance_sha256": "85aa6a95efa2fcbd4fb9d02e1d098ae833c543841ce14f86e11b80fb2b8e7282",
+          "successor_state_sha256": "8db3c50b252d68032b6bf2836fb3aa55f9dd7cf9b67ee4047d2e348ebc364d39",
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 19,
+              "lower_bound": 18.8,
+              "upper_bound": 19.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "2aaec05605a06b04646da1705d8a2004047209f6685db5182e5bd884dab8670d"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 120,
+              "lower_bound": 119.8,
+              "upper_bound": 120.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "67ca91dcbaaf089b03ff0e5f79b62d04067d9c5458e549783516eb80fd5d9025"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.8,
+              "upper_bound": 10.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "67fea8fc18b4cdf47755f9a40e67c28af170d02cc798e1029d7d2f4c293c17ea"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "ea4c428e178864921e31755fa0a6a027aee078b1b923ba3ad56da3f585c118b5"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "e5fd67d190234c6f52dfc39f650bf58b066051c1dbf9fb31cf12b879cc6d14dc"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "b3ea0a99479c83cec8328a6e56e1851d75dbcaf4ff02dfe71f0cdb3e22a21730"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "8a24177a8bcb28bb35d408a2f7558c54e9e8ebdad348c5ff17df84af66fb7f39"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "f112c944df1e3d9e2c1468581e716ceddaa88c72f2d0d7cb73920fc8f79e7fb3"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "90bf7791e2ab8ce4fd64dfd1fa2e7f05745d96465aa99d5847f292d4155ef2e0"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 6,
+              "lower_bound": 5.8,
+              "upper_bound": 6.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "e1bd0911effe6b876b2a36aefffc908160beec141a93bd4906179db2f113e44a"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 20,
+              "lower_bound": 19.8,
+              "upper_bound": 20.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "030507ca5f58c8bb933c0605db43dc1b9a3ea9b170399d1fd4a66c8406704171"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability-envelope",
+              "status": "pass",
+              "evidence_sha256": "95f2fe8901883d2718342c101512e0514cb114413e78e4f48b9a904b00f7cea6"
+            },
+            {
+              "gate_id": "traffic-compliance",
+              "status": "pass",
+              "evidence_sha256": "6e912e3abb104a350c6fe55f1fdc82029896320c102f307728b740b7afb59e71"
+            },
+            {
+              "gate_id": "operating-domain",
+              "status": "pass",
+              "evidence_sha256": "1a81fe3010257c65485430d2e258954fc695165b360c82c8ebf4caaa6a0d6112"
+            }
+          ],
+          "recoverability": {
+            "status": "reachable",
+            "minimum_intervention_margin_seconds": 900,
+            "required_intervention_margin_seconds": 300,
+            "evidence_sha256": "75d983e35be480d5ab51743e041aac5f5c219f7b907e666c6311c329e9faa350"
+          }
+        },
+        {
+          "scenario_class": "common_cause_generation_watermaker_outage",
+          "disturbance_sha256": "1dfc3a7ef4126dd31bf028a041840bf01b02677012ea61fd9104d63d022e348c",
+          "successor_state_sha256": "095cff75cba02eda0d4c39ac27a22fe5e5830c2c958acab31232a0b21e929279",
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 19,
+              "lower_bound": 18.8,
+              "upper_bound": 19.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "542acf62c5fe2af7bfea78862a85c6e2b00326e0c4318ca611c526f1cb5d7a5c"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 120,
+              "lower_bound": 119.8,
+              "upper_bound": 120.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "9852753fb012fd624f555829b495d16b5263fee94524d20fdc15e2ac8735a000"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.8,
+              "upper_bound": 10.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "0e8020285ab544b3981eb796ece4f2d5c911ea3f7c9b2266596b458f0450b5fa"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "ee5077a853513562494a689683cd5fafe1c32377495264a44f3a1ee0f7006cae"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "65e9df04efdf7ab3e39986472ae308d26391f7747e767767e05567ddb8353865"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "6f88f6e8543d475a251b1a983e299bc52b11445dcbd18c8ca71e8343cfddd1a8"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "14aa8e05141827bdc1eea95ee25d11b3ba37957b6989c7e9100407e13dd44d81"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "6c501b452bc8adda5899bc026f520052a4fac2c75323a8db53f9fa8d8c9bece4"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "b59d8f2f203f3e1b06a32a4fc46e7417ec8c0819300ef0dfe95656cbac913dfd"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 6,
+              "lower_bound": 5.8,
+              "upper_bound": 6.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "74834fb68566638087af0f7e6ff2074f3f89cc58ad45985f4cc77fb6745eb55e"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 20,
+              "lower_bound": 19.8,
+              "upper_bound": 20.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "f70efb33f86c2ec62d6e8a112dd26f728fd27bc1c3f68bfa45efb652fd251bb3"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability-envelope",
+              "status": "pass",
+              "evidence_sha256": "de606801d0e5acda9b787b6ececf22f7e85cebee0f15c783a63cef28833f95ad"
+            },
+            {
+              "gate_id": "traffic-compliance",
+              "status": "fail",
+              "evidence_sha256": "f636701f39c3ff3453d2749e729f1d3e56827e0e032bbf7ace8402b71dcf1075"
+            },
+            {
+              "gate_id": "operating-domain",
+              "status": "pass",
+              "evidence_sha256": "add2c3e4e64c9873ea2705d4d8a57c88c8f1adac8910228c3a2ee67c8cf2cc1c"
+            }
+          ],
+          "recoverability": {
+            "status": "reachable",
+            "minimum_intervention_margin_seconds": 900,
+            "required_intervention_margin_seconds": 300,
+            "evidence_sha256": "744a735e7296e91615f5933d7667718d3c0fa6ecf9f5ac1cd3dcdf5aa8339f4b"
+          }
+        },
+        {
+          "scenario_class": "main_generation_outage",
+          "disturbance_sha256": "e4ccc5f2baf3a12164de59b441535dcfba520ea132c33b83ceddc240a91afd83",
+          "successor_state_sha256": "b488ef78ab641cbeb4a9e7136fa986dca91f6453649df6b55d3826a97125ed49",
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 19,
+              "lower_bound": 18.8,
+              "upper_bound": 19.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "d381ab9e9905f8e9ab0052b1d398706783b485f9e89205267900236d131bf2d4"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 120,
+              "lower_bound": 119.8,
+              "upper_bound": 120.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "012ee11635ee8ed32eb2c02cab7e46ffbbee13439e39b1c13aab89bad241bd86"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.8,
+              "upper_bound": 10.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "3274e99b79df26fb77f59b1c3f3ac5e1c1142adb843c48acead524368c0cf8d2"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "0b5f9050ffd209ea4f59723d8483754a6b0ada9acbfae6cbb51cd3d4524d5676"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "77bbfecbe0f5c1340c36be469f3fb96137b7614e582938e213dca0556c8664c9"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "5d75de3de723116b62792af7a5fb695b0b5946e0e2a6523aaf8f160faa70cef8"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "c52896e06201ad81eee09326d666422a2e1f60b04ffe3dc97f01ec54c91488fc"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "6f6d35c62e36d241d335df1410a52d16a25378a0006203ae7b9a4816dbaeeedd"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "cd223969821ae4a522cbd328d2d0600c3962f6a9908b46455d5467f7a82307c9"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 6,
+              "lower_bound": 5.8,
+              "upper_bound": 6.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "c2748a25d6e9b1429691a4830c2a2acb52b8185742912927f99f163fdba65de0"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 20,
+              "lower_bound": 19.8,
+              "upper_bound": 20.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "45a74a26d306c4e7f3b2082a7a345d38d7a25be7ae6d4c547a8abb0c07a670ed"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability-envelope",
+              "status": "pass",
+              "evidence_sha256": "263077131c6e329e45f31a545cef1b89271def681b63b2f7d45790c19b6991b4"
+            },
+            {
+              "gate_id": "traffic-compliance",
+              "status": "pass",
+              "evidence_sha256": "1f7303434735b0757d5e96a730cffca7bedf72ddf4421f366c8e15ed049c41fd"
+            },
+            {
+              "gate_id": "operating-domain",
+              "status": "pass",
+              "evidence_sha256": "a9b902238dbfdbfcea83d604b725a789932173d854030307e7de0f8b2bcf1246"
+            }
+          ],
+          "recoverability": {
+            "status": "reachable",
+            "minimum_intervention_margin_seconds": 900,
+            "required_intervention_margin_seconds": 300,
+            "evidence_sha256": "1c336b3b77ea86cac75a255db8af964dc798fed0d7bff1567479dddd389d4fc2"
+          }
+        },
+        {
+          "scenario_class": "nominal",
+          "disturbance_sha256": "0b1bc928bc9828fdc3031cc701e8ace9e62bb97bff59c4531dbf986c261bfb1f",
+          "successor_state_sha256": "cb43d34fc6b2b5787e27efa8464868c4bc20eaf529a0c812aaa0ac5ebce2bc40",
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 19,
+              "lower_bound": 18.8,
+              "upper_bound": 19.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "9d16d8405cd91e9a955ec6a64c23bc961fefca398841621b930280df6ce61299"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 120,
+              "lower_bound": 119.8,
+              "upper_bound": 120.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "5dad3c2986f209699ad33e3a02e1d705c4369d4ac9048b0abcc96dbd89a2353b"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.8,
+              "upper_bound": 10.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "7d99ede0323426f51d500246e74eae7a42ea66a9dd13b26f47ab0c8706039bab"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "8e195da1d6cea1e5d46850743c78962572a05096ef1e8893cea994b9023dd337"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "7c1a37b0ea76787911747295fffabffd22fb85b97d21061529779223f1d468dd"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "4df3d2c22bb062b7a5b2a20c0d6dc311d7ff3dfb005cc3e2e3ded5ddc89a8ef4"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "5cbbe5f0acf72c323f6a0900ccb5d1f4b3b4aa50d80b4c50bf2b839fa6fbbb85"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "999dc6596e24aee78e387cf01991f67ecbea20ae1c4f8e8a0f66c340cfac7dfe"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "d5b4a15a69de148b87a56ea88771734a70d0ccec8bec715116f6ade2f293875b"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 6,
+              "lower_bound": 5.8,
+              "upper_bound": 6.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "0b9dd79156a13808fe27717a8c2202c9843178a917345b9c3174e458f3be6cfa"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 20,
+              "lower_bound": 19.8,
+              "upper_bound": 20.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "d05dc38e96229c51a4a6bb2e6e780f807b45e34a1b0ce5028fa925751e31ccae"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability-envelope",
+              "status": "pass",
+              "evidence_sha256": "f4fa3e128413a094b297e46ff98042730b2d790dcbadd6adf9d51432f24e6b18"
+            },
+            {
+              "gate_id": "traffic-compliance",
+              "status": "pass",
+              "evidence_sha256": "b4613d3b3f636c340bb06192d5a7cb75699124d3d2cc560d82c1a36d469228d9"
+            },
+            {
+              "gate_id": "operating-domain",
+              "status": "pass",
+              "evidence_sha256": "33148abcf779172c3aab2fe4afda38bf59d9a89751e4e5cf1ff80df76de70f10"
+            }
+          ],
+          "recoverability": {
+            "status": "reachable",
+            "minimum_intervention_margin_seconds": 900,
+            "required_intervention_margin_seconds": 300,
+            "evidence_sha256": "9c1e5668c8fff75ea8de35d3b8cd630292676d3236ec954a71d93b628b0534ad"
+          }
+        },
+        {
+          "scenario_class": "watermaker_outage",
+          "disturbance_sha256": "594dd899771822c347257a5e6d1874d61c37fe9a1d1c4932d89da65696890ceb",
+          "successor_state_sha256": "c9c7040428ab72ba045e4cefff42c49a998e7df42af4ed61d53ec961aa330f19",
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 19,
+              "lower_bound": 18.8,
+              "upper_bound": 19.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "15f5e883361e48af4e3a2d0146b163b8a6c954d7044a2e915b717fc052ab03c3"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 120,
+              "lower_bound": 119.8,
+              "upper_bound": 120.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "3c3abfacfc69feedf69d6da9d29c0e0309530f3409dcbfa699a0bf54404871c8"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.8,
+              "upper_bound": 10.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "354068bb5fb1bcb6fddde403f7612f905b7fe727ae251f8c066cd38e86fd8ef4"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "e4b27645db82a4b0cc9dc8af014772cdaba8a92b38c8f1176e20f3fd69b8a27c"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.8,
+              "upper_bound": 4.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "603de527f39b7cd725c64256977f1fef17733db5220977405ba9c3b8918b0418"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "9670dd86cd6412be6b1117b88a6596512cc2a45168a23e9d31334b4228c49591"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "ddcf107afa1cc0d3d7291a36641d96b7c793d11e8a75a0ecda956e7bc8d87f1b"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "7195114d4dee85b00454963e148c974e6cb543931000a4cbd4c225e06be33cde"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 0.8,
+              "upper_bound": 1.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "2b921e9e79ed48e3d6f47bddb513cb622411e3f6db42e9a6ea63431e6fcdbd79"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 6,
+              "lower_bound": 5.8,
+              "upper_bound": 6.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "f8a00c70b56fecbbb59467f2d1e2a9380e965568112f78ffbb6e015f497bdedd"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 20,
+              "lower_bound": 19.8,
+              "upper_bound": 20.2,
+              "coverage_fraction": 1,
+              "evidence_sha256": "8debe2cd37a54cba9e89a3f5ef6bb94cc0ea9f03e22bbb113bfe2a91bdc8b45c"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability-envelope",
+              "status": "pass",
+              "evidence_sha256": "e84433461ffaaf1db6625f0e67c220fe1a23f2a8fad12c6eee8602164d19e79e"
+            },
+            {
+              "gate_id": "traffic-compliance",
+              "status": "pass",
+              "evidence_sha256": "6e0ed348547d4167bec8129868e06e6c42e0fca16d91c15304c839103c1e0f7c"
+            },
+            {
+              "gate_id": "operating-domain",
+              "status": "pass",
+              "evidence_sha256": "528523794fe5c981bb0363cf7619a7e40d72d0c072aeaece7a972e4a2b7af0b6"
+            }
+          ],
+          "recoverability": {
+            "status": "reachable",
+            "minimum_intervention_margin_seconds": 900,
+            "required_intervention_margin_seconds": 300,
+            "evidence_sha256": "f268d225f51f23b35c328df149600ff0e5011a10107252d6d3e653eb74daa922"
+          }
+        }
+      ],
+      "action_digest_sha256": "78f32bc706cbb124cd93bacea3a9ead4f104450f91a8f0c05e5c97d7b419732b"
+    }
+  ]
+}
