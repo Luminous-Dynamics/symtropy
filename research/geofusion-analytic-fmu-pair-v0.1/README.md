@@ -1,0 +1,65 @@
+# GeoFusion analytic FMI 3.0.2 FMU pair v0.1
+
+**Tracking:** [GEOFUSION-ANALYTIC-FMU-PAIR-001 / #6337](https://github.com/Luminous-Dynamics/symtropy/issues/6337), parent [#6156](https://github.com/Luminous-Dynamics/symtropy/issues/6156).  
+**Status:** first analytic executable-model prototype; physical model is synthetic.
+
+## Purpose
+
+This package builds two separate FMI 3.0.2 Co-Simulation FMUs:
+- `GeothermalSource`: Float64 thermal-power output, value reference 11, W.
+- `HeatExchangerBuffer`: Float64 thermal-power input, VR 21, W; service VR 31, loss VR 32 and storage power VR 33 in W; cumulative stored energy VR 34 in J.
+
+The FMI 3.0.2 release headers are vendored verbatim from the official Modelica Association repository at tag `v3.0.2`. The runtime `fmi3GetVersion()` return is correctly `3.0`: it reports the FMI C-header API version, not the maintenance release tag. Exact upstream blob hashes, release commit and license provenance are recorded in `third_party/FMI-3.0.2/UPSTREAM.md`.
+
+The source also exports the remaining FMI 3.0 function symbols through `src/fmi3_unsupported.c`. Those 66 functions are generated from the pinned FMI 3.0.2 function typedefs and the FMPy 0.3.32 wrapper surface; they return `fmi3Error` (or `NULL` for unsupported interface instantiation) and are not advertised as supported capabilities. This is necessary because FMPy resolves a broad FMI 3 symbol set when constructing its importer object. The explicit stubs make unsupported calls fail closed instead of failing at dynamic symbol lookup. A source-level symbol-closure test is pinned in `tests/fmi3-symbol-manifest.json` and `tests/check_fmi3_surface.py`; it requires all 75 FMPy-resolved symbols to have exactly one definition and checks that all 66 unsupported symbols fail closed.
+
+## Model and analytic known answer
+
+The first scenario is deliberately simple:
+
+`Q_geo = 500,000 W`  
+`Q_service = 0.96 Q_in`  
+`Q_loss = 0.02 Q_in`  
+`dE_storage/dt = 0.02 Q_in`
+
+For a constant 2-second interval:
+- input energy = 1,000,000 J;
+- service energy = 960,000 J;
+- heat loss = 20,000 J;
+- storage increase = 20,000 J;
+- residual = 0 J.
+
+The heat-exchanger FMU accumulates stored energy in joules. Power (W) and energy (J) are kept distinct.
+
+## Build and execute
+
+Requires a C11 compiler, `make`, `zip`, Python 3.12 and the pinned FMPy test dependency.
+
+```sh
+make clean all
+python3 -m pip install --requirement tests/requirements.txt
+python3 tests/fmpy_coupled_smoke.py
+```
+
+The Makefile compiles against the vendored official FMI headers with warnings-as-errors, packages the correct `binaries/x86_64-linux/` paths, includes model descriptions, source and upstream licenses, fixes archive timestamps using `SOURCE_DATE_EPOCH`, runs a direct FMI C-API harness and recomputes an independent arithmetic oracle.
+
+FMPy 0.3.32 is pinned as an independent importer (`CATIA-Systems/FMPy` tag `v0.3.32`, `src/fmpy/fmi3.py` blob `ffc0506867078583494b3993ccedee2ba0f886bc`). Its model-description validator checks schema validity, variable declarations, units and model structure. The smoke test instruments the pinned FMPy `_call` dispatch immediately around the actual `ctypes` function-pointer invocation and writes `build/stage/fmi3-api-transcript.json`; it records ordered function symbols, exact Float64 bits, doStep times/status/output flags, lifecycle calls and failed value-reference calls. FMI instance pointers are explicitly distinguished from `fmi3Status` returns. The strict contract is in `tests/fmi3-dispatch-transcript.schema.json`, and `tests/check_dispatch_transcript.py` checks chronology, 4 successful doSteps, 2 Float64 sets, 4 successful gets, 1 retained failed get, exact returned times, raw-value bits, all pinned runtime dependency versions and artifact digests. It emits `fmi3-api-transcript.sha256` as a separate receipt. The balance totals integrate power over actual committed intervals; they do not sum power samples and relabel them as energy. This is importer-dispatch evidence, not a direct C-level interposer; see #6358 for promotion into the canonical API ledger. The importer test loads both FMUs, instantiates them, performs typed Float64 exchanges and calls `fmi3DoStep`, then independently recomputes the energy balance.
+
+## Ownership composition
+
+- #6304 owns API-ledger validation and runtime evidence.
+- #6198 owns normalized time/step/retry/barrier traces.
+- #6154 owns physical carrier/boundary/source-interval and first-law contracts.
+- #6224 owns matched external master comparisons.
+- #5871 owns generic multirate co-simulation algorithms.
+
+This package does not implement another master algorithm or replace the specialist physics owners.
+
+## Current limits and claim ceiling
+
+- The source FMU is a constant-power analytic source.
+- The exchanger uses fixed allocation ratios and exact integration of constant storage power.
+- Neither FMU advertises FMU-state get/set or serialization; rollback and serialized-state replay are not qualified.
+- Event Mode, Intermediate Update, Scheduled Execution and asynchronous execution are unsupported.
+- No geothermal resource, heat-exchanger hardware, plant, equipment safety, economic, physical calibration or SOTA claim is made.
+- This first constant-power case is a packaging/interoperability smoke, not a sufficiently rich dynamic test for a numerical master-algorithm superiority claim. Add transients, event-aligned cases, held-out communication grids and a separately authored analytic reference before ranking masters.

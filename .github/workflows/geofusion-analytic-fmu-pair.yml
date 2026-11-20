@@ -1,0 +1,61 @@
+name: GeoFusion Analytic FMI 3.0.2 FMU Pair
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/geofusion-analytic-fmu-pair-v0.1/**"
+      - ".github/workflows/geofusion-analytic-fmu-pair.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "research/geofusion-analytic-fmu-pair-v0.1/**"
+      - ".github/workflows/geofusion-analytic-fmu-pair.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: geofusion-analytic-fmu-pair-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-import:
+    name: Build and qualify synthetic FMI 3.0.2 FMUs
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build, package and direct C-API smoke
+        working-directory: research/geofusion-analytic-fmu-pair-v0.1
+        run: make clean all
+      - name: Download and verify pinned independent FMI importer wheel
+        run: |
+          mkdir -p /tmp/fmpy-wheel
+          python -m pip download --disable-pip-version-check --only-binary=:all: --no-deps --dest /tmp/fmpy-wheel FMPy==0.3.32
+          echo "b379deb9417b842028003a288d00c1c5f138d1580e1ff12cc6c42a98719cecf0  /tmp/fmpy-wheel/fmpy-0.3.32-py3-none-any.whl" | sha256sum --check
+      - name: Install verified FMPy wheel and its dependencies
+        run: python -m pip install --disable-pip-version-check /tmp/fmpy-wheel/fmpy-0.3.32-py3-none-any.whl
+      - name: Validate and execute coupled FMUs through FMPy
+        working-directory: research/geofusion-analytic-fmu-pair-v0.1
+        run: python tests/fmpy_coupled_smoke.py
+      - name: Validate structured FMI API transcript
+        working-directory: research/geofusion-analytic-fmu-pair-v0.1
+        run: python tests/check_dispatch_transcript.py
+      - name: Upload FMUs, transcript contract, and build digests
+        uses: actions/upload-artifact@v4
+        with:
+          name: geofusion-fmi-3.0.2-analytic-pair
+          path: |
+            research/geofusion-analytic-fmu-pair-v0.1/build/stage/*.fmu
+            research/geofusion-analytic-fmu-pair-v0.1/build/stage/artifact-digests.sha256
+            research/geofusion-analytic-fmu-pair-v0.1/build/stage/fmi3-api-transcript.json
+            research/geofusion-analytic-fmu-pair-v0.1/build/stage/fmi3-api-transcript.sha256
+            research/geofusion-analytic-fmu-pair-v0.1/tests/fmi3-dispatch-transcript.schema.json
+            research/geofusion-analytic-fmu-pair-v0.1/tests/check_dispatch_transcript.py
+            research/geofusion-analytic-fmu-pair-v0.1/build/GeothermalSource.so
+            research/geofusion-analytic-fmu-pair-v0.1/build/HeatExchangerBuffer.so
+          if-no-files-found: error
