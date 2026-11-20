@@ -752,7 +752,7 @@ use power_restoration_benchmark_case::{
     BenchmarkCase, CaseMaturity, ElectricalDataProfile, canonical_case_sha256,
 };
 use power_restoration_observation_evidence::{
-    EvidenceBatch, EvidenceDisposition, SourceProvenance, validate_evidence_batch,
+    EvidenceBatch, SourceProvenance, validate_evidence_batch,
 };
 use power_restoration_run_receipt::{
     RunReceipt, RunStatus, ServiceOutcome, StepDisposition, TerminalReason,
@@ -818,6 +818,21 @@ fn proposal_set_sha256(receipt: &RunReceipt) -> Result<String, String> {
         }
     }
     canonical_sha256(&proposals)
+}
+
+fn profile_for_role<'a>(
+    profiles: &'a [ClaimProducerProfile],
+    role: SignerRole,
+) -> Result<&'a ClaimProducerProfile, String> {
+    let matching: Vec<&ClaimProducerProfile> = profiles
+        .iter()
+        .filter(|profile| profile.signer_role == role)
+        .collect();
+    match matching.as_slice() {
+        [profile] => Ok(*profile),
+        [] => Err(format!("no pinned producer profile for role {role:?}")),
+        _ => Err(format!("multiple pinned producer profiles for singular role {role:?}")),
+    }
 }
 
 fn profile_for<'a>(
@@ -991,14 +1006,9 @@ pub fn verify_restoration_claim_evidence(
     let mut requirements = Vec::new();
 
     // The exact canonical run receipt itself must be present and signed.
-    let recorder = match profile_for(
+    let recorder = match profile_for_role(
         producer_profiles,
         SignerRole::RunRecorder,
-        producer_profiles
-            .iter()
-            .find(|profile| profile.signer_role == SignerRole::RunRecorder)
-            .map(|profile| profile.issuer_id.as_str())
-            .unwrap_or(""),
     ) {
         Ok(profile) => Some(profile),
         Err(error) => {
@@ -1130,39 +1140,26 @@ pub fn verify_restoration_claim_evidence(
                 continue;
             }
         };
-        let observation_role_profile = profile_for(
-            producer_profiles,
-            SignerRole::EvidenceProvider,
-            batch
-                .sources
-                .first()
-                .map(|source| source.producer_id.as_str())
-                .unwrap_or(""),
-        );
-        if let Ok(profile) = observation_role_profile {
+        if let Some(recorder) = recorder {
             add_attested_artifact(
                 &mut expected_artifacts,
                 &mut requirements,
                 &batch_uri,
                 &batch_sha,
-                SignerRole::EvidenceProvider,
-                &profile.issuer_id,
+                SignerRole::RunRecorder,
+                &recorder.issuer_id,
                 "power-restoration/observation-result-batch/v1",
                 &receipt.run_id,
                 &case_sha256,
                 batch.presentation_step,
                 &proposal_sha,
-                &profile.tool_source_commit,
-                &profile.tool_configuration_sha256,
+                &recorder.tool_source_commit,
+                &recorder.tool_configuration_sha256,
                 vec![proposal_sha.clone()],
                 &mut errors,
             );
-        } else if batch.results.is_empty() {
-            // A proposal with an empty information result set is not expected
-            // by the current action vocabulary; retain the explicit profile error.
-            errors.push(observation_role_profile.err().unwrap_or_else(|| "missing evidence provider profile".to_string()));
         } else {
-            errors.push(observation_role_profile.err().unwrap_or_else(|| "missing evidence provider profile".to_string()));
+            errors.push("observation batch has no pinned run-recorder profile".to_string());
         }
 
         for result in &batch.results {
@@ -1350,10 +1347,10 @@ pub fn verify_restoration_claim_evidence(
                 ));
                 continue;
             };
-            let profile = match producer_profiles.iter().find(|profile| profile.signer_role == SignerRole::ServiceProvider) {
-                Some(profile) => profile,
-                None => {
-                    errors.push("missing pinned service-provider producer profile".to_string());
+            let profile = match profile_for_role(producer_profiles, SignerRole::ServiceProvider) {
+                Ok(profile) => profile,
+                Err(error) => {
+                    errors.push(error);
                     continue;
                 }
             };
@@ -1395,36 +1392,35 @@ pub fn verify_restoration_claim_evidence(
     }
 
     if let Some(final_trajectory) = &receipt.final_service_trajectory {
-        let profile = match producer_profiles.iter().find(|profile| profile.signer_role == SignerRole::ServiceProvider) {
-            Some(profile) => profile,
-            None => {
-                errors.push("missing pinned service-provider producer profile".to_string());
-                // Continue to aggregate the rest of the claim so errors remain complete.
-                &ClaimProducerProfile {
-                    signer_role: SignerRole::ServiceProvider,
-                    issuer_id: String::new(),
-                    tool_source_commit: String::new(),
-                    tool_configuration_sha256: String::new(),
-                }
+        let already_attested = expected_artifacts
+            .get(&final_trajectory.artifact_ref)
+            .is_some_and(|digest| digest == &final_trajectory.sha256)
+            && requirements.iter().any(|requirement| {
+                requirement.artifact_uri == final_trajectory.artifact_ref
+                    && requirement.signer_role == SignerRole::ServiceProvider
+            });
+        if !already_attested {
+            match profile_for_role(producer_profiles, SignerRole::ServiceProvider) {
+                Ok(profile) => add_attested_artifact(
+                    &mut expected_artifacts,
+                    &mut requirements,
+                    &final_trajectory.artifact_ref,
+                    &final_trajectory.sha256,
+                    SignerRole::ServiceProvider,
+                    &profile.issuer_id,
+                    "power-restoration/final-service-trajectory/v1",
+                    &receipt.run_id,
+                    &case_sha256,
+                    case.timebase.horizon_steps.saturating_sub(1),
+                    &proposal_set_sha,
+                    &profile.tool_source_commit,
+                    &profile.tool_configuration_sha256,
+                    service_trajectory_digests,
+                    &mut errors,
+                ),
+                Err(error) => errors.push(error),
             }
-        };
-        add_attested_artifact(
-            &mut expected_artifacts,
-            &mut requirements,
-            &final_trajectory.artifact_ref,
-            &final_trajectory.sha256,
-            SignerRole::ServiceProvider,
-            &profile.issuer_id,
-            "power-restoration/final-service-trajectory/v1",
-            &receipt.run_id,
-            &case_sha256,
-            case.timebase.horizon_steps.saturating_sub(1),
-            &proposal_set_sha,
-            &profile.tool_source_commit,
-            &profile.tool_configuration_sha256,
-            service_trajectory_digests,
-            &mut errors,
-        );
+        }
     }
 
     if let Some(score) = &receipt.aggregate_score {
@@ -1616,6 +1612,45 @@ mod tests {
         )
         .expect("write test artifact");
         root
+    }
+
+    #[test]
+    fn claim_verifier_requires_a_pinned_run_recorder_profile() {
+        let case: power_restoration_benchmark_case::BenchmarkCase = serde_json::from_str(include_str!(
+            "../../power-restoration-benchmark-case/fixtures/synthetic-restoration-case-v0.1.json"
+        )).unwrap();
+        let receipt: power_restoration_run_receipt::RunReceipt = serde_json::from_str(include_str!(
+            "../../power-restoration-run-receipt/fixtures/synthetic-restoration-run-receipt-v0.1.json"
+        )).unwrap();
+        let manifest = BundleManifest {
+            schema_version: "0.1.0".to_string(),
+            bundle_id: "empty-claim-bundle".to_string(),
+            artifacts: Vec::new(),
+        };
+        let trust = TrustRoot {
+            schema_version: "0.1.0".to_string(),
+            root_id: "empty-root".to_string(),
+            valid_from_unix_ms: 0,
+            valid_until_unix_ms: 10_000,
+            keys: Vec::new(),
+        };
+        let pinned = "0".repeat(64);
+        let result = verify_restoration_claim_evidence(
+            Path::new("."),
+            &case,
+            &receipt,
+            &[],
+            &manifest,
+            &trust,
+            &pinned,
+            &[],
+            &[],
+            "power-fabric://run/synthetic/receipt",
+            2_000,
+            1024,
+        );
+        assert!(result.is_err());
+        assert!(result.unwrap_err().iter().any(|error| error.contains("RunRecorder")));
     }
 
     #[test]
