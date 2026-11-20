@@ -89,6 +89,13 @@ A decrease is not treated as negative heat or silently wrapped: it indicates an 
 For the 120-second sinusoidal case, the cumulative-energy delta is 68,333,461.00984275 J. The receiver's average-power representation is 569,445.5084153563 W and closes its declared interval energy balance with zero residual. The endpoint temperature is 2.9899793275 K versus 3.0292389827 K for continuously varying forcing: **the interface energy is exact as declared, but the receiver's within-window trajectory remains approximate**. This separates conservation from trajectory accuracy rather than conflating them.
 
 
+
+#### Exactly-once cumulative-energy cursor
+
+The oracle now includes an immutable counter cursor: `(epoch_id, sequence, committed_time, cumulative_energy_J)`. Each accepted observation must be in the same explicit epoch, have exactly the next sequence number, occur at a strictly later committed time, and pass the Float64 resolution budget. A duplicate sequence, sequence gap, epoch change, repeated time, counter regression or precision-budget failure is rejected. The operation is pure: on failure the prior cursor remains unchanged. A restart must be reconciled and explicitly begin a new epoch; it cannot be inferred from a falling counter and cannot be treated as negative energy.
+
+This makes the integrated-flux profile an exactly-once *application contract* on the observed event stream, not a guarantee of at-least-once transport or producer honesty. The master must bind each cursor advancement to its FMI API event, normalized step, and physical transfer commit barrier. Frozen cases are in `fixtures/known-answers.v0.1.json`.
+
 #### Cumulative Float64 precision is a separate hard gate
 
 Subtracting two finite monotone Float64 cumulative counters is not automatically an accurate interval-energy measurement. As the counter magnitude grows, the representable spacing grows too; a small interval increment can be rounded away. The oracle now returns a `CumulativeEnergyDelta` receipt with an explicit bound equal to the sum of one-ULP endpoint spacings; `integrated_flux_exchange_from_cumulative` accepts the delta only if that bound fits a caller-supplied absolute-energy error budget, and returns the receipt beside the receiver balance. A synthetic counter near 1e18 J has a 256 J step that is rejected under a 1 J budget, but can be accepted under a 1024 J budget with the bound retained in the receipt.
@@ -99,7 +106,7 @@ The method is causal only after the producer interval completes and only if the 
 
 ## Frozen known answers
 
-The machine-readable inputs, decimal reference values, ZOH/interval-average/causal-predictor convergence ladders, cumulative-energy producer samples, Float64 resolution cases and adaptive step-policy cases are in `fixtures/known-answers.v0.1.json`. Rust tests verify frozen answers, partition invariance, exact interval-average source energy, limiter diagnostics, first- and second-order convergence, event fences, minimum-step refusal, uncertainty gating and cumulative-counter precision limits.
+The machine-readable inputs, decimal reference values, ZOH/interval-average/causal-predictor convergence ladders, cumulative-energy producer samples, Float64 resolution cases and adaptive step-policy cases are in `fixtures/known-answers.v0.1.json`. Rust tests verify frozen answers, partition invariance, exact interval-average source energy, limiter diagnostics, first- and second-order convergence, event fences, minimum-step refusal, uncertainty gating, counter epoch/sequence atomicity and cumulative-counter precision limits.
 
 ## Run
 
