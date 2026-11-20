@@ -26,7 +26,7 @@ The programme is designed to reproduce conventional explanations first, then giv
 | Actuators 15(6), 326 (2026) | Closed-loop control and electrode placement comparisons for an EHD actuation system | Untethered flight or anomalous propulsion |
 
 Sources:
-- NASA report: <https://ntrs.nasa.gov/citations/20040171972>
+- NASA report: <https://ntrs.nasa.gov/citations/20040171929>
 - Talley report: <https://apps.dtic.mil/sti/citations/ADA197537>
 - Tajmar et al. (2024): <https://doi.org/10.1038/s41598-024-70286-w>
 - 2025 geometry study: <https://doi.org/10.3390/app15169190>
