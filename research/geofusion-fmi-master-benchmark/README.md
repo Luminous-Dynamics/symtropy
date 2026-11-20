@@ -101,23 +101,23 @@ The official SSP tool-support matrix currently lists the following declared impo
 
 | Tool | Vendor | Declared SSP import/export | Benchmark lane |
 |---|---|---|---|
-| easySSP / orchideo | eXXcellent solutions | 1.0 / 2.0 | Primary SSP 2.0.1 round-trip candidate |
-| FMI Bench | PMSF | 1.0 / 2.0 | Primary independent SSP 2.0.1 round-trip candidate |
-| Dymola | Dassault Systèmes | 1.0 / 2.0 | Independent SSP 2.0.1 import/export candidate |
-| Scilab/Xcos | Dassault Systèmes | 2.0 | Independent SSP 2.0.1 import/export candidate |
-| OMSimulator | OpenModelica | 1.0 | Legacy SSP 1.0 compatibility only unless an exact later build is independently shown to support SSP 2.0 |
-| SYNECT Model Management | dSPACE | 1.0 | Legacy SSP 1.0 compatibility |
-| Model.CONNECT | AVL | 1.0 | Legacy SSP 1.0 compatibility |
-| Simcenter System Architect | Siemens | 1.0 | Legacy SSP 1.0 compatibility |
+| easySSP / orchideo | eXXcellent solutions | import/export 1.0 / 2.0 | Primary SSP 2.0.1 round-trip candidate |
+| FMI Bench | PMSF | import/export 1.0 / 2.0 | Primary independent SSP 2.0.1 round-trip candidate |
+| Dymola | Dassault Systèmes | import/export 1.0 / 2.0 | Additional SSP 2.0.1 candidate |
+| OMSimulator | OpenModelica | import/export 1.0 | Legacy SSP 1.0 compatibility only |
+| SYNECT Model Management | dSPACE | import/export 1.0 | Legacy SSP 1.0 compatibility |
+| Model.CONNECT | AVL | import/export 1.0 | Legacy SSP 1.0 compatibility |
+| Simcenter System Architect | Siemens | import/export 1.0 | Legacy SSP 1.0 compatibility |
 | Simcenter Studio | Siemens | export 1.0 only | Export-only; cannot qualify end-to-end round-trip |
-| OpenMCx | Eclipse Foundation | import 1.0 only | Import-only; useful for read/semantic-inspection lane |
-| Ecos | NTNU Ålesund | 1.0 | Legacy SSP 1.0 import/export candidate |
+| CATIA Magic | Dassault Systèmes | export 1.0 only | Export-only; cannot qualify end-to-end round-trip |
+| OpenMCx | Eclipse Foundation | import 1.0 only | Import-only; cannot qualify end-to-end round-trip |
+| Simulator Suite | TLK-Thermo | import 1.0 only | Import-only; cannot qualify end-to-end round-trip |
 
-The official SSP tool page gives standard-version coverage, but does not pin product build numbers or feature-by-feature round-trip behavior. Thus this is a *candidate matrix*, not proof that a specific installed release correctly preserves the GeoFusion package. Each campaign must record exact product/version/build, host OS, import warnings, export warnings, resulting package digests and a canonical diff of components, source URIs, connectors, connector kinds, types, unit exponents, parameter values and connections.
+The official SSP tool page gives standard-version coverage, but does not pin product build numbers or feature-by-feature round-trip behavior. Thus this is a *candidate matrix*, not proof that a specific installed release correctly preserves the GeoFusion package. Each campaign must record exact product/version/build, host OS, import warnings, export warnings, resulting package digests and a canonical diff of components, source URIs, connectors, connector kinds, types, unit exponents, parameter values, variant bindings, metadata/signatures and connections. These are vendor-declared support claims, not executed qualification; import-only/export-only tools are never promoted to round-trip candidates.
 
 SSP 2.0.1 is a maintenance patch to SSP 2.0. The SSD schema's version attribute encodes only major/minor (here `2.0`), not the patch version; the exact SSP release and XSD blob hashes therefore belong in the benchmark manifest. Do not infer SSP 2.0.1 support from a tool's SSP 1.0 listing, or infer correct round-trip behavior solely from a `2.0` label.
 
-The initial cross-tool target is **FMI Bench ↔ easySSP**, with Dymola and Scilab/Xcos as additional SSP 2.0 candidates. Import the exact same SSP package into each, export it, then cross-import the exported results. Compare canonicalized graph and FMU resource digests. Exact build numbers, licensing/access, host OS and supported subset still must be pinned per run. Export-only and import-only entries are never scored as full round-trip support. Unsupported or inaccessible tools are `NOT_EVALUABLE`, not a fail and never a pass.
+The initial cross-tool target is **FMI Bench ↔ easySSP**, with Dymola as an additional SSP 2.0 candidate. The vendor's current matrix does not list Scilab/Xcos as an SSP importer/exporter, so it is not a benchmark candidate. Import the exact same SSP package into each, export it, then cross-import the exported results. Compare canonicalized graph and FMU resource digests. Exact build numbers, licensing/access, host OS and supported subset still must be pinned per run. Export-only and import-only entries are never scored as full round-trip support. Unsupported or inaccessible tools are `NOT_EVALUABLE`, not a fail and never a pass.
 
 Source: [official SSP tool support matrix](https://ssp-standard.org/tools/); [SSP 2.0.1 specification and versioning](https://ssp-standard.org/docs/2.0.1/).
 
