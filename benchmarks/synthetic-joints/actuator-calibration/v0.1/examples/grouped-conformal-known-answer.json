@@ -1,0 +1,207 @@
+{
+  "schema_version": "0.1.0",
+  "plan": {
+    "model_digest": "model-digest-v1",
+    "training_split_digest": "train-split-v1",
+    "calibration_split_digest": "calibration-split-v1",
+    "test_split_digest": "test-split-v1",
+    "mission_set_digest": "frozen-mission-v1",
+    "system_boundary_digest": "installed-joint-boundary-v1",
+    "operating_condition_digest": "48V-25C-cooling-A",
+    "domain_digest": "48V-25C-load-domain-v1",
+    "alpha": 0.25,
+    "evidence_class": "independent_physical",
+    "training_specimen_ids": [
+      "train-specimen-1"
+    ]
+  },
+  "calibration": {
+    "split_digest": "calibration-split-v1",
+    "model_digest": "model-digest-v1",
+    "mission_set_digest": "frozen-mission-v1",
+    "system_boundary_digest": "installed-joint-boundary-v1",
+    "operating_condition_digest": "48V-25C-cooling-A",
+    "domain_digest": "48V-25C-load-domain-v1",
+    "specimens": [
+      {
+        "specimen_id": "cal-1",
+        "manufacturer_id": "maker-a",
+        "actuator_model_id": "actuator-a",
+        "architecture_id": "qdd",
+        "evidence_class": "independent_physical",
+        "evidence_reference": "https://example.invalid/measurement/cal-1",
+        "measurement_method": "Synthetic known-answer calibration/validation fixture; no physical observation.",
+        "calibration_digest": "calibration-cal-1",
+        "observations": [
+          {
+            "sample_id": "cal-1-sample-0",
+            "sample_index": 0,
+            "predicted_lower_torque_nm": 9,
+            "predicted_upper_torque_nm": 11,
+            "observed_torque_nm": 10,
+            "in_domain": true
+          },
+          {
+            "sample_id": "cal-1-sample-1",
+            "sample_index": 1,
+            "predicted_lower_torque_nm": 9,
+            "predicted_upper_torque_nm": 11,
+            "observed_torque_nm": 12,
+            "in_domain": true
+          }
+        ]
+      },
+      {
+        "specimen_id": "cal-2",
+        "manufacturer_id": "maker-a",
+        "actuator_model_id": "actuator-b",
+        "architecture_id": "qdd",
+        "evidence_class": "independent_physical",
+        "evidence_reference": "https://example.invalid/measurement/cal-2",
+        "measurement_method": "Synthetic known-answer calibration/validation fixture; no physical observation.",
+        "calibration_digest": "calibration-cal-2",
+        "observations": [
+          {
+            "sample_id": "cal-2-sample-0",
+            "sample_index": 0,
+            "predicted_lower_torque_nm": 18,
+            "predicted_upper_torque_nm": 22,
+            "observed_torque_nm": 20,
+            "in_domain": true
+          },
+          {
+            "sample_id": "cal-2-sample-1",
+            "sample_index": 1,
+            "predicted_lower_torque_nm": 18,
+            "predicted_upper_torque_nm": 22,
+            "observed_torque_nm": 19,
+            "in_domain": true
+          }
+        ]
+      },
+      {
+        "specimen_id": "cal-3",
+        "manufacturer_id": "maker-b",
+        "actuator_model_id": "actuator-c",
+        "architecture_id": "harmonic",
+        "evidence_class": "independent_physical",
+        "evidence_reference": "https://example.invalid/measurement/cal-3",
+        "measurement_method": "Synthetic known-answer calibration/validation fixture; no physical observation.",
+        "calibration_digest": "calibration-cal-3",
+        "observations": [
+          {
+            "sample_id": "cal-3-sample-0",
+            "sample_index": 0,
+            "predicted_lower_torque_nm": 29,
+            "predicted_upper_torque_nm": 31,
+            "observed_torque_nm": 32,
+            "in_domain": true
+          },
+          {
+            "sample_id": "cal-3-sample-1",
+            "sample_index": 1,
+            "predicted_lower_torque_nm": 29,
+            "predicted_upper_torque_nm": 31,
+            "observed_torque_nm": 30,
+            "in_domain": true
+          }
+        ]
+      }
+    ]
+  },
+  "test": {
+    "split_digest": "test-split-v1",
+    "model_digest": "model-digest-v1",
+    "mission_set_digest": "frozen-mission-v1",
+    "system_boundary_digest": "installed-joint-boundary-v1",
+    "operating_condition_digest": "48V-25C-cooling-A",
+    "domain_digest": "48V-25C-load-domain-v1",
+    "specimens": [
+      {
+        "specimen_id": "test-1",
+        "manufacturer_id": "maker-a",
+        "actuator_model_id": "heldout-a",
+        "architecture_id": "qdd",
+        "evidence_class": "independent_physical",
+        "evidence_reference": "https://example.invalid/measurement/test-1",
+        "measurement_method": "Synthetic known-answer calibration/validation fixture; no physical observation.",
+        "calibration_digest": "calibration-test-1",
+        "observations": [
+          {
+            "sample_id": "test-1-sample-0",
+            "sample_index": 0,
+            "predicted_lower_torque_nm": 9,
+            "predicted_upper_torque_nm": 11,
+            "observed_torque_nm": 11.5,
+            "in_domain": true
+          },
+          {
+            "sample_id": "test-1-sample-1",
+            "sample_index": 1,
+            "predicted_lower_torque_nm": 19,
+            "predicted_upper_torque_nm": 21,
+            "observed_torque_nm": 20,
+            "in_domain": true
+          }
+        ]
+      },
+      {
+        "specimen_id": "test-2",
+        "manufacturer_id": "maker-c",
+        "actuator_model_id": "heldout-b",
+        "architecture_id": "harmonic",
+        "evidence_class": "independent_physical",
+        "evidence_reference": "https://example.invalid/measurement/test-2",
+        "measurement_method": "Synthetic known-answer calibration/validation fixture; no physical observation.",
+        "calibration_digest": "calibration-test-2",
+        "observations": [
+          {
+            "sample_id": "test-2-sample-0",
+            "sample_index": 0,
+            "predicted_lower_torque_nm": 4,
+            "predicted_upper_torque_nm": 6,
+            "observed_torque_nm": 8,
+            "in_domain": true
+          },
+          {
+            "sample_id": "test-2-sample-1",
+            "sample_index": 1,
+            "predicted_lower_torque_nm": 9,
+            "predicted_upper_torque_nm": 11,
+            "observed_torque_nm": 10,
+            "in_domain": true
+          }
+        ]
+      },
+      {
+        "specimen_id": "test-3",
+        "manufacturer_id": "maker-z",
+        "actuator_model_id": "ood-c",
+        "architecture_id": "novel",
+        "evidence_class": "independent_physical",
+        "evidence_reference": "https://example.invalid/measurement/test-3",
+        "measurement_method": "Synthetic known-answer calibration/validation fixture; no physical observation.",
+        "calibration_digest": "calibration-test-3",
+        "observations": [
+          {
+            "sample_id": "test-3-sample-0",
+            "sample_index": 0,
+            "predicted_lower_torque_nm": 0,
+            "predicted_upper_torque_nm": 1,
+            "observed_torque_nm": 0.5,
+            "in_domain": false
+          },
+          {
+            "sample_id": "test-3-sample-1",
+            "sample_index": 1,
+            "predicted_lower_torque_nm": 0,
+            "predicted_upper_torque_nm": 1,
+            "observed_torque_nm": 0.5,
+            "in_domain": true
+          }
+        ]
+      }
+    ]
+  },
+  "claim_ceiling": "Synthetic known-answer fixture for grouped split-conformal arithmetic only. All specimen identities, sources, measurements, predictions, manufacturers and model names are synthetic placeholders."
+}
