@@ -403,5 +403,146 @@
       }
     ],
     "claim_ceiling": "This bounds endpoint Float64 quantization under the stated round-to-nearest observation model; it does not authenticate producer integration, prove sensor uncertainty, or correct within-interval physics. For long-running large counters or tight tolerances, prefer interval-energy J outputs or a higher-precision/epoch-based counter profile."
+  },
+  "cumulative_energy_cursor_v0_1": {
+    "identity_fields": [
+      "counter_epoch_id",
+      "monotone_sequence",
+      "committed_master_time",
+      "cumulative_energy_j"
+    ],
+    "consume_rule": "same epoch; next sequence exactly previous+1; strictly increasing committed time; monotone cumulative J; Float64 endpoint ULP sum within explicit error budget",
+    "failure_dispositions": {
+      "epoch_change": "REJECT",
+      "sequence_replay": "REJECT",
+      "sequence_gap": "REJECT",
+      "non_increasing_time": "REJECT",
+      "counter_regression": "REJECT",
+      "precision_budget_exceeded": "REJECT"
+    },
+    "cases": [
+      {
+        "id": "normal_commit",
+        "initial": {
+          "epoch": 7,
+          "sequence": 0,
+          "time_s": 0,
+          "cumulative_j": 1000
+        },
+        "next": {
+          "epoch": 7,
+          "sequence": 1,
+          "time_s": 2,
+          "cumulative_j": 2000
+        },
+        "expected_interval_energy_j": 1000,
+        "disposition": "ACCEPT"
+      },
+      {
+        "id": "sequence_replay",
+        "initial": {
+          "epoch": 7,
+          "sequence": 10,
+          "time_s": 1,
+          "cumulative_j": 1000
+        },
+        "next": {
+          "epoch": 7,
+          "sequence": 10,
+          "time_s": 2,
+          "cumulative_j": 2000
+        },
+        "disposition": "REJECT",
+        "reason": "CumulativeEnergySequenceMismatch"
+      },
+      {
+        "id": "sequence_gap",
+        "initial": {
+          "epoch": 7,
+          "sequence": 10,
+          "time_s": 1,
+          "cumulative_j": 1000
+        },
+        "next": {
+          "epoch": 7,
+          "sequence": 12,
+          "time_s": 2,
+          "cumulative_j": 2000
+        },
+        "disposition": "REJECT",
+        "reason": "CumulativeEnergySequenceMismatch"
+      },
+      {
+        "id": "epoch_reset",
+        "initial": {
+          "epoch": 7,
+          "sequence": 0,
+          "time_s": 1,
+          "cumulative_j": 1000
+        },
+        "next": {
+          "epoch": 8,
+          "sequence": 1,
+          "time_s": 2,
+          "cumulative_j": 2000
+        },
+        "disposition": "REJECT",
+        "reason": "CumulativeEnergyEpochMismatch"
+      },
+      {
+        "id": "time_replay",
+        "initial": {
+          "epoch": 7,
+          "sequence": 0,
+          "time_s": 1,
+          "cumulative_j": 1000
+        },
+        "next": {
+          "epoch": 7,
+          "sequence": 1,
+          "time_s": 1,
+          "cumulative_j": 2000
+        },
+        "disposition": "REJECT",
+        "reason": "CumulativeEnergyTimeNotIncreasing"
+      },
+      {
+        "id": "counter_reset_without_epoch",
+        "initial": {
+          "epoch": 7,
+          "sequence": 0,
+          "time_s": 1,
+          "cumulative_j": 1000
+        },
+        "next": {
+          "epoch": 7,
+          "sequence": 1,
+          "time_s": 2,
+          "cumulative_j": 500
+        },
+        "disposition": "REJECT",
+        "reason": "CumulativeEnergyRegressed"
+      },
+      {
+        "id": "float64_precision_exhausted",
+        "initial": {
+          "epoch": 3,
+          "sequence": 5,
+          "time_s": 10,
+          "cumulative_j": 1000000000000000000,
+          "max_resolution_error_j": 1
+        },
+        "next": {
+          "epoch": 3,
+          "sequence": 6,
+          "time_s": 11,
+          "cumulative_j": 1000000000000000300
+        },
+        "disposition": "REJECT",
+        "reason": "CumulativeEnergyPrecisionInsufficient"
+      }
+    ],
+    "atomicity": "consume is pure and returns a new cursor only on success; all rejected observations leave the prior cursor unchanged",
+    "claim_ceiling": "Exactly-once sequencing and monotone counter semantics within the caller-provided epoch/observation stream. This does not authenticate the producer or prove its integration physics."
   }
 }
