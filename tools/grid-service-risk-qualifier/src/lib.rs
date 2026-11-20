@@ -520,7 +520,7 @@ pub fn qualify(case: &Case) -> Result<QualificationReport, Vec<String>> {
         let point = point_expectation(&rows);
         let worst = worst.expect("non-empty manifest has at least one branch");
         let risk_limit = case.risk_limit_manifest.limits.iter()
-            .find(|limit| limit.metric_id == *metric_id)
+            .find(|limit| limit.metric_id.as_str() == metric_id.as_str())
             .expect("risk limit identity was validated");
         if risk_limit.unit != meta.unit {
             return Err(vec![format!("risk limit unit for metric {} does not match the service metric", metric_id)]);
