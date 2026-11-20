@@ -13,7 +13,7 @@
         "schemaVersion":{"const":"0.1.0"},
         "predicateType":{"type":"string","minLength":1},
         "issuerId":{"type":"string","minLength":1},
-        "signerRole":{"enum":["planner","transition_engine","electrical_validator","service_provider","field_observer","scorer"]},
+        "signerRole":{"enum":["planner","transition_engine","independent_validator","electrical_validator","service_provider","field_observer","evidence_provider","run_recorder","scorer"]},
         "subjectUri":{"type":"string","minLength":1},
         "subjectSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
         "runId":{"type":"string","minLength":1},
