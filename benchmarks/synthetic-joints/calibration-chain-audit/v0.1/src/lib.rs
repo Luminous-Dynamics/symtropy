@@ -149,6 +149,10 @@ pub struct CalibrationChainReport {
     pub pre_use_check: MeasurementAssuranceCheck,
     pub post_use_check: MeasurementAssuranceCheck,
     pub link_receipts: Vec<LinkAuditReceipt>,
+    /// Explanations for statistical-only links; these do not make the
+    /// structural chain Unknown, but prevent deterministic-bound promotion.
+    pub statistical_notes: Vec<String>,
+    /// Broken/expired/unknown-chain or failed-assurance reasons.
     pub reasons: Vec<String>,
 }
 
@@ -418,6 +422,7 @@ pub fn audit_calibration_chain(
     let mut link_ids = BTreeSet::new();
     let mut calibrated_items = BTreeSet::new();
     let mut reasons = Vec::new();
+    let mut statistical_notes = Vec::new();
     let mut total_absolute_error_bound = 0.0_f64;
     let mut statistical_only_link_count = 0usize;
     let mut unknown_uncertainty_link_count = 0usize;
@@ -470,7 +475,7 @@ pub fn audit_calibration_chain(
             }
             LinkValidationOutcome::StatisticalOnly(reason) => {
                 statistical_only_link_count += 1;
-                reasons.push(reason);
+                statistical_notes.push(reason);
             }
             LinkValidationOutcome::Unknown(reason) => {
                 if link.uncertainty_kind == LinkUncertaintyKind::Unknown {
@@ -501,6 +506,13 @@ pub fn audit_calibration_chain(
             conversion_model_reference: link.conversion_model_reference.clone(),
             certificate_digest: link.certificate_digest.clone(),
         });
+    }
+
+    if calibrated_items.contains(record.terminal_reference_id.as_str()) {
+        return Err(format!(
+            "terminal reference {} creates a cycle back to an item already in the calibration chain",
+            record.terminal_reference_id
+        ));
     }
 
     for (label, check) in [
@@ -549,6 +561,7 @@ pub fn audit_calibration_chain(
         pre_use_check: record.pre_use_check.clone(),
         post_use_check: record.post_use_check.clone(),
         link_receipts,
+        statistical_notes,
         reasons,
     })
 }
@@ -681,7 +694,8 @@ mod tests {
         assert_eq!(report.disposition, ChainDisposition::StatisticalUncertaintyOnly);
         assert_eq!(report.total_absolute_error_bound, None);
         assert_eq!(report.statistical_only_link_count, 1);
-        assert!(report.reasons.iter().any(|reason| reason.contains("standard uncertainty")));
+        assert!(report.reasons.is_empty());
+        assert!(report.statistical_notes.iter().any(|note| note.contains("standard uncertainty")));
     }
 
     #[test]
