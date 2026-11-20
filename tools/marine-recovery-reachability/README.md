@@ -13,27 +13,29 @@ cargo run --manifest-path tools/marine-recovery-reachability/Cargo.toml -- audit
 
 ## What it verifies
 
-- A digest-bound, vessel-specific service/rate contract and trigger/hard-gate rosters.
+- A digest-bound, vessel-specific service/rate contract, hard-gate roster, exact trigger roster and capability-qualification registry bound to the exact operating-envelope scope.
 - A trigger-time resource state with conservative uncertainty intervals.
 - Bounded action-graph reachability from the current node to a declared terminal.
-- Action trigger, component and capability preconditions; exact hard-gate coverage; action evidence and digest.
+- Typed action classes, trigger/component/capability preconditions, exact hard-gate coverage, action evidence and digest. A capability must be in the qualified registry and currently available in the trigger state before an action can use it.
 - Per-axis successor intervals from bounded resource deltas.
 - An exact two-cone inter-sample envelope during every bounded action duration, using the mission's declared maximum absolute rate per hour. Both endpoints and the entire action interval must remain within all service floors/ceilings.
 - Total worst-case recovery time must fit within the intervention deadline.
-- Safe-haven, shore-resupply, repair-restoration and controlled-safe-hold terminals count only when destination access, required service capacity/availability, authority and terminal evidence are verified and unexpired.
+- Human handover is a distinct terminal: explicit acknowledgement, named authority role, communications evidence and worst-case response latency must all fit inside the remaining intervention window.
+- Search is bounded by action count, path count, path depth and total expanded edges. Reaching a bound returns an incomplete/abstaining result rather than claiming exhaustive reachability.
+- Safe-haven, shore-resupply, repair-restoration, controlled-safe-hold and human-handover terminals count only when destination/access, required service availability, authority and terminal evidence are verified and unexpired.
 - Every rejected action edge and every feasible recovery path is retained. No weighted path score or aggregate utility is produced.
 
 ## Synthetic scenario results
 
 | Fault trigger | Expected result | Why |
 |---|---|---|
-| Main generator trip | RECOVERABLE | A load-shed then safe-haven path survives all resource and inter-sample floors; fast diversion and generator repair are rejected |
+| Main generator trip | RECOVERABLE | Two continuations survive: load-shed then safe haven, and acknowledged remote-master handover. Fast diversion and generator repair are rejected |
 | Watermaker trip | RECOVERABLE | Shore-resupply path reaches a port with verified access, capacity, service and authority evidence |
 | Common-cause generator + watermaker outage | INFEASIBLE/ABSTAIN | The candidate diversion breaches both energy and freshwater floors; the controlled-hold alternative depends on unavailable generation |
 | Intervention deadline exhausted | INFEASIBLE/ABSTAIN | The only route arrives after the declared intervention deadline |
 | Unverified port services | INFEASIBLE/ABSTAIN | Geographic reachability is not terminal success when required shore service evidence is unverified |
 
-All numbers, action deltas, rate bounds, authority receipts and terminal evidence are synthetic known-answer fixtures.
+The human handover fixture has a 2-hour worst-case transfer duration plus a 0.5-hour response upper bound against a 6-hour intervention deadline; remaining margin is emitted explicitly. Missing acknowledgement or a 5-hour response bound makes that handover non-viable. All numbers, action deltas, rate bounds, authority receipts and terminal evidence are synthetic known-answer fixtures.
 
 ## Industry and research boundary
 
@@ -46,3 +48,16 @@ The differentiator to test is not a new route optimizer. It is a **separate reco
 ## Claim ceiling
 
 This is a bounded finite action-graph audit. It is not a continuous viability-kernel proof, hydrodynamic model, COLREG solver, refuge guarantee, navigation authority, helm controller or actuator executor. Physical deployments require qualified vessel models, verified refuge/access/service data, independent review and SIL/PIL/HIL progression.
+
+
+## Human handover is a timed safety path, not a checkbox
+
+The human-handover terminal is counted only when the record binds an affirmative acknowledgement, a named accountable remote authority role, qualified communications evidence, an upper bound on human response time, and confirmation before the intervention deadline. A terminal with no acknowledgement is not a handover. A response arriving after the last safe intervention point is not a fallback.
+
+## Capability qualification versus capability availability
+
+The capability registry is part of the canonical mission snapshot and binds a capability ID, qualification status, evidence digest, operating-envelope scope and validity horizon. A scenario may declare only current, qualified capabilities in that registry. Each action then requires those capabilities to be available in that particular trigger state. A vessel may have a qualified engine-repair capability in its registry while that option is unavailable after a generator trip because the engine or repair kit is unavailable. Qualification is not availability.
+
+## Reproducible bounds
+
+The evaluator enforces a maximum action count, action depth, successful-path count and total expanded-edge count per scenario. If the search stops at a bound, the report marks enumeration incomplete. SEARCH_INCOMPLETE/ABSTAIN is intentionally distinct from INFEASIBLE/ABSTAIN: lack of a discovered path under an incomplete search is not proof that no path exists.
