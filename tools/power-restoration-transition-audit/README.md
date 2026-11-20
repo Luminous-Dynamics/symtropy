@@ -27,7 +27,7 @@ The state snapshot binds exact switch inventory, crew road positions, mobile-sou
 - electrical power flow, radiality, voltage/thermal/short-circuit/protection qualification;
 - service delivery, commissioning and human/operator authority.
 
-An applied action outside the supported subset produces INCONCLUSIVE; it is never guessed or treated as a valid state delta. A failed action also produces INCONCLUSIVE because the current state model cannot exclude partial physical effects. Rejected/not-attempted actions are expected to leave tracked state unchanged.
+An applied action outside the supported subset produces INCONCLUSIVE; it is never guessed or treated as a valid state delta. A failed action also produces INCONCLUSIVE because the current state model cannot exclude partial physical effects. A rejected physical action is not self-authorizing: a planner/transition-engine statement that actuation was never acquired is insufficient. A no-actuation artifact reference is required, but until an independent trusted witness verifies it, the outcome remains INCONCLUSIVE. Rejected non-mutating information actions and not-attempted actions may leave the tracked state unchanged.
 
 ## What is checked
 
@@ -46,11 +46,11 @@ An applied action outside the supported subset produces INCONCLUSIVE; it is neve
     cargo test --manifest-path tools/power-restoration-transition-audit/Cargo.toml --all-targets
     cargo run --manifest-path tools/power-restoration-transition-audit/Cargo.toml --bin power-restoration-transition-audit -- case.json proposal.json previous-state.json successor-state.json transition-envelope.json
 
-CLI exit codes: 0 = supported state delta recomputed; 3 = INCONCLUSIVE for unsupported semantics; 1 = malformed or contradictory evidence; 2 = report serialization failure.
+CLI exit codes: 0 = supported state delta recomputed; 3 = INCONCLUSIVE for unsupported action semantics or unauthenticated actuation boundary; 1 = malformed or contradictory evidence; 2 = report serialization failure.
 
 ## Integration target
 
-The end-to-end claim verifier #6427 should invoke this semantic audit on each transition artifact before accepting the TransitionEngine attestation as a semantically verified state change. The attestation authenticates who asserted the result; this crate checks a narrow set of state semantics independently.
+The end-to-end claim verifier #6427 should invoke this semantic audit on each transition artifact before accepting the TransitionEngine attestation as a semantically verified state change. The transition-engine attestation authenticates who asserted the result; this crate checks a narrow set of state semantics independently. Rejected physical actions additionally require a distinct actuation-witness role to authenticate pre-actuation rejection and non-acquisition; the current crate intentionally reports such rejections as inconclusive until that witness-verification layer is integrated.
 
 ## Claim boundary
 
