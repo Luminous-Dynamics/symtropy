@@ -664,7 +664,7 @@ mod tests {
         let report = qualify(&case).expect("unknown service evidence yields an inconclusive report");
         assert_eq!(report.result_status, "inconclusive_service_evidence");
         assert!(!report.inconclusive_reasons.is_empty());
-        assert!(report.interval_worst_case_metric_results.len() < 4);
+        assert_eq!(report.interval_worst_case_metric_results.len(), 4);
     }
 
     #[test]
@@ -703,10 +703,20 @@ mod tests {
     }
 
     #[test]
+    fn risk_limit_unit_must_match_service_metric_unit() {
+        let mut case = fixture();
+        case.risk_limit_manifest.limits.iter_mut()
+            .find(|limit| limit.metric_id == "community-water-m3").unwrap()
+            .unit = "MWh".to_string();
+        case.risk_limit_manifest_sha256 = canonical_risk_limit_manifest_sha256(&case.risk_limit_manifest).unwrap();
+        assert!(qualify(&case).is_err());
+    }
+
+    #[test]
     fn separate_service_metrics_are_not_collapsed() {
         let report = qualify(&fixture()).expect("fixture qualifies");
         let ids: BTreeSet<&str> = report.interval_worst_case_metric_results.iter().map(|item| item.metric_id.as_str()).collect();
-        assert_eq!(ids.len(), 4);
+        assert_eq!(ids.len(), 5);
         assert!(report.interval_worst_case_metric_results.iter().any(|item| item.unit == "MWh"));
         assert!(report.interval_worst_case_metric_results.iter().any(|item| item.unit == "m3"));
         assert!(report.interval_worst_case_metric_results.iter().any(|item| item.unit == "customer_hours"));
