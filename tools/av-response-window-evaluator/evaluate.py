@@ -201,6 +201,9 @@ def evaluate(
                 continue
             if start_tick < query_tick:
                 episode_violations.append("response_precedes_query")
+            trigger_tick = trigger_ticks.get(trigger_ref)
+            if trigger_tick is None or start_tick < trigger_tick:
+                episode_violations.append("response_precedes_trigger_availability")
             if end_tick > deadline:
                 episode_violations.append("response_overhang_past_episode_deadline")
             validated_intervals.append((start_tick, end_tick, response["response_id"]))
