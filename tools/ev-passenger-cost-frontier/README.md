@@ -56,3 +56,22 @@ The overlay inherits productive minutes/cell-year, shifts, target good-carrier t
 This is an incremental capacity/resource overlay, not a second factory costing engine. Base building, general overhead, site labor/energy rates and vehicle assembly costs remain with `ev_factory_frontier`. Module production release remains false in v0.1, including synthetic-screen passes.
 
 Research dossier: [EV Carrier Module Manufacturing Screen v0.1](../../docs/research/EV_CARRIER_MODULE_MANUFACTURING_SCREEN_V0_1.md).
+
+
+## EV-CARRIER-LIFECYCLE-001 — serviceability and whole-life accounting
+
+The `ev_carrier_module_lifecycle_screen` binary consumes the existing `EV-CARRIER-MODULE-MFG-001` report and joins module configurations to planned/unscheduled service event and cost profiles. It does not duplicate factory station capacity, identity lineage, or the generic service task ledger.
+
+Run after the module factory screen:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_carrier_module_lifecycle_screen -- \
+  ev-carrier-module-factory-report.json \
+  tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_lifecycle_v0_1.json
+```
+
+The report separates elapsed downtime, technician-hours, parts, planned maintenance and unscheduled events. Unscheduled rates require measured/independent observed event counts and module-year exposure. Repair, replace, remanufacture and repurpose are distinct. Unknown failure rates remain unknown.
+
+Full lifecycle cost includes acquisition amortization, allocated factory capex, service parts/labour, downtime value, spares, logistics, module energy, warranty and end-of-life cost. Each component carries its own value/evidence/reference. Missing any required component withholds a full cost ranking. The evaluator never grants production release or return-to-service authority.
+
+Research dossier: [EV Carrier Module Lifecycle v0.1](../../docs/research/EV_CARRIER_MODULE_LIFECYCLE_V0_1.md).
