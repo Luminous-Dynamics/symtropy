@@ -20,7 +20,8 @@
       "inverter_capability",
       "power_balance",
       "island_source"
-    ]
+    ],
+    "requiredPhases": []
   },
   "evaluationGrid": {
     "timeOriginRef": "synthetic://time-origin/t0",
@@ -115,7 +116,8 @@
           "limitEvidenceRef": "synthetic://limit/voltage",
           "margin": 0.03,
           "marginUnit": "p.u.",
-          "status": "pass"
+          "status": "pass",
+          "phaseRef": null
         },
         {
           "constraintId": "line-1-2",
@@ -128,7 +130,8 @@
           "limitEvidenceRef": "synthetic://limit/thermal",
           "margin": 20,
           "marginUnit": "percentage_points",
-          "status": "pass"
+          "status": "pass",
+          "phaseRef": null
         },
         {
           "constraintId": "mps-pq",
@@ -141,7 +144,8 @@
           "limitEvidenceRef": "synthetic://limit/mps",
           "margin": 0.3,
           "marginUnit": "MVA",
-          "status": "pass"
+          "status": "pass",
+          "phaseRef": null
         },
         {
           "constraintId": "transformer-loading",
@@ -154,7 +158,8 @@
           "limitEvidenceRef": "synthetic://limit/transformer",
           "margin": 25,
           "marginUnit": "percentage_points",
-          "status": "pass"
+          "status": "pass",
+          "phaseRef": null
         },
         {
           "constraintId": "generator-pq",
@@ -167,7 +172,8 @@
           "limitEvidenceRef": "synthetic://limit/generator-pq",
           "margin": 0.2,
           "marginUnit": "p.u.",
-          "status": "pass"
+          "status": "pass",
+          "phaseRef": null
         },
         {
           "constraintId": "power-balance",
@@ -180,7 +186,8 @@
           "limitEvidenceRef": "synthetic://limit/power-balance",
           "margin": 0.000009,
           "marginUnit": "MVA",
-          "status": "pass"
+          "status": "pass",
+          "phaseRef": null
         },
         {
           "constraintId": "island-source",
@@ -193,7 +200,8 @@
           "limitEvidenceRef": "synthetic://limit/source-count",
           "margin": 0,
           "marginUnit": "count",
-          "status": "pass"
+          "status": "pass",
+          "phaseRef": null
         }
       ],
       "scopeLimitations": [
@@ -248,7 +256,8 @@
           "limitEvidenceRef": "synthetic://limit/voltage",
           "margin": 0.03,
           "marginUnit": "p.u.",
-          "status": "pass"
+          "status": "pass",
+          "phaseRef": null
         },
         {
           "constraintId": "line-1-2",
@@ -261,7 +270,8 @@
           "limitEvidenceRef": "synthetic://limit/thermal",
           "margin": 20,
           "marginUnit": "percentage_points",
-          "status": "pass"
+          "status": "pass",
+          "phaseRef": null
         },
         {
           "constraintId": "mps-pq",
@@ -274,7 +284,8 @@
           "limitEvidenceRef": "synthetic://limit/mps",
           "margin": 0.3,
           "marginUnit": "MVA",
-          "status": "pass"
+          "status": "pass",
+          "phaseRef": null
         },
         {
           "constraintId": "transformer-loading",
@@ -287,7 +298,8 @@
           "limitEvidenceRef": "synthetic://limit/transformer",
           "margin": 25,
           "marginUnit": "percentage_points",
-          "status": "pass"
+          "status": "pass",
+          "phaseRef": null
         },
         {
           "constraintId": "generator-pq",
@@ -300,7 +312,8 @@
           "limitEvidenceRef": "synthetic://limit/generator-pq",
           "margin": 0.2,
           "marginUnit": "p.u.",
-          "status": "pass"
+          "status": "pass",
+          "phaseRef": null
         },
         {
           "constraintId": "power-balance",
@@ -313,7 +326,8 @@
           "limitEvidenceRef": "synthetic://limit/power-balance",
           "margin": 0.000009,
           "marginUnit": "MVA",
-          "status": "pass"
+          "status": "pass",
+          "phaseRef": null
         },
         {
           "constraintId": "island-source",
@@ -326,7 +340,8 @@
           "limitEvidenceRef": "synthetic://limit/source-count",
           "margin": 0,
           "marginUnit": "count",
-          "status": "pass"
+          "status": "pass",
+          "phaseRef": null
         }
       ],
       "scopeLimitations": [
