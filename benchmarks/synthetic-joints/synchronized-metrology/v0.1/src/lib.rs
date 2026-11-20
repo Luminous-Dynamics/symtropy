@@ -792,7 +792,27 @@ mod tests {
     }
 
     #[test]
-    fn metrology_024_nonfinite_combined_skew_rejects() {
+    fn metrology_024_reverse_motoring_quadrant_has_positive_mechanical_power() {
+        let (mut torque, mut speed) = pair();
+        torque.value = NumericInterval { lower: -11.0, upper: -9.0 };
+        speed.value = NumericInterval { lower: -6.0, upper: -4.0 };
+        let report = evaluate_mechanical_port_power(&torque, &speed).unwrap();
+        assert_eq!(report.aligned_power_w, Some(NumericInterval { lower: 36.0, upper: 66.0 }));
+        assert_eq!(report.power_sign, Some(PowerSign::PositiveMechanicalPower));
+    }
+
+    #[test]
+    fn metrology_025_reverse_regeneration_quadrant_has_negative_mechanical_power() {
+        let (mut torque, mut speed) = pair();
+        torque.value = NumericInterval { lower: 9.0, upper: 11.0 };
+        speed.value = NumericInterval { lower: -6.0, upper: -4.0 };
+        let report = evaluate_mechanical_port_power(&torque, &speed).unwrap();
+        assert_eq!(report.aligned_power_w, Some(NumericInterval { lower: -66.0, upper: -36.0 }));
+        assert_eq!(report.power_sign, Some(PowerSign::NegativeMechanicalPower));
+    }
+
+    #[test]
+    fn metrology_026_nonfinite_combined_skew_rejects() {
         let (mut torque, speed) = pair();
         torque.sample_time_offset_s = f64::MAX;
         torque.clock_offset_uncertainty_s = f64::MAX;
