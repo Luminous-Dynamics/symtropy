@@ -473,7 +473,6 @@ mod tests {
     }
 
     fn proposal(kind: ActionKind) -> ActionProposal {
-        let case = case();
         let mut proposal: ActionProposal = serde_json::from_str(include_str!(
             "../../power-restoration-action-proposal/fixtures/synthetic-restoration-action-proposal-v0.1.json"
         )).unwrap();
