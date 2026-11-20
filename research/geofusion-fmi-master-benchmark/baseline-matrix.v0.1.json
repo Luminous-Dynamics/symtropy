@@ -1,0 +1,808 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "GEOFUSION-FMI-MASTER-BASELINE-001",
+  "status": "planned_not_executed",
+  "research_snapshot_date": "2026-11-20",
+  "parent_issue": 6156,
+  "owner_issue": 6224,
+  "comparator_roles": [
+    {
+      "id": "oms_ma",
+      "project": "OMSimulator",
+      "role": "co_simulation_master",
+      "algorithm_class": "fixed_step",
+      "direct_master_comparator": true,
+      "required_parameters": [
+        "fixedStepSize"
+      ],
+      "evidence_url": "https://openmodelica.org/doc/OpenModelicaUsersGuide/latest/omsimulator.html"
+    },
+    {
+      "id": "oms_mav",
+      "project": "OMSimulator",
+      "role": "co_simulation_master",
+      "algorithm_class": "variable_step_tolerance_control",
+      "direct_master_comparator": true,
+      "required_parameters": [
+        "initialStepSize",
+        "minimumStepSize",
+        "maximumStepSize",
+        "relativeTolerance"
+      ],
+      "evidence_url": "https://openmodelica.org/doc/OpenModelicaUsersGuide/latest/omsimulator.html"
+    },
+    {
+      "id": "oms_mav2",
+      "project": "OMSimulator",
+      "role": "co_simulation_master",
+      "algorithm_class": "variable_step_enhanced_error_estimation",
+      "direct_master_comparator": true,
+      "required_parameters": [
+        "initialStepSize",
+        "minimumStepSize",
+        "maximumStepSize",
+        "relativeTolerance"
+      ],
+      "evidence_url": "https://openmodelica.org/doc/OpenModelicaUsersGuide/latest/omsimulator.html"
+    },
+    {
+      "id": "fmpy",
+      "project": "FMPy",
+      "role": "fmi_importer_and_simulation_harness",
+      "algorithm_class": "tool_default",
+      "direct_master_comparator": false,
+      "expected_use": "FMI 3.0 importer interoperability smoke tests",
+      "evidence_url": "https://github.com/CATIA-Systems/FMPy"
+    },
+    {
+      "id": "fmusim",
+      "project": "FMI Reference FMUs",
+      "role": "reference_runner",
+      "algorithm_class": "reference_fmu_execution",
+      "direct_master_comparator": false,
+      "expected_use": "reference model execution and importer smoke checks",
+      "evidence_url": "https://modelica.github.io/fmi-guides/main/fmi-guide/"
+    },
+    {
+      "id": "fmu_check",
+      "project": "FMU-Check",
+      "role": "static_fmu_validator",
+      "algorithm_class": "static",
+      "direct_master_comparator": false,
+      "expected_use": "package/schema preflight only",
+      "evidence_url": "https://modelica.github.io/fmi-guides/main/fmi-guide/"
+    },
+    {
+      "id": "vdmcheck",
+      "project": "VDMCheck",
+      "role": "formal_fmi_semantics_checker",
+      "algorithm_class": "formal_validation",
+      "direct_master_comparator": false,
+      "expected_use": "complementary FMI behavior checks where compatible",
+      "evidence_url": "https://modelica.github.io/fmi-guides/main/fmi-guide/"
+    },
+    {
+      "id": "ssp_2_0_1",
+      "project": "System Structure and Parameterization",
+      "role": "system_structure_package",
+      "algorithm_class": "interoperable_system_topology_and_parameterization",
+      "direct_master_comparator": false,
+      "expected_use": "package and round-trip full multi-FMU component topology, connections, unit definitions and parameters across tools",
+      "evidence_url": "https://ssp-standard.org/docs/2.0.1/"
+    }
+  ],
+  "fmi_support_note": "The OpenModelica User Guide in this research snapshot reports FMI 3.0.2 support as experimental. Pin the exact release/commit and probe per-FMU capability support before scoring.",
+  "scorecard": [
+    "trajectory_error_absolute_relative_rms_peak_integral",
+    "step_refinement_and_stability_envelope",
+    "event_time_and_order_error",
+    "thermal_balance_residual_by_boundary_and_interval",
+    "electrical_balance_residual_by_boundary_and_interval",
+    "source_allocation_edge_exactness",
+    "clock_alignment_and_synchronization_skew",
+    "accepted_rejected_early_return_step_counts",
+    "retry_rollback_restart_counts",
+    "interpolation_extrapolation_method",
+    "wall_cpu_memory_latency_p50_p95_p99_real_time_factor",
+    "communication_calls_and_time_to_qualified_result",
+    "false_closure_and_false_qualification",
+    "invalid_input_and_unsupported_feature_refusal",
+    "deterministic_receipt_replay",
+    "SSP component_connection_parameter_and_unit_semantics_round_trip",
+    "predictor_future_sample_leakage_count",
+    "predictor_error_against_observed_interval_integral",
+    "envelope_limiter_activation_count_and_max_correction",
+    "predictor_uncertainty_calibration_and_rejected_step_decisions",
+    "FMI_early_return_event_mode_clock_tick_and_derivative_semantics",
+    "SSP_import_export_support_by_exact_pinned_product_build",
+    "SSP_connector_and_component_round_trip_completeness",
+    "SSP_parameter_and_variant_preservation",
+    "SSP_unit_definition_and_conversion_semantic_preservation",
+    "SSP_digital_signature_and_embedded_metadata_preservation",
+    "cumulative_energy_endpoint_resolution_bound_and_declared_tolerance",
+    "interval_integrated_energy_error_per_source_interval",
+    "exactly_once_interval_energy_consumption_count",
+    "receiver_trajectory_error_given_integrated_macro_step_energy",
+    "implicit_coupling_residual_history_by_time_window",
+    "implicit_participant_internal_tolerance_vs_outer_tolerance",
+    "quasi_newton_history_filter_preconditioner_and_relaxation",
+    "coupling_bounds_policy_and_limiter_activation_receipt",
+    "checkpoint_restore_and_rejected_iteration_cost"
+  ],
+  "hard_gates": {
+    "false_conservation_closures": 0,
+    "injected_semantic_faults_detected_or_not_evaluable": 1,
+    "silent_capability_fallback": false,
+    "silent_extrapolation": false,
+    "exact_carrier_boundary_interval_model_binding": true,
+    "deterministic_receipts_for_deterministic_inputs": true,
+    "failures_timeouts_unsupported_in_denominator": true,
+    "causal_lane_future_sample_reads": 0,
+    "predictor_limiter_corrections_must_be_recorded": true,
+    "no_unqualified_error_bound_claim": true,
+    "ssp_round_trip_must_preserve_every_declared_component_connector_and_connection": true,
+    "ssp_parameter_variant_and_unit_semantics_must_be_compared_separately": true,
+    "cumulative_energy_counter_resolution_bound_within_declared_budget": true,
+    "interval_energy_transfers_exactly_once": true,
+    "power_and_energy_units_never_interchanged": true,
+    "cumulative_counter_reset_epoch_explicit": true,
+    "implicit_convergence_criteria_all_satisfied_per_time_window": true,
+    "implicit_participant_tolerance_ratio_disclosed": true,
+    "implicit_state_restore_cost_included": true,
+    "coupling_bound_policy_and_activations_reported": true
+  },
+  "stretch_objectives": [
+    "Pareto_improve_trajectory_error_balance_residual_and_latency",
+    "fewer_communication_calls_at_equal_or_better_accuracy_and_conservation",
+    "event_time_error_within_one_declared_master_clock_tick_on_analytic_fixtures",
+    "higher_valid_feature_coverage_without_more_false_acceptance",
+    "minimize_time_to_qualified_result"
+  ],
+  "sources": [
+    {
+      "id": "fmi_3_0_2",
+      "url": "https://fmi-standard.org/docs/3.0.2/"
+    },
+    {
+      "id": "omsimulator_solver_methods",
+      "url": "https://openmodelica.org/doc/OpenModelicaUsersGuide/latest/omsimulator.html"
+    },
+    {
+      "id": "openmodelica_fmi_support",
+      "url": "https://openmodelica.org/doc/OpenModelicaUsersGuide/OpenModelicaUsersGuide-latest.pdf"
+    },
+    {
+      "id": "fmpy",
+      "url": "https://github.com/CATIA-Systems/FMPy"
+    },
+    {
+      "id": "fmi_implementers_guide",
+      "url": "https://modelica.github.io/fmi-guides/main/fmi-guide/"
+    },
+    {
+      "id": "ssp_2_0_1",
+      "url": "https://ssp-standard.org/docs/2.0.1/"
+    },
+    {
+      "id": "sundials_arkode_mristep_extsts",
+      "url": "https://computing.llnl.gov/projects/sundials/sundials-software"
+    },
+    {
+      "id": "precice_coupling_schemes",
+      "url": "https://precice.org/docs/configuration/basics/coupling/"
+    },
+    {
+      "id": "omsimulator_stable_branch",
+      "url": "https://github.com/OpenModelica/OMSimulator"
+    },
+    {
+      "id": "openmodelica_127_official_and_128_nightly",
+      "url": "https://openmodelica.org/download/download-windows/"
+    },
+    {
+      "id": "precice_350_release",
+      "url": "https://github.com/precice/precice/releases"
+    },
+    {
+      "id": "sundials_790",
+      "url": "https://computing.llnl.gov/projects/sundials/sundials-software"
+    },
+    {
+      "id": "ssp_tool_support_matrix",
+      "url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "id": "fmi_implementers_guide_snapshot_2026_10_06",
+      "url": "https://modelica.github.io/fmi-guides/main/fmi-guide/"
+    },
+    {
+      "id": "ssp_tools_matrix_current",
+      "url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "id": "precice_implicit_coupling_and_convergence_measures",
+      "url": "https://precice.org/docs/configuration/basics/coupling/"
+    },
+    {
+      "id": "precice_iqn_ils_and_acceleration",
+      "url": "https://precice.org/configuration-acceleration"
+    },
+    {
+      "id": "precice_bounds_violation_policy",
+      "url": "https://precice.org/configuration-xml-reference/"
+    },
+    {
+      "id": "omsimulator_3_0_0_prerelease",
+      "url": "https://github.com/OpenModelica/OMSimulator/releases"
+    },
+    {
+      "id": "omsimulator_3_0_0_docs_snapshot",
+      "url": "https://openmodelica.org/doc/OMSimulator/master/OMSimulator/UsersGuide/pdf/OMSimulator.pdf"
+    }
+  ],
+  "claim_ceiling": "A comparative result qualifies only the exact pinned FMU artifacts, tool versions, FMI lane, models, capability subset, parameters, communication policy, tolerances, output times and compute budget tested. It does not establish general FMI conformance, universal master superiority, real geothermal/fusion plant performance, equipment safety, economics or physical validation.",
+  "adjacent_method_references": [
+    {
+      "id": "sundials_arkode_mristep_extsts",
+      "project": "SUNDIALS / ARKODE",
+      "version": "7.9.0",
+      "released": "2026-09-03",
+      "role": "multirate_component_integrator",
+      "direct_fmi_master_comparator": false,
+      "expected_use": "matched analytic stiff/parabolic component integration reference; compare trajectory error, stability, CPU and step cost",
+      "not_equivalent_because": "A component time integrator, not an FMI importer or co-simulation master.",
+      "evidence_url": "https://computing.llnl.gov/projects/sundials/sundials-software"
+    },
+    {
+      "id": "precice_implicit_iqn",
+      "project": "preCICE",
+      "version": "pin_exact_release_or_commit_at_run",
+      "role": "partitioned_multiphysics_coupling_library",
+      "direct_fmi_master_comparator": false,
+      "expected_use": "matched interface-coupling reference for explicit/implicit schemes, convergence measures, iteration and checkpoint/rollback overhead; include IQN-ILS only when configured comparably",
+      "not_equivalent_because": "A coupling library and participant adapter, not an FMI importer/master baseline.",
+      "evidence_url": "https://precice.org/docs/configuration/basics/coupling/"
+    },
+    {
+      "id": "openmodelica_fmi_3_0_2",
+      "project": "OpenModelica / OMSimulator",
+      "version": "pin_exact_release_commit_at_run",
+      "role": "fmi_importer_and_master_stack",
+      "direct_fmi_master_comparator": true,
+      "expected_use": "direct co-simulation master and FMI importer baseline; FMI 3.0.2 support is documented as experimental in the 2026 User Guide",
+      "not_equivalent_because": "Capability support may vary by tool release and each FMU's advertised flags; report unsupported as not evaluable.",
+      "evidence_url": "https://openmodelica.org/doc/OpenModelicaUsersGuide/OpenModelicaUsersGuide-latest.pdf"
+    }
+  ],
+  "tool_release_snapshot": {
+    "as_of": "2026-11-20",
+    "omsimulator": {
+      "stable_line": "maintenance/v2.1",
+      "latest_stable_release": "2.1.3",
+      "stable_branch_evidence": "official repository identifies maintenance/v2.1 as stable",
+      "development_branch": "master",
+      "development_branch_status": "active unstable development branch",
+      "baseline_policy": "Use a pinned 2.1.3 build for the stable production-comparator lane. OMSimulator 3.0.0 is a development-only prerelease; test it in a separately labelled exploratory lane. Do not mix v3 development results into the stable leaderboard.",
+      "sources": [
+        "https://github.com/OpenModelica/OMSimulator",
+        "https://openmodelica.org/doc/OpenModelicaUsersGuide/latest/omsimulator.html"
+      ],
+      "current_prerelease": {
+        "version": "3.0.0",
+        "tag_date": "2026-11-11",
+        "release_status": "pre_release_development_only",
+        "documentation_snapshot": "v3.0.0.post208-g3046f82 (documentation dated 2026-11-01)",
+        "production_v3_target": "v3.1",
+        "production_ready": false,
+        "baseline_policy": "Use stable v2.1.3 for production comparator lane. Test v3.0.0 only in a separately labelled exploratory lane and retain exact source/build digest."
+      }
+    },
+    "fmpy": {
+      "version": "0.3.32",
+      "release_date": "2026-09-09",
+      "pypi_wheel": "fmpy-0.3.32-py3-none-any.whl",
+      "wheel_sha256": "b379deb9417b842028003a288d00c1c5f138d1580e1ff12cc6c42a98719cecf0",
+      "pypi_provenance_attestation": "not published for this wheel as of the snapshot",
+      "baseline_policy": "Pin version and wheel digest, retain the exact wheel as a run artifact, and report absent publisher provenance; FMPy remains an importer/interoperability harness rather than a like-for-like co-simulation master.",
+      "source": "https://pypi.org/project/FMPy/0.3.32/"
+    },
+    "openmodelica_fmi_support": {
+      "fmi_2_0_5": "supported",
+      "fmi_3_0_2": "experimental",
+      "baseline_policy": "Separate the mature FMI 2.0.5 production-comparator lane from the exploratory FMI 3.0.2 lane; report per-FMU capability flags and unsupported features.",
+      "source": "https://openmodelica.org/doc/OpenModelicaUsersGuide/OpenModelicaUsersGuide-latest.pdf"
+    },
+    "fmi_release": {
+      "version": "3.0.2",
+      "release_type": "maintenance release; clarifications and bug fixes, no new features compared with 3.0.1",
+      "source": "https://fmi-standard.org/docs/3.0.2/"
+    }
+  },
+  "compatibility_lanes": [
+    {
+      "id": "fmi-2.0.5-stable",
+      "fmi_version": "2.0.5",
+      "purpose": "mature production-comparator lane",
+      "tool_policy": "Use exact stable importer/master builds; capability probe every FMU; keep result separate from FMI 3."
+    },
+    {
+      "id": "fmi-3.0.2-exploratory",
+      "fmi_version": "3.0.2",
+      "purpose": "FMI 3 Co-Simulation feature and importer interoperability lane",
+      "tool_policy": "Pin exact tool releases; OpenModelica support is experimental in the current guide; no cross-lane aggregate ranking."
+    }
+  ],
+  "release_maturity_snapshot": [
+    {
+      "tool": "OMSimulator",
+      "lane": "stable",
+      "version": "2.1.3",
+      "branch": "maintenance/v2.1",
+      "documentation_build": "v2.1.3.post17-g81bd489",
+      "role": "direct_fmi_master_comparator",
+      "maturity": "stable",
+      "evidence_url": "https://github.com/OpenModelica/OMSimulator"
+    },
+    {
+      "tool": "OpenModelica",
+      "lane": "official",
+      "version": "1.27.1",
+      "role": "toolchain_release",
+      "maturity": "official_release",
+      "evidence_url": "https://openmodelica.org/download/download-windows/"
+    },
+    {
+      "tool": "OpenModelica",
+      "lane": "nightly",
+      "version": "1.28.0-dev",
+      "role": "toolchain_release",
+      "maturity": "nightly_development_only",
+      "evidence_url": "https://openmodelica.org/download/download-windows/"
+    },
+    {
+      "tool": "OpenModelica",
+      "lane": "FMI_2",
+      "fmi_version": "2.0.5",
+      "status": "supported",
+      "role": "compatibility_lane",
+      "evidence_url": "https://openmodelica.org/doc/OpenModelicaUsersGuide/OpenModelicaUsersGuide-latest.pdf"
+    },
+    {
+      "tool": "OpenModelica",
+      "lane": "FMI_3",
+      "fmi_version": "3.0.2",
+      "status": "experimental",
+      "role": "compatibility_lane",
+      "evidence_url": "https://openmodelica.org/doc/OpenModelicaUsersGuide/OpenModelicaUsersGuide-latest.pdf"
+    },
+    {
+      "tool": "FMPy",
+      "lane": "importer",
+      "version": "0.3.32",
+      "released": "2026-09-09",
+      "role": "importer_interoperability_not_master",
+      "wheel_sha256": "b379deb9417b842028003a288d00c1c5f138d1580e1ff12cc6c42a98719cecf0",
+      "publisher_provenance": "not_reported_by_PyPI",
+      "evidence_url": "https://pypi.org/project/FMPy/0.3.32/"
+    },
+    {
+      "tool": "preCICE",
+      "lane": "adjacent_coupling",
+      "version": "3.5.0",
+      "released": "2026-11-11",
+      "role": "partitioned_multiphysics_coupling_not_FMI_master",
+      "evidence_url": "https://github.com/precice/precice/releases"
+    },
+    {
+      "tool": "SUNDIALS",
+      "lane": "adjacent_integrator",
+      "version": "7.9.0",
+      "released": "2026-09",
+      "role": "ARKODE_MRIStep_multirate_integrator_not_FMI_master",
+      "evidence_url": "https://computing.llnl.gov/projects/sundials/sundials-software"
+    },
+    {
+      "tool": "SSP",
+      "lane": "system_structure",
+      "version": "2.0.1",
+      "released": "2026-05-05",
+      "role": "system_topology_parameterization_standard_not_master",
+      "evidence_url": "https://ssp-standard.org/docs/2.0.1/"
+    },
+    {
+      "tool": "OMSimulator",
+      "lane": "v3-development-prerelease",
+      "version": "3.0.0",
+      "tag_date": "2026-11-11",
+      "documentation_build": "v3.0.0.post208-g3046f82",
+      "role": "exploratory_fmi_master_comparator",
+      "maturity": "development_only_pre_release",
+      "evidence_url": "https://github.com/OpenModelica/OMSimulator/releases",
+      "qualification_rule": "Never mix v3 development/prerelease outcomes into stable v2.1 leaderboard; pin exact commit/build and capability surface"
+    }
+  ],
+  "maturity_policy": {
+    "stable_and_development_builds_must_not_share_a_leaderboard": true,
+    "fmi_2_and_fmi_3_compatibility_lanes_must_remain_separate": true,
+    "generic_fmi3_claim_does_not_prove_fmi3_0_2_capability_support": true,
+    "importer_or_master_must_be_probed_against_each_fmu_advertised_capability": true,
+    "unsupported_compatibility_lane_disposition": "NOT_EVALUABLE"
+  },
+  "ssp_interop_tool_matrix": [
+    {
+      "tool": "easySSP / orchideo",
+      "vendor": "eXXcellent solutions",
+      "declared_import": [
+        "1.0",
+        "2.0"
+      ],
+      "declared_export": [
+        "1.0",
+        "2.0"
+      ],
+      "benchmark_lane": "ssp_2_0_1_primary_candidate",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "FMI Bench",
+      "vendor": "PMSF",
+      "declared_import": [
+        "1.0",
+        "2.0"
+      ],
+      "declared_export": [
+        "1.0",
+        "2.0"
+      ],
+      "benchmark_lane": "ssp_2_0_1_primary_independent_candidate",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "Dymola",
+      "vendor": "Dassault Systèmes",
+      "declared_import": [
+        "1.0",
+        "2.0"
+      ],
+      "declared_export": [
+        "1.0",
+        "2.0"
+      ],
+      "benchmark_lane": "ssp_2_0_1_additional_candidate",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "Scilab/Xcos",
+      "vendor": "Dassault Systèmes S.E.",
+      "declared_import": [
+        "2.0"
+      ],
+      "declared_export": [
+        "2.0"
+      ],
+      "benchmark_lane": "ssp_2_0_1_additional_candidate",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "OMSimulator",
+      "vendor": "OpenModelica",
+      "declared_import": [
+        "1.0"
+      ],
+      "declared_export": [
+        "1.0"
+      ],
+      "benchmark_lane": "ssp_1_0_legacy_compatibility_only",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "SYNECT Model Management",
+      "vendor": "dSPACE",
+      "declared_import": [
+        "1.0"
+      ],
+      "declared_export": [
+        "1.0"
+      ],
+      "benchmark_lane": "ssp_1_0_legacy_compatibility",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "Model.CONNECT",
+      "vendor": "AVL",
+      "declared_import": [
+        "1.0"
+      ],
+      "declared_export": [
+        "1.0"
+      ],
+      "benchmark_lane": "ssp_1_0_legacy_compatibility",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "Simcenter System Architect",
+      "vendor": "Siemens",
+      "declared_import": [
+        "1.0"
+      ],
+      "declared_export": [
+        "1.0"
+      ],
+      "benchmark_lane": "ssp_1_0_legacy_compatibility",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "Simcenter Studio",
+      "vendor": "Siemens",
+      "declared_import": [
+        "1.0"
+      ],
+      "declared_export": [
+        "1.0"
+      ],
+      "benchmark_lane": "ssp_1_0_legacy_compatibility",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "CATIA Magic",
+      "vendor": "Dassault Systèmes",
+      "declared_import": [],
+      "declared_export": [
+        "1.0"
+      ],
+      "benchmark_lane": "ssp_1_0_export_only",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "OpenMCx",
+      "vendor": "Eclipse Foundation",
+      "declared_import": [
+        "1.0"
+      ],
+      "declared_export": [],
+      "benchmark_lane": "ssp_1_0_import_only",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "Simulator Suite",
+      "vendor": "TLK-Thermo",
+      "declared_import": [
+        "1.0"
+      ],
+      "declared_export": [],
+      "benchmark_lane": "ssp_1_0_import_only",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "FMIGo!",
+      "vendor": "Tjoppen",
+      "declared_import": [
+        "1.0"
+      ],
+      "declared_export": [],
+      "benchmark_lane": "ssp_1_0_import_only",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "Ecos",
+      "vendor": "NTNU Ålesund",
+      "declared_import": [
+        "1.0"
+      ],
+      "declared_export": [
+        "1.0"
+      ],
+      "benchmark_lane": "ssp_1_0_legacy_compatibility",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "ecu.test",
+      "vendor": "tracetronic",
+      "declared_import": [
+        "1.0",
+        "2.0"
+      ],
+      "declared_export": [],
+      "benchmark_lane": "ssp_import_only_no_roundtrip",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "SysAI.simulate",
+      "vendor": "SysAI",
+      "declared_import": [],
+      "declared_export": [
+        "1.0"
+      ],
+      "benchmark_lane": "ssp_1_0_export_only",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    }
+  ],
+  "ssp_round_trip_protocol": {
+    "patch_version_rule": "SSP 2.0.1 SSD version attribute encodes 2.0 only; record patch release and schema digests in external manifest",
+    "primary_cross_tool_pair": [
+      "FMI Bench",
+      "easySSP / orchideo"
+    ],
+    "required_sequence": [
+      "import original SSP",
+      "export imported system",
+      "cross-import each export into the other tool",
+      "canonicalize and compare"
+    ],
+    "compare_fields": [
+      "component_names",
+      "component_source_uris",
+      "connector_names",
+      "connector_kinds",
+      "connector_types",
+      "unit_base_exponents",
+      "parameter_values",
+      "connections",
+      "referenced_FMU_SHA256"
+    ],
+    "required_receipts": [
+      "exact_product_build",
+      "host_OS",
+      "import_warnings",
+      "export_warnings",
+      "source_SSP_SHA256",
+      "exported_SSP_SHA256",
+      "canonical_graph_diff"
+    ],
+    "unsupported_or_inaccessible_disposition": "NOT_EVALUABLE",
+    "no_round_trip_claim_without_both_import_and_export_runs": true,
+    "additional_ssp_2_candidates": [
+      "Dymola",
+      "Scilab/Xcos"
+    ],
+    "no_one_way_support_counts_as_full_roundtrip": true,
+    "import_only_tools_must_not_be_scored_as_exporters": true,
+    "export_only_tools_must_not_be_scored_as_importers": true,
+    "vendor_matrix_is_declared_support_not_executed_qualification": true,
+    "exact_ssp_patch_201_must_be_probed_even_when_vendor_lists_ssp_20": true,
+    "simcenter_studio_is_ssp_10_import_export_candidate": true,
+    "additional_import_only": [
+      "OpenMCx",
+      "Simulator Suite",
+      "FMIGo!",
+      "ecu.test"
+    ],
+    "additional_export_only": [
+      "CATIA Magic",
+      "SysAI.simulate"
+    ]
+  },
+  "co_sim_predictor_tracks": [
+    {
+      "id": "zoh_baseline",
+      "data_access": "current_sample_only",
+      "causality": "causal",
+      "order_on_smooth_waveform": "first_order_global",
+      "reference_role": "baseline"
+    },
+    {
+      "id": "causal_bounded_linear",
+      "data_access": "current_and_previous_committed_source_samples",
+      "causality": "causal",
+      "order_on_smooth_waveform": "approximately_second_order_global",
+      "limiter": "explicit_power_envelope_projection_with_receipt",
+      "reference_role": "deployable_predictor_candidate",
+      "evidence": "PR #6344 analytic oracle ladder"
+    },
+    {
+      "id": "exact_interval_average",
+      "data_access": "whole_future_interval_waveform_or_integral",
+      "causality": "non_causal_unless_source_publishes_interval_integral",
+      "reference_role": "oracle_upper_bound_not_master_win"
+    },
+    {
+      "id": "derivative_assisted",
+      "data_access": "advertised_FMI_output_or_directional_adjoint_derivatives",
+      "causality": "capability_conditional",
+      "reference_role": "research_candidate"
+    },
+    {
+      "id": "implicit_iterative",
+      "data_access": "multiple_coupling_iterations_and_checkpointing",
+      "causality": "capability_conditional",
+      "reference_role": "adjacent_preCICE_IQN_ILS_method_reference"
+    },
+    {
+      "id": "cumulative_energy_interval_handshake",
+      "data_access": "two successful producer cumulative-energy observations or a direct completed-interval integrated-energy output",
+      "causality": "causal_after_producer_interval_completion",
+      "exchange_quantity": "interval energy J, never confused with power W or a serialized FMU checkpoint",
+      "receiver_method": "consume exact declared interval energy once; use average power only for receiver trajectory evolution when no within-window waveform is exposed",
+      "precision_policy": "record Float64 endpoint ULP bound and reject when it exceeds the declared absolute-energy error budget; prefer direct interval-energy J outputs for long-running counters",
+      "reference_role": "causal conservation reference; trajectory accuracy scored separately from interval-energy exactness",
+      "evidence": "PR #6344 cumulative source and integrated-flux analytic oracle; issue #6407 interface track"
+    }
+  ],
+  "advanced_fmi3_feature_campaign": {
+    "guide_snapshot": "2026-10-06",
+    "features": [
+      {
+        "feature": "early_return",
+        "model_description_flags": [
+          "mightReturnEarlyFromDoStep",
+          "canReturnEarlyAfterIntermediateUpdate"
+        ],
+        "required_observation": "lastSuccessfulTime exactness and event flags"
+      },
+      {
+        "feature": "external_event_mode",
+        "model_description_flags": [
+          "hasEventMode"
+        ],
+        "required_observation": "eventHandlingNeeded, Event Mode transitions, event iteration"
+      },
+      {
+        "feature": "clocks",
+        "model_description_flags": [
+          "clock"
+        ],
+        "required_observation": "tick time, tick cause, activation order and scheduler decisions"
+      },
+      {
+        "feature": "directional_derivatives",
+        "model_description_flags": [
+          "providesDirectionalDerivatives"
+        ],
+        "required_observation": "seed vector, value references, derivative output, accuracy against finite-difference reference"
+      },
+      {
+        "feature": "adjoint_derivatives",
+        "model_description_flags": [
+          "providesAdjointDerivatives"
+        ],
+        "required_observation": "adjoint seed, value references, gradient output, accuracy against reference"
+      }
+    ],
+    "policy": "Probe each exact FMU capability and importer support. Unsupported combinations are NOT_EVALUABLE. Do not silently emulate; do not compare tools across different capability subsets."
+  },
+  "ssp_tool_matrix_snapshot_date": "2026-11-20",
+  "ssp_tool_matrix_source": "https://ssp-standard.org/tools/",
+  "implicit_coupling_qualification": {
+    "comparator": "preCICE 3.5.0; adjacent method reference, not an FMI master",
+    "methods": [
+      "parallel-implicit",
+      "serial-implicit",
+      "IQN-ILS",
+      "IQN-IMVJ"
+    ],
+    "required_receipts": [
+      "minimum_and_maximum_iterations_per_time_window",
+      "every_convergence_measure_and_normalized_residual",
+      "relative_absolute_or_combined_thresholds",
+      "participant_internal_solver_tolerance",
+      "quasi_newton_history_reuse",
+      "preconditioner_and_QR_filter",
+      "initial_relaxation_and_bounds_violation_policy",
+      "checkpoint_restore_cost",
+      "rejected_iterations_and_wall_cpu_time"
+    ],
+    "guidance": "Record participant solver tolerance and sensitivity; preCICE documentation suggests participant internal convergence approximately two orders of magnitude tighter than the coupling convergence criterion as a starting point, not a universal theorem.",
+    "gate": "All mandatory convergence criteria must be satisfied in each time window; absent participant rollback/checkpoint makes an implicit comparator NOT_EVALUABLE unless an independently qualified equivalent state policy is provided.",
+    "sources": [
+      "https://precice.org/docs/configuration/basics/coupling/",
+      "https://precice.org/configuration-acceleration",
+      "https://precice.org/configuration-xml-reference/"
+    ]
+  }
+}
