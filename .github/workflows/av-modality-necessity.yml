@@ -75,10 +75,14 @@ jobs:
             $a.audio.artifact_sha256 != $b.audio.artifact_sha256 and
             $a.video.artifact_sha256 != $b.video.artifact_sha256' research/av-modality-necessity-v0/fixtures/agent/workload-v1.json
 
-      - name: Common-cause views expose shared dependency metadata
+      - name: Common-cause pair requires comparing both dependent views
         run: |
           jq -e '.episodes[] | select(.episode_id == "mod-005-common-cause-redundancy") |
             .audio.source_dependency_group == .video.source_dependency_group' research/av-modality-necessity-v0/fixtures/agent/workload-v1.json
+          jq -e '.episodes[] | select(.episode_id == "mod-005-common-cause-redundancy") |
+            .video_sufficient == false and .audio_sufficient == false and .joint_sufficient == true' research/av-modality-necessity-v0/fixtures/evaluator-only/modality-truth-v1.json
+          jq -e '.episodes[] | select(.episode_id == "mod-005-common-cause-redundancy") |
+            .video_sufficient == false and .audio_sufficient == false and .joint_sufficient == true' research/av-modality-necessity-v0/fixtures/expected/known-answer-v1.json
 
       - name: Missing audio remains payload-free
         run: |
