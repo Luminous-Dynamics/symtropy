@@ -177,7 +177,7 @@ The expected status explicitly remains:
 - ecological impact `NOT_ASSESSED`; and
 - site clearance `UNKNOWN_BLOCKED`.
 
-The metrology verifier has 30 authored tests and the campaign verifier has seven. These regression/negative-control tests have not yet been compiled or executed in this environment because `rustc` and `cargo` are unavailable. The numerical cross-check is independent JavaScript analysis, not a Rust test pass or CI result.
+The environmental metric verifier has 10 authored tests, the metrology verifier has 30, and the campaign verifier has eight (48 environmental tests in total). The two placement/recovery verifiers and productive-reserve verifier add 13 more authored tests across the broader PR (61 total across all six crates). These regression/negative-control tests have not yet been compiled or executed in this environment because `rustc` and `cargo` are unavailable. The numerical cross-check is independent JavaScript analysis, not a Rust test pass or CI result.
 
 ## 9. Next physical qualification increments
 
