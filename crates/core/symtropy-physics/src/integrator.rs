@@ -29,8 +29,13 @@ pub fn nan_zeroed_count() -> u64 {
 
 /// Integrate a single rigid body forward by dt seconds.
 ///
-/// Semi-implicit Euler: update velocity first, then position.
-/// This is unconditionally stable for Hamiltonian systems (symplectic).
+/// Semi-implicit (velocity-first) Euler: update velocity first, then position.
+///
+/// For separable Hamiltonian systems, the undamped fixed-step map is
+/// symplectic. Symplecticity does **not** imply unconditional stability or
+/// timestep-independent accuracy: stability and error depend on the problem,
+/// timestep, and any damping, clamping, contacts, or constraint projections
+/// applied around this integrator.
 pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64, D>, dt: f64) {
     if !body.is_dynamic() {
         body.clear_accumulators();
@@ -181,6 +186,97 @@ mod tests {
     use crate::body::BodyHandle;
 
     #[test]
+    fn semi_implicit_euler_matches_constant_acceleration_discrete_map() {
+        const STEPS: usize = 137;
+        let dt = 0.013;
+        let mass = 2.5;
+        let initial_position = SVector::from([1.25, -2.0, 0.75]);
+        let initial_velocity = SVector::from([0.3, -0.7, 1.2]);
+        let applied_force = SVector::from([5.0, -1.25, 2.5]);
+        let gravity = SVector::from([-0.2, -9.3, 0.4]);
+        let acceleration = applied_force / mass + gravity;
+
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(70), Point(initial_position), 0.2, mass);
+        body.linear_velocity = initial_velocity;
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+
+        for _ in 0..STEPS {
+            body.apply_force(applied_force);
+            integrate(&mut body, &gravity, dt);
+        }
+
+        let elapsed = STEPS as f64 * dt;
+        let expected_velocity = initial_velocity + acceleration * elapsed;
+        let step_sum = (STEPS * (STEPS + 1)) as f64 / 2.0;
+        let expected_position =
+            initial_position + initial_velocity * elapsed + acceleration * (dt * dt * step_sum);
+
+        let actual_position = body.transform.translation.0;
+        let velocity_tolerance = 2.0e-12 * (1.0 + expected_velocity.norm());
+        let position_tolerance = 2.0e-12 * (1.0 + expected_position.norm());
+        assert!(
+            (body.linear_velocity - expected_velocity).norm() <= velocity_tolerance,
+            "velocity does not match the exact discrete update: actual={:?}, expected={expected_velocity:?}",
+            body.linear_velocity
+        );
+        assert!(
+            (actual_position - expected_position).norm() <= position_tolerance,
+            "position does not match the exact discrete update: actual={actual_position:?}, expected={expected_position:?}"
+        );
+        assert_eq!(body.force_accumulator, SVector::<f64, 3>::zeros());
+    }
+
+    #[test]
+    fn semi_implicit_euler_free_fall_position_error_is_first_order() {
+        let gravity = SVector::from([0.0, -9.81, 0.0]);
+        let initial_position = SVector::from([0.5, 3.0, -1.0]);
+        let initial_velocity = SVector::from([1.25, -0.75, 0.5]);
+        let final_time = 1.0;
+
+        let run = |dt: f64| {
+            let steps = (final_time / dt).round() as usize;
+            assert!((steps as f64 * dt - final_time).abs() < 1.0e-12);
+            let mut body = RigidBody::<3>::dynamic_sphere(
+                BodyHandle(71),
+                Point(initial_position),
+                0.2,
+                1.0,
+            );
+            body.linear_velocity = initial_velocity;
+            body.linear_damping = 0.0;
+            body.angular_damping = 0.0;
+
+            for _ in 0..steps {
+                integrate(&mut body, &gravity, dt);
+            }
+
+            let continuous_position = initial_position
+                + initial_velocity * final_time
+                + gravity * (0.5 * final_time * final_time);
+            let continuous_velocity = initial_velocity + gravity * final_time;
+            (
+                (body.transform.translation.0 - continuous_position).norm(),
+                (body.linear_velocity - continuous_velocity).norm(),
+            )
+        };
+
+        let (coarse_position_error, coarse_velocity_error) = run(0.1);
+        let (fine_position_error, fine_velocity_error) = run(0.05);
+        let observed_ratio = coarse_position_error / fine_position_error;
+
+        assert!(
+            (observed_ratio - 2.0).abs() < 1.0e-10,
+            "halving the timestep should halve semi-implicit Euler's global position error; observed ratio={observed_ratio}"
+        );
+        assert!(
+            coarse_velocity_error < 1.0e-12 && fine_velocity_error < 1.0e-12,
+            "constant-acceleration velocity should be exact absent damping or clamps: coarse={coarse_velocity_error}, fine={fine_velocity_error}"
+        );
+    }
+
+    #[test]
     fn free_fall_3d() {
         let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
         let gravity = SVector::from([0.0, -9.81, 0.0]);
@@ -191,10 +287,15 @@ mod tests {
             integrate(&mut body, &gravity, dt);
         }
 
-        // After 1s: y ≈ -0.5 * 9.81 * 1² ≈ -4.905 (with damping, less)
+        // Velocity-first Euler uses v_n = -g*n*h, then x_n += v_n*h.
+        // Its exact discrete result after N steps from rest is
+        // x_N = -g*h²*N*(N+1)/2 = -4.95405 m (not the continuous -4.905 m).
         let y = body.transform.translation.coord(1);
-        assert!(y < -3.0, "y = {y}, expected < -3.0");
-        assert!(y > -6.0, "y = {y}, expected > -6.0 (damping bounds)");
+        let expected_y = -9.81 * dt * dt * (100.0 * 101.0 / 2.0);
+        assert!(
+            (y - expected_y).abs() < 1.0e-11,
+            "y = {y}, expected exact discrete value {expected_y}"
+        );
     }
 
     #[test]
