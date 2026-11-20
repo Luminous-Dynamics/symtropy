@@ -44,7 +44,18 @@ struct PairingContract {
     required_time_sync_state: String,
     maximum_clock_offset_ms: u64,
     pair_rule: String,
-    water_balance_screen: WaterBalanceScreen,
+    flow_closure_boundary: FlowClosureBoundary,
+    flow_closure_screen: WaterBalanceScreen,
+}
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct FlowClosureBoundary {
+    mode: String,
+    included_streams: Vec<String>,
+    excluded_side_streams: Vec<String>,
+    storage_change_assumption: String,
+    boundary_completeness_state: String,
+    rule: String,
 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -288,11 +299,11 @@ struct IntervalResult {
     delta_temperature_hydraulic_alignment_standard_uncertainty_deg_c: f64,
     intake_flow_m3_s: f64,
     outfall_flow_m3_s: f64,
-    water_balance_residual_m3_s: f64,
-    water_balance_standard_uncertainty_m3_s: f64,
+    flow_closure_residual_m3_s: f64,
+    flow_closure_standard_uncertainty_m3_s: f64,
     outfall_flow_hydraulic_alignment_standard_uncertainty_m3_s: f64,
-    water_balance_z_score: f64,
-    water_balance_status: String,
+    flow_closure_z_score: f64,
+    flow_closure_status: String,
     thermal_power_kw: f64,
     thermal_power_standard_uncertainty_kw: f64,
     thermal_power_hydraulic_alignment_standard_uncertainty_kw: f64,
@@ -732,15 +743,15 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index:
     )?;
     nonnegative(u_thermal_kw, "thermal_power_standard_uncertainty_kw")?;
 
-    let water_residual = q_out - q_in;
-    let u_water_balance = (u_q_out_total.powi(2) + u_q_in.powi(2)).sqrt();
-    let water_z = if u_water_balance == 0.0 {
-        if water_residual == 0.0 { 0.0 } else { f64::INFINITY }
+    let flow_residual = q_out - q_in;
+    let u_flow_closure = (u_q_out_total.powi(2) + u_q_in.powi(2)).sqrt();
+    let flow_z = if u_flow_closure == 0.0 {
+        if flow_residual == 0.0 { 0.0 } else { f64::INFINITY }
     } else {
-        water_residual.abs() / u_water_balance
+        flow_residual.abs() / u_flow_closure
     };
-    if !water_z.is_finite() || water_z > bundle.pairing_contract.water_balance_screen.maximum_absolute_z_score {
-        return Err(format!("interval {} intake/outfall flow balance is outside uncertainty screen", interval.interval_id));
+    if !flow_z.is_finite() || flow_z > bundle.pairing_contract.flow_closure_screen.maximum_absolute_z_score {
+        return Err(format!("interval {} intake/outfall flow closure is outside uncertainty screen", interval.interval_id));
     }
 
     let mut station_anomalies = Vec::new();
@@ -979,11 +990,11 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index:
         delta_temperature_hydraulic_alignment_standard_uncertainty_deg_c:u_delta_temp_lag,
         intake_flow_m3_s:q_in,
         outfall_flow_m3_s:q_out,
-        water_balance_residual_m3_s:water_residual,
-        water_balance_standard_uncertainty_m3_s:u_water_balance,
+        flow_closure_residual_m3_s:flow_residual,
+        flow_closure_standard_uncertainty_m3_s:u_flow_closure,
         outfall_flow_hydraulic_alignment_standard_uncertainty_m3_s:u_q_out_lag,
-        water_balance_z_score:water_z,
-        water_balance_status:"WITHIN_DECLARED_INSTRUMENT_UNCERTAINTY_SCREEN_NOT_PERMIT_COMPLIANCE".into(),
+        flow_closure_z_score:flow_z,
+        flow_closure_status:"WITHIN_DECLARED_FLOW_CLOSURE_SCREEN_NOT_FULL_MASS_BALANCE_OR_PERMIT_COMPLIANCE".into(),
         thermal_power_kw:thermal_kw,
         thermal_power_standard_uncertainty_kw:u_thermal_kw,
         thermal_power_hydraulic_alignment_standard_uncertainty_kw:u_thermal_kw_lag,
@@ -1012,7 +1023,7 @@ fn validate(bundle: &Bundle) -> Result<Report, String> {
         || !bundle.pairing_contract.pair_rule.contains("exact same interval_id") {
         return Err("unsupported pairing contract".into());
     }
-    positive(bundle.pairing_contract.water_balance_screen.maximum_absolute_z_score,
+    positive(bundle.pairing_contract.flow_closure_screen.maximum_absolute_z_score,
         "maximum_absolute_z_score")?;
     if !bundle.standards_context.uncertainty_method.contains("GUM")
         || bundle.standards_context.uncertainty_method_reference.trim().is_empty()
@@ -1042,9 +1053,19 @@ fn validate(bundle: &Bundle) -> Result<Report, String> {
             return Err("uncertainty or unit-conversion equation missing".into());
         }
     }
-    if !bundle.pairing_contract.water_balance_screen.method.contains("uncertainty")
-        || !bundle.pairing_contract.water_balance_screen.purpose.contains("not a discharge permit") {
-        return Err("water-balance screen must remain a metrology check, not permit compliance".into());
+    let boundary = &bundle.pairing_contract.flow_closure_boundary;
+    if boundary.mode != "single_pass_once_through_no_side_streams_synthetic"
+        || boundary.included_streams != vec!["intake".to_string(), "outfall".to_string()]
+        || !boundary.excluded_side_streams.is_empty()
+        || boundary.storage_change_assumption != "zero_within_each_synthetic_interval"
+        || boundary.boundary_completeness_state != "synthetic_assumed_complete"
+        || !boundary.rule.contains("requires a full signed multi-stream mass balance") {
+        return Err("two-meter flow closure is not valid outside the declared single-pass/no-side-stream boundary".into());
+    }
+    if !bundle.pairing_contract.flow_closure_screen.method.contains("uncertainty")
+        || !bundle.pairing_contract.flow_closure_screen.purpose.contains("not a full water mass balance")
+        || !bundle.pairing_contract.flow_closure_screen.purpose.contains("not a discharge permit") {
+        return Err("flow-closure screen must remain a bounded metrology check, not a full mass balance or permit test".into());
     }
     let simulation = &bundle.uncertainty_simulation;
     if !simulation.framework.contains("JCGM 101:2008")
@@ -1226,7 +1247,13 @@ mod tests {
     fn intake_outfall_flow_imbalance_is_rejected() {
         let mut b = fixture();
         b.interval_records[0].flow_samples[1].flow_m3_s = 0.024;
-        assert!(validate(&b).unwrap_err().contains("flow balance is outside"));
+        assert!(validate(&b).unwrap_err().contains("flow closure is outside"));
+    }
+    #[test]
+    fn two_meter_flow_closure_rejects_unmeasured_side_streams() {
+        let mut b = fixture();
+        b.pairing_contract.flow_closure_boundary.excluded_side_streams.push("unmetered_purge".into());
+        assert!(validate(&b).unwrap_err().contains("single-pass/no-side-stream boundary"));
     }
     #[test]
     fn below_detection_concentration_requires_censored_data_method() {
