@@ -479,8 +479,8 @@
         "immutable_cleanroom_recovery"
       ],
       "service_blocked_paths": [],
-      "min_available_paths": 3,
-      "disposition": "Recover without depending on the production site; reconcile last accepted replica point."
+      "disposition": "Recover without depending on the production site; reconcile last accepted replica point.",
+      "minimum_infrastructure_paths": 3
     },
     {
       "scenario_id": "RT-002",
@@ -496,8 +496,8 @@
         "immutable_cleanroom_recovery"
       ],
       "service_blocked_paths": [],
-      "min_available_paths": 3,
-      "disposition": "Reject production credentials at every recovery boundary; retain independent authentication and key custody."
+      "disposition": "Reject production credentials at every recovery boundary; retain independent authentication and key custody.",
+      "minimum_infrastructure_paths": 3
     },
     {
       "scenario_id": "RT-003",
@@ -511,8 +511,8 @@
         "immutable_cleanroom_recovery"
       ],
       "service_blocked_paths": [],
-      "min_available_paths": 2,
-      "disposition": "Warm site assumes nominated service; immutable recovery remains available."
+      "disposition": "Warm site assumes nominated service; immutable recovery remains available.",
+      "minimum_infrastructure_paths": 2
     },
     {
       "scenario_id": "RT-004",
@@ -526,8 +526,8 @@
         "immutable_cleanroom_recovery"
       ],
       "service_blocked_paths": [],
-      "min_available_paths": 2,
-      "disposition": "Local continuity remains where the port region is unaffected; immutable recovery remains."
+      "disposition": "Local continuity remains where the port region is unaffected; immutable recovery remains.",
+      "minimum_infrastructure_paths": 2
     },
     {
       "scenario_id": "RT-005",
@@ -541,8 +541,8 @@
         "warm_recovery"
       ],
       "service_blocked_paths": [],
-      "min_available_paths": 2,
-      "disposition": "Local and warm paths remain; do not claim immutable recovery availability during this event."
+      "disposition": "Local and warm paths remain; do not claim immutable recovery availability during this event.",
+      "minimum_infrastructure_paths": 2
     },
     {
       "scenario_id": "RT-006",
@@ -557,8 +557,8 @@
         "immutable_cleanroom_recovery"
       ],
       "service_blocked_paths": [],
-      "min_available_paths": 3,
-      "disposition": "Port-local service continues; recovery paths do not depend on the production export route."
+      "disposition": "Port-local service continues; recovery paths do not depend on the production export route.",
+      "minimum_infrastructure_paths": 3
     },
     {
       "scenario_id": "RT-007",
@@ -571,8 +571,8 @@
         "immutable_cleanroom_recovery"
       ],
       "service_blocked_paths": [],
-      "min_available_paths": 2,
-      "disposition": "Quarantine warm recovery identity; use independently governed port or vault recovery path."
+      "disposition": "Quarantine warm recovery identity; use independently governed port or vault recovery path.",
+      "minimum_infrastructure_paths": 2
     },
     {
       "scenario_id": "RT-008",
@@ -585,8 +585,8 @@
         "warm_recovery"
       ],
       "service_blocked_paths": [],
-      "min_available_paths": 2,
-      "disposition": "Do not bypass key controls; vault path is unavailable until key custody is independently reconciled."
+      "disposition": "Do not bypass key controls; vault path is unavailable until key custody is independently reconciled.",
+      "minimum_infrastructure_paths": 2
     },
     {
       "scenario_id": "RT-009",
@@ -599,8 +599,8 @@
         "immutable_cleanroom_recovery"
       ],
       "service_blocked_paths": [],
-      "min_available_paths": 2,
-      "disposition": "Port compute enters bounded shutdown/degraded state before thermal limits; remote recovery remains available."
+      "disposition": "Port compute enters bounded shutdown/degraded state before thermal limits; remote recovery remains available.",
+      "minimum_infrastructure_paths": 2
     },
     {
       "scenario_id": "RT-010",
@@ -615,8 +615,8 @@
         "immutable_cleanroom_recovery"
       ],
       "service_blocked_paths": [],
-      "min_available_paths": 3,
-      "disposition": "Use local trust anchors, cached signed artifacts and path-specific time holdover; no critical recovery dependency on public DNS."
+      "disposition": "Use local trust anchors, cached signed artifacts and path-specific time holdover; no critical recovery dependency on public DNS.",
+      "minimum_infrastructure_paths": 3
     },
     {
       "scenario_id": "RT-011",
@@ -629,8 +629,8 @@
         "immutable_cleanroom_recovery"
       ],
       "service_blocked_paths": [],
-      "min_available_paths": 1,
-      "disposition": "Tertiary recovery survives; report service degradation and do not overstate multi-region survivability."
+      "disposition": "Tertiary recovery survives; report service degradation and do not overstate multi-region survivability.",
+      "minimum_infrastructure_paths": 1
     },
     {
       "scenario_id": "RT-012",
@@ -646,8 +646,8 @@
         "warm_recovery",
         "immutable_cleanroom_recovery"
       ],
-      "min_available_paths": 3,
-      "disposition": "Infrastructure remains available, but do not declare application service restored until a last-known-good image is independently validated and promoted."
+      "disposition": "Infrastructure remains available, but do not declare application service restored until a last-known-good image is independently validated and promoted.",
+      "minimum_infrastructure_paths": 3
     },
     {
       "scenario_id": "RT-013",
@@ -661,8 +661,8 @@
         "immutable_cleanroom_recovery"
       ],
       "service_blocked_paths": [],
-      "min_available_paths": 3,
-      "disposition": "No single production or shared administrator can destroy all recovery copies; retain separately governed operators and dual control."
+      "disposition": "No single production or shared administrator can destroy all recovery copies; retain separately governed operators and dual control.",
+      "minimum_infrastructure_paths": 3
     },
     {
       "scenario_id": "RT-014",
@@ -677,8 +677,8 @@
         "immutable_cleanroom_recovery"
       ],
       "service_blocked_paths": [],
-      "min_available_paths": 1,
-      "disposition": "Vault restore path remains; the model must declare the compound event rather than assuming independent site availability."
+      "disposition": "Vault restore path remains; the model must declare the compound event rather than assuming independent site availability.",
+      "minimum_infrastructure_paths": 1
     }
   ],
   "site_evidence_admission_requirements": [
