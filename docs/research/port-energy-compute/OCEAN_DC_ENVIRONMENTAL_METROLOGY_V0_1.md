@@ -1,0 +1,198 @@
+# Ocean Data-centre Environmental Metrology v0.1
+
+**Status:** standards crosswalk and field-measurement design basis only; not a site environmental assessment, regulator-approved monitoring programme, consent, or measured result.  
+**Date:** 2026-11-20  
+**Owner issue:** [OCEAN-DC-ENVIRONMENT-001 #6391](https://github.com/Luminous-Dynamics/symtropy/issues/6391)
+
+## 1. Why this changes the programme
+
+ITU-T Recommendation **L.1312 (07/2026)** was approved on 29 July 2026 and is in force. It defines a lifecycle, multi-dimensional environmental-metrics framework for data centres spanning:
+- energy efficiency;
+- resource efficiency;
+- greenhouse-gas efficiency; and
+- environmental impact.
+
+Its 14 data-centre metrics include PUE, energy reuse factor, space usage effectiveness, WUE, reclaimed/non-potable water proportion, WEEE reuse/recycling, REF, CUE, GHGEF, air pollutant concentration, water pollutant concentration, land pollutant concentration, outdoor noise and mean species abundance (MSA). The Recommendation explicitly discusses aquatic-organism impacts from underwater data-centre construction, operation and maintenance, and describes MSA relative to an undisturbed baseline.
+
+**Project shift:** environmental evidence is an admission gate and a measured system output, not a paragraph after the PUE result. We preserve the 14 standard metrics while adding a separate ocean-specific layer for intake/return flow, thermal plume, water chemistry, sediment, underwater noise, benthic habitat and ecological response.
+
+The machine-readable crosswalk is `OCEAN_DC_ENVIRONMENTAL_METROLOGY_V0_1.json`.
+
+## 2. Important standard interpretation
+
+### 2.1 PUE does not describe whole-system sustainability
+
+ITU-T L.1312 points to ISO/IEC 30134-2 for PUE and defines the continuous 12-month comparison between total data-centre energy and IT equipment energy. For interim, designed or mixed-use cases use the appropriate explicitly labelled measure (iPUE, dPUE or mPUE); do not present a short demonstration as an annual operational PUE.
+
+### 2.2 WUE and seawater accounting must not be conflated
+
+ITU-T L.1312 maps WUE to ISO/IEC 30134-9 and requires the selected WUE category to be declared and kept consistent in comparisons.
+
+The Recommendation's reclaimed/non-potable-water proportion metric defines its total-water-withdrawal denominator as **excluding seawater**. This does not mean seawater is environmentally irrelevant or that a seawater cooling loop consumes no marine resource. Therefore:
+- report freshwater and non-potable water under the declared WUE category;
+- separately report seawater intake/withdrawal volume, return/discharge volume, recirculation, purge and cleaning flows;
+- report intake-to-return temperature difference and thermal energy;
+- report chemistry, pollutants, entrainment/impingement and ecological indicators.
+
+Do not use an attractive WUE value to hide an unmeasured seawater intake or outfall.
+
+### 2.3 MSA is not a universal "no harm" certificate
+
+ITU-T L.1312 describes mean species abundance relative to a pre-construction undisturbed baseline, with defined spatial support. It is a useful lifecycle indicator, but a single averaged MSA result cannot prove absence of harm to every sensitive species, life stage or habitat. A marine programme should pair MSA with independently designed benthic/taxon surveys, suitable reference/control stations, seasonal representation, underwater acoustics and site-specific environmental triggers.
+
+### 2.4 Do not let a composite score override a hard gate
+
+L.1312 provides a method for a multi-dimensional comprehensive environmental metric. We can report such an aggregate if its normalization and weights are transparent. But our project must separately preserve raw metrics and non-compensatory gates. Better PUE, REF or ERF cannot compensate for:
+- active vent/protected-habitat intersection;
+- missing or rights-ineligible environmental baseline;
+- unpermitted discharge or a failed water-quality threshold;
+- unexplained heat or water mass-balance error;
+- an exceeded ecological trigger;
+- untrusted sensor/calibration/time/custody evidence.
+
+The aggregate metric is supplementary. Hard gates determine admissibility.
+
+## 3. Measurement boundary and minimum sensor package
+
+Every measurement must have a declared physical/logical boundary, location, depth/elevation, units, timebase, method, calibration, uncertainty, quality status and data rights. A value without that evidence remains unknown.
+
+| Measurement domain | Required variables | Minimum evidence |
+|---|---|---|
+| Facility and IT energy | Grid import/export, on-site generation, UPS losses, BESS charge/discharge, IT PDU energy, cooling pumps, fans/chillers and auxiliaries | Meter identity/class, CT/VT ratios, wiring diagram, verification/calibration, synchronized intervals, uncertainty budget |
+| Thermal-hydraulic loop | Primary and secondary supply/return temperatures, intake/outfall temperatures, flow, differential pressure, pump state/power | Paired calibrated sensors, flow calibration, heat-exchanger boundary, location/depth, time sync |
+| Ocean profile and hydrodynamics | Temperature-depth, conductivity/salinity, current speed/direction, waves, turbidity | Coordinates/datum, depth, calibration, deployment metadata, timebase, fouling inspection, QC |
+| Water quality | pH, dissolved oxygen, conductivity, turbidity, nutrients where relevant, metals/pollutants by laboratory method | Paired intake/outfall/reference samples, accredited method, chain of custody, blanks/duplicates, detection limits |
+| Ecology and habitat | Benthic taxa, habitat classes, abundance/MSA inputs, entrainment/impingement observations, biofouling taxa | Independent ecologist, repeatable protocol, predeclared reference/control stations, seasonal coverage, taxonomic resolution |
+| Underwater acoustics | Radiated-noise spectrum, ambient noise, duty cycle, source/received level and location/range/depth | Calibrated hydrophone and recorder chain, sensitivity, frequency band, ambient reference, timebase |
+| Land/site emissions | Generator exhaust and air pollutants, refrigerants, soil contaminants, WEEE and construction/decommission waste | Applicable sampling methods, analytes, source boundary, laboratory evidence, waste chain-of-custody |
+
+### 3.1 Heat and water mass balance
+
+At the heat-exchanger boundary, compute thermal transfer from synchronized mass/volume flow and paired temperature measurements using the stated fluid-property assumptions. Keep:
+- heat transferred from the data-centre loop to seawater;
+- heat reused by another party at the actual handoff meter;
+- return-water temperature;
+- pump and treatment electricity;
+- purge/cleaning discharge;
+- ambient reference conditions.
+
+An unexplained energy or water imbalance beyond the declared instrument uncertainty is a metrology failure. It is not a performance improvement.
+
+### 3.2 Intake and outfall sampling design
+
+At minimum, the study design identifies station roles:
+1. intake;
+2. outfall;
+3. near-field plume;
+4. far-field impact area; and
+5. independent reference/control.
+
+Actual coordinates, depths, radii, sampling intervals and ecological triggers must be set from hydrography, plume modelling, ecological baseline and applicable approvals. This specification deliberately does **not** invent a universal plume radius or sample spacing.
+
+### 3.3 Seasonal and lifecycle coverage
+
+The data package must distinguish:
+- pre-construction baseline;
+- construction and installation;
+- commissioning;
+- normal operation;
+- maintenance, cleaning and vessel activity;
+- abnormal discharge or environmental incident;
+- decommissioning; and
+- post-decommission recovery.
+
+A single seasonal survey is not a sufficient baseline where seasonal and event variability can materially affect intake temperatures, mixing, species abundance or habitat state.
+
+## 4. Evidence record contract
+
+Every accepted observation needs:
+- unique record ID and metric ID;
+- numeric value and unit or explicit categorical result;
+- start/end UTC timestamps, original source clock and time-sync evidence;
+- coordinates, datum and depth/elevation;
+- sensor/method identity and calibration reference;
+- uncertainty budget, detection limit and QC state;
+- rights/licence/purpose and custody record;
+- raw-data digest and processing version.
+
+Quality states are `valid`, `provisional`, `unknown`, `invalid` and `quarantined`. Evidence states are `measured`, `modelled`, `synthetic` and `unavailable`.
+
+**Fail-closed rule:** unknown, provisional, unavailable, synthetic, stale, uncalibrated or conflicting evidence cannot be rendered as a measured zero, cannot establish a site baseline and cannot satisfy a clearance gate. Interpolation must not silently bridge events or missing intervals.
+
+## 5. Non-compensatory environmental gates
+
+| Gate | Blocking condition | Required disposition |
+|---|---|---|
+| ENV-GATE-01 | Active hydrothermal vent or protected exclusion intersects the candidate | Reject industrial candidate; preserve only legally approved non-invasive research |
+| ENV-GATE-02 | Required baseline missing, unreviewed or not rights-admitted | Site clearance remains UNKNOWN and blocked |
+| ENV-GATE-03 | Applicable permit/limit unknown or discharge fails it | Block discharge and clearance; follow approved response procedure |
+| ENV-GATE-04 | Heat/water balance does not close within instrument uncertainty | Quarantine result and investigate |
+| ENV-GATE-05 | Water-quality or ecological trigger exceeded | Reduce/stop affected operation under the regulator-approved response plan |
+| ENV-GATE-06 | Sensor, calibration, timebase, data rights or custody unknown | Mark evidence UNKNOWN; no clearance |
+
+The project does not set legal discharge limits, ecological thresholds or protected-area boundaries. These must be supplied by applicable authority and independently qualified site assessment.
+
+## 6. Qualification benchmarks
+
+These are proposed requirements, not achieved outcomes:
+
+- 100% coverage of the 14 ITU-T L.1312 metrics with lifecycle stage, unit, boundary and method.
+- 100% of required marine-extension channels have an identified method, station role and evidence owner before field deployment.
+- 100% of accepted field records carry provenance, calibration, UTC time, uncertainty, QC and rights metadata.
+- Zero unapproved discharge and zero industrial placement within an excluded active vent/protected habitat.
+- Zero unexplained heat/water imbalance outside the declared uncertainty budget.
+- 100% of construction, operating, maintenance and decommission events represented in the lifecycle ledger.
+- No zero-impact claim from absent data, WUE, PUE, REF, CUE or a single biodiversity score.
+- Publish raw metric values, uncertainty and lifecycle phase before any optional L.1312 aggregate.
+
+## 7. How this changes our SOTA strategy
+
+The field often advertises one or two headline metrics: PUE, renewable fraction, energy savings, or a server-reliability result. We should compete on a broader, independently measurable proposition:
+
+**Useful marine compute service per lifecycle resource, subject to recovery and ecological constraints.**
+
+The matched benchmark compares a land/port control, coastal seawater heat exchanger, floating/nearshore module and subsea module using:
+- the same accepted workload, quality and SLA;
+- identical IT/facility/network/cooling meter boundaries;
+- annual and interval energy/carbon data;
+- separate freshwater and seawater accounts;
+- heat and outfall measurements;
+- maintenance and retrieval burden;
+- biodiversity/noise/pollution baseline and follow-up;
+- failure/recovery performance;
+- replacement, vessel, cable and decommissioning lifecycle impacts.
+
+No design wins because its PUE is better while its marine impact is unknown.
+
+## 8. Execution plan
+
+**P0 — desk/software**
+- Keep the 14-metric standard crosswalk and ocean-extension catalog machine-readable.
+- Use a strict catalog verifier to reject missing metric IDs, undefined units and weakened environmental gates.
+- Bind sensor/method definitions and evidence record requirements into the marine data intake contract.
+
+**P1 — pre-site evidence**
+- Obtain seasonal temperature/salinity/current profiles and independent hydrography.
+- Commission an independent ecological baseline and protected/exclusion-area screen.
+- Define intake/outfall station plan with ecologist, hydrodynamic modeller and regulator.
+- Obtain water quality, sediment and underwater acoustic reference data.
+
+**P2 — shore-side instrumented demonstrator**
+- Meter both sides of a closed secondary cooling loop, including flow, paired temperatures and pump energy.
+- Monitor discharge quality and thermal plume under approved limits.
+- Prove heat and water balances close within declared uncertainty.
+- Only after this should a non-critical subsea instrument pod be considered.
+
+## References
+
+- ITU-T L.1312 (07/2026), approved 29 July 2026 and in force: https://www.itu.int/rec/T-REC-L.1312-202607-I/en
+- ITU-T L.1312 freely available English PDF: https://www.itu.int/rec/dologin_pub.asp?id=T-REC-L.1312-202607-I%21%21PDF-E&lang=e&type=items
+- ITU-T L.1312 table of contents: https://www.itu.int/dms_pubrec/itu-t/rec/l/T-REC-L.1312-202607-I%21%21TOC-HTM-E.htm
+- ISO/IEC 30134-2:2026 PUE: https://www.iso.org/standard/30134-2
+- ISO/IEC 30134-6 ERF: https://www.iso.org/standard/30134-6
+- ISO/IEC 30134-8 CUE: https://www.iso.org/standard/30134-8
+- ISO/IEC 30134-9 WUE: https://www.iso.org/standard/30134-9
+
+---
+
+**Claim ceiling:** standards crosswalk, measurement requirements and synthetic design contract only. No environmental baseline, permit, sensor result, ecological condition, site clearance or zero-impact result is established.
