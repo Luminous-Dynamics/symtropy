@@ -291,6 +291,16 @@ fn validate_input(input: &InterfaceControlInput) -> Result<(), Vec<String>> {
         if pair.vehicle_port_id == pair.module_port_id {
             errors.push(format!("{prefix}: vehicle and module ports must be distinct"));
         }
+        if let Some(port) = input.ports.iter().find(|port| port.port_id == pair.vehicle_port_id) {
+            if port.side != PortSide::Vehicle {
+                errors.push(format!("{prefix}.vehicle_port_id: port side must be vehicle"));
+            }
+        }
+        if let Some(port) = input.ports.iter().find(|port| port.port_id == pair.module_port_id) {
+            if port.side != PortSide::Module {
+                errors.push(format!("{prefix}.module_port_id: port side must be module"));
+            }
+        }
     }
 
     if errors.is_empty() { Ok(()) } else { Err(errors) }
@@ -515,14 +525,16 @@ mod tests {
     #[test]
     fn expired_independent_evidence_remains_indeterminate() {
         let mut input = fixture();
+        let vehicle_digest = input.vehicle_configuration.configuration_digest.clone();
+        let module_digest = input.module_configuration.configuration_digest.clone();
         for port in &mut input.ports {
             port.evidence.classification = EvidenceClass::IndependentlyQualified;
             port.evidence.report_digest = Some(port.profile_digest.clone());
             port.evidence.valid_until = Some("2026-11-19T00:00:00Z".into());
             port.evidence.scoped_configuration_digest = if port.side == PortSide::Vehicle {
-                input.vehicle_configuration.configuration_digest.clone()
+                vehicle_digest.clone()
             } else {
-                input.module_configuration.configuration_digest.clone()
+                module_digest.clone()
             };
         }
         for pair in &mut input.interface_pairs {
@@ -538,15 +550,17 @@ mod tests {
     #[test]
     fn exact_current_evidence_can_admit_a_profile_match_but_never_release_product() {
         let mut input = fixture();
+        let vehicle_digest = input.vehicle_configuration.configuration_digest.clone();
+        let module_digest = input.module_configuration.configuration_digest.clone();
         for port in &mut input.ports {
             if port.mating_profile_id == "HV-CONNECTOR-PROFILE-UNSELECTED" {
                 port.evidence.classification = EvidenceClass::IndependentlyQualified;
                 port.evidence.report_digest = Some(port.profile_digest.clone());
                 port.evidence.valid_until = Some("2027-01-01T00:00:00Z".into());
                 port.evidence.scoped_configuration_digest = if port.side == PortSide::Vehicle {
-                    input.vehicle_configuration.configuration_digest.clone()
+                    vehicle_digest.clone()
                 } else {
-                    input.module_configuration.configuration_digest.clone()
+                    module_digest.clone()
                 };
             }
         }
@@ -556,8 +570,8 @@ mod tests {
         pair.qualification_evidence.classification = EvidenceClass::IndependentlyQualified;
         pair.qualification_evidence.report_digest = Some(pair.compatibility_profile_digest.clone());
         pair.qualification_evidence.valid_until = Some("2027-01-01T00:00:00Z".into());
-        pair.qualification_evidence.vehicle_configuration_digest = input.vehicle_configuration.configuration_digest.clone();
-        pair.qualification_evidence.module_configuration_digest = input.module_configuration.configuration_digest.clone();
+        pair.qualification_evidence.vehicle_configuration_digest = vehicle_digest;
+        pair.qualification_evidence.module_configuration_digest = module_digest;
         let report = evaluate(&input).expect("complete current evidence");
         let hv = report.results.iter().find(|item| item.pair_id == "vehicle-pod-hv-power").expect("HV result");
         assert_eq!(hv.disposition, Disposition::Compatible);
