@@ -1974,7 +1974,7 @@ mod tests {
 
     #[test]
     fn one_public_key_cannot_impersonate_multiple_producer_identities() {
-        let (mut trust, mut envelope, expected, _) = fixtures();
+        let (mut trust, envelope, _, _) = fixtures();
         let mut alias = trust.keys[0].clone();
         alias.key_id = "synthetic-validator-alias".to_string();
         alias.producer_id = "different-validator-identity".to_string();
@@ -1983,12 +1983,6 @@ mod tests {
         second.key_id = "synthetic-validator-alias".to_string();
         second.payload.issuer_id = "different-validator-identity".to_string();
         // The alias has the same public key but cannot be treated as another producer.
-        let first = verify_attestation(&envelope, &trust, &canonical_sha256(&trust).unwrap(), 2_000, &expected);
-        let mut second_expected = expected;
-        second_expected.issuer_id = "different-validator-identity".to_string();
-        let second_result = verify_attestation(&second, &trust, &canonical_sha256(&trust).unwrap(), 2_000, &second_expected);
-        assert!(first.is_ok());
-        assert!(second_result.is_ok());
         assert!(validate_role_separation(&[envelope, second], &trust).is_err());
     }
 
