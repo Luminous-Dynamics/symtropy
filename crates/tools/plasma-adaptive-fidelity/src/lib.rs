@@ -302,7 +302,7 @@ pub enum SelectionReason {
     RetainedDuringMinimumDwell,
     RetainedCurrentProfileNoQualifiedAlternative,
     AdaptedAfterMinimumDwell,
-    EscalatedForErrorOrValidity,
+    ChangedForCurrentModelValidity,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -681,11 +681,6 @@ pub fn evaluate_adaptive_policy(
         }
 
         if let Some(current) = current_candidate {
-            if urgent_refinement
-                && candidate.kind.fidelity_rank() < current.kind.fidelity_rank()
-            {
-                continue;
-            }
             if !urgent_refinement
                 && request.current_dwell_steps < request.minimum_dwell_steps
             {
@@ -1374,6 +1369,47 @@ mod tests {
             selected(decision).kind,
             ModelKind::KineticPatch { .. }
         ));
+    }
+
+
+    #[test]
+    fn safer_lower_rank_model_can_replace_invalid_higher_rank_kinetic_patch() {
+        let current = ModelCandidate {
+            profile_id: "kinetic-high-rank".into(),
+            profile_sha256: digest('a'),
+            model_sha256: digest('6'),
+            kind: ModelKind::KineticPatch {
+                kinetic_method_id: "kinetic-reference-grid".into(),
+                velocity_grid_sha256: digest('7'),
+                fidelity_rank: 20,
+            },
+            compatibility: compatibility(),
+            well_posedness: Evidence::Qualified(kinetic_evidence(&digest('a'), &digest('6'))),
+            error_bound: Evidence::Qualified(error(0.5, &digest('a'), &digest('6'))),
+            cost_evidence: Evidence::Qualified(cost_evidence(40.0, &digest('a'), &digest('6'))),
+            transition: None,
+        };
+        let mut lower_rank_moment = moment_candidate('b', 8, 0.02, 5.0);
+        lower_rank_moment.transition = Some(TransitionEvidence {
+            from_profile_sha256: digest('a'),
+            to_profile_sha256: digest('b'),
+            from_model_sha256: digest('6'),
+            to_model_sha256: digest('9'),
+            interface_schema_sha256: compatibility().interface_schema_sha256,
+            projection_sha256: digest('3'),
+            reconstruction_sha256: digest('4'),
+            conservation_receipt_sha256: digest('5'),
+            maximum_conservation_residual: 1.0e-10,
+            state_transfer_error_upper_bound: 0.01,
+        });
+        let mut req = request(vec![current, lower_rank_moment]);
+        req.current_profile_sha256 = Some(digest('a'));
+        req.current_dwell_steps = 0;
+
+        let receipt = selected(evaluate_adaptive_policy(&req).unwrap());
+        assert_eq!(receipt.profile_sha256, digest('b'));
+        assert_eq!(receipt.fidelity_rank, 8);
+        assert_eq!(receipt.reason, SelectionReason::ChangedForCurrentModelValidity);
     }
 
     #[test]
