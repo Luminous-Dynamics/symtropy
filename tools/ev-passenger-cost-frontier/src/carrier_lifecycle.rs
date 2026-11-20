@@ -881,6 +881,23 @@ mod tests {
     }
 
     #[test]
+    fn committed_lifecycle_fixture_deserializes_with_unknown_integrated_bay() {
+        let catalog: LifecycleCatalog = serde_json::from_str(include_str!(
+            "../fixtures/ev_carrier_lifecycle_v0_1.json"
+        ))
+        .expect("lifecycle fixture must deserialize");
+        assert_eq!(catalog.profiles.len(), 3);
+        let integrated = catalog
+            .profiles
+            .iter()
+            .find(|profile| profile.architecture == "integrated_enclosed_bay")
+            .expect("integrated bay profile exists");
+        assert_eq!(integrated.evidence_class, EvidenceClass::Unknown);
+        assert_eq!(integrated.unscheduled_fault_count, None);
+        assert_eq!(integrated.fault_exposure_module_years, None);
+    }
+
+    #[test]
     fn computes_synthetic_module_cost_and_service_burden_without_release() {
         let result = evaluate_pair(&factory_row(), &profile());
         assert_eq!(result.status, Status::PassesSyntheticScreen);
@@ -928,7 +945,7 @@ mod tests {
             .repair_path
             .blocked_reasons
             .contains(&"service_phase_order_or_identity_mismatch".into()));
-        assert_eq!(result.selected_fault_path, None);
+        assert_eq!(result.selected_fault_path.as_deref(), Some("replacement"));
     }
 
     #[test]
