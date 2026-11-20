@@ -86,6 +86,22 @@ A reserve facility should be designed around independent recovery domains, not a
 
 This follows the core dependency-isolation principle in NIST SP 800-209: recovery copies must not silently depend on production baseline data in a way that defeats recovery during a production compromise.
 
+### 3.2 What "self-sustaining" means in energy terms
+
+A reserve site is not self-sustaining simply because it is underwater or next to a heat source. It must supply average energy, survive low-resource intervals, ride through faults, start black, reject heat, and provide maintenance/spares across seasons. Nameplate renewable MW is not a substitute for a chronological energy balance.
+
+For illustration only, assume a constant IT load and a measured whole-facility PUE of 1.15. The following is **delivered electricity to the facility bus**, not a battery design or forecast:
+
+| IT load | Facility load at PUE 1.15 | Energy per day | 72-hour energy | 7-day energy |
+|---:|---:|---:|---:|---:|
+| 100 kW | 115 kW | 2.76 MWh | 8.28 MWh | 19.32 MWh |
+| 250 kW | 287.5 kW | 6.90 MWh | 20.70 MWh | 48.30 MWh |
+| 1 MW | 1.15 MW | 27.60 MWh | 82.80 MWh | 193.20 MWh |
+
+A rough battery nameplate illustration, assuming 80% permitted depth-of-discharge and 90% AC round-trip efficiency, would require dividing those delivered-energy values by 0.72. For a 250 kW IT site, that is about 28.8 MWh nominal for 72 hours and 67.1 MWh for seven days, **before** N+1 redundancy, ageing, temperature derating, reserve margin, auxiliary loads not already inside the assumed PUE, black-start, conversion limits or maintenance. It illustrates why long-duration autonomy gets expensive quickly; it is not a storage recommendation.
+
+A robust design therefore combines a chronological renewable profile, storage sized for credible low-resource periods, grid or dispatchable backup, controlled load shedding, and safe shutdown. For Ngqura's proposed 8.3 MW wave project, first ask for hourly gross/net output, seasonal distribution, expected availability, storm shutdown/recovery, degradation, auxiliary power, maintenance access and export constraints. Do not divide a data-centre load by 8.3 MW and call the result renewable coverage.
+
 ### 3.2 Recovery tiers to test
 
 These are proposed project targets, not achieved measurements or universal industry requirements:
@@ -117,6 +133,7 @@ No validated Longqi electrical-generation capacity, commercial heat-extraction d
 ### 4.2 More plausible South African alternatives
 
 - **Coastal/port seawater heat exchange:** test a closed-loop heat exchanger that keeps data-centre coolant physically separated from seawater. Model seasonal source temperatures, fouling, biosecurity, corrosion, intake/outfall impacts, pump energy and fallback cooling.
+- **Ngqura breakwater wave energy:** an Eco Wave Power / Africa Great Future Development announcement dated 17 February 2026 reports a completed feasibility study indicating potential for approximately 8.3 MW installed capacity along the Port of Ngqura breakwater, subject to development and permitting assessments. Treat this as a local integration lead only: installed capacity is not average energy, firm capacity, availability, commissioning, permission or a grid connection. The design must use an hourly resource/output profile, storm-survival and maintenance windows, power-conversion and grid-interconnection studies, and independently metered output before assigning any generation or autonomy credit.
 - **Northern KwaZulu-Natal OTEC research:** South African marine spatial-planning material identifies theoretical thermal-gradient potential offshore of northern KZN at depths around 1,000 m, but explicitly states that preliminary assessments had not yet identified possible sites. Treat this as a resource-screening lead, not a site recommendation or bankable generation resource. A 2026 OTEC review reports typical 1.5–3.0% thermal efficiencies for pilot-scale closed-cycle systems (1–50 kW), with heat-exchanger losses and parasitic pumping power as major constraints. OTEC should have an independent feasibility case and should not be a prerequisite for data-centre backup power.
 - **Wave / offshore wind / current:** consider only with measured resource, survivability, maintenance, grid/export and environmental evidence. South African national assessments identify potential in waves, offshore wind and the Agulhas Current, but local marine renewable deployment and commercial maturity remain limited.
 - **Battery / grid-forming / dispatchable reserve:** qualify black-start, islanding, load shedding, cooling ride-through and restart at the port/coastal facility. This is the near-term route to dependable continuity; ocean generation can be integrated later when its own performance is established.
@@ -140,7 +157,9 @@ Distances above are screening estimates, not cable route lengths or navigation d
 
 Continue the existing paired-site pre-feasibility work; do not infer a firm connection offer from public capacity estimates. The 2025 PtX Hub/CSIR port connection assessment describes Port of Ngqura supply through a 132/11 kV substation at Coega with 50 MVA installed capacity and 25 MVA firm supply capacity at that substation. It estimates 19 MVA spare port load capacity by comparing the 25 MVA firm supply with the 6 MVA NMD, but that arithmetic is not a new-project connection offer or a guarantee that this capacity remains available. The report is a pre-feasibility screen: actual project connection capacity, protection, fault level, export/import limits, redundancy, cost and timeline require utility studies and a formal application.
 
-Best first use: a 100–250 kW IT shore-side demonstrator with an instrumented seawater heat-exchanger loop, renewable/storage integration, workload placement and local marine observation services. Preserve conventional service access.
+A February 2026 company announcement reports a feasibility study for approximately 8.3 MW of potential installed wave capacity along the port breakwater, subject to next-stage development and permitting. This can make Ngqura a stronger *integration-study candidate* for a compute + port-energy + marine-observation demonstrator. It does not increase firm connection capacity and must not be counted as dependable generation until an executed project has permits, grid studies, commissioned plant, and independently metered hourly output.
+
+Best first use: a 100–250 kW IT shore-side demonstrator with an instrumented seawater heat-exchanger loop, a measured wave/solar/wind/storage interface, workload placement and local marine observation services. Preserve conventional service access.
 
 ### 5.3 Port of Durban — comparator, not an assumed better site
 
@@ -225,6 +244,8 @@ No public synthetic value in the current benchmark may be re-labelled as an obse
 
 ## 9. Evidence and references
 
+- Eco Wave Power / AGFDL (17 February 2026), company-announced Ngqura breakwater wave-energy feasibility study indicating approximately 8.3 MW potential installed capacity, still subject to development and permitting: https://www.sec.gov/Archives/edgar/data/1846715/000121390026016925/ea027651301ex99-1_ecowave.htm
+- WSP, Draft Environmental Scoping Report for Eskom Nuclear DSR (April 2026), reproduces the reported Ngqura wave feasibility result and qualification caveats: https://www.wsp.com/-/media/service/south-africa/2026-documents/za0058322-7774---eskom-nuclear-dsr/za00583227774_20260401_eskom_nuclearpp_dsr_public-review.pdf
 - Microsoft Research, Project Natick facts and figures (240 kW, 12 racks, 864 servers, deployment at EMEC): https://www.microsoft.com/en-us/research/project/natick/facts-and-figures/
 - Microsoft, Project Natick retrieved after its two-year trial: https://news.microsoft.com/source/features/sustainability/project-natick-underwater-datacenter/
 - China State Council/Xinhua, Hainan underwater cluster and 2025 module: https://english.www.gov.cn/news/202502/19/content_WS67b5a14dc6d0868f4e8efcaa.html
