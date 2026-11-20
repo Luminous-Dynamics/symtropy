@@ -1023,38 +1023,65 @@ mod tests {
         }
     }
 
-    fn request<'a>(report: &'a Report) -> (StoppingDynamicsQualification, StoppingReachabilityResult, StopTubeBuildRequest<'a>) {
-        let qualification = qualification();
-        let stopping = calculate_stopping_reachability(
-            &qualification,
+    fn stopping_result(
+        qualification: &StoppingDynamicsQualification,
+    ) -> StoppingReachabilityResult {
+        calculate_stopping_reachability(
+            qualification,
             StoppingReachabilityRequest {
                 speed_upper_mm_s: 1_000.0,
             },
         )
-        .unwrap();
-        let built = StopTubeBuildRequest {
-            nominal_report: report,
-            nominal_report_sha256: digest('d'),
-            trajectory_sha256: digest('e'),
-            primitive_manifest_sha256: digest('f'),
-            frame_sha256: digest('1'),
-            trigger_domain_sha256: digest('2'),
-            builder_build_sha256: digest('3'),
-            stopping_qualification: &qualification,
-            stopping_result: &stopping,
-            maximum_trigger_window_ms: 250,
-            now_tick: 100,
-            requested_valid_until_tick: 10_000,
-            kinematics: StopTubeKinematics::FixedOrientationFixedTangentNoSteering,
-        };
-        (qualification, stopping, built)
+        .unwrap()
+    }
+
+    struct StopTubeFixture {
+        qualification: StoppingDynamicsQualification,
+        stopping: StoppingReachabilityResult,
+    }
+
+    impl StopTubeFixture {
+        fn new() -> Self {
+            let qualification = qualification();
+            let stopping = stopping_result(&qualification);
+            Self {
+                qualification,
+                stopping,
+            }
+        }
+
+        fn request<'a>(&'a self, report: &'a Report) -> StopTubeBuildRequest<'a> {
+            self.request_with_stopping_result(report, &self.stopping)
+        }
+
+        fn request_with_stopping_result<'a>(
+            &'a self,
+            report: &'a Report,
+            stopping: &'a StoppingReachabilityResult,
+        ) -> StopTubeBuildRequest<'a> {
+            StopTubeBuildRequest {
+                nominal_report: report,
+                nominal_report_sha256: digest('d'),
+                trajectory_sha256: digest('e'),
+                primitive_manifest_sha256: digest('f'),
+                frame_sha256: digest('1'),
+                trigger_domain_sha256: digest('2'),
+                builder_build_sha256: digest('3'),
+                stopping_qualification: &self.qualification,
+                stopping_result: stopping,
+                maximum_trigger_window_ms: 250,
+                now_tick: 100,
+                requested_valid_until_tick: 10_000,
+                kinematics: StopTubeKinematics::FixedOrientationFixedTangentNoSteering,
+            }
+        }
     }
 
     #[test]
     fn straight_translation_covers_every_primitive_and_the_complete_stop_distance() {
         let report = source_report([0, 0, 0], [1_000, 0, 0], 1_000, 2_000);
-        let (qualification, stopping, request) = request(&report);
-        let output = build_stop_tube(request).unwrap();
+        let fixture = StopTubeFixture::new();
+        let output = build_stop_tube(fixture.request(&report)).unwrap();
         assert_eq!(output.primitive_count, 2);
         assert_eq!(output.trigger_window_count, 4);
         assert_eq!(output.slice_count, 8);
@@ -1066,23 +1093,23 @@ mod tests {
         assert_eq!(output.trigger_domain_end_ms, 2_000);
         assert_eq!(
             output.stop_coverage_duration_ms,
-            1_000 + stopping.conservative_stop_time_bound_ms
+            1_000 + fixture.stopping.conservative_stop_time_bound_ms
         );
-        assert_eq!(output.valid_until_tick, 10_000.min(qualification.valid_until_tick));
+        assert_eq!(output.valid_until_tick, 10_000.min(fixture.qualification.valid_until_tick));
         let last_base = output
             .slices
             .iter()
             .find(|slice| slice.primitive_id == "base" && slice.trigger_window_index == 3)
             .unwrap();
-        assert_eq!(last_base.bounds.max.x, 1_000 + stopping.conservative_distance_bound_mm as i64 + 1 + 100 + 2 + 5 + 1 + 1 + 10);
-        assert_eq!(last_base.occupancy_end_ms, 2_000 + stopping.conservative_stop_time_bound_ms);
+        assert_eq!(last_base.bounds.max.x, 1_000 + fixture.stopping.conservative_distance_bound_mm as i64 + 1 + 100 + 2 + 5 + 1 + 1 + 10);
+        assert_eq!(last_base.occupancy_end_ms, 2_000 + fixture.stopping.conservative_stop_time_bound_ms);
     }
 
     #[test]
     fn negative_diagonal_translation_expands_the_stop_tube_in_both_axes() {
         let report = source_report([1_000, 1_000, 0], [0, 0, 0], 0, 1_000);
-        let (_, stopping, request) = request(&report);
-        let output = build_stop_tube(request).unwrap();
+        let fixture = StopTubeFixture::new();
+        let output = build_stop_tube(fixture.request(&report)).unwrap();
         let base_slices = output
             .slices
             .iter()
@@ -1096,14 +1123,14 @@ mod tests {
         assert!(min_y < 0);
         assert!(max_x >= 1_000);
         assert!(max_y >= 1_000);
-        assert!(min_x <= -(stopping.conservative_distance_bound_mm as i64 / 2));
+        assert!(min_x <= -(fixture.stopping.conservative_distance_bound_mm as i64 / 2));
     }
 
     #[test]
     fn articulated_or_steering_during_braking_models_are_explicitly_rejected() {
         let report = source_report([0, 0, 0], [1_000, 0, 0], 0, 1_000);
-        let (_, stopping, mut request) = request(&report);
-        request.stopping_result = &stopping;
+        let fixture = StopTubeFixture::new();
+        let mut request = fixture.request(&report);
         request.kinematics = StopTubeKinematics::ArticulatedOrRelativeMotion;
         assert_eq!(
             build_stop_tube(request.clone()),
@@ -1129,9 +1156,9 @@ mod tests {
             .find(|slice| slice.primitive_id == "tool")
             .unwrap();
         tool.to_mm.y += 10;
-        let (_, _, request) = request(&report);
+        let fixture = StopTubeFixture::new();
         assert!(matches!(
-            build_stop_tube(request),
+            build_stop_tube(fixture.request(&report)),
             Err(StopTubeBuildError::NonCanonicalNominalReport)
                 | Err(StopTubeBuildError::RelativePrimitiveMotionUnsupported(_))
         ));
@@ -1140,19 +1167,21 @@ mod tests {
     #[test]
     fn stale_or_cross_clock_stopping_qualification_is_rejected() {
         let report = source_report([0, 0, 0], [1_000, 0, 0], 0, 1_000);
-        let (mut qualification, stopping, mut request) = request(&report);
-        qualification.site_clock_domain_id = "other-clock".into();
-        request.stopping_qualification = &qualification;
+        let mut fixture = StopTubeFixture::new();
+        fixture.qualification.site_clock_domain_id = "other-clock".into();
+        fixture.stopping = stopping_result(&fixture.qualification);
+        {
+            let request = fixture.request(&report);
+            assert_eq!(
+                build_stop_tube(request),
+                Err(StopTubeBuildError::StoppingQualificationClockMismatch)
+            );
+        }
+        fixture.qualification.site_clock_domain_id = "site-clock-1".into();
+        fixture.qualification.valid_until_tick = 50;
+        fixture.stopping = stopping_result(&fixture.qualification);
         assert_eq!(
-            build_stop_tube(request.clone()),
-            Err(StopTubeBuildError::StoppingQualificationClockMismatch)
-        );
-        qualification.site_clock_domain_id = "site-clock-1".into();
-        qualification.valid_until_tick = 50;
-        request.stopping_qualification = &qualification;
-        request.stopping_result = &stopping;
-        assert_eq!(
-            build_stop_tube(request),
+            build_stop_tube(fixture.request(&report)),
             Err(StopTubeBuildError::ExpiredStoppingQualification)
         );
     }
@@ -1160,13 +1189,11 @@ mod tests {
     #[test]
     fn a_tampered_stopping_result_cannot_be_used_to_shrink_the_tube() {
         let report = source_report([0, 0, 0], [1_000, 0, 0], 0, 1_000);
-        let (qualification, stopping, mut request) = request(&report);
-        let mut tampered = stopping;
+        let fixture = StopTubeFixture::new();
+        let mut tampered = fixture.stopping;
         tampered.conservative_distance_bound_mm /= 2;
-        request.stopping_qualification = &qualification;
-        request.stopping_result = &tampered;
         assert_eq!(
-            build_stop_tube(request),
+            build_stop_tube(fixture.request_with_stopping_result(&report, &tampered)),
             Err(StopTubeBuildError::StoppingResultDoesNotMatchQualification)
         );
     }
@@ -1174,7 +1201,8 @@ mod tests {
     #[test]
     fn invalid_digest_or_trigger_window_is_rejected() {
         let report = source_report([0, 0, 0], [1_000, 0, 0], 0, 1_000);
-        let (_, _, mut request) = request(&report);
+        let fixture = StopTubeFixture::new();
+        let mut request = fixture.request(&report);
         request.trigger_domain_sha256 = "not-a-digest".into();
         assert_eq!(
             build_stop_tube(request.clone()),
@@ -1191,9 +1219,9 @@ mod tests {
     #[test]
     fn overflow_in_stop_time_or_bounds_fails_closed() {
         let report = source_report([i64::MAX - 1_000, 0, 0], [i64::MAX - 1, 0, 0], u64::MAX - 1_000, u64::MAX);
-        let (_, _, request) = request(&report);
+        let fixture = StopTubeFixture::new();
         assert!(matches!(
-            build_stop_tube(request),
+            build_stop_tube(fixture.request(&report)),
             Err(StopTubeBuildError::TimeArithmeticOverflow)
                 | Err(StopTubeBuildError::BoundsOverflow)
         ));
@@ -1202,7 +1230,8 @@ mod tests {
     #[test]
     fn canonical_output_is_deterministic_and_binds_all_source_identities() {
         let report = source_report([0, 0, 0], [1_000, 250, 0], 100, 900);
-        let (_, _, request) = request(&report);
+        let fixture = StopTubeFixture::new();
+        let request = fixture.request(&report);
         let first = build_stop_tube(request.clone()).unwrap();
         let second = build_stop_tube(request).unwrap();
         assert_eq!(first, second);
@@ -1229,8 +1258,8 @@ mod tests {
             ([-400, 300, 50], [600, -700, 450]),
         ] {
             let report = source_report(start, end, 0, 1_000);
-            let (_, stopping, request) = request(&report);
-            let built = build_stop_tube(request).unwrap();
+            let fixture = StopTubeFixture::new();
+            let built = build_stop_tube(fixture.request(&report)).unwrap();
             let primitive_slices = built
                 .slices
                 .iter()
@@ -1255,7 +1284,7 @@ mod tests {
                 + delta[1] * delta[1]
                 + delta[2] * delta[2])
                 .sqrt();
-            let stop = stopping.conservative_distance_bound_mm as f64;
+            let stop = fixture.stopping.conservative_distance_bound_mm as f64;
             let margin = [120.0, 124.0, 128.0];
             let min = aggregate_min;
             let max = aggregate_max;
@@ -1289,9 +1318,9 @@ mod tests {
     #[test]
     fn nonzero_stopping_distance_requires_a_defined_nominal_tangent() {
         let report = source_report([0, 0, 0], [0, 0, 0], 0, 1_000);
-        let (_, _, request) = request(&report);
+        let fixture = StopTubeFixture::new();
         assert_eq!(
-            build_stop_tube(request),
+            build_stop_tube(fixture.request(&report)),
             Err(StopTubeBuildError::StationaryTrajectoryWithNonzeroStopBound)
         );
     }
