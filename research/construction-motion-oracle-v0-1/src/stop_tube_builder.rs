@@ -25,6 +25,7 @@ use construction_motion_envelope::{
     AabbMm, AxisMm, Context, EvidenceRefs, MarginsMm, Point3Mm, Report, Segment, build,
 };
 
+use crate::integrated_dispatch::StopTubeEnvelopeReceipt;
 use crate::stopping_reachability::{
     StoppingDynamicsQualification, StoppingReachabilityError, StoppingReachabilityRequest,
     StoppingReachabilityResult, calculate_stopping_reachability,
@@ -218,6 +219,74 @@ impl StopTubeBuildReport {
         put_u64(&mut out, stop_tube_bytes.len() as u64);
         out.extend_from_slice(&stop_tube_bytes);
         out
+    }
+
+    /// Project this build report into the exact receipt type consumed by the
+    /// integrated dispatch gate. The caller supplies digests calculated from
+    /// this report's canonical bytes, the signed builder receipt, and the
+    /// composite-envelope bytes. The caller also supplies a qualified mapping
+    /// from the report's trigger-domain milliseconds to the site-clock ticks;
+    /// this method never guesses a clock scale or offset.
+    pub fn to_integrated_dispatch_receipt(
+        &self,
+        stop_tube_sha256: &str,
+        stop_tube_receipt_sha256: &str,
+        composite_envelope_sha256: &str,
+        trigger_domain_start_tick: u64,
+        trigger_domain_end_tick: u64,
+    ) -> Result<StopTubeEnvelopeReceipt, StopTubeBuildError> {
+        for (name, value) in [
+            ("stop_tube_sha256", stop_tube_sha256),
+            ("stop_tube_receipt_sha256", stop_tube_receipt_sha256),
+            ("composite_envelope_sha256", composite_envelope_sha256),
+        ] {
+            if !is_sha256(value) {
+                return Err(StopTubeBuildError::InvalidDigest(name));
+            }
+        }
+        if trigger_domain_start_tick >= trigger_domain_end_tick
+            || self.trigger_domain_duration_ms == 0
+            || self.stop_coverage_duration_ms
+                < self
+                    .trigger_domain_duration_ms
+                    .checked_add(self.conservative_stop_time_bound_ms)
+                    .ok_or(StopTubeBuildError::TimeArithmeticOverflow)?
+        {
+            return Err(StopTubeBuildError::InvalidTriggerWindow);
+        }
+        Ok(StopTubeEnvelopeReceipt {
+            schema_version: "construction-stop-tube-envelope-receipt/0.1".into(),
+            stop_tube_sha256: stop_tube_sha256.into(),
+            stop_tube_receipt_sha256: stop_tube_receipt_sha256.into(),
+            stop_tube_builder_build_sha256: self.builder_build_sha256.clone(),
+            composite_envelope_sha256: composite_envelope_sha256.into(),
+            nominal_trajectory_sha256: self.trajectory_sha256.clone(),
+            trigger_domain_sha256: self.trigger_domain_sha256.clone(),
+            primitive_manifest_sha256: self.primitive_manifest_sha256.clone(),
+            robot_configuration_sha256: self.robot_configuration_sha256.clone(),
+            tool_configuration_sha256: self.tool_configuration_sha256.clone(),
+            payload_configuration_sha256: self.payload_configuration_sha256.clone(),
+            frame_sha256: self.frame_sha256.clone(),
+            transform_sha256: self.transform_sha256.clone(),
+            stopping_profile_sha256: self.stopping_profile_sha256.clone(),
+            stopping_qualification_receipt_sha256: self
+                .stopping_qualification_receipt_sha256
+                .clone(),
+            operating_condition_sha256: self.operating_condition_sha256.clone(),
+            scenario_context_sha256: self.scenario_context_sha256.clone(),
+            site_clock_domain_id: self.site_clock_domain_id.clone(),
+            trigger_domain_start_tick,
+            trigger_domain_end_tick,
+            trigger_domain_duration_ms: self.trigger_domain_duration_ms,
+            stop_coverage_duration_ms: self.stop_coverage_duration_ms,
+            conservative_stop_distance_bound_mm: self.conservative_stop_distance_bound_mm,
+            primitive_count: self.primitive_count,
+            trigger_domain_coverage_complete: self.trigger_domain_coverage_complete,
+            primitive_coverage_complete: self.primitive_coverage_complete,
+            continuous_time_coverage_complete: self.continuous_time_coverage_complete,
+            conservative_outer_bound: self.conservative_outer_bound,
+            valid_until_tick: self.valid_until_tick,
+        })
     }
 }
 
@@ -1322,6 +1391,74 @@ mod tests {
         assert_eq!(
             build_stop_tube(fixture.request(&report)),
             Err(StopTubeBuildError::StationaryTrajectoryWithNonzeroStopBound)
+        );
+    }
+
+
+    #[test]
+    fn integrated_dispatch_receipt_preserves_builder_identities_and_coverage() {
+        let report = source_report([0, 0, 0], [1_000, 0, 0], 100, 900);
+        let fixture = StopTubeFixture::new();
+        let built = build_stop_tube(fixture.request(&report)).unwrap();
+        let receipt = built
+            .to_integrated_dispatch_receipt(
+                &digest('a'),
+                &digest('b'),
+                &digest('c'),
+                5_000,
+                5_800,
+            )
+            .unwrap();
+        assert_eq!(receipt.stop_tube_sha256, digest('a'));
+        assert_eq!(receipt.stop_tube_receipt_sha256, digest('b'));
+        assert_eq!(receipt.composite_envelope_sha256, digest('c'));
+        assert_eq!(receipt.stop_tube_builder_build_sha256, digest('3'));
+        assert_eq!(receipt.nominal_trajectory_sha256, digest('e'));
+        assert_eq!(receipt.trigger_domain_sha256, digest('2'));
+        assert_eq!(receipt.primitive_manifest_sha256, digest('f'));
+        assert_eq!(receipt.robot_configuration_sha256, digest('1'));
+        assert_eq!(receipt.tool_configuration_sha256, digest('2'));
+        assert_eq!(receipt.payload_configuration_sha256, digest('3'));
+        assert_eq!(receipt.frame_sha256, digest('1'));
+        assert_eq!(receipt.transform_sha256, digest('5'));
+        assert_eq!(receipt.stopping_profile_sha256, digest('8'));
+        assert_eq!(receipt.stopping_qualification_receipt_sha256, digest('9'));
+        assert_eq!(receipt.site_clock_domain_id, "site-clock-1");
+        assert_eq!(receipt.trigger_domain_start_tick, 5_000);
+        assert_eq!(receipt.trigger_domain_end_tick, 5_800);
+        assert_eq!(receipt.trigger_domain_duration_ms, 800);
+        assert_eq!(receipt.stop_coverage_duration_ms, 800 + fixture.stopping.conservative_stop_time_bound_ms);
+        assert_eq!(receipt.primitive_count, 2);
+        assert!(receipt.trigger_domain_coverage_complete);
+        assert!(receipt.primitive_coverage_complete);
+        assert!(receipt.continuous_time_coverage_complete);
+        assert!(receipt.conservative_outer_bound);
+    }
+
+    #[test]
+    fn integrated_dispatch_receipt_adapter_rejects_bad_digests_and_clock_interval() {
+        let report = source_report([0, 0, 0], [1_000, 0, 0], 100, 900);
+        let fixture = StopTubeFixture::new();
+        let built = build_stop_tube(fixture.request(&report)).unwrap();
+        assert_eq!(
+            built.to_integrated_dispatch_receipt(
+                "bad",
+                &digest('b'),
+                &digest('c'),
+                5_000,
+                5_800,
+            ),
+            Err(StopTubeBuildError::InvalidDigest("stop_tube_sha256"))
+        );
+        assert_eq!(
+            built.to_integrated_dispatch_receipt(
+                &digest('a'),
+                &digest('b'),
+                &digest('c'),
+                5_800,
+                5_000,
+            ),
+            Err(StopTubeBuildError::InvalidTriggerWindow)
         );
     }
 
