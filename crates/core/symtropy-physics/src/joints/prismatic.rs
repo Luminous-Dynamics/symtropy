@@ -187,9 +187,9 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
                 && motor.max_force >= 0.0;
 
             if motor_inputs_valid {
-                let desired_total_impulse = motor.calculate_impulse(displacement, rel_vel, dt);
-                if let Some((delta_impulse, _velocity_after)) = motor_state.project_impulse(
-                    desired_total_impulse,
+                let desired_impulse_increment = motor.calculate_impulse(displacement, rel_vel, dt);
+                if let Some((delta_impulse, _velocity_after)) = motor_state.apply_impulse_increment(
+                    desired_impulse_increment,
                     motor.max_force * dt,
                     rel_vel,
                     total_inv,
@@ -432,6 +432,38 @@ mod motor_step_tests {
 
         assert_eq!(b.linear_velocity[0], 0.0);
         assert_eq!(state.take_work_receipt(), None);
+    }
+
+
+    #[test]
+    fn prismatic_motor_accumulates_velocity_feedback_impulse_increments() {
+        let mut a = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut b =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let motor = MotorDrive {
+            target_pos: 1.0,
+            target_vel: 0.0,
+            kp: 1.0,
+            kd: 1.0,
+            max_force: 10.0,
+        };
+        let joint = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0).with_motor(motor);
+        let mut state = MotorStepState::default();
+
+        for _ in 0..8 {
+            joint.solve_velocity_with_state(&mut a, &mut b, 0.1, None, &mut state);
+        }
+
+        // PD output changes as the slider accelerates; each output is an
+        // incremental impulse added to one total step budget.
+        assert!(state.accumulated_impulse() > 0.1);
+        assert!(state.accumulated_impulse() <= 1.0 + 1.0e-12);
+        assert!(b.linear_velocity[0] > 0.0);
+        assert!(state.take_work_receipt().is_some());
     }
 
     #[test]
