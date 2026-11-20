@@ -127,8 +127,6 @@
               "operation_id",
               "operation_scope_digest_sha256",
               "visual_flight_mode",
-              "rlos_command_link_available",
-              "rlos_command_link_evidence_reference",
               "payload_release_or_delivery",
               "multi_uas_operation",
               "public_road_takeoff_or_landing",
@@ -141,7 +139,8 @@
               "over_or_within_fifty_m_of_public_road",
               "over_public_road",
               "rps_id",
-              "operations_manual_revision"
+              "operations_manual_revision",
+              "c2_link_observation"
             ],
             "properties": {
               "operation_id": {
@@ -160,13 +159,6 @@
                   "bvlos",
                   "brlos"
                 ]
-              },
-              "rlos_command_link_available": {
-                "type": "boolean"
-              },
-              "rlos_command_link_evidence_reference": {
-                "type": "string",
-                "minLength": 1
               },
               "payload_release_or_delivery": {
                 "type": "boolean"
@@ -210,6 +202,71 @@
                   {
                     "type": "string",
                     "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "c2_link_observation": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "link_available",
+                      "record_id",
+                      "source_system",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "measurement_record",
+                          "independent_test",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "link_available": {
+                        "type": "boolean"
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "source_system": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
                   },
                   {
                     "type": "null"
