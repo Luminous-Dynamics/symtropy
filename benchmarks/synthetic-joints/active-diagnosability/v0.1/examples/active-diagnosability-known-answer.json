@@ -1,0 +1,409 @@
+{
+  "schema_version": "0.1.0",
+  "profile": {
+    "profile_id": "synthetic-diagnostic-pulse-profile-A",
+    "profile_digest": "diagnostic-profile-digest-synthetic-v0.1",
+    "configuration_digest": "joint-config-synthetic-v0.1",
+    "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+    "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+    "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+    "diagnostic_duration_s": 2,
+    "electrical_energy_j": 12,
+    "hard_constraint_margins": [
+      {
+        "kind": "task_performance",
+        "minimum_robust_margin": 0.05,
+        "unit": "fraction",
+        "evidence_class": "synthetic_fixture",
+        "source_reference": "https://example.invalid/margins/task_performance",
+        "method": "Synthetic prequalified robust-margin fixture; not a physical safety argument.",
+        "configuration_digest": "joint-config-synthetic-v0.1",
+        "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+        "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+        "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+        "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+      },
+      {
+        "kind": "torque_speed",
+        "minimum_robust_margin": 2,
+        "unit": "N m",
+        "evidence_class": "synthetic_fixture",
+        "source_reference": "https://example.invalid/margins/torque_speed",
+        "method": "Synthetic prequalified robust-margin fixture; not a physical safety argument.",
+        "configuration_digest": "joint-config-synthetic-v0.1",
+        "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+        "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+        "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+        "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+      },
+      {
+        "kind": "peak_duration",
+        "minimum_robust_margin": 0.1,
+        "unit": "s",
+        "evidence_class": "synthetic_fixture",
+        "source_reference": "https://example.invalid/margins/peak_duration",
+        "method": "Synthetic prequalified robust-margin fixture; not a physical safety argument.",
+        "configuration_digest": "joint-config-synthetic-v0.1",
+        "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+        "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+        "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+        "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+      },
+      {
+        "kind": "thermal_headroom",
+        "minimum_robust_margin": 8,
+        "unit": "degC",
+        "evidence_class": "synthetic_fixture",
+        "source_reference": "https://example.invalid/margins/thermal_headroom",
+        "method": "Synthetic prequalified robust-margin fixture; not a physical safety argument.",
+        "configuration_digest": "joint-config-synthetic-v0.1",
+        "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+        "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+        "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+        "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+      },
+      {
+        "kind": "energy_budget",
+        "minimum_robust_margin": 5,
+        "unit": "J",
+        "evidence_class": "synthetic_fixture",
+        "source_reference": "https://example.invalid/margins/energy_budget",
+        "method": "Synthetic prequalified robust-margin fixture; not a physical safety argument.",
+        "configuration_digest": "joint-config-synthetic-v0.1",
+        "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+        "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+        "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+        "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+      },
+      {
+        "kind": "passivity",
+        "minimum_robust_margin": 0.4,
+        "unit": "J",
+        "evidence_class": "synthetic_fixture",
+        "source_reference": "https://example.invalid/margins/passivity",
+        "method": "Synthetic prequalified robust-margin fixture; not a physical safety argument.",
+        "configuration_digest": "joint-config-synthetic-v0.1",
+        "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+        "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+        "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+        "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+      },
+      {
+        "kind": "workspace",
+        "minimum_robust_margin": 0.2,
+        "unit": "rad",
+        "evidence_class": "synthetic_fixture",
+        "source_reference": "https://example.invalid/margins/workspace",
+        "method": "Synthetic prequalified robust-margin fixture; not a physical safety argument.",
+        "configuration_digest": "joint-config-synthetic-v0.1",
+        "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+        "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+        "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+        "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+      },
+      {
+        "kind": "exposure_time",
+        "minimum_robust_margin": 10,
+        "unit": "s",
+        "evidence_class": "synthetic_fixture",
+        "source_reference": "https://example.invalid/margins/exposure_time",
+        "method": "Synthetic prequalified robust-margin fixture; not a physical safety argument.",
+        "configuration_digest": "joint-config-synthetic-v0.1",
+        "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+        "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+        "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+        "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+      }
+    ],
+    "fault_signatures": [
+      {
+        "hypothesis_id": "healthy",
+        "features": [
+          {
+            "feature_id": "vibration-residual",
+            "sensor_channel_id": "vibration",
+            "modality": "vibration",
+            "unit": "normalized_residual",
+            "interval": {
+              "lower": -0.2,
+              "upper": 0.2
+            },
+            "separation_scale": 1,
+            "evidence_class": "synthetic_fixture",
+            "source_reference": "https://example.invalid/signature/vibration-residual",
+            "method": "Synthetic known-answer fault feature interval; no physical dataset used.",
+            "calibration_digest": "synthetic-calibration-vibration",
+            "raw_trace_digest": "synthetic-trace-vibration-residual",
+            "configuration_digest": "joint-config-synthetic-v0.1",
+            "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+            "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+            "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+            "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+          },
+          {
+            "feature_id": "servo-residual",
+            "sensor_channel_id": "servo",
+            "modality": "motor_servo",
+            "unit": "normalized_residual",
+            "interval": {
+              "lower": -0.1,
+              "upper": 0.1
+            },
+            "separation_scale": 1,
+            "evidence_class": "synthetic_fixture",
+            "source_reference": "https://example.invalid/signature/servo-residual",
+            "method": "Synthetic known-answer fault feature interval; no physical dataset used.",
+            "calibration_digest": "synthetic-calibration-servo",
+            "raw_trace_digest": "synthetic-trace-servo-residual",
+            "configuration_digest": "joint-config-synthetic-v0.1",
+            "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+            "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+            "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+            "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+          },
+          {
+            "feature_id": "torque-residual",
+            "sensor_channel_id": "metrology",
+            "modality": "torque_metrology",
+            "unit": "normalized_residual",
+            "interval": {
+              "lower": -0.1,
+              "upper": 0.1
+            },
+            "separation_scale": 1,
+            "evidence_class": "synthetic_fixture",
+            "source_reference": "https://example.invalid/signature/torque-residual",
+            "method": "Synthetic known-answer fault feature interval; no physical dataset used.",
+            "calibration_digest": "synthetic-calibration-metrology",
+            "raw_trace_digest": "synthetic-trace-torque-residual",
+            "configuration_digest": "joint-config-synthetic-v0.1",
+            "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+            "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+            "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+            "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+          }
+        ]
+      },
+      {
+        "hypothesis_id": "gearbox_backlash",
+        "features": [
+          {
+            "feature_id": "vibration-residual",
+            "sensor_channel_id": "vibration",
+            "modality": "vibration",
+            "unit": "normalized_residual",
+            "interval": {
+              "lower": 1,
+              "upper": 1.3
+            },
+            "separation_scale": 1,
+            "evidence_class": "synthetic_fixture",
+            "source_reference": "https://example.invalid/signature/vibration-residual",
+            "method": "Synthetic known-answer fault feature interval; no physical dataset used.",
+            "calibration_digest": "synthetic-calibration-vibration",
+            "raw_trace_digest": "synthetic-trace-vibration-residual",
+            "configuration_digest": "joint-config-synthetic-v0.1",
+            "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+            "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+            "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+            "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+          },
+          {
+            "feature_id": "servo-residual",
+            "sensor_channel_id": "servo",
+            "modality": "motor_servo",
+            "unit": "normalized_residual",
+            "interval": {
+              "lower": -0.1,
+              "upper": 0.1
+            },
+            "separation_scale": 1,
+            "evidence_class": "synthetic_fixture",
+            "source_reference": "https://example.invalid/signature/servo-residual",
+            "method": "Synthetic known-answer fault feature interval; no physical dataset used.",
+            "calibration_digest": "synthetic-calibration-servo",
+            "raw_trace_digest": "synthetic-trace-servo-residual",
+            "configuration_digest": "joint-config-synthetic-v0.1",
+            "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+            "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+            "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+            "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+          },
+          {
+            "feature_id": "torque-residual",
+            "sensor_channel_id": "metrology",
+            "modality": "torque_metrology",
+            "unit": "normalized_residual",
+            "interval": {
+              "lower": 0.3,
+              "upper": 0.5
+            },
+            "separation_scale": 1,
+            "evidence_class": "synthetic_fixture",
+            "source_reference": "https://example.invalid/signature/torque-residual",
+            "method": "Synthetic known-answer fault feature interval; no physical dataset used.",
+            "calibration_digest": "synthetic-calibration-metrology",
+            "raw_trace_digest": "synthetic-trace-torque-residual",
+            "configuration_digest": "joint-config-synthetic-v0.1",
+            "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+            "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+            "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+            "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+          }
+        ]
+      },
+      {
+        "hypothesis_id": "bearing_wear",
+        "features": [
+          {
+            "feature_id": "vibration-residual",
+            "sensor_channel_id": "vibration",
+            "modality": "vibration",
+            "unit": "normalized_residual",
+            "interval": {
+              "lower": -0.1,
+              "upper": 0.1
+            },
+            "separation_scale": 1,
+            "evidence_class": "synthetic_fixture",
+            "source_reference": "https://example.invalid/signature/vibration-residual",
+            "method": "Synthetic known-answer fault feature interval; no physical dataset used.",
+            "calibration_digest": "synthetic-calibration-vibration",
+            "raw_trace_digest": "synthetic-trace-vibration-residual",
+            "configuration_digest": "joint-config-synthetic-v0.1",
+            "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+            "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+            "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+            "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+          },
+          {
+            "feature_id": "servo-residual",
+            "sensor_channel_id": "servo",
+            "modality": "motor_servo",
+            "unit": "normalized_residual",
+            "interval": {
+              "lower": 0.7,
+              "upper": 1
+            },
+            "separation_scale": 1,
+            "evidence_class": "synthetic_fixture",
+            "source_reference": "https://example.invalid/signature/servo-residual",
+            "method": "Synthetic known-answer fault feature interval; no physical dataset used.",
+            "calibration_digest": "synthetic-calibration-servo",
+            "raw_trace_digest": "synthetic-trace-servo-residual",
+            "configuration_digest": "joint-config-synthetic-v0.1",
+            "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+            "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+            "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+            "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+          },
+          {
+            "feature_id": "torque-residual",
+            "sensor_channel_id": "metrology",
+            "modality": "torque_metrology",
+            "unit": "normalized_residual",
+            "interval": {
+              "lower": -0.1,
+              "upper": 0.1
+            },
+            "separation_scale": 1,
+            "evidence_class": "synthetic_fixture",
+            "source_reference": "https://example.invalid/signature/torque-residual",
+            "method": "Synthetic known-answer fault feature interval; no physical dataset used.",
+            "calibration_digest": "synthetic-calibration-metrology",
+            "raw_trace_digest": "synthetic-trace-torque-residual",
+            "configuration_digest": "joint-config-synthetic-v0.1",
+            "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+            "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+            "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+            "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+          }
+        ]
+      }
+    ],
+    "sensor_scenarios": [
+      {
+        "scenario_id": "nominal",
+        "available_channel_ids": [
+          "vibration",
+          "servo",
+          "metrology"
+        ],
+        "evidence_class": "synthetic_fixture",
+        "source_reference": "https://example.invalid/sensor-scenarios/nominal",
+        "method": "Synthetic sensor availability mask.",
+        "configuration_digest": "joint-config-synthetic-v0.1",
+        "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+        "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+        "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+        "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+      },
+      {
+        "scenario_id": "vibration_dropout",
+        "available_channel_ids": [
+          "servo",
+          "metrology"
+        ],
+        "evidence_class": "synthetic_fixture",
+        "source_reference": "https://example.invalid/sensor-scenarios/vibration_dropout",
+        "method": "Synthetic sensor availability mask.",
+        "configuration_digest": "joint-config-synthetic-v0.1",
+        "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+        "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+        "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+        "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+      },
+      {
+        "scenario_id": "servo_dropout",
+        "available_channel_ids": [
+          "vibration",
+          "metrology"
+        ],
+        "evidence_class": "synthetic_fixture",
+        "source_reference": "https://example.invalid/sensor-scenarios/servo_dropout",
+        "method": "Synthetic sensor availability mask.",
+        "configuration_digest": "joint-config-synthetic-v0.1",
+        "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+        "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+        "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+        "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+      },
+      {
+        "scenario_id": "metrology_dropout",
+        "available_channel_ids": [
+          "vibration",
+          "servo"
+        ],
+        "evidence_class": "synthetic_fixture",
+        "source_reference": "https://example.invalid/sensor-scenarios/metrology_dropout",
+        "method": "Synthetic sensor availability mask.",
+        "configuration_digest": "joint-config-synthetic-v0.1",
+        "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+        "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+        "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+        "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+      },
+      {
+        "scenario_id": "vibration_and_servo_dropout",
+        "available_channel_ids": [
+          "metrology"
+        ],
+        "evidence_class": "synthetic_fixture",
+        "source_reference": "https://example.invalid/sensor-scenarios/vibration_and_servo_dropout",
+        "method": "Synthetic sensor availability mask.",
+        "configuration_digest": "joint-config-synthetic-v0.1",
+        "system_boundary_digest": "complete-installed-joint-boundary-synthetic-v1",
+        "operating_condition_digest": "48V-25C-cooling-plate-A-synthetic-v1",
+        "mission_set_digest": "manipulation-plus-diagnostic-profile-synthetic-v1",
+        "profile_digest": "diagnostic-profile-digest-synthetic-v0.1"
+      }
+    ]
+  },
+  "claim_ceiling": "Synthetic interval-geometry and margin-arithmetic fixture only. No actuator waveform, physical fault data, executed excitation, independently validated hard margin or safety result is represented.",
+  "notes": [
+    "All three hypotheses are separated under the nominal sensor set.",
+    "Vibration-only or servo-only loss can still leave sufficient separation through the remaining features.",
+    "With only the metrology channel, healthy and bearing-wear intervals overlap; the profile is therefore feasible but not fully diagnosable across all required scenarios.",
+    "The 2 s duration, 12 J energy and all hard margins are invented fixture values."
+  ]
+}
