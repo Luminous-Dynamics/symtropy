@@ -171,6 +171,20 @@ pub struct ErrorBoundEvidence {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct CostEvidence {
+    pub estimated_cost: f64,
+    pub cost_units_id: String,
+    pub profile_sha256: String,
+    pub model_sha256: String,
+    pub compatibility_sha256: String,
+    pub solver_build_sha256: String,
+    pub hardware_sha256: String,
+    pub measurement_receipt_sha256: String,
+    /// Absolute uncertainty bound in the same cost unit as estimated_cost.
+    pub uncertainty_upper_bound: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct TransitionEvidence {
     pub from_profile_sha256: String,
     pub to_profile_sha256: String,
@@ -193,9 +207,8 @@ pub struct ModelCandidate {
     pub compatibility: ModelCompatibility,
     pub well_posedness: Evidence<WellPosednessEvidence>,
     pub error_bound: Evidence<ErrorBoundEvidence>,
-    /// Same declared cost unit for every candidate in one request.
-    pub estimated_cost: f64,
-    pub cost_units_id: String,
+    /// Cost is evidence-bound; missing or stale cost receipts cannot rank a model.
+    pub cost_evidence: Evidence<CostEvidence>,
     /// Required when switching from a currently active model.
     pub transition: Option<TransitionEvidence>,
 }
@@ -260,6 +273,10 @@ pub enum ExclusionReason {
     InvalidErrorEvidence,
     ErrorUnitsMismatch,
     CostUnitsMismatch,
+    CostEvidenceUnknown,
+    CostEvidenceRejected,
+    InvalidCostEvidence,
+    CostEvidenceIdentityMismatch,
     CalibrationCoverageTooLow,
     ErrorBoundTooLarge,
     MissingTransitionEvidence,
@@ -293,6 +310,9 @@ pub struct SelectionReceipt {
     pub fidelity_rank: u16,
     pub error_upper_bound: f64,
     pub estimated_cost: f64,
+    pub cost_units_id: String,
+    pub cost_uncertainty_upper_bound: f64,
+    pub cost_measurement_receipt_sha256: String,
     pub estimator_sha256: String,
     pub calibration_receipt_sha256: String,
     pub well_posedness_receipt_sha256: String,
@@ -335,6 +355,7 @@ struct EligibleCandidate<'a> {
     candidate: &'a ModelCandidate,
     error: &'a ErrorBoundEvidence,
     well_posedness: &'a WellPosednessEvidence,
+    cost: &'a CostEvidence,
 }
 
 pub fn evaluate_adaptive_policy(
@@ -487,10 +508,50 @@ pub fn evaluate_adaptive_policy(
             continue;
         }
 
+        let cost = match &candidate.cost_evidence {
+            Evidence::Qualified(evidence) => evidence,
+            Evidence::Unknown { .. } => {
+                excluded.push(excluded(candidate, ExclusionReason::CostEvidenceUnknown));
+                continue;
+            }
+            Evidence::Rejected { .. } => {
+                excluded.push(excluded(candidate, ExclusionReason::CostEvidenceRejected));
+                continue;
+            }
+        };
+        if !is_sha256(&cost.profile_sha256)
+            || !is_sha256(&cost.model_sha256)
+            || !is_sha256(&cost.compatibility_sha256)
+            || !is_sha256(&cost.solver_build_sha256)
+            || !is_sha256(&cost.hardware_sha256)
+            || !is_sha256(&cost.measurement_receipt_sha256)
+            || !cost.estimated_cost.is_finite()
+            || cost.estimated_cost <= 0.0
+            || !cost.uncertainty_upper_bound.is_finite()
+            || cost.uncertainty_upper_bound < 0.0
+            || cost.cost_units_id.trim().is_empty()
+        {
+            excluded.push(excluded(candidate, ExclusionReason::InvalidCostEvidence));
+            continue;
+        }
+        if cost.profile_sha256 != candidate.profile_sha256
+            || cost.model_sha256 != candidate.model_sha256
+            || cost.compatibility_sha256 != request.compatibility.compatibility_sha256
+            || cost.solver_build_sha256 != request.compatibility.solver_build_sha256
+        {
+            excluded.push(excluded(candidate, ExclusionReason::CostEvidenceIdentityMismatch));
+            continue;
+        }
+        if cost.cost_units_id != request.cost_units_id {
+            excluded.push(excluded(candidate, ExclusionReason::CostUnitsMismatch));
+            continue;
+        }
+
         eligible.push(EligibleCandidate {
             candidate,
             error,
             well_posedness,
+            cost,
         });
     }
 
@@ -644,8 +705,9 @@ pub fn evaluate_adaptive_policy(
 
     selectable.sort_by(|left, right| {
         left.candidate
-            .estimated_cost
-            .total_cmp(&right.candidate.estimated_cost)
+            left.cost
+                .estimated_cost
+                .total_cmp(&right.cost.estimated_cost)
             .then_with(|| {
                 left.candidate
                     .profile_sha256
@@ -749,7 +811,10 @@ fn selection_receipt(
         kind: item.candidate.kind.clone(),
         fidelity_rank: item.candidate.kind.fidelity_rank(),
         error_upper_bound: item.error.upper_bound,
-        estimated_cost: item.candidate.estimated_cost,
+        estimated_cost: item.cost.estimated_cost,
+        cost_units_id: item.cost.cost_units_id.clone(),
+        cost_uncertainty_upper_bound: item.cost.uncertainty_upper_bound,
+        cost_measurement_receipt_sha256: item.cost.measurement_receipt_sha256.clone(),
         estimator_sha256: item.error.estimator_sha256.clone(),
         calibration_receipt_sha256: item.error.calibration_receipt_sha256.clone(),
         well_posedness_receipt_sha256: item.well_posedness.receipt_sha256().to_owned(),
@@ -832,10 +897,12 @@ fn validate_request(request: &AdaptivePolicyRequest) -> Result<(), InputError> {
         if !is_sha256(&candidate.model_sha256) {
             return Err(InputError::InvalidCandidateDigest("model_sha256"));
         }
-        if !candidate.estimated_cost.is_finite() || candidate.estimated_cost <= 0.0
-            || candidate.cost_units_id.trim().is_empty()
+        if let Evidence::Unknown { reason } | Evidence::Rejected { reason } =
+            &candidate.cost_evidence
         {
-            return Err(InputError::InvalidCost);
+            if reason.trim().is_empty() {
+                return Err(InputError::InvalidEvidenceReason(candidate.profile_id.clone()));
+            }
         }
         validate_compatibility(&candidate.compatibility)
             .map_err(|_| InputError::InvalidModelIdentity)?;
@@ -969,6 +1036,20 @@ mod tests {
         }
     }
 
+    fn cost(estimated_cost: f64, profile_sha256: &str, model_sha256: &str) -> CostEvidence {
+        CostEvidence {
+            estimated_cost,
+            cost_units_id: "normalized-runtime-cost-v1".into(),
+            profile_sha256: profile_sha256.into(),
+            model_sha256: model_sha256.into(),
+            compatibility_sha256: compatibility().compatibility_sha256,
+            solver_build_sha256: compatibility().solver_build_sha256,
+            hardware_sha256: digest('4'),
+            measurement_receipt_sha256: digest('5'),
+            uncertainty_upper_bound: 0.05,
+        }
+    }
+
     fn error(bound: f64, profile_sha256: &str, model_sha256: &str) -> ErrorBoundEvidence {
         ErrorBoundEvidence {
             upper_bound: bound,
@@ -1012,8 +1093,7 @@ mod tests {
             compatibility: compatibility(),
             well_posedness: Evidence::Qualified(moment_evidence(&digest(profile_character), &digest('9'))),
             error_bound: Evidence::Qualified(error(error_bound, &digest(profile_character), &digest('9'))),
-            estimated_cost: cost,
-            cost_units_id: "normalized-runtime-cost-v1".into(),
+            cost_evidence: Evidence::Qualified(cost(cost, &digest(profile_character), &digest('9'))),
             transition: None,
         }
     }
@@ -1186,8 +1266,7 @@ mod tests {
             compatibility: compatibility(),
             well_posedness: Evidence::Qualified(kinetic_evidence(&digest('6'), &digest('8'))),
             error_bound: Evidence::Qualified(error(0.02, &digest('6'), &digest('8'))),
-            estimated_cost: 40.0,
-            cost_units_id: "normalized-runtime-cost-v1".into(),
+            cost_evidence: Evidence::Qualified(cost(40.0, &digest('6'), &digest('8'))),
             transition: None,
         };
         let decision = evaluate_adaptive_policy(&request(vec![kinetic])).unwrap();
@@ -1219,8 +1298,7 @@ mod tests {
             compatibility: compatibility(),
             well_posedness: Evidence::Qualified(kinetic_evidence(&digest('6'), &digest('5'))),
             error_bound: Evidence::Qualified(error(0.02, &digest('6'), &digest('5'))),
-            estimated_cost: 50.0,
-            cost_units_id: "normalized-runtime-cost-v1".into(),
+            cost_evidence: Evidence::Qualified(cost(50.0, &digest('6'), &digest('5'))),
             transition: None,
         };
         let decision = evaluate_adaptive_policy(&request(vec![moment, kinetic])).unwrap();
@@ -1408,7 +1486,9 @@ mod tests {
     #[test]
     fn costs_must_share_one_declared_unit() {
         let mut candidate = moment_candidate('a', 8, 0.01, 1.0);
-        candidate.cost_units_id = "gpu-seconds".into();
+        if let Evidence::Qualified(cost) = &mut candidate.cost_evidence {
+            cost.cost_units_id = "gpu-seconds".into();
+        }
         let decision = evaluate_adaptive_policy(&request(vec![candidate])).unwrap();
         let PolicyDecision::Refused { excluded, .. } = decision else {
             panic!("incommensurate cost must be refused");
