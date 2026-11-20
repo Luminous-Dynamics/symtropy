@@ -357,7 +357,9 @@ impl ThermalModel {
 
         let duration = end_time_s - start_time_s;
         let step_count = communication_steps as f64;
-        let mut theta = input.initial_theta_k;
+        // The input's initial temperature is defined at t=0, even when this
+        // communication campaign begins at a later absolute time.
+        let mut theta = self.sinusoidal_theta(input, start_time_s)?;
         let theta_start = theta;
         let mut energy_input = CompensatedSum::default();
         let mut energy_service = CompensatedSum::default();
@@ -377,6 +379,103 @@ impl ThermalModel {
                 + input.amplitude_w
                     * (input.angular_frequency_rad_per_s * interval_start).sin();
             let interval = self.piecewise_constant(theta, held_power, interval_duration)?;
+            theta = interval.theta_end_k;
+            energy_input.add(interval.energy_input_j);
+            energy_service.add(interval.energy_service_j);
+            energy_loss.add(interval.energy_loss_j);
+        }
+
+        let energy_input = energy_input.total();
+        let energy_service = energy_service.total();
+        let energy_loss = energy_loss.total();
+        let storage_delta = self.heat_capacity_j_per_k * (theta - theta_start);
+        let residual = energy_input - energy_service - energy_loss - storage_delta;
+        if ![
+            theta,
+            energy_input,
+            energy_service,
+            energy_loss,
+            storage_delta,
+            residual,
+        ]
+        .iter()
+        .all(|value| value.is_finite())
+        {
+            return Err(ModelError::NumericalOverflow);
+        }
+
+        Ok(EnergyBalance {
+            start_time_s,
+            end_time_s,
+            theta_start_k: theta_start,
+            theta_end_k: theta,
+            energy_input_j: energy_input,
+            energy_service_j: energy_service,
+            energy_loss_j: energy_loss,
+            storage_delta_j: storage_delta,
+            residual_j: residual,
+        })
+    }
+
+    /// Simulate a sinusoidal source using exact interval-average power.
+    ///
+    /// For each interval [t0,t1], the exchanged constant power is
+    /// integral(Q_source(t), t0..t1) / (t1-t0). Therefore each interval's
+    /// source-energy transfer is exact for this known sinusoidal waveform.
+    /// The receiver still evolves under a piecewise-constant input, so the
+    /// endpoint temperature is an approximation to the continuous response.
+    ///
+    /// This is a conservative *oracle/method reference*, not a universally
+    /// causal master policy: a producer must know or forecast the waveform
+    /// over the complete communication interval, or expose an integrated
+    /// interval-flux output. Do not infer future values from a point sample.
+    pub fn sinusoidal_interval_average_exchange(
+        self,
+        input: SinusoidalInput,
+        start_time_s: f64,
+        end_time_s: f64,
+        communication_steps: usize,
+    ) -> Result<EnergyBalance, ModelError> {
+        self.validate_sinusoid(input)?;
+        if !start_time_s.is_finite() || !end_time_s.is_finite() {
+            return Err(ModelError::NonFiniteParameter);
+        }
+        if start_time_s < 0.0 {
+            return Err(ModelError::NegativeStartTime);
+        }
+        if end_time_s <= start_time_s || !(end_time_s - start_time_s).is_finite() {
+            return Err(ModelError::NonPositiveInterval);
+        }
+        if communication_steps == 0 {
+            return Err(ModelError::NonPositiveSampleCount);
+        }
+
+        let duration = end_time_s - start_time_s;
+        let step_count = communication_steps as f64;
+        let mut theta = self.sinusoidal_theta(input, start_time_s)?;
+        let theta_start = theta;
+        let mut energy_input = CompensatedSum::default();
+        let mut energy_service = CompensatedSum::default();
+        let mut energy_loss = CompensatedSum::default();
+
+        for index in 0..communication_steps {
+            let fraction_start = index as f64 / step_count;
+            let fraction_end = (index + 1) as f64 / step_count;
+            let interval_start = start_time_s + duration * fraction_start;
+            let interval_end = if index + 1 == communication_steps {
+                end_time_s
+            } else {
+                start_time_s + duration * fraction_end
+            };
+            let interval_duration = interval_end - interval_start;
+            let half_phase = input.angular_frequency_rad_per_s * interval_duration * 0.5;
+            let midpoint = interval_start + interval_duration * 0.5;
+            let midpoint_phase = input.angular_frequency_rad_per_s * midpoint;
+            let average_source_power = input.mean_power_w
+                + input.amplitude_w * midpoint_phase.sin() * sinc(half_phase);
+
+            let interval =
+                self.piecewise_constant(theta, average_source_power, interval_duration)?;
             theta = interval.theta_end_k;
             energy_input.add(interval.energy_input_j);
             energy_service.add(interval.energy_service_j);
@@ -549,6 +648,84 @@ mod tests {
             let ratio = pair[0] / pair[1];
             assert!((1.90..=2.10).contains(&ratio), "observed error ratio {ratio}");
         }
+    }
+
+    #[test]
+    fn interval_average_exchange_preserves_source_energy_and_converges_quadratically() {
+        let model = model();
+        let input = SinusoidalInput {
+            mean_power_w: 500_000.0,
+            amplitude_w: 100_000.0,
+            angular_frequency_rad_per_s: 2.0 * PI / 400.0,
+            initial_theta_k: 2.0,
+        };
+        let reference = model.sinusoidal_interval(input, 0.0, 120.0).unwrap();
+        let frozen = [
+            (15_usize, 0.000_128_312_646_191_731),
+            (30, 0.000_032_039_611_065_57),
+            (60, 0.000_008_007_493_556_22798),
+            (120, 0.000_002_001_722_820_83244),
+            (240, 0.000_000_500_421_294_624687),
+            (480, 0.000_000_125_104_729_686213),
+            (960, 0.000_000_031_276_170_5480069),
+        ];
+
+        let mut previous_error = f64::INFINITY;
+        let mut errors = Vec::new();
+        for (steps, expected_error) in frozen {
+            let approximate = model
+                .sinusoidal_interval_average_exchange(input, 0.0, 120.0, steps)
+                .unwrap();
+            let error = (approximate.theta_end_k - reference.theta_end_k).abs();
+            close(error, expected_error, 2.0e-12);
+            assert!(error < previous_error, "error must decrease with finer communication grids");
+            close(approximate.energy_input_j, reference.energy_input_j, 1.0e-6);
+            close(approximate.energy_service_j, reference.energy_service_j, 1.0e-6);
+            close(approximate.residual_j, 0.0, 5.0e-7);
+            errors.push(error);
+            previous_error = error;
+        }
+
+        // Exact interval-average source power removes the left-endpoint bias;
+        // for this smooth waveform the remaining global state error is O(h^2).
+        for pair in errors.windows(2) {
+            let ratio = pair[0] / pair[1];
+            assert!((3.90..=4.10).contains(&ratio), "observed error ratio {ratio}");
+        }
+    }
+
+    #[test]
+    fn interval_average_exchange_uses_the_true_state_at_nonzero_start_time() {
+        let model = model();
+        let input = SinusoidalInput {
+            mean_power_w: 500_000.0,
+            amplitude_w: 100_000.0,
+            angular_frequency_rad_per_s: 2.0 * PI / 400.0,
+            initial_theta_k: 2.0,
+        };
+        let reference = model.sinusoidal_interval(input, 30.0, 120.0).unwrap();
+        let exchange = model
+            .sinusoidal_interval_average_exchange(input, 30.0, 120.0, 90)
+            .unwrap();
+
+        close(exchange.theta_start_k, reference.theta_start_k, 1.0e-12);
+        close(exchange.energy_input_j, reference.energy_input_j, 1.0e-6);
+        close(exchange.energy_service_j, reference.energy_service_j, 1.0e-6);
+        close(exchange.residual_j, 0.0, 2.0e-7);
+    }
+
+    #[test]
+    fn interval_average_exchange_rejects_empty_communication_grid() {
+        let input = SinusoidalInput {
+            mean_power_w: 500_000.0,
+            amplitude_w: 0.0,
+            angular_frequency_rad_per_s: 0.01,
+            initial_theta_k: 1.5,
+        };
+        assert_eq!(
+            model().sinusoidal_interval_average_exchange(input, 0.0, 60.0, 0),
+            Err(ModelError::NonPositiveSampleCount)
+        );
     }
 
     #[test]
