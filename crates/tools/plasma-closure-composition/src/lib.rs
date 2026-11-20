@@ -65,12 +65,14 @@ pub struct FaceFluxBlendRequest {
     pub candidates: Vec<FaceFluxCandidate>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CandidateReceipt {
     pub expert_id: String,
     pub profile_sha256: String,
     pub model_sha256: String,
     pub qualification: CandidateQualification,
+    /// Weight bound to this exact expert/profile/model receipt.
+    pub weight: f64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -251,6 +253,7 @@ pub fn compose_shared_face_flux(
                 profile_sha256: candidate.profile_sha256.clone(),
                 model_sha256: candidate.model_sha256.clone(),
                 qualification: candidate.qualification,
+                weight: candidate.weight,
             })
             .collect(),
         candidate_weights: candidates.iter().map(|candidate| candidate.weight).collect(),
