@@ -3,7 +3,7 @@
 **Issue:** #6301  
 **Camera producer:** #4595 / #4616  
 **AV replay contract:** #6183 / #6201 (pinned source commit 311f65c)  
-**Camera producer:** #4616 (pinned source commit 25ce4da)  
+**Camera producer:** #4616 (pinned source commit 58fe24f)  
 **Temporal eligibility:** #6253
 
 ## Purpose
