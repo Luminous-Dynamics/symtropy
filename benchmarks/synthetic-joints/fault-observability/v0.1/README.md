@@ -94,7 +94,7 @@ No verified no-fault exposure means FAR is **Unknown**, not zero. An alarm outsi
 For each fault class and tested amplitude:
 - each independent specimen contributes at most one trial;
 - repeated windows from one specimen are not treated as extra independent units;
-- the report includes specimen count, detected count, empirical detection fraction and two-sided 95% Wilson interval;
+- the report includes total independent specimens, evaluable specimens (detected or confirmed missed), right-censored specimens, detected count, empirical detection fraction and two-sided 95% Wilson interval. Censored specimens are excluded from the Wilson denominator and remain separately counted;
 - amplitude units must be consistent within a fault class.
 
 MDFA is the **smallest tested amplitude** for which:
