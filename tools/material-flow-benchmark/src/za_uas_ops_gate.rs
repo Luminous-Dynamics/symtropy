@@ -140,6 +140,9 @@ pub struct OperationConditions {
     pub within_ten_km_of_aerodrome: bool,
     pub property_owner_permission_required: bool,
     pub dangerous_goods_payload: bool,
+    pub near_manned_aircraft: bool,
+    pub over_or_within_fifty_m_of_public_road: bool,
+    pub over_public_road: bool,
     pub rps_id: String,
     pub operations_manual_revision: String,
 }
@@ -156,6 +159,8 @@ pub struct ApprovalSet {
     pub director_payload_release_approval: Option<ApprovalEvidence>,
     pub director_bvlos_approval: Option<ApprovalEvidence>,
     pub sa_cats_101_bvlos_compliance: Option<ApprovalEvidence>,
+    pub sa_cats_101_c2_compliance: Option<ApprovalEvidence>,
+    pub director_class_3_applicability: Option<ApprovalEvidence>,
     pub director_multi_uas_approval: Option<ApprovalEvidence>,
     pub director_rps_topology_approval: Option<ApprovalEvidence>,
     pub director_public_road_approval: Option<ApprovalEvidence>,
@@ -164,7 +169,9 @@ pub struct ApprovalSet {
     pub property_owner_permission: Option<ApprovalEvidence>,
     pub dangerous_goods_director_approval: Option<ApprovalEvidence>,
     pub part_92_dangerous_goods_compliance: Option<ApprovalEvidence>,
-    pub class_3_maintenance_technician: Option<ApprovalEvidence>,
+    pub director_public_road_overflight_approval: Option<ApprovalEvidence>,
+    pub public_road_closure_evidence: Option<ApprovalEvidence>,
+    pub public_road_safety_controls: Option<ApprovalEvidence>,
     /// The operation manual's declared multi-UAS control method.
     pub multi_uas_uses_command_inputs_only: Option<bool>,
 }
@@ -289,7 +296,10 @@ fn validate_batch(batch: &UasEligibilityBatch) -> Result<(), Vec<String>> {
         if !digest_valid(&case.operation.operation_scope_digest_sha256) {
             errors.push(format!("cases[{index}].operation.operation_scope_digest_sha256: invalid SHA-256 digest"));
         }
-        if case.assessment_time_utc.trim().is_empty() {
+        if case.operation.over_public_road && !case.operation.over_or_within_fifty_m_of_public_road {
+        errors.push(format!("cases[{index}].operation.over_public_road: implies road proximity condition"));
+    }
+    if case.assessment_time_utc.trim().is_empty() {
             errors.push(format!("cases[{index}].assessment_time_utc: required"));
         }
         if case.operation.payload_release_or_delivery
@@ -523,6 +533,26 @@ fn evaluate_case(case: &UasOperationCase) -> UasCaseReport {
             evidence_source_reference: None,
         });
     }
+    if activity != ActivityClass::Private {
+        findings.push(evidence_gate(
+            "sa_cats_101_c2_compliance",
+            "C2 operational compliance with SA-CATS 101",
+            approvals.sa_cats_101_c2_compliance.as_ref(),
+            aircraft_id,
+            scope,
+        ));
+    }
+
+    if case.aircraft.uas_class == UasClass::Class3OrHigher {
+        findings.push(evidence_gate(
+            "director_class_3_applicability",
+            "Director determination that this Part 101 profile applies to this Class 3+ aircraft",
+            approvals.director_class_3_applicability.as_ref(),
+            aircraft_id,
+            scope,
+        ));
+    }
+
     if case.operation.visual_flight_mode == VisualFlightMode::Bvlos {
         findings.push(evidence_gate(
             "director_bvlos_approval",
@@ -572,6 +602,32 @@ fn evaluate_case(case: &UasOperationCase) -> UasCaseReport {
         ));
     }
 
+    if case.operation.over_or_within_fifty_m_of_public_road {
+        findings.push(evidence_gate(
+            "director_public_road_overflight_approval",
+            "Director approval for operation over, along or within 50 m of a public road",
+            approvals.director_public_road_overflight_approval.as_ref(),
+            operator_id,
+            scope,
+        ));
+        if case.operation.over_public_road {
+            findings.push(evidence_gate(
+                "public_road_closure_evidence",
+                "Evidence that the public road is closed for operations over the road",
+                approvals.public_road_closure_evidence.as_ref(),
+                operator_id,
+                scope,
+            ));
+            findings.push(evidence_gate(
+                "public_road_safety_controls",
+                "Evidence of reasonable care for road users and pedestrians in loss-of-control scenarios",
+                approvals.public_road_safety_controls.as_ref(),
+                operator_id,
+                scope,
+            ));
+        }
+    }
+
     if case.operation.public_road_takeoff_or_landing {
         findings.push(evidence_gate(
             "director_public_road_approval",
@@ -592,6 +648,7 @@ fn evaluate_case(case: &UasOperationCase) -> UasCaseReport {
     if case.operation.controlled_airspace
         || case.operation.restricted_or_prohibited_airspace
         || case.operation.within_ten_km_of_aerodrome
+        || case.operation.near_manned_aircraft
     {
         findings.push(evidence_gate(
             "airspace_approval",
@@ -625,16 +682,6 @@ fn evaluate_case(case: &UasOperationCase) -> UasCaseReport {
             "Part 92 dangerous-goods applicability/compliance evidence",
             approvals.part_92_dangerous_goods_compliance.as_ref(),
             operator_id,
-            scope,
-        ));
-    }
-
-    if case.aircraft.uas_class == UasClass::Class3OrHigher {
-        findings.push(evidence_gate(
-            "class_3_rpas_maintenance_technician",
-            "RMT-qualified maintenance evidence for RPAS class 3 or higher",
-            approvals.class_3_maintenance_technician.as_ref(),
-            aircraft_id,
             scope,
         ));
     }
@@ -753,6 +800,9 @@ mod tests {
                 within_ten_km_of_aerodrome: false,
                 property_owner_permission_required: true,
                 dangerous_goods_payload: false,
+                near_manned_aircraft: false,
+                over_or_within_fifty_m_of_public_road: false,
+                over_public_road: false,
                 rps_id: rps.into(),
                 operations_manual_revision: "om-rev-03".into(),
             },
@@ -774,7 +824,11 @@ mod tests {
                 property_owner_permission: Some(evidence(operator, &scope, "property")),
                 dangerous_goods_director_approval: None,
                 part_92_dangerous_goods_compliance: None,
-                class_3_maintenance_technician: None,
+                sa_cats_101_c2_compliance: Some(evidence(operator, &scope, "c2-compliance")),
+                director_class_3_applicability: None,
+                director_public_road_overflight_approval: None,
+                public_road_closure_evidence: None,
+                public_road_safety_controls: None,
                 multi_uas_uses_command_inputs_only: None,
             },
         }
@@ -871,9 +925,9 @@ mod tests {
     fn brlos_is_unsupported_under_current_source_snapshot() {
         let mut case = commercial_case();
         case.operation.visual_flight_mode = VisualFlightMode::Brlos;
-        case.operation.rlos_command_link_available = false;
+        case.operation.rlos_command_link_available = true;
         let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid envelope");
-        assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::Blocked);
+        assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::UnsupportedBySnapshot);
         assert!(report.cases[0].findings.iter().any(|gate| gate.gate_id == "beyond_radio_line_of_sight"
             && gate.state == GateState::Unsupported));
     }
