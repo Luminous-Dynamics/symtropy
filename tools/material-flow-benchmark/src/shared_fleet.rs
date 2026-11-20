@@ -20,6 +20,8 @@ pub const MAX_SHARED_SCENARIOS: usize = 8;
 pub const MAX_SHARED_POLICY_NODES: usize = 10;
 pub const MAX_SHARED_POLICY_COUNT: u64 = 1_048_576;
 pub const SHARED_CVAR_TAIL_PROBABILITY_BPS: u32 = 1_000;
+/// Worst-case probability distribution may move at most 10% total variation mass.
+pub const SHARED_PROBABILITY_AMBIGUITY_RADIUS_BPS: u32 = 1_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -157,6 +159,8 @@ struct WeightedMetrics {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct SharedFleetOutcome {
     pub expected_total_cost_units: u64,
+    /// Worst-case expected cost after adversarial probability-mass movement within the declared TV radius.
+    pub probability_ambiguity_expected_cost_units: u64,
     pub cvar90_total_cost_units: u64,
     pub worst_case_total_cost_units: u64,
     pub cvar90_unserved_units: u64,
@@ -195,12 +199,16 @@ pub struct SharedFleetReport {
     pub scenario_count: usize,
     pub nonanticipative_policy_node_count: usize,
     pub exact_policy_count_evaluated: u64,
+    pub probability_ambiguity_radius_bps: u32,
     /// Policy minimizing expected total cost.
     pub optimized_policy: SharedFleetOutcome,
     pub optimized_decisions: Vec<SharedFleetDecision>,
     /// Policy minimizing expected cost in the worst 10% probability tail.
     pub cvar90_optimal_policy: SharedFleetOutcome,
     pub cvar90_optimal_decisions: Vec<SharedFleetDecision>,
+    /// Policy minimizing worst-case expected cost over a total-variation probability ambiguity set.
+    pub distributionally_robust_optimal_policy: SharedFleetOutcome,
+    pub distributionally_robust_optimal_decisions: Vec<SharedFleetDecision>,
     /// Policy minimizing the maximum scenario cost.
     pub worst_case_optimal_policy: SharedFleetOutcome,
     pub worst_case_optimal_decisions: Vec<SharedFleetDecision>,
@@ -693,6 +701,97 @@ fn upper_tail_cvar90(scenario_costs: &[(u128, u16)]) -> Result<u128, String> {
         .ok_or_else(|| "CVaR rounding overflow".into())
 }
 
+/// Maximum expected cost when at most `ambiguity_radius_bps` probability mass
+/// may be transferred from lower-cost scenarios to higher-cost scenarios.
+/// This is a finite-support total-variation ambiguity set; scenario support is fixed.
+fn probability_ambiguity_expected_cost(
+    scenario_costs: &[(u128, u16)],
+    ambiguity_radius_bps: u32,
+) -> Result<u128, String> {
+    if scenario_costs.is_empty() {
+        return Err("probability ambiguity requires at least one scenario".into());
+    }
+    if ambiguity_radius_bps > SHARED_FLEET_PROBABILITY_BPS {
+        return Err("probability ambiguity radius exceeds 10,000 basis points".into());
+    }
+
+    let probability_sum = scenario_costs
+        .iter()
+        .map(|(_, probability)| u32::from(*probability))
+        .sum::<u32>();
+    if probability_sum != SHARED_FLEET_PROBABILITY_BPS {
+        return Err("probability ambiguity requires scenario probability sum of 10,000".into());
+    }
+
+    let mut probabilities: Vec<u32> = scenario_costs
+        .iter()
+        .map(|(_, probability)| u32::from(*probability))
+        .collect();
+    let mut weighted_cost = scenario_costs.iter().try_fold(0_u128, |total, (cost, probability)| {
+        let contribution = cost
+            .checked_mul(u128::from(*probability))
+            .ok_or_else(|| "probability ambiguity weighted cost overflow".to_string())?;
+        total
+            .checked_add(contribution)
+            .ok_or_else(|| "probability ambiguity weighted cost overflow".to_string())
+    })?;
+
+    let mut donor_order: Vec<usize> = (0..scenario_costs.len()).collect();
+    donor_order.sort_by_key(|index| scenario_costs[*index].0);
+    let mut receiver_order: Vec<usize> = (0..scenario_costs.len()).collect();
+    receiver_order.sort_by(|left, right| {
+        scenario_costs[*right].0.cmp(&scenario_costs[*left].0)
+    });
+
+    let mut donor_cursor = 0_usize;
+    let mut receiver_cursor = 0_usize;
+    let mut remaining = ambiguity_radius_bps;
+    while remaining > 0 && donor_cursor < donor_order.len() && receiver_cursor < receiver_order.len() {
+        let donor = donor_order[donor_cursor];
+        let receiver = receiver_order[receiver_cursor];
+        if donor == receiver || scenario_costs[donor].0 >= scenario_costs[receiver].0 {
+            break;
+        }
+
+        let donor_mass = probabilities[donor];
+        let receiver_capacity = SHARED_FLEET_PROBABILITY_BPS - probabilities[receiver];
+        let transfer = remaining.min(donor_mass).min(receiver_capacity);
+        if transfer == 0 {
+            if donor_mass == 0 {
+                donor_cursor += 1;
+            }
+            if receiver_capacity == 0 {
+                receiver_cursor += 1;
+            }
+            continue;
+        }
+
+        let cost_delta = scenario_costs[receiver]
+            .0
+            .checked_sub(scenario_costs[donor].0)
+            .ok_or_else(|| "probability ambiguity cost ordering underflow".to_string())?;
+        let weighted_delta = cost_delta
+            .checked_mul(u128::from(transfer))
+            .ok_or_else(|| "probability ambiguity transfer overflow".to_string())?;
+        weighted_cost = weighted_cost
+            .checked_add(weighted_delta)
+            .ok_or_else(|| "probability ambiguity adjusted cost overflow".to_string())?;
+
+        probabilities[donor] -= transfer;
+        probabilities[receiver] += transfer;
+        remaining -= transfer;
+
+        if probabilities[donor] == 0 {
+            donor_cursor += 1;
+        }
+        if probabilities[receiver] == SHARED_FLEET_PROBABILITY_BPS {
+            receiver_cursor += 1;
+        }
+    }
+
+    weighted_average(weighted_cost, "distributionally robust expected cost")
+}
+
 fn worst_case_cost(scenario_costs: &[(u128, u16)]) -> Result<u128, String> {
     scenario_costs
         .iter()
@@ -706,9 +805,15 @@ fn outcome(evaluation: PolicyEvaluation) -> Result<SharedFleetOutcome, String> {
     let worst_case = worst_case_cost(&evaluation.scenario_costs)?;
     let cvar90_unserved = upper_tail_cvar90(&evaluation.scenario_unserved)?;
     let worst_case_unserved = worst_case_cost(&evaluation.scenario_unserved)?;
+    let ambiguity_expected_cost = probability_ambiguity_expected_cost(
+        &evaluation.scenario_costs,
+        SHARED_PROBABILITY_AMBIGUITY_RADIUS_BPS,
+    )?;
     let metrics = evaluation.weighted;
     Ok(SharedFleetOutcome {
         expected_total_cost_units: weighted_average(metrics.total_cost, "expected cost")?,
+        probability_ambiguity_expected_cost_units: u64::try_from(ambiguity_expected_cost)
+            .map_err(|_| "distributionally robust expected cost exceeds report range".to_string())?,
         cvar90_total_cost_units: u64::try_from(cvar90)
             .map_err(|_| "CVaR90 exceeds report range".to_string())?,
         worst_case_total_cost_units: u64::try_from(worst_case)
@@ -769,15 +874,22 @@ pub fn evaluate_shared_fleet(
 
     let mut best_expected_mask = 0_u64;
     let mut best_cvar90_mask = 0_u64;
+    let mut best_distributionally_robust_mask = 0_u64;
     let mut best_worst_case_mask = 0_u64;
     let mut best_service_robust_mask = 0_u64;
     let mut best_expected = evaluate_mask(&canonical, &nodes, &indices, 0, true)
         .map_err(|error| vec![error])?;
     let mut best_cvar90 = best_expected.clone();
+    let mut best_distributionally_robust = best_expected.clone();
     let mut best_worst_case = best_expected.clone();
     let mut best_service_robust = best_expected.clone();
     let mut best_cvar90_value = upper_tail_cvar90(&best_cvar90.scenario_costs)
         .map_err(|error| vec![error])?;
+    let mut best_distributionally_robust_value = probability_ambiguity_expected_cost(
+        &best_distributionally_robust.scenario_costs,
+        SHARED_PROBABILITY_AMBIGUITY_RADIUS_BPS,
+    )
+    .map_err(|error| vec![error])?;
     let mut best_worst_case_value = worst_case_cost(&best_worst_case.scenario_costs)
         .map_err(|error| vec![error])?;
     let mut best_service_robust_value = worst_case_cost(&best_service_robust.scenario_unserved)
@@ -792,6 +904,19 @@ pub fn evaluate_shared_fleet(
         }
         let cvar90 = upper_tail_cvar90(&evaluation.scenario_costs)
             .map_err(|error| vec![error])?;
+        let distributionally_robust = probability_ambiguity_expected_cost(
+            &evaluation.scenario_costs,
+            SHARED_PROBABILITY_AMBIGUITY_RADIUS_BPS,
+        )
+        .map_err(|error| vec![error])?;
+        if distributionally_robust < best_distributionally_robust_value
+            || (distributionally_robust == best_distributionally_robust_value
+                && evaluation.weighted.total_cost < best_distributionally_robust.weighted.total_cost)
+        {
+            best_distributionally_robust_mask = mask;
+            best_distributionally_robust_value = distributionally_robust;
+            best_distributionally_robust = evaluation.clone();
+        }
         if cvar90 < best_cvar90_value {
             best_cvar90_mask = mask;
             best_cvar90_value = cvar90;
@@ -849,10 +974,18 @@ pub fn evaluate_shared_fleet(
         scenario_count: canonical.scenarios.len(),
         nonanticipative_policy_node_count: nodes.len(),
         exact_policy_count_evaluated: policy_count,
+        probability_ambiguity_radius_bps: SHARED_PROBABILITY_AMBIGUITY_RADIUS_BPS,
         optimized_policy: outcome(best_expected).map_err(|error| vec![error])?,
         optimized_decisions: decision_list(&canonical, &nodes, best_expected_mask),
         cvar90_optimal_policy: outcome(best_cvar90).map_err(|error| vec![error])?,
         cvar90_optimal_decisions: decision_list(&canonical, &nodes, best_cvar90_mask),
+        distributionally_robust_optimal_policy: outcome(best_distributionally_robust)
+            .map_err(|error| vec![error])?,
+        distributionally_robust_optimal_decisions: decision_list(
+            &canonical,
+            &nodes,
+            best_distributionally_robust_mask,
+        ),
         worst_case_optimal_policy: outcome(best_worst_case).map_err(|error| vec![error])?,
         worst_case_optimal_decisions: decision_list(&canonical, &nodes, best_worst_case_mask),
         service_robust_optimal_policy: outcome(best_service_robust).map_err(|error| vec![error])?,
@@ -992,6 +1125,46 @@ mod tests {
             multiplier *= radix;
         }
         (nodes, indices, mask)
+    }
+
+    #[test]
+    fn probability_ambiguity_moves_mass_from_low_cost_to_high_cost_scenarios() {
+        let costs = vec![(100_u128, 500_u16), (20_u128, 9_500_u16)];
+        assert_eq!(
+            probability_ambiguity_expected_cost(&costs, 0).expect("nominal distribution"),
+            24
+        );
+        assert_eq!(
+            probability_ambiguity_expected_cost(&costs, 500).expect("5% TV radius"),
+            28
+        );
+        assert_eq!(
+            probability_ambiguity_expected_cost(&costs, 1_000).expect("10% TV radius"),
+            32
+        );
+        let reversed = vec![(20_u128, 9_500_u16), (100_u128, 500_u16)];
+        assert_eq!(
+            probability_ambiguity_expected_cost(&reversed, 1_000).expect("permuted scenarios"),
+            32
+        );
+    }
+
+    #[test]
+    fn exact_search_distributionally_robust_policy_minimizes_ambiguous_expectation() {
+        let fixture: SharedFleetInput = serde_json::from_str(include_str!(
+            "../fixtures/synthetic-two-region-shared-aircraft-tail-risk.json"
+        ))
+        .expect("tail-risk fixture must deserialize");
+        let report = evaluate_shared_fleet(&fixture).expect("tail-risk fixture");
+        assert_eq!(
+            report.probability_ambiguity_radius_bps,
+            SHARED_PROBABILITY_AMBIGUITY_RADIUS_BPS
+        );
+        assert!(
+            report.distributionally_robust_optimal_policy
+                .probability_ambiguity_expected_cost_units
+                <= report.optimized_policy.probability_ambiguity_expected_cost_units
+        );
     }
 
     #[test]
