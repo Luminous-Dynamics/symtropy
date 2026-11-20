@@ -12,7 +12,11 @@
       "response_start_tick": 12,
       "content": "safety_correction",
       "assigned_trigger_ref": "trig-1",
-      "response_end_tick": 14
+      "response_end_tick": 14,
+      "playback_start_event_ref": "render-start-r1",
+      "playback_end_event_ref": "render-end-r1",
+      "playback_end_kind": "playback_ended",
+      "controller_permission_event_ref": "controller-permit-r1"
     },
     {
       "response_id": "r2",
@@ -20,7 +24,11 @@
       "response_start_tick": 20,
       "content": "visual_hazard_warning",
       "assigned_trigger_ref": "trig-2",
-      "response_end_tick": 22
+      "response_end_tick": 22,
+      "playback_start_event_ref": "render-start-r2",
+      "playback_end_event_ref": "render-end-r2",
+      "playback_end_kind": "playback_ended",
+      "controller_permission_event_ref": "controller-permit-r2"
     },
     {
       "response_id": "r3",
@@ -28,7 +36,11 @@
       "response_start_tick": 19,
       "content": "identified_object",
       "assigned_trigger_ref": "trig-3",
-      "response_end_tick": 21
+      "response_end_tick": 21,
+      "playback_start_event_ref": "render-start-r3",
+      "playback_end_event_ref": "render-end-r3",
+      "playback_end_kind": "playback_ended",
+      "controller_permission_event_ref": "controller-permit-r3"
     },
     {
       "response_id": "r4a",
@@ -36,7 +48,11 @@
       "response_start_tick": 15,
       "content": "speaker_a_reply",
       "assigned_trigger_ref": "trig-4a",
-      "response_end_tick": 17
+      "response_end_tick": 17,
+      "playback_start_event_ref": "render-start-r4a",
+      "playback_end_event_ref": "render-end-r4a",
+      "playback_end_kind": "playback_ended",
+      "controller_permission_event_ref": "controller-permit-r4a"
     },
     {
       "response_id": "r4b",
@@ -44,7 +60,11 @@
       "response_start_tick": 20,
       "content": "speaker_b_reply",
       "assigned_trigger_ref": "trig-4b",
-      "response_end_tick": 22
+      "response_end_tick": 22,
+      "playback_start_event_ref": "render-start-r4b",
+      "playback_end_event_ref": "render-end-r4b",
+      "playback_end_kind": "playback_ended",
+      "controller_permission_event_ref": "controller-permit-r4b"
     },
     {
       "response_id": "r5",
@@ -52,7 +72,11 @@
       "response_start_tick": 45,
       "content": "completed_action_count",
       "assigned_trigger_ref": "trig-5",
-      "response_end_tick": 47
+      "response_end_tick": 47,
+      "playback_start_event_ref": "render-start-r5",
+      "playback_end_event_ref": "render-end-r5",
+      "playback_end_kind": "playback_ended",
+      "controller_permission_event_ref": "controller-permit-r5"
     },
     {
       "response_id": "r6",
@@ -60,7 +84,11 @@
       "response_start_tick": 35,
       "content": "corrected_claim",
       "assigned_trigger_ref": "trig-6",
-      "response_end_tick": 37
+      "response_end_tick": 37,
+      "playback_start_event_ref": "render-start-r6",
+      "playback_end_event_ref": "render-end-r6",
+      "playback_end_kind": "playback_ended",
+      "controller_permission_event_ref": "controller-permit-r6"
     },
     {
       "response_id": "r9",
@@ -68,7 +96,13 @@
       "response_start_tick": 18,
       "content": "single_intervention",
       "assigned_trigger_ref": "trig-9",
-      "response_end_tick": 20
+      "response_end_tick": 20,
+      "playback_start_event_ref": "render-start-r9",
+      "playback_end_event_ref": "render-end-r9",
+      "playback_end_kind": "playback_ended",
+      "controller_permission_event_ref": "controller-permit-r9"
     }
-  ]
+  ],
+  "timing_evidence_mode": "synthetic_reference",
+  "clock_relation_ref": "synthetic:logical-replay-tick-v1"
 }
