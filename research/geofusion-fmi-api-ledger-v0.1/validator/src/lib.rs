@@ -191,6 +191,7 @@ struct ExchangeValue {
     port_id: String,
     source_interval_id: String,
     transfer_id: Option<String>,
+    sampling_semantics: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -541,7 +542,7 @@ fn audit(ledger: Ledger, artifact_root: &Path) -> Result<AuditReport, String> {
         for v in &f.variables {
             if v.fmi_type != "Float64" || !["input", "output"].contains(&v.causality.as_str())
                 || !["continuous", "discrete", "tunable", "fixed", "constant"].contains(&v.variability.as_str())
-                || !["coupling_source", "coupling_sink", "terminal_sink"].contains(&v.port_role.as_str()) {
+                || !["coupling_source", "coupling_sink", "terminal_sink", "state_observation"].contains(&v.port_role.as_str()) {
                 return Err(format!("{} variable {} outside the declared Float64 physical-port profile", f.federate_id, v.name));
             }
             for (value, label) in [
@@ -660,6 +661,21 @@ fn audit(ledger: Ledger, artifact_root: &Path) -> Result<AuditReport, String> {
                     if variable.causality != expected_causality || variable.port_id != value.port_id
                         || value.source_interval_id != interval.source_interval_id {
                         return Err(format!("variable causality/port/interval mismatch at {}", event.event_id));
+                    }
+                    let sampling_semantics = value.sampling_semantics.as_deref()
+                        .unwrap_or(interval.sampling_semantics.as_str());
+                    if !["constant_over_declared_half_open_interval", "sample_at_interval_end",
+                        "sample_at_interval_start", "interval_average"].contains(&sampling_semantics) {
+                        return Err(format!("invalid per-value sampling semantics at {}", event.event_id));
+                    }
+                    if variable.port_role == "state_observation"
+                        && (event.kind != "get_float64"
+                            || sampling_semantics != "sample_at_interval_end"
+                            || value.transfer_id.is_some()) {
+                        return Err(format!(
+                            "state observation must be a non-transfer output sampled at interval end at {}",
+                            event.event_id
+                        ));
                     }
                     let decoded = parse_bits(&value.raw_f64_bits, "raw_f64_bits")?;
                     if decoded.to_bits() != value.value.to_bits() {
@@ -896,9 +912,23 @@ mod tests {
         let report = audit_json(FIXTURE, &root()).expect("positive fixture must pass");
         assert_eq!(report.federates, 2);
         assert_eq!(report.do_step_attempts, 2);
-        assert_eq!(report.exchanged_values, 5);
+        assert_eq!(report.exchanged_values, 6);
         assert_eq!(report.barriers, 1);
         assert!(report.synthetic);
+    }
+
+    #[test]
+    fn rejects_state_observation_without_interval_end_semantics() {
+        let mut d = value();
+        d["events"][10]["payload"]["values"][3]["sampling_semantics"] = "interval_average".into();
+        assert!(run(d).unwrap_err().contains("state observation must be a non-transfer output sampled at interval end"));
+    }
+
+    #[test]
+    fn rejects_state_observation_that_falls_back_to_power_interval_semantics() {
+        let mut d = value();
+        d["events"][10]["payload"]["values"][3].as_object_mut().unwrap().remove("sampling_semantics");
+        assert!(run(d).unwrap_err().contains("state observation must be a non-transfer output sampled at interval end"));
     }
 
     #[test]
