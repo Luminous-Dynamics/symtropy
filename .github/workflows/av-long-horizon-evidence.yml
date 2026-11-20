@@ -119,10 +119,10 @@ jobs:
           Draft202012Validator(submission_schema).validate(submission)
           PY
       - name: Run long-horizon evaluator unit and adversarial tests
-        run: python -m unittest discover -s tools/av-long-horizon-evidence-evaluator -p "test_*.py" -v
+        run: python -m unittest discover -s tools/av-modality-necessity-evaluator -p "test_long_horizon_evaluate.py" -v
       - name: Score finite known-answer memory submission
         run: |
-          python tools/av-long-horizon-evidence-evaluator/evaluate.py \
+          python tools/av-modality-necessity-evaluator/long_horizon_evaluate.py \
             --workload research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json \
             --truth research/av-long-horizon-evidence-v0/fixtures/evaluator-only/truth-v1.json \
             --submission research/av-long-horizon-evidence-v0/fixtures/agent/reference-submission-v1.json \
