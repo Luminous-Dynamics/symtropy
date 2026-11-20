@@ -65,4 +65,4 @@ The capability registry is part of the canonical mission snapshot and binds a ca
 The evaluator enforces a maximum action count, action depth, successful-path count and total expanded-edge count per scenario. If the search stops at a bound, the report marks enumeration incomplete. SEARCH_INCOMPLETE/ABSTAIN is intentionally distinct from INFEASIBLE/ABSTAIN: lack of a discovered path under an incomplete search is not proof that no path exists.
 
 
-See the full [2026 state-of-practice and matched benchmark contract](../../../docs/research/marine/recovery-reachability-human-handover-and-comparison-0001.md), including comparisons with multi-energy rolling-horizon ship management, timed-automata planning, field-tested temporal mission planning, and remote-operator human factors.
+See the full [2026 state-of-practice and matched benchmark contract](../../docs/research/marine/recovery-reachability-human-handover-and-comparison-0001.md), including comparisons with multi-energy rolling-horizon ship management, timed-automata planning, field-tested temporal mission planning, and remote-operator human factors.
