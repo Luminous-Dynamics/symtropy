@@ -164,6 +164,8 @@ These source summaries are not a legal opinion. They are only the profile source
 
 Synthetic fixtures set the structural result to `eligible_for_external_operator_review` only to test that the typed gate can pass. Their operator, aircraft configuration, operations manual, scope digest and evidence reference are synthetic placeholders. They do not demonstrate any actual certificate, licence, authority review or permission.
 
+When the review status is ineligible, flight and cross-region reposition actions are blocked and counted as hard-gate blocks. An explicit idle action remains available for ground-side charging; an aviation-approval gap does not prevent a parked asset from charging at a suitable site. This is deliberate separation of aviation eligibility from electrical servicing.
+
 ## Prequalified service-envelope regression controls
 
 The exact policy engine now requires the co-availability status/reference and a per-period service-capacity / mission-energy upper bound before it can allocate aerial service. Tests cover stale co-availability despite clear weather and approved permission, per-period service-capacity caps, energy upper bounds overriding the generic floor, and missing evidence references. The reference fixtures use synthetic source identifiers and therefore test only fail-closed contract behavior.
