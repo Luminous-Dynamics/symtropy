@@ -1542,7 +1542,10 @@ mod compound_com_tests {
         angular.set(0, 1, 0.31);
         angular.set(0, 2, -0.47);
         angular.set(1, 2, 0.83);
-        body.angular_velocity = angular;
+        // The body stores world-space angular velocity. Rotate this
+        // body-frame test value through the geometry/body Rotor before
+        // comparing against the body-local inertia operator.
+        body.angular_velocity = body.transform.rotation.rotate_bivector(&angular);
         let expected_energy = operator.kinetic_energy_bivector_joules(&angular).unwrap();
         assert!((body.rotational_kinetic_energy() - expected_energy).abs() < 1.0e-12);
     }
