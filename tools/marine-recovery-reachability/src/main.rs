@@ -125,13 +125,20 @@ fn validate_contract(value: &Value, errors: &mut Vec<String>) -> BTreeMap<String
 
 fn initial_resource_digest(state: &Value) -> Option<String> {
     let items = state.get("resource_metrics")?.as_array()?;
-    let projection = items.iter().map(|item| json!({
-        "metric": item.get("metric")?,
-        "unit": item.get("unit")?,
-        "value": item.get("value")?,
-        "lower_bound": item.get("lower_bound")?,
-        "upper_bound": item.get("upper_bound")?
-    })).collect::<Option<Vec<_>>>()?;
+    let projection = items.iter().map(|item| {
+        let metric = item.get("metric")?;
+        let unit = item.get("unit")?;
+        let value = item.get("value")?;
+        let lower_bound = item.get("lower_bound")?;
+        let upper_bound = item.get("upper_bound")?;
+        Some(json!({
+            "metric": metric,
+            "unit": unit,
+            "value": value,
+            "lower_bound": lower_bound,
+            "upper_bound": upper_bound
+        }))
+    }).collect::<Option<Vec<_>>>()?;
     array_digest(&Value::Array(projection))
 }
 
@@ -1109,7 +1116,9 @@ mod tests {
     #[test]
     fn action_hard_gate_roster_must_match_the_frozen_registry() {
         let mut value=fixture();
-        value["scenarios"][0]["actions"][0]["hard_gate_checks"].as_array_mut().unwrap().pop();
+        for action in value["scenarios"][0]["actions"].as_array_mut().unwrap() {
+            action["hard_gate_checks"].as_array_mut().unwrap().pop();
+        }
         refresh(&mut value);
         let report=audit(&value);
         assert_eq!(report["scenario_reports"][0]["feasible_path_count"],0);
