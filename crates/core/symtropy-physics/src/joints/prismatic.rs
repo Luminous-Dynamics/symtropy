@@ -10,7 +10,7 @@
 use nalgebra::SVector;
 
 use crate::body::{BodyHandle, RigidBody};
-use crate::constraint::Constraint;
+use crate::constraint::{Constraint, MotorStepState};
 
 /// Prismatic joint: body B slides along one axis relative to body A.
 pub struct PrismaticJoint<const D: usize> {
@@ -126,12 +126,33 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
         dt: f64,
         mut callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
     ) {
-        let total_inv = body_a.inv_mass + body_b.inv_mass;
-        if total_inv < 1e-15 {
+        // Preserve the direct one-call API while using the same step-scoped
+        // accumulator as PhysicsWorld.
+        let mut motor_state = MotorStepState::default();
+        self.solve_velocity_with_state(body_a, body_b, dt, None, &mut motor_state);
+        if let Some(work_joules) = motor_state.take_work_receipt() {
+            if let Some(cb) = callback.as_deref_mut() {
+                cb.record_work(self.body_b, work_joules);
+            }
+        }
+    }
+
+    fn solve_velocity_with_state(
+        &self,
+        body_a: &mut RigidBody<D>,
+        body_b: &mut RigidBody<D>,
+        dt: f64,
+        _callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
+        motor_state: &mut MotorStepState,
+    ) {
+        let inv_mass_a = if body_a.is_dynamic() { body_a.inv_mass } else { 0.0 };
+        let inv_mass_b = if body_b.is_dynamic() { body_b.inv_mass } else { 0.0 };
+        let total_inv = inv_mass_a + inv_mass_b;
+        if !total_inv.is_finite() || total_inv <= 1e-15 {
             return;
         }
 
-        // Damp velocity on non-slide axes
+        // Damp velocity on non-slide axes.
         for i in 0..D {
             if i == self.axis {
                 continue;
@@ -142,38 +163,36 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
             }
             let impulse = -rel_vel * self.stiffness / total_inv;
             if body_a.is_dynamic() {
-                body_a.linear_velocity[i] -= impulse * body_a.inv_mass;
+                body_a.linear_velocity[i] -= impulse * inv_mass_a;
             }
             if body_b.is_dynamic() {
-                body_b.linear_velocity[i] += impulse * body_b.inv_mass;
+                body_b.linear_velocity[i] += impulse * inv_mass_b;
             }
         }
 
-        // Motor drive on slide axis
-        if let Some(ref motor) = self.motor {
+        // One accumulated motor impulse budget spans every solver iteration.
+        if let Some(motor) = self.motor.as_ref() {
             let displacement = body_b.transform.translation.0[self.axis]
                 - body_a.transform.translation.0[self.axis];
             let rel_vel = body_b.linear_velocity[self.axis] - body_a.linear_velocity[self.axis];
+            let desired_total_impulse = motor.calculate_impulse(displacement, rel_vel, dt);
 
-            // PD controller: impulse = (kp * (target - pos) + kd * (target_vel - vel)) * dt
-            let impulse = motor.calculate_impulse(displacement, rel_vel, dt);
-
-            // METABOLIC HEARTBEAT: Calculate Work and Energy Recovery
-            // Work = Impulse * Velocity
-            let work_joules = impulse * rel_vel;
-            if let Some(ref mut cb) = callback {
-                cb.record_work(self.body_b, work_joules);
-            }
-
-            if body_a.is_dynamic() {
-                body_a.linear_velocity[self.axis] -= impulse * body_a.inv_mass;
-            }
-            if body_b.is_dynamic() {
-                body_b.linear_velocity[self.axis] += impulse * body_b.inv_mass;
+            if let Some((delta_impulse, _velocity_after)) = motor_state.project_impulse(
+                desired_total_impulse,
+                motor.max_force * dt,
+                rel_vel,
+                total_inv,
+            ) {
+                if body_a.is_dynamic() {
+                    body_a.linear_velocity[self.axis] -= delta_impulse * inv_mass_a;
+                }
+                if body_b.is_dynamic() {
+                    body_b.linear_velocity[self.axis] += delta_impulse * inv_mass_b;
+                }
             }
         }
 
-        // Damp all angular velocity (prismatic = no rotation)
+        // Damp all angular velocity (prismatic = no rotation).
         for i in 0..D {
             for j in (i + 1)..D {
                 let rel = body_b.angular_velocity.get(i, j) - body_a.angular_velocity.get(i, j);
