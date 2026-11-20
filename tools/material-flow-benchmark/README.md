@@ -372,3 +372,19 @@ The v0.1 fixture has two regions, three periods, two scenarios, five observed-hi
 Detailed formulation, independent fixture replay, limits, target benchmarks and current literature comparators: [Shared aircraft repositioning v0.1](../../docs/research/MFB_SHARED_AIRCRAFT_REPOSITIONING_V0_1.md).
 
 This is a synthetic small-instance oracle, not a fleet-scale optimizer or flight model. The main fixture pins the expected-cost baseline. A separate 5%-probability rare-event stress fixture demonstrates that expected-cost, CVaR90, minimax-cost and service-robust objectives can select different nonanticipative policies: CVaR90 falls from 866 to 825 synthetic units at an expected-cost increase from 524 to 527; minimax cost falls from 1,246 to 1,156 at an expected-cost increase to 570; worst-case unserved demand falls from 22 to 21 under the service-robust policy. These are fixture arithmetic, not operational savings or calibrated risk guarantees. The objective only protects against the supplied finite scenario distribution; distribution shift, probability ambiguity and out-of-sample calibration remain open work. The full programme remains [LOGISTICS-MODE-OPTIONS-001 #6153](https://github.com/Luminous-Dynamics/symtropy/issues/6153).
+
+
+## South African UAS applicability and evidence gate (synthetic)
+
+The `mfb-check-za-uas-eligibility` binary evaluates a source-versioned operation corpus against a declared Part 101 applicability profile. It distinguishes commercial / corporate / non-profit / private activity, remotely piloted versus autonomous aircraft, aircraft class, R-VLOS/VLOS/EVLOS/BVLOS/BRLOS, payload release, multi-UAS and controlled airspace. Commercial and corporate/non-profit profiles require both a current UASOC and a separate current OpSpec; every approval item is bound to aircraft, operator, operation scope, validity interval and (where relevant) Operations Manual revision.
+
+Run:
+
+```bash
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-check-za-uas-eligibility -- \
+  tools/material-flow-benchmark/fixtures/synthetic-za-uas-eligibility-v0_1.json
+```
+
+The fixture asserts that autonomous aircraft and BRLOS are blocked under the current source snapshot; missing BVLOS/multi-UAS approvals and stale evidence are indeterminate; private delivery is blocked; corporate operation does not inherit the commercial ASL requirement in the published SACAA matrix. A structurally complete package is only `eligible_for_external_operator_review`; all reports keep flight/dispatch authorization false. The module does not authenticate signatures, grant approval or emit commands.
+
+Detailed legal-source snapshot, rule boundaries and integration: [ZA UAS eligibility gate v0.1](../../docs/research/ZA_UAS_ELIGIBILITY_EVIDENCE_GATE_V0_1.md). Owner: [ZA-UAS-OPS-GATE-001 #6330](https://github.com/Luminous-Dynamics/symtropy/issues/6330).
