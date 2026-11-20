@@ -250,6 +250,55 @@ fn validate_producer(
     }
 }
 
+fn validate_sample_source_linkage(
+    trajectory: &ServiceTrajectoryRecord,
+    errors: &mut Vec<String>,
+) {
+    let source_digests: BTreeMap<&str, &str> = trajectory.source_artifacts.iter()
+        .map(|source| (source.artifact_ref.as_str(), source.sha256.as_str()))
+        .collect();
+    for sample in &trajectory.samples {
+        match sample.status {
+            ServiceSampleStatus::Known | ServiceSampleStatus::Unavailable => {
+                if let (Some(reference), Some(digest)) =
+                    (sample.evidence_ref.as_deref(), sample.evidence_sha256.as_deref())
+                {
+                    if source_digests.get(reference).copied() != Some(digest) {
+                        errors.push(format!(
+                            "sample {} source evidence is not present in the trajectory source-artifact inventory with the exact digest",
+                            sample.sample_id
+                        ));
+                    }
+                }
+            }
+            ServiceSampleStatus::Unknown => {
+                if let (Some(reference), Some(digest)) =
+                    (sample.evidence_ref.as_deref(), sample.evidence_sha256.as_deref())
+                {
+                    if source_digests.get(reference).copied() != Some(digest) {
+                        errors.push(format!(
+                            "unknown sample {} optional source evidence is not in the source-artifact inventory",
+                            sample.sample_id
+                        ));
+                    }
+                }
+            }
+            ServiceSampleStatus::Conflicting => {
+                for source in &sample.conflict_evidence {
+                    if source_digests.get(source.artifact_ref.as_str()).copied()
+                        != Some(source.sha256.as_str())
+                    {
+                        errors.push(format!(
+                            "conflicting sample {} source {} is absent from the source-artifact inventory or has a different digest",
+                            sample.sample_id, source.artifact_ref
+                        ));
+                    }
+                }
+            }
+        }
+    }
+}
+
 fn validate_sample_evidence(
     sample: &ServiceSample,
     stream_kind: ServiceStreamKind,
@@ -342,6 +391,14 @@ fn validate_sample_evidence(
         }
     }
 
+    if sample.evidence_ref.is_some() != sample.evidence_sha256.is_some() {
+        errors.push(format!("sample {} has an incomplete optional evidence reference/digest pair", sample.sample_id));
+    }
+    if let Some(reference) = sample.evidence_ref.as_deref() {
+        if !valid_id(reference) {
+            errors.push(format!("sample {} has an empty evidence reference", sample.sample_id));
+        }
+    }
     if let Some(hash) = sample.evidence_sha256.as_deref() {
         if !is_lower_hex(hash, 64) {
             errors.push(format!("sample {} has an invalid evidence digest", sample.sample_id));
@@ -603,6 +660,9 @@ fn validate_stream_separation(
             if !trajectory.samples.is_empty() {
                 errors.push("observed_work stream must not contain delivered-service samples".to_string());
             }
+            if !trajectory.parent_service_artifacts.is_empty() {
+                errors.push("observed_work stream must not reference scored service artifacts".to_string());
+            }
             if trajectory.work_milestones.is_empty() {
                 errors.push("observed_work stream requires at least one work milestone".to_string());
             }
@@ -614,6 +674,9 @@ fn validate_stream_separation(
             }
         }
         ServiceStreamKind::PlannedForecast => {
+            if !trajectory.parent_service_artifacts.is_empty() {
+                errors.push("planned_forecast stream must not reference scored service artifacts".to_string());
+            }
             if !trajectory.work_milestones.is_empty() {
                 errors.push("planned_forecast stream must not contain observed work milestones".to_string());
             }
@@ -670,6 +733,7 @@ fn summarize_service(
         .ok_or_else(|| vec!["service interval duration overflows milliseconds".to_string()])?;
 
     let mut errors = Vec::new();
+    validate_sample_source_linkage(trajectory, &mut errors);
     let mut sample_ids = BTreeSet::new();
     let mut sample_keys = BTreeSet::new();
     let mut prior_key: Option<(u32, String)> = None;
