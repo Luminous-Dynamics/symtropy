@@ -25,7 +25,7 @@ cargo test --manifest-path tools/ocean-env-metrics-verifier/Cargo.toml
 cargo run --manifest-path tools/ocean-env-metrics-verifier/Cargo.toml
 ```
 
-Expected output is explicitly `CATALOG_VALID_NOT_SITE_EVIDENCE`. The verifier checks the exact 14 ITU metric IDs, the separate marine namespace, WUE/seawater semantics, sensor/evidence fields, lifecycle station plan, and hard-gate dispositions. It does not validate field measurements or grant clearance.
+Expected output is explicitly `CATALOG_VALID_NOT_SITE_EVIDENCE`. The verifier checks the exact 14 ITU metric IDs and exact 14 separate marine-extension IDs, WUE/seawater semantics, sensor/evidence fields, lifecycle station plan, and hard-gate dispositions. It does not validate field measurements or grant clearance.
 
 ## 2. Important standard interpretation
 
