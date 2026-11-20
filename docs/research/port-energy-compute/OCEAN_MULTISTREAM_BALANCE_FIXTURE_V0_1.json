@@ -233,9 +233,9 @@
       "model": {
         "method_id": "SYNTH-PSYCHROMETRIC-EVAP-001",
         "model_version": "0.1.0",
-        "input_digests": [
-          "sha256:synthetic-air-state",
-          "sha256:synthetic-water-temperature"
+        "input_references": [
+          "synthetic-ref:synthetic-air-state",
+          "synthetic-ref:synthetic-water-temperature"
         ],
         "validation_state": "synthetic_test_assumption"
       }
