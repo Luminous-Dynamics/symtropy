@@ -781,10 +781,10 @@ mod tests {
     use super::*;
     use serde_json::Value;
 
-    const FIXTURE: &str = include_str!("../fixtures/positive-two-fmu-ledger.json");
+    const FIXTURE: &str = include_str!("../../fixtures/positive-two-fmu-ledger.json");
 
     fn root() -> PathBuf {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..")
     }
 
     fn value() -> Value {
