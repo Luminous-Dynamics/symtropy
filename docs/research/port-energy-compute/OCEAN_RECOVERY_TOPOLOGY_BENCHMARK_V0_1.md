@@ -146,6 +146,22 @@ PUE must be reported beside:
 
 A low PUE does not compensate for a failed restore, rights breach, unsafe dependency or ecological gate.
 
+## 2.4 Lifecycle environmental qualification is now explicit
+
+ITU-T **L.1312 (07/2026)** is approved and in force. It defines 14 lifecycle environmental metrics, including PUE/ERF, WUE and reclaimed-water proportion, REF/CUE/GHGEF, pollutants, noise and mean species abundance. It explicitly addresses aquatic-organism effects from underwater data-centre construction, operation and maintenance.
+
+This programme adds an ocean-specific metrology layer:
+- seawater intake and return volume;
+- intake/outfall temperature and thermal energy;
+- depth-resolved temperature/salinity and hydrodynamics;
+- water chemistry, pollutants, turbidity and sediment;
+- underwater radiated noise;
+- benthic habitats, taxa, fouling, and intake entrainment/impingement.
+
+Keep these marine-extension values distinct from the 14 ITU metrics. The ITU reclaimed/non-potable-water proportion denominator excludes seawater, so report seawater withdrawals and returns separately rather than using freshwater WUE as a proxy for total marine impact. A composite L.1312 metric is supplementary; protected-habitat exclusions, missing baseline, discharge noncompliance and unknown sensor/custody evidence remain hard blockers.
+
+See [OCEAN_DC_ENVIRONMENTAL_METROLOGY_V0_1.md](OCEAN_DC_ENVIRONMENTAL_METROLOGY_V0_1.md), [machine-readable catalog](OCEAN_DC_ENVIRONMENTAL_METROLOGY_V0_1.json) and `tools/ocean-env-metrics-verifier/`.
+
 ## 3. Recovery topology contract
 
 ### 3.1 Three path roles
@@ -321,6 +337,9 @@ Use the same workload, quality, SLA, redundancy, seasonal weather and lifecycle 
 - ENTSO-E, Data centres and the power system (April 2026): https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Reports/2026/FINAL_ENTSO-E_Data_Centres_260430.pdf
 - ASHRAE, Grid-interactive design and demand flexibility: https://www.ashrae.org/technical-resources/topics-and-initiatives/ai-data-center/grid-interactive-design-demand-flexibility
 - IEA 4E EDNA, Data Centres and Flexibility (July 2026): https://www.iea-4e.org/edna/publications/data-centres-and-flexibility/
+- ITU-T L.1312 (07/2026), lifecycle multi-dimensional environmental metrics: https://www.itu.int/rec/T-REC-L.1312-202607-I/en
+- Uptime Institute Annual Outage Analysis 2026 (external fibre/connectivity disruptions and external infrastructure failures): https://intelligence.uptimeinstitute.com/resource/annual-outage-analysis-2026
+- IEA Electricity 2026, Grids (connection queues and grid bottlenecks): https://www.iea.org/reports/electricity-2026/grids
 - NIST SP 800-209 (final): https://csrc.nist.gov/pubs/sp/800/209/final
 - NIST SP 800-209 Rev. 1 initial public draft (July 2026): https://csrc.nist.gov/pubs/sp/800/209/r1/ipd
 - Canadian Centre for Cyber Security, submarine cable security guidance: https://www.cyber.gc.ca/en/guidance/cyber-security-considerations-submarine-cables-itsp20001
