@@ -330,7 +330,7 @@ fn build_reliability_metrics(
         let bin_index = usize::from((probability / 1_000).min(9));
         let bin = &mut bins[bin_index];
         bin.forecast_probability_sum_bps += u128::from(probability);
-        let observed = u64::from(forecast.observed_outcome_id == outcome_id);
+        let observed = if forecast.observed_outcome_id == outcome_id { 1_u64 } else { 0_u64 };
         bin.observed_event_sum_bps += u128::from(observed) * u128::from(CALIBRATION_PROBABILITY_TOTAL_BPS);
         bin.count = bin.count.checked_add(1)
             .ok_or_else(|| "reliability bin count overflow".to_string())?;
@@ -386,8 +386,11 @@ fn brier_score(
     let mut squared_error_sum = 0_u128;
     for forecast in &corpus.forecasts {
         for probability in &forecast.outcome_probabilities {
-            let target = u32::from(forecast.observed_outcome_id == probability.outcome_id)
-                * CALIBRATION_PROBABILITY_TOTAL_BPS;
+            let target = if forecast.observed_outcome_id == probability.outcome_id {
+                CALIBRATION_PROBABILITY_TOTAL_BPS
+            } else {
+                0
+            };
             let predicted = if baseline {
                 u32::from(*baseline_probabilities.get(probability.outcome_id.as_str())
                     .ok_or_else(|| "baseline missing outcome probability".to_string())?)
