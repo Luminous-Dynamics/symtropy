@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-long-horizon-evidence-v0",
+  "comparison_id": "synthetic-memory-tournament-v1",
+  "policy_id": "matched-memory-reference-v1",
+  "run_id": "recent_window-run",
+  "memory_condition": "recent_window",
+  "model_revision": null,
+  "runtime_revision": "synthetic-v1",
+  "hardware_id": "synthetic-no-device",
+  "seed": 0,
+  "workload_ref": "git-blob-sha1:1a3b5e50b22ee8e65d894243ddcae7381e3f4afc",
+  "protocol_id": "long-horizon-memory-ablation-v1",
+  "memory_budget_profile_id": "workload-per-episode-budget-v1",
+  "measurement_status": "synthetic_reference",
+  "budget": {
+    "max_memory_bytes_per_episode": 262144,
+    "max_input_tokens_per_episode": 8192,
+    "max_retrieval_latency_ms": 5000,
+    "max_energy_joules_per_episode": 100
+  },
+  "submission": {
+    "schema_version": 1,
+    "benchmark_id": "av-long-horizon-evidence-v0",
+    "policy_id": "matched-memory-reference-v1",
+    "run_id": "recent_window-run",
+    "memory_condition": "recent_window",
+    "model_revision": null,
+    "runtime_revision": "synthetic-v1",
+    "predictions": [
+      {
+        "episode_id": "lh-001-delayed-recall-10m",
+        "answer": "door-impact",
+        "abstained": false,
+        "confidence": 0.9,
+        "cited_observation_refs": [
+          "obs-door-impact"
+        ],
+        "evidence_as_of_tick": 600,
+        "response_tick": 601,
+        "claimed_independent_corroboration": false,
+        "claimed_cross_clock_ordering": false,
+        "memory_bytes_used": null,
+        "input_tokens": null,
+        "retrieval_latency_ms": null,
+        "energy_joules": null
+      },
+      {
+        "episode_id": "lh-002-repeated-event-dedup",
+        "answer": "four_distinct_taps",
+        "abstained": false,
+        "confidence": 0.9,
+        "cited_observation_refs": [
+          "obs-tap-1",
+          "obs-tap-2",
+          "obs-tap-3",
+          "obs-tap-4"
+        ],
+        "evidence_as_of_tick": 900,
+        "response_tick": 901,
+        "claimed_independent_corroboration": false,
+        "claimed_cross_clock_ordering": false,
+        "memory_bytes_used": null,
+        "input_tokens": null,
+        "retrieval_latency_ms": null,
+        "energy_joules": null
+      },
+      {
+        "episode_id": "lh-003-correction-supersession",
+        "answer": "corrected_machine_state",
+        "abstained": false,
+        "confidence": 0.9,
+        "cited_observation_refs": [
+          "obs-machine-state-corrected"
+        ],
+        "evidence_as_of_tick": 1800,
+        "response_tick": 1801,
+        "claimed_independent_corroboration": false,
+        "claimed_cross_clock_ordering": false,
+        "memory_bytes_used": null,
+        "input_tokens": null,
+        "retrieval_latency_ms": null,
+        "energy_joules": null
+      },
+      {
+        "episode_id": "lh-004-common-cause-dependence",
+        "answer": "dependent_views_not_independent",
+        "abstained": false,
+        "confidence": 0.9,
+        "cited_observation_refs": [
+          "obs-impact-video",
+          "obs-impact-audio"
+        ],
+        "evidence_as_of_tick": 1200,
+        "response_tick": 1201,
+        "claimed_independent_corroboration": false,
+        "claimed_cross_clock_ordering": false,
+        "memory_bytes_used": null,
+        "input_tokens": null,
+        "retrieval_latency_ms": null,
+        "energy_joules": null
+      },
+      {
+        "episode_id": "lh-005-nuisance-interference",
+        "answer": null,
+        "abstained": true,
+        "confidence": 0,
+        "cited_observation_refs": [],
+        "evidence_as_of_tick": 3600,
+        "response_tick": 3601,
+        "claimed_independent_corroboration": false,
+        "claimed_cross_clock_ordering": false,
+        "memory_bytes_used": null,
+        "input_tokens": null,
+        "retrieval_latency_ms": null,
+        "energy_joules": null
+      },
+      {
+        "episode_id": "lh-006-absent-event-false-memory",
+        "answer": null,
+        "abstained": true,
+        "confidence": 0,
+        "cited_observation_refs": [],
+        "evidence_as_of_tick": 900,
+        "response_tick": 901,
+        "claimed_independent_corroboration": false,
+        "claimed_cross_clock_ordering": false,
+        "memory_bytes_used": null,
+        "input_tokens": null,
+        "retrieval_latency_ms": null,
+        "energy_joules": null
+      },
+      {
+        "episode_id": "lh-007-cross-clock-and-event-order",
+        "answer": null,
+        "abstained": true,
+        "confidence": 0,
+        "cited_observation_refs": [],
+        "evidence_as_of_tick": 7200,
+        "response_tick": 7201,
+        "claimed_independent_corroboration": false,
+        "claimed_cross_clock_ordering": false,
+        "memory_bytes_used": null,
+        "input_tokens": null,
+        "retrieval_latency_ms": null,
+        "energy_joules": null
+      },
+      {
+        "episode_id": "lh-008-memory-revocation",
+        "answer": null,
+        "abstained": true,
+        "confidence": 0,
+        "cited_observation_refs": [],
+        "evidence_as_of_tick": 3600,
+        "response_tick": 3601,
+        "claimed_independent_corroboration": false,
+        "claimed_cross_clock_ordering": false,
+        "memory_bytes_used": null,
+        "input_tokens": null,
+        "retrieval_latency_ms": null,
+        "energy_joules": null
+      },
+      {
+        "episode_id": "lh-009-compression-retention",
+        "answer": null,
+        "abstained": true,
+        "confidence": 0,
+        "cited_observation_refs": [],
+        "evidence_as_of_tick": 5400,
+        "response_tick": 5401,
+        "claimed_independent_corroboration": false,
+        "claimed_cross_clock_ordering": false,
+        "memory_bytes_used": null,
+        "input_tokens": null,
+        "retrieval_latency_ms": null,
+        "energy_joules": null
+      }
+    ]
+  }
+}
