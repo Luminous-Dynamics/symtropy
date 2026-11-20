@@ -60,7 +60,7 @@ struct StorageInventory {
     clock_offset_ms: i64,
     quality_state: String,
     source_rights_state: String,
-    raw_data_digest: String,
+    synthetic_record_reference: String,
 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -98,14 +98,14 @@ struct Evidence {
     calibration_id: Option<String>,
     calibration_valid_from_utc: Option<String>,
     calibration_valid_until_utc: Option<String>,
-    raw_data_digest: String,
+    synthetic_record_reference: String,
 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ModelEvidence {
     method_id: String,
     model_version: String,
-    input_digests: Vec<String>,
+    input_references: Vec<String>,
     validation_state: String,
 }
 #[derive(Debug, Deserialize)]
@@ -223,8 +223,8 @@ fn check_window(start: &str, end: &str, bundle: &Bundle, context: &str) -> Resul
     }
     Ok(())
 }
-fn valid_digest(value: &str) -> bool {
-    value.starts_with("sha256:") && value.len() > 7
+fn valid_synthetic_reference(value: &str) -> bool {
+    value.starts_with("synthetic-ref:") && value.len() > 13
 }
 fn calibration_covers(
     valid_from: &Option<String>,
@@ -262,8 +262,8 @@ fn validate_evidence(
     if evidence.clock_offset_ms.unsigned_abs() > bundle.maximum_clock_offset_ms {
         return Err(format!("{context} signed clock offset exceeds tolerance"));
     }
-    if !valid_digest(&evidence.raw_data_digest) {
-        return Err(format!("{context} raw-data digest is missing or invalid"));
+    if !valid_synthetic_reference(&evidence.synthetic_record_reference) {
+        return Err(format!("{context} synthetic evidence reference is missing or invalid"));
     }
     Ok(())
 }
@@ -287,7 +287,7 @@ fn validate_storage(
     if storage.quality_state != "valid"
         || storage.source_rights_state != "synthetic_test_data_only"
         || storage.clock_offset_ms.unsigned_abs() > bundle.maximum_clock_offset_ms
-        || !valid_digest(&storage.raw_data_digest) {
+        || !valid_synthetic_reference(&storage.synthetic_record_reference) {
         return Err(format!("storage inventory {} has unqualified evidence", storage.measurement_id));
     }
     for (name, value) in [
@@ -340,10 +340,10 @@ fn validate_stream_evidence(stream: &Stream, bundle: &Bundle) -> Result<(), Stri
         "modelled" => {
             let model = stream.model.as_ref().ok_or_else(|| format!("{context} model evidence missing"))?;
             if model.method_id.trim().is_empty() || model.model_version.trim().is_empty()
-                || model.input_digests.is_empty()
-                || model.input_digests.iter().any(|d| !valid_digest(d))
+                || model.input_references.is_empty()
+                || model.input_references.iter().any(|d| !valid_synthetic_reference(d))
                 || model.validation_state != "synthetic_test_assumption" {
-                return Err(format!("{context} model method, version, input digests or validation state is incomplete"));
+                return Err(format!("{context} model method, version, input references or validation state is incomplete"));
             }
             if stream.evidence.sensor_id.is_some()
                 || stream.evidence.calibration_id.is_some() {
@@ -737,8 +737,8 @@ mod tests {
     #[test]
     fn modelled_evaporation_requires_method_version_and_input_receipts() {
         let mut b = fixture();
-        b.streams[2].model.as_mut().unwrap().input_digests.clear();
-        assert!(validate(&b).unwrap_err().contains("model method, version, input digests"));
+        b.streams[2].model.as_mut().unwrap().input_references.clear();
+        assert!(validate(&b).unwrap_err().contains("model method, version, input references"));
     }
     #[test]
     fn common_mode_uncertainty_requires_a_declared_group() {
