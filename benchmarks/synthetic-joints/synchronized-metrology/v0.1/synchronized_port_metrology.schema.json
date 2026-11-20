@@ -34,8 +34,8 @@
         "system_boundary_digest",
         "operating_condition_digest",
         "torque",
-        "speed",
-        "claim",
+        "angular_velocity",
+        "claim_ceiling",
         "notes"
       ],
       "properties": {
@@ -57,10 +57,10 @@
         "torque": {
           "$ref": "#/$defs/channel"
         },
-        "speed": {
+        "angular_velocity": {
           "$ref": "#/$defs/channel"
         },
-        "claim": {
+        "claim_ceiling": {
           "type": "string",
           "minLength": 1
         },
