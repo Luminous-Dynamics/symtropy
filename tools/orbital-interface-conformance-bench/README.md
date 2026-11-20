@@ -28,7 +28,7 @@ The central condition is:
 
 `client required envelope ⊆ provider guaranteed envelope`
 
-For v0.1 the evaluator requires exact project ICD identity/revision, configuration identities, frame identity, geometry profile and typed canonical SI units. A revision difference is indeterminate unless an explicit, evidence-scoped compatibility map is supplied. A frame difference is indeterminate; no guessed transform is applied.
+For v0.1 the evaluator requires exact project ICD identity/revision, configuration identities, frame identity, geometry profile and typed canonical SI units. A revision difference is indeterminate unless an explicit, evidence-scoped compatibility map is supplied. In v0.1 the map's `verified` flag is a declared synthetic input; the evaluator checks its revision pair and evidence-envelope shape/context/validity but does not fetch, authenticate or recompute the map artifact. A frame difference is indeterminate; no guessed transform is applied.
 
 Full range containment is mandatory. Partial overlap is rejection, not compatibility. Capture and fluid are independent gates: a capture-only profile does not prove a fluid connection.
 
@@ -50,7 +50,7 @@ cargo run --manifest-path tools/orbital-interface-conformance-bench/Cargo.toml -
   --source-commit <40-hex-commit>
 ```
 
-The CLI emits a deterministic JSON receipt that binds the exact fixture bytes with SHA-256 and reports case-level expected/actual dispositions. A successful corpus replay means the evaluator matched the frozen synthetic oracle; it does not mean every interface is compatible.
+The CLI emits a deterministic JSON receipt that binds the exact fixture bytes with SHA-256 and reports case-level expected/actual dispositions. The source-commit and evidence-artifact digests are shape-checked; v0.1 does not fetch source commits or authenticate producer signatures. A successful corpus replay means the evaluator matched the frozen synthetic oracle; it does not mean every interface is compatible.
 
 ## Status meanings
 
