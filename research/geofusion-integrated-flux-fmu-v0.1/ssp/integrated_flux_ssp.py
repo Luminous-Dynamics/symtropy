@@ -6,6 +6,7 @@ import hashlib
 import io
 import json
 import math
+import os
 from pathlib import Path, PurePosixPath
 import stat
 import sys
@@ -137,7 +138,7 @@ def safe_archive_entries(archive: zipfile.ZipFile, label: str):
             raise QualificationError(f"{label}: unsafe ZIP member path {name!r}")
         path = PurePosixPath(name)
         canonical = path.as_posix() + ("/" if info.is_dir() else "")
-        if name != canonical or any(part in ("", ".", "..") for part in path.parts):
+        if not path.parts or name != canonical or any(part in ("", ".", "..") for part in path.parts):
             raise QualificationError(f"{label}: non-canonical/unsafe ZIP member {name!r}")
         if path.is_absolute() or ":" in path.parts[0]:
             raise QualificationError(f"{label}: absolute/drive-qualified ZIP member {name!r}")
@@ -393,6 +394,15 @@ def validate_bindings(semantics: dict, inspections: list[dict]) -> None:
                 raise QualificationError(f"{inspection['component_name']}.{name}: SSP/FMI binding mismatch")
 
 
+def no_duplicate_json_keys(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise QualificationError(f"evidence manifest contains duplicate JSON key {key!r}")
+        result[key] = value
+    return result
+
+
 def json_bytes(value: dict) -> bytes:
     return (json.dumps(value, sort_keys=True, indent=2) + "\n").encode("utf-8")
 
@@ -448,7 +458,6 @@ def build_package(source_fmu: Path, receiver_fmu: Path, output_path: Path) -> di
     }
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fd, temp_name = tempfile.mkstemp(prefix=output_path.name + ".", suffix=".tmp", dir=output_path.parent)
-    import os
     os.close(fd)
     temporary_path = Path(temp_name)
     try:
@@ -493,11 +502,31 @@ def verify_package_bytes(data: bytes) -> dict:
             if "resources/geofusion-integrated-flux-evidence.json" not in entries:
                 raise QualificationError("integrated-flux evidence manifest missing")
             manifest_bytes = archive.read("resources/geofusion-integrated-flux-evidence.json")
-            manifest = json.loads(manifest_bytes)
+            manifest = json.loads(
+                manifest_bytes.decode("utf-8"),
+                object_pairs_hook=no_duplicate_json_keys,
+            )
+            expected_connection = {
+                "start_element": "IntegratedFluxSource",
+                "start_connector": "intervalThermalEnergy",
+                "end_element": "IntegratedFluxReceiver",
+                "end_connector": "intervalThermalEnergy",
+                "carrier": "thermal",
+                "quantity_kind": "interval_integrated_energy",
+                "unit": "J",
+                "boundary_id": "geo-to-hx-interval-energy",
+                "sampling_semantics": "integral_over_half_open_interval",
+            }
+            if manifest.get("ssp_release") != SSP_RELEASE or manifest.get("ssd_format_version") != SSD_VERSION:
+                raise QualificationError("manifest SSP release/version mismatch")
+            if manifest.get("fmi_version") != FMI_VERSION:
+                raise QualificationError("manifest FMI version mismatch")
             if manifest.get("system_structure_sha256") != sha256(ssd_bytes):
                 raise QualificationError("manifest SSD digest mismatch")
             if manifest.get("components") != inspections:
                 raise QualificationError("manifest component identity mismatch")
+            if manifest.get("connection") != expected_connection:
+                raise QualificationError("manifest interval-energy connection semantics mismatch")
             return {
                 "package_sha256": sha256(data),
                 "ssd_sha256": sha256(ssd_bytes),
