@@ -251,7 +251,10 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
                 && motor.max_force >= 0.0;
 
             if motor_inputs_valid {
-                let torque_increment = (motor.kp * (motor.target_vel - rel_angular_vel)
+                // Evaluate the PD torque command once per world step
+                // and convert it into a fixed target relative velocity. Later
+                // iterations solve only the residual against that target.
+                let torque_command = (motor.kp * (motor.target_vel - rel_angular_vel)
                     - rel_angular_vel * motor.kd)
                     .clamp(-motor.max_force, motor.max_force);
 
@@ -268,12 +271,22 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
                 let effective_inv_inertia = inv_i_a + inv_i_b;
 
                 if effective_inv_inertia.is_finite() && effective_inv_inertia > 1e-15 {
-                    if let Some((delta_impulse, _velocity_after)) = motor_state.apply_impulse_increment(
-                        torque_increment * dt,
-                        motor.max_force * dt,
+                    let target_velocity = motor_state.initialize_velocity_target(
                         rel_angular_vel,
+                        torque_command * dt,
                         effective_inv_inertia,
-                    ) {
+                    );
+                    if let Some(target_velocity) = target_velocity {
+                        let desired_impulse_increment =
+                            (target_velocity - rel_angular_vel) / effective_inv_inertia;
+                        if let Some((delta_impulse, _velocity_after)) =
+                            motor_state.apply_impulse_increment(
+                                desired_impulse_increment,
+                                motor.max_force * dt,
+                                rel_angular_vel,
+                                effective_inv_inertia,
+                            )
+                        {
                         if body_a.is_dynamic() {
                             body_a.angular_velocity.set(
                                 pa,
@@ -287,6 +300,7 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
                                 pb,
                                 body_b.angular_velocity.get(pa, pb) + delta_impulse * inv_i_b,
                             );
+                        }
                         }
                     }
                 }
@@ -601,15 +615,18 @@ mod motor_step_tests {
         let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1).with_motor(motor);
         let mut state = MotorStepState::default();
 
-        for _ in 0..8 {
+        // First iteration establishes the fixed step target and applies 0.1 Nms.
+        joint.solve_velocity_with_state(&mut a, &mut b, 0.1, None, &mut state);
+        // A passive constraint perturbs relative angular velocity after the
+        // motor's first impulse. Subsequent iterations restore only the
+        // residual using the remaining step budget.
+        b.angular_velocity.set(0, 1, b.angular_velocity.get(0, 1) - 0.05);
+        for _ in 0..7 {
             joint.solve_velocity_with_state(&mut a, &mut b, 0.1, None, &mut state);
         }
 
-        // Controller output changes with velocity each iteration. Each result
-        // is an incremental impulse, accumulated under the same 1.0 Nms cap.
-        assert!(state.accumulated_impulse() > 0.1);
-        assert!(state.accumulated_impulse() <= 1.0 + 1.0e-12);
-        assert!(b.angular_velocity.get(0, 1) > 0.0);
+        assert!((state.accumulated_impulse() - 0.12).abs() < 1.0e-12);
+        assert!((b.angular_velocity.get(0, 1) - 0.25).abs() < 1.0e-12);
         assert!(state.take_work_receipt().is_some());
     }
 
