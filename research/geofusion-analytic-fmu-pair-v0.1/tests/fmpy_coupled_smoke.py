@@ -9,6 +9,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import ctypes
 import hashlib
+from importlib.metadata import version as package_version
 import json
 import math
 import platform
@@ -301,7 +302,17 @@ def main() -> int:
         "observation_boundary": "fmpy-0.3.32 _call wrapper immediately around ctypes function-pointer invocation",
         "claim_ceiling": "Observed FMPy dispatches for this run only; not a direct C-level interposer or FMI-wide conformance result.",
         "importer": {"name": "FMPy", "version": FMPY_VERSION},
-        "runtime": {"python": sys.version, "platform": platform.platform()},
+        "runtime": {
+            "python": sys.version,
+            "platform": platform.platform(),
+            "dependencies": {
+                name: package_version(name)
+                for name in (
+                    "FMPy", "attrs", "cmake", "jinja2", "lark",
+                    "lxml", "msgpack", "nbformat", "numpy"
+                )
+            },
+        },
         "fmus": {
             "geothermal-source": {
                 "package_sha256": file_sha256(GEO_FMU),
