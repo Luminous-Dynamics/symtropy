@@ -927,8 +927,12 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         errors.push("scenario_set_sha256 does not bind the complete sorted scenario set".to_owned());
     }
 
+    let search_incomplete = scenario_reports.iter()
+        .any(|report| report["enumeration_complete"] == false);
     let disposition = if !errors.is_empty() {
         "INVALID"
+    } else if search_incomplete {
+        "SEARCH_INCOMPLETE"
     } else if status == "synthetic" {
         "SYNTHETIC_ONLY"
     } else {
@@ -1270,6 +1274,7 @@ mod tests {
         assert_eq!(scenario["outcome"], "SEARCH_INCOMPLETE/ABSTAIN");
         assert_eq!(scenario["enumeration_complete"], false);
         assert_eq!(report["incomplete_scenario_count"], 1);
+        assert_eq!(report["disposition"], "SEARCH_INCOMPLETE");
     }
 
     #[test]
