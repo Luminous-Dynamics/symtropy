@@ -86,11 +86,18 @@ A decrease is not treated as negative heat or silently wrapped: it indicates an 
 
 For the 120-second sinusoidal case, the cumulative-energy delta is 68,333,461.00984275 J. The receiver's average-power representation is 569,445.5084153563 W and closes its declared interval energy balance with zero residual. The endpoint temperature is 2.9899793275 K versus 3.0292389827 K for continuously varying forcing: **the interface energy is exact as declared, but the receiver's within-window trajectory remains approximate**. This separates conservation from trajectory accuracy rather than conflating them.
 
+
+#### Cumulative Float64 precision is a separate hard gate
+
+Subtracting two finite monotone Float64 cumulative counters is not automatically an accurate interval-energy measurement. As the counter magnitude grows, the representable spacing grows too; a small interval increment can be rounded away. The oracle now returns an explicit bound equal to the sum of one-ULP endpoint spacings and accepts the delta only if that bound fits a caller-supplied absolute-energy error budget. A synthetic counter near 1e18 J has a 256 J step that is rejected under a 1 J budget, but can be accepted under a 1024 J budget with the bound retained in the receipt.
+
+This is a numerical quantization bound under the assumed Float64 round-to-nearest observation model, not a sensor/model uncertainty bound and not proof of producer honesty. For long-lived large counters or tight tolerances, prefer a per-interval integrated-energy output in J, or define a higher-precision/epoch-based counter profile. A reset/restart must begin a new explicit counter epoch; it must never be interpreted as negative interval energy.
+
 The method is causal only after the producer interval completes and only if the producer's cumulative-energy output is itself trustworthy and correctly integrated. It does not prove the source physics or importer honesty. It also does not provide a serialized checkpoint; a scalar cumulative-energy observation is a different evidence object. The FMI/SSP/API port profile is tracked in [#6407 — integrated-flux interface](https://github.com/Luminous-Dynamics/symtropy/issues/6407).
 
 ## Frozen known answers
 
-The machine-readable inputs, decimal reference values, ZOH/interval-average/causal-predictor convergence ladders and adaptive step-policy cases are in `fixtures/known-answers.v0.1.json`. Rust tests verify frozen answers, partition invariance, exact interval-average source energy, limiter diagnostics, first- and second-order convergence, event fences and minimum-step refusal.
+The machine-readable inputs, decimal reference values, ZOH/interval-average/causal-predictor convergence ladders, cumulative-energy producer samples, Float64 resolution cases and adaptive step-policy cases are in `fixtures/known-answers.v0.1.json`. Rust tests verify frozen answers, partition invariance, exact interval-average source energy, limiter diagnostics, first- and second-order convergence, event fences and minimum-step refusal.
 
 ## Run
 
