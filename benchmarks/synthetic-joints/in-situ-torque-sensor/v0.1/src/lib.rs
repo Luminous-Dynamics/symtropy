@@ -78,6 +78,8 @@ pub struct TransferPlan {
     pub reference_evidence_class: ReferenceEvidenceClass,
     pub training_installation_ids: Vec<String>,
     pub training_sensor_serials: Vec<String>,
+    pub training_flexspline_serials: Vec<String>,
+    pub training_reducer_serials: Vec<String>,
     pub domain: SensorDomain,
 }
 
@@ -352,6 +354,18 @@ fn validate_plan(plan: &TransferPlan) -> Result<(), String> {
             return Err("training sensor serials must be nonempty and unique".to_owned());
         }
     }
+    let mut training_flexsplines = BTreeSet::new();
+    for id in &plan.training_flexspline_serials {
+        if !nonempty(id) || !training_flexsplines.insert(id.as_str()) {
+            return Err("training flexspline serials must be nonempty and unique".to_owned());
+        }
+    }
+    let mut training_reducers = BTreeSet::new();
+    for id in &plan.training_reducer_serials {
+        if !nonempty(id) || !training_reducers.insert(id.as_str()) {
+            return Err("training reducer serials must be nonempty and unique".to_owned());
+        }
+    }
     Ok(())
 }
 
@@ -408,6 +422,10 @@ fn validate_dataset(
     is_calibration: bool,
     installation_ids: &mut BTreeSet<String>,
     sensor_serials: &mut BTreeSet<String>,
+    flexspline_serials: &mut BTreeSet<String>,
+    reducer_serials: &mut BTreeSet<String>,
+    installation_digests: &mut BTreeSet<String>,
+    sensor_assembly_digests: &mut BTreeSet<String>,
     sample_ids: &mut BTreeSet<String>,
 ) -> Result<usize, String> {
     if dataset.split_digest != expected_split {
@@ -430,6 +448,10 @@ fn validate_dataset(
         plan.training_installation_ids.iter().map(String::as_str).collect();
     let training_serials: BTreeSet<&str> =
         plan.training_sensor_serials.iter().map(String::as_str).collect();
+    let training_flexsplines: BTreeSet<&str> =
+        plan.training_flexspline_serials.iter().map(String::as_str).collect();
+    let training_reducers: BTreeSet<&str> =
+        plan.training_reducer_serials.iter().map(String::as_str).collect();
     let mut sample_count = None;
 
     for installation in &dataset.installations {
@@ -466,6 +488,18 @@ fn validate_dataset(
                 installation.sensor_serial
             ));
         }
+        if training_flexsplines.contains(installation.flexspline_serial.as_str()) {
+            return Err(format!(
+                "flexspline serial {} overlaps training split",
+                installation.flexspline_serial
+            ));
+        }
+        if training_reducers.contains(installation.reducer_serial.as_str()) {
+            return Err(format!(
+                "reducer serial {} overlaps training split",
+                installation.reducer_serial
+            ));
+        }
         if !installation_ids.insert(installation.installation_id.clone()) {
             return Err(format!(
                 "installation leakage or duplicate installation ID: {}",
@@ -477,6 +511,24 @@ fn validate_dataset(
                 "sensor serial leakage or duplicate sensor serial: {}",
                 installation.sensor_serial
             ));
+        }
+        if !flexspline_serials.insert(installation.flexspline_serial.clone()) {
+            return Err(format!(
+                "flexspline serial leakage or duplicate flexspline serial: {}",
+                installation.flexspline_serial
+            ));
+        }
+        if !reducer_serials.insert(installation.reducer_serial.clone()) {
+            return Err(format!(
+                "reducer serial leakage or duplicate reducer serial: {}",
+                installation.reducer_serial
+            ));
+        }
+        if !installation_digests.insert(installation.installation_digest.clone()) {
+            return Err("installation digest leakage or duplication".to_owned());
+        }
+        if !sensor_assembly_digests.insert(installation.sensor_assembly_digest.clone()) {
+            return Err("sensor assembly digest leakage or duplication".to_owned());
         }
         if installation.observations.is_empty() {
             return Err(format!(
@@ -533,6 +585,7 @@ struct MutableStratum {
     sample_count: usize,
     raw_error_sum: f64,
     compensated_error_sum: f64,
+    compensated_miss_sum: f64,
     calibrated_miss_sum: f64,
     covered_count: usize,
 }
@@ -542,12 +595,14 @@ impl MutableStratum {
         &mut self,
         raw_error: f64,
         compensated_error: f64,
+        compensated_miss: f64,
         calibrated_miss: f64,
         covered: bool,
     ) {
         self.sample_count += 1;
         self.raw_error_sum += raw_error;
         self.compensated_error_sum += compensated_error;
+        self.compensated_miss_sum += compensated_miss;
         self.calibrated_miss_sum += calibrated_miss;
         if covered {
             self.covered_count += 1;
@@ -563,7 +618,7 @@ impl MutableStratum {
             compensated_mean_centre_error_nm: self.compensated_error_sum / count,
             calibrated_interval_covered_count: self.covered_count,
             calibrated_interval_coverage: self.covered_count as f64 / count,
-            compensated_mean_interval_miss_nm: self.compensated_error_sum.min(f64::MAX) / count,
+            compensated_mean_interval_miss_nm: self.compensated_miss_sum / count,
             calibrated_mean_interval_miss_nm: self.calibrated_miss_sum / count,
         }
     }
@@ -641,6 +696,10 @@ pub fn evaluate_sensor_transfer(
 
     let mut installation_ids = BTreeSet::new();
     let mut sensor_serials = BTreeSet::new();
+    let mut flexspline_serials = BTreeSet::new();
+    let mut reducer_serials = BTreeSet::new();
+    let mut installation_digests = BTreeSet::new();
+    let mut sensor_assembly_digests = BTreeSet::new();
     let mut sample_ids = BTreeSet::new();
     let calibration_samples = validate_dataset(
         calibration,
@@ -649,6 +708,10 @@ pub fn evaluate_sensor_transfer(
         true,
         &mut installation_ids,
         &mut sensor_serials,
+        &mut flexspline_serials,
+        &mut reducer_serials,
+        &mut installation_digests,
+        &mut sensor_assembly_digests,
         &mut sample_ids,
     )?;
     let test_samples = validate_dataset(
@@ -790,6 +853,7 @@ pub fn evaluate_sensor_transfer(
             strata.entry(key).or_default().add(
                 raw_error,
                 compensated_error,
+                interval_miss(sample.compensated_torque_nm, sample.reference_torque_nm),
                 interval_miss(calibrated, sample.reference_torque_nm),
                 covered,
             );
@@ -1065,9 +1129,9 @@ mod tests {
         // The maximum required expansions across installation groups are 0.5, 0.6 and 0.7 N m.
         assert_eq!(
             report.calibration_scores.iter().map(|score| score.maximum_required_expansion_nm).collect::<Vec<_>>(),
-            vec![0.5, 0.6, 0.7]
+            vec![0.1, 0.3, 0.5]
         );
-        assert_eq!(report.correction_q_nm, Some(0.7));
+        assert_eq!(report.correction_q_nm, Some(0.5));
     }
 
     #[test]
@@ -1278,14 +1342,32 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_023_zero_and_reverse_quadrants_are_supported() {
+    fn sensor_transfer_023_static_hold_and_reverse_quadrants_are_supported() {
         let mut calibration = known_calibration();
         let mut hold = calibration.installations[0].observations[0].clone();
         hold.sample_id = "cal-a-static".to_owned();
         hold.angular_speed_rad_s = 0.0;
         hold.direction = TorqueDirection::StaticHold;
         calibration.installations[0].observations[0] = hold;
-        assert!(evaluate_sensor_transfer(&plan(0.25), &calibration, &known_test()).is_err());
+
+        let reverse_motoring = &mut calibration.installations[1].observations[0];
+        reverse_motoring.sample_id = "cal-b-reverse-motoring".to_owned();
+        reverse_motoring.angular_speed_rad_s = -3.0;
+        reverse_motoring.direction = TorqueDirection::ReverseMotoring;
+        reverse_motoring.reference_torque_nm = NumericInterval { lower: -15.1, upper: -14.9 };
+        reverse_motoring.raw_torque_nm = NumericInterval { lower: -13.6, upper: -13.4 };
+        reverse_motoring.compensated_torque_nm = NumericInterval { lower: -14.9, upper: -14.7 };
+
+        let reverse_regenerating = &mut calibration.installations[2].observations[0];
+        reverse_regenerating.sample_id = "cal-c-reverse-regenerating".to_owned();
+        reverse_regenerating.angular_speed_rad_s = -3.0;
+        reverse_regenerating.direction = TorqueDirection::ReverseRegenerating;
+        reverse_regenerating.reference_torque_nm = NumericInterval { lower: 29.9, upper: 30.1 };
+        reverse_regenerating.raw_torque_nm = NumericInterval { lower: 31.5, upper: 31.7 };
+        reverse_regenerating.compensated_torque_nm = NumericInterval { lower: 30.1, upper: 30.3 };
+
+        let report = evaluate_sensor_transfer(&plan(0.25), &calibration, &known_test()).unwrap();
+        assert_eq!(report.status, TransferStatus::Calibrated);
     }
 
     #[test]
