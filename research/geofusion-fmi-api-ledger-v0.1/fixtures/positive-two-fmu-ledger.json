@@ -220,6 +220,18 @@
           "carrier": "thermal",
           "boundary_id": "hx-terminal-storage",
           "port_role": "terminal_sink"
+        },
+        {
+          "value_reference": 34,
+          "name": "storedEnergy",
+          "fmi_type": "Float64",
+          "causality": "output",
+          "variability": "continuous",
+          "unit": "J",
+          "port_id": "hx.stored_energy",
+          "carrier": "thermal",
+          "boundary_id": "hx-storage-state",
+          "port_role": "state_observation"
         }
       ]
     }
@@ -432,9 +444,10 @@
         "value_references": [
           31,
           32,
-          33
+          33,
+          34
         ],
-        "n_value_references": 3,
+        "n_value_references": 4,
         "values": [
           {
             "value_reference": 31,
@@ -456,6 +469,14 @@
             "raw_f64_bits": "40c3880000000000",
             "port_id": "hx.storage_charge",
             "source_interval_id": "thermal-interval-0"
+          },
+          {
+            "value_reference": 34,
+            "value": 10000,
+            "raw_f64_bits": "40c3880000000000",
+            "port_id": "hx.stored_energy",
+            "source_interval_id": "thermal-interval-0",
+            "sampling_semantics": "sample_at_interval_end"
           }
         ]
       }
