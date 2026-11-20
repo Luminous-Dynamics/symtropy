@@ -234,6 +234,60 @@
               "minimum": 0
             }
           }
+        },
+        "derived_memory_items": {
+          "type": "array",
+          "uniqueItems": false,
+          "items": {
+            "$ref": "#/$defs/derived_memory_item"
+          }
+        }
+      }
+    },
+    "derived_memory_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "item_ref",
+        "kind",
+        "created_tick",
+        "derived_from_observation_refs",
+        "derived_from_item_refs"
+      ],
+      "properties": {
+        "item_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "summary",
+            "embedding",
+            "retrieval_index",
+            "working_context",
+            "response_cache",
+            "episodic_entry"
+          ]
+        },
+        "created_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "derived_from_observation_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "derived_from_item_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     }
