@@ -24,6 +24,12 @@ pub enum EvidenceNodeKind {
     RobotConfiguration,
     ToolConfiguration,
     PayloadConfiguration,
+    SensorConfiguration,
+    StoppingDynamicsQualification,
+    HazardDetectionQualification,
+    OperatingCondition,
+    OccupancyEngineBuild,
+    ClearancePolicy,
     MaterialBatch,
     WorkPackage,
     TaskPlan,
@@ -31,6 +37,7 @@ pub enum EvidenceNodeKind {
     ExecutionEvidence,
     InspectionEvidence,
     AcceptedOutput,
+    DispatchReadiness,
     Other,
 }
 
@@ -103,12 +110,18 @@ pub enum RequalificationAction {
     RequalifySurvey,
     RequalifyStation,
     RequalifyRobotOrTool,
+    RequalifySensor,
+    RequalifyStoppingDynamics,
+    RequalifySiteConditions,
+    RequalifyOccupancyEngine,
+    RequalifyClearancePolicy,
     RecompileWorkPackage,
     RecompileTaskPlan,
     RecomputeMotionEnvelope,
     ReconcileExecutionEvidence,
     ReinspectPhysicalOutput,
     ReevaluateAcceptance,
+    RecomputeDispatchReadiness,
     RequalifyMaterialTraceability,
     RequalifyOther,
 }
@@ -496,6 +509,25 @@ fn action_for_kind(kind: EvidenceNodeKind) -> RequalificationAction {
         | EvidenceNodeKind::ToolConfiguration
         | EvidenceNodeKind::PayloadConfiguration => {
             RequalificationAction::RequalifyRobotOrTool
+        }
+        EvidenceNodeKind::SensorConfiguration
+        | EvidenceNodeKind::HazardDetectionQualification => {
+            RequalificationAction::RequalifySensor
+        }
+        EvidenceNodeKind::StoppingDynamicsQualification => {
+            RequalificationAction::RequalifyStoppingDynamics
+        }
+        EvidenceNodeKind::OperatingCondition => {
+            RequalificationAction::RequalifySiteConditions
+        }
+        EvidenceNodeKind::OccupancyEngineBuild => {
+            RequalificationAction::RequalifyOccupancyEngine
+        }
+        EvidenceNodeKind::ClearancePolicy => {
+            RequalificationAction::RequalifyClearancePolicy
+        }
+        EvidenceNodeKind::DispatchReadiness => {
+            RequalificationAction::RecomputeDispatchReadiness
         }
         EvidenceNodeKind::WorkPackage => RequalificationAction::RecompileWorkPackage,
         EvidenceNodeKind::TaskPlan => RequalificationAction::RecompileTaskPlan,
@@ -975,6 +1007,54 @@ mod tests {
             current_graph.apply_revision(&changes).unwrap();
             assert!(!current_graph.snapshot_is_current(&old_snapshot).unwrap());
         }
+    }
+
+
+    #[test]
+    fn sensor_braking_and_occupancy_changes_invalidate_dispatch_readiness_only() {
+        let nodes = vec![
+            node("site-source", EvidenceNodeKind::SourceModel, 'a'),
+            node("site-package", EvidenceNodeKind::WorkPackage, 'b'),
+            node("sensor", EvidenceNodeKind::SensorConfiguration, 'c'),
+            node("brakes", EvidenceNodeKind::StoppingDynamicsQualification, 'd'),
+            node("policy", EvidenceNodeKind::ClearancePolicy, 'e'),
+            node("dispatch", EvidenceNodeKind::DispatchReadiness, 'f'),
+            node("other-site", EvidenceNodeKind::SourceModel, '9'),
+        ];
+        let graph = EvidenceDependencyGraph::new(
+            nodes,
+            vec![
+                edge("site-package", "site-source"),
+                edge("dispatch", "site-package"),
+                edge("dispatch", "sensor"),
+                edge("dispatch", "brakes"),
+                edge("dispatch", "policy"),
+            ],
+        )
+        .unwrap();
+        let plan = graph
+            .plan_revision(&[
+                EvidenceRevisionChange {
+                    node_id: "sensor".into(),
+                    new_version_sha256: digest('1'),
+                    reason: "sensor firmware requalification".into(),
+                },
+                EvidenceRevisionChange {
+                    node_id: "brakes".into(),
+                    new_version_sha256: digest('2'),
+                    reason: "brake qualification revision".into(),
+                },
+            ])
+            .unwrap();
+        assert_eq!(
+            plan.requalification_order
+                .iter()
+                .map(|node| (node.node_id.as_str(), node.action))
+                .collect::<Vec<_>>(),
+            vec![("dispatch", RequalificationAction::RecomputeDispatchReadiness)]
+        );
+        assert!(plan.unaffected_nodes.contains(&"other-site".into()));
+        assert!(plan.historical_evidence_preserved);
     }
 
 }
