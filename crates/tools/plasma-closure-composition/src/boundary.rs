@@ -271,6 +271,90 @@ mod tests {
         ));
     }
 
+
+    #[test]
+    fn two_cell_domain_balance_keeps_internal_and_external_fluxes_distinct() {
+        use crate::{
+            CandidateQualification, FaceFluxBlendRequest, FaceFluxCandidate,
+            compose_shared_face_flux,
+        };
+
+        let compatibility = compatibility();
+        let internal = FaceFluxBlendRequest {
+            schema_version: crate::SCHEMA_VERSION.into(),
+            request_id: "mixed-domain-request".into(),
+            face_id: "internal-face-0-1".into(),
+            left_cell_id: "cell-0".into(),
+            right_cell_id: "cell-1".into(),
+            face_measure: 1.0,
+            weight_sum_tolerance: 1.0e-12,
+            compatibility: compatibility.clone(),
+            candidates: vec![FaceFluxCandidate {
+                expert_id: "qualified-expert".into(),
+                profile_sha256: digest('a'),
+                model_sha256: digest('b'),
+                qualification: CandidateQualification::Qualified,
+                compatibility,
+                weight: 1.0,
+                flux: vec![2.0, -1.0],
+            }],
+        };
+        let internal_report =
+            compose_shared_face_flux(&internal).expect("internal shared face");
+
+        let mut left_boundary = request();
+        left_boundary.boundary_face_id = "left-boundary".into();
+        left_boundary.adjacent_cell_id = "cell-0".into();
+        left_boundary.outward_normal_id = "negative-x-outward".into();
+        left_boundary.outward_flux = vec![1.0, -1.0];
+        left_boundary.face_measure = 0.5;
+
+        let mut right_boundary = request();
+        right_boundary.boundary_face_id = "right-boundary".into();
+        right_boundary.adjacent_cell_id = "cell-1".into();
+        right_boundary.outward_normal_id = "positive-x-outward".into();
+        right_boundary.outward_flux = vec![-0.5, 2.0];
+        right_boundary.face_measure = 0.25;
+
+        let left_report =
+            account_external_boundary_flux(&left_boundary).expect("left boundary");
+        let right_report =
+            account_external_boundary_flux(&right_boundary).expect("right boundary");
+
+        // Assemble the cell updates from the three separately owned faces.
+        let cell_0 = [
+            internal_report.left_integrated_update[0]
+                + left_report.cell_integrated_update[0],
+            internal_report.left_integrated_update[1]
+                + left_report.cell_integrated_update[1],
+        ];
+        let cell_1 = [
+            internal_report.right_integrated_update[0]
+                + right_report.cell_integrated_update[0],
+            internal_report.right_integrated_update[1]
+                + right_report.cell_integrated_update[1],
+        ];
+
+        // Independent global balance: the only non-cancelling contribution is
+        // the signed outward export through the two physical boundaries.
+        let global_cell_change = [cell_0[0] + cell_1[0], cell_0[1] + cell_1[1]];
+        let boundary_export = [
+            left_report.outward_integrated_flux[0]
+                + right_report.outward_integrated_flux[0],
+            left_report.outward_integrated_flux[1]
+                + right_report.outward_integrated_flux[1],
+        ];
+        assert_eq!(global_cell_change, [-0.375, 0.0]);
+        assert_eq!(boundary_export, [0.375, 0.0]);
+        assert_eq!(
+            [
+                global_cell_change[0] + boundary_export[0],
+                global_cell_change[1] + boundary_export[1],
+            ],
+            [0.0, 0.0]
+        );
+    }
+
     #[test]
     fn outward_orientation_is_not_inferred_or_reversed() {
         let mut outward = request();
