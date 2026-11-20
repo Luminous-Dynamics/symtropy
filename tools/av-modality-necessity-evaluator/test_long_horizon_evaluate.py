@@ -57,18 +57,20 @@ class LongHorizonEvaluatorTests(unittest.TestCase):
         candidate = copy.deepcopy(self.submission)
         row = self.episode_prediction(candidate, "lh-003-correction-supersession")
         row["cited_observation_refs"] = ["obs-machine-state-v1"]
+        row["current_observation_refs"] = ["obs-machine-state-v1"]
         score = self.score(candidate)
         result = self.episode_result(score, "lh-003-correction-supersession")
-        self.assertIn("citation_uses_superseded_observation", result["violations"])
+        self.assertIn("current_reference_uses_superseded_observation", result["violations"])
         self.assertFalse(result["provenance_complete"])
 
     def test_revoked_observation_cannot_support_current_claim(self):
         candidate = copy.deepcopy(self.submission)
         row = self.episode_prediction(candidate, "lh-008-memory-revocation")
         row["cited_observation_refs"] = ["obs-private-utterance"]
+        row["current_observation_refs"] = ["obs-private-utterance"]
         score = self.score(candidate)
         result = self.episode_result(score, "lh-008-memory-revocation")
-        self.assertIn("citation_uses_revoked_observation", result["violations"])
+        self.assertIn("revoked_evidence_or_derived_memory_reuse", result["violations"])
         self.assertFalse(result["provenance_complete"])
 
     def test_future_observation_is_not_admissible_at_query_cutoff(self):
@@ -91,14 +93,14 @@ class LongHorizonEvaluatorTests(unittest.TestCase):
 
     def test_cross_clock_ordering_requires_qualified_transform(self):
         candidate = copy.deepcopy(self.submission)
-        self.episode_prediction(candidate, "lh-007-cross-clock-and-event-order")["claimed_cross_clock_ordering"] = True
+        self.episode_prediction(candidate, "lh-007-cross-clock-and-event-order")["claimed_cross_clock_order"] = True
         result = self.episode_result(self.score(candidate), "lh-007-cross-clock-and-event-order")
         self.assertIn("cross_clock_order_claim_without_qualified_transform", result["violations"])
 
     def test_absent_event_answer_counts_as_false_memory(self):
         candidate = copy.deepcopy(self.submission)
         self.episode_prediction(candidate, "lh-006-absent-event-false-memory").update(
-            answer="glass_breaking", abstained=False, confidence=0.9
+            answer="glass_breaking", decision="answer", confidence=0.9
         )
         result = self.episode_result(self.score(candidate), "lh-006-absent-event-false-memory")
         self.assertFalse(result["decision_correct"])
@@ -108,6 +110,7 @@ class LongHorizonEvaluatorTests(unittest.TestCase):
         candidate = copy.deepcopy(self.submission)
         row = self.episode_prediction(candidate, "lh-001-delayed-recall-10m")
         row["cited_observation_refs"] = []
+        row["current_observation_refs"] = []
         score = self.score(candidate)
         result = self.episode_result(score, "lh-001-delayed-recall-10m")
         self.assertEqual(result["citation_recall"], 0.0)
@@ -127,6 +130,39 @@ class LongHorizonEvaluatorTests(unittest.TestCase):
         episode["stream_events"].append(duplicate)
         with self.assertRaises(evaluator.EvaluationError):
             self.score(workload=workload)
+
+
+    def test_superseded_observation_is_allowed_as_history_but_not_current_state(self):
+        score = self.score()
+        result = self.episode_result(score, "lh-003-correction-supersession")
+        self.assertEqual(result["violations"], [])
+        self.assertTrue(result["provenance_complete"])
+
+    def test_revoked_derived_memory_residue_is_rejected(self):
+        candidate = copy.deepcopy(self.submission)
+        row = self.episode_prediction(candidate, "lh-008-memory-revocation")
+        row["retained_memory_item_refs"] = ["mem-private-embedding"]
+        result = self.episode_result(self.score(candidate), "lh-008-memory-revocation")
+        self.assertIn("revoked_evidence_or_derived_memory_reuse", result["violations"])
+        self.assertFalse(result["evidence_compliant"])
+
+    def test_revocation_requires_complete_transitive_purge_receipts(self):
+        candidate = copy.deepcopy(self.submission)
+        row = self.episode_prediction(candidate, "lh-008-memory-revocation")
+        row["purge_receipts"] = [
+            receipt for receipt in row["purge_receipts"]
+            if receipt["item_ref"] != "mem-private-response-cache"
+        ]
+        result = self.episode_result(self.score(candidate), "lh-008-memory-revocation")
+        self.assertIn("revoked_evidence_or_derived_memory_reuse", result["violations"])
+
+    def test_duplicate_event_count_is_scored_separately_from_citation_count(self):
+        candidate = copy.deepcopy(self.submission)
+        row = self.episode_prediction(candidate, "lh-002-repeated-event-dedup")
+        row["claimed_distinct_event_count"] = 5
+        result = self.episode_result(self.score(candidate), "lh-002-repeated-event-dedup")
+        self.assertFalse(result["answer_correct"])
+        self.assertTrue(result["false_memory"])
 
     def test_truth_cannot_require_revoked_observation(self):
         truth = copy.deepcopy(self.truth)
