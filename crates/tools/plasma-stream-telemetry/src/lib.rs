@@ -604,44 +604,45 @@ fn report_event(
         let mut acknowledgement_qualified = !non_empty(&acknowledgement.acknowledgement_id);
         match acknowledgement.state {
             AcknowledgementState::Acknowledged => {
-                if acknowledgement
+                let evidence_valid = acknowledgement
                     .evidence_sha256
                     .as_ref()
-                    .is_none_or(|digest| !is_sha256(digest))
-                {
+                    .is_some_and(|digest| is_sha256(digest));
+                if !evidence_valid {
                     acknowledgement_qualified = true;
                     findings.push(
                         "acknowledged outcome lacks a valid evidence digest reference".to_owned(),
                     );
-                }
-                match (
-                    event.decision_time.as_ref().map(|stamp| {
-                        map_stamp(stamp, calibrations, &spec.reference_clock_domain_id)
-                    }),
-                    acknowledgement.timestamp.as_ref().map(|stamp| {
-                        map_stamp(stamp, calibrations, &spec.reference_clock_domain_id)
-                    }),
-                ) {
-                    (Some(Ok(decision)), Some(Ok(ack))) => {
-                        match interval(decision, ack, spec.max_clock_uncertainty_ns) {
-                            Ok((latency, _)) => {
-                                metrics.downstream_ack_latency_ns = Some(latency);
-                            }
-                            Err(_) => {
-                                acknowledgement_qualified = true;
-                                findings.push(
-                                    "acknowledgement timestamp is inconsistent or exceeds clock uncertainty"
-                                        .to_owned(),
-                                );
+                } else {
+                    match (
+                        event.decision_time.as_ref().map(|stamp| {
+                            map_stamp(stamp, calibrations, &spec.reference_clock_domain_id)
+                        }),
+                        acknowledgement.timestamp.as_ref().map(|stamp| {
+                            map_stamp(stamp, calibrations, &spec.reference_clock_domain_id)
+                        }),
+                    ) {
+                        (Some(Ok(decision)), Some(Ok(ack))) => {
+                            match interval(decision, ack, spec.max_clock_uncertainty_ns) {
+                                Ok((latency, _)) => {
+                                    metrics.downstream_ack_latency_ns = Some(latency);
+                                }
+                                Err(_) => {
+                                    acknowledgement_qualified = true;
+                                    findings.push(
+                                        "acknowledgement timestamp is inconsistent or exceeds clock uncertainty"
+                                            .to_owned(),
+                                    );
+                                }
                             }
                         }
-                    }
-                    _ => {
-                        acknowledgement_qualified = true;
-                        findings.push(
-                            "acknowledged outcome has no qualified timestamp or decision time"
-                                .to_owned(),
-                        );
+                        _ => {
+                            acknowledgement_qualified = true;
+                            findings.push(
+                                "acknowledged outcome has no qualified timestamp or decision time"
+                                    .to_owned(),
+                            );
+                        }
                     }
                 }
             }
@@ -1107,6 +1108,22 @@ mod tests {
         let report = replay_trace(&request(vec![input])).expect("replay");
         assert_eq!(report.body.reports[0].disposition, EventDisposition::OnTimeValid);
         assert_eq!(report.body.reports[0].metrics.downstream_ack_latency_ns, Some(20));
+    }
+
+    #[test]
+    fn invalid_acknowledgement_evidence_never_enters_latency_distribution() {
+        let mut first = event(1, 900, 1000);
+        first.acknowledgement = Some(DownstreamAcknowledgement {
+            acknowledgement_id: "ack-invalid-digest".to_owned(),
+            state: AcknowledgementState::Acknowledged,
+            timestamp: Some(stamp(1060)),
+            evidence_sha256: Some("not-a-digest".to_owned()),
+        });
+        let report = replay_trace(&request(vec![first])).expect("replay");
+        let event = &report.body.reports[0];
+        assert_eq!(event.disposition, EventDisposition::Degraded);
+        assert_eq!(event.metrics.downstream_ack_latency_ns, None);
+        assert_eq!(report.body.summary.downstream_ack_latency, None);
     }
 
     #[test]
