@@ -1396,7 +1396,6 @@ mod compound_com_tests {
         let base_mass = body.mass;
         let tool_mass = 1.0;
         let offset = SVector::from([1.2, -0.7, 0.4]);
-        let offset_squared = offset.norm_squared();
         let total_mass = base_mass + tool_mass;
         let base_com_shift = offset * (tool_mass / total_mass);
         let tool_com_shift = offset - base_com_shift;
@@ -1406,7 +1405,7 @@ mod compound_com_tests {
             + (2.0 / 3.0) * tool_mass * tool_com_shift.norm_squared();
 
         body.try_merge_toolhead(
-            Transform::from_translation(Point::new(offset)),
+            Transform::from_translation(Point(offset)),
             Box::new(HyperBox::<3>::new([0.2, 0.1, 0.15])),
             tool_mass,
         )
