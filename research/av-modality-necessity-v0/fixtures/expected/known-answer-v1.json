@@ -55,8 +55,8 @@
     {
       "episode_id": "mod-005-common-cause-redundancy",
       "necessity": "dependent_redundant_views",
-      "video_sufficient": true,
-      "audio_sufficient": true,
+      "video_sufficient": false,
+      "audio_sufficient": false,
       "joint_sufficient": true
     },
     {
