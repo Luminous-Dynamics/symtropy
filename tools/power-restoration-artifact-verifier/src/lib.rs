@@ -752,7 +752,7 @@ use power_restoration_benchmark_case::{
     BenchmarkCase, CaseMaturity, ElectricalDataProfile, canonical_case_sha256,
 };
 use power_restoration_observation_evidence::{
-    EvidenceBatch, SourceProvenance, validate_evidence_batch,
+    EvidenceArtifact, EvidenceBatch, EvidenceQuality, SourceProvenance, validate_evidence_batch,
 };
 use power_restoration_run_receipt::{
     RunReceipt, RunStatus, ServiceOutcome, StepDisposition, TerminalReason,
@@ -1077,6 +1077,7 @@ pub fn verify_restoration_claim_evidence(
     let mut unsuccessful_observation_request_count = 0;
     let mut evidence_item_count = 0;
     let mut all_sources = BTreeMap::<String, &SourceProvenance>::new();
+    let mut evidence_by_ref = BTreeMap::<String, EvidenceArtifact>::new();
 
     for (proposal_id, (proposal, proposal_step)) in &expected_batch_proposals {
         let Some(batch) = actual_batches.get(proposal_id) else {
@@ -1179,6 +1180,21 @@ pub fn verify_restoration_claim_evidence(
                     }
                 };
                 let evidence_uri = format!("power-fabric://evidence/{}", item.evidence_id);
+                if let Some(previous) = evidence_by_ref.insert(item.evidence_id.clone(), item.clone()) {
+                    if previous != *item {
+                        errors.push(format!(
+                            "evidence ID {} changes content or timing across batches",
+                            item.evidence_id
+                        ));
+                    }
+                }
+                if let Some(previous) = evidence_by_ref.insert(evidence_uri.clone(), item.clone()) {
+                    if previous != *item {
+                        errors.push(format!(
+                            "evidence URI {evidence_uri} changes content or timing across batches"
+                        ));
+                    }
+                }
                 add_attested_artifact(
                     &mut expected_artifacts,
                     &mut requirements,
@@ -1310,6 +1326,71 @@ pub fn verify_restoration_claim_evidence(
             },
             None => proposal_set_sha.clone(),
         };
+
+        let mut observation_parents = Vec::new();
+        if let Some(proposal) = &step.proposal {
+            for action in &proposal.actions {
+                for precondition in &action.precondition_evidence {
+                    let Some(evidence) = evidence_by_ref.get(&precondition.evidence_ref) else {
+                        errors.push(format!(
+                            "decision {} action {} references evidence {} absent from all acquired observation results",
+                            step.decision_step, action.action_id, precondition.evidence_ref
+                        ));
+                        continue;
+                    };
+                    if evidence.evidence_sha256 != precondition.evidence_sha256 {
+                        errors.push(format!(
+                            "decision {} action {} evidence {} digest differs from acquired evidence",
+                            step.decision_step, action.action_id, precondition.evidence_ref
+                        ));
+                    }
+                    if evidence.available_step > step.decision_step
+                        || evidence.observed_step > step.decision_step
+                    {
+                        errors.push(format!(
+                            "decision {} action {} cites future evidence {}",
+                            step.decision_step, action.action_id, precondition.evidence_ref
+                        ));
+                    } else if step.decision_step.saturating_sub(evidence.observed_step)
+                        > evidence.max_age_steps
+                    {
+                        errors.push(format!(
+                            "decision {} action {} cites stale evidence {} at use time",
+                            step.decision_step, action.action_id, precondition.evidence_ref
+                        ));
+                    }
+                    if evidence.quality != EvidenceQuality::Current {
+                        errors.push(format!(
+                            "decision {} action {} cites {:?} evidence {}",
+                            step.decision_step, action.action_id, evidence.quality, precondition.evidence_ref
+                        ));
+                    }
+                    observation_parents.push(evidence.evidence_sha256.clone());
+                }
+            }
+        }
+
+        if let Some(observation) = &step.observation {
+            if let Some(recorder) = recorder {
+                add_attested_artifact(
+                    &mut expected_artifacts,
+                    &mut requirements,
+                    &observation.artifact_ref,
+                    &observation.sha256,
+                    SignerRole::RunRecorder,
+                    &recorder.issuer_id,
+                    "power-restoration/decision-observation/v1",
+                    &receipt.run_id,
+                    &case_sha256,
+                    step.decision_step,
+                    &proposal_sha,
+                    &recorder.tool_source_commit,
+                    &recorder.tool_configuration_sha256,
+                    observation_parents.clone(),
+                    &mut errors,
+                );
+            }
+        }
 
         if let Some(transition) = &step.transition_receipt {
             if !matches!(
