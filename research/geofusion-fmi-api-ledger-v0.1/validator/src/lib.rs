@@ -312,14 +312,92 @@ fn parse_bits(value: &str, label: &str) -> Result<f64, String> {
     Ok(decoded)
 }
 
-fn to_ns(model_time: f64, clock: &Clock, label: &str) -> Result<i64, String> {
-    let mapped = model_time
-        * (clock.nanoseconds_per_model_time_numerator as f64)
-        / (clock.nanoseconds_per_model_time_denominator as f64);
-    if !mapped.is_finite() || mapped.fract() != 0.0 || mapped < i64::MIN as f64 || mapped > i64::MAX as f64 {
-        return Err(format!("{label}: time mapping is not exact integral nanoseconds"));
+fn gcd_i128(mut left: i128, mut right: i128) -> i128 {
+    left = left.abs();
+    right = right.abs();
+    while right != 0 {
+        let remainder = left % right;
+        left = right;
+        right = remainder;
     }
-    Ok(mapped as i64)
+    left
+}
+
+/// Convert the exact IEEE-754 value into an integer nanosecond count using
+/// rational arithmetic. No floating-point multiplication or rounding occurs.
+fn to_ns(model_time: f64, clock: &Clock, label: &str) -> Result<i64, String> {
+    if !model_time.is_finite() {
+        return Err(format!("{label}: non-finite model time"));
+    }
+    if clock.nanoseconds_per_model_time_numerator <= 0
+        || clock.nanoseconds_per_model_time_denominator <= 0
+    {
+        return Err(format!("{label}: invalid rational clock scale"));
+    }
+
+    let bits = model_time.to_bits();
+    let negative = (bits >> 63) != 0;
+    let exponent_bits = ((bits >> 52) & 0x7ff) as i32;
+    let fraction_bits = bits & ((1_u64 << 52) - 1);
+    if exponent_bits == 0 && fraction_bits == 0 {
+        return Ok(0);
+    }
+
+    let (significand, binary_exponent) = if exponent_bits == 0 {
+        (i128::from(fraction_bits), -1074)
+    } else {
+        (
+            i128::from((1_u64 << 52) | fraction_bits),
+            exponent_bits - 1023 - 52,
+        )
+    };
+    let signed_significand = if negative { -significand } else { significand };
+
+    let (mut value_numerator, mut value_denominator) = if binary_exponent >= 0 {
+        let shift = u32::try_from(binary_exponent)
+            .map_err(|_| format!("{label}: binary exponent overflow"))?;
+        let factor = 1_i128
+            .checked_shl(shift)
+            .ok_or_else(|| format!("{label}: binary exponent overflow"))?;
+        (
+            signed_significand.checked_mul(factor)
+                .ok_or_else(|| format!("{label}: binary time numerator overflow"))?,
+            1_i128,
+        )
+    } else {
+        let shift = u32::try_from(-binary_exponent)
+            .map_err(|_| format!("{label}: binary exponent overflow"))?;
+        let denominator = 1_i128
+            .checked_shl(shift)
+            .ok_or_else(|| format!("{label}: binary time denominator overflow"))?;
+        (signed_significand, denominator)
+    };
+
+    let value_gcd = gcd_i128(value_numerator, value_denominator);
+    value_numerator /= value_gcd;
+    value_denominator /= value_gcd;
+
+    let mut scale_numerator = i128::from(clock.nanoseconds_per_model_time_numerator);
+    let mut scale_denominator = i128::from(clock.nanoseconds_per_model_time_denominator);
+
+    let gcd_left = gcd_i128(value_numerator, scale_denominator);
+    value_numerator /= gcd_left;
+    scale_denominator /= gcd_left;
+
+    let gcd_right = gcd_i128(scale_numerator, value_denominator);
+    scale_numerator /= gcd_right;
+    value_denominator /= gcd_right;
+
+    let numerator = value_numerator.checked_mul(scale_numerator)
+        .ok_or_else(|| format!("{label}: scaled time numerator overflow"))?;
+    let denominator = value_denominator.checked_mul(scale_denominator)
+        .ok_or_else(|| format!("{label}: scaled time denominator overflow"))?;
+
+    if denominator == 0 || numerator % denominator != 0 {
+        return Err(format!("{label}: exact value is not an integral master nanosecond"));
+    }
+    i64::try_from(numerator / denominator)
+        .map_err(|_| format!("{label}: master nanosecond value exceeds i64"))
 }
 
 fn checked_artifact_path(root: &Path, relative: &str) -> Result<PathBuf, String> {
