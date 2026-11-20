@@ -38,6 +38,7 @@ jobs:
           schema = json.loads((root / "per-step-ac-certificate-v0.1.schema.json").read_text())
           accepted = json.loads((root / "fixtures/accepted-static-ac-only-v0.1.json").read_text())
           dc_infeasible = json.loads((root / "fixtures/dc-feasible-ac-infeasible-v0.1.json").read_text())
+          unbalanced = json.loads((root / "fixtures/unbalanced-three-phase-static-ac-v0.1.json").read_text())
           Draft202012Validator.check_schema(schema)
           validator = Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER)
 
@@ -75,7 +76,7 @@ jobs:
                   if receipt["solverStatus"] in ("not_converged", "error", "not_run"):
                       assert receipt["operatingPointStatus"] == "unknown"
 
-          for case in (accepted, dc_infeasible):
+          for case in (accepted, dc_infeasible, unbalanced):
               errors = sorted(validator.iter_errors(case), key=lambda error: list(error.path))
               assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
               validate_semantics(case)
@@ -83,6 +84,12 @@ jobs:
           assert all(item["solverStatus"] == "converged" and item["operatingPointStatus"] == "feasible" for item in accepted["acStepReceipts"])
           assert accepted["intertemporalReceipt"]["status"] == "accepted"
           assert accepted["dynamicProtectionReceipt"]["status"] == "not_assessed"
+          assert unbalanced["networkModel"]["modelClass"] == "unbalanced_three_phase"
+          assert set(unbalanced["networkModel"]["requiredPhases"]) == {"A", "B", "C"}
+          phase_receipt = unbalanced["acStepReceipts"][0]
+          for category in ("bus_voltage", "branch_thermal"):
+              observed = {item["phaseRef"] for item in phase_receipt["constraintAssessments"] if item["constraintType"] == category}
+              assert observed == {"A", "B", "C"}, f"unbalanced receipt missing per-phase {category}"
 
           failed = [item for item in dc_infeasible["acStepReceipts"] if item["operatingPointStatus"] == "infeasible"]
           assert len(failed) == 1 and failed[0]["stepId"] == "s1"
@@ -108,6 +115,22 @@ jobs:
           nonconverged = copy.deepcopy(accepted)
           nonconverged["acStepReceipts"][0]["solverStatus"] = "not_converged"
           attacks.append(nonconverged)
+          missing_phase = copy.deepcopy(unbalanced)
+          missing_phase["acStepReceipts"][0]["constraintAssessments"] = [
+              row for row in missing_phase["acStepReceipts"][0]["constraintAssessments"]
+              if not (row["constraintType"] == "bus_voltage" and row["phaseRef"] == "C")
+          ]
+          # The schema remains valid, but the unbalanced phase-coverage contract must fail.
+          try:
+              phase_coverage = {
+                  item["phaseRef"] for item in missing_phase["acStepReceipts"][0]["constraintAssessments"]
+                  if item["constraintType"] == "bus_voltage"
+              }
+              assert phase_coverage == set(missing_phase["networkModel"]["requiredPhases"])
+          except AssertionError:
+              pass
+          else:
+              raise AssertionError("missing per-phase voltage receipt was accepted")
           for hostile in attacks:
               try:
                   validate_semantics(hostile)
