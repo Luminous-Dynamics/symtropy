@@ -28,6 +28,9 @@ The input snapshot is immutable and carries a world tick plus the action receipt
 
 The public API deliberately uses separate calls and types:
 
+- `verify_policy_receipt_metadata()` validates schema, shape, action/tick consistency, clock order and both unkeyed receipt identities without needing raw image bytes.
+- `verify_policy_receipt()` adds exact RGB byte-length and frame-digest verification. Neither function authenticates the producer or the upstream action authority.
+
 1. `SoftwareCameraRenderer::render()` returns only `RenderedObservation { pixels_rgb, policy_receipt }`. The policy receipt contains the frame digest, camera/calibration digest, renderer revision, acquisition/render/delivery clocks, episode/agent/tick and preceding action receipt identity. It does not contain scenario labels, simulator revision, road IDs, actor IDs or evaluator audit digests.
 2. `SoftwareCameraRenderer::audit_snapshot()` separately returns `EvaluatorObservationAudit`, containing source world-snapshot digest, simulator revision, road IDs, actor IDs and actor-policy revisions.
 
