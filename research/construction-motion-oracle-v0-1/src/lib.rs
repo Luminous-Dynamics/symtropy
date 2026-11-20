@@ -13,6 +13,11 @@ pub use ifc_ids_preflight::{
     SUPPORTED_IDS_VERSION, SUPPORTED_IFC_SCHEMA_RELEASE, preflight_ifc_ids_work_package,
 };
 pub mod site_state_ledger;
+pub mod stopping_reachability;
+pub use stopping_reachability::{
+    StoppingDynamicsQualification, StoppingReachabilityError, StoppingReachabilityRequest,
+    StoppingReachabilityResult, calculate_stopping_reachability,
+};
 pub use field_layout_acceptance::{
     CrewHours, DesignIntentEntity, DesignIntentManifest, EntityAcceptanceResult, EntityScoreReason,
     FieldAcceptanceError, FieldAcceptanceProfile, FieldAcceptanceScore, FieldEntityObservation,
