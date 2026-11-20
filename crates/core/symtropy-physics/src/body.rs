@@ -43,6 +43,8 @@ pub enum RotationalInertiaModel {
 pub enum ToolheadMergeError {
     /// Only a dynamic body can accept additional rigid mass.
     BodyNotDynamic,
+    /// The dimensionality must support at least one rotational plane.
+    InvalidDimension,
     /// The base body's mass is not finite and positive.
     InvalidBodyMass,
     /// Toolhead mass is not finite and positive.
@@ -587,6 +589,9 @@ impl<const D: usize> RigidBody<D> {
     ) -> Result<(), ToolheadMergeError> {
         use symtropy_math::CompoundShape;
 
+        if D < 2 {
+            return Err(ToolheadMergeError::InvalidDimension);
+        }
         if !self.is_dynamic() {
             return Err(ToolheadMergeError::BodyNotDynamic);
         }
@@ -635,15 +640,25 @@ impl<const D: usize> RigidBody<D> {
         let original_offset_squared = com_offset.norm_squared();
         let tool_offset = local_transform.translation.0 - com_offset;
         let tool_offset_squared = tool_offset.norm_squared();
-        let merged_mean_inertia =
-            (original_mean_inertia + self.mass * original_offset_squared)
-                + (tool_approximate_inertia + tool_mass * tool_offset_squared);
+        // Averaging the full plane inertia m(d_i^2 + d_j^2) over all
+        // D(D-1)/2 planes gives (2m/D)|d|^2, not m|d|^2.
+        let mean_parallel_axis_factor = 2.0 / D as f64;
+        let original_parallel_axis_mean =
+            mean_parallel_axis_factor * self.mass * original_offset_squared;
+        let tool_parallel_axis_mean =
+            mean_parallel_axis_factor * tool_mass * tool_offset_squared;
+        let merged_mean_inertia = original_mean_inertia
+            + original_parallel_axis_mean
+            + tool_approximate_inertia
+            + tool_parallel_axis_mean;
         let inverse_mass = 1.0 / total_mass;
         let inverse_mean_inertia = 1.0 / merged_mean_inertia;
         if !original_mean_inertia.is_finite()
             || !tool_approximate_inertia.is_finite()
             || !original_offset_squared.is_finite()
             || !tool_offset_squared.is_finite()
+            || !original_parallel_axis_mean.is_finite()
+            || !tool_parallel_axis_mean.is_finite()
             || !merged_mean_inertia.is_finite()
             || merged_mean_inertia <= 0.0
             || !inverse_mass.is_finite()
@@ -1373,6 +1388,36 @@ mod compound_com_tests {
         assert!(body.rotational_inertia_operator_mass_bits.is_none());
         assert!(body.rotational_inertia_approximate);
         assert_eq!(body.mass_properties_mass_bits, Some(body.mass.to_bits()));
+    }
+
+    #[test]
+    fn approximate_merge_uses_dimension_aware_mean_parallel_axis_term() {
+        let mut body = rotated_body();
+        let base_mass = body.mass;
+        let tool_mass = 1.0;
+        let offset = SVector::from([1.2, -0.7, 0.4]);
+        let offset_squared = offset.norm_squared();
+        let total_mass = base_mass + tool_mass;
+        let base_com_shift = offset * (tool_mass / total_mass);
+        let tool_com_shift = offset - base_com_shift;
+        let expected_mean_inertia = 0.4
+            + (0.4 * tool_mass * 0.1 * 0.1)
+            + (2.0 / 3.0) * base_mass * base_com_shift.norm_squared()
+            + (2.0 / 3.0) * tool_mass * tool_com_shift.norm_squared();
+
+        body.try_merge_toolhead(
+            Transform::from_translation(Point::new(offset)),
+            Box::new(HyperBox::<3>::new([0.2, 0.1, 0.15])),
+            tool_mass,
+        )
+        .expect("valid approximate merge");
+
+        assert!(
+            (body.inertia[0] - expected_mean_inertia).abs() < 1.0e-12,
+            "mean plane inertia did not use 2m|d|^2/D: actual={}, expected={expected_mean_inertia}",
+            body.inertia[0]
+        );
+        assert_eq!(body.inertia, SVector::from_element(expected_mean_inertia));
     }
 
     #[test]
