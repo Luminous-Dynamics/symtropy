@@ -70,6 +70,8 @@ jobs:
           grep -q '"physical_dispatch_authorized": false' mfb-l1-evidence/shared-aircraft-report.json
           grep -q '"eligible_for_external_operator_review": true' mfb-l1-evidence/shared-aircraft-report.json
           grep -q '"jurisdiction_review_status": "eligible_for_external_operator_review"' mfb-l1-evidence/shared-aircraft-report.json
+          grep -q '"jurisdiction_profile_id": "ZA-UAS-OPS-GATE-001-v0.1-2026-11-20"' mfb-l1-evidence/shared-aircraft-report.json
+          grep -q '"jurisdiction_source_snapshot_id": "SACAA-UAS-PART101-SNAPSHOT-2026-11-20"' mfb-l1-evidence/shared-aircraft-report.json
           grep -q '"dispatch_commands_emitted": false' mfb-l1-evidence/shared-aircraft-report.json
           grep -q '"unauthorized_aerial_dispatches": 0' mfb-l1-evidence/shared-aircraft-report.json
           grep -q '"protected_reserve_violations": 0' mfb-l1-evidence/shared-aircraft-report.json
@@ -107,6 +109,8 @@ jobs:
             and .physical_dispatch_authorized == false
             and .eligible_for_external_operator_review == true
             and .jurisdiction_review_status == "eligible_for_external_operator_review"
+            and .jurisdiction_profile_id == "ZA-UAS-OPS-GATE-001-v0.1-2026-11-20"
+            and .operator_activity_class == "commercial"
             and .dispatch_commands_emitted == false
           ' mfb-l1-evidence/shared-aircraft-tail-risk-report.json
           cat mfb-l1-evidence/shared-aircraft-tail-risk-report.json
@@ -323,7 +327,10 @@ jobs:
             echo "[cross_channel_false_positive_digest]"
             sha256sum mfb-l1-evidence/cross-channel-false-positive.json
             echo
-            echo "[za_uas_review_contract_digest]"
+            echo "[za_uas_operating_profile_dossier_digest]"
+            sha256sum docs/research/MFB_SHARED_AIRCRAFT_REPOSITIONING_V0_1.md
+            echo
+                        echo "[za_uas_review_contract_digest]"
             sha256sum tools/material-flow-benchmark/src/shared_fleet.rs
             sha256sum tools/material-flow-benchmark/schemas/shared_aircraft_repositioning_v0_1.schema.json
             echo
