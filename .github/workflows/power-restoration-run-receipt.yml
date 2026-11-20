@@ -63,7 +63,17 @@ jobs:
           assert receipt["decisionSteps"][0]["validatorOutcome"] == "accepted"
           assert receipt["decisionSteps"][0]["transitionOutcome"] == "applied"
           assert receipt["aggregateScore"]["metricId"] == receipt["objective"]["metric"]
-          print("PASS: run receipt schema, case identity, all decision epochs and stage links")
+          observed = receipt["observedUsage"]
+          steps = [step for step in receipt["decisionSteps"] if step["disposition"] == "executed"]
+          assert observed["totalInputTokens"] == sum(step["inputTokens"] or 0 for step in steps)
+          assert observed["totalOutputTokens"] == sum(step["outputTokens"] or 0 for step in steps)
+          assert observed["totalApiCostMicrousd"] == sum(step["apiCostMicrousd"] or 0 for step in steps)
+          assert observed["solverTimeMs"] == sum(step["solverTimeMs"] or 0 for step in steps)
+          gaps = [step["solverGapBasisPoints"] for step in steps if step["solverGapBasisPoints"] is not None]
+          assert observed["maximumSolverGapBasisPoints"] == (max(gaps) if gaps else None)
+          assert observed["elapsedWallClockMs"] <= receipt["budget"]["wallClockLimitMs"]
+          assert all(step["notRunReason"] == receipt["terminalReason"] for step in receipt["decisionSteps"] if step["disposition"] == "not_run_after_termination")
+          print("PASS: run receipt schema, action schema, usage reconciliation, budget and terminal consistency")
           PY
       - name: Check Rust formatting
         run: cargo fmt --manifest-path tools/power-restoration-run-receipt/Cargo.toml --all -- --check
