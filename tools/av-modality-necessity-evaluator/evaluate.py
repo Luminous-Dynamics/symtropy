@@ -195,7 +195,11 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
             decision_correct, answer_correct = abstained, False
         else:
             answer_correct = (not abstained) and answer == label.get("truth_answer")
-            decision_correct = answer_correct
+            safe_abstention = necessity in {
+                "conflict_abstain_or_separate_hypotheses",
+                "no_cross_modal_association",
+            } and abstained
+            decision_correct = answer_correct or safe_abstention
         row = {
             "episode_id": episode_id, "necessity": necessity,
             "answer_correct": answer_correct, "decision_correct": decision_correct,
