@@ -1,0 +1,106 @@
+name: AV Long-Horizon Evidence Memory Fixture Integrity
+
+on:
+  push:
+    branches:
+      - research/av-long-horizon-evidence-v0
+    paths:
+      - "research/av-long-horizon-evidence-v0/**"
+      - ".github/workflows/av-long-horizon-evidence.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/av-long-horizon-evidence-v0/**"
+      - ".github/workflows/av-long-horizon-evidence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: av-long-horizon-evidence-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QUALIFIED_SHA: ${{ env.QUALIFIED_SHA }}
+
+jobs:
+  fixture-integrity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+      - name: Assert exact checkout
+        run: test "$(git rev-parse HEAD)" = "$QUALIFIED_SHA"
+      - name: Install JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate workload schema and data planes
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-long-horizon-evidence-v0/"
+          schema = json.load(open(base + "schemas/workload-v1.schema.json", encoding="utf-8"))
+          Draft202012Validator.check_schema(schema)
+          workload = json.load(open(base + "fixtures/agent/workload-v1.json", encoding="utf-8"))
+          truth = json.load(open(base + "fixtures/evaluator-only/truth-v1.json", encoding="utf-8"))
+          expected = json.load(open(base + "fixtures/expected/known-answer-v1.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(workload)
+          for label, data in (("truth", truth), ("expected", expected)):
+              assert data["schema_version"] == 1 and data["benchmark_id"] == workload["benchmark_id"], label
+              assert len(data["episodes"]) == len(workload["episodes"]), label
+              assert len({x["episode_id"] for x in data["episodes"]}) == len(data["episodes"]), label
+          ids = [x["episode_id"] for x in workload["episodes"]]
+          assert ids == [x["episode_id"] for x in truth["episodes"]]
+          assert ids == [x["episode_id"] for x in expected["episodes"]]
+          assert len(ids) == 9
+          forbidden = {"expected_answer", "required_observation_refs", "expected_decision", "superseded_refs", "revoked_refs", "absent_event_class"}
+          def scan(value):
+              if isinstance(value, dict):
+                  assert not (forbidden & set(value)), "evaluator truth leaked into public workload"
+                  for child in value.values(): scan(child)
+              elif isinstance(value, list):
+                  for child in value: scan(child)
+          scan(workload)
+          PY
+      - name: Check causal query cutoffs and ordered timelines
+        run: |
+          python - <<'PY'
+          import json
+          p = "research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json"
+          data = json.load(open(p, encoding="utf-8"))
+          for episode in data["episodes"]:
+              query_tick = episode["query"]["query_tick"]
+              availability = [event["availability_tick"] for event in episode["stream_events"]]
+              assert availability == sorted(availability), episode["episode_id"]
+              assert all(tick <= query_tick for tick in availability), episode["episode_id"]
+              assert episode["query"]["response_deadline_tick"] >= query_tick
+              known_observations = set()
+              for event in episode["stream_events"]:
+                  if event["kind"] == "observation":
+                      known_observations.add(event["observation_ref"])
+                  elif event["kind"] == "correction":
+                      assert event["supersedes_observation_ref"] in known_observations
+                      assert event["replacement_observation_ref"] in known_observations
+                  elif event["kind"] == "revocation":
+                      assert event["target_observation_ref"] in known_observations
+          PY
+      - name: Duplicate transport retains original observation identity
+        run: |
+          jq -e '.episodes[] | select(.episode_id == "lh-002-repeated-event-dedup") |
+            ([.stream_events[] | select(.event_id == "ev-tap-2-replay")][0].observation_ref) == "obs-tap-2"' research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json
+      - name: Correction and replacement are both explicit
+        run: |
+          jq -e '.episodes[] | select(.episode_id == "lh-003-correction-supersession") |
+            ([.stream_events[] | select(.event_id == "ev-correction-1")][0].availability_tick) >
+            ([.stream_events[] | select(.observation_ref == "obs-machine-state-corrected")][0].availability_tick)' research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json
+      - name: Common-cause dependency and revocation controls exist
+        run: |
+          jq -e '.episodes[] | select(.episode_id == "lh-004-common-cause-dependence") |
+            .stream_events[0].source_dependency_group == .stream_events[1].source_dependency_group' research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json
+          jq -e '.episodes[] | select(.episode_id == "lh-008-memory-revocation") |
+            any(.stream_events[]; .kind == "revocation" and .target_observation_ref == "obs-private-utterance")' research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json
