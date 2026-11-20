@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt::Write as _;
 
 const FIXTURE_SCHEMA: &str = "luminous.orbital-service-receipt-admission.corpus.v0.1";
@@ -190,15 +190,9 @@ struct PlanTick {
 
 #[derive(Debug, Clone)]
 struct AdmittedReceipt {
-    event_id: String,
-    idempotency_key: String,
     event_time_tick: u64,
-    observed_at_tick: u64,
-    provider_id: String,
     accepted_receiver_mass_g: u64,
-    digest: String,
     causal_predecessor_event_id: Option<String>,
-    supersedes_event_id: Option<String>,
 }
 
 pub fn sha256_hex(bytes: &[u8]) -> String {
@@ -472,6 +466,7 @@ fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioR
     let mut seen_event: HashMap<String, (String, String)> = HashMap::new();
     let mut seen_key: HashMap<String, (String, String)> = HashMap::new();
     let mut admitted: BTreeMap<String, AdmittedReceipt> = BTreeMap::new();
+    let mut superseded_ids = HashSet::new();
     let mut hard_rejection = None;
     let mut disputed = None;
     let mut unknown_reason = None;
@@ -548,6 +543,52 @@ fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioR
         };
         let digest = receipt.composition_receipt_sha256.clone();
 
+        if superseded_ids.contains(&receipt.event_id) {
+            if let Some((old_key, old_digest)) = seen_event.get(&receipt.event_id) {
+                if old_key == &receipt.idempotency_key && old_digest == &digest {
+                    result.duplicate_replays += 1;
+                    result.receipts.push(ReceiptResult {
+                        event_id: receipt.event_id.clone(),
+                        event_time_tick: receipt.event_time_tick,
+                        observed_at_tick: receipt.observed_at_tick,
+                        provider_id: receipt.provider_id.clone(),
+                        accepted_receiver_mass_g: mass,
+                        counted: false,
+                        duplicate_replay: true,
+                        superseded: true,
+                    });
+                    continue;
+                }
+            }
+            disputed = Some("superseded_event_id_reused_with_conflicting_receipt");
+            break;
+        }
+
+        let mut supersession_verified = false;
+        if let Some(previous_id) = receipt.supersedes_event_id.as_deref() {
+            let Some((previous_key, _)) = seen_event.get(previous_id) else {
+                unknown_reason = Some("superseded_receipt_predecessor_missing");
+                continue;
+            };
+            if previous_key != &receipt.idempotency_key {
+                disputed = Some("supersession_idempotency_key_mismatch");
+                break;
+            }
+            if admitted.remove(previous_id).is_none() {
+                unknown_reason = Some("superseded_receipt_predecessor_missing");
+                continue;
+            }
+            superseded_ids.insert(previous_id.to_owned());
+            result.superseded_receipts += 1;
+            if let Some(previous_row) = result.receipts.iter_mut()
+                .find(|row| row.event_id == previous_id)
+            {
+                previous_row.counted = false;
+                previous_row.superseded = true;
+            }
+            supersession_verified = true;
+        }
+
         if let Some((existing_event, existing_digest)) = seen_key.get(&receipt.idempotency_key) {
             if existing_event == &receipt.event_id && existing_digest == &digest {
                 result.duplicate_replays += 1;
@@ -563,16 +604,9 @@ fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioR
                 });
                 continue;
             }
-            if receipt.supersedes_event_id.as_deref() == Some(existing_event.as_str()) {
-                if let Some(old) = admitted.remove(existing_event) {
-                    result.superseded_receipts += 1;
-                    result.accepted_receiver_mass_g =
-                        result.accepted_receiver_mass_g.saturating_sub(old.accepted_receiver_mass_g);
-                } else {
-                    unknown_reason = Some("superseded_receipt_predecessor_missing");
-                    continue;
-                }
-            } else {
+            if !(supersession_verified
+                && receipt.supersedes_event_id.as_deref() == Some(existing_event.as_str()))
+            {
                 disputed = Some("idempotency_key_reused_with_conflicting_receipt");
                 break;
             }
@@ -583,27 +617,15 @@ fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioR
                 break;
             }
         }
-        if let Some(previous_id) = receipt.supersedes_event_id.as_deref() {
-            if !admitted.contains_key(previous_id) {
-                unknown_reason = Some("superseded_receipt_predecessor_missing");
-                continue;
-            }
-        }
         seen_key.insert(
             receipt.idempotency_key.clone(),
             (receipt.event_id.clone(), digest.clone()),
         );
         seen_event.insert(receipt.event_id.clone(), (receipt.idempotency_key.clone(), digest.clone()));
         let admitted_receipt = AdmittedReceipt {
-            event_id: receipt.event_id.clone(),
-            idempotency_key: receipt.idempotency_key.clone(),
             event_time_tick: receipt.event_time_tick,
-            observed_at_tick: receipt.observed_at_tick,
-            provider_id: receipt.provider_id.clone(),
             accepted_receiver_mass_g: mass,
-            digest,
             causal_predecessor_event_id: receipt.causal_predecessor_event_id.clone(),
-            supersedes_event_id: receipt.supersedes_event_id.clone(),
         };
         admitted.insert(receipt.event_id.clone(), admitted_receipt);
         result.receipts.push(ReceiptResult {
