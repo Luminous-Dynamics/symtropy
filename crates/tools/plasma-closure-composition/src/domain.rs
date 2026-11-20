@@ -532,6 +532,15 @@ mod tests {
     }
 
     fn boundary_face(face_id: &str, cell_id: &str, outward: Vec<f64>) -> BoundaryFluxReport {
+        boundary_face_with_measure(face_id, cell_id, outward, 1.0)
+    }
+
+    fn boundary_face_with_measure(
+        face_id: &str,
+        cell_id: &str,
+        outward: Vec<f64>,
+        face_measure: f64,
+    ) -> BoundaryFluxReport {
         account_external_boundary_flux(&crate::boundary::BoundaryFluxRequest {
             schema_version: SCHEMA_VERSION.into(),
             request_id: format!("request-{face_id}"),
@@ -545,7 +554,7 @@ mod tests {
             boundary_model_sha256: digest('b'),
             qualification: CandidateQualification::Qualified,
             outward_flux: outward,
-            face_measure: 1.0,
+            face_measure,
             compatibility: compatibility(),
         })
         .expect("synthetic boundary face")
@@ -580,8 +589,8 @@ mod tests {
                 vec![2.0, -1.0],
             )],
             vec![
-                boundary_face("left", "cell-0", vec![1.0, -1.0]),
-                boundary_face("right", "cell-1", vec![-0.5, 2.0]),
+                boundary_face_with_measure("left", "cell-0", vec![1.0, -1.0], 0.5),
+                boundary_face_with_measure("right", "cell-1", vec![-0.5, 2.0], 0.25),
             ],
         ))
         .expect("balanced two-cell domain");
@@ -596,11 +605,11 @@ mod tests {
         );
         assert_eq!(
             report.cells[1].integrated_update,
-            vec![1.5, -1.0]
+            vec![2.125, -1.5]
         );
-        assert_eq!(report.global_cell_change, vec![-1.0, 0.5]);
-        assert_eq!(report.total_boundary_export, vec![0.5, 1.0]);
-        assert_eq!(report.global_balance_residual, vec![-0.5, 1.5]);
+        assert_eq!(report.global_cell_change, vec![-0.375, 0.0]);
+        assert_eq!(report.total_boundary_export, vec![0.375, 0.0]);
+        assert_eq!(report.global_balance_residual, vec![0.0, 0.0]);
     }
 
     #[test]
@@ -717,7 +726,7 @@ mod tests {
     }
 
     #[test]
-    fn global_balance_error_is_not_hidden_by_internal_cancellation() {
+    fn internal_face_cancellation_is_preserved_in_domain_assembly() {
         let report = assemble_domain_balance(&request(
             vec!["cell-0", "cell-1"],
             vec![internal_face("face", "cell-0", "cell-1", vec![1.0, 0.0])],
