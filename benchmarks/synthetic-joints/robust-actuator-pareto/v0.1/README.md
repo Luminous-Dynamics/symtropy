@@ -73,8 +73,11 @@ Each objective definition declares a name, unit and direction (minimize or maxim
 
 Candidate A dominates candidate B only when:
 - both are robust-feasible in the same evidence lane and same exact comparison cohort;
-- A is no worse on every declared objective;
-- A is strictly better on at least one objective.
+- for every minimize objective, A's worst-case upper bound is no greater than B's best-case lower bound;
+- for every maximize objective, A's worst-case lower bound is no less than B's best-case upper bound;
+- at least one objective has a strict interval separation.
+
+Thus overlapping intervals do not imply equality or failure; they imply that this evidence does not establish robust dominance.
 
 Equal vectors remain jointly non-dominated. Trade-offs are preserved. No arbitrary weight converts kilograms, joules, task coverage or cost into one opaque number.
 
@@ -86,7 +89,7 @@ The report contains:
 - the first non-dominated front for each lane/cohort;
 - separate excluded lists for infeasible and unknown candidates.
 
-It does not yet compute deeper Pareto ranks, hypervolume, uncertainty-aware objective intervals or an optimization algorithm.
+It does not yet compute deeper Pareto ranks, hypervolume or an optimization algorithm. The robust objective intervals are consumed as supplied; this M1 crate does not create or calibrate them.
 
 ## 6. Research and industry context
 
