@@ -756,7 +756,7 @@
       "operation": {
         "operation_id": "brlos-route",
         "operation_scope_digest_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-        "visual_flight_mode": "brlos",
+        "visual_flight_mode": "bvlos",
         "payload_release_or_delivery": true,
         "multi_uas_operation": false,
         "public_road_takeoff_or_landing": false,
