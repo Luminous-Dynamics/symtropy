@@ -103,6 +103,9 @@ jobs:
           schema = json.load(open("research/av-response-window-v0/schemas/scorecard-v1.schema.json", encoding="utf-8"))
           actual = json.load(open("/tmp/av-response-window-scorecard.json", encoding="utf-8"))
           Draft202012Validator(schema).validate(actual)
+          assert actual["timing_evidence_mode"] == "synthetic_reference"
+          assert actual["clock_relation_ref"] == "synthetic:logical-replay-tick-v1"
+          assert actual["interpretation"]["status"] == "synthetic_response_window_score"
           t = actual["totals"]
           assert t["opportunity_count"] == 11
           assert t["response_required_count"] == 8
