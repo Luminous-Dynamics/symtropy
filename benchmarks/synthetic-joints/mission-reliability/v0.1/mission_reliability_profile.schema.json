@@ -1,0 +1,791 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/synthetic-joints/mission-reliability/v0.1/mission_reliability_profile.schema.json",
+  "title": "Mission Reliability and Lifecycle Profile v0.1",
+  "description": "Specimen-level mission, degradation, event, censoring and pre/post capability evidence. Not a safety certification or fleet-life guarantee.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "campaign",
+    "specimens",
+    "observations",
+    "pre_post_measurements",
+    "analysis_plan",
+    "evidence",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "campaign": {
+      "$ref": "#/$defs/campaign"
+    },
+    "specimens": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/specimen"
+      }
+    },
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/observation"
+      }
+    },
+    "pre_post_measurements": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/pre_post"
+      }
+    },
+    "analysis_plan": {
+      "$ref": "#/$defs/analysis_plan"
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric",
+        "status",
+        "value",
+        "unit",
+        "uncertainty",
+        "method",
+        "reason"
+      ],
+      "properties": {
+        "metric": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "measured",
+            "reported",
+            "derived",
+            "estimated",
+            "unknown",
+            "not_disclosed",
+            "not_applicable"
+          ]
+        },
+        "value": {
+          "type": [
+            "number",
+            "integer",
+            "string",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uncertainty": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "campaign": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "campaign_id",
+        "test_purpose",
+        "functional_or_survival",
+        "preregistration",
+        "matched_conditions",
+        "fixture_boundary",
+        "mission_profile",
+        "environmental_profile",
+        "stop_and_abort_rules",
+        "independent_sample_unit"
+      ],
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "test_purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "functional_or_survival": {
+          "enum": [
+            "functional_performance",
+            "survival",
+            "both"
+          ]
+        },
+        "preregistration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "frozen_before_test",
+            "timestamp",
+            "protocol_digest",
+            "analysis_plan_digest"
+          ],
+          "properties": {
+            "frozen_before_test": {
+              "type": "boolean"
+            },
+            "timestamp": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "protocol_digest": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "analysis_plan_digest": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "matched_conditions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "load",
+            "speed",
+            "path_or_task",
+            "cycle_definition",
+            "environment",
+            "specimen_configuration"
+          ],
+          "properties": {
+            "load": {
+              "type": "string",
+              "minLength": 1
+            },
+            "speed": {
+              "type": "string",
+              "minLength": 1
+            },
+            "path_or_task": {
+              "type": "string",
+              "minLength": 1
+            },
+            "cycle_definition": {
+              "type": "string",
+              "minLength": 1
+            },
+            "environment": {
+              "type": "string",
+              "minLength": 1
+            },
+            "specimen_configuration": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "fixture_boundary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mission_profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "environmental_profile": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "stop_and_abort_rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "independent_sample_unit": {
+          "enum": [
+            "component",
+            "joint_assembly",
+            "actuator_pair",
+            "robot_system",
+            "other"
+          ]
+        },
+        "reference_standards": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence_level": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "specimen": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "specimen_id",
+        "assembly_id",
+        "component_ids",
+        "manufacturer_or_origin",
+        "model",
+        "revision",
+        "lot",
+        "configuration_digest",
+        "prior_service_history",
+        "parent_specimen_id",
+        "independent_unit"
+      ],
+      "properties": {
+        "specimen_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assembly_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "component_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "manufacturer_or_origin": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lot": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "configuration_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "prior_service_history": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "parent_specimen_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "independent_unit": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "exposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "elapsed_time",
+        "cycles",
+        "distance",
+        "mechanical_work",
+        "thermal_exposure",
+        "environmental_exposure",
+        "notes"
+      ],
+      "properties": {
+        "elapsed_time": {
+          "$ref": "#/$defs/measurement"
+        },
+        "cycles": {
+          "$ref": "#/$defs/measurement"
+        },
+        "distance": {
+          "$ref": "#/$defs/measurement"
+        },
+        "mechanical_work": {
+          "$ref": "#/$defs/measurement"
+        },
+        "thermal_exposure": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/measurement"
+          }
+        },
+        "environmental_exposure": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/measurement"
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_id",
+        "specimen_id",
+        "event_index",
+        "observation_state",
+        "outcome_type",
+        "failure_mode",
+        "time_value",
+        "time_unit",
+        "exposure",
+        "event_definition",
+        "detection_method",
+        "raw_trace_refs",
+        "reason"
+      ],
+      "properties": {
+        "observation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "specimen_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_index": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "observation_state": {
+          "enum": [
+            "observed_event",
+            "right_censored",
+            "left_censored",
+            "interval_censored",
+            "competing_event",
+            "unknown"
+          ]
+        },
+        "outcome_type": {
+          "enum": [
+            "functional_failure",
+            "derating",
+            "protection_stop",
+            "degradation_threshold",
+            "planned_termination",
+            "administrative_end",
+            "test_system_interruption",
+            "repair_or_replacement",
+            "other",
+            "unknown"
+          ]
+        },
+        "failure_mode": {
+          "enum": [
+            "mechanical_fatigue",
+            "gear_or_bearing",
+            "thermal",
+            "electrical",
+            "transmission",
+            "tendon_or_cable",
+            "sensor_or_calibration",
+            "controller_or_communication",
+            "environmental",
+            "test_system",
+            "other",
+            "not_applicable",
+            "unknown"
+          ]
+        },
+        "time_value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "time_unit": {
+          "enum": [
+            "seconds",
+            "minutes",
+            "hours",
+            "cycles",
+            "distance_m",
+            "work_j",
+            "unknown"
+          ]
+        },
+        "time_interval": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "number",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "exposure": {
+          "$ref": "#/$defs/exposure"
+        },
+        "event_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "detection_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_trace_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "repair_reentry_policy": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "observation_state": {
+                "const": "interval_censored"
+              }
+            },
+            "required": [
+              "observation_state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "time_interval": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "observation_state": {
+                "enum": [
+                  "right_censored",
+                  "left_censored",
+                  "unknown"
+                ]
+              }
+            },
+            "required": [
+              "observation_state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "outcome_type": {
+                "enum": [
+                  "planned_termination",
+                  "administrative_end",
+                  "test_system_interruption",
+                  "other",
+                  "unknown",
+                  "protection_stop",
+                  "derating"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "pre_post": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "specimen_id",
+        "block_id",
+        "stage",
+        "condition_digest",
+        "measurements",
+        "calibration_refs",
+        "raw_trace_refs",
+        "missingness_reason"
+      ],
+      "properties": {
+        "specimen_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "block_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stage": {
+          "enum": [
+            "initial",
+            "intermediate",
+            "final",
+            "post_service",
+            "post_repair"
+          ]
+        },
+        "condition_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "measurements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/measurement"
+          }
+        },
+        "calibration_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "raw_trace_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "missingness_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "analysis_plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "time_to_first_event",
+        "competing_risks",
+        "recurrent_events",
+        "degradation",
+        "independent_unit_rule",
+        "censoring_assumptions",
+        "exclusion_rule"
+      ],
+      "properties": {
+        "time_to_first_event": {
+          "enum": [
+            "kaplan_meier_product_limit",
+            "parametric_model",
+            "not_estimated",
+            "other"
+          ]
+        },
+        "competing_risks": {
+          "enum": [
+            "aalen_johansen_cumulative_incidence",
+            "cause_specific_hazards",
+            "not_estimated",
+            "other"
+          ]
+        },
+        "recurrent_events": {
+          "enum": [
+            "specimen_clustered_model",
+            "separate_event_history_only",
+            "not_estimated",
+            "other"
+          ]
+        },
+        "degradation": {
+          "enum": [
+            "paired_pre_post",
+            "longitudinal_model",
+            "not_estimated",
+            "other"
+          ]
+        },
+        "independent_unit_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "censoring_assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exclusion_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "restricted_mean_horizon": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "confidence_level": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference",
+        "source_class",
+        "method",
+        "date",
+        "independence"
+      ],
+      "properties": {
+        "reference": {
+          "type": "string",
+          "format": "uri"
+        },
+        "source_class": {
+          "enum": [
+            "standard",
+            "paper",
+            "raw_source_data",
+            "independent_lab",
+            "manufacturer",
+            "other"
+          ]
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "independence": {
+          "enum": [
+            "independent",
+            "source_author",
+            "vendor",
+            "not_assessed",
+            "unknown"
+          ]
+        }
+      }
+    }
+  }
+}
