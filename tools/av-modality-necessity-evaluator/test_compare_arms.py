@@ -27,8 +27,7 @@ def build_run(workload, truth, arm, run_id):
             if modality in allowed and isinstance(observation, dict):
                 used.append(modality)
                 refs.append(observation["observation_ref"])
-        necessary = comparator.evaluator.NECESSARY_MODALITIES.get(label["necessity"], set()) if hasattr(comparator, "evaluator") else set()
-        # For this synthetic reference, import the evaluator's declared necessity table.
+        # Use the same frozen necessity table as the production evaluator.
         import evaluate
         necessary = evaluate.NECESSARY_MODALITIES.get(label["necessity"], set())
         can_answer = necessary <= set(used)
