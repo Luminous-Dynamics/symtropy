@@ -1,0 +1,843 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:power-restoration-run-receipt:0.1.0",
+  "title": "End-to-end Power Restoration Benchmark Run Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt",
+    "receiptSha256",
+    "collectorAttestation"
+  ],
+  "properties": {
+    "receiptSha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "collectorAttestation": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/attestation"
+        }
+      ]
+    },
+    "receipt": {
+      "$ref": "#/$defs/receipt"
+    }
+  },
+  "$defs": {
+    "nonEmpty": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "componentId",
+        "revision",
+        "sourceCommit",
+        "configurationSha256"
+      ],
+      "properties": {
+        "componentId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "revision": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "sourceCommit": {
+          "$ref": "#/$defs/commit"
+        },
+        "configurationSha256": {
+          "$ref": "#/$defs/sha"
+        }
+      }
+    },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "amount",
+        "currency"
+      ],
+      "properties": {
+        "amount": {
+          "type": "number",
+          "minimum": 0
+        },
+        "currency": {
+          "$ref": "#/$defs/nonEmpty"
+        }
+      }
+    },
+    "planner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plannerId",
+        "plannerRevision",
+        "sourceCommit",
+        "configurationSha256",
+        "promptSha256",
+        "modelId",
+        "modelRevision",
+        "provider",
+        "quantization"
+      ],
+      "properties": {
+        "plannerId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "plannerRevision": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "sourceCommit": {
+          "$ref": "#/$defs/commit"
+        },
+        "configurationSha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "promptSha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "modelId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "modelRevision": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "provider": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "quantization": {
+          "$ref": "#/$defs/nonEmpty"
+        }
+      }
+    },
+    "hardware": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operatingSystem",
+        "architecture",
+        "cpuModel",
+        "cpuCores",
+        "ramBytes",
+        "gpuModel",
+        "gpuVramBytes",
+        "runtimeName",
+        "runtimeVersion",
+        "containerImageSha256"
+      ],
+      "properties": {
+        "operatingSystem": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "architecture": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "cpuModel": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "cpuCores": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ramBytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "gpuModel": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "gpuVramBytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "runtimeName": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "runtimeVersion": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "containerImageSha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "runId",
+        "runStatus",
+        "maturity",
+        "caseRef",
+        "caseSha256",
+        "pairedScenarioId",
+        "replicateId",
+        "randomSeed",
+        "planner",
+        "adapter",
+        "transitionEngine",
+        "independentValidator",
+        "independentScorer",
+        "hardware",
+        "budget",
+        "measuredUsage",
+        "decisionEpochs",
+        "attempts",
+        "declaredAttemptCount",
+        "attemptLogComplete",
+        "validatorReceipts",
+        "transitionReceipts",
+        "trajectorySha256",
+        "scoringReceipt"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "0.1.0"
+        },
+        "runId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "runStatus": {
+          "enum": [
+            "completed",
+            "horizon_reached",
+            "aborted",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "maturity": {
+          "enum": [
+            "synthetic_fixture",
+            "historical_replay",
+            "field_observed"
+          ]
+        },
+        "caseRef": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "caseSha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "pairedScenarioId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "replicateId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "randomSeed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "planner": {
+          "$ref": "#/$defs/planner"
+        },
+        "adapter": {
+          "$ref": "#/$defs/component"
+        },
+        "transitionEngine": {
+          "$ref": "#/$defs/component"
+        },
+        "independentValidator": {
+          "$ref": "#/$defs/component"
+        },
+        "independentScorer": {
+          "$ref": "#/$defs/component"
+        },
+        "hardware": {
+          "$ref": "#/$defs/hardware"
+        },
+        "budget": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "wallClockLimitMs",
+            "decisionLimitMs",
+            "tokenLimit",
+            "toolCallLimit",
+            "solverTimeLimitMs",
+            "solverRelativeGapLimit",
+            "apiCostLimit"
+          ],
+          "properties": {
+            "wallClockLimitMs": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "decisionLimitMs": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "tokenLimit": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            },
+            "toolCallLimit": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "solverTimeLimitMs": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            },
+            "solverRelativeGapLimit": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1
+            },
+            "apiCostLimit": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/cost"
+                }
+              ]
+            }
+          }
+        },
+        "measuredUsage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "wallClockMs",
+            "cpuTimeMs",
+            "gpuTimeMs",
+            "inputTokens",
+            "outputTokens",
+            "toolCalls",
+            "solverCalls",
+            "apiRetries",
+            "timeoutCount",
+            "humanOverrideCount",
+            "apiCost"
+          ],
+          "properties": {
+            "wallClockMs": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "cpuTimeMs": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "gpuTimeMs": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "inputTokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "outputTokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "toolCalls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "solverCalls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "apiRetries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "timeoutCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "humanOverrideCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "apiCost": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/cost"
+                }
+              ]
+            }
+          }
+        },
+        "decisionEpochs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "decisionStep",
+              "observationRef",
+              "observationSha256",
+              "observationStep",
+              "observationTimeMs",
+              "decisionTimeMs",
+              "proposalRef",
+              "proposalSha256"
+            ],
+            "properties": {
+              "decisionStep": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "observationRef": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "observationSha256": {
+                "$ref": "#/$defs/sha"
+              },
+              "observationStep": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "observationTimeMs": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "decisionTimeMs": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "proposalRef": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "proposalSha256": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "attempts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "attemptId",
+              "sequence",
+              "decisionStep",
+              "attemptKind",
+              "outcome",
+              "actionId",
+              "proposalSha256",
+              "validatorReceiptId",
+              "transitionReceiptId",
+              "latencyMs",
+              "inputTokens",
+              "outputTokens",
+              "cost",
+              "failureRef"
+            ],
+            "properties": {
+              "attemptId": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "sequence": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "decisionStep": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "attemptKind": {
+                "enum": [
+                  "planner_call",
+                  "solver_call",
+                  "tool_call",
+                  "action_submission",
+                  "human_override"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "succeeded",
+                  "malformed",
+                  "timed_out",
+                  "rejected",
+                  "applied",
+                  "execution_failed",
+                  "human_override",
+                  "abstained"
+                ]
+              },
+              "actionId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "proposalSha256": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "validatorReceiptId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "transitionReceiptId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "latencyMs": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "inputTokens": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "outputTokens": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "cost": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/$defs/cost"
+                  }
+                ]
+              },
+              "failureRef": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "declaredAttemptCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attemptLogComplete": {
+          "type": "boolean"
+        },
+        "validatorReceipts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "receiptId",
+              "decisionStep",
+              "proposalSha256",
+              "status",
+              "validator",
+              "rejectedActionIds",
+              "receiptSha256"
+            ],
+            "properties": {
+              "receiptId": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "decisionStep": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "proposalSha256": {
+                "$ref": "#/$defs/sha"
+              },
+              "status": {
+                "enum": [
+                  "accepted",
+                  "rejected",
+                  "inconclusive"
+                ]
+              },
+              "validator": {
+                "$ref": "#/$defs/component"
+              },
+              "rejectedActionIds": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "#/$defs/nonEmpty"
+                }
+              },
+              "receiptSha256": {
+                "$ref": "#/$defs/sha"
+              }
+            }
+          }
+        },
+        "transitionReceipts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "receiptId",
+              "decisionStep",
+              "proposalSha256",
+              "status",
+              "engine",
+              "stateBeforeSha256",
+              "stateAfterSha256",
+              "appliedActionIds",
+              "failedActionIds",
+              "receiptSha256"
+            ],
+            "properties": {
+              "receiptId": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "decisionStep": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "proposalSha256": {
+                "$ref": "#/$defs/sha"
+              },
+              "status": {
+                "enum": [
+                  "applied",
+                  "failed",
+                  "rejected"
+                ]
+              },
+              "engine": {
+                "$ref": "#/$defs/component"
+              },
+              "stateBeforeSha256": {
+                "$ref": "#/$defs/sha"
+              },
+              "stateAfterSha256": {
+                "$ref": "#/$defs/sha"
+              },
+              "appliedActionIds": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "#/$defs/nonEmpty"
+                }
+              },
+              "failedActionIds": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "#/$defs/nonEmpty"
+                }
+              },
+              "receiptSha256": {
+                "$ref": "#/$defs/sha"
+              }
+            }
+          }
+        },
+        "trajectorySha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "scoringReceipt": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/scoringReceipt"
+            }
+          ]
+        }
+      }
+    },
+    "scoringReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scorer",
+        "caseSha256",
+        "trajectorySha256",
+        "scoreDefinitionRef",
+        "outputSha256",
+        "acceptanceStatus",
+        "acceptanceRef",
+        "acceptanceSha256",
+        "metrics"
+      ],
+      "properties": {
+        "scorer": {
+          "$ref": "#/$defs/component"
+        },
+        "caseSha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "trajectorySha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "scoreDefinitionRef": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "outputSha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "acceptanceStatus": {
+          "enum": [
+            "accepted",
+            "pending",
+            "rejected",
+            "inconclusive"
+          ]
+        },
+        "acceptanceRef": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "acceptanceSha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "metrics": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "metricId",
+              "unit",
+              "value",
+              "beneficiaryScope",
+              "cohortId"
+            ],
+            "properties": {
+              "metricId": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "unit": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "value": {
+                "type": "number"
+              },
+              "beneficiaryScope": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "cohortId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signerRef",
+        "signedReceiptSha256",
+        "verificationStatus",
+        "verificationReceiptRef",
+        "verificationReceiptSha256"
+      ],
+      "properties": {
+        "signerRef": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "signedReceiptSha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "verificationStatus": {
+          "enum": [
+            "verified",
+            "pending",
+            "rejected",
+            "not_provided"
+          ]
+        },
+        "verificationReceiptRef": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "verificationReceiptSha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}
