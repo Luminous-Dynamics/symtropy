@@ -1056,11 +1056,57 @@ mod tests {
     fn required_dependency_binding_cannot_be_omitted_from_snapshot() {
         let (ledger, _, station_event_id) = setup_ledger();
         let mut request = make_request(&ledger, station_event_id);
-        request.evidence_nodes.sensor_configuration = "not-in-graph".into();
         let graph = make_graph(&request, &ledger);
+        request.evidence_nodes.sensor_configuration = "not-in-graph".into();
         assert!(matches!(
             check_integrated_dispatch_readiness(&ledger, &graph, &request),
             Err(IntegratedDispatchReadinessFailure::MissingEvidenceNode(_))
         ));
     }
+
+    #[test]
+    fn current_receipt_expires_at_the_earliest_qualification_boundary() {
+        let (ledger, _, station_event_id) = setup_ledger();
+        let request = make_request(&ledger, station_event_id);
+        let graph = make_graph(&request, &ledger);
+        let receipt = check_integrated_dispatch_readiness(&ledger, &graph, &request).unwrap();
+        assert_eq!(receipt.valid_until_tick, 6_000);
+        assert_eq!(
+            verify_integrated_dispatch_readiness_receipt_current(
+                &ledger,
+                &graph,
+                &request,
+                &receipt,
+                6_000,
+            ),
+            Err(IntegratedDispatchReadinessFailure::IntegratedReceiptExpired)
+        );
+    }
+
+    #[test]
+    fn a_snapshot_with_the_wrong_subject_context_cannot_authorize_dispatch() {
+        let (ledger, _, station_event_id) = setup_ledger();
+        let mut request = make_request(&ledger, station_event_id);
+        let graph = make_graph(&request, &ledger);
+        request.evidence_snapshot.subject_version_sha256 = digest('0');
+        assert_eq!(
+            check_integrated_dispatch_readiness(&ledger, &graph, &request),
+            Err(IntegratedDispatchReadinessFailure::EvidenceSnapshotSubjectMismatch)
+        );
+    }
+
+    #[test]
+    fn missing_stopping_profile_receipt_cannot_be_replaced_by_clear_occupancy() {
+        let (ledger, _, station_event_id) = setup_ledger();
+        let mut request = make_request(&ledger, station_event_id);
+        request.stopping_dynamics.qualification_receipt_sha256 = "bad".into();
+        let graph = make_graph(&request, &ledger);
+        assert!(matches!(
+            check_integrated_dispatch_readiness(&ledger, &graph, &request),
+            Err(IntegratedDispatchReadinessFailure::StoppingQualification(
+                StoppingReachabilityError::InvalidQualificationReceiptDigest
+            ))
+        ));
+    }
+
 }
