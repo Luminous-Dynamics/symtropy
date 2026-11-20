@@ -4,12 +4,12 @@ on:
   pull_request:
     branches: ["main"]
     paths:
-      - "research/geofusion-thermal-transient-oracle/**"
+      - "research/geofusion-thermal-transient-oracle-v0.1/**"
       - ".github/workflows/geofusion-thermal-transient-oracle.yml"
   push:
     branches: ["main"]
     paths:
-      - "research/geofusion-thermal-transient-oracle/**"
+      - "research/geofusion-thermal-transient-oracle-v0.1/**"
       - ".github/workflows/geofusion-thermal-transient-oracle.yml"
   workflow_dispatch:
 
@@ -32,8 +32,8 @@ jobs:
           toolchain: 1.96.0
           components: clippy, rustfmt
       - name: Check format
-        run: cargo fmt --manifest-path research/geofusion-thermal-transient-oracle/Cargo.toml -- --check
+        run: cargo fmt --manifest-path research/geofusion-thermal-transient-oracle-v0.1/Cargo.toml -- --check
       - name: Test analytic known answers and metamorphic properties
-        run: cargo test --manifest-path research/geofusion-thermal-transient-oracle/Cargo.toml --all-targets
+        run: cargo test --manifest-path research/geofusion-thermal-transient-oracle-v0.1/Cargo.toml --all-targets
       - name: Strict Clippy
-        run: cargo clippy --manifest-path research/geofusion-thermal-transient-oracle/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --manifest-path research/geofusion-thermal-transient-oracle-v0.1/Cargo.toml --all-targets -- -D warnings
