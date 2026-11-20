@@ -84,6 +84,15 @@ jobs:
           jq -e '.episodes[] | select(.episode_id == "mod-005-common-cause-redundancy") |
             .video_sufficient == false and .audio_sufficient == false and .joint_sufficient == true' research/av-modality-necessity-v0/fixtures/expected/known-answer-v1.json
 
+      - name: Conflict, common-cause and temporal association require paired evidence
+        run: |
+          for id in mod-004-audio-video-conflict mod-005-common-cause-redundancy mod-007-temporal-misalignment; do
+            jq -e --arg id "$id" '.episodes[] | select(.episode_id == $id) |
+              .video_sufficient == false and .audio_sufficient == false and .joint_sufficient == true' research/av-modality-necessity-v0/fixtures/evaluator-only/modality-truth-v1.json
+            jq -e --arg id "$id" '.episodes[] | select(.episode_id == $id) |
+              .video_sufficient == false and .audio_sufficient == false and .joint_sufficient == true' research/av-modality-necessity-v0/fixtures/expected/known-answer-v1.json
+          done
+
       - name: Missing audio remains payload-free
         run: |
           jq -e '.episodes[] | select(.episode_id == "mod-008-missing-audio") |
