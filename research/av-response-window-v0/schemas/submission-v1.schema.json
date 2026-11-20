@@ -11,7 +11,9 @@
     "run_id",
     "model_revision",
     "runtime_revision",
-    "responses"
+    "responses",
+    "timing_evidence_mode",
+    "clock_relation_ref"
   ],
   "properties": {
     "schema_version": {
@@ -51,7 +53,10 @@
           "assigned_trigger_ref",
           "response_start_tick",
           "content",
-          "response_end_tick"
+          "response_end_tick",
+          "playback_start_event_ref",
+          "playback_end_event_ref",
+          "playback_end_kind"
         ],
         "properties": {
           "response_id": {
@@ -84,9 +89,82 @@
           "response_end_tick": {
             "type": "integer",
             "minimum": 0
+          },
+          "playback_start_event_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "playback_end_event_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "playback_end_kind": {
+            "enum": [
+              "playback_ended",
+              "output_stopped"
+            ]
+          },
+          "output_stop_request_event_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "controller_permission_event_ref": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional controller permission receipt; this is intent only and is never scored as audible playback."
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "playback_end_kind": {
+                  "const": "output_stopped"
+                }
+              },
+              "required": [
+                "playback_end_kind"
+              ]
+            },
+            "then": {
+              "required": [
+                "output_stop_request_event_ref"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "timing_evidence_mode": {
+      "enum": [
+        "synthetic_reference",
+        "renderer_qualified"
+      ]
+    },
+    "clock_relation_ref": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "timing_evidence_mode": {
+            "const": "renderer_qualified"
+          }
+        },
+        "required": [
+          "timing_evidence_mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "clock_relation_ref": {
+            "pattern": "^(sha256:)?[a-f0-9]{64}$"
           }
         }
       }
     }
-  }
+  ]
 }
