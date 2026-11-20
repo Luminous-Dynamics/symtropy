@@ -131,3 +131,37 @@ The Linux differential benchmark now has two separate scaling sections:
 - ifc_ids_preflight_scaling: prebuilt typed IFC/IDS source inputs are cloned before timing, then the preflight compiler is measured at 100, 1,000 and 10,000 in-scope entities. Report p50/p95/p99 and entities/second. This isolates preflight validation from source fixture construction.
 
 Neither lane includes cryptographic signature verification, canonical digest recomputation, actual IFC STEP parsing, IDS XML interpretation, external geometry/clash engine runtime, storage I/O or network consensus. The synthetic receipts are accepted as preverified inputs solely to measure the reducer/compiler layer; their digest strings are not signed proof. Results are one-host engineering baselines, never robot-safety or field-productivity evidence.
+
+
+## Jerk-limited stopping reachability v0.1
+
+The typed Rust API \`stopping_reachability::calculate_stopping_reachability\` turns a frozen, externally qualified dynamics profile into a longitudinal stop extension.
+
+The profile binds:
+- robot/brake configuration and operating-condition digests;
+- independent qualification receipt and dynamics profile;
+- maximum qualified speed;
+- maximum detection-to-brake latency;
+- maximum positive acceleration during that latency;
+- minimum guaranteed braking jerk;
+- minimum guaranteed *net* deceleration after the jerk ramp;
+- an additional externally justified distance guard.
+
+The evaluator includes travel and possible acceleration during the response latency. It then evaluates either a triangular jerk-limited stop or a jerk ramp followed by a constant minimum-deceleration plateau. It returns phase distances, time, the raw stopping distance, the qualified guard, and outward-rounded integer-mm / millisecond bounds.
+
+### What the profile owner must prove
+
+The lower net-deceleration and jerk bounds must hold over the exact domain bound by the operating-condition digest: robot serial/build, brake and tire state, tool/payload mass and centre of gravity, speed range, surface material/condition, uphill/downhill grade, temperature, battery state, and relevant wear/maintenance limits. The maximum latency must be measured end-to-end from the declared trigger point until the guaranteed braking profile begins. A vendor nominal deceleration or an untested datasheet value is not sufficient.
+
+The kernel does not estimate braking performance, grade, traction, load or sensor latency. It rejects speed requests outside the profile's qualified range. The returned longitudinal distance is not itself a 3D collision envelope: the caller must map it onto the path/tangent and sweep the complete articulated robot, tools and payload over the time interval. Lateral slip, yaw, articulation, rollover, wheel lock, brake faults, terrain deformation and multi-axis recovery are not modelled in v0.1.
+
+The computation uses floating-point formulas and adds explicit 1 mm / 1 ms numeric guards after outward integer rounding. These guards are not a formal directed-rounding proof or a substitute for a physical safety margin. This module is a research oracle, not a safety-rated stop function, actuation permit or construction-site safety qualification.
+
+### Verification corpus
+
+Unit tests cover the jerk-ramp-plus-plateau formula, triangular braking, motion during response latency, speed-domain refusal, malformed evidence digests, nonphysical bounds, outward rounding, 54 generated analytic-vs-time-step braking cases and monotonicity under speed/latency/acceleration/deceleration/jerk changes. The Linux workflow also runs a standalone microbenchmark reporting p50/p95/p99 batch latency and median ns/call. Physical validation must use independent tracking and trigger/brake timing instrumentation in an enclosed test cell before any guarded site trial.
+
+
+The end-to-end qualification plan, industry context and preregistered physical benchmark targets are in docs/stopping-reachability-qualification-benchmark-v0.1.md. The JSON Schema in schema/stopping-dynamics-qualification-v0.1.schema.json defines the dynamics qualification profile; schema/hazard-stopping-budget-v0.1.schema.json defines the paired sensor-range and margin input. The examples are synthetic digest placeholders, not physical evidence. CI validates both Draft 2020-12 schemas and fixtures.
+
+The current test corpus includes an independent time-step integration oracle across 54 deterministic speed/deceleration/jerk combinations, monotonicity controls, and end-to-end detection-range budget pass/fail cases. The benchmark binary measures analytic kernel p50/p95/p99 and median per-call cost; it does not establish physical performance or SOTA.

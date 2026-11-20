@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-hazard-stopping-budget-v0.1.json",
+  "title": "Construction Hazard Detection-to-Stop Budget v0.1",
+  "description": "Input record for comparing independently qualified minimum obstacle detection range against a qualified stopping bound and explicit margins. A passing scalar budget is not safety certification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "stopping_profile",
+    "speed_upper_mm_s",
+    "hazard_detection",
+    "margins"
+  ],
+  "properties": {
+    "stopping_profile": {
+      "$ref": "#/$defs/stopping_dynamics"
+    },
+    "speed_upper_mm_s": {
+      "type": "number",
+      "minimum": 0
+    },
+    "hazard_detection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sensor_profile_sha256",
+        "detection_qualification_receipt_sha256",
+        "target_condition_sha256",
+        "scenario_context_sha256",
+        "maximum_qualified_approach_speed_mm_s",
+        "minimum_qualified_detection_distance_mm"
+      ],
+      "properties": {
+        "sensor_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "detection_qualification_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "target_condition_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "minimum_qualified_detection_distance_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "scenario_context_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "maximum_qualified_approach_speed_mm_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "margins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "localization_uncertainty_mm",
+        "frame_registration_uncertainty_mm",
+        "body_geometry_uncertainty_mm",
+        "site_policy_clearance_mm"
+      ],
+      "properties": {
+        "localization_uncertainty_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "frame_registration_uncertainty_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "body_geometry_uncertainty_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "site_policy_clearance_mm": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "stopping_dynamics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_sha256",
+        "qualification_receipt_sha256",
+        "robot_brake_configuration_sha256",
+        "operating_condition_sha256",
+        "scenario_context_sha256",
+        "maximum_qualified_speed_mm_s",
+        "maximum_detection_to_brake_latency_ms",
+        "maximum_positive_acceleration_mm_s2",
+        "minimum_net_deceleration_mm_s2",
+        "minimum_braking_jerk_mm_s3",
+        "additional_distance_guard_mm"
+      ],
+      "properties": {
+        "profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "qualification_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "robot_brake_configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "operating_condition_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "maximum_qualified_speed_mm_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximum_detection_to_brake_latency_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximum_positive_acceleration_mm_s2": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimum_net_deceleration_mm_s2": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "minimum_braking_jerk_mm_s3": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "additional_distance_guard_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "scenario_context_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}

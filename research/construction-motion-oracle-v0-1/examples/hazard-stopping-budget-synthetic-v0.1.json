@@ -1,0 +1,30 @@
+{
+  "stopping_profile": {
+    "profile_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "qualification_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "robot_brake_configuration_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "operating_condition_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "maximum_qualified_speed_mm_s": 2000,
+    "maximum_detection_to_brake_latency_ms": 100,
+    "maximum_positive_acceleration_mm_s2": 500,
+    "minimum_net_deceleration_mm_s2": 1000,
+    "minimum_braking_jerk_mm_s3": 1000,
+    "additional_distance_guard_mm": 5,
+    "scenario_context_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+  },
+  "speed_upper_mm_s": 1000,
+  "hazard_detection": {
+    "sensor_profile_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "detection_qualification_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "target_condition_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "minimum_qualified_detection_distance_mm": 1300,
+    "scenario_context_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "maximum_qualified_approach_speed_mm_s": 1500
+  },
+  "margins": {
+    "localization_uncertainty_mm": 10,
+    "frame_registration_uncertainty_mm": 20,
+    "body_geometry_uncertainty_mm": 5,
+    "site_policy_clearance_mm": 30
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-stopping-dynamics-qualification-v0.1.json",
+  "title": "Construction Robot Stopping Dynamics Qualification v0.1",
+  "description": "Externally qualified bounds for the research jerk-limited stopping reachability kernel. Digests identify evidence; the caller must verify canonical bytes and signatures.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile_sha256",
+    "qualification_receipt_sha256",
+    "robot_brake_configuration_sha256",
+    "operating_condition_sha256",
+    "scenario_context_sha256",
+    "maximum_qualified_speed_mm_s",
+    "maximum_detection_to_brake_latency_ms",
+    "maximum_positive_acceleration_mm_s2",
+    "minimum_net_deceleration_mm_s2",
+    "minimum_braking_jerk_mm_s3",
+    "additional_distance_guard_mm"
+  ],
+  "properties": {
+    "profile_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "qualification_receipt_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "robot_brake_configuration_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "operating_condition_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "maximum_qualified_speed_mm_s": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "maximum_detection_to_brake_latency_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "maximum_positive_acceleration_mm_s2": {
+      "type": "number",
+      "minimum": 0
+    },
+    "minimum_net_deceleration_mm_s2": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "minimum_braking_jerk_mm_s3": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "additional_distance_guard_mm": {
+      "type": "number",
+      "minimum": 0
+    },
+    "scenario_context_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
