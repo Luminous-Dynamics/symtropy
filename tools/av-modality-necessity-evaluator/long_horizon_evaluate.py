@@ -229,10 +229,13 @@ def evaluate(
         deadline = query.get("response_deadline_tick")
         as_of_tick = prediction.get("evidence_as_of_tick")
         response_tick = prediction.get("response_tick")
-        abstained = prediction.get("abstained") is True
+        declared_decision = prediction.get("decision")
+        abstained = declared_decision == "abstain"
         answer = prediction.get("answer")
         confidence = prediction.get("confidence")
         violations: list[str] = []
+        if declared_decision not in {"answer", "abstain"}:
+            violations.append("invalid_decision")
 
         if isinstance(query_tick, bool) or not isinstance(query_tick, int):
             raise EvaluationError(f"{episode_id}: invalid query_tick")
@@ -392,11 +395,6 @@ def evaluate(
 
         expected_decision = label.get("expected_decision")
         expected_answer = label.get("expected_answer")
-        declared_decision = prediction.get("decision")
-        if declared_decision not in {"answer", "abstain"}:
-            violations.append("invalid_decision")
-        elif declared_decision != ("abstain" if abstained else "answer"):
-            violations.append("decision_abstention_mismatch")
         if expected_decision not in {"answer", "abstain"}:
             raise EvaluationError(f"{episode_id}: unsupported expected_decision")
         count_correct = (
