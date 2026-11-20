@@ -637,24 +637,6 @@ pub fn evaluate_adaptive_policy(
             });
         }
     }
-    if let (Some(current), None) = (&request.current_profile_sha256, current_eligible) {
-        let unresolved = excluded.iter().any(|item| {
-            &item.profile_sha256 == current
-                && matches!(
-                    item.reason,
-                    ExclusionReason::WellPosednessUnknown
-                        | ExclusionReason::ErrorEvidenceUnknown
-                        | ExclusionReason::CostEvidenceUnknown
-                )
-        });
-        if unresolved {
-            return Ok(PolicyDecision::Unknown {
-                reason: UnknownReason::CurrentModelEvidenceUnresolved,
-                excluded,
-            });
-        }
-    }
-
     if let Some(current) = current_eligible {
         if current.error.upper_bound <= request.coarsen_error_tolerance {
             return Ok(PolicyDecision::Selected {
