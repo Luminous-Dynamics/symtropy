@@ -72,8 +72,22 @@ def index_unique(rows: list[dict[str, Any]], key: str) -> dict[str, dict[str, An
     return indexed
 
 
-def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any]:
-    """Score a candidate submission against a public workload and evaluator-only truth."""
+def evaluate(
+    workload: dict[str, Any],
+    truth: dict[str, Any],
+    submission: dict[str, Any],
+    *,
+    permitted_modalities: set[str] | None = None,
+) -> dict[str, Any]:
+    """Score a candidate submission against a public workload and evaluator-only truth.
+
+    permitted_modalities is the experiment's actual input mask, not the
+    modalities the candidate chooses to cite or claim it used.
+    """
+    if permitted_modalities is None:
+        permitted_modalities = set(VALID_MODALITIES)
+    if not permitted_modalities <= VALID_MODALITIES:
+        raise EvaluationError("permitted_modalities contains an unknown modality")
     for label, document in (("workload", workload), ("truth", truth), ("submission", submission)):
         if document.get("schema_version") != SCHEMA_VERSION:
             raise EvaluationError(f"{label}: unsupported schema_version")
@@ -122,9 +136,9 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
 
         # Citations are episode-scoped and must have arrived by the evidence cutoff.
         admitted: dict[str, tuple[str, Any]] = {}
-        if isinstance(video, dict) and isinstance(video.get("observation_ref"), str):
+        if "video" in permitted_modalities and isinstance(video, dict) and isinstance(video.get("observation_ref"), str):
             admitted[video["observation_ref"]] = ("video", availability.get("video_tick"))
-        if isinstance(audio, dict) and isinstance(audio.get("observation_ref"), str):
+        if "audio" in permitted_modalities and isinstance(audio, dict) and isinstance(audio.get("observation_ref"), str):
             admitted[audio["observation_ref"]] = ("audio", availability.get("audio_tick"))
         if any(ref not in admitted for ref in refs):
             violations.append("cited_observation_not_admitted_for_episode")
@@ -197,11 +211,25 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
         if necessity in {"conflict_abstain_or_separate_hypotheses", "no_cross_modal_association"} and pred.get("claimed_cross_modal_association") is True:
             violations.append("cross_modal_association_claimed_under_conflict_or_misalignment")
 
+        cutoff_for_eligibility = pred.get("evidence_as_of_tick")
+        eligible_modalities: set[str] = set()
+        if isinstance(cutoff_for_eligibility, int) and not isinstance(cutoff_for_eligibility, bool):
+            for modality, observation in (("audio", audio), ("video", video)):
+                available_tick = availability.get(f"{modality}_tick")
+                if (
+                    modality in permitted_modalities
+                    and isinstance(observation, dict)
+                    and isinstance(available_tick, int)
+                    and not isinstance(available_tick, bool)
+                    and available_tick <= cutoff_for_eligibility
+                ):
+                    eligible_modalities.add(modality)
+
         if necessity == "abstain_audio_missing":
             decision_correct, answer_correct = abstained, False
         else:
             answer_correct = (not abstained) and answer == label.get("truth_answer")
-            missing_required_modality = bool(required) and not required <= used
+            missing_required_modality = bool(required) and not required <= eligible_modalities
             safe_abstention = abstained and (
                 missing_required_modality
                 or necessity in {
