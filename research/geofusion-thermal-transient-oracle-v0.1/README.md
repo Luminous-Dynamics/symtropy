@@ -75,6 +75,19 @@ The policy distinguishes four outcomes: `Accept`, `RejectAndRetry`, `ProcessEven
 
 This is a scheduler decision primitive, not yet an FMI master. It does not generate its own error estimates, infer future events, execute doStep, handle rollback or commit physical transfers. Those remain with the numerical estimator, FMI adapter, #6198 trace owner and #6154 physical ledger. The frozen policy cases are in the JSON fixture; six Rust tests cover the decision boundaries. The importer-integrated work is tracked separately in [#6393 — adaptive master scheduler](https://github.com/Luminous-Dynamics/symtropy/issues/6393).
 
+
+### G. Causal cumulative-energy / integrated-flux handshake
+
+An FMU can expose a cumulative transferred-energy output in joules at each completed communication boundary. The importer derives the interval transfer from two successful observations:
+
+`E_interval = E_cumulative(t1) - E_cumulative(t0)`
+
+A decrease is not treated as negative heat or silently wrapped: it indicates an unobserved reset/restart and is rejected until a new counter epoch is explicitly established. The receiver consumes the declared interval energy and represents it as average power over the same interval for its state update. This method uses no future source sample and preserves the producer's reported interval integral exactly in the accounting record.
+
+For the 120-second sinusoidal case, the cumulative-energy delta is 68,333,461.00984275 J. The receiver's average-power representation is 569,445.5084153563 W and closes its declared interval energy balance with zero residual. The endpoint temperature is 2.9899793275 K versus 3.0292389827 K for continuously varying forcing: **the interface energy is exact as declared, but the receiver's within-window trajectory remains approximate**. This separates conservation from trajectory accuracy rather than conflating them.
+
+The method is causal only after the producer interval completes and only if the producer's cumulative-energy output is itself trustworthy and correctly integrated. It does not prove the source physics or importer honesty. It also does not provide a serialized checkpoint; a scalar cumulative-energy observation is a different evidence object. The FMI/SSP/API port profile is tracked in [#6407 — integrated-flux interface](https://github.com/Luminous-Dynamics/symtropy/issues/6407).
+
 ## Frozen known answers
 
 The machine-readable inputs, decimal reference values, ZOH/interval-average/causal-predictor convergence ladders and adaptive step-policy cases are in `fixtures/known-answers.v0.1.json`. Rust tests verify frozen answers, partition invariance, exact interval-average source energy, limiter diagnostics, first- and second-order convergence, event fences and minimum-step refusal.
