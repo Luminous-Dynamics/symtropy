@@ -29,6 +29,7 @@ The five radial functions are \(b,f,g,h,w\). The gauge \(g(r)=r^2\) is imposed o
 - A radial Noether identity and spin-squared DAE/horizon-pivot research lane, with independent symbolic fixtures.
 - New branch-topology and hyperbolicity qualification protocols: [#6333](https://github.com/Luminous-Dynamics/symtropy/issues/6333) and [#6334](https://github.com/Luminous-Dynamics/symtropy/issues/6334).
 - An exact static Boulware–Deser characteristic-speed specialization with scalar-sector threshold \(\\lambda_{\\rm crit}=\\sqrt2-1\\) and a 301-point static coupling-grid fixture.
+- An executed, dependency-free pseudo-arclength simple-fold control demonstrating continuation through a fold under two distinct arclength metrics.
 
 The finite-\(\alpha\) first-order angular mode obeys
 \[
@@ -76,6 +77,7 @@ with lambda=alpha/r_H^2. A 90-dps numerical grid from lambda=100 through 1,000,0
 | Full-domain residual / existence proof | Not implemented | No interval solution enclosure or radii-polynomial proof claimed |
 | QNM/stability pipeline | Not implemented | No stability or ringdown result claimed |
 | Static BD characteristic sectors | Exact RTW specialization; scalar threshold \(\\lambda_{\\rm crit}=\\sqrt2-1\\); 301-point \(0\\le\\lambda\\le3\) static grid | Static physical-sector signature only; rotating cones and gauge-fixed strong hyperbolicity not yet qualified |
+| Branch continuation | Executed stdlib PALC fold control with two arclength metrics | No nonlinear EGB branch continuation or bifurcation discovery yet |
 
 **Rust execution boundary:** the current development environment used for this branch did not provide rustc, cargo or nix. The Rust tests are authored but not compiled or executed here. Do not read the presence of tests or green parent-commit CI as a pass for this branch.
 
