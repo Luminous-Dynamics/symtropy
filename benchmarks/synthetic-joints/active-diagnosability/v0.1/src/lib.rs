@@ -395,6 +395,10 @@ fn evaluate_pair(
 
         let gap = interval_gap(left_feature.interval, right_feature.interval);
         let normalized_gap = gap / left_feature.separation_scale;
+        if !gap.is_finite() || !normalized_gap.is_finite() {
+            unknown_features += 1;
+            continue;
+        }
         if normalized_gap > 0.0 {
             separating_features.push(left_feature.feature_id.clone());
             maximum_normalized_gap = maximum_normalized_gap.max(normalized_gap);
@@ -804,12 +808,7 @@ mod tests {
     #[test]
     fn diag_008_one_robust_separating_feature_is_sufficient_for_box_disjointness() {
         let mut profile = profile();
-        let healthy = profile.fault_signatures.iter_mut()
-            .find(|signature| signature.hypothesis_id == "healthy")
-            .unwrap();
-        let bearing = profile.fault_signatures.iter_mut()
-            .find(|signature| signature.hypothesis_id == "bearing_wear")
-            .unwrap();
+        let (healthy, bearing) = two_signatures_mut(&mut profile, "healthy", "bearing_wear");
         for feature_id in ["vibration-residual", "torque-residual"] {
             let left = healthy.features.iter_mut().find(|feature| feature.feature_id == feature_id).unwrap();
             let right = bearing.features.iter_mut().find(|feature| feature.feature_id == feature_id).unwrap();
@@ -973,7 +972,23 @@ mod tests {
     }
 
     #[test]
-    fn diag_020_duplicate_constraint_kind_rejects() {
+    fn diag_020_overflowing_interval_gap_is_unknown_not_infinite_separation() {
+        let mut profile = profile();
+        let scenario = scenario("extreme-vibration-only", &["vibration"]);
+        profile.sensor_scenarios = vec![scenario];
+        let (healthy, gearbox) = two_signatures_mut(&mut profile, "healthy", "gearbox_backlash");
+        healthy.features[0].interval = NumericInterval { lower: -f64::MAX, upper: -f64::MAX };
+        gearbox.features[0].interval = NumericInterval { lower: f64::MAX, upper: f64::MAX };
+        let report = evaluate_diagnostic_profile(&profile).unwrap();
+        assert_eq!(
+            pair(&report, "extreme-vibration-only", "healthy", "gearbox_backlash").disposition,
+            PairDisposition::Unknown
+        );
+        assert_eq!(report.worst_case_normalized_separation, None);
+    }
+
+    #[test]
+    fn diag_021_duplicate_constraint_kind_rejects() {
         let mut profile = profile();
         let duplicate_margin = profile.hard_constraint_margins[0].clone();
         profile.hard_constraint_margins.push(duplicate_margin);
