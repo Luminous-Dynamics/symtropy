@@ -1,0 +1,128 @@
+{
+  "schema": "luminous.synthetic_joint_j2_wrist_fixtures",
+  "version": "0.1.0",
+  "evidence_class": "synthetic_analytic_known_answer",
+  "literature_comparators": [
+    {
+      "id": "j2-source-tsai-2026",
+      "architecture": "serial_pitch_yaw_integrated_compliant_transmission",
+      "citation": "Tsai et al., Mechanism and Machine Theory 229 (2026), DOI 10.1016/j.mechmachtheory.2026.106577",
+      "paper_reported": {
+        "mass_kg": 0.59,
+        "dimensions_mm": [59, 83, 102],
+        "volume_cm3": 499.5,
+        "continuous_pitch_torque_Nm": 8.10,
+        "continuous_yaw_torque_Nm": 8.30,
+        "reported_torque_density_Nm_per_kg": 14.0,
+        "control_loop_hz": 1000
+      },
+      "evidence_boundary": "Paper-reported prototype and experiments; verify exact installed mass and torque-density denominator before matched comparison"
+    },
+    {
+      "id": "j2-source-hu-2026",
+      "architecture": "3_prs_ss_parallel_yoshimura_origami_rigid_flexible_hybrid",
+      "citation": "Hu et al., Mechanism and Machine Theory 228 (2026), DOI 10.1016/j.mechmachtheory.2026.106545",
+      "paper_reported": {
+        "parallel_mechanism": "3-PRS/SS",
+        "compliance_structure": "Yoshimura origami",
+        "actuation": "antagonistic tendon and pneumatic"
+      },
+      "unknowns": [
+        "matched continuous output torque",
+        "complete installed mass",
+        "complete installed volume",
+        "source energy and auxiliary power",
+        "comparable task-space stiffness matrix",
+        "independent torque-reference boundary"
+      ],
+      "evidence_boundary": "Architecture and experimental capability described in accessible abstract; quantitative matched metrics not transcribed"
+    },
+    {
+      "id": "j2-source-chu-2014",
+      "architecture": "5R_spherical_parallel_wrist_with_two_linear_motors",
+      "citation": "Chu et al., Mechanism and Machine Theory 78 (2014), DOI 10.1016/j.mechmachtheory.2014.03.002",
+      "paper_reported": {
+        "experimental_torque_density_Nm_per_kg": 7.20
+      },
+      "evidence_boundary": "Older experimental comparator; not yet matched on duty, workspace, mass boundary or instrumentation"
+    }
+  ],
+  "synthetic_fixtures": [
+    {
+      "id": "j2-001",
+      "case": "identity_jacobian",
+      "jacobian": [[1.0, 0.0], [0.0, 1.0]],
+      "expected": {
+        "sigma_max": 1.0,
+        "sigma_min": 1.0,
+        "condition_number": 1.0,
+        "manipulability_area": 1.0
+      }
+    },
+    {
+      "id": "j2-002",
+      "case": "coupled_jacobian_singular_values",
+      "jacobian": [[1.0, 0.0], [0.5, 0.8660254037844386]],
+      "expected": {
+        "sigma_max": 1.224744871391589,
+        "sigma_min": 0.7071067811865475,
+        "condition_number": 1.7320508075688772,
+        "manipulability_area": 0.8660254037844386
+      }
+    },
+    {
+      "id": "j2-003",
+      "case": "virtual_work",
+      "jacobian": [[1.0, 0.0], [0.5, 0.8660254037844386]],
+      "task_wrench": [12.0, -4.0],
+      "joint_velocity": [0.2, -0.1],
+      "expected": {
+        "task_velocity": [0.2, 0.01339745962155614],
+        "joint_effort": [10.0, -3.4641016151377544],
+        "task_power_W": 2.346410161513776,
+        "joint_power_W": 2.3464101615137753
+      }
+    },
+    {
+      "id": "j2-004",
+      "case": "joint_to_task_stiffness",
+      "jacobian": [[1.0, 0.0], [0.5, 0.8660254037844386]],
+      "joint_stiffness_Nm_per_rad": [[100.0, 10.0], [10.0, 60.0]],
+      "expected": {
+        "task_stiffness": [[108.45299461620749, -28.45299461620749], [-28.45299461620749, 80.0]],
+        "stiffness_positive_definite": true
+      }
+    },
+    {
+      "id": "j2-005",
+      "case": "task_space_elastic_energy",
+      "task_displacement": [0.1, -0.2],
+      "task_stiffness": [[108.45299461620749, -28.45299461620749], [-28.45299461620749, 80.0]],
+      "expected": {
+        "stored_energy_J": 2.711324865405188
+      }
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "j2-negative-001",
+      "case": "rank_deficient_jacobian",
+      "expected": "reject_singular_values_and_inverse"
+    },
+    {
+      "id": "j2-negative-002",
+      "case": "condition_number_above_1e8",
+      "expected": "report_condition_but_reject_inverse"
+    },
+    {
+      "id": "j2-negative-003",
+      "case": "non_positive_or_non_symmetric_joint_stiffness",
+      "expected": "reject_task_stiffness_transform"
+    },
+    {
+      "id": "j2-negative-004",
+      "case": "non_finite_wrench_velocity_or_displacement",
+      "expected": "reject_without_extrapolation"
+    }
+  ]
+}

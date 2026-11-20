@@ -1,0 +1,11 @@
+[package]
+name = "synthetic-joint-j2-wrist-reference"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+# Keep this dependency-free research crate independent of the root workspace.
+[workspace]
