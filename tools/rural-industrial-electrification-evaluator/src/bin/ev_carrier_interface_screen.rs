@@ -171,20 +171,39 @@ fn valid_digest(value: &str) -> bool {
 
 fn valid_utc_timestamp(value: &str) -> bool {
     let bytes = value.as_bytes();
-    bytes.len() == 20
-        && bytes[4] == b'-'
-        && bytes[7] == b'-'
-        && bytes[10] == b'T'
-        && bytes[13] == b':'
-        && bytes[16] == b':'
-        && bytes[19] == b'Z'
-        && bytes
-            .iter()
-            .enumerate()
-            .all(|(index, byte)| {
-                matches!(index, 4 | 7 | 10 | 13 | 16 | 19)
-                    || byte.is_ascii_digit()
-            })
+    if bytes.len() != 20
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || bytes[10] != b'T'
+        || bytes[13] != b':'
+        || bytes[16] != b':'
+        || bytes[19] != b'Z'
+        || !bytes.iter().enumerate().all(|(index, byte)| {
+            matches!(index, 4 | 7 | 10 | 13 | 16 | 19) || byte.is_ascii_digit()
+        })
+    {
+        return false;
+    }
+    let parse = |range: std::ops::Range<usize>| {
+        value.get(range).and_then(|part| part.parse::<u32>().ok())
+    };
+    let (Some(year), Some(month), Some(day), Some(hour), Some(minute), Some(second)) = (
+        parse(0..4), parse(5..7), parse(8..10), parse(11..13), parse(14..16), parse(17..19),
+    ) else {
+        return false;
+    };
+    let leap_year = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let days_in_month = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap_year => 29,
+        2 => 28,
+        _ => return false,
+    };
+    (1..=days_in_month).contains(&day)
+        && hour <= 23
+        && minute <= 59
+        && second <= 59
 }
 
 fn validate_input(input: &InterfaceControlInput) -> Result<(), Vec<String>> {
