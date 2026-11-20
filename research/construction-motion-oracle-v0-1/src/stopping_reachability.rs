@@ -292,10 +292,10 @@ mod tests {
         .unwrap();
         assert!((result.latency_travel_distance_mm - 102.5).abs() < 1.0e-9);
         assert!((result.speed_at_brake_onset_mm_s - 1_050.0).abs() < 1.0e-9);
-        assert!((result.braking_distance_mm - 958.3333333333334).abs() < 1.0e-8);
-        assert!((result.physical_stopping_distance_mm - 1_060.8333333333335).abs() < 1.0e-8);
-        assert!((result.guarded_stopping_distance_mm - 1_065.8333333333335).abs() < 1.0e-8);
-        assert_eq!(result.conservative_distance_bound_mm, 1_067);
+        assert!((result.braking_distance_mm - 1_034.5833333333333).abs() < 1.0e-8);
+        assert!((result.physical_stopping_distance_mm - 1_137.0833333333333).abs() < 1.0e-8);
+        assert!((result.guarded_stopping_distance_mm - 1_142.0833333333333).abs() < 1.0e-8);
+        assert_eq!(result.conservative_distance_bound_mm, 1_144);
         assert!(result.conservative_stop_time_bound_ms > 1_100);
     }
 
@@ -398,4 +398,100 @@ mod tests {
                 > 1.0 + result.braking_time_ms
         );
     }
+
+    fn numerical_braking_oracle(
+        initial_speed_mm_s: f64,
+        minimum_deceleration_mm_s2: f64,
+        minimum_jerk_mm_s3: f64,
+    ) -> f64 {
+        let dt = 0.0001;
+        let mut time = 0.0;
+        let mut speed = initial_speed_mm_s;
+        let mut distance = 0.0;
+        let ramp_time = minimum_deceleration_mm_s2 / minimum_jerk_mm_s3;
+        for _ in 0..1_000_000 {
+            if speed <= 0.0 {
+                return distance;
+            }
+            let midpoint = time + dt / 2.0;
+            let deceleration = (minimum_jerk_mm_s3 * midpoint)
+                .min(minimum_deceleration_mm_s2);
+            let next_speed = speed - deceleration * dt;
+            if next_speed <= 0.0 {
+                let final_dt = speed / deceleration;
+                distance += speed * final_dt - 0.5 * deceleration * final_dt * final_dt;
+                return distance;
+            }
+            distance += (speed + next_speed) * dt / 2.0;
+            speed = next_speed;
+            time += dt;
+            if time > ramp_time + initial_speed_mm_s / minimum_deceleration_mm_s2 + 1.0 {
+                break;
+            }
+        }
+        distance
+    }
+
+    #[test]
+    fn analytic_braking_distance_matches_independent_time_step_oracle() {
+        for speed in [1.0, 10.0, 100.0, 500.0, 1_200.0, 1_900.0] {
+            for deceleration in [100.0, 350.0, 1_000.0] {
+                for jerk in [800.0, 4_000.0, 20_000.0] {
+                    let mut q = qualification();
+                    q.maximum_detection_to_brake_latency_ms = 1;
+                    q.maximum_positive_acceleration_mm_s2 = 0.0;
+                    q.minimum_net_deceleration_mm_s2 = deceleration;
+                    q.minimum_braking_jerk_mm_s3 = jerk;
+                    let result = calculate_stopping_reachability(
+                        &q,
+                        StoppingReachabilityRequest {
+                            speed_upper_mm_s: speed,
+                        },
+                    )
+                    .unwrap();
+                    let numerical =
+                        numerical_braking_oracle(speed, deceleration, jerk);
+                    assert!(
+                        (result.braking_distance_mm - numerical).abs() < 0.05,
+                        "speed={speed}, decel={deceleration}, jerk={jerk}: analytic={} numerical={numerical}",
+                        result.braking_distance_mm
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn stopping_distance_is_monotonic_in_speed_latency_acceleration_and_braking_bounds() {
+        let base = qualification();
+        let distance = |q: &StoppingDynamicsQualification, speed| {
+            calculate_stopping_reachability(
+                q,
+                StoppingReachabilityRequest {
+                    speed_upper_mm_s: speed,
+                },
+            )
+            .unwrap()
+            .physical_stopping_distance_mm
+        };
+        let reference = distance(&base, 800.0);
+        assert!(distance(&base, 1_000.0) > reference);
+
+        let mut longer_latency = base.clone();
+        longer_latency.maximum_detection_to_brake_latency_ms = 100;
+        assert!(distance(&longer_latency, 800.0) > reference);
+
+        let mut higher_acceleration = base.clone();
+        higher_acceleration.maximum_positive_acceleration_mm_s2 = 800.0;
+        assert!(distance(&higher_acceleration, 800.0) > reference);
+
+        let mut weaker_brake = base.clone();
+        weaker_brake.minimum_net_deceleration_mm_s2 = 700.0;
+        assert!(distance(&weaker_brake, 800.0) > reference);
+
+        let mut slower_jerk = base;
+        slower_jerk.minimum_braking_jerk_mm_s3 = 500.0;
+        assert!(distance(&slower_jerk, 800.0) > reference);
+    }
+
 }
