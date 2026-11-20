@@ -7,8 +7,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
-    BlendError, BoundaryFluxReport, FaceCompatibility, FaceFluxBlendReport,
-    SCHEMA_VERSION, validate_compatibility,
+    BlendError, BoundaryFluxReport, CandidateQualification, FaceCompatibility,
+    FaceFluxBlendReport, SCHEMA_VERSION, validate_compatibility,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -331,6 +331,7 @@ fn validate_internal_face(
         .zip(face.candidate_weights.iter())
     {
         if receipt.expert_id.trim().is_empty()
+            || receipt.qualification != CandidateQualification::Qualified
             || !is_sha256(&receipt.profile_sha256)
             || !is_sha256(&receipt.model_sha256)
             || !expert_ids.insert(receipt.expert_id.clone())
@@ -406,6 +407,14 @@ fn validate_boundary_face(
     component_count: usize,
     tolerance: f64,
 ) -> Result<(), DomainBalanceError> {
+    if boundary.qualification != CandidateQualification::Qualified
+        || boundary.boundary_condition_id.trim().is_empty()
+        || boundary.outward_normal_id.trim().is_empty()
+    {
+        return Err(DomainBalanceError::InvalidBoundaryReceipt(
+            boundary.boundary_face_id.clone(),
+        ));
+    }
     if !boundary.face_measure.is_finite() || boundary.face_measure <= 0.0 {
         return Err(DomainBalanceError::InvalidBoundaryReceipt(
             boundary.boundary_face_id.clone(),
