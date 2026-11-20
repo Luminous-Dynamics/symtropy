@@ -1,0 +1,663 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:grid-ac-step-certificate:case:0.1.0",
+  "title": "Per-Step Independent AC Operating-Point Certificate Case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "caseId",
+    "caseMaturity",
+    "scenarioRef",
+    "scheduleRef",
+    "networkModel",
+    "evaluationGrid",
+    "plannerSummary",
+    "acStepReceipts",
+    "intertemporalReceipt",
+    "dynamicProtectionReceipt",
+    "claimBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "caseId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "caseMaturity": {
+      "enum": [
+        "synthetic_fixture",
+        "historical_replay",
+        "field_observed"
+      ]
+    },
+    "scenarioRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scheduleRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "networkModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "modelRef",
+        "modelRevision",
+        "parameterSetRef",
+        "parameterSetSha256",
+        "modelClass",
+        "applicabilityRef",
+        "limitPolicyRef"
+      ],
+      "properties": {
+        "modelRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "modelRevision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parameterSetRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parameterSetSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "modelClass": {
+          "enum": [
+            "balanced_positive_sequence",
+            "unbalanced_three_phase",
+            "multi_conductor",
+            "other_declared"
+          ]
+        },
+        "applicabilityRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "limitPolicyRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "evaluationGrid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timeOriginRef",
+        "timeZone",
+        "stepDurationSeconds",
+        "steps"
+      ],
+      "properties": {
+        "timeOriginRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timeZone": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stepDurationSeconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/evaluationStep"
+          }
+        }
+      }
+    },
+    "plannerSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plannerRef",
+        "plannerRevision",
+        "plannerModelRef",
+        "feasibilityModel",
+        "stepResults"
+      ],
+      "properties": {
+        "plannerRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "plannerRevision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "plannerModelRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feasibilityModel": {
+          "enum": [
+            "dc_opf",
+            "linearized_ac",
+            "graph_only",
+            "heuristic_screen",
+            "other"
+          ]
+        },
+        "stepResults": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "stepId",
+              "plannerStatus",
+              "topologyStateSha256",
+              "dispatchStateSha256"
+            ],
+            "properties": {
+              "stepId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "plannerStatus": {
+                "enum": [
+                  "feasible",
+                  "infeasible",
+                  "unknown"
+                ]
+              },
+              "topologyStateSha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "dispatchStateSha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "acStepReceipts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/acStepReceipt"
+      }
+    },
+    "intertemporalReceipt": {
+      "$ref": "#/$defs/intertemporalReceipt"
+    },
+    "dynamicProtectionReceipt": {
+      "$ref": "#/$defs/dynamicReceipt"
+    },
+    "claimBoundary": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "evaluationStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stepId",
+        "stepIndex",
+        "startSeconds",
+        "endSeconds",
+        "boundaryKind",
+        "topologyStateSha256",
+        "dispatchStateSha256"
+      ],
+      "properties": {
+        "stepId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stepIndex": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "startSeconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "endSeconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "boundaryKind": {
+          "enum": [
+            "initial_state",
+            "normal_interval",
+            "post_switch",
+            "post_fault",
+            "post_dispatch_change",
+            "terminal_state"
+          ]
+        },
+        "topologyStateSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "dispatchStateSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "acStepReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receiptId",
+        "stepId",
+        "receiptMaturity",
+        "solverRef",
+        "solverVersion",
+        "solverBuildSha256",
+        "solverConfigurationRef",
+        "inputManifestRef",
+        "inputManifestSha256",
+        "outputArtifactRef",
+        "outputArtifactSha256",
+        "networkModelRef",
+        "parameterSetRef",
+        "topologyStateSha256",
+        "dispatchStateSha256",
+        "modelClass",
+        "solverStatus",
+        "operatingPointStatus",
+        "convergence",
+        "sourceCoverage",
+        "constraintAssessments",
+        "scopeLimitations",
+        "independentAcceptanceRef"
+      ],
+      "properties": {
+        "receiptId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stepId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "receiptMaturity": {
+          "enum": [
+            "synthetic_fixture",
+            "historical_replay",
+            "field_observed"
+          ]
+        },
+        "solverRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "solverVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "solverBuildSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "solverConfigurationRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inputManifestRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inputManifestSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "outputArtifactRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outputArtifactSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "networkModelRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parameterSetRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "topologyStateSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "dispatchStateSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "modelClass": {
+          "enum": [
+            "balanced_positive_sequence",
+            "unbalanced_three_phase",
+            "multi_conductor",
+            "other_declared"
+          ]
+        },
+        "solverStatus": {
+          "enum": [
+            "converged",
+            "infeasible",
+            "not_converged",
+            "error",
+            "not_run"
+          ]
+        },
+        "operatingPointStatus": {
+          "enum": [
+            "feasible",
+            "infeasible",
+            "unknown"
+          ]
+        },
+        "convergence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "iterationCount",
+            "powerBalanceResidual",
+            "residualUnit",
+            "residualTolerance",
+            "convergenceCriteriaRef"
+          ],
+          "properties": {
+            "iterationCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "powerBalanceResidual": {
+              "type": "number",
+              "minimum": 0
+            },
+            "residualUnit": {
+              "type": "string",
+              "minLength": 1
+            },
+            "residualTolerance": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "convergenceCriteriaRef": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "sourceCoverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "energizedIslands",
+            "allIslandsHaveQualifiedSource"
+          ],
+          "properties": {
+            "energizedIslands": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "islandRef",
+                  "slackOrGridFormingSourceRef"
+                ],
+                "properties": {
+                  "islandRef": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "slackOrGridFormingSourceRef": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            },
+            "allIslandsHaveQualifiedSource": {
+              "type": "boolean"
+            }
+          }
+        },
+        "constraintAssessments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/constraintAssessment"
+          }
+        },
+        "scopeLimitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "independentAcceptanceRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "constraintAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "constraintId",
+        "constraintType",
+        "subjectRef",
+        "measuredValue",
+        "unit",
+        "lowerLimit",
+        "upperLimit",
+        "limitEvidenceRef",
+        "margin",
+        "marginUnit",
+        "status"
+      ],
+      "properties": {
+        "constraintId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "constraintType": {
+          "enum": [
+            "bus_voltage",
+            "branch_thermal",
+            "transformer_loading",
+            "generator_pq",
+            "inverter_capability",
+            "power_balance",
+            "island_source",
+            "other_declared"
+          ]
+        },
+        "subjectRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measuredValue": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lowerLimit": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "upperLimit": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "limitEvidenceRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "margin": {
+          "type": "number"
+        },
+        "marginUnit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "not_assessed",
+            "not_applicable"
+          ]
+        }
+      }
+    },
+    "intertemporalReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receiptRef",
+        "receiptSha256",
+        "status",
+        "coveredStepIds",
+        "checks",
+        "modelLimitations"
+      ],
+      "properties": {
+        "receiptRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "receiptSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "status": {
+          "enum": [
+            "accepted",
+            "rejected",
+            "inconclusive",
+            "not_assessed"
+          ]
+        },
+        "coveredStepIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "checkId",
+              "status",
+              "evidenceRef"
+            ],
+            "properties": {
+              "checkId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "enum": [
+                  "pass",
+                  "fail",
+                  "unknown",
+                  "not_applicable"
+                ]
+              },
+              "evidenceRef": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "modelLimitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "dynamicReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receiptRef",
+        "receiptSha256",
+        "status",
+        "coveredStepIds",
+        "qualificationDomains"
+      ],
+      "properties": {
+        "receiptRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "receiptSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "status": {
+          "enum": [
+            "accepted",
+            "rejected",
+            "inconclusive",
+            "not_assessed"
+          ]
+        },
+        "coveredStepIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "qualificationDomains": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "transient_stability",
+              "frequency_response",
+              "voltage_recovery",
+              "inverter_control",
+              "fault_ride_through",
+              "protection_coordination",
+              "switching_transients"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
