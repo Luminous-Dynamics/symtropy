@@ -86,6 +86,7 @@ pub struct TrustedKey {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExpectedAttestationBinding {
+    pub predicate_type: String,
     pub artifact_uri: String,
     pub artifact_sha256: String,
     pub run_id: String,
@@ -286,7 +287,8 @@ pub fn verify_attestation(
     }
 
     let payload = &envelope.payload;
-    if payload.subject_uri != expected.artifact_uri
+    if payload.predicate_type != expected.predicate_type
+        || payload.subject_uri != expected.artifact_uri
         || payload.subject_sha256 != expected.artifact_sha256
         || payload.run_id != expected.run_id
         || payload.case_sha256 != expected.case_sha256
@@ -589,6 +591,7 @@ mod tests {
         ))
         .expect("bundle manifest fixture must parse");
         let expected = ExpectedAttestationBinding {
+            predicate_type: "power-restoration/electrical-validation/v1".to_string(),
             artifact_uri: "bundle://validator/decision-0.json".to_string(),
             artifact_sha256: "4ac0258529aca07bcc9c5c45cf0c23f05eb8176212b6af732f80c9bd8ad5f987".to_string(),
             run_id: "synthetic-run-0001".to_string(),
@@ -675,6 +678,13 @@ mod tests {
         assert!(verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err());
         expected.signer_role = SignerRole::ElectricalValidator;
         expected.case_sha256 = "c".repeat(64);
+        assert!(verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err());
+    }
+
+    #[test]
+    fn wrong_predicate_type_is_rejected_even_with_a_trusted_signer() {
+        let (trust, envelope, mut expected, _) = fixtures();
+        expected.predicate_type = "power-restoration/service-scoring/v1".to_string();
         assert!(verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err());
     }
 
