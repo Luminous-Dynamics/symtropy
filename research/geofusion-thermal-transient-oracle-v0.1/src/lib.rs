@@ -435,6 +435,42 @@ impl ThermalModel {
         Ok(theta)
     }
 
+    /// Cumulative source energy E(t) for the declared sinusoidal source, initialized at t=0.
+    ///
+    /// E(t) = Q_mean * t + A/omega * (1 - cos(omega*t)).
+    /// The half-angle identity 1-cos(x)=2 sin²(x/2) avoids cancellation
+    /// for short intervals near t=0. This is the producer-side quantity
+    /// from which a master can derive a completed interval delta.
+    pub fn cumulative_sinusoidal_source_energy_j(
+        self,
+        input: SinusoidalInput,
+        time_s: f64,
+    ) -> Result<f64, ModelError> {
+        self.validate_sinusoid(input)?;
+        if !time_s.is_finite() {
+            return Err(ModelError::NonFiniteParameter);
+        }
+        if time_s < 0.0 {
+            return Err(ModelError::NegativeStartTime);
+        }
+        let phase = input.angular_frequency_rad_per_s * time_s;
+        if !phase.is_finite() {
+            return Err(ModelError::NumericalOverflow);
+        }
+        let half_sine = (phase * 0.5).sin();
+        let energy = input.mean_power_w * time_s
+            + (2.0 * input.amplitude_w / input.angular_frequency_rad_per_s)
+                * half_sine
+                * half_sine;
+        if !energy.is_finite() {
+            return Err(ModelError::NumericalOverflow);
+        }
+        if energy < 0.0 {
+            return Err(ModelError::NegativeCumulativeEnergy);
+        }
+        Ok(energy)
+    }
+
     /// Exact interval-integrated balance for a continuous sinusoidal source.
     ///
     /// The solution is analytic; the source is not approximated by a sampled
@@ -1049,6 +1085,67 @@ mod tests {
             cumulative_energy_delta_j(0.0, f64::INFINITY),
             Err(ModelError::NonFiniteParameter)
         );
+    }
+
+    #[test]
+    fn cumulative_sinusoidal_source_energy_deltas_match_exact_interval_integrals() {
+        let model = model();
+        let input = SinusoidalInput {
+            mean_power_w: 500_000.0,
+            amplitude_w: 100_000.0,
+            angular_frequency_rad_per_s: 2.0 * PI / 400.0,
+            initial_theta_k: 2.0,
+        };
+        let points = [0.0, 1.0e-9, 30.0, 120.0, 400.0, 1000.0];
+        let mut previous = 0.0;
+        for time in points {
+            let current = model.cumulative_sinusoidal_source_energy_j(input, time).unwrap();
+            assert!(current >= previous, "cumulative source energy must be monotone");
+            if time > 0.0 {
+                let delta = cumulative_energy_delta_j(previous, current).unwrap();
+                let interval_start = points
+                    .iter()
+                    .copied()
+                    .take_while(|point| *point < time)
+                    .last()
+                    .unwrap_or(0.0);
+                let exact = model.sinusoidal_interval(input, interval_start, time).unwrap();
+                close(delta, exact.energy_input_j, 2.0e-6);
+            }
+            previous = current;
+        }
+        assert_eq!(
+            model.cumulative_sinusoidal_source_energy_j(input, -1.0),
+            Err(ModelError::NegativeStartTime)
+        );
+    }
+
+    #[test]
+    fn cumulative_source_delta_drives_the_integrated_flux_receiver_without_future_samples() {
+        let model = model();
+        let input = SinusoidalInput {
+            mean_power_w: 500_000.0,
+            amplitude_w: 100_000.0,
+            angular_frequency_rad_per_s: 2.0 * PI / 400.0,
+            initial_theta_k: 2.0,
+        };
+        let t0 = 30.0;
+        let t1 = 120.0;
+        // The importer receives these only after the respective producer steps
+        // have completed; it derives interval energy from committed outputs.
+        let source_e0 = model.cumulative_sinusoidal_source_energy_j(input, t0).unwrap();
+        let source_e1 = model.cumulative_sinusoidal_source_energy_j(input, t1).unwrap();
+        let interval_energy = cumulative_energy_delta_j(source_e0, source_e1).unwrap();
+        let receiver_theta_start = model.sinusoidal_theta(input, t0).unwrap();
+        let exchange = model
+            .integrated_flux_exchange(receiver_theta_start, interval_energy, t0, t1)
+            .unwrap();
+        let oracle = model.sinusoidal_interval(input, t0, t1).unwrap();
+
+        close(interval_energy, oracle.energy_input_j, 2.0e-6);
+        assert_eq!(exchange.energy_input_j, interval_energy);
+        close(exchange.energy_service_j, oracle.energy_service_j, 1.0e-6);
+        close(exchange.residual_j, 0.0, 3.0e-7);
     }
 
     #[test]
