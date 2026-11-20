@@ -37,7 +37,6 @@ pub struct ServiceFixture {
     pub client_configuration_revision: String,
     pub start_tick: u64,
     pub end_tick: u64,
-    pub required_accepted_service: u64,
     pub providers: Vec<Provider>,
     pub scenarios: Vec<Scenario>,
 }
@@ -68,6 +67,7 @@ pub struct Provider {
 #[serde(deny_unknown_fields)]
 pub struct Scenario {
     pub case_id: String,
+    pub minimum_accepted_service: u64,
     pub demand: Vec<Demand>,
     pub faults: Vec<Fault>,
     pub plan: Vec<PlanStep>,
@@ -267,7 +267,9 @@ fn preflight(
             return Err(Decision::rejected("duplicate_demand_tick"));
         }
     }
-    let mut prior_tick = None;
+    if scenario.minimum_accepted_service == 0 {
+        return Err(Decision::rejected("service_floor_must_be_positive"));
+    }
     for fault in &scenario.faults {
         if !present(&fault.failure_domain_id) {
             return Err(Decision::indeterminate("missing_failure_domain_id"));
@@ -295,6 +297,7 @@ fn preflight(
     }
 
     let mut seen_providers = HashSet::new();
+    let mut previous_activation: Option<u64> = None;
     for (index, step) in scenario.plan.iter().enumerate() {
         if !seen_providers.insert(step.provider_id.as_str()) {
             return Err(Decision::rejected("duplicate_provider_allocation"));
@@ -329,7 +332,11 @@ fn preflight(
             if step.activation_tick != fixture.start_tick {
                 return Err(Decision::rejected("invalid_initial_provider_step"));
             }
+            previous_activation = Some(step.activation_tick);
             continue;
+        }
+        if previous_activation.is_some_and(|prior| step.activation_tick <= prior) {
+            return Err(Decision::rejected("plan_activation_order_invalid"));
         }
 
         if step.switch_start_tick < fixture.start_tick
@@ -362,9 +369,7 @@ fn preflight(
         if provider.failure_domains.iter().any(|domain| active_domains.contains(domain.as_str())) {
             return Err(Decision::rejected("fallback_shares_failed_domain"));
         }
-    }
-    if prior_tick.is_some() {
-        return Err(Decision::rejected("invalid_plan_order"));
+        previous_activation = Some(step.activation_tick);
     }
     Ok(())
 }
@@ -406,6 +411,7 @@ fn evaluate_scenario(
 
     let mut saw_fault = false;
     let mut service_indeterminate = false;
+    let mut service_rejected = false;
     for tick in fixture.start_tick..=fixture.end_tick {
         let active_step = scenario.plan.iter().rev()
             .find(|step| step.activation_tick <= tick);
@@ -446,6 +452,8 @@ fn evaluate_scenario(
                     available = false;
                     if decision.status == ServiceStatus::Indeterminate {
                         service_indeterminate = true;
+                    } else if decision.status == ServiceStatus::Rejected {
+                        service_rejected = true;
                     }
                 }
             }
@@ -474,9 +482,11 @@ fn evaluate_scenario(
         });
     }
 
-    let decision = if service_indeterminate {
+    let decision = if service_rejected {
+        Decision::rejected("active_provider_qualification_rejected")
+    } else if service_indeterminate {
         Decision::indeterminate("active_provider_qualification_indeterminate")
-    } else if result.accepted_units >= fixture.required_accepted_service {
+    } else if result.accepted_units >= scenario.minimum_accepted_service {
         Decision::met()
     } else {
         Decision::shortfall("accepted_service_below_required_floor")
@@ -499,7 +509,7 @@ pub fn evaluate(fixture: &ServiceFixture) -> Result<Report, String> {
     if !present(&fixture.client_profile_id)
         || !present(&fixture.client_configuration_revision)
         || fixture.start_tick > fixture.end_tick
-        || fixture.required_accepted_service == 0
+
     {
         return Err("invalid mission service contract".to_owned());
     }
