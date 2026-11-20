@@ -153,7 +153,8 @@ fn exceeds(a: Resources, b: Resources) -> bool {
         || a.cooling > b.cooling || a.power > b.power
 }
 fn validate(c: &Contract, w: &WorkloadFixture) -> Result<Report, String> {
-    if !c.synthetic_only || !w.synthetic_only || c.recovery_budget.target_is_measured {
+    if !c.synthetic_only || !w.synthetic_only || c.recovery_budget.target_is_measured
+        || c.as_of.trim().is_empty() {
         return Err("fixtures and target status must remain explicitly synthetic/unmeasured".into());
     }
     if c.reserve_site_path != "warm_recovery"
