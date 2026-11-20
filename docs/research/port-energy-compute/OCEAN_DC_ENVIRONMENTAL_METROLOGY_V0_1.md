@@ -16,7 +16,16 @@ Its 14 data-centre metrics include PUE, energy reuse factor, space usage effecti
 
 **Project shift:** environmental evidence is an admission gate and a measured system output, not a paragraph after the PUE result. We preserve the 14 standard metrics while adding a separate ocean-specific layer for intake/return flow, thermal plume, water chemistry, sediment, underwater noise, benthic habitat and ecological response.
 
-The machine-readable crosswalk is `OCEAN_DC_ENVIRONMENTAL_METROLOGY_V0_1.json`.
+The machine-readable crosswalk is `OCEAN_DC_ENVIRONMENTAL_METROLOGY_V0_1.json`. Its catalog-only Rust verifier is `tools/ocean-env-metrics-verifier/`.
+
+From the repository root:
+
+```bash
+cargo test --manifest-path tools/ocean-env-metrics-verifier/Cargo.toml
+cargo run --manifest-path tools/ocean-env-metrics-verifier/Cargo.toml
+```
+
+Expected output is explicitly `CATALOG_VALID_NOT_SITE_EVIDENCE`. The verifier checks the exact 14 ITU metric IDs, the separate marine namespace, WUE/seawater semantics, sensor/evidence fields, lifecycle station plan, and hard-gate dispositions. It does not validate field measurements or grant clearance.
 
 ## 2. Important standard interpretation
 
@@ -163,6 +172,8 @@ The matched benchmark compares a land/port control, coastal seawater heat exchan
 - replacement, vessel, cable and decommissioning lifecycle impacts.
 
 No design wins because its PUE is better while its marine impact is unknown.
+
+This is not an abstract concern: Uptime Institute's May 2026 outage analysis says publicly reported fibre/connectivity outages are rising and are more likely to cause extended disruption, while external infrastructure failures are becoming more prominent. The IEA's 2026 electricity assessment also identifies grid capacity and congestion as bottlenecks for connecting supply, demand and storage. These trends strengthen the need for physically diverse connectivity, external common-cause evidence and a local continuity mode—but do not establish local fault probabilities or prove a specific site's independence.
 
 ## 8. Execution plan
 
