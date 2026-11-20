@@ -1,0 +1,90 @@
+name: Grid service risk certificate qualifier
+
+on:
+  pull_request:
+    paths:
+      - "tools/grid-service-risk-qualifier/**"
+      - ".github/workflows/grid-service-risk-qualifier.yml"
+  push:
+    paths:
+      - "tools/grid-service-risk-qualifier/**"
+      - ".github/workflows/grid-service-risk-qualifier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    name: Verify service floors and robust interval risk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate schema, fixture identities and independent digests
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("tools/grid-service-risk-qualifier")
+          schema = json.loads((root / "fixtures/grid-service-risk-case-v0.1.schema.json").read_text())
+          case = json.loads((root / "fixtures/synthetic-grid-service-risk-case-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER).iter_errors(case), key=lambda error: list(error.path))
+          assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
+
+          def canonical_hash(value):
+              payload = json.dumps(value, separators=(",", ":"), sort_keys=True, ensure_ascii=False).encode()
+              return hashlib.sha256(payload).hexdigest()
+
+          assert canonical_hash(case["probabilityEnvelope"]) == case["probabilityEnvelopeSha256"]
+          assert canonical_hash(case["serviceOutcomeManifest"]) == case["serviceOutcomeManifestSha256"]
+          assert canonical_hash(case["riskLimitManifest"]) == case["riskLimitManifestSha256"]
+          points = [item["pointBasisPoints"] for item in case["probabilityEnvelope"]["branches"]]
+          lowers = [item["lowerBasisPoints"] for item in case["probabilityEnvelope"]["branches"]]
+          uppers = [item["upperBasisPoints"] for item in case["probabilityEnvelope"]["branches"]]
+          assert sum(points) == 10000 and sum(lowers) <= 10000 <= sum(uppers)
+          assert all(item["lowerBasisPoints"] <= item["pointBasisPoints"] <= item["upperBasisPoints"] for item in case["probabilityEnvelope"]["branches"])
+          branch_ids = {item["branchId"] for item in case["probabilityEnvelope"]["branches"]}
+          assert branch_ids == {item["branchId"] for item in case["serviceOutcomeManifest"]["branches"]}
+          assert len(case["serviceOutcomeManifest"]["branches"]) == 3
+          assert all(len(item["serviceAssessments"]) == 5 for item in case["serviceOutcomeManifest"]["branches"])
+          print("PASS: schema, three artifact hashes, interval simplex and five-scope service coverage")
+          PY
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/grid-service-risk-qualifier/Cargo.toml --all -- --check
+      - name: Resolve pinned dependency graph for this run
+        run: cargo generate-lockfile --manifest-path tools/grid-service-risk-qualifier/Cargo.toml
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/grid-service-risk-qualifier/Cargo.toml --all-targets -- -D warnings
+      - name: Run Rust unit tests
+        run: cargo test --locked --manifest-path tools/grid-service-risk-qualifier/Cargo.toml --all-targets
+      - name: Replay synthetic risk certificate
+        run: |
+          set -euo pipefail
+          cargo run --locked --manifest-path tools/grid-service-risk-qualifier/Cargo.toml --bin grid-service-risk-qualifier -- tools/grid-service-risk-qualifier/fixtures/synthetic-grid-service-risk-case-v0.1.json > /tmp/grid-service-risk-report.json
+          jq -e '
+            .caseMaturity == "synthetic_fixture"
+            and .resultStatus == "service_risk_certificate_consistent"
+            and .pointProbabilitySumBasisPoints == 10000
+            and .probabilityIntervalLowerSumBasisPoints == 8500
+            and .probabilityIntervalUpperSumBasisPoints == 12000
+            and (.intervalWorstCaseMetricResults | length == 5)
+            and (.floorViolations | length == 0)
+            and (.riskBudgetViolations | length == 0)
+            and ([.intervalWorstCaseMetricResults[] | select(.metricId == "hospital-electricity-mwh")][0].pointExpectedUnservedQuantity > 4.9899)
+            and ([.intervalWorstCaseMetricResults[] | select(.metricId == "hospital-electricity-mwh")][0].robustExpectedUnservedQuantity > 5.5999)
+            and ([.intervalWorstCaseMetricResults[] | select(.metricId == "community-water-m3")][0].robustExpectedUnservedQuantity > 134.499)
+            and (.claimBoundary | contains("not a service simulator"))
+          ' /tmp/grid-service-risk-report.json
