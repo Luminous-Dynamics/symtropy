@@ -1,0 +1,772 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:marine-recovery-reachability:0.1.0",
+  "title": "Marine Bounded-Action Recovery Reachability Audit",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scorecard_id",
+    "record_status",
+    "claim_ceiling",
+    "mission_snapshot",
+    "service_contract",
+    "capability_registry",
+    "component_registry",
+    "hard_gate_roster",
+    "scenario_roster",
+    "scenarios"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "scorecard_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "record_status": {
+      "enum": [
+        "synthetic",
+        "shadow_replay",
+        "measured_campaign",
+        "published_reproduction"
+      ]
+    },
+    "claim_ceiling": {
+      "const": "bounded_action_recovery_reachability_audit_only"
+    },
+    "mission_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mission_id",
+        "mission_snapshot_sha256",
+        "craft_configuration_sha256",
+        "occupancy_sha256",
+        "service_contract_sha256",
+        "capability_registry_sha256",
+        "component_registry_sha256",
+        "hard_gate_roster_sha256",
+        "scenario_roster_sha256",
+        "operating_envelope_sha256",
+        "initial_resource_state_sha256",
+        "max_action_depth",
+        "max_paths_per_scenario"
+      ],
+      "properties": {
+        "mission_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mission_snapshot_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "craft_configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "occupancy_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "service_contract_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "capability_registry_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "component_registry_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "hard_gate_roster_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "scenario_roster_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "operating_envelope_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "initial_resource_state_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "max_action_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "max_paths_per_scenario": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        }
+      }
+    },
+    "service_contract": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 11,
+      "items": {
+        "$ref": "#/$defs/service_metric"
+      }
+    },
+    "capability_registry": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "component_registry": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "hard_gate_roster": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "scenario_roster": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "common_cause_power_water",
+          "competing_paths",
+          "dependency_unavailable",
+          "generator_trip",
+          "resource_depletion",
+          "service_unverified",
+          "watermaker_failure"
+        ]
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    }
+  },
+  "$defs": {
+    "service_metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric",
+        "unit",
+        "operator",
+        "floor_value",
+        "minimum_coverage_fraction"
+      ],
+      "properties": {
+        "metric": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator": {
+          "enum": [
+            "gte",
+            "lte"
+          ]
+        },
+        "floor_value": {
+          "type": "number"
+        },
+        "minimum_coverage_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "resource_metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric",
+        "unit",
+        "value",
+        "lower_bound",
+        "upper_bound",
+        "coverage_fraction",
+        "measurement_class",
+        "measurement_method",
+        "evidence_sha256"
+      ],
+      "properties": {
+        "metric": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "number"
+        },
+        "lower_bound": {
+          "type": "number"
+        },
+        "upper_bound": {
+          "type": "number"
+        },
+        "coverage_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "measurement_class": {
+          "enum": [
+            "measured",
+            "modeled",
+            "derived",
+            "synthetic"
+          ]
+        },
+        "measurement_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state_id",
+        "state_sha256",
+        "components",
+        "capabilities",
+        "hard_gate_disposition",
+        "hard_gate_receipt_ref",
+        "hard_gate_receipt_sha256",
+        "resource_metrics"
+      ],
+      "properties": {
+        "state_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "state_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "components": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "enum": [
+              "available",
+              "unavailable"
+            ]
+          }
+        },
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "hard_gate_disposition": {
+          "enum": [
+            "pass",
+            "fail",
+            "unknown"
+          ]
+        },
+        "hard_gate_receipt_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hard_gate_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "resource_metrics": {
+          "type": "array",
+          "minItems": 11,
+          "maxItems": 11,
+          "items": {
+            "$ref": "#/$defs/resource_metric"
+          }
+        }
+      }
+    },
+    "hard_gate_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hard_gate_id",
+        "status",
+        "evidence_ref",
+        "evidence_sha256"
+      ],
+      "properties": {
+        "hard_gate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "unknown"
+          ]
+        },
+        "evidence_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "resource_delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric",
+        "unit",
+        "lower_delta",
+        "upper_delta"
+      ],
+      "properties": {
+        "metric": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lower_delta": {
+          "type": "number"
+        },
+        "upper_delta": {
+          "type": "number"
+        }
+      }
+    },
+    "component_change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "component_id",
+        "from_availability",
+        "to_availability",
+        "evidence_ref",
+        "evidence_sha256"
+      ],
+      "properties": {
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "from_availability": {
+          "enum": [
+            "available",
+            "unavailable"
+          ]
+        },
+        "to_availability": {
+          "enum": [
+            "available",
+            "unavailable"
+          ]
+        },
+        "evidence_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checkpoint_id",
+        "checkpoint_sha256",
+        "elapsed_upper_hours",
+        "resource_metrics",
+        "evidence_ref",
+        "evidence_sha256"
+      ],
+      "properties": {
+        "checkpoint_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checkpoint_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "elapsed_upper_hours": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "resource_metrics": {
+          "type": "array",
+          "minItems": 11,
+          "maxItems": 11,
+          "items": {
+            "$ref": "#/$defs/resource_metric"
+          }
+        },
+        "evidence_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "action_class",
+        "action_sha256",
+        "from_state_id",
+        "to_state_id",
+        "allowed_scenario_classes",
+        "required_capabilities",
+        "required_components_available",
+        "duration_min_hours",
+        "duration_max_hours",
+        "resource_deltas",
+        "component_changes",
+        "hard_gate_checks",
+        "checkpoints",
+        "model_sha256",
+        "evidence_ref",
+        "evidence_sha256",
+        "segment_envelope_receipt_ref",
+        "segment_envelope_receipt_sha256"
+      ],
+      "properties": {
+        "action_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "from_state_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to_state_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "allowed_scenario_classes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required_components_available": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "duration_min_hours": {
+          "type": "number",
+          "minimum": 0
+        },
+        "duration_max_hours": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "resource_deltas": {
+          "type": "array",
+          "minItems": 11,
+          "maxItems": 11,
+          "items": {
+            "$ref": "#/$defs/resource_delta"
+          }
+        },
+        "component_changes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/component_change"
+          }
+        },
+        "hard_gate_checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/hard_gate_check"
+          }
+        },
+        "checkpoints": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/checkpoint"
+          }
+        },
+        "model_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "evidence_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "segment_envelope_receipt_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "segment_envelope_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "terminal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "terminal_id",
+        "state_id",
+        "terminal_class",
+        "facility_id",
+        "availability_status",
+        "access_status",
+        "service_status",
+        "qualification_kind",
+        "availability_receipt_ref",
+        "availability_receipt_sha256",
+        "access_receipt_ref",
+        "access_receipt_sha256",
+        "service_receipt_ref",
+        "service_receipt_sha256",
+        "qualification_receipt_ref",
+        "qualification_receipt_sha256",
+        "authority_receipt_ref",
+        "authority_receipt_sha256",
+        "operating_envelope_sha256"
+      ],
+      "properties": {
+        "terminal_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "state_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "terminal_class": {
+          "enum": [
+            "safe_haven",
+            "shore_resupply",
+            "repair_restoration",
+            "controlled_safe_hold"
+          ]
+        },
+        "facility_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "availability_status": {
+          "enum": [
+            "verified",
+            "unknown",
+            "unavailable"
+          ]
+        },
+        "access_status": {
+          "enum": [
+            "verified",
+            "unknown",
+            "unavailable"
+          ]
+        },
+        "service_status": {
+          "enum": [
+            "verified",
+            "unknown",
+            "unavailable"
+          ]
+        },
+        "qualification_kind": {
+          "enum": [
+            "refuge",
+            "shore_service",
+            "repair_restoration",
+            "safe_hold"
+          ]
+        },
+        "availability_receipt_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "availability_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "access_receipt_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "access_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "service_receipt_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "service_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "qualification_receipt_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qualification_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "authority_receipt_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "operating_envelope_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "scenario_class",
+        "trigger_state_id",
+        "states",
+        "actions",
+        "terminals",
+        "scenario_sha256"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenario_class": {
+          "enum": [
+            "common_cause_power_water",
+            "competing_paths",
+            "dependency_unavailable",
+            "generator_trip",
+            "resource_depletion",
+            "service_unverified",
+            "watermaker_failure"
+          ]
+        },
+        "trigger_state_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "states": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/state"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        },
+        "terminals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/terminal"
+          }
+        },
+        "scenario_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    }
+  }
+}
