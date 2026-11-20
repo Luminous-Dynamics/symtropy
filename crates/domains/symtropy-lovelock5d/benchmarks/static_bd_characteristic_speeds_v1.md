@@ -110,3 +110,12 @@ This is an exact static spherical characteristic-sector result. It establishes t
 
 - Reall, Tanahashi & Way, *Causality and hyperbolicity of Lovelock theories*, CQG 31 (2014) 205005, especially Sec. 5, Eqs. (5.13)–(5.17): https://arxiv.org/abs/1406.3379
 - Brihaye, Kleihaus, Kunz & Radu, *Rotating black holes in five-dimensional Einstein–Gauss–Bonnet gravity*, arXiv:1010.0860: https://arxiv.org/abs/1010.0860
+
+
+## Semantics of \(c_A\)
+
+The functions \(c_T,c_V,c_S\) are the angular coefficients in the effective inverse metrics / characteristic quadratic forms. They are not direction-independent coordinate velocities. In the static spherical geometry, the effective covariant metrics can be written (up to an irrelevant positive conformal factor) as
+\[
+G_{A\mu\nu}dx^\mu dx^\nu=-Fdt^2+F^{-1}dr^2+\frac{r^2}{c_A(r)}d\Omega_3^2.
+\]
+All physical sectors share the metric radial null directions; their angular characteristic cones differ. Positivity of every \(c_A\) is the static sector signature/hyperbolicity test used here. This still does not prove strong hyperbolicity of a chosen gauge-fixed first-order formulation.
