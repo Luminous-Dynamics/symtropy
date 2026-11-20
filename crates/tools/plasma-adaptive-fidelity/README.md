@@ -35,4 +35,4 @@ Related research:
 - Symtropy #6288 and PR #6294: conservative shared-face flux and domain-balance receipts.
 - Symthaea #12918: closure profile eligibility and regime selection.
 
-The 33 authored tests are synthetic policy-contract tests. They do not reproduce a physical plasma benchmark and are not reported as passing until the exact-head Rust toolchain workflow completes.
+The 36 authored tests are synthetic policy-contract tests, including stale-state evidence and transition-receipt rejection. They do not reproduce a physical plasma benchmark and are not reported as passing until the exact-head Rust toolchain workflow completes.
