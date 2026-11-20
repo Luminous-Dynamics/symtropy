@@ -398,13 +398,6 @@ fn validate_dependency_snapshot(
     package: &crate::site_state_ledger::SiteWorkPackage,
     station_event_sha256: &str,
 ) -> Result<(), IntegratedDispatchReadinessFailure> {
-    if !graph
-        .snapshot_is_current(snapshot)
-        .map_err(IntegratedDispatchReadinessFailure::EvidenceGraph)?
-    {
-        return Err(IntegratedDispatchReadinessFailure::EvidenceSnapshotNotCurrent);
-    }
-
     let bindings = &request.evidence_nodes;
     let subject = graph
         .node(&bindings.dispatch_readiness)
@@ -419,6 +412,12 @@ fn validate_dependency_snapshot(
         || subject.version_sha256 != request.dispatch_context_sha256
     {
         return Err(IntegratedDispatchReadinessFailure::EvidenceSnapshotSubjectMismatch);
+    }
+    if !graph
+        .snapshot_is_current(snapshot)
+        .map_err(IntegratedDispatchReadinessFailure::EvidenceGraph)?
+    {
+        return Err(IntegratedDispatchReadinessFailure::EvidenceSnapshotNotCurrent);
     }
 
     let expected: [(&str, EvidenceNodeKind, &str); 20] = [
