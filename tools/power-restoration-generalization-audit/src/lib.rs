@@ -172,20 +172,12 @@ fn graph_fingerprint(
 }
 
 fn power_graph_fingerprint(case: &BenchmarkCase) -> Result<String, String> {
-    let mut node_labels = Vec::new();
-    for node in &case.network.nodes {
-        let load_count = case.network.loads.iter().filter(|load| load.node_id == node.node_id).count();
-        let source_count = case.network.grid_sources.iter().filter(|source| source.node_id == node.node_id).count();
-        let fault_incidence = case.faults.iter().filter(|fault| {
-            case.network.branches.iter().any(|branch| {
-                branch.branch_id == fault.power_branch_id
-                    && (branch.from_node_id == node.node_id || branch.to_node_id == node.node_id)
-            })
-        }).count();
-        node_labels.push(format!(
-            "power-node;loads={load_count};sources={source_count};fault-incidence={fault_incidence}"
-        ));
-    }
+    // Dynamic load placement, source dispatch, fault locations and switch
+    // positions are scenario variables; do not let them change the feeder's
+    // static topology identity.
+    let node_labels = case.network.nodes.iter()
+        .map(|_| "power-node".to_string())
+        .collect::<Vec<_>>();
 
     let node_index: BTreeMap<&str, usize> = case.network.nodes.iter()
         .enumerate()
@@ -198,14 +190,11 @@ fn power_graph_fingerprint(case: &BenchmarkCase) -> Result<String, String> {
             .ok_or_else(|| format!("branch {} has unknown from node", branch.branch_id))?;
         let right = *node_index.get(branch.to_node_id.as_str())
             .ok_or_else(|| format!("branch {} has unknown to node", branch.branch_id))?;
-        let fault_count = case.faults.iter()
-            .filter(|fault| fault.power_branch_id == branch.branch_id)
-            .count();
         edges.push(GraphEdge {
             left,
             right,
             label: format!(
-                "branch;normally-energized={};electrical-data={};fault-count={fault_count}",
+                "branch;normally-energized={};electrical-data={}",
                 branch.normally_energized,
                 branch.electrical.is_some()
             ),
@@ -219,10 +208,7 @@ fn power_graph_fingerprint(case: &BenchmarkCase) -> Result<String, String> {
         edges.push(GraphEdge {
             left,
             right,
-            label: format!(
-                "switch;initially-closed={};normally-open-tie={}",
-                switch.initially_closed, switch.normally_open_tie
-            ),
+            label: format!("switch;normally-open-tie={}", switch.normally_open_tie),
         });
     }
 
@@ -230,35 +216,22 @@ fn power_graph_fingerprint(case: &BenchmarkCase) -> Result<String, String> {
 }
 
 fn road_graph_fingerprint(case: &BenchmarkCase) -> Result<String, String> {
+    let power_degree = |power_node_id: &str| {
+        case.network.branches.iter()
+            .filter(|branch| branch.from_node_id == power_node_id || branch.to_node_id == power_node_id)
+            .count()
+            + case.network.switches.iter()
+                .filter(|switch| switch.from_node_id == power_node_id || switch.to_node_id == power_node_id)
+                .count()
+    };
+
     let mut node_labels = Vec::new();
     for node in &case.road_network.nodes {
-        let crew_count = case.repair_crews.iter()
-            .filter(|crew| crew.starting_road_node_id == node.node_id)
-            .count();
-        let mobile_source_count = case.mobile_power_sources.iter()
-            .filter(|source| source.starting_road_node_id == node.node_id)
-            .count();
         let power_interface = case.network.nodes.iter()
             .find(|power_node| power_node.node_id == node.power_node_id)
-            .map(|power_node| {
-                let loads = case.network.loads.iter()
-                    .filter(|load| load.node_id == power_node.node_id)
-                    .count();
-                let sources = case.network.grid_sources.iter()
-                    .filter(|source| source.node_id == power_node.node_id)
-                    .count();
-                let degree = case.network.branches.iter()
-                    .filter(|branch| branch.from_node_id == power_node.node_id || branch.to_node_id == power_node.node_id)
-                    .count()
-                    + case.network.switches.iter()
-                        .filter(|switch| switch.from_node_id == power_node.node_id || switch.to_node_id == power_node.node_id)
-                        .count();
-                format!("loads={loads};sources={sources};degree={degree}")
-            })
+            .map(|_| format!("power-degree={}", power_degree(&node.power_node_id)))
             .unwrap_or_else(|| "unmapped".to_string());
-        node_labels.push(format!(
-            "road-node;power-interface={power_interface};starting-crews={crew_count};starting-mobile-sources={mobile_source_count}"
-        ));
+        node_labels.push(format!("road-node;power-interface={power_interface}"));
     }
 
     let node_index: BTreeMap<&str, usize> = case.road_network.nodes.iter()
@@ -271,10 +244,11 @@ fn road_graph_fingerprint(case: &BenchmarkCase) -> Result<String, String> {
             .ok_or_else(|| format!("road edge {} has unknown from node", edge.edge_id))?;
         let right = *node_index.get(edge.to_node_id.as_str())
             .ok_or_else(|| format!("road edge {} has unknown to node", edge.edge_id))?;
+        // A temporary closure is an episode disruption, not static road topology.
         edges.push(GraphEdge {
             left,
             right,
-            label: format!("road-edge;closed-at-start={}", edge.closed_at_start),
+            label: "road-edge".to_string(),
         });
     }
     graph_fingerprint(node_labels, &edges)
@@ -284,12 +258,14 @@ pub fn topology_fingerprint(case: &BenchmarkCase) -> Result<String, String> {
     let power = power_graph_fingerprint(case)?;
     let road = road_graph_fingerprint(case)?;
     let equipment_profile = format!(
-        "electrical={:?};faults={};crews={};mobile-sources={};switches={};electrical-settings={}",
+        "electrical={:?};power-nodes={};power-branches={};switches={};road-nodes={};road-edges={};electrical-branches={};electrical-settings={}",
         case.model_profile.electrical_data_profile,
-        case.faults.len(),
-        case.repair_crews.len(),
-        case.mobile_power_sources.len(),
+        case.network.nodes.len(),
+        case.network.branches.len(),
         case.network.switches.len(),
+        case.road_network.nodes.len(),
+        case.road_network.edges.len(),
+        case.network.branches.iter().filter(|branch| branch.electrical.is_some()).count(),
         case.network.electrical_settings.is_some()
     );
     Ok(hash_parts([
