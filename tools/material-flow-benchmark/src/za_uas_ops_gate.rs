@@ -76,6 +76,12 @@ pub enum VisualFlightMode {
     Vlos,
     Evlos,
     Bvlos,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RadioLinkMode {
+    Rlos,
     Brlos,
 }
 
@@ -151,6 +157,9 @@ pub struct OperationConditions {
     pub operation_id: String,
     pub operation_scope_digest_sha256: String,
     pub visual_flight_mode: VisualFlightMode,
+    /// Regulatory radio-line-of-sight classification; distinct from visual mode
+    /// and from the live C2 link-health observation below.
+    pub radio_link_mode: RadioLinkMode,
     /// A time/scoped observation of the C2 link. This is distinct from the
     /// visual flight mode and from the RLOS/BRLOS regulatory classification.
     pub c2_link_observation: Option<OperationalObservation>,
@@ -611,7 +620,7 @@ fn evaluate_case(case: &UasOperationCase) -> UasCaseReport {
         aircraft_id,
         scope,
     ));
-    if case.operation.visual_flight_mode == VisualFlightMode::Brlos {
+    if case.operation.radio_link_mode == RadioLinkMode::Brlos {
         findings.push(GateFinding {
             gate_id: "beyond_radio_line_of_sight".into(),
             state: GateState::Unsupported,
@@ -907,6 +916,7 @@ mod tests {
                 operation_id: "parcel-route-a".into(),
                 operation_scope_digest_sha256: scope.clone(),
                 visual_flight_mode: VisualFlightMode::RestrictedVlos,
+                radio_link_mode: RadioLinkMode::Rlos,
                 c2_link_observation: Some(OperationalObservation {
                     evidence_class: OperationalEvidenceClass::Synthetic,
                     status: EvidenceStatus::FreshInScope,
@@ -1058,11 +1068,26 @@ mod tests {
     #[test]
     fn brlos_is_unsupported_under_current_source_snapshot() {
         let mut case = commercial_case();
-        case.operation.visual_flight_mode = VisualFlightMode::Brlos;
+        case.operation.visual_flight_mode = VisualFlightMode::Bvlos;
+        case.operation.radio_link_mode = RadioLinkMode::Brlos;
         let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid envelope");
         assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::UnsupportedBySnapshot);
         assert!(report.cases[0].findings.iter().any(|gate| gate.gate_id == "beyond_radio_line_of_sight"
             && gate.state == GateState::Unsupported));
+    }
+
+    #[test]
+    fn bvlos_with_rlos_command_link_is_not_misclassified_as_brlos() {
+        let mut case = commercial_case();
+        case.operation.visual_flight_mode = VisualFlightMode::Bvlos;
+        case.operation.radio_link_mode = RadioLinkMode::Rlos;
+        case.approvals.director_bvlos_approval = None;
+        case.approvals.sa_cats_101_bvlos_compliance = None;
+        let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid envelope");
+        assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::Indeterminate);
+        assert!(!report.cases[0].findings.iter().any(|gate| {
+            gate.gate_id == "beyond_radio_line_of_sight"
+        }));
     }
 
     #[test]
