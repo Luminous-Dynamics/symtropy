@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import sys
 from pathlib import Path
 from typing import Any
 
-from evaluate import EvaluationError, evaluate, read_json
+from evaluate import EvaluationError, NECESSARY_MODALITIES, evaluate, read_json
 
 EXPECTED_ARMS = {
     "video_only": {"video"},
@@ -85,6 +86,7 @@ def compare_arms(
     workload: dict[str, Any],
     truth: dict[str, Any],
     arm_runs: list[dict[str, Any]],
+    workload_ref: str | None = None,
 ) -> dict[str, Any]:
     if not isinstance(arm_runs, list) or len(arm_runs) != 3:
         raise EvaluationError("exactly three arm runs are required")
@@ -109,6 +111,10 @@ def compare_arms(
             raise EvaluationError(f"{arm}: missing nested candidate submission")
         if submission.get("policy_id") != run.get("policy_id") or submission.get("run_id") != run.get("run_id"):
             raise EvaluationError(f"{arm}: nested submission identity does not match arm envelope")
+        if submission.get("model_revision") != run.get("model_revision") or submission.get("runtime_revision") != run.get("runtime_revision"):
+            raise EvaluationError(f"{arm}: nested model/runtime revision does not match arm envelope")
+        if workload_ref is not None and run.get("workload_ref") != workload_ref:
+            raise EvaluationError(f"{arm}: workload reference does not match exact input bytes")
 
     scored: dict[str, dict[str, Any]] = {}
     indexed_results: dict[str, dict[str, dict[str, Any]]] = {}
@@ -182,6 +188,13 @@ def compare_arms(
     }
 
 
+def git_blob_sha1(path: str | Path) -> str:
+    """Return the exact Git blob object ID for a workload file."""
+    data = Path(path).read_bytes()
+    header = f"blob {len(data)}\\0".encode("ascii")
+    return hashlib.sha1(header + data).hexdigest()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workload", required=True)
@@ -197,7 +210,11 @@ def main() -> int:
             read_json(args.audio_only),
             read_json(args.audio_video),
         ]
-        report = compare_arms(read_json(args.workload), read_json(args.truth), runs)
+        exact_workload_ref = "git-blob-sha1:" + git_blob_sha1(args.workload)
+        report = compare_arms(
+            read_json(args.workload), read_json(args.truth), runs,
+            workload_ref=exact_workload_ref,
+        )
         output = Path(args.output)
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
