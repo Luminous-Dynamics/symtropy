@@ -661,6 +661,7 @@ pub fn compare_periodic_pressure_divergence(
         || reference.ny != predicted.ny
         || reference.dx.to_bits() != predicted.dx.to_bits()
         || reference.dy.to_bits() != predicted.dy.to_bits()
+        || reference.tolerances != predicted.tolerances
     {
         return Err("reference and predicted fields do not share the exact grid/frame/unit contract"
             .to_owned());
@@ -1205,6 +1206,25 @@ mod tests {
         let mut predicted = reference.clone();
         predicted.dy = 3.0;
         assert!(compare_periodic_pressure_divergence(&reference, &predicted).is_err());
+    }
+
+    #[test]
+    fn pressure_divergence_comparison_refuses_tolerance_contract_mismatch() {
+        let reference = grid_request(&[1.0; 8]);
+        let mut predicted = reference.clone();
+        predicted.tolerances.psd_relative = 1.0e-9;
+        assert!(compare_periodic_pressure_divergence(&reference, &predicted).is_err());
+    }
+
+    #[test]
+    fn cellwise_asymmetric_pressure_tensor_rejects_grid_admissibility() {
+        let mut request = grid_request(&[1.0; 8]);
+        request.pressure_tensors[2][0][1] = 0.25;
+        let report = audit_periodic_pressure_grid(&request).expect("grid audit");
+        assert_eq!(report.body.disposition, PressureGridDisposition::Rejected);
+        assert!(report.body.findings.iter().any(|finding| {
+            finding.cell_index == 2 && finding.code == "pressure_tensor_not_symmetric"
+        }));
     }
 
     #[test]
