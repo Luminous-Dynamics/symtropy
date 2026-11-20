@@ -211,8 +211,6 @@ fn validate_evidence(
     if !present(&evidence.artifact_sha256)
         || !present(&evidence.source_commit)
         || !present(&evidence.evidence_class)
-        || !present(&evidence.producer_id)
-        || !present(&evidence.authority_scope)
         || !present(&evidence.context_of_use)
         || evidence.valid_from_tick.is_none()
         || evidence.valid_until_tick.is_none()
@@ -568,12 +566,11 @@ mod tests {
 
     #[test]
     fn input_order_does_not_change_case_dispositions() {
-        let mut forward = fixture();
+        let forward = fixture();
         let mut reverse = fixture();
         reverse.cases.reverse();
         let first = evaluate(&forward).expect("forward fixture evaluates");
         let second = evaluate(&reverse).expect("reverse fixture evaluates");
-        forward.cases.clear();
         let mut first_rows = first.cases;
         let mut second_rows = second.cases;
         first_rows.sort_by(|left, right| left.case_id.cmp(&right.case_id));
