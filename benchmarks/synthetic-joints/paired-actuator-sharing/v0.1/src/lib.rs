@@ -509,8 +509,16 @@ pub fn evaluate_joint(input: &JointEvaluationInput) -> Result<JointEvaluation, S
 
     let mut aggregate: Option<Interval> = Some(Interval { lower: 0.0, upper: 0.0 });
     for unit in &input.actuator_units {
+        // Unknown torque provenance cannot contribute to an aggregate or a
+        // load-share denominator, even when an untrusted numeric interval is
+        // present in the input. Preserve Unknown rather than laundering it
+        // through arithmetic.
         aggregate = match (aggregate, unit.output_torque_nm) {
-            (Some(sum), Some(contribution)) => interval_add(sum, contribution),
+            (Some(sum), Some(contribution))
+                if unit.torque_evidence_class != EvidenceClass::Unknown =>
+            {
+                interval_add(sum, contribution)
+            }
             _ => None,
         };
     }
@@ -849,7 +857,9 @@ mod tests {
             unit("B", interval(5.0, 6.0), interval(41.0, 43.0)),
         ])).unwrap();
         assert_eq!(report.disposition, JointDisposition::Unknown);
+        assert_eq!(report.aggregate_unit_torque_nm, None);
         assert_eq!(report.unit_assessments[0].load_share_fraction, None);
+        assert_eq!(report.unit_assessments[1].load_share_fraction, None);
     }
 
     #[test]
