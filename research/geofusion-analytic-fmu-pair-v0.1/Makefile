@@ -25,10 +25,12 @@ $(BUILD)/fmi3_smoke: tests/fmi3_smoke.c $(COMMON_HEADERS)
 
 package: $(BUILD)/GeothermalSource.so $(BUILD)/HeatExchangerBuffer.so
 	rm -rf $(STAGE)
-	mkdir -p $(STAGE)/geothermal/binaries/x86_64-linux $(STAGE)/geothermal/sources $(STAGE)/geothermal/licenses
-	mkdir -p $(STAGE)/heat-exchanger/binaries/x86_64-linux $(STAGE)/heat-exchanger/sources $(STAGE)/heat-exchanger/licenses
+	mkdir -p $(STAGE)/geothermal/binaries/x86_64-linux $(STAGE)/geothermal/sources $(STAGE)/geothermal/licenses $(STAGE)/geothermal/resources
+	mkdir -p $(STAGE)/heat-exchanger/binaries/x86_64-linux $(STAGE)/heat-exchanger/sources $(STAGE)/heat-exchanger/licenses $(STAGE)/heat-exchanger/resources
 	cp model-description/geothermal-source.xml $(STAGE)/geothermal/modelDescription.xml
 	cp model-description/heat-exchanger-buffer.xml $(STAGE)/heat-exchanger/modelDescription.xml
+	cp resources/README.txt $(STAGE)/geothermal/resources/README.txt
+	cp resources/README.txt $(STAGE)/heat-exchanger/resources/README.txt
 	cp $(BUILD)/GeothermalSource.so $(STAGE)/geothermal/binaries/x86_64-linux/GeothermalSource.so
 	cp $(BUILD)/HeatExchangerBuffer.so $(STAGE)/heat-exchanger/binaries/x86_64-linux/HeatExchangerBuffer.so
 	cp src/geothermal_source.c src/fmi3_unsupported.c $(STAGE)/geothermal/sources/
