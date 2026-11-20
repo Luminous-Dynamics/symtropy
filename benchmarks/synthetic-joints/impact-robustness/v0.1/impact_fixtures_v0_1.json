@@ -1,0 +1,189 @@
+{
+  "schema": "luminous.synthetic_joint_impact_fixtures",
+  "version": "0.1.0",
+  "evidence_class": "synthetic_analytic_known_answer",
+  "source_models": {
+    "r1": {
+      "name": "Series-elastic actuator impact torque and maximum stiffness",
+      "citation": "Shu et al., IEEE Robotics and Automation Letters (2026), DOI 10.1109/LRA.2026.3710324",
+      "claim_boundary": "Analytical gearbox-interface torque upper bounds and stiffness/energy relations; not a physical test result from this repository"
+    },
+    "r2": {
+      "name": "QDD normalized impact robustness and use-case gear-ratio transition",
+      "citation": "Shu et al., accepted Humanoids 2026 contribution",
+      "claim_boundary": "Analytical reflected-inertia relation and soft curvature transition; not a universal gear-ratio safety threshold"
+    }
+  },
+  "source_reported_reference_values": [
+    {
+      "id": "impact-source-r1-001",
+      "source": "r1",
+      "quantity": "hollow_shaft_spring_energy_capacity",
+      "value": 14.0,
+      "unit": "J",
+      "status": "paper_reported"
+    },
+    {
+      "id": "impact-source-r1-002",
+      "source": "r1",
+      "quantity": "hollow_shaft_spring_stiffness",
+      "value": 546.0,
+      "unit": "N m/rad",
+      "status": "paper_reported"
+    },
+    {
+      "id": "impact-source-r2-001",
+      "source": "r2",
+      "quantity": "soft_motor_to_link_inertia_ratio_transition",
+      "value": 1.18,
+      "unit": "dimensionless",
+      "status": "paper_reported_analytical_transition_not_threshold"
+    }
+  ],
+  "synthetic_fixtures": [
+    {
+      "id": "impact-001",
+      "model": "r1",
+      "quantity": "natural_frequency",
+      "inputs": {
+        "stiffness_Nm_per_rad": 250.0,
+        "gear_ratio": 5.0,
+        "rotor_inertia_kg_m2": 0.0004,
+        "link_inertia_kg_m2": 0.02
+      },
+      "expected": {
+        "omega_rad_s": 193.64916731037084,
+        "contact_duration_s": 0.001,
+        "dimensionless_contact_parameter": 0.061640444406149984
+      }
+    },
+    {
+      "id": "impact-002",
+      "model": "r1",
+      "quantity": "finite_contact_peak_torque",
+      "inputs": {
+        "stiffness_Nm_per_rad": 250.0,
+        "gear_ratio": 5.0,
+        "rotor_inertia_kg_m2": 0.0004,
+        "link_inertia_kg_m2": 0.02,
+        "impact_impulse_Nm_s": 0.2,
+        "contact_duration_s": 0.001,
+        "operational_torque_Nm": 5.0
+      },
+      "expected": {
+        "peak_torque_Nm": 17.89848475076076
+      }
+    },
+    {
+      "id": "impact-003",
+      "model": "r1",
+      "quantity": "short_contact_peak_torque_limit",
+      "inputs": {
+        "stiffness_Nm_per_rad": 250.0,
+        "gear_ratio": 5.0,
+        "rotor_inertia_kg_m2": 0.0004,
+        "link_inertia_kg_m2": 0.02,
+        "impact_impulse_Nm_s": 0.2,
+        "operational_torque_Nm": 5.0
+      },
+      "expected": {
+        "peak_torque_Nm": 17.909944487358054
+      }
+    },
+    {
+      "id": "impact-004",
+      "model": "r1",
+      "quantity": "maximum_stiffness_from_impulse",
+      "inputs": {
+        "link_inertia_kg_m2": 0.02,
+        "rotor_inertia_kg_m2": 0.0004,
+        "gear_ratio": 5.0,
+        "maximum_output_torque_Nm": 80.0,
+        "maximum_operational_torque_Nm": 5.0,
+        "maximum_impact_impulse_Nm_s": 0.2
+      },
+      "expected": {
+        "maximum_stiffness_Nm_per_rad": 8437.5
+      }
+    },
+    {
+      "id": "impact-005",
+      "model": "r1",
+      "quantity": "maximum_stiffness_from_speed",
+      "inputs": {
+        "link_inertia_kg_m2": 0.02,
+        "rotor_inertia_kg_m2": 0.0004,
+        "gear_ratio": 5.0,
+        "maximum_output_torque_Nm": 80.0,
+        "maximum_operational_torque_Nm": 5.0,
+        "maximum_link_speed_rad_s": 10.0
+      },
+      "expected": {
+        "maximum_stiffness_Nm_per_rad": 8437.5
+      }
+    },
+    {
+      "id": "impact-006",
+      "model": "r1",
+      "quantity": "minimum_spring_energy",
+      "inputs": {
+        "link_inertia_kg_m2": 0.02,
+        "rotor_inertia_kg_m2": 0.0004,
+        "gear_ratio": 5.0,
+        "impact_impulse_Nm_s": 0.2
+      },
+      "expected": {
+        "minimum_spring_energy_J": 0.3333333333333334
+      }
+    },
+    {
+      "id": "impact-007",
+      "model": "r2",
+      "quantity": "reflected_inertia_and_gear_ratio_boundary",
+      "inputs": {
+        "motor_inertia_kg_m2": 0.0004,
+        "link_inertia_kg_m2": 0.02,
+        "gear_ratio": 10.0,
+        "transition_gamma": 1.18
+      },
+      "expected": {
+        "reflected_motor_inertia_kg_m2": 0.04,
+        "gamma": 2.0,
+        "use_case_gear_ratio_boundary": 7.681145747868608
+      }
+    },
+    {
+      "id": "impact-008",
+      "model": "r2",
+      "quantity": "normalized_impact_robustness",
+      "inputs": {
+        "motor_inertia_kg_m2": 0.0004,
+        "link_inertia_kg_m2": 0.02,
+        "gear_ratio": 10.0,
+        "maximum_torque_Nm": 20.0,
+        "stiffness_Nm_per_rad": 1000.0,
+        "reference_impulse_Nm_s": 0.03
+      },
+      "expected": {
+        "normalized_robustness": 3.651483716701107
+      }
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "impact-negative-001",
+      "case": "finite_contact_domain_boundary",
+      "expected": "reject_when_contact_duration_times_natural_frequency_is_greater_than_or_equal_to_pi"
+    },
+    {
+      "id": "impact-negative-002",
+      "case": "non_positive_torque_margin",
+      "expected": "reject_maximum_stiffness_bound"
+    },
+    {
+      "id": "impact-negative-003",
+      "case": "non_finite_or_non_positive_inertia_stiffness_or_ratio",
+      "expected": "reject_without_extrapolation"
+    }
+  ]
+}
