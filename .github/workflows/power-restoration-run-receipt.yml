@@ -72,6 +72,6 @@ jobs:
             and .rejectedActionCount == 1
             and .timedOutAttemptCount == 1
             and .independentScorePresent == true
-            and ([.scoreMetrics[].unit] | index("kWh") != null)
-            and ([.scoreMetrics[].unit] | index("m3") != null)
+            and (.scoreMetrics | length == 0)
+            and (.claimBoundary | contains("collector trust requires"))
           ' /tmp/power-restoration-run-report.json
