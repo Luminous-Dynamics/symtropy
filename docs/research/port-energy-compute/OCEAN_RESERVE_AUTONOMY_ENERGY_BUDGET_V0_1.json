@@ -33,15 +33,15 @@
     {
       "it_load_kw": 100,
       "assumed_pue": 1.15,
-      "facility_bus_load_kw": 114.99999999999999,
+      "facility_bus_load_kw": 115,
       "delivered_energy_mwh": {
-        "hours_24": 2.7599999999999993,
-        "hours_72": 8.279999999999998,
-        "hours_168": 19.319999999999997
+        "hours_24": 2.76,
+        "hours_72": 8.28,
+        "hours_168": 19.32
       },
       "illustrative_battery_nameplate_mwh_at_assumed_dod_and_ac_round_trip_efficiency": {
-        "hours_72": 11.499999999999995,
-        "hours_168": 26.833333333333325
+        "hours_72": 11.5,
+        "hours_168": 26.833
       }
     },
     {
@@ -54,8 +54,8 @@
         "hours_168": 48.3
       },
       "illustrative_battery_nameplate_mwh_at_assumed_dod_and_ac_round_trip_efficiency": {
-        "hours_72": 28.749999999999996,
-        "hours_168": 67.08333333333333
+        "hours_72": 28.75,
+        "hours_168": 67.083
       }
     },
     {
@@ -68,8 +68,8 @@
         "hours_168": 193.2
       },
       "illustrative_battery_nameplate_mwh_at_assumed_dod_and_ac_round_trip_efficiency": {
-        "hours_72": 114.99999999999999,
-        "hours_168": 268.3333333333333
+        "hours_72": 115,
+        "hours_168": 268.333
       }
     }
   ],
