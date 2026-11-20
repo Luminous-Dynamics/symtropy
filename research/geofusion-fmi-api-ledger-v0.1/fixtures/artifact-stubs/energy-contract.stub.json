@@ -1,0 +1,1 @@
+{"fixture":"energy-contract","interval_id":"thermal-interval-0","unit":"W","expected":{"geo.thermal_out":500000.0,"hx.thermal_in":500000.0,"hx.thermal_service":480000.0,"hx.heat_loss":10000.0,"hx.storage_charge":10000.0},"residual_w":0.0,"claim":"synthetic first-law arithmetic fixture only"}

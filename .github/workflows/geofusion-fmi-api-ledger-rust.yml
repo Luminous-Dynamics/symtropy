@@ -1,0 +1,46 @@
+name: GeoFusion FMI API Ledger Rust Validator
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/geofusion-fmi-api-ledger-v0.1/**"
+      - ".github/workflows/geofusion-fmi-api-ledger-rust.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "research/geofusion-fmi-api-ledger-v0.1/**"
+      - ".github/workflows/geofusion-fmi-api-ledger-rust.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: geofusion-fmi-api-ledger-rust-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate API ledger with standalone Rust contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+      - name: Resolve dependency lock for first qualification
+        run: cargo generate-lockfile --manifest-path research/geofusion-fmi-api-ledger-v0.1/validator/Cargo.toml
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path research/geofusion-fmi-api-ledger-v0.1/validator/Cargo.toml -- --check
+      - name: Run standalone validator tests
+        run: cargo test --manifest-path research/geofusion-fmi-api-ledger-v0.1/validator/Cargo.toml --all-targets
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/geofusion-fmi-api-ledger-v0.1/validator/Cargo.toml --all-targets -- -D warnings
+      - name: Upload resolved lockfile for pinning
+        uses: actions/upload-artifact@v4
+        with:
+          name: geofusion-fmi-api-ledger-rust-lockfile
+          path: research/geofusion-fmi-api-ledger-v0.1/validator/Cargo.lock
+          if-no-files-found: error

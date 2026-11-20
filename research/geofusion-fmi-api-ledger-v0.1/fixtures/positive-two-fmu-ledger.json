@@ -1,0 +1,544 @@
+{
+  "schema_version": "0.1.0",
+  "ledger_id": "geofusion-api-ledger-synthetic-positive-001",
+  "evidence_class": "synthetic_fixture",
+  "created_utc": "2026-11-20T00:00:00Z",
+  "fmi_standard_release": "3.0.2",
+  "master": {
+    "master_id": "synthetic-geofusion-master",
+    "name": "Non-executable fixture master",
+    "version": "0.1.0",
+    "algorithm_id": "fixed-step-1s-fixture",
+    "platform": "x86_64-linux-gnu",
+    "artifact_id": "master-stub",
+    "collector_mode": "fixture_authored_not_runtime_instrumented"
+  },
+  "artifacts": [
+    {
+      "artifact_id": "geo-package",
+      "role": "fmu_package",
+      "path": "fixtures/artifact-stubs/geothermal-source-package.stub.txt",
+      "byte_length": 73,
+      "sha256": "c44990bdb36c21250794cb33336d7b00d3d28cefc7fc6624c5c0a9de7c160452",
+      "executable": false,
+      "synthetic_stub": true
+    },
+    {
+      "artifact_id": "geo-description",
+      "role": "model_description",
+      "path": "fixtures/artifact-stubs/geothermal-modelDescription.stub.xml",
+      "byte_length": 75,
+      "sha256": "514eaee4a8e4609d854e191d1d9bc6d40d29b87107babe0550ee52aa808f1ab6",
+      "executable": false,
+      "synthetic_stub": true
+    },
+    {
+      "artifact_id": "geo-linux-binary",
+      "role": "platform_binary",
+      "path": "fixtures/artifact-stubs/geothermal-linux64-binary.stub.txt",
+      "byte_length": 50,
+      "sha256": "a2a126223346b00de7895ee32e54e8dde5b7caa7f966d98e84fbc9e00ecb2299",
+      "executable": false,
+      "synthetic_stub": true
+    },
+    {
+      "artifact_id": "hx-package",
+      "role": "fmu_package",
+      "path": "fixtures/artifact-stubs/heat-exchanger-package.stub.txt",
+      "byte_length": 77,
+      "sha256": "c074296c0d19fe61ff64a694a10a2a63c6a6b3c1751b157a7019a19d3e0fdf3c",
+      "executable": false,
+      "synthetic_stub": true
+    },
+    {
+      "artifact_id": "hx-description",
+      "role": "model_description",
+      "path": "fixtures/artifact-stubs/heat-exchanger-modelDescription.stub.xml",
+      "byte_length": 78,
+      "sha256": "11948850fcdcf4d26822aa5d749adcd6388ed93ec17298ecdbdd2f8d15094b7d",
+      "executable": false,
+      "synthetic_stub": true
+    },
+    {
+      "artifact_id": "hx-linux-binary",
+      "role": "platform_binary",
+      "path": "fixtures/artifact-stubs/heat-exchanger-linux64-binary.stub.txt",
+      "byte_length": 54,
+      "sha256": "cbdfe182e63fb17ee9c54bb330624ce7c4a26daada5feb26dbb5a842a6be68d0",
+      "executable": false,
+      "synthetic_stub": true
+    },
+    {
+      "artifact_id": "master-stub",
+      "role": "master_executable",
+      "path": "fixtures/artifact-stubs/master-executable.stub.txt",
+      "byte_length": 37,
+      "sha256": "9cc05b548437fe0c712a295ff725bbd0f2f536e1efc347b11801d67d0b92b2e1",
+      "executable": false,
+      "synthetic_stub": true
+    },
+    {
+      "artifact_id": "trace-stub",
+      "role": "normalized_trace",
+      "path": "fixtures/artifact-stubs/normalized-trace.stub.json",
+      "byte_length": 356,
+      "sha256": "126f681b489c0b1029d0ceb27794cbb730c3114c9362ffc4e4debb71c280fc42",
+      "executable": false,
+      "synthetic_stub": true
+    },
+    {
+      "artifact_id": "energy-stub",
+      "role": "energy_contract",
+      "path": "fixtures/artifact-stubs/energy-contract.stub.json",
+      "byte_length": 293,
+      "sha256": "c7113c3d1e5e2f1cbc2542fee62991709e0cd404902eaa6b8a6248816a0ebb06",
+      "executable": false,
+      "synthetic_stub": true
+    }
+  ],
+  "federates": [
+    {
+      "federate_id": "geothermal-source",
+      "model_name": "SyntheticGeothermalSourceStub",
+      "fmi_model_description_version": "3.0",
+      "interface_type": "CoSimulation",
+      "model_identifier": "SyntheticGeothermalSourceStub",
+      "platform": "x86_64-linux-gnu",
+      "artifacts": {
+        "package": "geo-package",
+        "model_description": "geo-description",
+        "platform_binary": "geo-linux-binary"
+      },
+      "clock": {
+        "clock_id": "geo-model-clock",
+        "master_clock_id": "geofusion-master-clock",
+        "model_time_unit": "s",
+        "mapping_digest": "sha256:synthetic-geo-seconds-to-master-nanoseconds-v1",
+        "nanoseconds_per_model_time_numerator": 1000000000,
+        "nanoseconds_per_model_time_denominator": 1
+      },
+      "capabilities": {
+        "can_handle_variable_communication_step_size": true,
+        "can_interpolate_inputs": false,
+        "can_return_early_after_intermediate_update": false,
+        "has_event_mode": false,
+        "can_get_and_set_fmu_state": false,
+        "can_serialize_fmu_state": false,
+        "can_run_asynchronously": false,
+        "provides_intermediate_update": false
+      },
+      "variables": [
+        {
+          "value_reference": 11,
+          "name": "thermalPowerOut",
+          "fmi_type": "Float64",
+          "causality": "output",
+          "variability": "continuous",
+          "unit": "W",
+          "port_id": "geo.thermal_out",
+          "carrier": "thermal",
+          "boundary_id": "geo-to-hx",
+          "port_role": "coupling_source"
+        }
+      ]
+    },
+    {
+      "federate_id": "heat-exchanger-buffer",
+      "model_name": "SyntheticHeatExchangerBufferStub",
+      "fmi_model_description_version": "3.0",
+      "interface_type": "CoSimulation",
+      "model_identifier": "SyntheticHeatExchangerBufferStub",
+      "platform": "x86_64-linux-gnu",
+      "artifacts": {
+        "package": "hx-package",
+        "model_description": "hx-description",
+        "platform_binary": "hx-linux-binary"
+      },
+      "clock": {
+        "clock_id": "hx-model-clock",
+        "master_clock_id": "geofusion-master-clock",
+        "model_time_unit": "s",
+        "mapping_digest": "sha256:synthetic-hx-seconds-to-master-nanoseconds-v1",
+        "nanoseconds_per_model_time_numerator": 1000000000,
+        "nanoseconds_per_model_time_denominator": 1
+      },
+      "capabilities": {
+        "can_handle_variable_communication_step_size": true,
+        "can_interpolate_inputs": false,
+        "can_return_early_after_intermediate_update": false,
+        "has_event_mode": false,
+        "can_get_and_set_fmu_state": false,
+        "can_serialize_fmu_state": false,
+        "can_run_asynchronously": false,
+        "provides_intermediate_update": false
+      },
+      "variables": [
+        {
+          "value_reference": 21,
+          "name": "thermalPowerIn",
+          "fmi_type": "Float64",
+          "causality": "input",
+          "variability": "continuous",
+          "unit": "W",
+          "port_id": "hx.thermal_in",
+          "carrier": "thermal",
+          "boundary_id": "geo-to-hx",
+          "port_role": "coupling_sink"
+        },
+        {
+          "value_reference": 31,
+          "name": "thermalService",
+          "fmi_type": "Float64",
+          "causality": "output",
+          "variability": "continuous",
+          "unit": "W",
+          "port_id": "hx.thermal_service",
+          "carrier": "thermal",
+          "boundary_id": "hx-terminal-services",
+          "port_role": "terminal_sink"
+        },
+        {
+          "value_reference": 32,
+          "name": "heatLoss",
+          "fmi_type": "Float64",
+          "causality": "output",
+          "variability": "continuous",
+          "unit": "W",
+          "port_id": "hx.heat_loss",
+          "carrier": "thermal",
+          "boundary_id": "hx-terminal-losses",
+          "port_role": "terminal_sink"
+        },
+        {
+          "value_reference": 33,
+          "name": "storageCharge",
+          "fmi_type": "Float64",
+          "causality": "output",
+          "variability": "continuous",
+          "unit": "W",
+          "port_id": "hx.storage_charge",
+          "carrier": "thermal",
+          "boundary_id": "hx-terminal-storage",
+          "port_role": "terminal_sink"
+        },
+        {
+          "value_reference": 34,
+          "name": "storedEnergy",
+          "fmi_type": "Float64",
+          "causality": "output",
+          "variability": "continuous",
+          "unit": "J",
+          "port_id": "hx.stored_energy",
+          "carrier": "thermal",
+          "boundary_id": "hx-storage-state",
+          "port_role": "state_observation"
+        }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "sequence": 0,
+      "event_id": "event-00",
+      "federate_id": "geothermal-source",
+      "kind": "instance_created",
+      "call_symbol": "fmi3InstantiateCoSimulation",
+      "status": "ok",
+      "payload": {
+        "interface_type": "CoSimulation",
+        "early_return_allowed": false,
+        "event_mode_used": false,
+        "instance_name": "geothermal-source",
+        "visible": false,
+        "logging_on": false,
+        "resource_path": "artifact://geothermal-source/resources",
+        "required_intermediate_variables": []
+      }
+    },
+    {
+      "sequence": 1,
+      "event_id": "event-01",
+      "federate_id": "geothermal-source",
+      "kind": "initialization_mode",
+      "call_symbol": "fmi3EnterInitializationMode",
+      "status": "ok",
+      "payload": {
+        "transition": "enter",
+        "tolerance_defined": false,
+        "tolerance_bits": null,
+        "start_time_bits": "0000000000000000",
+        "stop_time_defined": true,
+        "stop_time_bits": "3ff0000000000000"
+      }
+    },
+    {
+      "sequence": 2,
+      "event_id": "event-02",
+      "federate_id": "geothermal-source",
+      "kind": "initialization_mode",
+      "call_symbol": "fmi3ExitInitializationMode",
+      "status": "ok",
+      "payload": {
+        "transition": "exit"
+      }
+    },
+    {
+      "sequence": 3,
+      "event_id": "event-03",
+      "federate_id": "heat-exchanger-buffer",
+      "kind": "instance_created",
+      "call_symbol": "fmi3InstantiateCoSimulation",
+      "status": "ok",
+      "payload": {
+        "interface_type": "CoSimulation",
+        "early_return_allowed": false,
+        "event_mode_used": false,
+        "instance_name": "heat-exchanger-buffer",
+        "visible": false,
+        "logging_on": false,
+        "resource_path": "artifact://heat-exchanger-buffer/resources",
+        "required_intermediate_variables": []
+      }
+    },
+    {
+      "sequence": 4,
+      "event_id": "event-04",
+      "federate_id": "heat-exchanger-buffer",
+      "kind": "initialization_mode",
+      "call_symbol": "fmi3EnterInitializationMode",
+      "status": "ok",
+      "payload": {
+        "transition": "enter",
+        "tolerance_defined": false,
+        "tolerance_bits": null,
+        "start_time_bits": "0000000000000000",
+        "stop_time_defined": true,
+        "stop_time_bits": "3ff0000000000000"
+      }
+    },
+    {
+      "sequence": 5,
+      "event_id": "event-05",
+      "federate_id": "heat-exchanger-buffer",
+      "kind": "initialization_mode",
+      "call_symbol": "fmi3ExitInitializationMode",
+      "status": "ok",
+      "payload": {
+        "transition": "exit"
+      }
+    },
+    {
+      "sequence": 6,
+      "event_id": "event-06",
+      "federate_id": "geothermal-source",
+      "kind": "do_step",
+      "call_symbol": "fmi3DoStep",
+      "status": "ok",
+      "payload": {
+        "attempt_id": "geo-step-0",
+        "current_communication_point_bits": "0000000000000000",
+        "communication_step_size_bits": "3ff0000000000000",
+        "last_successful_time_bits": "3ff0000000000000",
+        "early_return": false,
+        "event_handling_needed": false,
+        "terminate_simulation": false,
+        "no_set_fmu_state_prior_to_current_point": true,
+        "master_start_ns": 0,
+        "master_end_ns": 1000000000
+      }
+    },
+    {
+      "sequence": 7,
+      "event_id": "event-07",
+      "federate_id": "geothermal-source",
+      "kind": "get_float64",
+      "call_symbol": "fmi3GetFloat64",
+      "status": "ok",
+      "payload": {
+        "interval": {
+          "source_interval_id": "thermal-interval-0",
+          "start_master_ns": 0,
+          "end_master_ns": 1000000000,
+          "sampling_semantics": "constant_over_declared_half_open_interval"
+        },
+        "value_references": [
+          11
+        ],
+        "n_value_references": 1,
+        "values": [
+          {
+            "value_reference": 11,
+            "value": 500000,
+            "raw_f64_bits": "411e848000000000",
+            "port_id": "geo.thermal_out",
+            "source_interval_id": "thermal-interval-0",
+            "transfer_id": "thermal-transfer-0"
+          }
+        ]
+      }
+    },
+    {
+      "sequence": 8,
+      "event_id": "event-08",
+      "federate_id": "heat-exchanger-buffer",
+      "kind": "set_float64",
+      "call_symbol": "fmi3SetFloat64",
+      "status": "ok",
+      "payload": {
+        "interval": {
+          "source_interval_id": "thermal-interval-0",
+          "start_master_ns": 0,
+          "end_master_ns": 1000000000,
+          "sampling_semantics": "constant_over_declared_half_open_interval"
+        },
+        "value_references": [
+          21
+        ],
+        "n_value_references": 1,
+        "values": [
+          {
+            "value_reference": 21,
+            "value": 500000,
+            "raw_f64_bits": "411e848000000000",
+            "port_id": "hx.thermal_in",
+            "source_interval_id": "thermal-interval-0",
+            "transfer_id": "thermal-transfer-0"
+          }
+        ]
+      }
+    },
+    {
+      "sequence": 9,
+      "event_id": "event-09",
+      "federate_id": "heat-exchanger-buffer",
+      "kind": "do_step",
+      "call_symbol": "fmi3DoStep",
+      "status": "ok",
+      "payload": {
+        "attempt_id": "hx-step-0",
+        "current_communication_point_bits": "0000000000000000",
+        "communication_step_size_bits": "3ff0000000000000",
+        "last_successful_time_bits": "3ff0000000000000",
+        "early_return": false,
+        "event_handling_needed": false,
+        "terminate_simulation": false,
+        "no_set_fmu_state_prior_to_current_point": true,
+        "master_start_ns": 0,
+        "master_end_ns": 1000000000
+      }
+    },
+    {
+      "sequence": 10,
+      "event_id": "event-10",
+      "federate_id": "heat-exchanger-buffer",
+      "kind": "get_float64",
+      "call_symbol": "fmi3GetFloat64",
+      "status": "ok",
+      "payload": {
+        "interval": {
+          "source_interval_id": "thermal-interval-0",
+          "start_master_ns": 0,
+          "end_master_ns": 1000000000,
+          "sampling_semantics": "constant_over_declared_half_open_interval"
+        },
+        "value_references": [
+          31,
+          32,
+          33,
+          34
+        ],
+        "n_value_references": 4,
+        "values": [
+          {
+            "value_reference": 31,
+            "value": 480000,
+            "raw_f64_bits": "411d4c0000000000",
+            "port_id": "hx.thermal_service",
+            "source_interval_id": "thermal-interval-0"
+          },
+          {
+            "value_reference": 32,
+            "value": 10000,
+            "raw_f64_bits": "40c3880000000000",
+            "port_id": "hx.heat_loss",
+            "source_interval_id": "thermal-interval-0"
+          },
+          {
+            "value_reference": 33,
+            "value": 10000,
+            "raw_f64_bits": "40c3880000000000",
+            "port_id": "hx.storage_charge",
+            "source_interval_id": "thermal-interval-0"
+          },
+          {
+            "value_reference": 34,
+            "value": 10000,
+            "raw_f64_bits": "40c3880000000000",
+            "port_id": "hx.stored_energy",
+            "source_interval_id": "thermal-interval-0",
+            "sampling_semantics": "sample_at_interval_end"
+          }
+        ]
+      }
+    },
+    {
+      "sequence": 11,
+      "event_id": "event-11",
+      "federate_id": "geothermal-source",
+      "kind": "terminate",
+      "call_symbol": "fmi3Terminate",
+      "status": "ok",
+      "payload": {}
+    },
+    {
+      "sequence": 12,
+      "event_id": "event-12",
+      "federate_id": "heat-exchanger-buffer",
+      "kind": "terminate",
+      "call_symbol": "fmi3Terminate",
+      "status": "ok",
+      "payload": {}
+    },
+    {
+      "sequence": 13,
+      "event_id": "event-13",
+      "federate_id": "geothermal-source",
+      "kind": "free_instance",
+      "call_symbol": "fmi3FreeInstance",
+      "status": "ok",
+      "payload": {}
+    },
+    {
+      "sequence": 14,
+      "event_id": "event-14",
+      "federate_id": "heat-exchanger-buffer",
+      "kind": "free_instance",
+      "call_symbol": "fmi3FreeInstance",
+      "status": "ok",
+      "payload": {}
+    }
+  ],
+  "commit_barriers": [
+    {
+      "barrier_id": "barrier-1s",
+      "sequence": 0,
+      "master_time_ns": 1000000000,
+      "federate_ids": [
+        "geothermal-source",
+        "heat-exchanger-buffer"
+      ],
+      "attempt_ids": [
+        "geo-step-0",
+        "hx-step-0"
+      ]
+    }
+  ],
+  "state_checkpointing": {
+    "status": "unavailable",
+    "reason_code": "SERIALIZATION_CAPABILITY_NOT_ADVERTISED",
+    "snapshot_artifact_ids": []
+  },
+  "normalized_trace_artifact_id": "trace-stub",
+  "energy_contract_artifact_id": "energy-stub",
+  "claim_ceiling": "Synthetic fixture contract only. Artifact stubs are not executable FMUs or binaries. No FMI API was invoked, no model was simulated, and no physical or solver-performance claim is made."
+}

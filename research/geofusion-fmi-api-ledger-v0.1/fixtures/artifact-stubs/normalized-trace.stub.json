@@ -1,0 +1,1 @@
+{"fixture":"normalized-trace","attempts":[{"attempt_id":"geo-step-0","federate_id":"geothermal-source","start_master_ns":0,"end_master_ns":1000000000,"status":"accepted"},{"attempt_id":"hx-step-0","federate_id":"heat-exchanger-buffer","start_master_ns":0,"end_master_ns":1000000000,"status":"accepted"}],"claim":"synthetic fixture only; no FMI execution"}
