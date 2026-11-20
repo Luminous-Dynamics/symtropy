@@ -10,7 +10,8 @@
     "https://api.acts.co.za/civil-aviation-act-2009/nr425_101_05_16a_multi-unmanne.php",
     "https://api.acts.co.za/civil-aviation-act-2009/nr425_101_05_8_c2_operational_.php",
     "https://api.acts.co.za/civil-aviation-act-2009/nr425_101_01_1_applicability.php",
-    "https://api.acts.co.za/civil-aviation-act-2009/nr425_101_01_2_private_operati.php"
+    "https://api.acts.co.za/civil-aviation-act-2009/nr425_101_01_2_private_operati.php",
+    "https://www.gov.za/sites/default/files/gcis_document/202608/55226gon7844.pdf"
   ],
   "cases": [
     {
@@ -55,7 +56,8 @@
           "subject_id": "aircraft-01",
           "operation_scope_digest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "source_reference": "synthetic://za-uas/c2/commercial-rvlos-delivery"
-        }
+        },
+        "radio_link_mode": "rlos"
       },
       "approvals": {
         "air_service_licence": {
@@ -197,7 +199,8 @@
           "subject_id": "aircraft-01",
           "operation_scope_digest_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "source_reference": "synthetic://za-uas/c2/commercial-bvlos-approval-missing"
-        }
+        },
+        "radio_link_mode": "rlos"
       },
       "approvals": {
         "air_service_licence": {
@@ -339,7 +342,8 @@
           "subject_id": "aircraft-01",
           "operation_scope_digest_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "source_reference": "synthetic://za-uas/c2/autonomous-aircraft-regime-unresolved"
-        }
+        },
+        "radio_link_mode": "rlos"
       },
       "approvals": {
         "air_service_licence": {
@@ -481,7 +485,8 @@
           "subject_id": "aircraft-01",
           "operation_scope_digest_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
           "source_reference": "synthetic://za-uas/c2/multi-uas-director-approval-missing"
-        }
+        },
+        "radio_link_mode": "rlos"
       },
       "approvals": {
         "air_service_licence": {
@@ -623,7 +628,8 @@
           "subject_id": "aircraft-01",
           "operation_scope_digest_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
           "source_reference": "synthetic://za-uas/c2/public-road-overflight-missing-controls"
-        }
+        },
+        "radio_link_mode": "rlos"
       },
       "approvals": {
         "air_service_licence": {
@@ -773,7 +779,8 @@
           "subject_id": "aircraft-01",
           "operation_scope_digest_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
           "source_reference": "synthetic://za-uas/c2/beyond-radio-link-unsupported"
-        }
+        },
+        "radio_link_mode": "brlos"
       },
       "approvals": {
         "air_service_licence": {
