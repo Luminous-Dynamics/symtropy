@@ -393,7 +393,9 @@
     "entropy_area_identity_exact": true,
     "critical_endpoint_limits_exact": true,
     "binary64_grid_points_generated": true,
-    "static_mass_temperature_area_entropy_conversion_exact": true
+    "static_mass_temperature_area_entropy_conversion_exact": true,
+    "static_first_law_exact": true,
+    "dimensionless_static_coupling_map_exact": true
   },
   "claim_ceiling": "Exact local extremal near-horizon attractor specialization only; no global extremal black-hole solution or matched near-extremal sequence is claimed.",
   "static_thermodynamics_symtropy": {
@@ -402,6 +404,7 @@
     "horizon_area": "2*pi^2*r_H^3",
     "wald_entropy": "pi^2*r_H^3/2*(1+3*alpha_sym/r_H^2)",
     "source_dimensionless_static_coupling": "x=alpha_sym/(2*r_H^2+alpha_sym)",
-    "source": "Kleihaus, Kunz & Radu (2023), Eq. (10), converted with alpha_sym=4*alpha_NH"
+    "source": "Kleihaus, Kunz & Radu (2023), Eq. (10), converted with alpha_sym=4*alpha_NH",
+    "first_law_fixed_alpha": "dM = T_H dS; exact derivative identity with J=0"
   }
 }
