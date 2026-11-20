@@ -7,7 +7,7 @@
       "measurement_day": 150,
       "measurand_unit": "N m",
       "terminal_reference_id": "national-torque-reference",
-      "terminal_reference_source": "https://example.invalid/references/national-torque-reference",
+      "terminal_reference_source": "https://example.invalid/standards/national-torque-reference",
       "chain_digest": "synthetic-chain-digest-deterministic",
       "links": [
         {
@@ -84,7 +84,7 @@
       "measurement_day": 150,
       "measurand_unit": "N m",
       "terminal_reference_id": "national-torque-reference",
-      "terminal_reference_source": "https://example.invalid/references/national-torque-reference",
+      "terminal_reference_source": "https://example.invalid/standards/national-torque-reference",
       "chain_digest": "synthetic-chain-digest-statistical",
       "links": [
         {
@@ -161,7 +161,7 @@
       "measurement_day": 150,
       "measurand_unit": "N m",
       "terminal_reference_id": "national-torque-reference",
-      "terminal_reference_source": "https://example.invalid/references/national-torque-reference",
+      "terminal_reference_source": "https://example.invalid/standards/national-torque-reference",
       "chain_digest": "synthetic-chain-digest-expired",
       "links": [
         {
