@@ -38,6 +38,25 @@ pub enum RotationalInertiaModel {
     ValidatedSpatialBivectorOperator,
 }
 
+/// Errors returned by the checked legacy toolhead merge path.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ToolheadMergeError {
+    /// Only a dynamic body can accept additional rigid mass.
+    BodyNotDynamic,
+    /// The base body's mass is not finite and positive.
+    InvalidBodyMass,
+    /// Toolhead mass is not finite and positive.
+    InvalidToolMass,
+    /// Stored compatibility inertia is not finite and positive.
+    InvalidBodyInertia,
+    /// A body or toolhead transform is not finite or not a proper rotation.
+    InvalidTransform,
+    /// Existing dynamic state, force, or torque is non-finite.
+    InvalidBodyState,
+    /// A merged mass, inertia, reference point, velocity, or wrench is unrepresentable.
+    UnrepresentableResult,
+}
+
 /// N-dimensional rigid body.
 pub struct RigidBody<const D: usize> {
     pub handle: BodyHandle,
@@ -526,74 +545,178 @@ impl<const D: usize> RigidBody<D> {
                 -self.angular_velocity.get(0, 2),
                 self.angular_velocity.get(0, 1),
             );
-            let rotation = SMatrix::<f64, 3, 3>::from_fn(|row, col| {
-                self.transform.rotation.to_matrix()[(row, col)]
-            });
-            let omega_local = rotation.transpose() * omega_world;
-            0.5 * (0..3)
-                .map(|axis| self.inertia[axis] * omega_local[axis] * omega_local[axis])
-                .sum::<f64>()
-        } else {
-            let inertia_mean = self.inertia.sum() / D as f64;
-            0.5 * inertia_mean * self.angular_velocity.norm_squared()
-        }
-    }
+        /// Fallibly merge a rigid toolhead using the legacy isotropic mass approximation.
+    ///
+    /// The toolhead is assumed to share the base body's rigid motion at the
+    /// instant of attachment. Its mass distribution is approximated by the
+    /// historical 0.1 m solid-sphere model; arbitrary collider geometry is
+    /// **not** inferred as physical mass properties. The resulting inertia is
+    /// explicitly marked approximate and any previously attached full
+    /// rotational-inertia operator is invalidated.
+    ///
+    /// The body origin moves to the combined COM. Existing compound children
+    /// and the new tool transform are re-expressed relative to that COM, while
+    /// world-space geometry, point velocity and the accumulated wrench about
+    /// any fixed world point are preserved.
+    pub fn try_merge_toolhead(
+        &mut self,
+        local_transform: Transform<D>,
+        tool_collider: Box<dyn Shape<D>>,
+        tool_mass: f64,
+    ) -> Result<(), ToolheadMergeError> {
+        use symtropy_math::CompoundShape;
 
-    pub fn kinetic_energy(&self) -> f64 {
         if !self.is_dynamic() {
-            return 0.0;
+            return Err(ToolheadMergeError::BodyNotDynamic);
         }
-        let linear = 0.5 * self.mass * self.linear_velocity.norm_squared();
-        linear + self.rotational_kinetic_energy()
+        if !self.mass.is_finite() || self.mass <= 0.0 {
+            return Err(ToolheadMergeError::InvalidBodyMass);
+        }
+        if !tool_mass.is_finite() || tool_mass <= 0.0 {
+            return Err(ToolheadMergeError::InvalidToolMass);
+        }
+        if self.inertia.iter().any(|value| !value.is_finite() || *value <= 0.0) {
+            return Err(ToolheadMergeError::InvalidBodyInertia);
+        }
+        if !local_transform.translation.0.iter().all(|value| value.is_finite())
+            || !local_transform.rotation.is_proper_rotation(1.0e-8)
+            || !self.transform.translation.0.iter().all(|value| value.is_finite())
+            || !self.transform.rotation.is_proper_rotation(1.0e-8)
+        {
+            return Err(ToolheadMergeError::InvalidTransform);
+        }
+        if !self.linear_velocity.iter().all(|value| value.is_finite())
+            || !self.angular_velocity.is_finite()
+            || !self.force_accumulator.iter().all(|value| value.is_finite())
+            || !self.torque_accumulator.is_finite()
+        {
+            return Err(ToolheadMergeError::InvalidBodyState);
+        }
+
+        let total_mass = self.mass + tool_mass;
+        if !total_mass.is_finite() || total_mass <= 0.0 {
+            return Err(ToolheadMergeError::UnrepresentableResult);
+        }
+        let tool_mass_fraction = tool_mass / total_mass;
+        if !tool_mass_fraction.is_finite() || tool_mass_fraction <= 0.0 {
+            return Err(ToolheadMergeError::UnrepresentableResult);
+        }
+        let com_offset = local_transform.translation.0 * tool_mass_fraction;
+        if !com_offset.iter().all(|value| value.is_finite()) {
+            return Err(ToolheadMergeError::UnrepresentableResult);
+        }
+
+        // The legacy convenience path uses a nominal 0.1 m solid-sphere
+        // approximation for the toolhead. This is intentionally not inferred
+        // from the supplied collider's geometry.
+        let original_mean_inertia = self.inertia.sum() / D as f64;
+        let tool_approximate_inertia = 0.4 * tool_mass * 0.1 * 0.1;
+        let original_offset_squared = com_offset.norm_squared();
+        let tool_offset = local_transform.translation.0 - com_offset;
+        let tool_offset_squared = tool_offset.norm_squared();
+        let merged_mean_inertia =
+            (original_mean_inertia + self.mass * original_offset_squared)
+                + (tool_approximate_inertia + tool_mass * tool_offset_squared);
+        let inverse_mass = 1.0 / total_mass;
+        let inverse_mean_inertia = 1.0 / merged_mean_inertia;
+        if !original_mean_inertia.is_finite()
+            || !tool_approximate_inertia.is_finite()
+            || !original_offset_squared.is_finite()
+            || !tool_offset_squared.is_finite()
+            || !merged_mean_inertia.is_finite()
+            || merged_mean_inertia <= 0.0
+            || !inverse_mass.is_finite()
+            || inverse_mass <= 0.0
+            || !inverse_mean_inertia.is_finite()
+            || inverse_mean_inertia <= 0.0
+        {
+            return Err(ToolheadMergeError::UnrepresentableResult);
+        }
+
+        // Build the entire replacement collider before mutating the body.
+        // Child transforms are expressed relative to the new COM:
+        // r_child,new = r_child,old - c_offset.
+        let mut compound = CompoundShape::<D>::new();
+        if let Some(existing) = self.collider.as_any().downcast_ref::<CompoundShape<D>>() {
+            for (child_transform, shape) in existing.children() {
+                let mut shifted = child_transform.clone();
+                shifted.translation.0 -= com_offset;
+                compound.add_child(shifted, shape.clone_box());
+            }
+        } else {
+            let mut base_transform = Transform::identity();
+            base_transform.translation.0 -= com_offset;
+            compound.add_child(base_transform, self.collider.as_ref().clone_box());
+        }
+
+        let mut shifted_tool_transform = local_transform;
+        shifted_tool_transform.translation.0 -= com_offset;
+        compound.add_child(shifted_tool_transform, tool_collider);
+
+        // The COM offset is body-local. Convert it to a world-space reference
+        // point shift before updating world translation, velocity, or wrench.
+        // Rotor::from_bivector(B)=exp(-B), so the point-velocity increment is
+        // -B*r for the stored angular-velocity convention.
+        let world_com_offset = self.transform.rotation.rotate_vector(&com_offset);
+        let new_translation = self.transform.translation.0 + world_com_offset;
+        let new_linear_velocity =
+            self.linear_velocity - self.angular_velocity.apply_to_vector(&world_com_offset);
+        let torque_shift = Bivector::from_wedge(&world_com_offset, &self.force_accumulator);
+        let new_torque_accumulator =
+            self.torque_accumulator.add(&torque_shift.scale(-1.0));
+        if !world_com_offset.iter().all(|value| value.is_finite())
+            || !new_translation.iter().all(|value| value.is_finite())
+            || !new_linear_velocity.iter().all(|value| value.is_finite())
+            || !new_torque_accumulator.is_finite()
+        {
+            return Err(ToolheadMergeError::UnrepresentableResult);
+        }
+
+        // All validation is complete. Commit the new compound and mass state.
+        let source_mass_properties_current =
+            self.mass_properties_mass_bits == Some(self.mass.to_bits());
+        let had_full_operator = self.rotational_inertia_operator.is_some();
+        self.collider = Box::new(compound);
+        self.mass = total_mass;
+        self.inv_mass = inverse_mass;
+        self.inertia = SVector::from_element(merged_mean_inertia);
+        self.inv_inertia = SVector::from_element(inverse_mean_inertia);
+        self.transform.translation.0 = new_translation;
+        self.linear_velocity = new_linear_velocity;
+        self.torque_accumulator = new_torque_accumulator;
+
+        self.rotational_inertia_approximate = true;
+        self.mass_properties_mass_bits = if source_mass_properties_current {
+            Some(total_mass.to_bits())
+        } else {
+            None
+        };
+
+        // Toolhead mass changes invalidate any previously attached full
+        // operator; the scalar compatibility approximation must not masquerade
+        // as the old source-qualified tensor.
+        if had_full_operator {
+            self.rotational_inertia_operator = None;
+            self.rotational_inertia_operator_invalidated = true;
+            self.rotational_inertia_operator_mass_bits = None;
+        }
+
+        Ok(())
     }
 
+    /// Compatibility wrapper for the legacy approximate merge.
+    ///
+    /// Invalid inputs are a no-op. Call try_merge_toolhead to observe an error.
     pub fn merge_toolhead(
         &mut self,
         local_transform: Transform<D>,
         tool_collider: Box<dyn Shape<D>>,
         tool_mass: f64,
     ) {
-        let source_mass_properties_current =
-            self.mass_properties_mass_bits == Some(self.mass.to_bits());
+        let _ = self.try_merge_toolhead(local_transform, tool_collider, tool_mass);
+    }
 
-        use symtropy_math::CompoundShape;
-
-        let mut compound =
-            if let Some(existing) = self.collider.as_any().downcast_ref::<CompoundShape<D>>() {
-                let mut new_c = CompoundShape::<D>::new();
-                for (tf, s) in existing.children() {
-                    new_c.add_child(tf.clone(), s.clone_box());
-                }
-                new_c
-            } else {
-                let mut new_c = CompoundShape::<D>::new();
-                new_c.add_child(Transform::identity(), self.collider.as_ref().clone_box());
-                new_c
-            };
-
-        compound.add_child(local_transform.clone(), tool_collider);
-        self.collider = Box::new(compound);
-
-        let total_mass = self.mass + tool_mass;
-        let com_offset = (local_transform.translation.0 * tool_mass) / total_mass;
-
-        let i_original = self.inertia.sum() / D as f64;
-        let i_tool = 0.4 * tool_mass * 0.1 * 0.1;
-
-        let d_original = com_offset.norm();
-        let d_tool = (local_transform.translation.0 - com_offset).norm();
-        let i_total = (i_original + self.mass * d_original * d_original)
-            + (i_tool + tool_mass * d_tool * d_tool);
-
-        self.mass = total_mass;
-        self.inv_mass = 1.0 / total_mass;
-        self.inertia = SVector::from_element(i_total);
-        self.inv_inertia = SVector::from_element(1.0 / i_total);
-
-        self.transform.translation.0 += com_offset;
-
-        // The compatibility merge uses a simplified scalar toolhead inertia,
-        // not a composite central-second-moment derivation. Report it as an
+econd-moment derivation. Report it as an
         // approximation even when the resulting three stored moments happen
         // to be equal.
         self.rotational_inertia_approximate = true;
@@ -1106,5 +1229,372 @@ mod rotational_inertia_tests {
         let impulse = Bivector::<4>::unit_plane(0, 1);
         let inverse_mean = body.inv_inertia.sum() / 4.0;
         assert!((body.apply_inverse_angular_inertia(&impulse).get(0, 1) - inverse_mean).abs() < 1e-12);
+    }
+}
+
+#[cfg(test)]
+mod compound_com_tests {
+    use super::*;
+    use symtropy_math::{HyperBox, Rotor};
+
+    fn rotated_body() -> RigidBody<3> {
+        let mut generator = Bivector::<3>::zero();
+        generator.set(0, 1, 0.37);
+        generator.set(0, 2, -0.21);
+        generator.set(1, 2, 0.48);
+        RigidBody::new(
+            BodyHandle(10),
+            BodyType::Dynamic,
+            Transform {
+                translation: Point::new([3.0, -2.0, 5.0]),
+                rotation: Rotor::from_bivector(&generator),
+            },
+            Box::new(HyperBox::<3>::new([0.4, 0.2, 0.3])),
+            2.0,
+            SVector::from_element(0.4),
+        )
+    }
+
+    fn child_world_support(
+        body: &RigidBody<3>,
+        child_index: usize,
+        direction: &SVector<f64, 3>,
+    ) -> SVector<f64, 3> {
+        let compound = body
+            .collider
+            .as_any()
+            .downcast_ref::<symtropy_math::CompoundShape<3>>()
+            .expect("merge_toolhead always stores a compound collider");
+        let (child_transform, shape) = compound
+            .children()
+            .get(child_index)
+            .expect("requested compound child exists");
+        let world_from_child = body.transform.compose(child_transform);
+        let child_direction = world_from_child.rotation.reverse().rotate_vector(direction);
+        let local_support = shape.support(&child_direction);
+        world_from_child.transform_point(&Point(local_support)).0
+    }
+
+    fn original_child_world_support(
+        body: &RigidBody<3>,
+        direction: &SVector<f64, 3>,
+    ) -> SVector<f64, 3> {
+        child_world_support(body, 0, direction)
+    }
+
+    fn fibonacci_directions() -> Vec<SVector<f64, 3>> {
+        let count = 64;
+        let golden_angle = std::f64::consts::PI * (3.0 - 5.0_f64.sqrt());
+        (0..count)
+            .map(|index| {
+                let index = index as f64;
+                let z = 1.0 - 2.0 * (index + 0.5) / count as f64;
+                let radius = (1.0 - z * z).sqrt();
+                let angle = golden_angle * index;
+                SVector::from([radius * angle.cos(), z, radius * angle.sin()])
+            })
+            .collect()
+    }
+
+    fn transformed_shape_world_support(
+        shape: &dyn Shape<3>,
+        transform: &Transform<3>,
+        direction: &SVector<f64, 3>,
+    ) -> SVector<f64, 3> {
+        let local_direction = transform.rotation.reverse().rotate_vector(direction);
+        let local_support = shape.support(&local_direction);
+        transform.transform_point(&Point(local_support)).0
+    }
+
+    fn assert_child_geometry_preserved(
+        before: &[SVector<f64, 3>],
+        body: &RigidBody<3>,
+        child_index: usize,
+    ) {
+        let directions = [
+            SVector::from([1.0, 0.0, 0.0]),
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::from([0.0, 0.0, 1.0]),
+            SVector::from([1.0, 2.0, -3.0]),
+            SVector::from([-2.0, 0.5, 1.0]),
+        ];
+        for (index, direction) in directions.iter().enumerate() {
+            let after = child_world_support(body, child_index, direction);
+            assert!(
+                (after - before[index]).norm() < 2.0e-10,
+                "compound child {child_index} moved in direction {direction:?}: before={:?}, after={after:?}",
+                before[index]
+            );
+        }
+    }
+
+    fn assert_original_geometry_preserved(before: &[SVector<f64, 3>], body: &RigidBody<3>) {
+        let directions = [
+            SVector::from([1.0, 0.0, 0.0]),
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::from([0.0, 0.0, 1.0]),
+            SVector::from([1.0, 2.0, -3.0]),
+            SVector::from([-2.0, 0.5, 1.0]),
+        ];
+        for (index, direction) in directions.iter().enumerate() {
+            let after = original_child_world_support(body, direction);
+            assert!(
+                (after - before[index]).norm() < 2.0e-10,
+                "original child geometry moved in direction {direction:?}: before={:?}, after={after:?}",
+                before[index]
+            );
+        }
+    }
+
+    #[test]
+    fn invalid_toolhead_mass_is_rejected_without_mutation() {
+        let mut body = rotated_body();
+        let mass_before = body.mass;
+        let translation_before = body.transform.translation.0;
+        let velocity_before = body.linear_velocity;
+        let force_before = body.force_accumulator;
+        let inertia_before = body.inertia;
+        let rotation_before = *body.transform.rotation.to_matrix();
+
+        let result = body.try_merge_toolhead(
+            Transform::from_translation(Point::new([0.5, 0.2, -0.1])),
+            Box::new(HyperBox::<3>::new([0.1, 0.1, 0.1])),
+            f64::NAN,
+        );
+        assert_eq!(result, Err(ToolheadMergeError::InvalidToolMass));
+        assert_eq!(body.mass, mass_before);
+        assert_eq!(body.transform.translation.0, translation_before);
+        assert_eq!(body.linear_velocity, velocity_before);
+        assert_eq!(body.force_accumulator, force_before);
+        assert_eq!(body.inertia, inertia_before);
+        assert_eq!(*body.transform.rotation.to_matrix(), rotation_before);
+        assert!(body.collider.as_any().downcast_ref::<symtropy_math::CompoundShape<3>>().is_none());
+    }
+
+    #[test]
+    fn improper_toolhead_rotation_is_rejected_without_mutation() {
+        let mut body = rotated_body();
+        let mass_before = body.mass;
+        let translation_before = body.transform.translation.0;
+        let mut invalid = Transform::from_translation(Point::new([0.5, 0.2, -0.1]));
+        invalid.rotation = Rotor::from_matrix(nalgebra::SMatrix::<f64, 3, 3>::identity() * 2.0);
+
+        let result = body.try_merge_toolhead(
+            invalid,
+            Box::new(HyperBox::<3>::new([0.1, 0.1, 0.1])),
+            0.5,
+        );
+        assert_eq!(result, Err(ToolheadMergeError::InvalidTransform));
+        assert_eq!(body.mass, mass_before);
+        assert_eq!(body.transform.translation.0, translation_before);
+        assert!(body.collider.as_any().downcast_ref::<symtropy_math::CompoundShape<3>>().is_none());
+    }
+
+    #[test]
+    fn merge_toolhead_preserves_world_geometry_for_rotated_body() {
+        let mut body = rotated_body();
+        let directions = [
+            SVector::from([1.0, 0.0, 0.0]),
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::from([0.0, 0.0, 1.0]),
+            SVector::from([1.0, 2.0, -3.0]),
+            SVector::from([-2.0, 0.5, 1.0]),
+        ];
+        let before = directions
+            .iter()
+            .map(|direction| body.world_support(direction))
+            .collect::<Vec<_>>();
+
+        let mut tool_generator = Bivector::<3>::zero();
+        tool_generator.set(0, 2, 0.31);
+        let tool_transform = Transform {
+            translation: Point::new([1.2, -0.7, 0.4]),
+            rotation: Rotor::from_bivector(&tool_generator),
+        };
+        let expected_local_com = tool_transform.translation.0 / 3.0;
+        let old_translation = body.transform.translation.0;
+        let old_rotation = body.transform.rotation.clone();
+
+        body.merge_toolhead(
+            tool_transform,
+            Box::new(HyperBox::<3>::new([0.2, 0.1, 0.15])),
+            1.0,
+        );
+
+        let expected_world_translation =
+            old_translation + old_rotation.rotate_vector(&expected_local_com);
+        assert!(
+            (body.transform.translation.0 - expected_world_translation).norm() < 1.0e-12,
+            "COM translation was not rotated from body frame into world frame"
+        );
+        assert_original_geometry_preserved(&before, &body);
+    }
+
+    #[test]
+    fn merge_toolhead_preserves_rotated_box_children_over_direction_sweep() {
+        let mut body = rotated_body();
+        let directions = fibonacci_directions();
+        let original_before = directions
+            .iter()
+            .map(|direction| body.world_support(direction))
+            .collect::<Vec<_>>();
+
+        let mut tool_generator = Bivector::<3>::zero();
+        tool_generator.set(0, 1, -0.29);
+        tool_generator.set(0, 2, 0.44);
+        tool_generator.set(1, 2, 0.18);
+        let tool_transform = Transform {
+            translation: Point::new([0.8, -0.6, 0.5]),
+            rotation: Rotor::from_bivector(&tool_generator),
+        };
+        let world_tool_transform_before = body.transform.compose(&tool_transform);
+        let tool_shape: Box<dyn Shape<3>> = Box::new(HyperBox::<3>::new([0.23, 0.11, 0.07]));
+        let tool_before = directions
+            .iter()
+            .map(|direction| {
+                transformed_shape_world_support(
+                    tool_shape.as_ref(),
+                    &world_tool_transform_before,
+                    direction,
+                )
+            })
+            .collect::<Vec<_>>();
+
+        body.merge_toolhead(tool_transform, tool_shape, 0.8);
+
+        for (index, direction) in directions.iter().enumerate() {
+            let original_after = child_world_support(&body, 0, direction);
+            let tool_after = child_world_support(&body, 1, direction);
+            assert!(
+                (original_after - original_before[index]).norm() < 3.0e-10,
+                "original rotated box support changed at direction {index}"
+            );
+            assert!(
+                (tool_after - tool_before[index]).norm() < 3.0e-10,
+                "rotated toolhead support changed at direction {index}"
+            );
+        }
+    }
+
+    #[test]
+    fn merge_toolhead_preserves_velocity_at_new_com_reference() {
+        let mut body = rotated_body();
+        body.linear_velocity = SVector::from([0.6, -0.3, 0.8]);
+        let mut omega = Bivector::<3>::zero();
+        omega.set(0, 1, 0.73);
+        omega.set(0, 2, -0.41);
+        omega.set(1, 2, 0.29);
+        body.angular_velocity = omega;
+
+        let tool_transform = Transform::from_translation(Point::new([1.2, -0.7, 0.4]));
+        let local_com_offset = tool_transform.translation.0 / 3.0;
+        let old_translation = body.transform.translation.0;
+        let old_rotation = body.transform.rotation.clone();
+        let old_linear_velocity = body.linear_velocity;
+        let dt = 1.0e-7;
+
+        // Finite-difference the world trajectory of the point that becomes
+        // the combined COM, using the exact Rotor update used by integrate().
+        let point_before = old_translation + old_rotation.rotate_vector(&local_com_offset);
+        let delta_rotation = Rotor::from_bivector(&omega.scale(dt));
+        let rotation_after = delta_rotation.compose(&old_rotation);
+        let point_after = old_translation
+            + old_linear_velocity * dt
+            + rotation_after.rotate_vector(&local_com_offset);
+        let finite_difference_velocity = (point_after - point_before) / dt;
+
+        body.merge_toolhead(
+            tool_transform,
+            Box::new(HyperBox::<3>::new([0.2, 0.1, 0.15])),
+            1.0,
+        );
+
+        assert!(
+            (body.linear_velocity - finite_difference_velocity).norm() < 2.0e-6,
+            "new COM velocity disagrees with Rotor point-velocity finite difference: actual={:?}, expected={finite_difference_velocity:?}",
+            body.linear_velocity
+        );
+    }
+
+    #[test]
+    fn merge_toolhead_preserves_accumulated_wrench_about_fixed_world_point() {
+        let mut body = rotated_body();
+        body.force_accumulator = SVector::from([0.8, -1.1, 0.6]);
+        let mut torque = Bivector::<3>::zero();
+        torque.set(0, 1, 0.7);
+        torque.set(0, 2, -0.4);
+        torque.set(1, 2, 0.2);
+        body.torque_accumulator = torque;
+
+        let fixed_world_point = SVector::from([-1.0, 0.5, 2.0]);
+        let old_origin = body.transform.translation.0;
+        let old_force = body.force_accumulator;
+        let torque_about_fixed_before = body.torque_accumulator.add(&Bivector::from_wedge(
+            &(old_origin - fixed_world_point),
+            &old_force,
+        ));
+
+        body.merge_toolhead(
+            Transform::from_translation(Point::new([1.2, -0.7, 0.4])),
+            Box::new(HyperBox::<3>::new([0.2, 0.1, 0.15])),
+            1.0,
+        );
+
+        let new_origin = body.transform.translation.0;
+        let torque_about_fixed_after = body.torque_accumulator.add(&Bivector::from_wedge(
+            &(new_origin - fixed_world_point),
+            &body.force_accumulator,
+        ));
+        for i in 0..3 {
+            for j in (i + 1)..3 {
+                assert!(
+                    (torque_about_fixed_after.get(i, j) - torque_about_fixed_before.get(i, j))
+                        .abs()
+                        < 1.0e-12,
+                    "wrench moment about fixed world point changed in plane ({i},{j})"
+                );
+            }
+        }
+        assert_eq!(body.force_accumulator, old_force);
+    }
+
+    #[test]
+    fn repeated_toolhead_merges_preserve_all_prior_world_geometry() {
+        let mut body = rotated_body();
+        let directions = [
+            SVector::from([1.0, 0.0, 0.0]),
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::from([0.0, 0.0, 1.0]),
+            SVector::from([1.0, 2.0, -3.0]),
+            SVector::from([-2.0, 0.5, 1.0]),
+        ];
+        let initial = directions
+            .iter()
+            .map(|direction| body.world_support(direction))
+            .collect::<Vec<_>>();
+
+        body.merge_toolhead(
+            Transform::from_translation(Point::new([1.0, 0.3, -0.2])),
+            Box::new(HyperBox::<3>::new([0.15, 0.1, 0.08])),
+            0.7,
+        );
+        assert_original_geometry_preserved(&initial, &body);
+
+        let after_first_original = directions
+            .iter()
+            .map(|direction| original_child_world_support(&body, direction))
+            .collect::<Vec<_>>();
+        let after_first_tool = directions
+            .iter()
+            .map(|direction| child_world_support(&body, 1, direction))
+            .collect::<Vec<_>>();
+        body.merge_toolhead(
+            Transform::from_translation(Point::new([-0.4, 1.1, 0.6])),
+            Box::new(HyperBox::<3>::new([0.1, 0.07, 0.04])),
+            0.3,
+        );
+        assert_child_geometry_preserved(&after_first_original, &body, 0);
+        assert_child_geometry_preserved(&after_first_tool, &body, 1);
+        assert_original_geometry_preserved(&initial, &body);
     }
 }
