@@ -1,5 +1,5 @@
 use chrono::{DateTime, Duration, FixedOffset};
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -95,7 +95,7 @@ fn hash_newline_list(values: &[String]) -> String {
     sha256_hex(values.join("\n").as_bytes())
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct MetricContract {
     unit: String,
     operator: String,
@@ -226,23 +226,6 @@ fn parse_time(value: Option<&str>) -> Option<DateTime<FixedOffset>> {
     value.and_then(|raw| DateTime::parse_from_rfc3339(raw).ok())
 }
 
-fn check_metric_floor_set(
-    value: &Value,
-    contract: &BTreeMap<String, MetricContract>,
-    label: &str,
-    blockers: &mut Vec<String>,
-    errors: &mut Vec<String>,
-) {
-    let intervals = read_metric_intervals(value, contract, label, errors);
-    for (metric, interval) in intervals {
-        if let Some(spec) = contract.get(&metric) {
-            if let Err(reason) = metric_floor_pass(&metric, &interval, spec) {
-                blockers.push(format!("{label}: {reason}"));
-            }
-        }
-    }
-}
-
 fn validate_bundle(raw: &[u8], value: &Value) -> Value {
     let mut errors = Vec::<String>::new();
     let mut global_blockers = Vec::<String>::new();
@@ -357,13 +340,13 @@ fn validate_bundle(raw: &[u8], value: &Value) -> Value {
     let observed_at = parse_time(string_at(state, "observed_at"));
     let valid_until = parse_time(string_at(state, "valid_until"));
     let mut state_fresh = true;
-    match (decision_time, observed_at, valid_until) {
+    match (decision_time.as_ref(), observed_at.as_ref(), valid_until.as_ref()) {
         (Some(now), Some(observed), Some(expiry)) => {
             if observed > now || expiry <= now {
                 state_fresh = false;
                 global_blockers.push("current state is future-dated or expired at the decision time".to_owned());
             } else {
-                let age = (now - observed).num_seconds();
+                let age = now.timestamp() - observed.timestamp();
                 let maximum_age = decision.get("max_state_age_seconds").and_then(Value::as_i64).unwrap_or(0);
                 if maximum_age <= 0 || age > maximum_age {
                     state_fresh = false;
@@ -375,6 +358,11 @@ fn validate_bundle(raw: &[u8], value: &Value) -> Value {
             state_fresh = false;
             errors.push("decision/current-state times must be valid RFC3339 timestamps".to_owned());
         }
+    }
+    if decision.get("permit_ttl_seconds").and_then(Value::as_i64).is_none_or(|ttl| ttl <= 0)
+        || decision.get("max_state_age_seconds").and_then(Value::as_i64).is_none_or(|age| age <= 0)
+    {
+        errors.push("decision freshness and permit TTL bounds must be positive integers".to_owned());
     }
     let nonce = string_at(decision, "permit_nonce_sha256").unwrap_or("");
     if !digest_valid(Some(nonce)) {
@@ -406,7 +394,13 @@ fn validate_bundle(raw: &[u8], value: &Value) -> Value {
         }
     }
     let capabilities = state.get("available_capabilities").and_then(Value::as_array)
-        .map(|items| items.iter().filter_map(Value::as_str).collect::<BTreeSet<_>>())
+        .map(|items| {
+            let values = items.iter().filter_map(Value::as_str).collect::<Vec<_>>();
+            if values.iter().collect::<BTreeSet<_>>().len() != values.len() {
+                errors.push("current state available_capabilities contains duplicates".to_owned());
+            }
+            values.into_iter().collect::<BTreeSet<_>>()
+        })
         .unwrap_or_default();
 
     let candidates = value.get("candidates").and_then(Value::as_array);
@@ -434,6 +428,7 @@ fn validate_bundle(raw: &[u8], value: &Value) -> Value {
                     != string_at(candidate, "action_digest_sha256")
             {
                 candidate_invalid = true;
+                errors.push(format!("candidate '{candidate_id}' action digest does not match the canonical payload"));
                 reasons.push("action digest does not match the canonical candidate payload".to_owned());
             }
             for field in [
@@ -499,6 +494,7 @@ fn validate_bundle(raw: &[u8], value: &Value) -> Value {
                             != string_at(successor, "successor_state_sha256")
                     {
                         candidate_invalid = true;
+                        errors.push(format!("candidate '{candidate_id}' successor '{class}' digest does not bind its canonical one-step state"));
                         reasons.push(format!("successor '{class}' digest does not bind its canonical one-step state"));
                     }
                     let label = format!("candidate '{candidate_id}' successor '{class}'");
@@ -615,7 +611,7 @@ fn validate_bundle(raw: &[u8], value: &Value) -> Value {
     let runtime_decision = if !errors.is_empty() {
         "INVALID_INPUT"
     } else if !state_fresh {
-        "ABSTAIN_STALE_OR_REPLAYED_STATE"
+        "ABSTAIN_CURRENT_STATE_NOT_ADMISSIBLE"
     } else if selected.as_ref().is_some_and(|selection| selection.2 == "proposed") {
         "PERMIT_PROPOSED_ACTION"
     } else if selected.is_some() {
@@ -771,7 +767,7 @@ mod tests {
     fn stale_current_state_forces_abstention() {
         let mut value = fixture("proposed");
         value["decision"]["decision_time"] = json!("2026-11-20T05:01:00Z");
-        assert_eq!(audit(&value)["runtime_decision"], "ABSTAIN_STALE_OR_REPLAYED_STATE");
+        assert_eq!(audit(&value)["runtime_decision"], "ABSTAIN_CURRENT_STATE_NOT_ADMISSIBLE");
     }
 
     #[test]
@@ -779,7 +775,7 @@ mod tests {
         let mut value = fixture("proposed");
         let nonce = value["decision"]["permit_nonce_sha256"].clone();
         value["permit_registry"]["consumed_nonce_sha256"] = json!([nonce]);
-        assert_eq!(audit(&value)["runtime_decision"], "ABSTAIN_STALE_OR_REPLAYED_STATE");
+        assert_eq!(audit(&value)["runtime_decision"], "ABSTAIN_CURRENT_STATE_NOT_ADMISSIBLE");
     }
 
     #[test]
@@ -871,6 +867,6 @@ mod tests {
             let ad = canonical_digest(candidate, Some("action_digest_sha256")).unwrap();
             candidate["action_digest_sha256"] = json!(ad);
         }
-        assert_eq!(audit(&value)["runtime_decision"], "ABSTAIN_STALE_OR_REPLAYED_STATE");
+        assert_eq!(audit(&value)["runtime_decision"], "ABSTAIN_CURRENT_STATE_NOT_ADMISSIBLE");
     }
 }
