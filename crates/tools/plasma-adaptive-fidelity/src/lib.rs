@@ -129,12 +129,16 @@ pub enum IneligibilityReason {
     InvalidEigenbasisConditionDigest,
     InvalidEigenbasisCondition,
     EigenbasisConditionExceeded,
+    KineticPatchStateMismatch,
+    InvalidKineticPatchEvidenceDigest,
+    KineticPatchQualificationUnknown,
+    KineticPatchQualificationRejected,
     InvalidComputationalCost,
     CostUnitMismatch,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CandidateRejection {
+pub struct CandidateIneligibility {
     pub profile_id: String,
     pub reason: IneligibilityReason,
 }
@@ -155,7 +159,7 @@ pub struct SelectedMomentOrder {
     pub realizability_evidence_sha256: String,
     pub conservation_evidence_sha256: String,
     pub calibration_receipt_sha256: String,
-    pub ineligible_candidates: Vec<CandidateRejection>,
+    pub ineligible_candidates: Vec<CandidateIneligibility>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -166,7 +170,7 @@ pub struct KineticPatchRequest {
     pub computational_cost: f64,
     pub cost_unit_id: String,
     pub qualification_evidence_sha256: String,
-    pub ineligible_candidates: Vec<CandidateRejection>,
+    pub ineligible_candidates: Vec<CandidateIneligibility>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -182,10 +186,10 @@ pub enum PolicyDecision {
     RequestKineticPatch(KineticPatchRequest),
     Unknown {
         reason: UnknownReason,
-        ineligible_candidates: Vec<CandidateRejection>,
+        ineligible_candidates: Vec<CandidateIneligibility>,
     },
     Refused {
-        ineligible_candidates: Vec<CandidateRejection>,
+        ineligible_candidates: Vec<CandidateIneligibility>,
         reason: String,
     },
 }
@@ -238,12 +242,12 @@ pub fn evaluate_adaptive_fidelity(
             CandidateAssessment::Eligible => eligible.push(EligibleCandidate { candidate }),
             CandidateAssessment::Unknown(reason) => {
                 has_unknown_candidate = true;
-                rejected.push(CandidateRejection {
+                rejected.push(CandidateIneligibility {
                     profile_id: candidate.profile_id.clone(),
                     reason,
                 });
             }
-            CandidateAssessment::Rejected(reason) => rejected.push(CandidateRejection {
+            CandidateAssessment::Rejected(reason) => rejected.push(CandidateIneligibility {
                 profile_id: candidate.profile_id.clone(),
                 reason,
             }),
@@ -540,18 +544,18 @@ fn assess_kinetic_patch(
         return CandidateAssessment::Rejected(IneligibilityReason::InvalidComputationalCost);
     }
     if patch.qualification.evaluated_state_sha256 != request.local_state_sha256 {
-        return CandidateAssessment::Rejected(IneligibilityReason::HyperbolicityStateMismatch);
+        return CandidateAssessment::Rejected(IneligibilityReason::KineticPatchStateMismatch);
     }
     if !is_sha256(&patch.qualification.evidence_sha256) {
-        return CandidateAssessment::Rejected(IneligibilityReason::InvalidHyperbolicityDigest);
+        return CandidateAssessment::Rejected(IneligibilityReason::InvalidKineticPatchEvidenceDigest);
     }
     match patch.qualification.disposition {
         EvidenceDisposition::Pass => CandidateAssessment::Eligible,
         EvidenceDisposition::Unknown => {
-            CandidateAssessment::Unknown(IneligibilityReason::HyperbolicityUnknown)
+            CandidateAssessment::Unknown(IneligibilityReason::KineticPatchQualificationUnknown)
         }
         EvidenceDisposition::Rejected => {
-            CandidateAssessment::Rejected(IneligibilityReason::HyperbolicityRejected)
+            CandidateAssessment::Rejected(IneligibilityReason::KineticPatchQualificationRejected)
         }
     }
 }
@@ -818,6 +822,37 @@ mod tests {
                 ineligible_candidates: vec![],
             }
         );
+    }
+
+
+    #[test]
+    fn unknown_eigenbasis_condition_keeps_the_policy_unknown() {
+        let mut invalid = candidate("unresolved-eigenbasis", 4, 4, 1.0, 0.01);
+        invalid.eigenbasis_condition.disposition = EvidenceDisposition::Unknown;
+        let result = evaluate_adaptive_fidelity(&request(vec![invalid])).unwrap();
+        assert!(matches!(
+            result,
+            PolicyDecision::Unknown {
+                reason: UnknownReason::NoAdmissibleMomentOrder,
+                ineligible_candidates,
+            } if ineligible_candidates.iter().any(|item|
+                item.reason == IneligibilityReason::EigenbasisConditionUnknown)
+        ));
+    }
+
+    #[test]
+    fn kinetic_patch_state_mismatch_is_refused_not_requested() {
+        let mut req = request(vec![]);
+        let mut patch = kinetic_patch();
+        patch.qualification.evaluated_state_sha256 = digest('0');
+        req.kinetic_patch = Some(patch);
+        assert!(matches!(
+            evaluate_adaptive_fidelity(&req).unwrap(),
+            PolicyDecision::Refused {
+                ineligible_candidates,
+                ..
+            } if ineligible_candidates.is_empty()
+        ));
     }
 
     #[test]
