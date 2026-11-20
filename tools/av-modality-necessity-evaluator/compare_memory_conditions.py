@@ -15,7 +15,7 @@ from long_horizon_evaluate import EvaluationError, evaluate, read_json
 CONDITIONS = {"recent_window", "summary_only", "episodic_retrieval", "evidence_ledger"}
 MATCHED_FIELDS = (
     "comparison_id", "policy_id", "model_revision", "runtime_revision", "hardware_id",
-    "seed", "workload_ref", "protocol_id", "memory_budget_profile_id", "measurement_status",
+    "seed", "workload_ref", "protocol_id", "memory_budget_profile_id", "measurement_status", "budget",
 )
 RESOURCE_FIELDS = ("memory_bytes_used", "input_tokens", "retrieval_latency_ms", "energy_joules")
 
