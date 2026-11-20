@@ -761,6 +761,11 @@ mod tests {
         serde_json::from_str(FIXTURE).expect("fixture is valid JSON")
     }
 
+    fn run(d: Value) -> Result<AuditReport, String> {
+        let ledger: Ledger = serde_json::from_value(d).map_err(|e| e.to_string())?;
+        audit(ledger, &root())
+    }
+
     #[test]
     fn accepts_the_frozen_positive_two_fmu_fixture() {
         let report = audit_json(FIXTURE, &root()).expect("positive fixture must pass");
@@ -773,50 +778,50 @@ mod tests {
 
     #[test]
     fn rejects_duplicate_event_identity() {
-        let mut d=value(); d["events"][1]["event_id"]=d["events"][0]["event_id"].clone();
-        assert!(audit(&serde_json::from_value(d).unwrap(), &root()).unwrap_err().contains("duplicate event id"));
+        let mut d=value(); let first=d["events"][0]["event_id"].clone(); d["events"][1]["event_id"]=first;
+        assert!(run(d).unwrap_err().contains("duplicate event id"));
     }
 
     #[test]
     fn rejects_undeclared_value_reference() {
         let mut d=value(); d["events"][7]["payload"]["values"][0]["value_reference"]=999.into();
-        assert!(audit(&serde_json::from_value(d).unwrap(), &root()).unwrap_err().contains("undeclared value reference"));
+        assert!(run(d).unwrap_err().contains("undeclared value reference"));
     }
 
     #[test]
     fn rejects_exact_float64_bit_mismatch() {
         let mut d=value(); d["events"][7]["payload"]["values"][0]["raw_f64_bits"]="0000000000000000".into();
-        assert!(audit(&serde_json::from_value(d).unwrap(), &root()).unwrap_err().contains("Float64 bit-pattern mismatch"));
+        assert!(run(d).unwrap_err().contains("Float64 bit-pattern mismatch"));
     }
 
     #[test]
     fn rejects_wrong_boundary_across_transfer() {
         let mut d=value(); d["federates"][1]["variables"][0]["boundary_id"]="wrong-boundary".into();
-        assert!(audit(&serde_json::from_value(d).unwrap(), &root()).unwrap_err().contains("producer/consumer transfer mismatch"));
+        assert!(run(d).unwrap_err().contains("producer/consumer transfer mismatch"));
     }
 
     #[test]
     fn rejects_mismatched_commit_barrier_time() {
         let mut d=value(); d["commit_barriers"][0]["master_time_ns"]=999.into();
-        assert!(audit(&serde_json::from_value(d).unwrap(), &root()).unwrap_err().contains("barrier membership/time mismatch"));
+        assert!(run(d).unwrap_err().contains("barrier membership/time mismatch"));
     }
 
     #[test]
     fn rejects_state_serialization_without_state_api_capability() {
         let mut d=value(); d["federates"][0]["capabilities"]["can_serialize_fmu_state"]=true.into();
-        assert!(audit(&serde_json::from_value(d).unwrap(), &root()).unwrap_err().contains("canSerializeFMUState without"));
+        assert!(run(d).unwrap_err().contains("canSerializeFMUState without"));
     }
 
     #[test]
     fn rejects_trace_attempt_without_api_call() {
         let mut d=value(); d["events"][6]["payload"]["attempt_id"]="unlinked-attempt".into();
-        assert!(audit(&serde_json::from_value(d).unwrap(), &root()).unwrap_err().contains("normalized trace and API doStep attempts"));
+        assert!(run(d).unwrap_err().contains("normalized trace and API doStep attempts"));
     }
 
     #[test]
     fn rejects_root_traversal_artifact() {
         let mut d=value(); d["artifacts"][0]["path"]="../../etc/passwd".into();
-        assert!(audit(&serde_json::from_value(d).unwrap(), &root()).unwrap_err().contains("not root-relative"));
+        assert!(run(d).unwrap_err().contains("not root-relative"));
     }
 
     #[test]
@@ -829,6 +834,6 @@ mod tests {
     #[test]
     fn rejects_lifecycle_gap() {
         let mut d=value(); d["events"][14]["kind"]="terminate".into();
-        assert!(audit(&serde_json::from_value(d).unwrap(), &root()).is_err());
+        assert!(run(d).is_err());
     }
 }
