@@ -24,7 +24,6 @@ const NUMERIC_TOLERANCE: f64 = 1e-9;
 
 #[derive(Clone)]
 struct ContractMetric {
-    metric: String,
     unit: String,
     operator: String,
     floor: f64,
@@ -152,7 +151,6 @@ fn parse_contract(value: &Value, errors: &mut Vec<String>) -> BTreeMap<String, C
             errors.push(format!("service contract metric '{metric}' lacks rate-bound method/class/evidence"));
         }
         let contract_metric = ContractMetric {
-            metric: metric.to_owned(),
             unit: unit.to_owned(),
             operator: operator.to_owned(),
             floor,
@@ -394,7 +392,7 @@ fn apply_action(
 
 fn terminal_status(
     terminal: &Value,
-    scenario_time: DateTime<FixedOffset>,
+    scenario_time: Option<DateTime<FixedOffset>>,
     elapsed_hours: f64,
 ) -> Result<(), String> {
     let terminal_id = string_at(terminal, "terminal_id").unwrap_or("unknown");
@@ -436,6 +434,9 @@ fn terminal_status(
         .ok_or_else(|| format!("terminal_deadline_invalid:{terminal_id}"))?;
     let valid_until = parse_time(string_at(terminal, "receipt_valid_until"))
         .ok_or_else(|| format!("terminal_receipt_expiry_invalid:{terminal_id}"))?;
+    let Some(scenario_time) = scenario_time else {
+        return Err(format!("scenario_decision_time_invalid:{terminal_id}"));
+    };
     let arrival = scenario_time + Duration::seconds((elapsed_hours * 3600.0).ceil() as i64);
     if arrival > deadline {
         return Err(format!("terminal_arrival_after_deadline:{terminal_id}"));
