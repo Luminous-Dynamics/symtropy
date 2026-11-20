@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_spin2_dae_and_radial_constraint_structure",
+  "status": "symbolically_derived_with_finite_grid_conditioning_probes",
+  "input": {
+    "equation_json_sha256": "60f719389bb2e81bb96df7236091a2ddbae6418220ef490660c953797936dc8e",
+    "operator_keys": [
+      "b",
+      "f",
+      "g",
+      "h"
+    ]
+  },
+  "radial_noether_identity": {
+    "off_shell": "E_b*b' + E_f*f' + E_g*g' + E_h*h' + E_w*w' + 2*d(f*E_f)/dr = 0",
+    "after_g_equals_r_squared": "2*r*E_g + b'*E_b + f'*E_f + h'*E_h + w'*E_w + 2*d(f*E_f)/dr = 0",
+    "spin_squared": "2*r*E_g^(2) + F'*E_b^(2) + F'*E_f^(2) + 2*r*E_h^(2) + W1'*E_w^(1) + 2*d(F*E_f^(2))/dr = 0",
+    "spin_squared_when_first_order_angular_equation_holds": "2*r*E_g^(2) + F'*E_b^(2) + F'*E_f^(2) + 2*r*E_h^(2) + 2*d(F*E_f^(2))/dr = 0",
+    "off_shell_symbolic_zero": "verified by companion verify_radial_noether_identity.py",
+    "radial_constraint_may_be_dropped_from_qualification": false
+  },
+  "differential_algebraic_structure": {
+    "E_f_contains_F2_derivatives": false,
+    "E_f_F2_coefficient_positive_decomposition": {
+      "Q": "sqrt(alpha^2+2*alpha*r_H^2+r^4)",
+      "Delta": "r^2+Q-alpha-2*r_H^2",
+      "N": "Q*(alpha^3+alpha^2*r^2+4*alpha^2*r_H^2+2*alpha*r^2*r_H^2+4*alpha*r_H^4+4*r^6)+alpha^3*r^2+3*alpha^2*r^4+4*alpha^2*r^2*r_H^2+6*alpha*r^4*r_H^2+4*alpha*r^2*r_H^4+4*r^8",
+      "coefficient": "3*r*N/((r^2+Q)*Q*Delta^2)",
+      "domain": "alpha>=0 and r>r_H>0",
+      "positivity_argument": [
+        "Q>0",
+        "Delta(r_H)=0 and dDelta/dr=2*r+2*r^3/Q>0 for r>r_H",
+        "N is a sum of nonnegative monomials with strictly positive 4*Q*r^6+4*r^8 contribution"
+      ],
+      "conclusion": "E_f determines F2 pointwise on the open exterior; the coefficient is singular as Delta^-2 at the horizon, so horizon Frobenius regularization is required."
+    },
+    "reduced_unknowns_after_Ef_elimination": [
+      "B2",
+      "H2"
+    ],
+    "reduced_equations": [
+      "E_b",
+      "E_h"
+    ],
+    "reduced_principal_matrix_alpha_zero": [
+      [
+        "3*r^3/4",
+        "-r_H^2/(4*r)"
+      ],
+      [
+        "-r_H^2/(4*r)",
+        "(2*r^2-r_H^2)^2/(12*r^5)"
+      ]
+    ],
+    "reduced_principal_determinant_alpha_zero": "(r^2-r_H^2)/4",
+    "reduced_principal_alpha_zero_nonsingular_for_r_gt_rH": true
+  },
+  "finite_alpha_exterior_probe": {
+    "lambda_grid": [
+      0,
+      0.1,
+      0.7,
+      3,
+      10,
+      100
+    ],
+    "rho_grid": [
+      1.001,
+      1.01,
+      1.1,
+      1.5,
+      2,
+      5,
+      10,
+      100
+    ],
+    "sample_count": 48,
+    "minimum_reduced_principal_determinant": 0.00023344395815751251,
+    "maximum_reduced_principal_condition_number_2": 250255751911.47375,
+    "minimum_Ef_F2_pivot": 10.666666666666666,
+    "interpretation": "Binary64 floating-point conditioning probes only; not a global nonsingularity proof or interval enclosure. Large condition numbers require higher precision or better scaling."
+  },
+  "solver_design": {
+    "recommended_formulation": "Treat the spin-squared equations as a differential-algebraic boundary problem: solve E_f algebraically for F2 in the open exterior, integrate E_b and E_h for B2 and H2, and monitor E_g using the radial Noether identity as an independent constraint residual.",
+    "horizon_treatment": "Do not evaluate the algebraic quotient naively at r=r_H. Derive a regular horizon Frobenius series and match it to the open-exterior DAE formulation.",
+    "conditioning_treatment": "Use horizon-relative/adapted coordinates and scaled dependent variables; the probe grid shows severe conditioning growth at large coupling and near the horizon.",
+    "acceptance": "All four even equations plus E_w^(1), horizon data and asymptotic data remain qualification gates. Constraint reduction is a solver optimization, not permission to discard residuals."
+  },
+  "validation": {
+    "symbolic_engine": "SymPy 1.14.0",
+    "python": "3.13.5",
+    "numpy": "2.3.1",
+    "off_shell_radial_noether_identity": "companion artifact",
+    "E_f_has_no_F2_derivatives": true,
+    "E_f_pivot_matches_positive_closed_form": true,
+    "Einstein_limit_reduced_principal_matrix_exact": true,
+    "Einstein_limit_reduced_principal_determinant_exact": true
+  },
+  "claim_ceiling": "Equation-structure analysis only; no solved finite-alpha BVP, interval-certified determinant, exact nonlinear black-hole solution, or existence/uniqueness theorem."
+}
