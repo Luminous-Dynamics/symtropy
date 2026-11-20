@@ -253,6 +253,13 @@ pub struct CumulativeEnergyDelta {
     pub resolution_bound_j: f64,
 }
 
+/// Receiver balance and the source counter-delta precision receipt.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct IntegratedFluxExchangeReceipt {
+    pub balance: EnergyBalance,
+    pub source_interval: CumulativeEnergyDelta,
+}
+
 fn positive_float_ulp(value: f64) -> f64 {
     debug_assert!(value.is_finite() && value >= 0.0);
     if value == 0.0 {
@@ -1023,6 +1030,36 @@ impl ThermalModel {
         Ok(balance)
     }
 
+    /// Derive and consume an interval-energy delta under an explicit Float64
+    /// resolution budget. The returned receipt keeps the numerical resolution
+    /// bound beside the physical balance so a caller cannot accidentally
+    /// discard the precision qualification.
+    pub fn integrated_flux_exchange_from_cumulative(
+        self,
+        theta_start_k: f64,
+        previous_cumulative_j: f64,
+        current_cumulative_j: f64,
+        maximum_resolution_error_j: f64,
+        start_time_s: f64,
+        end_time_s: f64,
+    ) -> Result<IntegratedFluxExchangeReceipt, ModelError> {
+        let source_interval = cumulative_energy_delta_with_precision_j(
+            previous_cumulative_j,
+            current_cumulative_j,
+            maximum_resolution_error_j,
+        )?;
+        let balance = self.integrated_flux_exchange(
+            theta_start_k,
+            source_interval.energy_j,
+            start_time_s,
+            end_time_s,
+        )?;
+        Ok(IntegratedFluxExchangeReceipt {
+            balance,
+            source_interval,
+        })
+    }
+
     pub fn time_constant_s(self) -> Result<f64, ModelError> {
         self.validate()?;
         Ok(self.heat_capacity_j_per_k / self.loss_conductance_w_per_k)
@@ -1244,7 +1281,9 @@ mod tests {
             let current = model.cumulative_sinusoidal_source_energy_j(input, time).unwrap();
             assert!(current >= previous, "cumulative source energy must be monotone");
             if time > 0.0 {
-                let delta = cumulative_energy_delta_j(previous, current).unwrap();
+                let delta = cumulative_energy_delta_with_precision_j(previous, current, 2.0e-6)
+                    .unwrap()
+                    .energy_j;
                 let interval_start = points
                     .iter()
                     .copied()
@@ -1277,17 +1316,24 @@ mod tests {
         // have completed; it derives interval energy from committed outputs.
         let source_e0 = model.cumulative_sinusoidal_source_energy_j(input, t0).unwrap();
         let source_e1 = model.cumulative_sinusoidal_source_energy_j(input, t1).unwrap();
-        let interval_energy = cumulative_energy_delta_j(source_e0, source_e1).unwrap();
         let receiver_theta_start = model.sinusoidal_theta(input, t0).unwrap();
-        let exchange = model
-            .integrated_flux_exchange(receiver_theta_start, interval_energy, t0, t1)
+        let receipt = model
+            .integrated_flux_exchange_from_cumulative(
+                receiver_theta_start,
+                source_e0,
+                source_e1,
+                2.0e-6,
+                t0,
+                t1,
+            )
             .unwrap();
         let oracle = model.sinusoidal_interval(input, t0, t1).unwrap();
 
-        close(interval_energy, oracle.energy_input_j, 2.0e-6);
-        assert_eq!(exchange.energy_input_j, interval_energy);
-        close(exchange.energy_service_j, oracle.energy_service_j, 1.0e-6);
-        close(exchange.residual_j, 0.0, 3.0e-7);
+        close(receipt.source_interval.energy_j, oracle.energy_input_j, 2.0e-6);
+        assert!(receipt.source_interval.resolution_bound_j <= 2.0e-6);
+        assert_eq!(receipt.balance.energy_input_j, receipt.source_interval.energy_j);
+        close(receipt.balance.energy_service_j, oracle.energy_service_j, 1.0e-6);
+        close(receipt.balance.residual_j, 0.0, 3.0e-7);
     }
 
     #[test]
@@ -1300,18 +1346,25 @@ mod tests {
             initial_theta_k: 2.0,
         };
         let continuous = model.sinusoidal_interval(input, 0.0, 120.0).unwrap();
-        let interval_energy = cumulative_energy_delta_j(
-            0.0,
-            continuous.energy_input_j,
-        ).unwrap();
-        let exchange = model
-            .integrated_flux_exchange(2.0, interval_energy, 0.0, 120.0)
+        let cumulative_at_start = model.cumulative_sinusoidal_source_energy_j(input, 0.0).unwrap();
+        let cumulative_at_end = model.cumulative_sinusoidal_source_energy_j(input, 120.0).unwrap();
+        let receipt = model
+            .integrated_flux_exchange_from_cumulative(
+                2.0,
+                cumulative_at_start,
+                cumulative_at_end,
+                1.0e-6,
+                0.0,
+                120.0,
+            )
             .unwrap();
+        let exchange = receipt.balance;
         let one_window_average = model
             .sinusoidal_interval_average_exchange(input, 0.0, 120.0, 1)
             .unwrap();
 
         assert_eq!(exchange.energy_input_j, continuous.energy_input_j);
+        assert!(receipt.source_interval.resolution_bound_j <= 1.0e-6);
         close(exchange.energy_service_j, 27_333_384.403_937_1, 1.0e-6);
         close(exchange.theta_end_k, 2.989_979_327_511_903, 1.0e-12);
         close(exchange.energy_loss_j, 31_100_283.330_786_623, 1.0e-6);
