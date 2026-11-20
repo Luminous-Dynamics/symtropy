@@ -40,6 +40,18 @@ pub enum JointDisposition {
     Unknown,
 }
 
+/// Evidence sufficiency is separate from arithmetic feasibility. A feasible
+/// result over synthetic values is not a physical capability qualification.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EvidenceQualification {
+    FullyIndependentPhysical,
+    PhysicalWithNonIndependentSources,
+    ModelDependent,
+    SyntheticOnly,
+    MixedSynthetic,
+    Incomplete,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TorqueSumConsistency {
     /// Overlapping intervals from a joint cross-check marked IndependentPhysical.
@@ -179,6 +191,9 @@ pub struct JointEvaluation {
     pub operating_condition_digest: String,
     pub output_reference_plane_digest: String,
     pub disposition: JointDisposition,
+    /// Evidence status for the required per-unit torque, capability and
+    /// thermal inputs. Does not treat a synthetic arithmetic pass as physical.
+    pub evidence_qualification: EvidenceQualification,
     pub aggregate_unit_torque_nm: Option<Interval>,
     pub aggregate_current_magnitude_a: Option<Interval>,
     /// Joint-output reference interval; inspect its evidence class before
@@ -202,6 +217,51 @@ fn nonempty(value: &str) -> bool {
 
 fn valid_interval(value: Interval) -> bool {
     value.lower.is_finite() && value.upper.is_finite() && value.lower <= value.upper
+}
+
+fn validate_evidence_reference(
+    evidence_class: EvidenceClass,
+    source_reference: &str,
+    subject: &str,
+) -> Result<(), String> {
+    let is_synthetic_reference = source_reference.starts_with("urn:synthetic:");
+    if evidence_class == EvidenceClass::Synthetic && !is_synthetic_reference {
+        return Err(format!("{subject} is Synthetic but does not use a synthetic URN reference"));
+    }
+    if evidence_class != EvidenceClass::Synthetic && is_synthetic_reference {
+        return Err(format!("{subject} uses a synthetic URN but is not labelled Synthetic"));
+    }
+    Ok(())
+}
+
+fn summarize_evidence(units: &[ActuatorUnit]) -> EvidenceQualification {
+    let classes: Vec<EvidenceClass> = units
+        .iter()
+        .flat_map(|unit| [
+            unit.torque_evidence_class,
+            unit.capability_evidence_class,
+            unit.thermal_evidence_class,
+        ])
+        .collect();
+
+    if classes.contains(&EvidenceClass::Unknown) {
+        return EvidenceQualification::Incomplete;
+    }
+    let contains_synthetic = classes.contains(&EvidenceClass::Synthetic);
+    let contains_non_synthetic = classes.iter().any(|class| *class != EvidenceClass::Synthetic);
+    if contains_synthetic && contains_non_synthetic {
+        return EvidenceQualification::MixedSynthetic;
+    }
+    if contains_synthetic {
+        return EvidenceQualification::SyntheticOnly;
+    }
+    if classes.contains(&EvidenceClass::ModelDerived) {
+        return EvidenceQualification::ModelDependent;
+    }
+    if classes.iter().all(|class| *class == EvidenceClass::IndependentPhysical) {
+        return EvidenceQualification::FullyIndependentPhysical;
+    }
+    EvidenceQualification::PhysicalWithNonIndependentSources
 }
 
 fn interval_add(a: Interval, b: Interval) -> Option<Interval> {
@@ -322,6 +382,9 @@ fn validate_input(input: &JointEvaluationInput) -> Result<(), String> {
         {
             return Err(format!("actuator {} torque evidence is incomplete", unit.actuator_id));
         }
+        if let Some(reference) = unit.torque_source_reference.as_deref() {
+            validate_evidence_reference(unit.torque_evidence_class, reference, "torque evidence")?;
+        }
         if unit.thermal_evidence_class != EvidenceClass::Unknown
             && (unit.thermal_source_reference.as_deref().is_none_or(|v| !nonempty(v))
                 || unit.thermal_method.as_deref().is_none_or(|v| !nonempty(v))
@@ -329,12 +392,18 @@ fn validate_input(input: &JointEvaluationInput) -> Result<(), String> {
         {
             return Err(format!("actuator {} thermal evidence is incomplete", unit.actuator_id));
         }
+        if let Some(reference) = unit.thermal_source_reference.as_deref() {
+            validate_evidence_reference(unit.thermal_evidence_class, reference, "thermal evidence")?;
+        }
         if unit.capability_evidence_class != EvidenceClass::Unknown
             && (unit.capability_source_reference.as_deref().is_none_or(|v| !nonempty(v))
                 || unit.capability_method.as_deref().is_none_or(|v| !nonempty(v))
                 || unit.capability_digest.as_deref().is_none_or(|v| !nonempty(v)))
         {
             return Err(format!("actuator {} capability evidence is incomplete", unit.actuator_id));
+        }
+        if let Some(reference) = unit.capability_source_reference.as_deref() {
+            validate_evidence_reference(unit.capability_evidence_class, reference, "capability evidence")?;
         }
         if unit.current_magnitude_a.is_some()
             && unit.current_evidence_class != EvidenceClass::Unknown
@@ -344,11 +413,19 @@ fn validate_input(input: &JointEvaluationInput) -> Result<(), String> {
         {
             return Err(format!("actuator {} current evidence is incomplete", unit.actuator_id));
         }
+        if let Some(reference) = unit.current_source_reference.as_deref() {
+            validate_evidence_reference(unit.current_evidence_class, reference, "current evidence")?;
+        }
     }
 
     if let Some(check) = &input.joint_torque_cross_check {
         if !valid_interval(check.output_torque_nm)
             || !nonempty(&check.source_reference)
+            || !matches!(
+                check.evidence_class,
+                EvidenceClass::IndependentPhysical | EvidenceClass::Synthetic
+            )
+            || validate_evidence_reference(check.evidence_class, &check.source_reference, "joint torque cross-check").is_err()
             || !nonempty(&check.method)
             || !nonempty(&check.calibration_digest)
             || !matches!(
@@ -599,6 +676,8 @@ pub fn evaluate_joint(input: &JointEvaluationInput) -> Result<JointEvaluation, S
         JointDisposition::Feasible
     };
 
+    let evidence_qualification = summarize_evidence(&input.actuator_units);
+
     Ok(JointEvaluation {
         joint_id: input.joint_id.clone(),
         joint_configuration_digest: input.joint_configuration_digest.clone(),
@@ -606,6 +685,7 @@ pub fn evaluate_joint(input: &JointEvaluationInput) -> Result<JointEvaluation, S
         operating_condition_digest: input.operating_condition_digest.clone(),
         output_reference_plane_digest: input.output_reference_plane_digest.clone(),
         disposition,
+        evidence_qualification,
         aggregate_unit_torque_nm: aggregate,
         aggregate_current_magnitude_a: aggregate_current,
         joint_torque_cross_check_nm: joint_measured,
@@ -728,6 +808,9 @@ mod tests {
         let mut a = unit("A", interval(2.0, 3.0), interval(40.0, 42.0));
         a.output_torque_nm = None;
         a.torque_evidence_class = EvidenceClass::Unknown;
+        a.torque_source_reference = None;
+        a.torque_method = None;
+        a.torque_calibration_digest = None;
         let report = evaluate_joint(&input(vec![
             a,
             unit("B", interval(7.0, 8.0), interval(41.0, 43.0)),
@@ -966,6 +1049,63 @@ mod tests {
         check.evidence_class = EvidenceClass::VendorPhysical;
         input.joint_torque_cross_check = Some(check);
         assert!(evaluate_joint(&input).is_err());
+    }
+
+    #[test]
+    fn sharing_025_arithmetic_feasibility_does_not_promote_synthetic_inputs() {
+        let report = evaluate_joint(&input(vec![
+            unit("A", interval(4.0, 5.0), interval(40.0, 42.0)),
+            unit("B", interval(5.0, 6.0), interval(41.0, 43.0)),
+        ])).unwrap();
+        assert_eq!(report.disposition, JointDisposition::Feasible);
+        assert_eq!(report.evidence_qualification, EvidenceQualification::SyntheticOnly);
+    }
+
+    #[test]
+    fn sharing_026_mixed_synthetic_and_physical_inputs_remain_unqualified_as_a_whole() {
+        let mut a = unit("A", interval(4.0, 5.0), interval(40.0, 42.0));
+        a.torque_evidence_class = EvidenceClass::IndependentPhysical;
+        a.torque_source_reference = Some("urn:measurement:torque:unit-A".to_owned());
+        let report = evaluate_joint(&input(vec![
+            a,
+            unit("B", interval(5.0, 6.0), interval(41.0, 43.0)),
+        ])).unwrap();
+        assert_eq!(report.evidence_qualification, EvidenceQualification::MixedSynthetic);
+    }
+
+    #[test]
+    fn sharing_027_unknown_required_evidence_is_incomplete_even_with_numeric_values() {
+        let mut a = unit("A", interval(4.0, 5.0), interval(40.0, 42.0));
+        a.torque_evidence_class = EvidenceClass::Unknown;
+        a.torque_source_reference = None;
+        a.torque_method = None;
+        a.torque_calibration_digest = None;
+        let report = evaluate_joint(&input(vec![
+            a,
+            unit("B", interval(5.0, 6.0), interval(41.0, 43.0)),
+        ])).unwrap();
+        assert_eq!(report.evidence_qualification, EvidenceQualification::Incomplete);
+    }
+
+    #[test]
+    fn sharing_028_synthetic_urn_cannot_be_labelled_independent_physical() {
+        let mut a = unit("A", interval(4.0, 5.0), interval(40.0, 42.0));
+        a.torque_evidence_class = EvidenceClass::IndependentPhysical;
+        assert!(evaluate_joint(&input(vec![
+            a,
+            unit("B", interval(5.0, 6.0), interval(41.0, 43.0)),
+        ])).is_err());
+    }
+
+    #[test]
+    fn sharing_029_synthetic_class_requires_synthetic_urn_provenance() {
+        let mut a = unit("A", interval(4.0, 5.0), interval(40.0, 42.0));
+        a.torque_evidence_class = EvidenceClass::Synthetic;
+        a.torque_source_reference = Some("https://example.com/pretend-measurement".to_owned());
+        assert!(evaluate_joint(&input(vec![
+            a,
+            unit("B", interval(5.0, 6.0), interval(41.0, 43.0)),
+        ])).is_err());
     }
 
     #[test]
