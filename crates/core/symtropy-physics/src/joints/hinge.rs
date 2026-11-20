@@ -557,6 +557,30 @@ mod motor_step_tests {
         assert!((state.accumulated_impulse() - 0.1).abs() < 1.0e-12);
     }
 
+
+    #[test]
+    fn hinge_motor_rejects_negative_effort_without_mutating_angular_velocity() {
+        let mut a =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        let mut b =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let motor = MotorDrive {
+            target_pos: 0.0,
+            target_vel: 1.0,
+            kp: 1.0,
+            kd: 0.0,
+            max_force: -1.0,
+        };
+        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1).with_motor(motor);
+        let mut state = MotorStepState::default();
+
+        joint.solve_velocity_with_state(&mut a, &mut b, 0.1, None, &mut state);
+
+        assert_eq!(a.angular_velocity.get(0, 1), 0.0);
+        assert_eq!(b.angular_velocity.get(0, 1), 0.0);
+        assert_eq!(state.take_work_receipt(), None);
+    }
+
     #[test]
     fn hinge_motor_impulse_never_exceeds_the_single_step_cap() {
         let mut a =
