@@ -84,3 +84,45 @@ Report the hyperbolicity boundary separately from extremality, stationary branch
 ## Claim ceiling
 
 This protocol does not assert that any background in the target equal-spin black-hole family is hyperbolic or non-hyperbolic. That requires a gauge-fixed physical principal-symbol derivation and independent full-domain qualification for the actual backgrounds.
+
+
+## Qualification layers: do not conflate these tests
+
+The phrase "hyperbolicity" is used for several related but non-identical questions. Symtropy records them separately:
+
+1. **Physical characteristic-sector signature:** the Lorentzian/non-Lorentzian signature of the gauge-invariant effective characteristic metrics for physical graviton polarizations on backgrounds with the required symmetry. The exact static BD reference in \`static_bd_characteristic_speeds_v1.md\` is this test.
+2. **Strong hyperbolicity of a formulated PDE system:** a gauge-fixed, constraint-aware first-order evolution formulation must have real characteristic speeds and a complete, uniformly controlled eigenbasis. This depends on the formulation and gauge, not only on the physical characteristic cones.
+3. **Mode stability:** a spectral perturbation problem with a well-posed evolution system; a mode-stability conclusion must not be drawn where the initial-value problem is ill-posed.
+4. **EFT/domain validity:** the action and background must remain inside the regime in which the effective theory is justified. This is a separate cutoff/operator-expansion audit.
+
+Papallo and Reall (2017) show that the standard harmonic-gauge Lovelock equations are not strongly hyperbolic on generic weak-field backgrounds, despite weak hyperbolicity in that regime. Kovács and Reall (2020) construct modified-harmonic formulations that are strongly hyperbolic at weak coupling. Thus a negative result for one gauge formulation is not automatically a no-go theorem for every possible formulation, and a positive static effective-metric signature test is not by itself a strong-hyperbolicity proof.
+
+The exact static BD result is a robust physical-sector obstruction when \(c_S<0\): a gauge choice cannot turn a non-Lorentzian physical scalar characteristic sector into a Lorentzian one. Conversely, \(c_T,c_V,c_S>0\) only clears that static characteristic-signature gate; the chosen evolution formulation still needs a strong-hyperbolicity proof.
+
+## Exact static BD control now available
+
+For \(\rho=r/r_H\), \(\lambda=\alpha/r_H^2\), and
+\[
+z=\frac{\lambda(\lambda+2)}{\rho^4},
+\]
+the convention-matched Reall–Tanahashi–Way static 5D EGB characteristic speeds are
+\[
+c_T=\frac{1+3z}{1+z},\qquad
+c_V=\frac1{1+z},\qquad
+c_S=\frac{1-z}{1+z}.
+\]
+The scalar horizon threshold is
+\[
+\lambda_{\rm crit}=\sqrt2-1.
+\]
+Above it, the scalar effective characteristic metric is non-Lorentzian on
+\[
+1<\rho<[\lambda(\lambda+2)]^{1/4}.
+\]
+See \`static_bd_characteristic_speeds_v1.md\` and the exact fixture. These formulas are static spherical controls only; do not apply them unchanged to rotating equal-spin candidates.
+
+## Matched 0.01 coupling-grid interpretation
+
+The published Akribeia comparison setup samples \(\lambda=0,0.01,\ldots,3\). On the **static BD control family**, the first grid value above the exact threshold is \(\lambda=0.42\); 259 of the 301 static-control grid points lie above the threshold. The corresponding static characteristic degeneracy shell grows from a thin near-horizon layer at the first supercritical points to a substantial exterior region at large coupling.
+
+This is a prioritization signal for the benchmark suite, **not** a classification of the rotating Akribeia solutions at \(\omega=0.33\). Rotation can mix physical polarizations and shift or alter the characteristic boundary. Every rotating candidate requires its own principal-symbol calculation.
