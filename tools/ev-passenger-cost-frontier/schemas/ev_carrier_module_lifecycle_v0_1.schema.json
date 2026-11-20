@@ -15,7 +15,8 @@
     "labour_rate_evidence_class",
     "labour_rate_evidence_reference",
     "profiles",
-    "claim_ceiling"
+    "claim_ceiling",
+    "downtime_cost_per_unavailable_hour"
   ],
   "properties": {
     "schema_version": {
@@ -101,7 +102,13 @@
           "acquisition_cost_evidence_reference",
           "amortization_years",
           "events",
-          "notes"
+          "notes",
+          "annualized_factory_capex_per_module_year",
+          "annual_spares_inventory_cost_per_module_year",
+          "annual_logistics_cost_per_module_year",
+          "annual_energy_cost_per_module_year",
+          "annual_warranty_cost_per_module_year",
+          "annual_end_of_life_cost_per_module_year"
         ],
         "properties": {
           "profile_id": {
@@ -349,7 +356,252 @@
               "type": "string",
               "minLength": 1
             }
+          },
+          "annualized_factory_capex_per_module_year": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "amount",
+              "evidence_class",
+              "evidence_reference"
+            ],
+            "properties": {
+              "amount": {
+                "oneOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "evidence_class": {
+                "enum": [
+                  "synthetic",
+                  "measured",
+                  "independent_test",
+                  "unknown"
+                ]
+              },
+              "evidence_reference": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "annual_spares_inventory_cost_per_module_year": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "amount",
+              "evidence_class",
+              "evidence_reference"
+            ],
+            "properties": {
+              "amount": {
+                "oneOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "evidence_class": {
+                "enum": [
+                  "synthetic",
+                  "measured",
+                  "independent_test",
+                  "unknown"
+                ]
+              },
+              "evidence_reference": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "annual_logistics_cost_per_module_year": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "amount",
+              "evidence_class",
+              "evidence_reference"
+            ],
+            "properties": {
+              "amount": {
+                "oneOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "evidence_class": {
+                "enum": [
+                  "synthetic",
+                  "measured",
+                  "independent_test",
+                  "unknown"
+                ]
+              },
+              "evidence_reference": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "annual_energy_cost_per_module_year": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "amount",
+              "evidence_class",
+              "evidence_reference"
+            ],
+            "properties": {
+              "amount": {
+                "oneOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "evidence_class": {
+                "enum": [
+                  "synthetic",
+                  "measured",
+                  "independent_test",
+                  "unknown"
+                ]
+              },
+              "evidence_reference": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "annual_warranty_cost_per_module_year": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "amount",
+              "evidence_class",
+              "evidence_reference"
+            ],
+            "properties": {
+              "amount": {
+                "oneOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "evidence_class": {
+                "enum": [
+                  "synthetic",
+                  "measured",
+                  "independent_test",
+                  "unknown"
+                ]
+              },
+              "evidence_reference": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "annual_end_of_life_cost_per_module_year": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "amount",
+              "evidence_class",
+              "evidence_reference"
+            ],
+            "properties": {
+              "amount": {
+                "oneOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "evidence_class": {
+                "enum": [
+                  "synthetic",
+                  "measured",
+                  "independent_test",
+                  "unknown"
+                ]
+              },
+              "evidence_reference": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
           }
+        }
+      }
+    },
+    "downtime_cost_per_unavailable_hour": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "amount",
+        "evidence_class",
+        "evidence_reference"
+      ],
+      "properties": {
+        "amount": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1000000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence_class": {
+          "enum": [
+            "synthetic",
+            "measured",
+            "independent_test",
+            "unknown"
+          ]
+        },
+        "evidence_reference": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }
