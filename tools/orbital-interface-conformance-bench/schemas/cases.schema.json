@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-interface-conformance-v0.1.json",
+  "title": "Orbital Interface Conformance Corpus v0.1",
+  "type": "object",
+  "required": ["schema", "evidence_class", "claim_ceiling", "cases"],
+  "properties": {
+    "schema": {"const": "luminous.orbital-interface-conformance.corpus.v0.1"},
+    "evidence_class": {"const": "synthetic"},
+    "claim_ceiling": {"const": "synthetic-profile-only"},
+    "cases": {
+      "type": "array",
+      "minItems": 24,
+      "items": {"$ref": "#/$defs/case"}
+    }
+  },
+  "$defs": {
+    "nullableString": {"type": ["string", "null"]},
+    "scalar": {
+      "type": ["object", "null"],
+      "properties": {
+        "value": {"type": ["number", "null"]},
+        "unit": {"$ref": "#/$defs/nullableString"}
+      },
+      "required": ["value", "unit"],
+      "additionalProperties": false
+    },
+    "interval": {
+      "type": ["object", "null"],
+      "properties": {
+        "min": {"type": ["number", "null"]},
+        "max": {"type": ["number", "null"]},
+        "unit": {"$ref": "#/$defs/nullableString"}
+      },
+      "required": ["min", "max", "unit"],
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": ["object", "null"],
+      "properties": {
+        "evidence_class": {"$ref": "#/$defs/nullableString"},
+        "claim_ceiling": {"$ref": "#/$defs/nullableString"},
+        "source_commit": {"$ref": "#/$defs/nullableString"},
+        "artifact_sha256": {"$ref": "#/$defs/nullableString"},
+        "producer_id": {"$ref": "#/$defs/nullableString"},
+        "authority_scope": {"$ref": "#/$defs/nullableString"},
+        "context_of_use": {"$ref": "#/$defs/nullableString"},
+        "valid_from_tick": {"type": ["integer", "null"], "minimum": 0},
+        "valid_until_tick": {"type": ["integer", "null"], "minimum": 0}
+      },
+      "required": [
+        "evidence_class", "claim_ceiling", "source_commit", "artifact_sha256",
+        "producer_id", "authority_scope", "context_of_use",
+        "valid_from_tick", "valid_until_tick"
+      ],
+      "additionalProperties": false
+    },
+    "mechanical": {
+      "type": ["object", "null"],
+      "properties": {
+        "geometry_profile_id": {"$ref": "#/$defs/nullableString"},
+        "max_alignment_error": {"$ref": "#/$defs/scalar"},
+        "max_approach_speed": {"$ref": "#/$defs/scalar"},
+        "max_contact_force": {"$ref": "#/$defs/scalar"},
+        "min_retention_force": {"$ref": "#/$defs/scalar"}
+      },
+      "required": [
+        "geometry_profile_id", "max_alignment_error", "max_approach_speed",
+        "max_contact_force", "min_retention_force"
+      ],
+      "additionalProperties": false
+    },
+    "fluid": {
+      "type": ["object", "null"],
+      "properties": {
+        "connector_profile_id": {"$ref": "#/$defs/nullableString"},
+        "fluid_class": {"$ref": "#/$defs/nullableString"},
+        "fluid_id": {"$ref": "#/$defs/nullableString"},
+        "phase": {"$ref": "#/$defs/nullableString"},
+        "temperature": {"$ref": "#/$defs/interval"},
+        "pressure": {"$ref": "#/$defs/interval"},
+        "min_receiver_accepted_mass": {"$ref": "#/$defs/scalar"}
+      },
+      "required": [
+        "connector_profile_id", "fluid_class", "fluid_id", "phase",
+        "temperature", "pressure", "min_receiver_accepted_mass"
+      ],
+      "additionalProperties": false
+    },
+    "profile": {
+      "type": "object",
+      "properties": {
+        "profile_id": {"$ref": "#/$defs/nullableString"},
+        "role": {"$ref": "#/$defs/nullableString"},
+        "organization_id": {"$ref": "#/$defs/nullableString"},
+        "config_revision": {"$ref": "#/$defs/nullableString"},
+        "icd_id": {"$ref": "#/$defs/nullableString"},
+        "icd_revision": {"$ref": "#/$defs/nullableString"},
+        "standard_refs": {"type": "array", "items": {"type": "string"}},
+        "frame_id": {"$ref": "#/$defs/nullableString"},
+        "mechanical": {"$ref": "#/$defs/mechanical"},
+        "fluid": {"$ref": "#/$defs/fluid"},
+        "evidence": {"$ref": "#/$defs/evidence"}
+      },
+      "required": [
+        "profile_id", "role", "organization_id", "config_revision",
+        "icd_id", "icd_revision", "standard_refs", "frame_id",
+        "mechanical", "fluid", "evidence"
+      ],
+      "additionalProperties": false
+    },
+    "compatibilityMap": {
+      "type": ["object", "null"],
+      "properties": {
+        "icd_id": {"$ref": "#/$defs/nullableString"},
+        "provider_revision": {"$ref": "#/$defs/nullableString"},
+        "client_revision": {"$ref": "#/$defs/nullableString"},
+        "verified": {"type": ["boolean", "null"]},
+        "evidence": {"$ref": "#/$defs/evidence"}
+      },
+      "required": ["icd_id", "provider_revision", "client_revision", "verified", "evidence"],
+      "additionalProperties": false
+    },
+    "case": {
+      "type": "object",
+      "properties": {
+        "case_id": {"type": "string", "minLength": 1},
+        "at_tick": {"type": "integer", "minimum": 0},
+        "context_of_use": {"type": "string", "minLength": 1},
+        "service": {"enum": ["capture_only", "capture_and_storable_fluid"]},
+        "provider": {"$ref": "#/$defs/profile"},
+        "client": {"$ref": "#/$defs/profile"},
+        "compatibility_map": {"$ref": "#/$defs/compatibilityMap"},
+        "expected_status": {
+          "enum": ["compatible_synthetic_profile", "rejected", "indeterminate"]
+        },
+        "expected_reason": {"type": "string", "minLength": 1}
+      },
+      "required": [
+        "case_id", "at_tick", "context_of_use", "service", "provider",
+        "client", "expected_status", "expected_reason"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
