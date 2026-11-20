@@ -1004,6 +1004,50 @@ mod tests {
     }
 
     #[test]
+    fn rare_event_fixture_distinguishes_expected_tail_worst_case_and_service_policies() {
+        let fixture: SharedFleetInput = serde_json::from_str(include_str!(
+            "../fixtures/synthetic-two-region-shared-aircraft-tail-risk.json"
+        ))
+        .expect("tail-risk fixture must deserialize");
+        let report = evaluate_shared_fleet(&fixture).expect("tail-risk fixture must evaluate");
+        assert_eq!(report.region_count, 2);
+        assert_eq!(report.period_count, 3);
+        assert_eq!(report.scenario_count, 2);
+        assert_eq!(report.nonanticipative_policy_node_count, 5);
+        assert_eq!(report.exact_policy_count_evaluated, 243);
+
+        assert_eq!(report.optimized_policy.expected_total_cost_units, 524);
+        assert_eq!(report.optimized_policy.cvar90_total_cost_units, 866);
+        assert_eq!(report.optimized_policy.worst_case_total_cost_units, 1_246);
+        assert_eq!(report.optimized_policy.worst_case_unserved_units, 22);
+
+        assert_eq!(report.cvar90_optimal_policy.expected_total_cost_units, 527);
+        assert_eq!(report.cvar90_optimal_policy.cvar90_total_cost_units, 825);
+        assert_eq!(report.cvar90_optimal_policy.worst_case_total_cost_units, 1_156);
+        assert_ne!(report.cvar90_optimal_decisions, report.optimized_decisions);
+
+        assert_eq!(report.worst_case_optimal_policy.expected_total_cost_units, 570);
+        assert_eq!(report.worst_case_optimal_policy.worst_case_total_cost_units, 1_156);
+        assert_ne!(report.worst_case_optimal_decisions, report.optimized_decisions);
+
+        assert_eq!(report.service_robust_optimal_policy.expected_total_cost_units, 526);
+        assert_eq!(report.service_robust_optimal_policy.worst_case_unserved_units, 21);
+        assert_ne!(report.service_robust_optimal_decisions, report.optimized_decisions);
+
+        assert_eq!(report.fixed_initial_region_baseline.expected_total_cost_units, 531);
+        assert_eq!(report.fixed_initial_region_baseline.cvar90_total_cost_units, 873);
+        assert_eq!(report.truck_only_baseline.expected_total_cost_units, 591);
+        assert_eq!(report.truck_only_baseline.cvar90_total_cost_units, 933);
+
+        assert_eq!(report.optimized_policy.unauthorized_aerial_dispatches, 0);
+        assert_eq!(report.cvar90_optimal_policy.unauthorized_aerial_dispatches, 0);
+        assert_eq!(report.worst_case_optimal_policy.unauthorized_aerial_dispatches, 0);
+        assert_eq!(report.service_robust_optimal_policy.unauthorized_aerial_dispatches, 0);
+        assert!(!report.physical_dispatch_authorized);
+        assert!(!report.dispatch_commands_emitted);
+    }
+
+    #[test]
     fn identical_scenario_prefixes_share_the_same_decision_node() {
         let (nodes, _) = build_decision_nodes(&canonicalize(&input())).expect("valid tree");
         assert_eq!(nodes.iter().filter(|node| node.key.period_index == 0).count(), 1);
