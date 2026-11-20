@@ -64,7 +64,7 @@ make test
 
 This runs the per-library FMI symbol/capability audit, deterministic SSP build/verify tests and the FMPy runtime handshake test.
 
-The smoke validates both FMUs, executes two different communication intervals (0–30 s, 30–120 s), compares cumulative and per-interval source energy against the analytic integral, checks the producer/receiver lastSuccessfulTime chain, verifies exact interval energy allocation, and injects negative-J, duplicate-consumption and stale-step controls.
+The smoke validates both FMUs, executes two different communication intervals (0–30 s, 30–120 s), compares cumulative and per-interval source energy against the analytic integral, checks the producer/receiver lastSuccessfulTime chain, verifies exact interval energy allocation, and injects negative-J, duplicate-consumption, stale-time, reinitialization and stop-time-overrun controls. Each rejected API call must return FMI Error and leave the last committed participant outputs unchanged.
 
 The workflow pins the FMPy wheel digest and retains the FMUs and artifact digests. A pass qualifies only this synthetic FMI interface and the tested tool/build/host combination.
 
