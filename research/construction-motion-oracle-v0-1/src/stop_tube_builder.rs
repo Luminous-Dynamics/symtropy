@@ -237,6 +237,7 @@ pub enum StopTubeBuildError {
     NonCanonicalNominalReport,
     PrimitiveSetMismatch,
     RelativePrimitiveMotionUnsupported(String),
+    StationaryTrajectoryWithNonzeroStopBound,
     BoundsOverflow,
     TimeArithmeticOverflow,
 }
@@ -292,13 +293,13 @@ pub fn build_stop_tube(
     if request.maximum_trigger_window_ms == 0 {
         return Err(StopTubeBuildError::InvalidTriggerWindow);
     }
+    if request.stopping_qualification.valid_until_tick <= request.now_tick {
+        return Err(StopTubeBuildError::ExpiredStoppingQualification);
+    }
     if request.requested_valid_until_tick <= request.now_tick
         || request.requested_valid_until_tick > request.stopping_qualification.valid_until_tick
     {
         return Err(StopTubeBuildError::InvalidValidityInterval);
-    }
-    if request.stopping_qualification.valid_until_tick <= request.now_tick {
-        return Err(StopTubeBuildError::ExpiredStoppingQualification);
     }
 
     let report = request.nominal_report;
@@ -774,7 +775,7 @@ fn stop_displacement(
         .and_then(|value| value.checked_add(delta[2].checked_mul(delta[2])?))
         .ok_or(StopTubeBuildError::BoundsOverflow)?;
     if length_squared == 0 {
-        return Ok([0, 0, 0]);
+        return Err(StopTubeBuildError::StationaryTrajectoryWithNonzeroStopBound);
     }
     let length = (length_squared as f64).sqrt();
     if !length.is_finite() || length <= 0.0 {
@@ -1080,17 +1081,20 @@ mod tests {
         let report = source_report([1_000, 1_000, 0], [0, 0, 0], 0, 1_000);
         let (_, stopping, request) = request(&report);
         let output = build_stop_tube(request).unwrap();
-        let base = output
+        let base_slices = output
             .slices
             .iter()
             .filter(|slice| slice.primitive_id == "base")
-            .last()
-            .unwrap();
-        assert!(base.bounds.min.x < 0);
-        assert!(base.bounds.min.y < 0);
-        assert!(base.bounds.max.x >= 1_000);
-        assert!(base.bounds.max.y >= 1_000);
-        assert!(base.bounds.min.x <= -(stopping.conservative_distance_bound_mm as i64 / 2));
+            .collect::<Vec<_>>();
+        let min_x = base_slices.iter().map(|slice| slice.bounds.min.x).min().unwrap();
+        let min_y = base_slices.iter().map(|slice| slice.bounds.min.y).min().unwrap();
+        let max_x = base_slices.iter().map(|slice| slice.bounds.max.x).max().unwrap();
+        let max_y = base_slices.iter().map(|slice| slice.bounds.max.y).max().unwrap();
+        assert!(min_x < 0);
+        assert!(min_y < 0);
+        assert!(max_x >= 1_000);
+        assert!(max_y >= 1_000);
+        assert!(min_x <= -(stopping.conservative_distance_bound_mm as i64 / 2));
     }
 
     #[test]
@@ -1225,11 +1229,21 @@ mod tests {
             let report = source_report(start, end, 0, 1_000);
             let (_, stopping, request) = request(&report);
             let built = build_stop_tube(request).unwrap();
-            let slice = built
+            let primitive_slices = built
                 .slices
                 .iter()
-                .find(|slice| slice.primitive_id == "base" && slice.trigger_window_index == 3)
-                .unwrap();
+                .filter(|slice| slice.primitive_id == "base")
+                .collect::<Vec<_>>();
+            let aggregate_min = [
+                primitive_slices.iter().map(|slice| slice.bounds.min.x).min().unwrap(),
+                primitive_slices.iter().map(|slice| slice.bounds.min.y).min().unwrap(),
+                primitive_slices.iter().map(|slice| slice.bounds.min.z).min().unwrap(),
+            ];
+            let aggregate_max = [
+                primitive_slices.iter().map(|slice| slice.bounds.max.x).max().unwrap(),
+                primitive_slices.iter().map(|slice| slice.bounds.max.y).max().unwrap(),
+                primitive_slices.iter().map(|slice| slice.bounds.max.z).max().unwrap(),
+            ];
             let delta = [
                 (end[0] - start[0]) as f64,
                 (end[1] - start[1]) as f64,
@@ -1241,8 +1255,8 @@ mod tests {
                 .sqrt();
             let stop = stopping.conservative_distance_bound_mm as f64;
             let margin = [120.0, 124.0, 128.0];
-            let min = [slice.bounds.min.x, slice.bounds.min.y, slice.bounds.min.z];
-            let max = [slice.bounds.max.x, slice.bounds.max.y, slice.bounds.max.z];
+            let min = aggregate_min;
+            let max = aggregate_max;
             for axis in 0..3 {
                 let projected = if length == 0.0 {
                     0.0
@@ -1269,4 +1283,15 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn nonzero_stopping_distance_requires_a_defined_nominal_tangent() {
+        let report = source_report([0, 0, 0], [0, 0, 0], 0, 1_000);
+        let (_, _, request) = request(&report);
+        assert_eq!(
+            build_stop_tube(request),
+            Err(StopTubeBuildError::StationaryTrajectoryWithNonzeroStopBound)
+        );
+    }
+
 }
