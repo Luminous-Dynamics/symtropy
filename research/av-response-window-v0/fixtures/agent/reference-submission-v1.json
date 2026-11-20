@@ -9,58 +9,66 @@
     {
       "response_id": "r1",
       "episode_id": "rw-001-spi-on-time",
-      "assigned_opportunity_id": "opp-1",
       "response_start_tick": 12,
-      "content": "safety_correction"
+      "content": "safety_correction",
+      "assigned_trigger_ref": "trig-1",
+      "response_end_tick": 14
     },
     {
       "response_id": "r2",
       "episode_id": "rw-002-vti-start-boundary",
-      "assigned_opportunity_id": "opp-2",
       "response_start_tick": 20,
-      "content": "visual_hazard_warning"
+      "content": "visual_hazard_warning",
+      "assigned_trigger_ref": "trig-2",
+      "response_end_tick": 22
     },
     {
       "response_id": "r3",
       "episode_id": "rw-003-cqi-end-minus-one",
-      "assigned_opportunity_id": "opp-3",
       "response_start_tick": 19,
-      "content": "identified_object"
+      "content": "identified_object",
+      "assigned_trigger_ref": "trig-3",
+      "response_end_tick": 21
     },
     {
       "response_id": "r4a",
       "episode_id": "rw-004-overlapping-windows",
-      "assigned_opportunity_id": "opp-4a",
       "response_start_tick": 15,
-      "content": "speaker_a_reply"
+      "content": "speaker_a_reply",
+      "assigned_trigger_ref": "trig-4a",
+      "response_end_tick": 17
     },
     {
       "response_id": "r4b",
       "episode_id": "rw-004-overlapping-windows",
-      "assigned_opportunity_id": "opp-4b",
       "response_start_tick": 20,
-      "content": "speaker_b_reply"
+      "content": "speaker_b_reply",
+      "assigned_trigger_ref": "trig-4b",
+      "response_end_tick": 22
     },
     {
       "response_id": "r5",
       "episode_id": "rw-005-cat-action-tracking",
-      "assigned_opportunity_id": "opp-5",
       "response_start_tick": 45,
-      "content": "completed_action_count"
+      "content": "completed_action_count",
+      "assigned_trigger_ref": "trig-5",
+      "response_end_tick": 47
     },
     {
       "response_id": "r6",
       "episode_id": "rw-006-spi-second",
-      "assigned_opportunity_id": "opp-6",
       "response_start_tick": 35,
-      "content": "corrected_claim"
+      "content": "corrected_claim",
+      "assigned_trigger_ref": "trig-6",
+      "response_end_tick": 37
     },
     {
       "response_id": "r9",
       "episode_id": "rw-009-duplicate-trigger",
-      "assigned_opportunity_id": "opp-9",
       "response_start_tick": 18,
-      "content": "single_intervention"
+      "content": "single_intervention",
+      "assigned_trigger_ref": "trig-9",
+      "response_end_tick": 20
     }
   ]
 }
