@@ -8,11 +8,16 @@
     "profile_version": "project-page snapshot accessed 2026-11-20",
     "source_snapshot_date": "2026-11-20",
     "protocol_reference": "https://srl-ethz.github.io/POMDAR/",
-    "task_set_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "task_mix_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "task_set_digest": "sha256:d7efda9bd021c3e7cf8abc396da51ff1f68e73d97e3692bcdd6e419bb75efa38",
+    "task_mix_digest": "sha256:16404960c1b7087de345cf6ef0e2573e8b2f910e93b872a49d9fab846fe211d0",
     "scoring_protocol": "POMDAR_CORRECTNESS_0_8_SPEED_VS_HUMAN_0_2",
     "human_baseline_reference": null,
-    "profile_notes": "Illustrative two-task subset only; not a full POMDAR submission or official task identifier set."
+    "profile_notes": "Illustrative two-task subset only; not a full POMDAR submission or official task identifier set.",
+    "planned_task_sequence": [
+      "vertical_sphere",
+      "horizontal_pinch",
+      "vertical_sphere"
+    ]
   },
   "candidate": {
     "candidate_id": "illustrative-no-physical-device",
@@ -39,16 +44,27 @@
     "configuration_notes": "Synthetic record for schema testing, not an evaluated hand."
   },
   "system_boundary": {
-    "included_components": ["illustrative hand assembly"],
-    "excluded_components": ["arm", "wrist", "external power supply"],
-    "unknown_components": ["driver and sensor power boundary"],
+    "included_components": [
+      "illustrative hand assembly"
+    ],
+    "excluded_components": [
+      "arm",
+      "wrist",
+      "external power supply"
+    ],
+    "unknown_components": [
+      "driver and sensor power boundary"
+    ],
     "power_measurement_boundary": "unknown",
-    "boundary_notes": "No real hardware or energy observations exist in this fixture."
+    "boundary_notes": "No real hardware or energy observations exist in this fixture.",
+    "unknown_power_components": [
+      "driver and sensor power boundary"
+    ]
   },
   "mission_clock": {
     "start_utc": "2026-11-20T08:00:00Z",
     "end_utc": "2026-11-20T08:02:00Z",
-    "elapsed_s": 120.0,
+    "elapsed_s": 120,
     "timebase": "illustrative monotonic mission clock",
     "clock_alignment_uncertainty_ms": null
   },
@@ -77,8 +93,8 @@
       "repetition_index": 1,
       "outcome": "accepted",
       "task_success": true,
-      "start_elapsed_s": 0.0,
-      "end_elapsed_s": 20.0,
+      "start_elapsed_s": 0,
+      "end_elapsed_s": 20,
       "outcome_reason": null
     },
     {
@@ -87,8 +103,8 @@
       "repetition_index": 1,
       "outcome": "accepted",
       "task_success": true,
-      "start_elapsed_s": 20.0,
-      "end_elapsed_s": 45.0,
+      "start_elapsed_s": 20,
+      "end_elapsed_s": 45,
       "outcome_reason": null
     },
     {
@@ -97,8 +113,8 @@
       "repetition_index": 2,
       "outcome": "failed",
       "task_success": false,
-      "start_elapsed_s": 85.0,
-      "end_elapsed_s": 115.0,
+      "start_elapsed_s": 85,
+      "end_elapsed_s": 115,
       "outcome_reason": "Illustrative failed repeat after the declared cooldown interval."
     }
   ],
@@ -106,40 +122,40 @@
     {
       "event_id": "event-001",
       "event_type": "task_execution",
-      "start_elapsed_s": 0.0,
-      "end_elapsed_s": 20.0,
+      "start_elapsed_s": 0,
+      "end_elapsed_s": 20,
       "attempt_id": "attempt-001",
       "notes": "Illustrative accepted task."
     },
     {
       "event_id": "event-002",
       "event_type": "task_execution",
-      "start_elapsed_s": 20.0,
-      "end_elapsed_s": 45.0,
+      "start_elapsed_s": 20,
+      "end_elapsed_s": 45,
       "attempt_id": "attempt-002",
       "notes": "Illustrative accepted task."
     },
     {
       "event_id": "event-003",
       "event_type": "cooldown",
-      "start_elapsed_s": 45.0,
-      "end_elapsed_s": 85.0,
+      "start_elapsed_s": 45,
+      "end_elapsed_s": 85,
       "attempt_id": null,
       "notes": "Cooldown is part of elapsed mission time, not removed from the throughput denominator."
     },
     {
       "event_id": "event-004",
       "event_type": "task_execution",
-      "start_elapsed_s": 85.0,
-      "end_elapsed_s": 115.0,
+      "start_elapsed_s": 85,
+      "end_elapsed_s": 115,
       "attempt_id": "attempt-003",
       "notes": "Illustrative repeated task after cooldown."
     },
     {
       "event_id": "event-005",
       "event_type": "standby",
-      "start_elapsed_s": 115.0,
-      "end_elapsed_s": 120.0,
+      "start_elapsed_s": 115,
+      "end_elapsed_s": 120,
       "attempt_id": null,
       "notes": "Post-run standby remains inside the mission clock."
     }
@@ -151,8 +167,8 @@
     "aborted_attempts": 0,
     "censored_attempts": 0,
     "excluded_attempts": 0,
-    "mission_elapsed_s": 120.0,
-    "sustained_mission_throughput_per_h": 60.0,
+    "mission_elapsed_s": 120,
+    "sustained_mission_throughput_per_h": 60,
     "summary_notes": "Synthetic arithmetic only: 2 accepted completions divided by 120 seconds, including 40 seconds of cooldown and 5 seconds of standby."
   },
   "observations": [
@@ -167,7 +183,9 @@
       "sensor_or_channel": "motor case",
       "source_class": "other",
       "verification_state": "unreviewed",
-      "evidence_refs": ["pomdar-project-page"],
+      "evidence_refs": [
+        "pomdar-project-page"
+      ],
       "reason": "Illustrative fixture contains no physical thermal sensor trace."
     }
   ],
