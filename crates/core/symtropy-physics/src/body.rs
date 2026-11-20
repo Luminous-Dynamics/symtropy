@@ -700,6 +700,7 @@ impl<const D: usize> RigidBody<D> {
             self.rotational_inertia_operator_invalidated = true;
             self.rotational_inertia_operator_mass_bits = None;
         }
+        self.wake();
 
         Ok(())
     }
