@@ -24,5 +24,5 @@ feature.pending_async	NOT_EVALUABLE	asynchronous fmi3Pending is outside v0.1
 feature.event_mode	NOT_EVALUABLE	Event Mode and same-time event rounds are outside v0.1
 feature.intermediate_update	NOT_EVALUABLE	Intermediate Update callbacks are outside v0.1
 collector.not_instrumented	NOT_EVALUABLE	runtime ledger was not collected at the FMI C-API boundary
-state.stale_interval\tREJECT\tstate observation interval differs from the most recent successful lastSuccessfulTime
-sampling.joule_flow_without_integral\tREJECT\tjoule-valued flux must use integral_over_half_open_interval semantics, not a point or average sample
+state.stale_interval	REJECT	state observation interval differs from the most recent successful lastSuccessfulTime
+sampling.joule_flow_without_integral	REJECT	joule-valued flux must use integral_over_half_open_interval semantics, not a point or average sample
