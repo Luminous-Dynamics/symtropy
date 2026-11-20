@@ -13,14 +13,14 @@ Offline Rust replay auditor for high-rate plasma diagnostic stream timing, clock
 
 Every timestamp identifies its source clock domain and calibration ID. A calibration maps one device clock into the trace's declared reference clock using an anchor pair (which must lie inside its validity interval), drift in ppb, a validity interval and explicit uncertainty. The auditor never subtracts timestamps from different clocks directly.
 
-Stage latency is emitted only when both stamps map to the same reference and combined uncertainty remains within the declared budget. Invalid, expired, missing or incompatible clock calibrations produce CLOCK_UNQUALIFIED and no fabricated latency.
+Stage latency is emitted only when both stamps map to the same reference and combined uncertainty remains within the declared budget. Invalid, expired, missing or incompatible clock calibrations produce CLOCK_UNQUALIFIED and no fabricated latency. The event also requires decision time to be no earlier than processing completion; otherwise stage ordering is unqualified. If cadence cannot be compared within its uncertainty budget, the event is degraded rather than called on-time.
 
 All times are integer nanoseconds. The calibration affine map is:
 
     t_ref = t_ref_anchor + (t_clock - t_clock_anchor)
             + (t_clock - t_clock_anchor) * drift_ppb / 1e9
 
-Each stream trace is replayed in observed receive order. Events are never sorted to hide duplicates, gaps or reordering. Every missing sequence number is counted (not merely the number of gap events); sequence gaps are explicit degradation, while duplicates and out-of-order sequence numbers remain distinct dispositions.
+Each stream trace is replayed in observed receive order. Events are never sorted to hide duplicates, gaps or reordering. Every missing sequence number is counted (not merely the number of gap events); sequence gaps are explicit degradation, while duplicates and out-of-order sequence numbers remain distinct dispositions. Duplicate and out-of-order rows remain in the event audit but are excluded from latency percentiles and deadline-miss denominators so repeated or reordered records cannot bias operational summaries.
 
 ## Metrics
 
