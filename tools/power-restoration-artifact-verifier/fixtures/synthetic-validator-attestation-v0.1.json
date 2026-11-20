@@ -12,10 +12,12 @@
     "decisionStep": 0,
     "proposalSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     "toolSourceCommit": "1111111111111111111111111111111111111111",
-    "toolConfigurationSha256": "22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222",
+    "toolConfigurationSha256": "2222222222222222222222222222222222222222222222222222222222222222",
     "issuedAtUnixMs": 1000,
     "expiresAtUnixMs": 9000,
-    "parentArtifactSha256": ["bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"]
+    "parentArtifactSha256": [
+      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    ]
   },
   "signatureHex": "df595e4df33f26ed7203130e6b13641b0552b92fe42258ef4c14170ce400fb31377c7a13a6d31b91f48dda69f88f8137d34b6b51e17e71251fbd4c5a14907c03"
 }
