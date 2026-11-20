@@ -23,6 +23,14 @@ pub enum LinkUncertaintyKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UncertaintySourceKind {
+    TypeA,
+    TypeB,
+    Combined,
+    NotSpecified,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AssuranceStatus {
     WithinLimit,
     OutOfTolerance,
@@ -57,8 +65,13 @@ pub struct CalibrationLink {
     pub uncertainty_unit: String,
     pub uncertainty_kind: LinkUncertaintyKind,
     pub uncertainty_value: Option<f64>,
+    /// Distinguishes statistical evaluation sources; it does not imply
+    /// independence between links.
+    pub uncertainty_source_kind: UncertaintySourceKind,
     /// Required for expanded uncertainty; retained for the report.
     pub coverage_factor: Option<f64>,
+    /// Required for expanded uncertainty; retained for the report.
+    pub coverage_probability: Option<f64>,
     /// Required for standard/expanded uncertainty so the later GUM path can
     /// recover the declared distribution/model assumptions.
     pub distribution_reference: Option<String>,
@@ -108,7 +121,9 @@ pub struct LinkAuditReceipt {
     pub uncertainty_kind: LinkUncertaintyKind,
     pub uncertainty_value: Option<f64>,
     pub uncertainty_unit: String,
+    pub uncertainty_source_kind: UncertaintySourceKind,
     pub coverage_factor: Option<f64>,
+    pub coverage_probability: Option<f64>,
     pub distribution_reference: Option<String>,
     pub conversion_model_reference: String,
     pub certificate_digest: String,
@@ -121,6 +136,7 @@ pub struct CalibrationChainReport {
     pub measurement_day: i64,
     pub measurand_unit: String,
     pub terminal_reference_id: String,
+    pub terminal_reference_source: String,
     pub chain_digest: String,
     pub link_count: usize,
     /// Present only when every calibration link contributes a validated
@@ -130,6 +146,8 @@ pub struct CalibrationChainReport {
     pub unknown_uncertainty_link_count: usize,
     pub pre_use_check_status: AssuranceStatus,
     pub post_use_check_status: AssuranceStatus,
+    pub pre_use_check: MeasurementAssuranceCheck,
+    pub post_use_check: MeasurementAssuranceCheck,
     pub link_receipts: Vec<LinkAuditReceipt>,
     pub reasons: Vec<String>,
 }
@@ -203,11 +221,18 @@ fn validate_assurance_check(
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+enum LinkValidationOutcome {
+    DeterministicBound,
+    StatisticalOnly(String),
+    Unknown(String),
+}
+
 fn validate_link(
     link: &CalibrationLink,
     measurement_day: i64,
     expected_unit: &str,
-) -> Result<Option<String>, String> {
+) -> Result<LinkValidationOutcome, String> {
     required(&link.link_id, "calibration link ID")?;
     required(&link.calibrated_item_id, "calibrated item ID")?;
     required(&link.reference_standard_id, "reference standard ID")?;
@@ -242,7 +267,7 @@ fn validate_link(
         ));
     }
     if measurement_day < link.valid_from_day || measurement_day > link.valid_until_day {
-        return Ok(Some(format!(
+        return Ok(LinkValidationOutcome::Unknown(format!(
             "calibration link {} is not valid on measurement day {}",
             link.link_id, measurement_day
         )));
@@ -264,13 +289,17 @@ fn validate_link(
                 ));
             };
             finite_nonnegative(value, &format!("link {} absolute-error bound", link.link_id))?;
-            if link.coverage_factor.is_some() || link.distribution_reference.is_some() {
+            if link.uncertainty_source_kind != UncertaintySourceKind::NotSpecified
+                || link.coverage_factor.is_some()
+                || link.coverage_probability.is_some()
+                || link.distribution_reference.is_some()
+            {
                 return Err(format!(
                     "calibration link {} mixes a deterministic bound with statistical uncertainty fields",
                     link.link_id
                 ));
             }
-            Ok(None)
+            Ok(LinkValidationOutcome::DeterministicBound)
         }
         LinkUncertaintyKind::StandardUncertainty => {
             let Some(value) = link.uncertainty_value else {
@@ -284,15 +313,18 @@ fn validate_link(
                 link.distribution_reference.as_deref().unwrap_or(""),
                 &format!("link {} uncertainty distribution/model reference", link.link_id),
             )?;
-            if link.coverage_factor.is_some() {
+            if link.uncertainty_source_kind == UncertaintySourceKind::NotSpecified
+                || link.coverage_factor.is_some()
+                || link.coverage_probability.is_some()
+            {
                 return Err(format!(
-                    "calibration link {} standard uncertainty must not claim an expanded-uncertainty coverage factor",
+                    "calibration link {} standard uncertainty requires a Type A/Type B source and must not claim expanded-uncertainty coverage fields",
                     link.link_id
                 ));
             }
-            Ok(Some(format!(
-                "calibration link {} supplies standard uncertainty, not a deterministic hard bound",
-                link.link_id
+            Ok(LinkValidationOutcome::StatisticalOnly(format!(
+                "calibration link {} supplies standard uncertainty ({:?}), not a deterministic hard bound",
+                link.link_id, link.uncertainty_source_kind
             )))
         }
         LinkUncertaintyKind::ExpandedUncertainty => {
@@ -315,23 +347,48 @@ fn validate_link(
                     link.link_id
                 ));
             }
+            let Some(coverage_probability) = link.coverage_probability else {
+                return Err(format!(
+                    "calibration link {} expanded uncertainty lacks a coverage probability",
+                    link.link_id
+                ));
+            };
+            if !coverage_probability.is_finite()
+                || !(0.0..1.0).contains(&coverage_probability)
+            {
+                return Err(format!(
+                    "calibration link {} coverage probability must be strictly between zero and one",
+                    link.link_id
+                ));
+            }
             required(
                 link.distribution_reference.as_deref().unwrap_or(""),
                 &format!("link {} uncertainty distribution/model reference", link.link_id),
             )?;
-            Ok(Some(format!(
-                "calibration link {} supplies expanded uncertainty, not a deterministic hard bound",
-                link.link_id
-            )))
-        }
-        LinkUncertaintyKind::Unknown => {
-            if link.uncertainty_value.is_some() {
+            if link.uncertainty_source_kind == UncertaintySourceKind::NotSpecified {
                 return Err(format!(
-                    "calibration link {} marks uncertainty Unknown but supplies a numeric value",
+                    "calibration link {} expanded uncertainty requires a Type A/Type B source",
                     link.link_id
                 ));
             }
-            Ok(Some(format!(
+            Ok(LinkValidationOutcome::StatisticalOnly(format!(
+                "calibration link {} supplies expanded uncertainty (k={}, p={}), not a deterministic hard bound",
+                link.link_id, coverage_factor, coverage_probability
+            )))
+        }
+        LinkUncertaintyKind::Unknown => {
+            if link.uncertainty_value.is_some()
+                || link.coverage_factor.is_some()
+                || link.coverage_probability.is_some()
+                || link.distribution_reference.is_some()
+                || link.uncertainty_source_kind != UncertaintySourceKind::NotSpecified
+            {
+                return Err(format!(
+                    "calibration link {} marks uncertainty Unknown but supplies uncertainty values or statistical metadata",
+                    link.link_id
+                ));
+            }
+            Ok(LinkValidationOutcome::Unknown(format!(
                 "calibration link {} uncertainty is Unknown",
                 link.link_id
             )))
@@ -404,22 +461,22 @@ pub fn audit_calibration_chain(
             ));
         }
 
-        if let Some(reason) = validate_link(link, record.measurement_day, &record.measurand_unit)? {
-            if link.uncertainty_kind == LinkUncertaintyKind::Unknown {
-                unknown_uncertainty_link_count += 1;
-            } else if matches!(
-                link.uncertainty_kind,
-                LinkUncertaintyKind::StandardUncertainty | LinkUncertaintyKind::ExpandedUncertainty
-            ) {
-                statistical_only_link_count += 1;
+        match validate_link(link, record.measurement_day, &record.measurand_unit)? {
+            LinkValidationOutcome::DeterministicBound => {
+                total_absolute_error_bound += link.uncertainty_value.unwrap();
+                if !total_absolute_error_bound.is_finite() {
+                    return Err("aggregate calibration absolute-error bound overflowed".to_owned());
+                }
             }
-            reasons.push(reason);
-        }
-
-        if link.uncertainty_kind == LinkUncertaintyKind::ValidatedAbsoluteBound {
-            total_absolute_error_bound += link.uncertainty_value.unwrap_or(0.0);
-            if !total_absolute_error_bound.is_finite() {
-                return Err("aggregate calibration absolute-error bound overflowed".to_owned());
+            LinkValidationOutcome::StatisticalOnly(reason) => {
+                statistical_only_link_count += 1;
+                reasons.push(reason);
+            }
+            LinkValidationOutcome::Unknown(reason) => {
+                if link.uncertainty_kind == LinkUncertaintyKind::Unknown {
+                    unknown_uncertainty_link_count += 1;
+                }
+                reasons.push(reason);
             }
         }
 
@@ -437,7 +494,9 @@ pub fn audit_calibration_chain(
             uncertainty_kind: link.uncertainty_kind,
             uncertainty_value: link.uncertainty_value,
             uncertainty_unit: link.uncertainty_unit.clone(),
+            uncertainty_source_kind: link.uncertainty_source_kind,
             coverage_factor: link.coverage_factor,
+            coverage_probability: link.coverage_probability,
             distribution_reference: link.distribution_reference.clone(),
             conversion_model_reference: link.conversion_model_reference.clone(),
             certificate_digest: link.certificate_digest.clone(),
@@ -479,6 +538,7 @@ pub fn audit_calibration_chain(
         measurement_day: record.measurement_day,
         measurand_unit: record.measurand_unit.clone(),
         terminal_reference_id: record.terminal_reference_id.clone(),
+        terminal_reference_source: record.terminal_reference_source.clone(),
         chain_digest: record.chain_digest.clone(),
         link_count: record.links.len(),
         total_absolute_error_bound: reported_bound,
@@ -486,6 +546,8 @@ pub fn audit_calibration_chain(
         unknown_uncertainty_link_count,
         pre_use_check_status: record.pre_use_check.status,
         post_use_check_status: record.post_use_check.status,
+        pre_use_check: record.pre_use_check.clone(),
+        post_use_check: record.post_use_check.clone(),
         link_receipts,
         reasons,
     })
@@ -528,7 +590,9 @@ mod tests {
             uncertainty_unit: "N m".to_owned(),
             uncertainty_kind: LinkUncertaintyKind::ValidatedAbsoluteBound,
             uncertainty_value: Some(bound),
+            uncertainty_source_kind: UncertaintySourceKind::NotSpecified,
             coverage_factor: None,
+            coverage_probability: None,
             distribution_reference: None,
             conversion_model_reference: format!("https://example.invalid/model/{id}"),
             certificate_digest: format!("certificate-digest-{id}"),
@@ -612,10 +676,12 @@ mod tests {
         value.links[0].uncertainty_value = Some(0.01);
         value.links[0].distribution_reference =
             Some("https://example.invalid/distribution/normal-model".to_owned());
+        value.links[0].uncertainty_source_kind = UncertaintySourceKind::TypeB;
         let report = audit_calibration_chain(&value).unwrap();
         assert_eq!(report.disposition, ChainDisposition::StatisticalUncertaintyOnly);
         assert_eq!(report.total_absolute_error_bound, None);
         assert_eq!(report.statistical_only_link_count, 1);
+        assert!(report.reasons.iter().any(|reason| reason.contains("standard uncertainty")));
     }
 
     #[test]
@@ -630,7 +696,9 @@ mod tests {
         let mut valid_expanded = record();
         valid_expanded.links[0].uncertainty_kind = LinkUncertaintyKind::ExpandedUncertainty;
         valid_expanded.links[0].uncertainty_value = Some(0.02);
+        valid_expanded.links[0].uncertainty_source_kind = UncertaintySourceKind::Combined;
         valid_expanded.links[0].coverage_factor = Some(2.0);
+        valid_expanded.links[0].coverage_probability = Some(0.95);
         valid_expanded.links[0].distribution_reference =
             Some("https://example.invalid/distribution/model".to_owned());
         let report = audit_calibration_chain(&valid_expanded).unwrap();
@@ -713,10 +781,19 @@ mod tests {
     }
 
     #[test]
-    fn chain_018_receipt_preserves_each_link_reference_and_uncertainty_kind() {
+    fn chain_018_terminal_reference_cannot_create_a_loop_back_to_sensor_or_prior_node() {
+        let mut value = record();
+        value.terminal_reference_id = "torque-sensor-01".to_owned();
+        value.links[1].reference_standard_id = value.terminal_reference_id.clone();
+        assert!(audit_calibration_chain(&value).is_err());
+    }
+
+    #[test]
+    fn chain_019_receipt_preserves_each_link_reference_and_uncertainty_kind() {
         let mut value = record();
         value.links[0].uncertainty_kind = LinkUncertaintyKind::StandardUncertainty;
         value.links[0].uncertainty_value = Some(0.01);
+        value.links[0].uncertainty_source_kind = UncertaintySourceKind::TypeA;
         value.links[0].distribution_reference =
             Some("https://example.invalid/distribution/model".to_owned());
         let report = audit_calibration_chain(&value).unwrap();
