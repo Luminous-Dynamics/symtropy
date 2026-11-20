@@ -43,6 +43,7 @@ jobs:
           proposal = json.loads((root / "fixtures/synthetic-restoration-action-proposal-v0.1.json").read_text())
           case_path = Path("tools/power-restoration-benchmark-case/fixtures/synthetic-restoration-case-v0.1.json")
           case = json.loads(case_path.read_text())
+          Draft202012Validator.check_schema(schema)
           errors = sorted(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(proposal), key=lambda error: list(error.path))
           assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
           canonical = json.dumps(case, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
