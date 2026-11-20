@@ -1112,6 +1112,14 @@ mod tests {
     fn sharing_031_physical_vendor_and_source_author_inputs_are_not_called_independent() {
         let mut a = unit("A", interval(4.0, 5.0), interval(40.0, 42.0));
         let mut b = unit("B", interval(5.0, 6.0), interval(41.0, 43.0));
+        for unit in [&mut a, &mut b] {
+            unit.torque_evidence_class = EvidenceClass::IndependentPhysical;
+            unit.torque_source_reference = Some(format!("urn:measurement:torque:{}", unit.actuator_id));
+            unit.capability_evidence_class = EvidenceClass::IndependentPhysical;
+            unit.capability_source_reference = Some(format!("urn:measurement:capability:{}", unit.actuator_id));
+            unit.thermal_evidence_class = EvidenceClass::IndependentPhysical;
+            unit.thermal_source_reference = Some(format!("urn:measurement:thermal:{}", unit.actuator_id));
+        }
         a.torque_evidence_class = EvidenceClass::SourceAuthorPhysical;
         a.torque_source_reference = Some("https://example.org/measurement/author-run".to_owned());
         b.thermal_evidence_class = EvidenceClass::VendorPhysical;
