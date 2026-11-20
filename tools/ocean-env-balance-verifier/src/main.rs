@@ -235,14 +235,42 @@ fn nonnegative(value: f64, name: &str) -> Result<(), String> {
     }
     Ok(())
 }
-fn valid_utc_timestamp(value: &str) -> bool {
+fn parse_utc_timestamp(value: &str) -> Option<i64> {
     let bytes = value.as_bytes();
-    bytes.len() == 20
-        && bytes[4] == b'-' && bytes[7] == b'-'
-        && bytes[10] == b'T' && bytes[13] == b':'
-        && bytes[16] == b':' && bytes[19] == b'Z'
-        && [0usize,1,2,3,5,6,8,9,11,12,14,15,17,18]
-            .iter().all(|index| bytes[*index].is_ascii_digit())
+    if bytes.len() != 20
+        || bytes[4] != b'-' || bytes[7] != b'-'
+        || bytes[10] != b'T' || bytes[13] != b':'
+        || bytes[16] != b':' || bytes[19] != b'Z'
+        || ![0usize,1,2,3,5,6,8,9,11,12,14,15,17,18]
+            .iter().all(|index| bytes[*index].is_ascii_digit()) {
+        return None;
+    }
+    let year = value[0..4].parse::<i64>().ok()?;
+    let month = value[5..7].parse::<i64>().ok()?;
+    let day = value[8..10].parse::<i64>().ok()?;
+    let hour = value[11..13].parse::<i64>().ok()?;
+    let minute = value[14..16].parse::<i64>().ok()?;
+    let second = value[17..19].parse::<i64>().ok()?;
+    if year < 1 || !(1..=12).contains(&month) || !(0..=23).contains(&hour)
+        || !(0..=59).contains(&minute) || !(0..=59).contains(&second) {
+        return None;
+    }
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let month_days = [31, if leap {29} else {28}, 31,30,31,30,31,31,30,31,30,31];
+    if day < 1 || day > month_days[(month - 1) as usize] {
+        return None;
+    }
+    let adjusted_year = year - if month <= 2 { 1 } else { 0 };
+    let era = adjusted_year.div_euclid(400);
+    let year_of_era = adjusted_year - era * 400;
+    let month_prime = month + if month > 2 { -3 } else { 9 };
+    let day_of_year = (153 * month_prime + 2) / 5 + day - 1;
+    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+    let days = era * 146097 + day_of_era - 719468;
+    Some(days * 86400 + hour * 3600 + minute * 60 + second)
+}
+fn valid_utc_timestamp(value: &str) -> bool {
+    parse_utc_timestamp(value).is_some()
 }
 fn validate_evidence(e: &Evidence, interval: &IntervalRecord, ids: &mut HashSet<String>) -> Result<(), String> {
     if e.sample_id.trim().is_empty() || !ids.insert(e.sample_id.clone()) {
@@ -273,10 +301,11 @@ fn validate_evidence(e: &Evidence, interval: &IntervalRecord, ids: &mut HashSet<
     Ok(())
 }
 fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<IntervalResult, String> {
-    if interval.interval_id.trim().is_empty()
-        || !valid_utc_timestamp(&interval.interval_start_utc)
-        || !valid_utc_timestamp(&interval.interval_end_utc)
-        || interval.interval_end_utc <= interval.interval_start_utc {
+    let start_seconds = parse_utc_timestamp(&interval.interval_start_utc)
+        .ok_or_else(|| format!("interval {} has invalid UTC start", interval.interval_id))?;
+    let end_seconds = parse_utc_timestamp(&interval.interval_end_utc)
+        .ok_or_else(|| format!("interval {} has invalid UTC end", interval.interval_id))?;
+    if interval.interval_id.trim().is_empty() || end_seconds <= start_seconds {
         return Err(format!("interval {} has invalid UTC window", interval.interval_id));
     }
     if interval.time_sync_state != bundle.pairing_contract.required_time_sync_state {
@@ -309,6 +338,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
 
     let mut sample_ids = HashSet::new();
     let mut temperatures = std::collections::HashMap::new();
+    let mut station_ids = HashSet::new();
     for observation in &interval.thermal_observations {
         validate_evidence(&observation.evidence, interval, &mut sample_ids)?;
         if !REQUIRED_ROLES.contains(&observation.station_role.as_str()) {
@@ -318,6 +348,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
             return Err(format!("duplicate thermal station role {}", observation.station_role));
         }
         if observation.station_id.trim().is_empty()
+            || !station_ids.insert(observation.station_id.as_str())
             || observation.position_evidence_state != "synthetic_relative_layout" {
             return Err(format!("station {} lacks synthetic position context", observation.station_id));
         }
@@ -346,8 +377,12 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
         nonnegative(flow.standard_uncertainty_m3_s, "flow standard uncertainty")?;
         flows.insert(flow.station_role.as_str(), flow);
     }
-    let intake_flow = *flows.get("intake").ok_or("missing intake flow")?;
-    let outfall_flow = *flows.get("outfall").ok_or("missing outfall flow")?;
+    let intake_flow = flows.get("intake").copied().ok_or("missing intake flow")?;
+    let outfall_flow = flows.get("outfall").copied().ok_or("missing outfall flow")?;
+    if temperatures["intake"].station_id != intake_flow.station_id
+        || temperatures["outfall"].station_id != outfall_flow.station_id {
+        return Err(format!("interval {} flow meters do not match the paired thermal stations", interval.interval_id));
+    }
 
     if interval.concentration_pairs.is_empty() {
         return Err(format!("interval {} has no paired pollutant samples", interval.interval_id));
@@ -500,13 +535,13 @@ fn validate(bundle: &Bundle) -> Result<Report, String> {
             return Err(format!("duplicate interval_id {}", interval.interval_id));
         }
         let result = validate_interval(bundle, interval)?;
-        total_thermal_kwh += result.thermal_power_kw
-            * ((interval.interval_end_utc[11..13].parse::<u64>().unwrap_or(0) * 3600
-                + interval.interval_end_utc[14..16].parse::<u64>().unwrap_or(0) * 60
-                + interval.interval_end_utc[17..19].parse::<u64>().unwrap_or(0))
-                - (interval.interval_start_utc[11..13].parse::<u64>().unwrap_or(0) * 3600
-                + interval.interval_start_utc[14..16].parse::<u64>().unwrap_or(0) * 60
-                + interval.interval_start_utc[17..19].parse::<u64>().unwrap_or(0))) as f64 / 3600.0;
+        let start = parse_utc_timestamp(&interval.interval_start_utc)
+            .ok_or_else(|| format!("interval {} start timestamp invalid", interval.interval_id))?;
+        let end = parse_utc_timestamp(&interval.interval_end_utc)
+            .ok_or_else(|| format!("interval {} end timestamp invalid", interval.interval_id))?;
+        let duration_hours = (end - start) as f64 / 3600.0;
+        total_thermal_kwh += result.thermal_power_kw * duration_hours;
+        finite(total_thermal_kwh, "total_thermal_energy_kwh_th")?;
         results.push(result);
     }
 
