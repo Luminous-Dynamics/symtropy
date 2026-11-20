@@ -36,6 +36,9 @@ pub struct AdaptiveStepInput {
     pub interface_tolerance: f64,
     pub energy_residual: f64,
     pub energy_tolerance: f64,
+    /// Independently estimated model/parameter uncertainty; not reducible by shrinking dt.
+    pub model_uncertainty: f64,
+    pub model_uncertainty_tolerance: f64,
     /// Formal order used by the local error controller (p >= 1).
     pub method_order: u32,
     /// Earliest known event/clock time. None means no currently known fence.
@@ -47,6 +50,7 @@ pub enum AdaptiveStepAction {
     Accept,
     RejectAndRetry,
     ProcessEventNow,
+    ModelUncertaintyBudgetExceeded,
     FailClosedAtMinimumStep,
 }
 
@@ -54,10 +58,12 @@ pub enum AdaptiveStepAction {
 pub struct AdaptiveStepDecision {
     pub action: AdaptiveStepAction,
     pub attempted_step_s: f64,
-    /// Proposed next duration. Zero only when an event is due at current time.
+    /// Proposed next duration. Zero when an event is due or model uncertainty stops advancement.
     pub next_step_s: f64,
-    /// max(|trajectory_error|/tol, |interface_residual|/tol, |energy_residual|/tol).
+    /// Maximum normalized trajectory/interface/energy residual.
     pub normalized_error: f64,
+    /// Normalized epistemic/model uncertainty, evaluated separately because reducing dt cannot fix it.
+    pub normalized_model_uncertainty: f64,
     pub event_fence_applied: bool,
     pub event_time_s: Option<f64>,
     /// An exact known event may require a step smaller than the configured minimum.
@@ -121,6 +127,8 @@ pub fn propose_adaptive_step(
         input.interface_tolerance,
         input.energy_residual,
         input.energy_tolerance,
+        input.model_uncertainty,
+        input.model_uncertainty_tolerance,
     ];
     if !finite_values.iter().all(|value| value.is_finite()) {
         return Err(ModelError::NonFiniteParameter);
@@ -134,6 +142,8 @@ pub fn propose_adaptive_step(
         || input.trajectory_tolerance <= 0.0
         || input.interface_tolerance <= 0.0
         || input.energy_tolerance <= 0.0
+        || input.model_uncertainty_tolerance <= 0.0
+        || input.model_uncertainty < 0.0
         || input.method_order == 0
     {
         return Err(ModelError::NonPositiveInterval);
@@ -143,6 +153,11 @@ pub fn propose_adaptive_step(
         .max(input.interface_residual.abs() / input.interface_tolerance)
         .max(input.energy_residual.abs() / input.energy_tolerance);
     if !normalized_error.is_finite() {
+        return Err(ModelError::NumericalOverflow);
+    }
+    let normalized_model_uncertainty =
+        input.model_uncertainty / input.model_uncertainty_tolerance;
+    if !normalized_model_uncertainty.is_finite() {
         return Err(ModelError::NumericalOverflow);
     }
 
@@ -159,11 +174,25 @@ pub fn propose_adaptive_step(
                 attempted_step_s: input.attempted_step_s,
                 next_step_s: 0.0,
                 normalized_error,
+                normalized_model_uncertainty,
                 event_fence_applied: true,
                 event_time_s: Some(event_time),
                 event_step_below_minimum: false,
             });
         }
+    }
+
+    if normalized_model_uncertainty > 1.0 {
+        return Ok(AdaptiveStepDecision {
+            action: AdaptiveStepAction::ModelUncertaintyBudgetExceeded,
+            attempted_step_s: input.attempted_step_s,
+            next_step_s: 0.0,
+            normalized_error,
+            normalized_model_uncertainty,
+            event_fence_applied: false,
+            event_time_s: input.next_event_time_s,
+            event_step_below_minimum: false,
+        });
     }
 
     let (action, factor) = if normalized_error > 1.0 {
@@ -207,6 +236,7 @@ pub fn propose_adaptive_step(
         attempted_step_s: input.attempted_step_s,
         next_step_s,
         normalized_error,
+        normalized_model_uncertainty,
         event_fence_applied,
         event_time_s,
         event_step_below_minimum,
@@ -1022,6 +1052,8 @@ mod tests {
             interface_tolerance: 0.01,
             energy_residual: 0.1,
             energy_tolerance: 1.0,
+            model_uncertainty: 0.01,
+            model_uncertainty_tolerance: 0.1,
             method_order: 2,
             next_event_time_s: None,
         }
@@ -1093,6 +1125,35 @@ mod tests {
 
         assert_eq!(decision.action, AdaptiveStepAction::FailClosedAtMinimumStep);
         assert!(decision.next_step_s < input.minimum_step_s);
+    }
+
+    #[test]
+    fn adaptive_controller_does_not_try_to_fix_model_uncertainty_by_shrinking_time_step() {
+        let mut input = adaptive_input();
+        input.trajectory_error = 0.001;
+        input.interface_residual = 0.001;
+        input.energy_residual = 0.01;
+        input.model_uncertainty = 0.2;
+        input.model_uncertainty_tolerance = 0.1;
+        let decision = propose_adaptive_step(input).unwrap();
+
+        assert_eq!(decision.action, AdaptiveStepAction::ModelUncertaintyBudgetExceeded);
+        assert_eq!(decision.next_step_s, 0.0);
+        close(decision.normalized_error, 0.1, 1.0e-15);
+        close(decision.normalized_model_uncertainty, 2.0, 1.0e-15);
+    }
+
+    #[test]
+    fn adaptive_controller_processes_due_event_before_stopping_for_model_uncertainty() {
+        let mut input = adaptive_input();
+        input.model_uncertainty = 10.0;
+        input.model_uncertainty_tolerance = 0.1;
+        input.next_event_time_s = Some(input.current_time_s);
+        let decision = propose_adaptive_step(input).unwrap();
+
+        assert_eq!(decision.action, AdaptiveStepAction::ProcessEventNow);
+        assert_eq!(decision.next_step_s, 0.0);
+        close(decision.normalized_model_uncertainty, 100.0, 1.0e-15);
     }
 
     #[test]
