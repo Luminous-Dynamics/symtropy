@@ -46,7 +46,7 @@ Every proposal is bound to:
 - one decision step equal to the observation step;
 - planner ID/revision, source commit, configuration digest and optional prompt digest.
 
-Every action repeats the exact observation reference/decision step and includes one or more precondition evidence references. Evidence may be older than the current step but never from a future step. Each action also carries an authority-requirement reference. A reference names a requirement; this crate does not prove that the actor holds the authority.
+Every action repeats the exact observation reference/decision step. Physical/recovery actions require one or more precondition evidence references. Information requests may start with an empty precondition-evidence list because their purpose is to obtain evidence. Any evidence they later return is a separate result artifact; it cannot be used before its arrival epoch. Existing evidence may be older than the current step but never from a future step. Each action also carries an authority-requirement reference. A reference names a requirement; this crate does not prove that the actor holds the authority.
 
 ## Scope
 
@@ -59,7 +59,9 @@ Validated:
 - road-node/power-node/fault/switch target references;
 - repair crew has the fault's declared skill;
 - mobile-source connection target is in its permitted-node set;
-- explicit switch target state and no unknown action type.
+- explicit switch target state and no unknown action type;
+- typed active-sensing requests with correct actor/target semantics;
+- initial information requests are permitted without prior evidence while physical actions remain evidence-gated.
 
 Not validated:
 - radiality after a proposed switch;
@@ -76,7 +78,7 @@ LARA, MILP, CP-SAT, heuristic and Symthaea adapters all emit this same envelope.
 
 ## Synthetic fixtures
 
-The bundled repair proposal points at the six-node synthetic case from #6346. A second initial-SCADA-request fixture demonstrates an information request at step 0 with an empty precondition-evidence list. It proposes one repair action for F23-A by CREW-A at decision step 4, using a step-3 inspection evidence reference. The fixture is only a data-contract example, not a repair recommendation or execution plan.
+The bundled repair proposal points at the six-node synthetic case from #6346 and proposes one repair action for F23-A by CREW-A at decision step 4, using a step-3 inspection evidence reference. The second fixture requests SCADA for node N3 at step 0 with no prior evidence. Both are data-contract examples, not an execution plan or actual observation.
 
 ## Verification
 
