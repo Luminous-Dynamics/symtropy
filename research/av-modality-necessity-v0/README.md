@@ -63,6 +63,14 @@ Proposed gates (not achieved):
 - missing necessary modality causes abstention or explicit loss of support;
 - 100% deterministic replay.
 
+## External benchmark data rights and use
+
+- OmniPro's Hugging Face dataset card declares CC BY-NC 4.0 and says the benchmark is for evaluation, not model training. Its videos originate from LongVALE and COIN; those source terms remain relevant. Treat OmniPro as evaluation-only and non-commercial unless rights holders grant additional permissions. https://huggingface.co/datasets/omniproact-bench/OmniPro
+- StreamArena evaluation code is Apache-2.0, but annotations are CC BY-NC 4.0 and video copyright remains with the original YouTube uploaders. Its dataset card describes video redistribution as non-commercial research reproducibility. Do not mirror or redistribute the media in this repository. https://github.com/JIA-Lab-research/StreamArena
+- VSAS-Bench is an open-access paper and benchmark protocol, but the underlying media/dataset reuse license has not been verified here. Do not assume commercial or redistribution rights from paper access alone. https://openaccess.thecvf.com/content/CVPR2026F/html/Vasu_VSAS-Bench_Real-Time_Evaluation_of_Visual_Streaming_Assistant_Models_CVPRF_2026_paper.html
+
+All external reproduction must pin dataset and evaluator revisions, record rights/consent restrictions, keep evaluation-only data out of training, and avoid redistributing copyrighted source media.
+
 ## Claim ceiling
 
 Passing qualifies only synthetic paired-modality semantics and metadata-level split checks. It does not validate acoustic propagation, physical sensors, real-world AV model accuracy, privacy, or superiority over published benchmarks.
