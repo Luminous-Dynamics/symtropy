@@ -1,0 +1,196 @@
+{
+  "schemaVersion": "0.1.0",
+  "profileId": "lara-eacl-2026-source-audit",
+  "source": {
+    "repositoryUrl": "https://github.com/jishnuwarrier/LARA-Power-Restoration",
+    "defaultBranch": "main",
+    "commitSha": "0e7d2d79241ce20b2c39a5b0d7fd0f5f60fc2016",
+    "commitDate": "2026-03-26T14:59:02Z",
+    "commitMessage": "Initial release: LARA LLM-guided DSR system (EACL 2026)",
+    "commitSignatureVerified": false,
+    "commitSignatureReason": "unsigned",
+    "commitParentCount": 0,
+    "licenseFilePresent": false,
+    "licenseStatus": "not_found_in_commit_inventory",
+    "rightsReviewStatus": "pending"
+  },
+  "paper": {
+    "title": "LARA: LLM-based Agile Power Distribution Network Restoration from Disastrous Events",
+    "authors": [
+      "Jishnu Warrier",
+      "Heqing Huang",
+      "Yuzhang Lin",
+      "Sai Qian Zhang"
+    ],
+    "venue": "Findings of the Association for Computational Linguistics: EACL 2026",
+    "publicationDate": "2026-03-24",
+    "pages": "6108-6116",
+    "doi": "10.18653/v1/2026.findings-eacl.321",
+    "paperUrl": "https://aclanthology.org/2026.findings-eacl.321/",
+    "reportedResults": [
+      "Near-MILP performance on the IEEE 13-node standard feeder",
+      "Approximately 13% better objective than a time-capped MILP on IEEE 33-node at less than 1% of its wall-clock runtime"
+    ],
+    "reportedTimeStepSeconds": 300,
+    "timeStepEvidenceRef": "https://aclanthology.org/2026.findings-eacl.321.pdf"
+  },
+  "sourceInventory": [
+    {
+      "path": ".gitignore",
+      "gitBlobSha1": "8de8b64c8eb142ced1e9cbd88c5db85ef8d01dfc",
+      "kind": "configuration",
+      "contentState": "metadata_only",
+      "byteLength": null
+    },
+    {
+      "path": "README.md",
+      "gitBlobSha1": "2abb85949d319f3b5908ef1cc2064dcd0376be9f",
+      "kind": "documentation",
+      "contentState": "text_inspected",
+      "byteLength": 4637
+    },
+    {
+      "path": "agents/llm_advisor.py",
+      "gitBlobSha1": "65d5e2566c684f20795f8050b0642249c6607e0d",
+      "kind": "source_code",
+      "contentState": "text_inspected",
+      "byteLength": null
+    },
+    {
+      "path": "dsr_engine/components.py",
+      "gitBlobSha1": "afc43101c080be7b7ce9f3867bd768349710d9ab",
+      "kind": "source_code",
+      "contentState": "text_inspected",
+      "byteLength": null
+    },
+    {
+      "path": "dsr_engine/environment.py",
+      "gitBlobSha1": "239e79e28d3dad912ad18338b49c645775949b77",
+      "kind": "source_code",
+      "contentState": "text_inspected",
+      "byteLength": null
+    },
+    {
+      "path": "dsr_engine/visualizer_plotly.py",
+      "gitBlobSha1": "9459207900b36df0fa89406f54fc5df52101c16a",
+      "kind": "source_code",
+      "contentState": "metadata_only",
+      "byteLength": null
+    },
+    {
+      "path": "main.py",
+      "gitBlobSha1": "287af492a11586a210a0130c6537ed1e1d9a0596",
+      "kind": "source_code",
+      "contentState": "text_inspected",
+      "byteLength": 67661
+    },
+    {
+      "path": "prompts/new_prompt.txt",
+      "gitBlobSha1": "d312a14279e272ce08016fbaf5312e93c7634185",
+      "kind": "prompt",
+      "contentState": "text_inspected",
+      "byteLength": null
+    },
+    {
+      "path": "prompts/system_prompt.txt",
+      "gitBlobSha1": "d0915beba333aa6a6ac869c19f078f6920bdfd79",
+      "kind": "prompt",
+      "contentState": "text_inspected",
+      "byteLength": null
+    },
+    {
+      "path": "requirements.txt",
+      "gitBlobSha1": "a93e2185fe92bd83ed018330536a992f433f5cae",
+      "kind": "dependency_manifest",
+      "contentState": "text_inspected",
+      "byteLength": 192
+    },
+    {
+      "path": "scenario_creation/ieee13_define_scenarios.py",
+      "gitBlobSha1": "4f031b4d6ebb911b796ded72790b826ed23d32b3",
+      "kind": "scenario_generator",
+      "contentState": "text_inspected",
+      "byteLength": 23387
+    },
+    {
+      "path": "scenarios/ieee13/fault_scenario_1.pkl",
+      "gitBlobSha1": "e386a6cdcfd97dfe11c73bd4a8082ab41f430c34",
+      "kind": "binary_pickle_scenario",
+      "contentState": "binary_metadata_only",
+      "byteLength": 1092
+    },
+    {
+      "path": "scenarios/ieee13/fault_scenario_2.pkl",
+      "gitBlobSha1": "3c782166b8f644830b88cbc60a2d90f0a2d0bd8d",
+      "kind": "binary_pickle_scenario",
+      "contentState": "binary_metadata_only",
+      "byteLength": 1128
+    },
+    {
+      "path": "scenarios/ieee13/fault_scenario_3.pkl",
+      "gitBlobSha1": "79ce2d62c8374b5c6d706cc771a2c5bb69cb9392",
+      "kind": "binary_pickle_scenario",
+      "contentState": "binary_metadata_only",
+      "byteLength": 1120
+    },
+    {
+      "path": "scenarios/ieee13/fault_scenario_4.pkl",
+      "gitBlobSha1": "cc91527672e33db718b8000ad5e8c73c09d998fb",
+      "kind": "binary_pickle_scenario",
+      "contentState": "binary_metadata_only",
+      "byteLength": 1124
+    },
+    {
+      "path": "scenarios/ieee13/fault_scenario_5.pkl",
+      "gitBlobSha1": "21aec4ad8de02777808f3eee3f2c2ec160a007eb",
+      "kind": "binary_pickle_scenario",
+      "contentState": "binary_metadata_only",
+      "byteLength": 1124
+    }
+  ],
+  "executionSafety": {
+    "pickleDeserializationLocation": "dsr_engine/environment.py",
+    "pickleDeserializationCall": "pickle.load(f)",
+    "untrustedPickleDisposition": "do_not_unpickle",
+    "scenarioParserLocation": "scenario_creation/ieee13_define_scenarios.py",
+    "unsafeParserPrimitive": "eval",
+    "unsafeParserDisposition": "do_not_execute_on_untrusted_archive_text",
+    "safeInterchangeFormat": "JSON data-only normalized instance",
+    "externalDocumentationRef": "https://docs.python.org/3.13/library/pickle.html"
+  },
+  "modelAudit": {
+    "auditedFiles": [
+      "dsr_engine/environment.py",
+      "dsr_engine/components.py",
+      "main.py",
+      "agents/llm_advisor.py"
+    ],
+    "topology": "NetworkX graph reachability over power and road graphs",
+    "radiality": "graph cycle check before accepting switch toggle",
+    "mobilePowerChecks": "aggregate active P, reactive Q and apparent S checks against source Pmax/Smax; no phase-resolved converter model identified",
+    "acLoadFlowEvidence": "not_found_in_audited_source",
+    "voltageConstraintEvidence": "not_found_in_audited_source",
+    "branchThermalConstraintEvidence": "not_found_in_audited_source",
+    "frequencyConstraintEvidence": "not_found_in_audited_source",
+    "limitation": "README describes physics-aware simulation; the audited environment file uses graph connectivity/radiality and aggregate MPS P/Q/S checks. This audit does not prove what may exist in unpublished paper experiments or external simulator code."
+  },
+  "objectiveAudit": {
+    "sourceFormula": "cumulative sum over time steps of activePower * priorityWeight for energized loads",
+    "sourcePowerUnitComments": "components.py comments describe P in kW and Q in kVAr; prompt and main.py diagnostics use W and VAR",
+    "unitResolutionStatus": "ambiguous",
+    "timeStepSeconds": 300,
+    "sourceTimeStepEvidence": "EACL paper text describes a 5-minute restoration timestep",
+    "comparisonRule": "Do not compare physical energy, power, reward or service deficits until unit conversion and time aggregation are resolved"
+  },
+  "benchmarkReadiness": {
+    "sourceCommitPinned": true,
+    "sourceFilesInventoried": true,
+    "binaryScenarioBytesDownloaded": false,
+    "binaryScenarioSha256Computed": false,
+    "licenseAndReuseCleared": false,
+    "sourceUnitBindingsQualified": false,
+    "independentElectricalModelBound": false,
+    "status": "source_audited_not_reproduced"
+  },
+  "claimCeiling": "Pinned public source inventory and source-code audit only. No LARA reproduction, independent power-flow validation, license clearance, binary import, model comparison, or SOTA claim."
+}
