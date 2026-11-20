@@ -109,7 +109,8 @@
         {
           "event_id": "e7",
           "kind": "observation",
-          "tick": 10
+          "tick": 10,
+          "trigger_ref": "silence-7"
         }
       ]
     },
@@ -165,7 +166,8 @@
         {
           "event_id": "e10",
           "kind": "observation",
-          "tick": 20
+          "tick": 20,
+          "trigger_ref": "silence-10"
         }
       ]
     }
