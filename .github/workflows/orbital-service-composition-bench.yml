@@ -92,9 +92,9 @@ jobs:
           path: upstream/earth-orbit
           persist-credentials: false
           sparse-checkout: |
-            Cargo.lock
-            crates/domains/symtropy-earth-orbit-chain
-          sparse-checkout-cone-mode: true
+            /Cargo.lock
+            /crates/domains/symtropy-earth-orbit-chain/
+          sparse-checkout-cone-mode: false
 
       - name: Checkout exact capture source commit
         uses: actions/checkout@v4
@@ -125,7 +125,7 @@ jobs:
           test "$(git -C upstream/earth-orbit rev-parse HEAD)" = "$EARTH_ORBIT_COMMIT"
           mkdir -p .integration/earth-orbit
           cp -R upstream/earth-orbit/crates/domains/symtropy-earth-orbit-chain .integration/earth-orbit/
-          cp upstream/earth-orbit/Cargo.lock .integration/earth-orbit/Cargo.lock
+          cp upstream/earth-orbit/Cargo.lock .integration/earth-orbit/symtropy-earth-orbit-chain/Cargo.lock
           printf '\n[workspace]\n' >> .integration/earth-orbit/symtropy-earth-orbit-chain/Cargo.toml
           cargo fmt --manifest-path .integration/earth-orbit/symtropy-earth-orbit-chain/Cargo.toml -- --check
           cargo test --locked --manifest-path .integration/earth-orbit/symtropy-earth-orbit-chain/Cargo.toml --all-targets
