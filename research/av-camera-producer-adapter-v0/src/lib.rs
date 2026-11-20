@@ -283,6 +283,16 @@ pub fn validate_camera_frame_envelope_v1(
     let receipt = &envelope.producer_receipt;
     verify_policy_receipt_metadata(receipt)
         .map_err(AdapterError::ProducerReceiptRejected)?;
+    let expected_milestones = CameraClockMilestonesV1 {
+        capture_timestamp_ns: checked_us_to_ns(receipt.capture_timestamp_us)?,
+        render_completed_timestamp_ns: checked_us_to_ns(receipt.render_completed_timestamp_us)?,
+        delivered_timestamp_ns: checked_us_to_ns(receipt.delivered_timestamp_us)?,
+    };
+    let expected_stride = receipt
+        .frame_width
+        .checked_mul(3)
+        .ok_or(AdapterError::ProducerProjectionMismatch)?;
+    let capture_ns = expected_milestones.capture_timestamp_ns;
     if envelope.observation.observation_id != receipt.observation_id
         || envelope.observation.sensor_id != receipt.camera_id
         || envelope.observation.source_sequence != receipt.sequence
@@ -290,9 +300,27 @@ pub fn validate_camera_frame_envelope_v1(
         || envelope.observation.artifact.byte_len
             != u64::try_from(receipt.frame_byte_len)
                 .map_err(|_| AdapterError::ProducerProjectionMismatch)?
+        || !valid_root_relative_path(&envelope.observation.artifact.relative_path)
         || envelope.observation.width != receipt.frame_width
         || envelope.observation.height != receipt.frame_height
+        || envelope.observation.stride_bytes != expected_stride
+        || envelope.observation.pixel_format != PixelFormatV1::Rgb8
+        || envelope.observation.color_space != ColorSpaceV1::Srgb
+        || envelope.observation.color_range != ColorRangeV1::Full
+        || envelope.observation.camera_profile_sha256 != receipt.camera_calibration_sha256
+        || envelope.observation.calibration_profile_sha256.is_some()
+        || envelope.observation.clock_domain != envelope.producer_clock_domain
+        || envelope.observation.capture_interval.start.lower_ns != capture_ns
+        || envelope.observation.capture_interval.start.upper_ns != capture_ns
+        || envelope.observation.capture_interval.end.lower_ns != capture_ns
+        || envelope.observation.capture_interval.end.upper_ns != capture_ns
         || envelope.producer_clock_domain.domain_id != receipt.clock_id
+        || !nonempty(&envelope.transport_event.event_id)
+        || envelope.transport_event.arrival_order == 0
+        || !matches!(
+            envelope.transport_event.disposition,
+            TransportDispositionV1::Delivered | TransportDispositionV1::Reordered
+        )
         || envelope.transport_event.observation_id.as_deref()
             != Some(receipt.observation_id.as_str())
         || envelope.transport_event.source_sequence != receipt.sequence
@@ -301,12 +329,6 @@ pub fn validate_camera_frame_envelope_v1(
     {
         return Err(AdapterError::ProducerProjectionMismatch);
     }
-
-    let expected_milestones = CameraClockMilestonesV1 {
-        capture_timestamp_ns: checked_us_to_ns(receipt.capture_timestamp_us)?,
-        render_completed_timestamp_ns: checked_us_to_ns(receipt.render_completed_timestamp_us)?,
-        delivered_timestamp_ns: checked_us_to_ns(receipt.delivered_timestamp_us)?,
-    };
     if envelope.clock_milestones != expected_milestones {
         return Err(AdapterError::ProducerProjectionMismatch);
     }
