@@ -310,7 +310,8 @@ fn annual_event_rate(event: &LifecycleEvent) -> Option<f64> {
             if !exposure.is_finite() || exposure <= 0.0 {
                 return None;
             }
-            Some(count as f64 / exposure)
+            let rate = count as f64 / exposure;
+            (rate.is_finite() && rate <= MAX_ANNUAL_OCCURRENCES).then_some(rate)
         }
     }
 }
@@ -1067,6 +1068,11 @@ mod tests {
         let result = &report.results[0];
         assert_eq!(result.status, LifecycleStatus::EvidenceBackedScreen);
         assert!(result.full_lifecycle_ranking_eligible);
+        assert_eq!(result.total_downtime_hours_per_module_year, Some(3.3));
+        assert_eq!(result.total_technician_hours_per_module_year, Some(3.3));
+        assert_eq!(result.total_service_parts_cost_per_module_year, Some(9.0));
+        assert_eq!(result.downtime_loss_cost_per_module_year, Some(82.5));
+        assert_eq!(result.full_lifecycle_cost_per_module_year, Some(623.5));
         assert!(!result.module_production_release_ready);
         assert!(!result.return_to_service_authorized);
     }
@@ -1131,6 +1137,23 @@ mod tests {
                 .results[0].full_lifecycle_cost_per_module_year,
             None
         );
+    }
+
+    #[test]
+    fn extreme_observed_failure_rate_is_rejected_not_annualized() {
+        let mut catalog = catalog();
+        let unscheduled = catalog.profiles[0].events.iter_mut()
+            .find(|event| event.event_class == EventClass::Unscheduled).unwrap();
+        unscheduled.observed_event_count = Some(u64::MAX);
+        unscheduled.exposure_module_years = Some(0.000_000_001);
+        unscheduled.frequency_evidence_class = EvidenceClass::Measured;
+        unscheduled.frequency_evidence_reference = "measurement://extreme-rate".into();
+        let report = validate_and_evaluate(&factory(), &catalog).expect("structurally valid input");
+        let event = report.results[0].events.iter()
+            .find(|event| event.event_class == EventClass::Unscheduled).unwrap();
+        assert_eq!(event.annual_event_rate_per_module, None);
+        assert_eq!(report.results[0].total_downtime_hours_per_module_year, None);
+        assert!(!report.results[0].full_lifecycle_ranking_eligible);
     }
 
     #[test]
