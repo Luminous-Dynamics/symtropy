@@ -332,7 +332,7 @@ fn validate_request(request: &AuditRequest) -> Result<usize, String> {
         .chain(request.entropy_gradient.iter())
         .chain(request.reversible_operator.iter())
         .chain(request.dissipative_operator.iter());
-    if all_values.clone().any(|value| !value.is_finite()) {
+    if all_values.any(|value| !value.is_finite()) {
         return Err("state, gradients and operators must contain only finite values".to_owned());
     }
     Ok(dimension)
