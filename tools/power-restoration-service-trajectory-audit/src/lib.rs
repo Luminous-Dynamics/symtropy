@@ -430,6 +430,17 @@ fn validate_work_milestones(
             continue;
         }
 
+        let evidence_in_inventory = trajectory.source_artifacts.iter().any(|source| {
+            source.artifact_ref == milestone.evidence_ref
+                && source.sha256 == milestone.evidence_sha256
+        });
+        if !evidence_in_inventory {
+            errors.push(format!(
+                "work milestone {} evidence is absent from the trajectory source-artifact inventory",
+                milestone.milestone_id
+            ));
+        }
+
         let asset_known = case.network.nodes.iter().any(|item| item.node_id == milestone.asset_id)
             || case.network.branches.iter().any(|item| item.branch_id == milestone.asset_id)
             || case.network.switches.iter().any(|item| item.switch_id == milestone.asset_id)
@@ -522,7 +533,9 @@ fn validate_common(
     }
 
     let expected_interval_ms = case_interval_duration_ms(case);
-    if !valid_id(&trajectory.timebase.timezone_id)
+    let timezone_id_valid = valid_id(&trajectory.timebase.timezone_id)
+        && !trajectory.timebase.timezone_id.bytes().any(|byte| byte.is_ascii_whitespace());
+    if !timezone_id_valid
         || trajectory.timebase.horizon_steps != case.timebase.horizon_steps
         || expected_interval_ms
             .ok()
@@ -647,6 +660,7 @@ fn validate_forecast_samples(
     if keys.len() != expected_count {
         errors.push("planned forecast load/interval mapping is incomplete".to_string());
     }
+    validate_sample_source_linkage(trajectory, &mut errors);
     if errors.is_empty() { Ok(()) } else { Err(errors) }
 }
 
