@@ -6,6 +6,7 @@ on:
       - research/av-long-horizon-evidence-v0
     paths:
       - "research/av-long-horizon-evidence-v0/**"
+      - "tools/av-modality-necessity-evaluator/**"
       - ".github/workflows/av-long-horizon-evidence.yml"
   pull_request:
     branches: [main]
