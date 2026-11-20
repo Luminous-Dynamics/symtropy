@@ -678,7 +678,13 @@ pub fn audit_fixtures(agent: &Value, oracle: &Value, expected: &Value) -> Result
     for hypothesis_id in &ids {
         let point_prior: Vec<f64> = ids
             .iter()
-            .map(|candidate_id| f64::from(candidate_id == hypothesis_id))
+            .map(|candidate_id| {
+                if candidate_id == hypothesis_id {
+                    1.0
+                } else {
+                    0.0
+                }
+            })
             .collect();
         per_hypothesis_actions.push(best_decision(&point_prior, &losses, &decisions)?.0);
     }
