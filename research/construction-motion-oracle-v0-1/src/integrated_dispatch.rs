@@ -94,6 +94,9 @@ pub struct StopTubeEnvelopeReceipt {
     /// trajectory could detect a hazard and initiate a stop.
     pub trigger_domain_start_tick: u64,
     pub trigger_domain_end_tick: u64,
+    /// Qualified elapsed duration of the complete possible trigger interval,
+    /// normalized to milliseconds through the bound site-clock mapping.
+    pub trigger_domain_duration_ms: u64,
     /// Builder-declared time coverage in milliseconds for the union of all
     /// stop trajectories after each possible trigger point.
     pub stop_coverage_duration_ms: u64,
@@ -500,10 +503,15 @@ fn validate_stopping_envelope_binding(
     {
         return Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeCoverageIncomplete);
     }
+    let minimum_stop_tube_coverage_ms = tube
+        .trigger_domain_duration_ms
+        .checked_add(stopping.conservative_stop_time_bound_ms)
+        .ok_or(IntegratedDispatchReadinessFailure::StoppingEnvelopeBoundTooSmall)?;
     if tube.conservative_stop_distance_bound_mm == 0
+        || tube.trigger_domain_duration_ms == 0
         || tube.stop_coverage_duration_ms == 0
         || tube.conservative_stop_distance_bound_mm < stopping.conservative_distance_bound_mm
-        || tube.stop_coverage_duration_ms < stopping.conservative_stop_time_bound_ms
+        || tube.stop_coverage_duration_ms < minimum_stop_tube_coverage_ms
     {
         return Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeBoundTooSmall);
     }
@@ -933,6 +941,7 @@ mod tests {
             site_clock_domain_id: "site-clock-01".into(),
             trigger_domain_start_tick: 100,
             trigger_domain_end_tick: 1_000,
+            trigger_domain_duration_ms: 900,
             stop_coverage_duration_ms: 6_000,
             conservative_stop_distance_bound_mm: 10_000,
             primitive_count: 4,
@@ -1414,6 +1423,19 @@ mod tests {
         ));
     }
 
+
+    #[test]
+    fn stop_tube_time_coverage_must_include_trigger_window_plus_braking_time() {
+        let (ledger, _, station_event_id) = setup_ledger();
+        let mut request = make_request(&ledger, station_event_id);
+        request.stopping_envelope.stop_coverage_duration_ms =
+            request.stopping_envelope.trigger_domain_duration_ms;
+        let graph = make_graph(&request, &ledger);
+        assert_eq!(
+            check_integrated_dispatch_readiness(&ledger, &graph, &request),
+            Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeBoundTooSmall)
+        );
+    }
 
     #[test]
     fn empty_trigger_domain_and_zero_stop_coverage_are_rejected() {
