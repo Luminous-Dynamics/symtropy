@@ -77,6 +77,37 @@ On identical admitted sequences and compute budgets, compare:
 
 Metrics remain disaggregated: ATE, RPE, drift per distance, attitude/depth/velocity error, loop-closure precision/recall, map consistency, uncertainty calibration, integrity alerting, time to recover, energy, compute and mission utility. No single universal autonomy score.
 
+## Adjacent underground navigation work — deliberately separate
+
+The underground domain is already active across the Luminous repositories. Do not copy it into the underwater estimator, and do not mistake underground asset mapping for robot localization:
+
+| Problem | Existing work |
+|---|---|
+| Planetary cave exploration, mapping, loop closure, active sensing and retreat | [Symthaea #10822 — CAVE-SURVEY-001](https://github.com/Luminous-Dynamics/symthaea/issues/10822) |
+| Rights-aware terrestrial natural-cave localization corpus | [Symthaea #12591 — CAVERS-DATASET-INTAKE-001](https://github.com/Luminous-Dynamics/symthaea/issues/12591) |
+| Underground utility corridor architecture | [Symtropy #4910](https://github.com/Luminous-Dynamics/symtropy/issues/4910) |
+| Cable-duct inspection robot and task profile | [Symtropy #4913](https://github.com/Luminous-Dynamics/symtropy/issues/4913) |
+| Acoustic–visual duct chainage localization | [Symtropy #4925](https://github.com/Luminous-Dynamics/symtropy/issues/4925) |
+| Instrumented underground infrastructure test cell | [Symtropy #5954](https://github.com/Luminous-Dynamics/symtropy/issues/5954) |
+| Heterogeneous fleet communication/interoperability | [Symtropy #5915](https://github.com/Luminous-Dynamics/symtropy/issues/5915) |
+| Partition/reconnect, relay and tether failover | [Symtropy #5960](https://github.com/Luminous-Dynamics/symtropy/issues/5960) |
+| OGC MUDDI-aligned underground utility evidence model | [Sol-Atlas #755](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/755) |
+
+External comparison anchors include the [DARPA Subterranean Challenge](https://www.darpa.mil/research/challenges/subterranean), which tested robot teams mapping, navigating and searching tunnel, urban-underground and cave environments, and the [Hilti–Trimble–Oxford SLAM Challenge 2026](https://hilti-challenge.com/dataset-2026), whose real-construction dataset includes underground floors UG1 and UG2. The Hilti challenge is a visual-inertial/floor-plan benchmark, not mine-wide autonomy; the published dataset is CC BY-NC-SA 3.0, so it cannot be treated as commercially unrestricted data.
+
+The correct integration is shared frame/time/evidence/mission semantics with **separate local estimators and environmental models**. Cable ducts, natural caves, mine headings, underground utility corridors and planetary lava tubes have materially different observability, geometry, hazards and mobility constraints. Scores do not transfer between them.
+
+## Six-domain programme alignment
+
+- **Land:** road / off-road and embodied mobility owners; keep traffic semantics, terrain traversability and robot mobility as separate qualification questions.
+- **Sea surface:** IHO S-100 marine spatial products, warnings, currents, water levels, traffic and under-keel clearance through existing maritime owners.
+- **Air:** flight embodiment, PNT degradation and airspace coordination; positioning integrity is not airworthiness or ATC clearance.
+- **Space:** orbital-state profiles, SPICE/time correlation, CCSDS message interfaces and RPOD benchmark families; relative pose is not docking/capture.
+- **Underground:** cave, mine, utility-duct and corridor work listed above; keep terrestrial cave evidence distinct from planetary analogues.
+- **Underwater:** this issue's multi-sensor localization/SLAM benchmark plus #5794 wall-inspection task; underwater pressure/depth, acoustic propagation, DVL modes and bathymetric datums require domain-specific treatment.
+
+The shared layer is a mission/evidence interface and qualification methodology, not a common coordinate frame, single sensor-fusion algorithm, physics model or autonomy authority.
+
 ## Promotion ladder
 
 Contract validation → rights-qualified offline corpus → reproduced baselines → synthetic deterministic fault replay → independent model differential → hardware-in-loop → instrumented water tank → controlled field trial under competent review.
