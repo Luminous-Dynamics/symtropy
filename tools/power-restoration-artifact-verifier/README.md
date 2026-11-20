@@ -53,9 +53,10 @@ The claim package contains `case`, `runReceipt`, `observationBatches`, `manifest
 
 The integrated gate derives requirements for:
 - canonical run receipt and each signed decision-observation snapshot;
+- every imported benchmark source artifact named by the frozen case: the raw SHA-256 must be present, the VCS object ID must match its declared Git SHA-1/SHA-256 format, its source path must be normalized and relative, and the exact source bytes must be in the bundle under a deterministic case-source URI;
 Each observation source snapshot has a deterministic subject URI `power-fabric://source/{sourceId}/snapshot`; the corresponding signed EvidenceProvider envelope is serialized canonically, addressed as `power-fabric://attestation/{sha256(canonical-envelope)}`, and that exact URI plus the canonical envelope digest must match the source record's `producerAttestationRef` and `producerAttestationSha256`. Evidence items use `power-fabric://evidence/{evidenceId}`. Planner preconditions may reference either the evidence ID or that deterministic URI, but the evidence digest must match exactly.
 
-Initial precondition evidence that is not represented in an observation-result batch is deliberately rejected in v0.1. A deployment must bootstrap through a recorded information acquisition or add a separately specified, signed initial-state evidence package. This avoids silently treating fixture annotations or preloaded hidden truth as knowledge available to the planner.
+Initial precondition evidence that is not represented in an observation-result batch is deliberately rejected in v0.1. A deployment must bootstrap through a recorded information acquisition or add a separately specified, signed initial-state evidence package. This avoids silently treating fixture annotations or preloaded hidden truth as knowledge available to the planner. Likewise, if a case declares imported source artifacts, the claim package must include their actual bytes and raw SHA-256; a VCS object ID or repository URL alone is not a substitute for content verification.
 
 The result report includes counts for pending/unsuccessful requests and stale, conflicting and unverified evidence. This lets benchmark episodes retain deliberately degraded observation regimes while separately measuring evidence actually used for decisions.
 
