@@ -246,7 +246,24 @@ fn validate_producer(
                 errors.push("measured service must not substitute a model ID for metering identity".to_string());
             }
         }
-        ServiceStreamKind::PlannedForecast | ServiceStreamKind::ObservedWork => {}
+        ServiceStreamKind::PlannedForecast => {
+            if producer.model_id.as_deref().is_none_or(|id| !valid_id(id))
+                || producer.instrument_id.is_some()
+                || producer.calibration_artifact_ref.is_some()
+                || producer.calibration_artifact_sha256.is_some()
+            {
+                errors.push("planned forecast requires an explicit forecast model and must not claim a metering instrument".to_string());
+            }
+        }
+        ServiceStreamKind::ObservedWork => {
+            if producer.model_id.is_some()
+                || producer.instrument_id.is_some()
+                || producer.calibration_artifact_ref.is_some()
+                || producer.calibration_artifact_sha256.is_some()
+            {
+                errors.push("observed work producer must not claim a modelled service model or metering calibration".to_string());
+            }
+        }
     }
 }
 
@@ -516,6 +533,16 @@ fn validate_common(
     let mut errors = Vec::new();
     let case_sha = canonical_case_sha256(case)
         .map_err(|error| vec![format!("case canonicalization failed: {error}")])?;
+
+    if case.objective.metric != "cumulative_time_weighted_priority_energy_restored"
+        || case.objective.horizon_steps != case.timebase.horizon_steps
+        || receipt.objective.objective_id != case.objective.objective_id
+        || receipt.objective.metric != case.objective.metric
+        || receipt.objective.expression_ref != case.objective.expression_ref
+        || receipt.objective.unit != "weighted_kWh"
+    {
+        errors.push("service audit supports only the frozen weighted restored-energy objective with its exact case/run identity and weighted_kWh unit".to_string());
+    }
 
     if trajectory.schema_version != "0.1.0"
         || !valid_id(&trajectory.trajectory_id)
