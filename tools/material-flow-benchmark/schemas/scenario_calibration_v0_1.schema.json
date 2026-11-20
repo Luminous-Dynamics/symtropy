@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Scenario probability calibration corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "dataset_id",
+    "dataset_version",
+    "dataset_license",
+    "geography",
+    "target_definition",
+    "forecast_model_id",
+    "forecast_model_version",
+    "forecast_model_digest_sha256",
+    "probability_basis",
+    "probability_evidence_reference",
+    "model_trained_through_unix_ms",
+    "evaluation_start_unix_ms",
+    "evaluation_end_unix_ms",
+    "outcomes",
+    "forecasts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "MFB-SCENARIO-CALIBRATION-001"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dataset_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dataset_license": {
+      "type": "string",
+      "minLength": 1
+    },
+    "geography": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_definition": {
+      "type": "string",
+      "minLength": 1
+    },
+    "forecast_model_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "forecast_model_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "forecast_model_digest_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "probability_basis": {
+      "enum": [
+        "synthetic_arithmetic",
+        "historical_frequency",
+        "forecast_model",
+        "expert_elicited",
+        "unknown",
+        "stress_only"
+      ]
+    },
+    "probability_evidence_reference": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_trained_through_unix_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "evaluation_start_unix_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "evaluation_end_unix_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "outcomes": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "outcome_id",
+          "baseline_probability_bps"
+        ],
+        "properties": {
+          "outcome_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "baseline_probability_bps": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          }
+        }
+      }
+    },
+    "forecasts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "forecast_id",
+          "region_id",
+          "lead_time_bucket",
+          "issued_at_unix_ms",
+          "valid_at_unix_ms",
+          "observed_at_unix_ms",
+          "observed_outcome_id",
+          "forecast_source_reference",
+          "observation_source_reference",
+          "outcome_probabilities"
+        ],
+        "properties": {
+          "forecast_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "region_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "lead_time_bucket": {
+            "type": "string",
+            "minLength": 1
+          },
+          "issued_at_unix_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "valid_at_unix_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "observed_at_unix_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "observed_outcome_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "forecast_source_reference": {
+            "type": "string",
+            "minLength": 1
+          },
+          "observation_source_reference": {
+            "type": "string",
+            "minLength": 1
+          },
+          "outcome_probabilities": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 32,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "outcome_id",
+                "probability_bps"
+              ],
+              "properties": {
+                "outcome_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "probability_bps": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10000
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
