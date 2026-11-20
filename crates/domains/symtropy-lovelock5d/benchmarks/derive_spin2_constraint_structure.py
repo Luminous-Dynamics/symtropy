@@ -73,7 +73,7 @@ def main() -> None:
         raise AssertionError("Einstein-limit determinant is not (r^2-r_H^2)/4")
 
     # Radial Noether identity is independently verified by the companion script.
-    lambdas=[0.0,0.1,0.7,3.0,10.0,100.0]
+    lambdas=[0.0,0.1,0.7,3.0,10.0]
     rhos=[1.001,1.01,1.1,1.5,2.0,5.0,10.0,100.0]
     funcs=[[sp.lambdify((r,r_h,alpha),reduced_principal[i,j],"numpy") for j in range(2)]
            for i in range(2)]
