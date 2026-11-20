@@ -42,8 +42,10 @@ jobs:
           root = Path("tools/power-restoration-run-receipt")
           schema = json.loads((root / "fixtures/run-receipt-v0.1.schema.json").read_text())
           receipt = json.loads((root / "fixtures/synthetic-restoration-run-receipt-v0.1.json").read_text())
+          action_schema = json.loads(Path("tools/power-restoration-action-proposal/fixtures/action-proposal-v0.1.schema.json").read_text())
           case = json.loads(Path("tools/power-restoration-benchmark-case/fixtures/synthetic-restoration-case-v0.1.json").read_text())
           Draft202012Validator.check_schema(schema)
+          Draft202012Validator.check_schema(action_schema)
           errors = sorted(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(receipt), key=lambda error: list(error.path))
           assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
           canonical_case = json.dumps(case, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
@@ -53,6 +55,8 @@ jobs:
           assert sum(step["disposition"] == "executed" for step in receipt["decisionSteps"]) == 1
           assert sum(step["disposition"] == "not_run_after_termination" for step in receipt["decisionSteps"]) == 23
           proposal = receipt["decisionSteps"][0]["proposal"]
+          proposal_errors = sorted(Draft202012Validator(action_schema, format_checker=FormatChecker()).iter_errors(proposal), key=lambda error: list(error.path))
+          assert not proposal_errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in proposal_errors)
           assert proposal["caseSha256"] == case_sha256 and proposal["decisionStep"] == 0
           assert proposal["observation"]["observationRef"] == receipt["decisionSteps"][0]["observation"]["artifactRef"]
           assert receipt["decisionSteps"][0]["plannerOutcome"] == "proposal_emitted"
