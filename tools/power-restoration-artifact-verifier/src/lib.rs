@@ -364,6 +364,7 @@ pub struct VerifiedNoActuationWitness {
 }
 
 pub fn verify_no_actuation_witness(
+    verified_bundle: &VerifiedBundle,
     receipt: &NoActuationWitnessReceipt,
     expected: &ActuationCommandBinding,
     envelope: &AttestationEnvelope,
@@ -381,6 +382,23 @@ pub fn verify_no_actuation_witness(
     );
     let artifact_sha256 = canonical_sha256(receipt)
         .map_err(|error| vec![format!("actuation witness canonicalization failed: {error}")])?;
+    let attestation_uri = artifact_envelope_uri(envelope)
+        .map_err(|error| vec![format!("attestation canonicalization failed: {error}")])?;
+    let attestation_sha256 = canonical_sha256(envelope)
+        .map_err(|error| vec![format!("attestation canonicalization failed: {error}")])?;
+    for (uri, digest) in [
+        (artifact_uri.as_str(), artifact_sha256.as_str()),
+        (attestation_uri.as_str(), attestation_sha256.as_str()),
+    ] {
+        let verified = verified_bundle.report().verified_artifacts.iter().any(|artifact| {
+            artifact.artifact_uri == uri && artifact.sha256 == digest
+        });
+        if !verified {
+            errors.push(format!(
+                "actuation witness artifact {uri} is not present with exact bytes in the verified bundle"
+            ));
+        }
+    }
 
     if receipt.schema_version != "0.1.0"
         || !valid_id(&receipt.witness_id)
@@ -2200,6 +2218,47 @@ mod tests {
         (trust_root, receipt, command_binding, envelope, pinned_root_sha256)
     }
 
+    fn actuation_witness_bundle_fixture(
+        receipt: &NoActuationWitnessReceipt,
+        envelope: &AttestationEnvelope,
+    ) -> (PathBuf, VerifiedBundle) {
+        let root = test_bundle_root();
+        fs::create_dir_all(root.join("artifacts/actuation")).unwrap();
+        let receipt_bytes = canonical_bytes(receipt).unwrap();
+        let envelope_bytes = canonical_bytes(envelope).unwrap();
+        let receipt_uri = format!(
+            "power-fabric://actuation-witness/{}",
+            receipt.command_sha256
+        );
+        let envelope_uri = artifact_envelope_uri(envelope).unwrap();
+
+        fs::write(root.join("artifacts/actuation/witness.json"), &receipt_bytes).unwrap();
+        fs::write(root.join("artifacts/actuation/attestation.json"), &envelope_bytes).unwrap();
+
+        let manifest = BundleManifest {
+            schema_version: "0.1.0".to_string(),
+            bundle_id: "synthetic-actuation-witness-bundle".to_string(),
+            artifacts: vec![
+                ArtifactRecord {
+                    artifact_uri: receipt_uri,
+                    relative_path: "artifacts/actuation/witness.json".to_string(),
+                    media_type: "application/json".to_string(),
+                    byte_length: receipt_bytes.len() as u64,
+                    sha256: sha256_hex(&receipt_bytes),
+                },
+                ArtifactRecord {
+                    artifact_uri: envelope_uri,
+                    relative_path: "artifacts/actuation/attestation.json".to_string(),
+                    media_type: "application/json".to_string(),
+                    byte_length: envelope_bytes.len() as u64,
+                    sha256: sha256_hex(&envelope_bytes),
+                },
+            ],
+        };
+        let bundle = verify_bundle_manifest(&root, &manifest, 1024 * 1024).unwrap();
+        (root, bundle)
+    }
+
     fn test_bundle_root() -> PathBuf {
         let root = std::env::temp_dir().join(format!(
             "power-restoration-artifact-verifier-{}-{}",
@@ -2220,9 +2279,11 @@ mod tests {
     fn fresh_command_bound_actuation_witness_verifies_and_consumes_nonce() {
         let (trust, receipt, binding, envelope, root_sha256) =
             actuation_witness_fixtures();
+        let (_bundle_root, verified_bundle) =
+            actuation_witness_bundle_fixture(&receipt, &envelope);
         let mut replay = ActuationWitnessReplayState::default();
         let verified = verify_no_actuation_witness(
-            &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
+            &verified_bundle, &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
         ).unwrap();
         assert_eq!(
             verified.result_status,
@@ -2240,12 +2301,14 @@ mod tests {
     fn actuation_witness_challenge_replay_is_rejected() {
         let (trust, receipt, binding, envelope, root_sha256) =
             actuation_witness_fixtures();
+        let (_bundle_root, verified_bundle) =
+            actuation_witness_bundle_fixture(&receipt, &envelope);
         let mut replay = ActuationWitnessReplayState::default();
         verify_no_actuation_witness(
-            &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
+            &verified_bundle, &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
         ).unwrap();
         assert!(verify_no_actuation_witness(
-            &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
+            &verified_bundle, &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
         ).is_err());
     }
 
@@ -2254,9 +2317,11 @@ mod tests {
         let (trust, receipt, mut binding, envelope, root_sha256) =
             actuation_witness_fixtures();
         binding.command_id = "cmd-substituted".to_string();
+        let (_bundle_root, verified_bundle) =
+            actuation_witness_bundle_fixture(&receipt, &envelope);
         let mut replay = ActuationWitnessReplayState::default();
         assert!(verify_no_actuation_witness(
-            &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
+            &verified_bundle, &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
         ).is_err());
     }
 
@@ -2265,9 +2330,11 @@ mod tests {
         let (trust, mut receipt, binding, envelope, root_sha256) =
             actuation_witness_fixtures();
         receipt.output_transition_observed = true;
+        let (_bundle_root, verified_bundle) =
+            actuation_witness_bundle_fixture(&receipt, &envelope);
         let mut replay = ActuationWitnessReplayState::default();
         assert!(verify_no_actuation_witness(
-            &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
+            &verified_bundle, &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
         ).is_err());
     }
 
@@ -2277,9 +2344,11 @@ mod tests {
             actuation_witness_fixtures();
         receipt.monotonic_sequence = 40;
         receipt.expires_at_unix_ms = 1_999;
+        let (_bundle_root, verified_bundle) =
+            actuation_witness_bundle_fixture(&receipt, &envelope);
         let mut replay = ActuationWitnessReplayState::default();
         assert!(verify_no_actuation_witness(
-            &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
+            &verified_bundle, &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
         ).is_err());
     }
 
