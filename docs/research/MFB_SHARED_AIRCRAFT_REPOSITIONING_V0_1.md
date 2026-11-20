@@ -55,7 +55,7 @@ Within v0.1, a regional reposition:
 
 ## Evidence references
 
-Every regional weather observation has separate weather and permission evidence references. Every reposition link has its own source reference and evidence status. Synthetic fixtures use explicit `synthetic://` references. Non-synthetic consumers must replace these with actual, scoped evidence identities and freshness state.
+Every regional weather observation has separate weather and permission evidence references. Every reposition link has its own source reference and evidence status. Synthetic fixtures use explicit `synthetic://` references. Where two scenarios have the same observable prefix, they deliberately reuse the same evidence references; scenario labels are not smuggled into the decision history. This preserves nonanticipativity while retaining provenance as an observable field. Non-synthetic consumers must replace these with actual, scoped evidence identities and freshness state.
 
 The current model does not authenticate a signature, prove that an observation came from a physical sensor, or adjudicate whether an external authority issued permission. Those are independent Mycelix / Sol-Atlas / Symtropy evidence responsibilities. This module only refuses to act on states declared unknown, stale, conflicted, revoked, blocked or not approved.
 
