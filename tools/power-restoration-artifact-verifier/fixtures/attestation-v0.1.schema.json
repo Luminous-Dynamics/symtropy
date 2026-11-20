@@ -1,30 +1,116 @@
 {
-  "$schema":"https://json-schema.org/draft/2020-12/schema",
-  "$id":"https://luminousdynamics.io/schemas/power-restoration-attestation-v0.1.schema.json",
-  "type":"object","additionalProperties":false,
-  "required":["keyId","payload","signatureHex"],
-  "properties":{
-    "keyId":{"type":"string","minLength":1},
-    "signatureHex":{"type":"string","pattern":"^[0-9a-f]{128}$"},
-    "payload":{
-      "type":"object","additionalProperties":false,
-      "required":["schemaVersion","predicateType","issuerId","signerRole","subjectUri","subjectSha256","runId","caseSha256","decisionStep","proposalSha256","toolSourceCommit","toolConfigurationSha256","issuedAtUnixMs","expiresAtUnixMs","parentArtifactSha256"],
-      "properties":{
-        "schemaVersion":{"const":"0.1.0"},
-        "predicateType":{"type":"string","minLength":1},
-        "issuerId":{"type":"string","minLength":1},
-        "signerRole":{"enum":["planner","transition_engine","independent_validator","electrical_validator","service_provider","field_observer","evidence_provider","run_recorder","scorer"]},
-        "subjectUri":{"type":"string","minLength":1},
-        "subjectSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
-        "runId":{"type":"string","minLength":1},
-        "caseSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
-        "decisionStep":{"type":"integer","minimum":0},
-        "proposalSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
-        "toolSourceCommit":{"type":"string","pattern":"^[0-9a-f]{40}$"},
-        "toolConfigurationSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
-        "issuedAtUnixMs":{"type":"integer","minimum":1},
-        "expiresAtUnixMs":{"type":"integer","minimum":1},
-        "parentArtifactSha256":{"type":"array","uniqueItems":true,"items":{"type":"string","pattern":"^[0-9a-f]{64}$"}}
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/power-restoration-attestation-v0.1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "keyId",
+    "payload",
+    "signatureHex"
+  ],
+  "properties": {
+    "keyId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "signatureHex": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{128}$"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "predicateType",
+        "issuerId",
+        "signerRole",
+        "subjectUri",
+        "subjectSha256",
+        "runId",
+        "caseSha256",
+        "decisionStep",
+        "proposalSha256",
+        "toolSourceCommit",
+        "toolConfigurationSha256",
+        "issuedAtUnixMs",
+        "expiresAtUnixMs",
+        "parentArtifactSha256"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "0.1.0"
+        },
+        "predicateType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "issuerId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signerRole": {
+          "enum": [
+            "planner",
+            "transition_engine",
+            "independent_validator",
+            "electrical_validator",
+            "service_provider",
+            "field_observer",
+            "evidence_provider",
+            "run_recorder",
+            "scorer",
+            "actuation_witness"
+          ]
+        },
+        "subjectUri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subjectSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "caseSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "decisionStep": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "proposalSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "toolSourceCommit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "toolConfigurationSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "issuedAtUnixMs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "expiresAtUnixMs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "parentArtifactSha256": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
       }
     }
   }
