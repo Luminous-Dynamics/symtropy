@@ -19,6 +19,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  cost_units={}", exact.total_cost_units);
     println!("  rank={}", exact.rank);
     println!("  determinant={:.12}", exact.fisher.determinant());
+    println!("  minimum_eigenvalue={:.12}", exact.minimum_eigenvalue);
+    println!("  A_opt_trace_inverse={:?}", exact.a_optimal_trace_inverse);
     println!("  condition_number={:?}", exact.condition_number);
 
     println!("GREEDY_BASELINE");
@@ -26,6 +28,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  cost_units={}", greedy.total_cost_units);
     println!("  rank={}", greedy.rank);
     println!("  determinant={:.12}", greedy.fisher.determinant());
+    println!("  minimum_eigenvalue={:.12}", greedy.minimum_eigenvalue);
+    println!("  A_opt_trace_inverse={:?}", greedy.a_optimal_trace_inverse);
     println!("  condition_number={:?}", greedy.condition_number);
 
     Ok(())
