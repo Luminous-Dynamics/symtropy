@@ -14,6 +14,7 @@
     "energy_units_per_aerial_delivery",
     "recharge_energy_units_per_idle_period",
     "aircraft_idle_cost_per_period",
+    "jurisdictional_operating_envelope",
     "regions",
     "reposition_links",
     "scenarios"
@@ -273,6 +274,73 @@
               }
             }
           }
+        }
+      }
+    },
+    "jurisdictional_operating_envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "jurisdiction_profile_id",
+        "source_snapshot_id",
+        "jurisdiction_code",
+        "operator_activity_class",
+        "review_status",
+        "operator_identity_reference",
+        "aircraft_configuration_reference",
+        "operations_manual_revision_reference",
+        "subject_scope_digest_sha256",
+        "evidence_reference"
+      ],
+      "properties": {
+        "jurisdiction_profile_id": {
+          "const": "ZA-UAS-OPS-GATE-001-v0.1-2026-11-20"
+        },
+        "source_snapshot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "jurisdiction_code": {
+          "const": "ZA"
+        },
+        "operator_activity_class": {
+          "enum": [
+            "commercial",
+            "corporate",
+            "non_profit",
+            "private"
+          ]
+        },
+        "review_status": {
+          "enum": [
+            "eligible_for_external_operator_review",
+            "approval_required",
+            "unsupported",
+            "stale",
+            "revoked",
+            "out_of_scope",
+            "unknown"
+          ]
+        },
+        "operator_identity_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "aircraft_configuration_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operations_manual_revision_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_scope_digest_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "evidence_reference": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }
