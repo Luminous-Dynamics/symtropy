@@ -192,5 +192,110 @@
     "independentElectricalModelBound": false,
     "status": "source_audited_not_reproduced"
   },
-  "claimCeiling": "Pinned public source inventory and source-code audit only. No LARA reproduction, independent power-flow validation, license clearance, binary import, model comparison, or SOTA claim."
+  "claimCeiling": "Pinned public source inventory and source-code audit only. No LARA reproduction, independent power-flow validation, license clearance, binary import, model comparison, or SOTA claim.",
+  "additionalComparators": [
+    {
+      "comparatorId": "explainable-agentic-ai-distribution-restoration-2026-11-17",
+      "title": "An Explainable Agentic AI Framework for Distribution System Load Restoration",
+      "authors": [
+        "S. M. Monzurul Hoque Chowdhury",
+        "Qinghua Li"
+      ],
+      "sourceUrl": "https://arxiv.org/abs/2611.22016",
+      "arxivId": "2611.22016",
+      "publicationDate": "2026-11-17",
+      "evidenceClass": "arxiv_preprint",
+      "modelArchitecture": [
+        "planner_guidance_agent",
+        "strategic_planning_agent",
+        "decision_agent",
+        "memory_agent",
+        "explainability_agent"
+      ],
+      "environment": "pandapower",
+      "networks": [
+        "IEEE_33_bus",
+        "IEEE_69_bus",
+        "IEEE_118_bus"
+      ],
+      "scenarioProtocol": {
+        "perTopology": 250,
+        "training": 200,
+        "validation": 25,
+        "heldOut": 25
+      },
+      "baselines": [
+        "DQN_RL",
+        "ActorCritic_RL",
+        "MCTS_Rollout",
+        "SingleLLMAgent"
+      ],
+      "feasibilityChecks": [
+        "AC_power_flow_convergence",
+        "bus_voltage_0.95_to_1.05_pu",
+        "line_loading_at_most_100_percent"
+      ],
+      "paperReportedResults": {
+        "averageWeightedLoadGainOverSingleAgentPercent": 25.8,
+        "multiAgentTokensPerScenario": 94640,
+        "singleAgentTokensPerScenario": 25380,
+        "multiAgentRuntimeMinutesPerScenario": 26.06,
+        "singleAgentRuntimeMinutesPerScenario": 21.25,
+        "multiAgentEstimatedCostUsdPerScenario": 0.421,
+        "singleAgentEstimatedCostUsdPerScenario": 0.174
+      },
+      "reproducerCodeLink": "not identified in reviewed arXiv manuscript",
+      "reproductionStatus": "paper_audited_not_reproduced",
+      "scopeLimit": "Fixed IEEE feeder topologies with random load/priority/critical-load/fault scenarios; does not demonstrate arbitrary topology transfer, multi-hazard logistics, shared execution commitments, independently accepted beneficiary service or hard cohort service floors"
+    },
+    {
+      "comparatorId": "unbalanced-msop-multistage-restoration-2026-11-07",
+      "title": "Multi-Stage Coordinated Restoration for Unbalanced Distribution Networks with Multiplexed Soft Open Point",
+      "sourceUrl": "https://www.sciencedirect.com/science/article/pii/S2352467726004583",
+      "publicationDate": "2026-11-07",
+      "evidenceClass": "journal_article",
+      "doi": "10.1016/j.segan.2026.102576",
+      "networkClass": "unbalanced_three_phase_distribution",
+      "methodScope": [
+        "pre_event_preparation",
+        "fault_location_and_isolation",
+        "service_restoration",
+        "asymmetric_vsc_ports",
+        "soft_open_point_feeder_assistance"
+      ],
+      "reproductionStatus": "source_reference_only"
+    },
+    {
+      "comparatorId": "hybrid-acdc-vsc-fid-storage-sequential-restoration-2026-11-15",
+      "title": "Coordinated sequential service restoration for hybrid AC/DC distribution networks with multi-mode VSC-based flexible interconnection devices and energy storage systems",
+      "sourceUrl": "https://www.sciencedirect.com/science/article/pii/S2352152X26033001",
+      "publicationDate": "2026-11-15",
+      "evidenceClass": "journal_article",
+      "doi": "10.1016/j.est.2026.123636",
+      "networkClass": "207_node_hybrid_ac_dc_distribution",
+      "methodScope": [
+        "multi_mode_vsc",
+        "flexible_interconnection_devices",
+        "energy_storage_black_start",
+        "cold_load_pickup",
+        "rolling_horizon_milp"
+      ],
+      "reproductionStatus": "source_reference_only"
+    },
+    {
+      "comparatorId": "frequency_dynamics_aware_system_restoration-2026",
+      "title": "OPF-based optimal power system network restoration considering frequency dynamics",
+      "sourceUrl": "https://pscc.epfl.ch/modules/request.php?action=summary.php&id=13&module=oc_program",
+      "evidenceClass": "conference_presentation_and_related_article",
+      "doi": "10.1016/j.epsr.2026.113573",
+      "networkClass": "IEEE_9_bus_transmission_restoration",
+      "methodScope": [
+        "frequency_dynamics",
+        "island_inertia",
+        "switching_sequence",
+        "static_vs_dynamic_feasibility"
+      ],
+      "reproductionStatus": "source_reference_only"
+    }
+  ]
 }
