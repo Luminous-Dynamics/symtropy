@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "defective_eigenvalue_puiseux_negative_control",
+  "status": "executed_jordan_exceptional_point_control_not_gravitational_symbol",
+  "A0": [[0, 1], [0, 0]],
+  "A1": [[0, 0], [1, 0]],
+  "unperturbed_eigenvalue": {
+    "value": 0,
+    "algebraic_multiplicity": 2,
+    "geometric_multiplicity": 1,
+    "defective": true
+  },
+  "exact_splitting": "lambda_plus_minus = +/-sqrt(epsilon)",
+  "epsilon_sweep": [
+    {"epsilon": 0.01, "eigenvalues": [-0.1, 0.1], "abs_eigenvalue_over_epsilon": 10},
+    {"epsilon": 0.0001, "eigenvalues": [-0.01, 0.01], "abs_eigenvalue_over_epsilon": 100},
+    {"epsilon": 0.000001, "eigenvalues": [-0.001, 0.001], "abs_eigenvalue_over_epsilon": 1000},
+    {"epsilon": 0.00000001, "eigenvalues": [-0.0001, 0.0001], "abs_eigenvalue_over_epsilon": 10000}
+  ],
+  "sqrt_scaling_defect": 0,
+  "linear_slope_magnitude_growth": 1000,
+  "simple_semisimple_first_order_method_must_refuse": true,
+  "required_fallback": "Jordan-chain/Puiseux analysis or unresolved classification",
+  "claim_ceiling": "Exceptional-point method control only; no defective mode or Jordan point is claimed for the EGB black-hole principal symbol."
+}
