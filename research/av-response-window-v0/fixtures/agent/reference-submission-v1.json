@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-response-window-v0",
+  "policy_id": "reference-response-window-policy-v1",
+  "run_id": "synthetic-known-answer-reference-v1",
+  "model_revision": null,
+  "runtime_revision": "offline-reference-v1",
+  "responses": [
+    {
+      "response_id": "r1",
+      "episode_id": "rw-001-spi-on-time",
+      "assigned_opportunity_id": "opp-1",
+      "response_start_tick": 12,
+      "content": "safety_correction"
+    },
+    {
+      "response_id": "r2",
+      "episode_id": "rw-002-vti-start-boundary",
+      "assigned_opportunity_id": "opp-2",
+      "response_start_tick": 20,
+      "content": "visual_hazard_warning"
+    },
+    {
+      "response_id": "r3",
+      "episode_id": "rw-003-cqi-end-minus-one",
+      "assigned_opportunity_id": "opp-3",
+      "response_start_tick": 19,
+      "content": "identified_object"
+    },
+    {
+      "response_id": "r4a",
+      "episode_id": "rw-004-overlapping-windows",
+      "assigned_opportunity_id": "opp-4a",
+      "response_start_tick": 15,
+      "content": "speaker_a_reply"
+    },
+    {
+      "response_id": "r4b",
+      "episode_id": "rw-004-overlapping-windows",
+      "assigned_opportunity_id": "opp-4b",
+      "response_start_tick": 20,
+      "content": "speaker_b_reply"
+    },
+    {
+      "response_id": "r5",
+      "episode_id": "rw-005-cat-action-tracking",
+      "assigned_opportunity_id": "opp-5",
+      "response_start_tick": 45,
+      "content": "completed_action_count"
+    },
+    {
+      "response_id": "r6",
+      "episode_id": "rw-006-spi-second",
+      "assigned_opportunity_id": "opp-6",
+      "response_start_tick": 35,
+      "content": "corrected_claim"
+    },
+    {
+      "response_id": "r9",
+      "episode_id": "rw-009-duplicate-trigger",
+      "assigned_opportunity_id": "opp-9",
+      "response_start_tick": 18,
+      "content": "single_intervention"
+    }
+  ]
+}
