@@ -20,6 +20,7 @@
     "workload_ref",
     "protocol_id",
     "shared_config_id",
+    "measurement_status",
     "budget",
     "submission"
   ],
@@ -176,6 +177,12 @@
           }
         }
       }
+    },
+    "measurement_status": {
+      "enum": [
+        "synthetic_reference",
+        "measured"
+      ]
     }
   }
 }
