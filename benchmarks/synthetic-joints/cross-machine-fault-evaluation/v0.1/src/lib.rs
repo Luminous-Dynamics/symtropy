@@ -764,7 +764,7 @@ pub fn evaluate_fault_benchmark(
             machine_counts.false_alarm_transitions += false_alarm_transitions;
             total_false_alarms += false_alarm_transitions;
 
-            let mut union_predicted_vec: Vec<String> = union_predicted.iter().cloned().collect();
+            let union_predicted_vec: Vec<String> = union_predicted.iter().cloned().collect();
             let truth_set: BTreeSet<String> = episode.true_faults.iter().cloned().collect();
             let exact_match = union_predicted == truth_set;
             exact_set_denominator += 1;
@@ -882,12 +882,6 @@ pub fn evaluate_fault_benchmark(
                 abstained_window_count: abstained_windows,
                 scored_window_count: 0,
             });
-        }
-    }
-
-    for episode in dataset.episodes.iter().filter(|episode| episode_disposition(episode, plan) == EpisodeDisposition::Scored) {
-        for state in episode.channels.iter().map(|channel| channel.state).collect::<BTreeSet<_>>() {
-            let _ = counts_by_channel_state.entry(state).or_default();
         }
     }
 
@@ -1107,7 +1101,7 @@ mod tests {
 
     #[test]
     fn fault_001_detects_event_and_measures_time_to_first_correct_label() {
-        let mut episode = episode(
+        let episode = episode(
             "fault-1", "test-specimen-1", "robot-heldout",
             &["gear_tooth_wear"], Some(5_000_000_000), 5.0,
             vec![
@@ -1115,7 +1109,6 @@ mod tests {
                 prediction("w2", 5_500_000_000, [0.1, 0.9, 0.1], false),
             ],
         );
-        episode.axis_id = "axis-5".to_owned();
         let report = evaluate_fault_benchmark(&plan(), &dataset(vec![episode])).unwrap();
         assert_eq!(report.event_recall, Some(1.0));
         assert_eq!(find_episode(&report, "fault-1").detection_status, DetectionStatus::Detected);
