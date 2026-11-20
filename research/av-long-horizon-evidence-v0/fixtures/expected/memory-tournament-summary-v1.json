@@ -24,9 +24,9 @@
       "citation_precision": 0.8,
       "citation_recall": 0.8,
       "provenance_complete_rate": 0.4444444444444444,
-      "evidence_compliance_rate": 0.5555555555555556,
+      "evidence_compliance_rate": 0.4444444444444444,
       "false_memory_count": 6,
-      "hard_violation_count": 4
+      "hard_violation_count": 6
     },
     "episodic_retrieval": {
       "answer_accuracy": 0.6666666666666666,
