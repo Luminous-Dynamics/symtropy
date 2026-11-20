@@ -1,0 +1,97 @@
+name: Grid inspection resource certificate qualifier
+
+on:
+  pull_request:
+    paths:
+      - "tools/grid-inspection-resource-qualifier/**"
+      - ".github/workflows/grid-inspection-resource-qualifier.yml"
+  push:
+    paths:
+      - "tools/grid-inspection-resource-qualifier/**"
+      - ".github/workflows/grid-inspection-resource-qualifier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    name: Verify resource-time consequences of adaptive inspection policy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate case schema and fixture shape
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("tools/grid-inspection-resource-qualifier")
+          schema = json.loads((root / "fixtures/grid-inspection-resource-case-v0.1.schema.json").read_text())
+          case = json.loads((root / "fixtures/synthetic-grid-inspection-resource-case-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER).iter_errors(case), key=lambda error: list(error.path))
+          assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
+          resource_for_hash = json.loads(json.dumps(case["resourceManifest"]))
+          resource_for_hash["asOfHour"] = float(resource_for_hash["asOfHour"])
+          resource_for_hash["horizonEndHour"] = float(resource_for_hash["horizonEndHour"])
+          for resource in resource_for_hash["resources"]:
+              resource["validUntilHour"] = float(resource["validUntilHour"])
+              for window in resource["capacityWindows"]:
+                  window["startHour"] = float(window["startHour"])
+                  window["endHour"] = float(window["endHour"])
+              for reservation in resource["reservations"]:
+                  reservation["startHour"] = float(reservation["startHour"])
+                  reservation["endHour"] = float(reservation["endHour"])
+          canonical_resource = json.dumps(resource_for_hash, separators=(",", ":"), sort_keys=True, ensure_ascii=False).encode()
+          canonical_policy = json.dumps(case["policyCertificate"], separators=(",", ":"), sort_keys=True, ensure_ascii=False).encode()
+          assert hashlib.sha256(canonical_resource).hexdigest() == case["resourceManifestSha256"]
+          assert hashlib.sha256(canonical_policy).hexdigest() == case["policyCertificateSha256"]
+          assert sum(branch["probabilityBasisPoints"] for branch in case["policyCertificate"]["firstOutcomeBranches"]) == 10_000
+          nested = next(branch for branch in case["policyCertificate"]["firstOutcomeBranches"] if branch["secondOutcomeBranches"])
+          assert sum(leaf["probabilityBasisPoints"] for leaf in nested["secondOutcomeBranches"]) == 10_000
+          assert len({resource["resourceRef"] for resource in case["resourceManifest"]["resources"]}) == len(case["resourceManifest"]["resources"])
+          print("PASS: schema, upstream basis-point branches and unique resource identities")
+          PY
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/grid-inspection-resource-qualifier/Cargo.toml --all -- --check
+      - name: Resolve pinned dependency graph for this run
+        run: cargo generate-lockfile --manifest-path tools/grid-inspection-resource-qualifier/Cargo.toml
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/grid-inspection-resource-qualifier/Cargo.toml --all-targets -- -D warnings
+      - name: Run Rust unit tests
+        run: cargo test --locked --manifest-path tools/grid-inspection-resource-qualifier/Cargo.toml --all-targets
+      - name: Replay synthetic resource certificate
+        run: |
+          set -euo pipefail
+          cargo run --locked --manifest-path tools/grid-inspection-resource-qualifier/Cargo.toml --bin grid-inspection-resource-qualifier -- tools/grid-inspection-resource-qualifier/fixtures/synthetic-grid-inspection-resource-case-v0.1.json > /tmp/grid-inspection-resource-report.json
+          jq -e '
+            .caseMaturity == "synthetic_fixture"
+            and .resultStatus == "resource_time_certificate_consistent"
+            and (.policyCertificateSha256 | length == 64)
+            and (.branches | length == 3)
+            and (.branches | map(.probabilityBasisPoints) | add == 10000)
+            and .firstInspection.startHour == 8.0
+            and .firstInspection.endHour == 10.0
+            and .firstInspection.resultAvailableHour == 10.5
+            and .expectedCandidateActionCompletionHour > 18.0
+            and .worstCaseCandidateActionCompletionHour == 18.25
+            and (.expectedResourceHours | length == 4)
+            and ([.expectedResourceHours[] | select(.resourceRef == "synthetic://resource/specialist-crew-01")][0].expectedUnitHours > 9.04999)
+            and ([.expectedResourceHours[] | select(.resourceRef == "synthetic://resource/specialist-crew-01")][0].expectedUnitHours < 9.05001)
+            and ([.expectedResourceHours[] | select(.resourceRef == "synthetic://resource/portable-test-set-01")][0].expectedUnitHours > 3.04999)
+            and ([.expectedResourceHours[] | select(.resourceRef == "synthetic://resource/portable-test-set-01")][0].expectedUnitHours < 3.05001)
+            and ([.branches[] | select(.recoveryAction.activityId == "repair-bushing") | .branchResourceHours[] | select(.resourceRef == "synthetic://resource/specialist-crew-01") | .unitHours][0] == 9.5)
+            and (.claimBoundary | contains("not service restoration"))
+          ' /tmp/grid-inspection-resource-report.json

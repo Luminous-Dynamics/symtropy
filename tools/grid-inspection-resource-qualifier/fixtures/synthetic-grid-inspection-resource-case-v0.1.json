@@ -1,0 +1,215 @@
+{
+  "schemaVersion": "0.1.0",
+  "caseId": "grid-inspection-resource-case-001",
+  "asOfHour": 8,
+  "resourceManifestRef": "synthetic://resource-manifest/grid-inspection-resource-manifest-001/v1",
+  "resourceManifestSha256": "5428f78184daca979ca0d2836d84fefdd768562cbcc9a23e8f0b086c0ec0432d",
+  "resourceManifest": {
+    "schemaVersion": "0.1.0",
+    "manifestId": "grid-inspection-resource-manifest-001",
+    "asOfHour": 8,
+    "horizonEndHour": 32,
+    "resources": [
+      {
+        "resourceRef": "synthetic://resource/crane-01",
+        "status": "available",
+        "validUntilHour": 32,
+        "evidenceRef": "synthetic://resource-state/crane-01/v1",
+        "capacityWindows": [
+          {
+            "startHour": 12,
+            "endHour": 32,
+            "capacityUnits": 1
+          }
+        ],
+        "reservations": []
+      },
+      {
+        "resourceRef": "synthetic://resource/heavy-haul-01",
+        "status": "available",
+        "validUntilHour": 32,
+        "evidenceRef": "synthetic://resource-state/heavy-haul-01/v1",
+        "capacityWindows": [
+          {
+            "startHour": 12,
+            "endHour": 32,
+            "capacityUnits": 1
+          }
+        ],
+        "reservations": []
+      },
+      {
+        "resourceRef": "synthetic://resource/portable-test-set-01",
+        "status": "available",
+        "validUntilHour": 32,
+        "evidenceRef": "synthetic://resource-state/portable-test-set-01/v1",
+        "capacityWindows": [
+          {
+            "startHour": 8,
+            "endHour": 20,
+            "capacityUnits": 1
+          }
+        ],
+        "reservations": []
+      },
+      {
+        "resourceRef": "synthetic://resource/specialist-crew-01",
+        "status": "available",
+        "validUntilHour": 32,
+        "evidenceRef": "synthetic://resource-state/specialist-crew-01/v1",
+        "capacityWindows": [
+          {
+            "startHour": 8,
+            "endHour": 32,
+            "capacityUnits": 1
+          }
+        ],
+        "reservations": []
+      }
+    ]
+  },
+  "inspectionCatalog": [
+    {
+      "activityId": "inspect-independent-insulation-test",
+      "activityType": "inspection",
+      "earliestStartHour": 8,
+      "durationHours": 2,
+      "resultLatencyHours": 0.5,
+      "evidenceOriginRef": "synthetic://evidence-origin/independent-insulation-field-test",
+      "preconditionStatus": "current",
+      "applicabilityRef": "synthetic://applicability/transformer-family-a/v1",
+      "authorityRequirementRef": "synthetic://authority/asset-owner/inspection",
+      "resourceRequirements": [
+        {
+          "resourceRef": "synthetic://resource/specialist-crew-01",
+          "units": 1
+        },
+        {
+          "resourceRef": "synthetic://resource/portable-test-set-01",
+          "units": 1
+        }
+      ],
+      "serviceModelRef": null
+    },
+    {
+      "activityId": "inspect-bushing-resistance",
+      "activityType": "inspection",
+      "earliestStartHour": 10.5,
+      "durationHours": 1.5,
+      "resultLatencyHours": 0.25,
+      "evidenceOriginRef": "synthetic://evidence-origin/independent-bushing-resistance-test",
+      "preconditionStatus": "current",
+      "applicabilityRef": "synthetic://applicability/transformer-family-a/bushing-resistance",
+      "authorityRequirementRef": "synthetic://authority/asset-owner/inspection",
+      "resourceRequirements": [
+        {
+          "resourceRef": "synthetic://resource/specialist-crew-01",
+          "units": 1
+        },
+        {
+          "resourceRef": "synthetic://resource/portable-test-set-01",
+          "units": 1
+        }
+      ],
+      "serviceModelRef": null
+    },
+    {
+      "activityId": "inspect-dashboard-refresh",
+      "activityType": "inspection",
+      "earliestStartHour": 8,
+      "durationHours": 0.1,
+      "resultLatencyHours": 0.1,
+      "evidenceOriginRef": "synthetic://failure-domain/aux-power-telecom",
+      "preconditionStatus": "current",
+      "applicabilityRef": "synthetic://applicability/dashboard-source-family/v1",
+      "authorityRequirementRef": "synthetic://authority/asset-owner/telemetry-read",
+      "resourceRequirements": [],
+      "serviceModelRef": null
+    }
+  ],
+  "recoveryActionCatalog": [
+    {
+      "activityId": "repair-bushing",
+      "activityType": "recovery_action",
+      "earliestStartHour": 8,
+      "durationHours": 6,
+      "resultLatencyHours": 0,
+      "evidenceOriginRef": "synthetic://action-origin/repair-bushing",
+      "preconditionStatus": "current",
+      "applicabilityRef": "synthetic://applicability/repair-bushing/v1",
+      "authorityRequirementRef": "synthetic://authority/asset-owner/repair",
+      "resourceRequirements": [
+        {
+          "resourceRef": "synthetic://resource/specialist-crew-01",
+          "units": 1
+        }
+      ],
+      "serviceModelRef": "symtropy://6235/service-model/transformer-17/repair"
+    },
+    {
+      "activityId": "replace-transformer",
+      "activityType": "recovery_action",
+      "earliestStartHour": 8,
+      "durationHours": 6,
+      "resultLatencyHours": 0,
+      "evidenceOriginRef": "synthetic://action-origin/replace-transformer",
+      "preconditionStatus": "current",
+      "applicabilityRef": "synthetic://applicability/transformer-replacement/v1",
+      "authorityRequirementRef": "synthetic://authority/asset-owner/replacement",
+      "resourceRequirements": [
+        {
+          "resourceRef": "synthetic://resource/specialist-crew-01",
+          "units": 1
+        },
+        {
+          "resourceRef": "synthetic://resource/crane-01",
+          "units": 1
+        },
+        {
+          "resourceRef": "synthetic://resource/heavy-haul-01",
+          "units": 1
+        }
+      ],
+      "serviceModelRef": "symtropy://6235/service-model/transformer-17/replacement"
+    }
+  ],
+  "policyCertificate": {
+    "sourcePolicyRef": "synthetic://policy-certificate/adaptive-depth-two/grid-transformer-17/v1",
+    "sourceModelRef": "symthaea://industrial-diagnosis-sequential-voi/12436/model-adapter-example",
+    "sourceAssumptionsRef": "synthetic://assumptions/binary-outcomes-upstream-provided-conditional-weights/v1",
+    "firstInspectionId": "inspect-independent-insulation-test",
+    "firstOutcomeBranches": [
+      {
+        "outcome": "positive",
+        "probabilityBasisPoints": 3000,
+        "secondInspectionId": null,
+        "recoveryActionId": "replace-transformer",
+        "serviceTrajectoryRef": "symtropy://6235/trajectory/transformer-17/replacement",
+        "secondOutcomeBranches": null
+      },
+      {
+        "outcome": "negative",
+        "probabilityBasisPoints": 7000,
+        "secondInspectionId": "inspect-bushing-resistance",
+        "recoveryActionId": null,
+        "serviceTrajectoryRef": null,
+        "secondOutcomeBranches": [
+          {
+            "outcome": "positive",
+            "probabilityBasisPoints": 2000,
+            "recoveryActionId": "replace-transformer",
+            "serviceTrajectoryRef": "symtropy://6235/trajectory/transformer-17/replacement"
+          },
+          {
+            "outcome": "negative",
+            "probabilityBasisPoints": 8000,
+            "recoveryActionId": "repair-bushing",
+            "serviceTrajectoryRef": "symtropy://6235/trajectory/transformer-17/repair"
+          }
+        ]
+      }
+    ]
+  },
+  "policyCertificateSha256": "4c39830334f9063893ce9c17c082dd78b582c4dfbf8972fc4f101a731a5c0cde",
+  "caseMaturity": "synthetic_fixture"
+}
