@@ -33,8 +33,6 @@
         "operation_id": "parcel-route-a",
         "operation_scope_digest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "visual_flight_mode": "restricted_vlos",
-        "rlos_command_link_available": true,
-        "rlos_command_link_evidence_reference": "synthetic://za-uas/c2-link/parcel-route-a",
         "payload_release_or_delivery": true,
         "multi_uas_operation": false,
         "public_road_takeoff_or_landing": false,
@@ -47,7 +45,17 @@
         "over_or_within_fifty_m_of_public_road": false,
         "over_public_road": false,
         "rps_id": "rps-01",
-        "operations_manual_revision": "om-rev-03"
+        "operations_manual_revision": "om-rev-03",
+        "c2_link_observation": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "link_available": true,
+          "record_id": "synthetic-c2-commercial-rvlos-delivery",
+          "source_system": "synthetic-c2-monitor",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_reference": "synthetic://za-uas/c2/commercial-rvlos-delivery"
+        }
       },
       "approvals": {
         "air_service_licence": {
@@ -167,8 +175,6 @@
         "operation_id": "parcel-route-bvlos",
         "operation_scope_digest_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "visual_flight_mode": "bvlos",
-        "rlos_command_link_available": true,
-        "rlos_command_link_evidence_reference": "synthetic://za-uas/c2-link/parcel-route-a",
         "payload_release_or_delivery": true,
         "multi_uas_operation": false,
         "public_road_takeoff_or_landing": false,
@@ -181,7 +187,17 @@
         "over_or_within_fifty_m_of_public_road": false,
         "over_public_road": false,
         "rps_id": "rps-01",
-        "operations_manual_revision": "om-rev-03"
+        "operations_manual_revision": "om-rev-03",
+        "c2_link_observation": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "link_available": true,
+          "record_id": "synthetic-c2-commercial-bvlos-approval-missing",
+          "source_system": "synthetic-c2-monitor",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_reference": "synthetic://za-uas/c2/commercial-bvlos-approval-missing"
+        }
       },
       "approvals": {
         "air_service_licence": {
@@ -301,8 +317,6 @@
         "operation_id": "autonomous-route",
         "operation_scope_digest_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "visual_flight_mode": "restricted_vlos",
-        "rlos_command_link_available": true,
-        "rlos_command_link_evidence_reference": "synthetic://za-uas/c2-link/parcel-route-a",
         "payload_release_or_delivery": true,
         "multi_uas_operation": false,
         "public_road_takeoff_or_landing": false,
@@ -315,7 +329,17 @@
         "over_or_within_fifty_m_of_public_road": false,
         "over_public_road": false,
         "rps_id": "rps-01",
-        "operations_manual_revision": "om-rev-03"
+        "operations_manual_revision": "om-rev-03",
+        "c2_link_observation": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "link_available": true,
+          "record_id": "synthetic-c2-autonomous-aircraft-regime-unresolved",
+          "source_system": "synthetic-c2-monitor",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_reference": "synthetic://za-uas/c2/autonomous-aircraft-regime-unresolved"
+        }
       },
       "approvals": {
         "air_service_licence": {
@@ -435,8 +459,6 @@
         "operation_id": "multi-uas-route",
         "operation_scope_digest_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "visual_flight_mode": "restricted_vlos",
-        "rlos_command_link_available": true,
-        "rlos_command_link_evidence_reference": "synthetic://za-uas/c2-link/parcel-route-a",
         "payload_release_or_delivery": true,
         "multi_uas_operation": true,
         "public_road_takeoff_or_landing": false,
@@ -449,7 +471,17 @@
         "over_or_within_fifty_m_of_public_road": false,
         "over_public_road": false,
         "rps_id": "rps-01",
-        "operations_manual_revision": "om-rev-03"
+        "operations_manual_revision": "om-rev-03",
+        "c2_link_observation": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "link_available": true,
+          "record_id": "synthetic-c2-multi-uas-director-approval-missing",
+          "source_system": "synthetic-c2-monitor",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "source_reference": "synthetic://za-uas/c2/multi-uas-director-approval-missing"
+        }
       },
       "approvals": {
         "air_service_licence": {
@@ -569,8 +601,6 @@
         "operation_id": "road-overflight-route",
         "operation_scope_digest_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
         "visual_flight_mode": "restricted_vlos",
-        "rlos_command_link_available": true,
-        "rlos_command_link_evidence_reference": "synthetic://za-uas/c2-link/parcel-route-a",
         "payload_release_or_delivery": true,
         "multi_uas_operation": false,
         "public_road_takeoff_or_landing": false,
@@ -583,7 +613,17 @@
         "over_or_within_fifty_m_of_public_road": true,
         "over_public_road": true,
         "rps_id": "rps-01",
-        "operations_manual_revision": "om-rev-03"
+        "operations_manual_revision": "om-rev-03",
+        "c2_link_observation": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "link_available": true,
+          "record_id": "synthetic-c2-public-road-overflight-missing-controls",
+          "source_system": "synthetic-c2-monitor",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "source_reference": "synthetic://za-uas/c2/public-road-overflight-missing-controls"
+        }
       },
       "approvals": {
         "air_service_licence": {
@@ -711,8 +751,6 @@
         "operation_id": "brlos-route",
         "operation_scope_digest_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
         "visual_flight_mode": "brlos",
-        "rlos_command_link_available": true,
-        "rlos_command_link_evidence_reference": "synthetic://za-uas/c2-link/parcel-route-a",
         "payload_release_or_delivery": true,
         "multi_uas_operation": false,
         "public_road_takeoff_or_landing": false,
@@ -725,7 +763,17 @@
         "over_or_within_fifty_m_of_public_road": false,
         "over_public_road": false,
         "rps_id": "rps-01",
-        "operations_manual_revision": "om-rev-03"
+        "operations_manual_revision": "om-rev-03",
+        "c2_link_observation": {
+          "evidence_class": "synthetic",
+          "status": "fresh_in_scope",
+          "link_available": true,
+          "record_id": "synthetic-c2-beyond-radio-link-unsupported",
+          "source_system": "synthetic-c2-monitor",
+          "subject_id": "aircraft-01",
+          "operation_scope_digest_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "source_reference": "synthetic://za-uas/c2/beyond-radio-link-unsupported"
+        }
       },
       "approvals": {
         "air_service_licence": {
