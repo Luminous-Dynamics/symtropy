@@ -253,6 +253,75 @@ fn validate(catalog: &Value) -> Result<String, String> {
             return Err(format!("{ctx} weakens a non-compensatory gate"));
         }
     }
+    let goos = catalog.get("goos_eov_alignment").ok_or("goos_eov_alignment missing")?;
+    check_keys(goos, &["framework", "source_url", "IOC_2026_summary_url", "recognized_eov_count_as_reported_2026", "principle", "mappings", "adoption_rule"], "goos_eov_alignment")?;
+    required_string(goos, "framework", "goos_eov_alignment")?;
+    required_string(goos, "source_url", "goos_eov_alignment")?;
+    required_string(goos, "IOC_2026_summary_url", "goos_eov_alignment")?;
+    if goos.get("recognized_eov_count_as_reported_2026").and_then(Value::as_u64) != Some(36) {
+        return Err("GOOS reference count must retain its 2026 source context".into());
+    }
+    required_string(goos, "principle", "goos_eov_alignment")?;
+    required_string(goos, "adoption_rule", "goos_eov_alignment")?;
+    let mappings = required_array(goos, "mappings", "goos_eov_alignment")?;
+    if mappings.len() < 6 {
+        return Err("at least six relevant GOOS EOV mappings are required".into());
+    }
+    let mut seen_eovs = HashSet::new();
+    for (i, mapping) in mappings.iter().enumerate() {
+        let ctx = format!("goos_eov_alignment.mappings[{i}]");
+        check_keys(mapping, &["eov", "domain", "mapped_project_metrics", "related_sensor_class"], &ctx)?;
+        let eov = required_string(mapping, "eov", &ctx)?;
+        required_string(mapping, "domain", &ctx)?;
+        if !seen_eovs.insert(eov) {
+            return Err(format!("duplicate GOOS EOV mapping {eov}"));
+        }
+        let mapped = required_array(mapping, "mapped_project_metrics", &ctx)?;
+        if mapped.is_empty() {
+            return Err(format!("{ctx} has no project metric mapping"));
+        }
+        for metric in mapped.iter().filter_map(Value::as_str) {
+            if !actual.contains(metric) && !marine_ids.iter().any(|id| id == metric) {
+                return Err(format!("{ctx} references unknown metric {metric}"));
+            }
+        }
+        let sensor_class = required_string(mapping, "related_sensor_class", &ctx)?;
+        if !sensor_ids.iter().any(|id| id == sensor_class) {
+            return Err(format!("{ctx} references unknown sensor class {sensor_class}"));
+        }
+    }
+
+    let biodiversity = catalog.get("biodiversity_data_interoperability")
+        .ok_or("biodiversity_data_interoperability missing")?;
+    check_keys(biodiversity, &["framework", "obis_manual_version", "manual_updated", "manual_url", "quality_control_url", "data_policy", "purpose", "candidate_darwin_core_terms", "qc_stages", "project_rule", "rights_rule"], "biodiversity_data_interoperability")?;
+    required_string(biodiversity, "framework", "biodiversity_data_interoperability")?;
+    if required_string(biodiversity, "obis_manual_version", "biodiversity_data_interoperability")? != "2.0" {
+        return Err("OBIS Manual version must be pinned to 2.0 in this fixture".into());
+    }
+    required_string(biodiversity, "manual_updated", "biodiversity_data_interoperability")?;
+    required_string(biodiversity, "manual_url", "biodiversity_data_interoperability")?;
+    required_string(biodiversity, "quality_control_url", "biodiversity_data_interoperability")?;
+    required_string(biodiversity, "data_policy", "biodiversity_data_interoperability")?;
+    required_string(biodiversity, "purpose", "biodiversity_data_interoperability")?;
+    let terms = required_array(biodiversity, "candidate_darwin_core_terms", "biodiversity_data_interoperability")?;
+    let term_set: HashSet<&str> = terms.iter().filter_map(Value::as_str).collect();
+    for term in ["eventID", "eventDate", "samplingProtocol", "occurrenceID", "basisOfRecord",
+        "scientificName", "scientificNameID", "decimalLatitude", "decimalLongitude", "geodeticDatum",
+        "minimumDepthInMeters", "maximumDepthInMeters"] {
+        if !term_set.contains(term) {
+            return Err(format!("candidate Darwin Core terms missing {term}"));
+        }
+    }
+    let qc_stages = required_array(biodiversity, "qc_stages", "biodiversity_data_interoperability")?;
+    if qc_stages.len() != 6 || qc_stages.iter().any(|v| v.as_str().unwrap_or("").trim().is_empty()) {
+        return Err("OBIS quality-control pipeline must have six named stages".into());
+    }
+    if !required_string(biodiversity, "project_rule", "biodiversity_data_interoperability")?
+        .contains("not a complete Darwin Core profile") {
+        return Err("Darwin Core field mapping must remain a candidate profile pending current OBIS review".into());
+    }
+    required_string(biodiversity, "rights_rule", "biodiversity_data_interoperability")?;
+
     let aggregate = catalog.get("aggregation_policy").ok_or("aggregation_policy missing")?;
     check_keys(aggregate, &["optional_itu_comprehensive_metric", "project_rule", "environmental_claim_ceiling"], "aggregation_policy")?;
     if !required_string(aggregate, "optional_itu_comprehensive_metric", "aggregation_policy")?.contains("supplementary")
@@ -328,5 +397,19 @@ mod tests {
         let mut v = fixture();
         v["marine_extension_metrics"].as_array_mut().unwrap().pop();
         assert!(validate(&v).unwrap_err().contains("expected exactly 14 ocean-specific"));
+    }
+    #[test]
+    fn unknown_goos_metric_mapping_is_rejected() {
+        let mut v = fixture();
+        v["goos_eov_alignment"]["mappings"][0]["mapped_project_metrics"][0] =
+            Value::String("UNREGISTERED-METRIC".into());
+        assert!(validate(&v).unwrap_err().contains("references unknown metric"));
+    }
+    #[test]
+    fn biodiversity_profile_requires_taxon_and_depth_context() {
+        let mut v = fixture();
+        v["biodiversity_data_interoperability"]["candidate_darwin_core_terms"]
+            .as_array_mut().unwrap().retain(|x| x != "scientificNameID");
+        assert!(validate(&v).unwrap_err().contains("missing scientificNameID"));
     }
 }
