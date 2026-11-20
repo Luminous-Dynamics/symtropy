@@ -600,6 +600,16 @@ mod tests {
     }
 
     #[test]
+    fn pins_synthetic_brier_log_loss_and_reliability_arithmetic() {
+        let report = evaluate_scenario_calibration(&corpus()).expect("valid synthetic corpus");
+        assert_eq!(report.multiclass_brier_score, 0.442610);
+        assert_eq!(report.climatology_brier_score, 0.605800);
+        assert_eq!(report.brier_skill_score_vs_training_climatology, Some(0.269379));
+        assert_eq!(report.log_loss_nats, Some(0.749339));
+        assert_eq!(report.expected_calibration_error_bps, 1_628);
+    }
+
+    #[test]
     fn reliability_bins_partition_forecasts_for_each_outcome() {
         let report = evaluate_scenario_calibration(&corpus()).expect("valid corpus");
         for outcome in &report.outcomes {
