@@ -688,6 +688,7 @@ fn make_empty_report(
             reference_source_reference: installation.reference_source_reference.clone(),
             reference_raw_trace_digest: installation.reference_raw_trace_digest.clone(),
             calibration_digest: installation.calibration_digest.clone(),
+            synchronized_metrology_receipt_digest: installation.synchronized_metrology_receipt_digest.clone(),
         }).collect(),
         strata: Vec::new(),
         interpretation: "Insufficient independent calibration installations for the requested group-level conformal rank. No calibration correction or test-coverage claim is issued.".to_owned(),
