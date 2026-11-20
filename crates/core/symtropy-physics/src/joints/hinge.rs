@@ -1592,18 +1592,27 @@ mod tests {
             "negative control is ineffective: the scene rotation must distinguish the transported plane from stale global e01"
         );
 
-        for (body, label) in [(&reference_a, "reference A"), (&reference_b, "reference B")] {
-            let relative = reference_b
-                .angular_velocity
-                .add(&reference_a.angular_velocity.scale(-1.0));
-            let residual = relative.add(
-                &local_plane.scale(-bivector_inner_product(&local_plane, &relative)),
-            );
-            assert!(
-                residual.norm() < 1.0e-9,
-                "{label}: relative angular response escaped the allowed hinge plane"
-            );
-        }
+        let reference_relative = reference_b
+            .angular_velocity
+            .add(&reference_a.angular_velocity.scale(-1.0));
+        let reference_residual = reference_relative.add(
+            &local_plane.scale(-bivector_inner_product(&local_plane, &reference_relative)),
+        );
+        assert!(
+            reference_residual.norm() < 1.0e-9,
+            "reference relative angular response escaped the allowed hinge plane"
+        );
+
+        let rotated_relative = rotated_b
+            .angular_velocity
+            .add(&rotated_a.angular_velocity.scale(-1.0));
+        let rotated_residual = rotated_relative.add(
+            &world_plane.scale(-bivector_inner_product(&world_plane, &rotated_relative)),
+        );
+        assert!(
+            rotated_residual.norm() < 1.0e-9,
+            "rotated relative angular response escaped the transported hinge plane"
+        );
 
         assert!(
             (reference_a.rotational_kinetic_energy() - rotated_a.rotational_kinetic_energy())
