@@ -65,7 +65,8 @@
           "claimed_independent_corroboration",
           "claimed_cross_clock_order",
           "evidence_as_of_tick",
-          "response_tick"
+          "response_tick",
+          "claimed_distinct_event_count"
         ],
         "properties": {
           "episode_id": {
@@ -136,6 +137,13 @@
           "retrieval_latency_ms": {
             "type": [
               "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "claimed_distinct_event_count": {
+            "type": [
+              "integer",
               "null"
             ],
             "minimum": 0
