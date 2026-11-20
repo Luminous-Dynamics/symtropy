@@ -1311,6 +1311,79 @@ fn add_component_attestation(
 /// Verifies a complete claim package without accepting a caller-provided
 /// subset of required artifacts or signatures. Required obligations are
 /// derived from the actual case, run receipt, proposals and observation batches.
+fn verify_final_service_trajectory_bundle(
+    bundle_root: &Path,
+    verified_bundle: &VerifiedBundle,
+    final_trajectory_ref: &power_restoration_run_receipt::ArtifactRef,
+    receipt: &RunReceipt,
+    case: &BenchmarkCase,
+    max_artifact_bytes: u64,
+) -> Result<(ServiceTrajectoryRecord, ServiceTrajectoryAuditReport), Vec<String>> {
+    let trajectory_bytes = verified_bundle
+        .read_verified_artifact_bytes(
+            bundle_root,
+            &final_trajectory_ref.artifact_ref,
+            max_artifact_bytes,
+        )
+        .map_err(|artifact_errors| {
+            artifact_errors
+                .into_iter()
+                .map(|error| format!("final service trajectory: {error}"))
+                .collect::<Vec<_>>()
+        })?;
+    if sha256_hex(&trajectory_bytes) != final_trajectory_ref.sha256 {
+        return Err(vec![
+            "final service trajectory bytes do not match the run receipt artifact digest".to_string()
+        ]);
+    }
+
+    let trajectory: ServiceTrajectoryRecord = serde_json::from_slice(&trajectory_bytes)
+        .map_err(|error| vec![format!("final service trajectory JSON decode error: {error}")])?;
+    let service_report = audit_service_trajectory(&trajectory, receipt, case)
+        .map_err(|service_errors| {
+            service_errors
+                .into_iter()
+                .map(|error| format!("service trajectory: {error}"))
+                .collect::<Vec<_>>()
+        })?;
+
+    if receipt.run_status == RunStatus::Completed
+        && !matches!(
+            service_report.result_status.as_str(),
+            "modelled_service_and_score_reconciled"
+                | "measured_service_and_score_reconciled"
+        )
+    {
+        return Err(vec![format!(
+            "completed run final service trajectory is not reconciled delivered service: {}",
+            service_report.result_status
+        )]);
+    }
+
+    let mut missing_sources = Vec::new();
+    for source in &trajectory.source_artifacts {
+        let source_bytes_verified = verified_bundle
+            .report()
+            .verified_artifacts
+            .iter()
+            .any(|artifact| {
+                artifact.artifact_uri == source.artifact_ref
+                    && artifact.sha256 == source.sha256
+            });
+        if !source_bytes_verified {
+            missing_sources.push(format!(
+                "service source artifact {} is missing from the byte-verified bundle or its digest differs",
+                source.artifact_ref
+            ));
+        }
+    }
+    if !missing_sources.is_empty() {
+        return Err(missing_sources);
+    }
+
+    Ok((trajectory, service_report))
+}
+
 pub fn verify_restoration_claim_evidence(
     bundle_root: &Path,
     case: &BenchmarkCase,
@@ -2044,56 +2117,27 @@ pub fn verify_restoration_claim_evidence(
         .map_err(|bundle_errors| bundle_errors.into_iter().map(|error| format!("bundle: {error}")).collect::<Vec<_>>())?;
 
     if let Some(final_trajectory_ref) = &receipt.final_service_trajectory {
-        let trajectory_bytes = verified_bundle
-            .read_verified_artifact_bytes(
-                bundle_root,
-                &final_trajectory_ref.artifact_ref,
-                max_artifact_bytes,
-            )
-            .map_err(|artifact_errors| artifact_errors.into_iter().map(|error| format!("final service trajectory: {error}")).collect::<Vec<_>>())?;
-        let trajectory: ServiceTrajectoryRecord = serde_json::from_slice(&trajectory_bytes)
-            .map_err(|error| vec![format!("final service trajectory JSON decode error: {error}")])?;
-        let service_report = audit_service_trajectory(&trajectory, receipt, case)
-            .map_err(|service_errors| service_errors.into_iter().map(|error| format!("service trajectory: {error}")).collect::<Vec<_>>())?;
-
-        if receipt.run_status == RunStatus::Completed
-            && !matches!(
-                service_report.result_status.as_str(),
-                "modelled_service_and_score_reconciled"
-                    | "measured_service_and_score_reconciled"
-            )
-        {
-            errors.push(format!(
-                "completed run final service trajectory is not reconciled delivered service: {}",
-                service_report.result_status
-            ));
-        }
-
-        // Every source artifact named inside the trajectory must itself be a
-        // byte-verified, closed-world bundle artifact with the exact digest.
-        for source in &trajectory.source_artifacts {
-            add_expected_artifact(
-                &mut expected_artifacts,
-                &source.artifact_ref,
-                &source.sha256,
-                &mut errors,
-            );
-            let source_bytes_verified = verified_bundle
-                .report()
-                .verified_artifacts
-                .iter()
-                .any(|artifact| {
-                    artifact.artifact_uri == source.artifact_ref
-                        && artifact.sha256 == source.sha256
-                });
-            if !source_bytes_verified {
-                errors.push(format!(
-                    "service source artifact {} is missing from the byte-verified bundle or its digest differs",
-                    source.artifact_ref
-                ));
+        match verify_final_service_trajectory_bundle(
+            bundle_root,
+            &verified_bundle,
+            final_trajectory_ref,
+            receipt,
+            case,
+            max_artifact_bytes,
+        ) {
+            Ok((trajectory, service_report)) => {
+                for source in &trajectory.source_artifacts {
+                    add_expected_artifact(
+                        &mut expected_artifacts,
+                        &source.artifact_ref,
+                        &source.sha256,
+                        &mut errors,
+                    );
+                }
+                service_trajectory_audit = Some(service_report);
             }
+            Err(service_errors) => errors.extend(service_errors),
         }
-        service_trajectory_audit = Some(service_report);
     }
 
     // A complete claim package is closed-world: no required artifact can be
