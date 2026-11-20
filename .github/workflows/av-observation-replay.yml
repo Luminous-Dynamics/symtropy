@@ -54,6 +54,20 @@ jobs:
       - name: Check formatting
         run: cargo fmt --manifest-path research/av-observation-replay-v0/Cargo.toml --all -- --check
 
+      - name: Regenerate lockfile for exact Cargo 1.96 resolution
+        run: cargo generate-lockfile --manifest-path research/av-observation-replay-v0/Cargo.toml
+
+      - name: Require committed lockfile to match resolver output
+        run: git diff --exit-code -- research/av-observation-replay-v0/Cargo.lock
+
+      - name: Export resolved lockfile for diagnosis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: av-observation-replay-resolved-lockfile
+          path: research/av-observation-replay-v0/Cargo.lock
+          if-no-files-found: error
+
       - name: Run unit and fixture-integrity tests
         run: cargo test --locked --manifest-path research/av-observation-replay-v0/Cargo.toml
 
