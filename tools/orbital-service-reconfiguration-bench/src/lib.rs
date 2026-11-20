@@ -184,12 +184,13 @@ fn present(value: &str) -> bool {
 }
 
 fn is_faulted(provider: &Provider, faults: &[Fault], tick: u64) -> bool {
-    provider.failure_domains.iter().any(|domain| {
-        faults.iter().any(|fault| {
-            fault.failure_domain_id.as_str() == domain.as_str()
-                && fault.start_tick <= tick
-                && tick <= fault.end_tick
-        })
+    let implicit_supplier_domain = format!("supplier:{}", provider.supplier_id);
+    faults.iter().any(|fault| {
+        (provider.failure_domains.iter().any(|domain| {
+            fault.failure_domain_id == *domain
+        }) || fault.failure_domain_id == implicit_supplier_domain)
+            && fault.start_tick <= tick
+            && tick <= fault.end_tick
     })
 }
 
@@ -247,7 +248,7 @@ fn robust_qualification(
 fn preflight(
     fixture: &ServiceFixture,
     providers: &HashMap<&str, &Provider>,
-    known_fault_domains: &HashSet<&str>,
+    known_fault_domains: &HashSet<String>,
     scenario: &Scenario,
 ) -> Result<(), Decision> {
     if !present(&scenario.case_id) {
@@ -377,15 +378,21 @@ fn preflight(
             return Err(Decision::rejected("reconfiguration_without_active_provider_failure"));
         }
 
-        let minimum_transition = provider.handoff_ticks.max(provider.requalification_ticks);
-        let earliest_activation = step.switch_start_tick.checked_add(minimum_transition)
+        // Handoff and requalification are sequential by default. Overlap requires
+        // a separately qualified transition-dependency contract; v0.1 never assumes it.
+        let transition_ticks = provider.handoff_ticks.checked_add(provider.requalification_ticks)
+            .ok_or(Decision::rejected("transition_tick_overflow"))?;
+        let earliest_activation = step.switch_start_tick.checked_add(transition_ticks)
             .ok_or(Decision::rejected("transition_tick_overflow"))?;
         if step.activation_tick < earliest_activation {
             return Err(Decision::rejected("handoff_or_requalification_incomplete"));
         }
 
         let active_domains = active_fault_domains(&scenario.faults, step.activation_tick);
-        if provider.failure_domains.iter().any(|domain| active_domains.contains(domain.as_str())) {
+        let implicit_supplier_domain = format!("supplier:{}", provider.supplier_id);
+        if provider.failure_domains.iter().any(|domain| active_domains.contains(domain.as_str()))
+            || active_domains.contains(implicit_supplier_domain.as_str())
+        {
             return Err(Decision::rejected("fallback_shares_failed_domain"));
         }
         if let Err(decision) = robust_qualification(
@@ -556,7 +563,7 @@ pub fn evaluate(fixture: &ServiceFixture) -> Result<Report, String> {
     }
 
     let mut providers = HashMap::new();
-    let mut known_fault_domains = HashSet::new();
+    let mut known_fault_domains: HashSet<String> = HashSet::new();
     for provider in &fixture.providers {
         if !present(&provider.provider_id)
             || !present(&provider.supplier_id)
@@ -570,11 +577,12 @@ pub fn evaluate(fixture: &ServiceFixture) -> Result<Report, String> {
         if providers.insert(provider.provider_id.as_str(), provider).is_some() {
             return Err(format!("duplicate provider id: {}", provider.provider_id));
         }
+        known_fault_domains.insert(format!("supplier:{}", provider.supplier_id));
         for domain in &provider.failure_domains {
             if !present(domain) {
                 return Err(format!("provider {} has empty failure domain", provider.provider_id));
             }
-            known_fault_domains.insert(domain.as_str());
+            known_fault_domains.insert(domain.clone());
         }
     }
 
@@ -700,6 +708,41 @@ mod tests {
             .expect("partial capability case exists");
         assert_eq!(row.actual_status, ServiceStatus::Rejected);
         assert_eq!(row.actual_reason, "provider_service_kind_mismatch");
+    }
+
+
+    #[test]
+    fn supplier_identity_is_an_implicit_shared_failure_domain() {
+        let mut data = fixture();
+        let row = data.scenarios.iter_mut()
+            .find(|row| row.case_id == "SAME_SUPPLIER_ID_DEFEATS_FALLBACK")
+            .expect("same-supplier case exists");
+        let provider_a = data.providers.iter()
+            .find(|provider| provider.provider_id == "A")
+            .expect("provider A exists");
+        let provider_p = data.providers.iter()
+            .find(|provider| provider.provider_id == "P")
+            .expect("provider P exists");
+        assert_eq!(provider_a.supplier_id, provider_p.supplier_id);
+        assert!(provider_a.failure_domains.iter().all(|domain|
+            !provider_p.failure_domains.contains(domain)));
+        let report = evaluate(&data).expect("service fixture evaluates");
+        let result = report.scenarios.iter()
+            .find(|result| result.case_id == "SAME_SUPPLIER_ID_DEFEATS_FALLBACK")
+            .expect("same-supplier result exists");
+        assert_eq!(result.actual_status, ServiceStatus::Rejected);
+        assert_eq!(result.actual_reason, "fallback_shares_failed_domain");
+        let _ = row;
+    }
+
+    #[test]
+    fn transition_time_is_sequential_unless_overlap_is_explicitly_qualified() {
+        let report = evaluate(&fixture()).expect("service fixture evaluates");
+        let row = report.scenarios.iter()
+            .find(|row| row.case_id == "HANDOFF_TOO_LONG")
+            .expect("long sequential handoff case exists");
+        assert_eq!(row.actual_status, ServiceStatus::Rejected);
+        assert_eq!(row.actual_reason, "handoff_or_requalification_incomplete");
     }
 
     #[test]
