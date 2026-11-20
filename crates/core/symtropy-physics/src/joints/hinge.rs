@@ -251,7 +251,7 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
                 && motor.max_force >= 0.0;
 
             if motor_inputs_valid {
-                let torque = (motor.kp * (motor.target_vel - rel_angular_vel)
+                let torque_increment = (motor.kp * (motor.target_vel - rel_angular_vel)
                     - rel_angular_vel * motor.kd)
                     .clamp(-motor.max_force, motor.max_force);
 
@@ -268,8 +268,8 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
                 let effective_inv_inertia = inv_i_a + inv_i_b;
 
                 if effective_inv_inertia.is_finite() && effective_inv_inertia > 1e-15 {
-                    if let Some((delta_impulse, _velocity_after)) = motor_state.project_impulse(
-                        torque * dt,
+                    if let Some((delta_impulse, _velocity_after)) = motor_state.apply_impulse_increment(
+                        torque_increment * dt,
                         motor.max_force * dt,
                         rel_angular_vel,
                         effective_inv_inertia,
@@ -579,6 +579,38 @@ mod motor_step_tests {
         assert_eq!(a.angular_velocity.get(0, 1), 0.0);
         assert_eq!(b.angular_velocity.get(0, 1), 0.0);
         assert_eq!(state.take_work_receipt(), None);
+    }
+
+
+    #[test]
+    fn hinge_motor_accumulates_velocity_feedback_impulse_increments() {
+        let mut a = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut b =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 1.0, 1.0);
+        let motor = MotorDrive {
+            target_pos: 0.0,
+            target_vel: 1.0,
+            kp: 1.0,
+            kd: 1.0,
+            max_force: 10.0,
+        };
+        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1).with_motor(motor);
+        let mut state = MotorStepState::default();
+
+        for _ in 0..8 {
+            joint.solve_velocity_with_state(&mut a, &mut b, 0.1, None, &mut state);
+        }
+
+        // Controller output changes with velocity each iteration. Each result
+        // is an incremental impulse, accumulated under the same 1.0 Nms cap.
+        assert!(state.accumulated_impulse() > 0.1);
+        assert!(state.accumulated_impulse() <= 1.0 + 1.0e-12);
+        assert!(b.angular_velocity.get(0, 1) > 0.0);
+        assert!(state.take_work_receipt().is_some());
     }
 
     #[test]
