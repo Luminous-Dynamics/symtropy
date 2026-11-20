@@ -300,6 +300,7 @@ pub enum SelectionReason {
     InitialLowestCostWithinTolerance,
     RetainedInsideCoarseningBand,
     RetainedDuringMinimumDwell,
+    RetainedCurrentProfileNoQualifiedAlternative,
     AdaptedAfterMinimumDwell,
     EscalatedForErrorOrValidity,
 }
@@ -744,7 +745,7 @@ pub fn evaluate_adaptive_policy(
         .is_some_and(|current| current == &chosen.candidate.profile_sha256);
 
     let reason = if is_current {
-        SelectionReason::AdaptedAfterMinimumDwell
+        SelectionReason::RetainedCurrentProfileNoQualifiedAlternative
     } else if urgent_refinement {
         SelectionReason::EscalatedForErrorOrValidity
     } else if request.current_profile_sha256.is_none() {
@@ -1226,6 +1227,40 @@ mod tests {
         assert_eq!(receipt.reason, SelectionReason::EscalatedForErrorOrValidity);
     }
 
+
+    #[test]
+    fn invalid_current_model_without_qualified_refinement_is_refused() {
+        let mut current = moment_candidate('a', 4, 0.5, 5.0);
+        let next = moment_candidate('b', 8, 0.02, 10.0);
+        let mut req = request(vec![current.clone(), next]);
+        req.current_profile_sha256 = Some(digest('a'));
+        req.current_dwell_steps = 0;
+        let decision = evaluate_adaptive_policy(&req).unwrap();
+        assert!(matches!(
+            decision,
+            PolicyDecision::Refused {
+                reason: RefusalReason::NoSafeRefinementAvailable,
+                ..
+            }
+        ));
+
+        // Also exercise affirmative well-posedness rejection without a
+        // compatible, receipt-backed refinement path.
+        current.well_posedness = Evidence::Rejected {
+            reason: "outside qualified hyperbolicity envelope".into(),
+        };
+        let mut req = request(vec![current, moment_candidate('b', 8, 0.02, 10.0)]);
+        req.current_profile_sha256 = Some(digest('a'));
+        let decision = evaluate_adaptive_policy(&req).unwrap();
+        assert!(matches!(
+            decision,
+            PolicyDecision::Refused {
+                reason: RefusalReason::NoSafeRefinementAvailable,
+                ..
+            }
+        ));
+    }
+
     #[test]
     fn model_outside_hyperbolicity_margin_is_never_selected() {
         let mut invalid = moment_candidate('a', 8, 0.01, 1.0);
@@ -1378,20 +1413,25 @@ mod tests {
     }
 
     #[test]
-    fn missing_transition_receipt_blocks_switching() {
+    fn missing_transition_receipt_retains_still_qualified_current_model() {
         let current = moment_candidate('a', 4, 0.08, 10.0);
         let next = moment_candidate('b', 8, 0.02, 5.0);
         let mut req = request(vec![current, next]);
         req.current_profile_sha256 = Some(digest('a'));
         req.current_dwell_steps = 10;
         let decision = evaluate_adaptive_policy(&req).unwrap();
-        assert!(matches!(
-            decision,
-            PolicyDecision::Refused {
-                reason: RefusalReason::NoTransitionQualifiedCandidate,
-                ..
-            }
-        ));
+        let PolicyDecision::Selected { receipt, excluded } = decision else {
+            panic!("retain the qualified active model while transition evidence is missing");
+        };
+        assert_eq!(receipt.profile_sha256, digest('a'));
+        assert_eq!(
+            receipt.reason,
+            SelectionReason::RetainedCurrentProfileNoQualifiedAlternative
+        );
+        assert!(excluded.iter().any(|item| {
+            item.profile_sha256 == digest('b')
+                && item.reason == ExclusionReason::MissingTransitionEvidence
+        }));
     }
 
     #[test]
@@ -1405,9 +1445,14 @@ mod tests {
         req.current_profile_sha256 = Some(digest('a'));
         req.current_dwell_steps = 10;
         let decision = evaluate_adaptive_policy(&req).unwrap();
-        let PolicyDecision::Refused { excluded, .. } = decision else {
-            panic!("incorrect transition binding must be refused");
+        let PolicyDecision::Selected { receipt, excluded } = decision else {
+            panic!("incorrect transition must not displace the active model");
         };
+        assert_eq!(receipt.profile_sha256, digest('a'));
+        assert_eq!(
+            receipt.reason,
+            SelectionReason::RetainedCurrentProfileNoQualifiedAlternative
+        );
         assert!(excluded.iter().any(|item| {
             item.profile_sha256 == digest('b')
                 && item.reason == ExclusionReason::TransitionIdentityMismatch
@@ -1425,9 +1470,14 @@ mod tests {
         req.current_profile_sha256 = Some(digest('a'));
         req.current_dwell_steps = 10;
         let decision = evaluate_adaptive_policy(&req).unwrap();
-        let PolicyDecision::Refused { excluded, .. } = decision else {
-            panic!("bad transition balance must be refused");
+        let PolicyDecision::Selected { receipt, excluded } = decision else {
+            panic!("bad transition balance must not displace the active model");
         };
+        assert_eq!(receipt.profile_sha256, digest('a'));
+        assert_eq!(
+            receipt.reason,
+            SelectionReason::RetainedCurrentProfileNoQualifiedAlternative
+        );
         assert!(excluded.iter().any(|item| {
             item.reason == ExclusionReason::TransitionConservationResidualTooLarge
         }));
