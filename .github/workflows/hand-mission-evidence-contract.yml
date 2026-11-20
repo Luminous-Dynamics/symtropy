@@ -1,0 +1,43 @@
+name: Hand Mission Evidence Contract
+
+on:
+  pull_request:
+    paths:
+      - 'benchmarks/hand-mission-qualification/v0.1/**'
+      - '.github/workflows/hand-mission-evidence-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'benchmarks/hand-mission-qualification/v0.1/**'
+      - '.github/workflows/hand-mission-evidence-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.24.0
+      - name: Validate schema and example
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("benchmarks/hand-mission-qualification/v0.1")
+          schema = json.loads((root / "hand_mission_bundle.schema.json").read_text())
+          example = json.loads((root / "examples/pomdar_repeated_mission_illustrative.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(example), key=lambda error: list(error.path))
+          if errors:
+              raise SystemExit("\n".join(f"{list(error.path)}: {error.message}" for error in errors))
+          print("Draft 2020-12 schema and illustrative mission bundle are valid.")
+          PY
