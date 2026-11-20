@@ -1,0 +1,261 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_type": "rigid_body_mass_property_source_inventory",
+  "repository": "Luminous-Dynamics/symtropy",
+  "source_ref": "main",
+  "source_commit": "b93beb5f68f6fa0bb0c5d4f58d3afb79a19cb68e",
+  "source_date": "2026-11-20",
+  "claim_ceiling": "Source audit only. No production fix, test pass, physical measurement, engine benchmark or safety qualification.",
+  "issues": {
+    "mass_property_contract": 6417,
+    "engine_wide_rotational_response": 6443,
+    "hinge_motor_semantics": 4516
+  },
+  "source_files": [
+    {
+      "path": "crates/core/symtropy-physics/src/body.rs",
+      "blob_sha": "094f5f67ebc07b3eb28d69fc0b8b60d9299012e9",
+      "observations": [
+        {
+          "id": "rigid_body_public_fields",
+          "lines": [
+            26,
+            46
+          ],
+          "status": "observed",
+          "fact": "RigidBody exposes mass, inverse mass, inertia and inverse inertia as public fields.",
+          "risk": "Callers can mutate the source value and cached reciprocal independently."
+        },
+        {
+          "id": "constructor_vector",
+          "lines": [
+            53,
+            88
+          ],
+          "status": "observed",
+          "fact": "RigidBody::new accepts SVector<f64,D> and computes elementwise reciprocal for positive entries.",
+          "risk": "No declared frame/principal-moment contract or input validation is enforced here."
+        },
+        {
+          "id": "dynamic_sphere",
+          "lines": [
+            106,
+            119
+          ],
+          "status": "observed",
+          "fact": "dynamic_sphere fills every dimension with 0.4*mass*radius^2.",
+          "risk": "3D solid-sphere moment is reused for D other than 3."
+        },
+        {
+          "id": "kinetic_energy_mean",
+          "lines": [
+            183,
+            191
+          ],
+          "status": "observed",
+          "fact": "kinetic_energy uses arithmetic mean of inertia entries.",
+          "risk": "Anisotropic plane-dependent and orientation-dependent energy is discarded."
+        },
+        {
+          "id": "merge_toolhead_scalar",
+          "lines": [
+            193,
+            230
+          ],
+          "status": "observed",
+          "fact": "merge_toolhead averages base inertia, assumes 0.1 m solid-sphere toolhead and writes one scalar to every axis.",
+          "risk": "Shape, orientation and products of inertia are lost."
+        }
+      ]
+    },
+    {
+      "path": "crates/core/symtropy-physics/src/world.rs",
+      "blob_sha": "7dccf283f858c4874c96425fd7aa8aa3e176a557",
+      "observations": [
+        {
+          "id": "public_body_storage",
+          "lines": [
+            130,
+            137
+          ],
+          "status": "observed",
+          "fact": "PhysicsWorld exposes Vec<RigidBody<D>> as a public field.",
+          "risk": "Mutation can bypass body_mut and any future validation hooks."
+        },
+        {
+          "id": "add_body",
+          "lines": [
+            310,
+            325
+          ],
+          "status": "observed",
+          "fact": "add_body rewrites handle and inserts supplied body without mass-property validation.",
+          "risk": "Invalid or internally inconsistent inverse caches may enter the world."
+        },
+        {
+          "id": "add_bodies_deterministic",
+          "lines": [
+            328,
+            359
+          ],
+          "status": "observed",
+          "fact": "Deterministic insertion assigns network IDs and inserts supplied bodies without mass-property validation.",
+          "risk": "Same invariant gap as add_body."
+        },
+        {
+          "id": "body_mut",
+          "lines": [
+            394,
+            407
+          ],
+          "status": "observed",
+          "fact": "body_mut returns &mut RigidBody<D> without restricting mass-property fields.",
+          "risk": "Mass/inverse-mass and inertia/inverse-inertia can diverge."
+        },
+        {
+          "id": "contact_mean_inverse",
+          "lines": [
+            979,
+            1002
+          ],
+          "status": "observed",
+          "fact": "resolve_contact computes mean inverse inertia for both bodies.",
+          "risk": "Contact response is isotropized before normal/friction effective-mass calculation."
+        },
+        {
+          "id": "normal_effective_mass",
+          "lines": [
+            1080,
+            1090
+          ],
+          "status": "observed",
+          "fact": "Normal contact denominator uses mean inverse inertia times lever-arm scalar.",
+          "risk": "Anisotropic world-frame angular compliance is not represented."
+        },
+        {
+          "id": "friction_effective_mass",
+          "lines": [
+            1180,
+            1193
+          ],
+          "status": "observed",
+          "fact": "Tangential friction denominator uses mean inverse inertia times lever-arm scalar.",
+          "risk": "Friction-induced angular response inherits the same approximation."
+        }
+      ]
+    },
+    {
+      "path": "crates/core/symtropy-physics/src/integrator.rs",
+      "blob_sha": "c2e32f1bc14adf249f3b797e54209d501e491d9d",
+      "observations": [
+        {
+          "id": "torque_integration_mean",
+          "lines": [
+            90,
+            100
+          ],
+          "status": "observed",
+          "fact": "Accumulated torque is integrated with mean inverse inertia.",
+          "risk": "All bivector planes receive the same angular acceleration scalar."
+        },
+        {
+          "id": "angular_impulse_mean",
+          "lines": [
+            168,
+            177
+          ],
+          "status": "observed",
+          "fact": "apply_angular_impulse multiplies every angular impulse component by mean inverse inertia.",
+          "risk": "Impulse response ignores anisotropy and body orientation."
+        }
+      ]
+    },
+    {
+      "path": "crates/core/symtropy-physics/src/joints/hinge.rs",
+      "blob_sha": "6e77cb284b092d955143faa7f2aed8898387d01c",
+      "observations": [
+        {
+          "id": "hinge_passive_constraint",
+          "lines": [
+            144,
+            222
+          ],
+          "status": "observed",
+          "fact": "The passive hinge solver directly changes angular-velocity components.",
+          "risk": "Must be audited against a declared constraint Jacobian and effective-inertia weighting."
+        },
+        {
+          "id": "hinge_motor",
+          "lines": [
+            224,
+            275
+          ],
+          "status": "baseline_main_observed",
+          "fact": "Baseline main has velocity-only motor path with fixed split; PR #6411 proposes step-scoped target/impulse budgeting but retains isotropic mean inertia.",
+          "risk": "Motor semantics and full tensor response are separate gates."
+        }
+      ]
+    },
+    {
+      "path": "crates/core/symtropy-physics/src/joints/prismatic.rs",
+      "blob_sha": "afb019dcaf7d5f5d490696154a2df9be26b83ea9",
+      "observations": [
+        {
+          "id": "prismatic_passive_constraint",
+          "lines": [
+            122,
+            205
+          ],
+          "status": "observed",
+          "fact": "The passive prismatic solver directly adjusts angular-velocity components for constrained planes.",
+          "risk": "Must be audited against a declared constraint Jacobian and effective-inertia weighting."
+        }
+      ]
+    },
+    {
+      "path": "crates/core/symtropy-physics/src/articulation.rs",
+      "blob_sha": "7925bc6ec7fe619bc1619db7cd015b0fa6d967e",
+      "observations": [
+        {
+          "id": "articulated_links_as_spheres",
+          "lines": [
+            105,
+            125
+          ],
+          "status": "observed",
+          "fact": "3D articulated link construction uses dynamic_sphere while LinkSpec includes length and radius.",
+          "risk": "The mass distribution does not model the stated link geometry."
+        }
+      ]
+    },
+    {
+      "path": "crates/core/symtropy-physics/src/lib.rs",
+      "blob_sha": "19bac3b37524474e466204d14ab89207a308840c",
+      "observations": [
+        {
+          "id": "public_rigidbody_export",
+          "lines": [
+            36,
+            36
+          ],
+          "status": "observed",
+          "fact": "RigidBody is publicly re-exported from the crate.",
+          "risk": "Public-field mutation is a downstream API concern, not confined to the module."
+        }
+      ]
+    }
+  ],
+  "not_established": [
+    "No complete monorepo-wide downstream use-site or persistence/wire-format audit is claimed.",
+    "No empirical mass properties for current physical articles are available in this source audit.",
+    "No production integration of PR #6416 or #6418 is claimed.",
+    "No compile, unit-test, Clippy, CI or physical qualification pass is claimed."
+  ],
+  "next_work": [
+    "Complete downstream constructor and persistence inventory across all workspace crates.",
+    "Define versioned frame-explicit MassProperties API and migration for public mutable fields.",
+    "Build independent 3D box, solid-cylinder, slender-rod and compound known-answer fixtures.",
+    "Derive one world-space angular response operator and J M^-1 J^T effective-mass oracle.",
+    "Migrate torque, angular impulse, normal/friction contact and joint solver paths."
+  ]
+}
