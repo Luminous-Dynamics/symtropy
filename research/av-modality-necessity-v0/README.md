@@ -141,3 +141,8 @@ Matched arms should include video-only, audio-only, transcript-mediated AV, modu
 Do not collapse these levels into one weighted leaderboard score. Hard evidence and temporal violations must remain visible gates. The evaluator currently computes task, coverage, selective accuracy, Brier, paired discrimination, evidence compliance and deadline misses. Submission fields reserve latency, bytes, frames, tokens and energy; their aggregation and measured-run comparison remain future work rather than inferred from simulation ticks.
 
 For external SOTA claims, first reproduce the selected benchmark's official baseline and evaluation environment. A reasonable next claim is a non-inferiority result at materially lower measured resource cost, or a statistically significant improvement on a preregistered failure stratum at matched resources—not a broad claim based on the 13 synthetic episodes.
+
+
+### Safe abstention semantics
+
+The offline evaluator treats an explicit abstention as a correct safe decision in the conflict and temporal-misalignment strata, as well as in the missing-audio stratum. Answer accuracy remains false for an abstention, coverage decreases, and answered-only calibration is reported separately. This avoids forcing a model to invent an association merely to maximize answer accuracy. An abstention does not excuse a declared false association or other evidence-contract violation.
