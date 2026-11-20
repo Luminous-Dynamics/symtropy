@@ -2339,6 +2339,49 @@ mod tests {
     }
 
     #[test]
+    fn actuation_witness_key_cannot_be_reused_for_transition_engine_role() {
+        let (mut trust, _, _, envelope, _) = actuation_witness_fixtures();
+        let mut alias = trust.keys[0].clone();
+        alias.key_id = "transition-engine-alias".to_string();
+        alias.producer_id = "synthetic-transition-engine".to_string();
+        alias.roles = vec![SignerRole::TransitionEngine];
+        trust.keys.push(alias);
+        let mut transition_envelope = envelope.clone();
+        transition_envelope.key_id = "transition-engine-alias".to_string();
+        transition_envelope.payload.issuer_id = "synthetic-transition-engine".to_string();
+        transition_envelope.payload.signer_role = SignerRole::TransitionEngine;
+        assert!(validate_role_separation(&[envelope, transition_envelope], &trust).is_err());
+    }
+
+    #[test]
+    fn actuation_witness_receipt_must_be_in_verified_bundle() {
+        let (trust, receipt, binding, envelope, root_sha256) =
+            actuation_witness_fixtures();
+        let root = test_bundle_root();
+        fs::create_dir_all(root.join("artifacts/actuation")).unwrap();
+        let envelope_bytes = canonical_bytes(&envelope).unwrap();
+        fs::write(root.join("artifacts/actuation/attestation.json"), &envelope_bytes).unwrap();
+        let manifest = BundleManifest {
+            schema_version: "0.1.0".to_string(),
+            bundle_id: "attestation-only-bundle".to_string(),
+            artifacts: vec![ArtifactRecord {
+                artifact_uri: artifact_envelope_uri(&envelope).unwrap(),
+                relative_path: "artifacts/actuation/attestation.json".to_string(),
+                media_type: "application/json".to_string(),
+                byte_length: envelope_bytes.len() as u64,
+                sha256: sha256_hex(&envelope_bytes),
+            }],
+        };
+        let bundle = verify_bundle_manifest(&root, &manifest, 1024 * 1024).unwrap();
+        let mut replay = ActuationWitnessReplayState::default();
+        let errors = verify_no_actuation_witness(
+            &bundle, &receipt, &binding, &envelope, &trust, &root_sha256,
+            2_000, 5_000, &mut replay,
+        ).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("not present with exact bytes")));
+    }
+
+    #[test]
     fn actuation_witness_rejects_stale_sequence_and_expired_window() {
         let (trust, mut receipt, binding, envelope, root_sha256) =
             actuation_witness_fixtures();
