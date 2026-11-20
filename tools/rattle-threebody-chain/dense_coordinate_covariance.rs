@@ -681,14 +681,6 @@ mod tests {
         }
     }
 
-    fn basis_1_as_float() -> Mat9 {
-        to_float(&basis_pair(1).0)
-    }
-
-    fn inverse_1_as_float() -> Mat9 {
-        to_float(&basis_pair(1).1)
-    }
-
     fn kinetic_energy(masses: [f64; 3], velocity: &Vec9) -> f64 {
         let mut energy = 0.0;
         for body in 0..3 {
@@ -802,59 +794,64 @@ mod tests {
         let force = force_state(&force_q);
         let options = super::super::SolverOptions::default();
         let cartesian = super::super::CartesianRattleChain::new(masses, lengths).unwrap();
-        let (mut q_dense, mut v_dense) = (initial_position(), initial_velocity());
-        let mut cartesian_state = state_from_flat(&q_dense, &v_dense);
+        for scale in [1_i64, 2_i64] {
+            let (basis_i, inverse_i) = basis_pair(scale);
+            let basis = to_float(&basis_i);
+            let inverse = to_float(&inverse_i);
+            let (mut q_dense, mut v_dense) = (initial_position(), initial_velocity());
+            let mut cartesian_state = state_from_flat(&q_dense, &v_dense);
 
-        for step in 0..24 {
-            let reference = cartesian
-                .step_with_force(cartesian_state, dt, force, options)
-                .unwrap();
-            let (q_next, v_next, position_lambda, velocity_lambda, residuals) =
-                dense_coordinate_rattle_step(
-                    &basis_1_as_float(),
-                    &inverse_1_as_float(),
-                    masses,
-                    lengths,
-                    &q_dense,
-                    &v_dense,
-                    &force_q,
-                    dt,
-                );
-            let (reference_q, reference_v) = flatten_state(&reference.after);
-            assert!(
-                vector_max_abs(&q_next, &reference_q) <= 3.0e-7,
-                "step={step}, position mismatch={:e}",
-                vector_max_abs(&q_next, &reference_q)
-            );
-            assert!(
-                vector_max_abs(&v_next, &reference_v) <= 3.0e-7,
-                "step={step}, velocity mismatch={:e}",
-                vector_max_abs(&v_next, &reference_v)
-            );
-            for edge in 0..2 {
+            for step in 0..24 {
+                let reference = cartesian
+                    .step_with_force(cartesian_state, dt, force, options)
+                    .unwrap();
+                let (q_next, v_next, position_lambda, velocity_lambda, residuals) =
+                    dense_coordinate_rattle_step(
+                        &basis,
+                        &inverse,
+                        masses,
+                        lengths,
+                        &q_dense,
+                        &v_dense,
+                        &force_q,
+                        dt,
+                    );
+                let (reference_q, reference_v) = flatten_state(&reference.after);
                 assert!(
-                    (position_lambda[edge] - reference.position_multipliers[edge]).abs()
-                        <= 3.0e-7
+                    vector_max_abs(&q_next, &reference_q) <= 3.0e-7,
+                    "scale={scale}, step={step}, position mismatch={:e}",
+                    vector_max_abs(&q_next, &reference_q)
                 );
                 assert!(
-                    (velocity_lambda[edge] - reference.velocity_multipliers[edge]).abs()
+                    vector_max_abs(&v_next, &reference_v) <= 3.0e-7,
+                    "scale={scale}, step={step}, velocity mismatch={:e}",
+                    vector_max_abs(&v_next, &reference_v)
+                );
+                for edge in 0..2 {
+                    assert!(
+                        (position_lambda[edge] - reference.position_multipliers[edge]).abs()
+                            <= 3.0e-7
+                    );
+                    assert!(
+                        (velocity_lambda[edge] - reference.velocity_multipliers[edge]).abs()
+                            <= 3.0e-7
+                    );
+                    assert!(residuals[edge].abs() <= 3.0e-12);
+                }
+                let displacement =
+                    std::array::from_fn::<_, N, _>(|index| q_next[index] - q_dense[index]);
+                let computed_work = dot(&force_q, &displacement);
+                assert!((computed_work - reference.external_work).abs() <= 3.0e-10);
+                let energy_defect =
+                    kinetic_energy(masses, &v_next) - kinetic_energy(masses, &v_dense);
+                assert!(
+                    (energy_defect - computed_work - reference.work_energy_residual).abs()
                         <= 3.0e-7
                 );
-                assert!(residuals[edge].abs() <= 3.0e-12);
+                q_dense = q_next;
+                v_dense = v_next;
+                cartesian_state = reference.after;
             }
-            let displacement =
-                std::array::from_fn::<_, N, _>(|index| q_next[index] - q_dense[index]);
-            let computed_work = dot(&force_q, &displacement);
-            assert!((computed_work - reference.external_work).abs() <= 3.0e-10);
-            let energy_defect =
-                kinetic_energy(masses, &v_next) - kinetic_energy(masses, &v_dense);
-            assert!(
-                (energy_defect - computed_work - reference.work_energy_residual).abs()
-                    <= 3.0e-7
-            );
-            q_dense = q_next;
-            v_dense = v_next;
-            cartesian_state = reference.after;
         }
     }
 
