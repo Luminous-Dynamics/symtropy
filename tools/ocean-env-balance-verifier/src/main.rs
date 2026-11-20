@@ -271,9 +271,6 @@ fn parse_utc_timestamp(value: &str) -> Option<i64> {
     let days = era * 146097 + day_of_era - 719468;
     Some(days * 86400 + hour * 3600 + minute * 60 + second)
 }
-fn valid_utc_timestamp(value: &str) -> bool {
-    parse_utc_timestamp(value).is_some()
-}
 fn validate_evidence(e: &Evidence, interval: &IntervalRecord, ids: &mut HashSet<String>) -> Result<(), String> {
     if e.sample_id.trim().is_empty() || !ids.insert(e.sample_id.clone()) {
         return Err(format!("empty or duplicate sample_id {}", e.sample_id));
@@ -286,6 +283,7 @@ fn validate_evidence(e: &Evidence, interval: &IntervalRecord, ids: &mut HashSet<
     for (name, value) in [
         ("sensor_id", e.sensor_id.as_str()),
         ("calibration_id", e.calibration_id.as_str()),
+        ("calibration_independence_domain", e.calibration_independence_domain.as_str()),
     ] {
         if value.trim().is_empty() {
             return Err(format!("sample {} missing {name}", e.sample_id));
@@ -419,6 +417,8 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
         + (d_cp * u_cp).powi(2)
         + (d_flow * u_q_out).powi(2)
         + (d_delta * u_delta_temp).powi(2)).sqrt();
+    finite(thermal_kw, "thermal_power_kw")?;
+    nonnegative(u_thermal_kw, "thermal_power_standard_uncertainty_kw")?;
 
     let water_residual = q_out - q_in;
     let u_water_balance = (u_q_out.powi(2) + u_q_in.powi(2)).sqrt();
@@ -437,6 +437,8 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
         let anomaly = station.temperature_deg_c - reference.temperature_deg_c;
         let u_anomaly = (station.standard_uncertainty_deg_c.powi(2)
             + reference.standard_uncertainty_deg_c.powi(2)).sqrt();
+        finite(anomaly, "station_temperature_anomaly")?;
+        nonnegative(u_anomaly, "station_temperature_anomaly_uncertainty")?;
         station_anomalies.push(StationAnomaly {
             station_role:role.to_string(),
             distance_from_outfall_m:station.distance_from_outfall_m,
@@ -479,6 +481,12 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
             + (pair.outfall.concentration_mg_l * u_q_out).powi(2)).sqrt();
         let net = fout - fin;
         let u_net = (u_fin.powi(2) + u_fout.powi(2)).sqrt();
+        for (name, value) in [
+            ("intake_pollutant_flux", fin), ("outfall_pollutant_flux", fout),
+            ("net_pollutant_flux", net), ("net_pollutant_flux_uncertainty", u_net),
+        ] {
+            finite(value, name)?;
+        }
         pollutant_results.push(PollutantResult {
             analyte_id:pair.analyte_id.clone(),
             intake_g_s:fin,
@@ -693,6 +701,12 @@ mod tests {
         let intake_domain = b.interval_records[0].concentration_pairs[0].intake.evidence.calibration_independence_domain.clone();
         b.interval_records[0].concentration_pairs[0].outfall.evidence.calibration_independence_domain = intake_domain;
         assert!(validate(&b).unwrap_err().contains("shares a calibration domain"));
+    }
+    #[test]
+    fn missing_calibration_independence_domain_is_rejected() {
+        let mut b = fixture();
+        b.interval_records[0].thermal_observations[0].evidence.calibration_independence_domain.clear();
+        assert!(validate(&b).unwrap_err().contains("missing calibration_independence_domain"));
     }
     #[test]
     fn utc_interval_duration_handles_midnight() {
