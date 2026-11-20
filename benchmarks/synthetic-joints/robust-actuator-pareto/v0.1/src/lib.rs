@@ -86,7 +86,12 @@ pub struct PredictionCalibrationReceipt {
 #[derive(Debug, Clone, PartialEq)]
 pub struct MetricEvidence {
     pub name: String,
+    /// Reported point estimate, retained for display/traceability.
     pub value: Option<f64>,
+    /// Evidence-supported lower/upper bounds for robust Pareto comparison.
+    /// Missing bounds make the candidate Unknown, never a point-score pass.
+    pub lower_bound: Option<f64>,
+    pub upper_bound: Option<f64>,
     pub unit: String,
     pub evidence_class: EvidenceClass,
     pub source_reference: Option<String>,
@@ -479,8 +484,22 @@ fn assess_candidate(
             &observation.unit,
             &format!("objective {:?}", definition.name),
         )?;
-        if observation.value.is_some_and(|value| !value.is_finite()) {
-            return Err(format!("candidate {:?} objective {} is non-finite", candidate.candidate_id, definition.name));
+        if observation.value.is_some_and(|value| !value.is_finite())
+            || observation.lower_bound.is_some_and(|value| !value.is_finite())
+            || observation.upper_bound.is_some_and(|value| !value.is_finite())
+        {
+            return Err(format!("candidate {:?} objective {} or its interval bounds are non-finite", candidate.candidate_id, definition.name));
+        }
+        match (observation.value, observation.lower_bound, observation.upper_bound) {
+            (Some(value), Some(lower), Some(upper)) => {
+                if lower > upper || value < lower || value > upper {
+                    return Err(format!(
+                        "candidate {:?} objective {} has an invalid interval or point estimate outside its bounds",
+                        candidate.candidate_id, definition.name
+                    ));
+                }
+            }
+            _ => unknown_fields.push(format!("objective_interval[{index}]={}", definition.name)),
         }
         if observation.value.is_none() || observation.evidence_class == EvidenceClass::Unknown {
             unknown_fields.push(format!("objective[{index}]={}", definition.name));
@@ -598,24 +617,37 @@ fn dominates(
         .zip(&right.objectives)
         .zip(definitions)
     {
-        let (Some(left_value), Some(right_value)) = (left_metric.value, right_metric.value) else {
+        let (
+            Some(left_lower),
+            Some(left_upper),
+            Some(right_lower),
+            Some(right_upper),
+        ) = (
+            left_metric.lower_bound,
+            left_metric.upper_bound,
+            right_metric.lower_bound,
+            right_metric.upper_bound,
+        ) else {
             return false;
         };
 
+        // Robust interval dominance: the left candidate's worst case must
+        // be no worse than the right candidate's best case on every axis.
+        // Overlapping intervals are deliberately left non-dominated.
         match definition.direction {
             ObjectiveDirection::Minimize => {
-                if left_value > right_value {
+                if left_upper > right_lower {
                     return false;
                 }
-                if left_value < right_value {
+                if left_upper < right_lower {
                     strictly_better = true;
                 }
             }
             ObjectiveDirection::Maximize => {
-                if left_value < right_value {
+                if left_lower < right_upper {
                     return false;
                 }
-                if left_value > right_value {
+                if left_lower > right_upper {
                     strictly_better = true;
                 }
             }
@@ -766,6 +798,8 @@ mod tests {
         MetricEvidence {
             name: String::new(),
             value: Some(value),
+            lower_bound: Some(value),
+            upper_bound: Some(value),
             unit: unit.to_owned(),
             evidence_class: class,
             source_reference: Some("https://example.invalid/fixture".to_owned()),
@@ -1246,7 +1280,80 @@ mod tests {
     }
 
     #[test]
-    fn pareto_033_all_candidates_are_retained_as_assessments() {
+    fn pareto_033_overlapping_objective_intervals_do_not_create_false_dominance() {
+        let mut a = candidate("point-better", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        let mut b = candidate("point-worse", 1.1, 105.0, 0.88, EvidenceClass::IndependentPhysical);
+        // A has better point estimates on all objectives, but the intervals overlap.
+        for (metric, lower, upper) in [
+            (&mut a.objectives[0], 0.8, 1.2),
+            (&mut a.objectives[1], 90.0, 110.0),
+            (&mut a.objectives[2], 0.85, 0.95),
+        ] {
+            metric.lower_bound = Some(lower);
+            metric.upper_bound = Some(upper);
+        }
+        for (metric, lower, upper) in [
+            (&mut b.objectives[0], 0.9, 1.3),
+            (&mut b.objectives[1], 95.0, 115.0),
+            (&mut b.objectives[2], 0.84, 0.94),
+        ] {
+            metric.lower_bound = Some(lower);
+            metric.upper_bound = Some(upper);
+        }
+        let report = robust_pareto_report(&[a, b], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(report.fronts[0].candidate_ids, vec!["point-better", "point-worse"]);
+        assert!(report.assessments.iter().all(|assessment| assessment.dominated_by.is_empty()));
+    }
+
+    #[test]
+    fn pareto_034_nonoverlapping_objective_intervals_allow_robust_dominance() {
+        let mut a = candidate("robust-winner", 1.0, 80.0, 0.9, EvidenceClass::IndependentPhysical);
+        let mut b = candidate("robust-loser", 2.0, 100.0, 0.8, EvidenceClass::IndependentPhysical);
+        for (metric, lower, upper) in [
+            (&mut a.objectives[0], 0.9, 1.1),
+            (&mut a.objectives[1], 75.0, 85.0),
+            (&mut a.objectives[2], 0.88, 0.92),
+        ] {
+            metric.lower_bound = Some(lower);
+            metric.upper_bound = Some(upper);
+        }
+        for (metric, lower, upper) in [
+            (&mut b.objectives[0], 1.9, 2.1),
+            (&mut b.objectives[1], 95.0, 105.0),
+            (&mut b.objectives[2], 0.78, 0.82),
+        ] {
+            metric.lower_bound = Some(lower);
+            metric.upper_bound = Some(upper);
+        }
+        let report = robust_pareto_report(&[a, b], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(report.fronts[0].candidate_ids, vec!["robust-winner"]);
+        assert_eq!(assessment(&report, "robust-loser").dominated_by, vec!["robust-winner"]);
+    }
+
+    #[test]
+    fn pareto_035_missing_objective_interval_makes_candidate_unknown() {
+        let mut candidate = candidate("missing-interval", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        candidate.objectives[0].upper_bound = None;
+        let report = robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(assessment(&report, "missing-interval").disposition, CandidateDisposition::Unknown);
+        assert!(report.fronts.is_empty());
+    }
+
+    #[test]
+    fn pareto_036_malformed_or_point-excluding_objective_interval_rejects() {
+        let mut inverted = candidate("inverted", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        inverted.objectives[0].lower_bound = Some(2.0);
+        inverted.objectives[0].upper_bound = Some(1.0);
+        assert!(robust_pareto_report(&[inverted], &objective_defs(), &constraint_defs()).is_err());
+
+        let mut excludes_point = candidate("excludes-point", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        excludes_point.objectives[0].lower_bound = Some(1.2);
+        excludes_point.objectives[0].upper_bound = Some(1.5);
+        assert!(robust_pareto_report(&[excludes_point], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_037_all_candidates_are_retained_as_assessments() {
         let good = candidate("good", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
         let mut bad = candidate("bad", 0.5, 50.0, 1.0, EvidenceClass::IndependentPhysical);
         bad.hard_constraints[0].minimum_robust_margin = Some(-0.5);
