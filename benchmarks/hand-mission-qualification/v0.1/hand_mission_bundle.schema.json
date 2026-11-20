@@ -1,0 +1,387 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/hand-mission-qualification/v0.1/hand_mission_bundle.schema.json",
+  "title": "Hand Mission Evidence Bundle v0.1",
+  "description": "A mission-level envelope that links a named dexterity protocol, exact embodiment/configuration, all attempt outcomes, elapsed-time events, observations and existing component qualification records. This schema records evidence; it does not certify it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_kind",
+    "bundle_id",
+    "benchmark_profile",
+    "candidate",
+    "configuration",
+    "system_boundary",
+    "mission_clock",
+    "task_catalog",
+    "attempts",
+    "timeline",
+    "run_summary",
+    "observations",
+    "linked_component_records",
+    "evidence",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "record_kind": {
+      "enum": ["observed_physical", "numerical_simulation", "analytic_reference", "illustrative_fixture"]
+    },
+    "bundle_id": { "type": "string", "minLength": 1 },
+    "benchmark_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "framework_id",
+        "profile_id",
+        "profile_version",
+        "source_snapshot_date",
+        "protocol_reference",
+        "task_set_digest",
+        "task_mix_digest",
+        "scoring_protocol",
+        "task_catalog"
+      ],
+      "properties": {
+        "framework_id": {
+          "enum": ["POMDAR", "HAND_ERC_MULTI_LEVEL", "NIST_END_EFFECTOR_2020", "CUSTOM"]
+        },
+        "profile_id": { "type": "string", "minLength": 1 },
+        "profile_version": { "type": "string", "minLength": 1 },
+        "source_snapshot_date": { "type": "string", "format": "date" },
+        "protocol_reference": { "type": "string", "format": "uri" },
+        "task_set_digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "task_mix_digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "scoring_protocol": {
+          "enum": [
+            "POMDAR_CORRECTNESS_0_8_SPEED_VS_HUMAN_0_2",
+            "NIST_METRIC_SET_NO_COMPOSITE_SCORE",
+            "HAND_ERC_METRIC_SET_NO_COMPOSITE_SCORE",
+            "CUSTOM_NO_COMPOSITE_SCORE",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "human_baseline_reference": { "type": ["string", "null"] },
+        "profile_notes": { "type": "string" }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate_id", "display_name", "embodiment_class", "evidence_origin"],
+      "properties": {
+        "candidate_id": { "type": "string", "minLength": 1 },
+        "display_name": { "type": "string", "minLength": 1 },
+        "embodiment_class": {
+          "enum": ["anthropomorphic_hand", "robotic_gripper", "single_finger", "hand_and_wrist", "other"]
+        },
+        "manufacturer_or_lab": { "type": ["string", "null"] },
+        "evidence_origin": {
+          "enum": ["research_prototype", "commercial_product", "simulation_model", "analytic_reference", "internal_prototype", "illustrative_candidate", "other"]
+        },
+        "unit_identifier": { "type": ["string", "null"] }
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "configuration_id",
+        "configuration_digest",
+        "hardware_revision",
+        "software_revision",
+        "controller_revision",
+        "control_mode",
+        "arm_assistance",
+        "wrist_assistance",
+        "human_teleoperation",
+        "vision_inputs",
+        "tactile_inputs",
+        "calibration_state",
+        "service_state"
+      ],
+      "properties": {
+        "configuration_id": { "type": "string", "minLength": 1 },
+        "configuration_digest": { "type": ["string", "null"] },
+        "hardware_revision": { "type": ["string", "null"] },
+        "software_revision": { "type": ["string", "null"] },
+        "controller_revision": { "type": ["string", "null"] },
+        "control_mode": { "enum": ["autonomous_policy", "teleoperation", "scripted", "hybrid", "manual", "unknown"] },
+        "arm_assistance": { "type": "boolean" },
+        "wrist_assistance": { "type": "boolean" },
+        "human_teleoperation": { "type": "boolean" },
+        "vision_inputs": { "type": "boolean" },
+        "tactile_inputs": { "type": "boolean" },
+        "calibration_state": { "enum": ["current", "expired", "not_disclosed", "not_applicable", "unknown"] },
+        "service_state": { "enum": ["new", "conditioned", "aged", "repaired", "remounted", "not_disclosed", "unknown"] },
+        "configuration_notes": { "type": "string" }
+      }
+    },
+    "system_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "included_components",
+        "excluded_components",
+        "unknown_components",
+        "power_measurement_boundary",
+        "boundary_notes"
+      ],
+      "properties": {
+        "included_components": { "type": "array", "items": { "type": "string" } },
+        "excluded_components": { "type": "array", "items": { "type": "string" } },
+        "unknown_components": { "type": "array", "items": { "type": "string" } },
+        "power_measurement_boundary": {
+          "enum": ["actuators_only", "hand_including_drivers", "arm_and_hand", "full_cell", "not_measured", "unknown"]
+        },
+        "boundary_notes": { "type": "string", "minLength": 1 }
+      }
+    },
+    "mission_clock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start_utc", "end_utc", "elapsed_s", "timebase", "clock_alignment_uncertainty_ms"],
+      "properties": {
+        "start_utc": { "type": "string", "format": "date-time" },
+        "end_utc": { "type": "string", "format": "date-time" },
+        "elapsed_s": { "type": "number", "exclusiveMinimum": 0 },
+        "timebase": { "type": "string", "minLength": 1 },
+        "clock_alignment_uncertainty_ms": { "type": ["number", "null"], "minimum": 0 }
+      }
+    },
+    "task_catalog": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["task_id", "family", "source_task_label", "difficulty_tier", "acceptance_criteria"],
+        "properties": {
+          "task_id": { "type": "string", "minLength": 1 },
+          "family": {
+            "enum": ["vertical_scaffold", "horizontal_scaffold", "continuous_rotation", "pure_grasping", "strength", "repeatability", "other"]
+          },
+          "source_task_label": { "type": "string", "minLength": 1 },
+          "difficulty_tier": { "type": "string", "minLength": 1 },
+          "acceptance_criteria": { "type": "string", "minLength": 1 },
+          "fixture_or_object_revision": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "attempts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "attempt_id",
+          "task_id",
+          "repetition_index",
+          "outcome",
+          "task_success",
+          "start_elapsed_s",
+          "end_elapsed_s",
+          "outcome_reason"
+        ],
+        "properties": {
+          "attempt_id": { "type": "string", "minLength": 1 },
+          "task_id": { "type": "string", "minLength": 1 },
+          "repetition_index": { "type": "integer", "minimum": 1 },
+          "outcome": { "enum": ["accepted", "failed", "aborted", "censored", "excluded"] },
+          "task_success": { "type": ["boolean", "null"] },
+          "start_elapsed_s": { "type": "number", "minimum": 0 },
+          "end_elapsed_s": { "type": "number", "exclusiveMinimum": 0 },
+          "outcome_reason": { "type": ["string", "null"] }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "outcome": { "const": "accepted" } }, "required": ["outcome"] },
+            "then": { "properties": { "task_success": { "const": true } } }
+          },
+          {
+            "if": { "properties": { "outcome": { "const": "failed" } }, "required": ["outcome"] },
+            "then": { "properties": { "task_success": { "const": false } } }
+          },
+          {
+            "if": { "properties": { "outcome": { "enum": ["aborted", "censored", "excluded"] } }, "required": ["outcome"] },
+            "then": { "properties": { "outcome_reason": { "type": "string", "minLength": 1 } } }
+          }
+        ]
+      }
+    },
+    "timeline": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["event_id", "event_type", "start_elapsed_s", "end_elapsed_s", "attempt_id", "notes"],
+        "properties": {
+          "event_id": { "type": "string", "minLength": 1 },
+          "event_type": {
+            "enum": ["task_execution", "cooldown", "thermal_derating", "fault_recovery", "service", "setup", "standby", "transport", "interruption", "other"]
+          },
+          "start_elapsed_s": { "type": "number", "minimum": 0 },
+          "end_elapsed_s": { "type": "number", "exclusiveMinimum": 0 },
+          "attempt_id": { "type": ["string", "null"] },
+          "notes": { "type": "string" }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "event_type": { "const": "task_execution" } }, "required": ["event_type"] },
+            "then": { "properties": { "attempt_id": { "type": "string", "minLength": 1 } } }
+          }
+        ]
+      }
+    },
+    "run_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "planned_attempts",
+        "accepted_task_completions",
+        "failed_attempts",
+        "aborted_attempts",
+        "censored_attempts",
+        "excluded_attempts",
+        "mission_elapsed_s",
+        "sustained_mission_throughput_per_h"
+      ],
+      "properties": {
+        "planned_attempts": { "type": "integer", "minimum": 1 },
+        "accepted_task_completions": { "type": "integer", "minimum": 0 },
+        "failed_attempts": { "type": "integer", "minimum": 0 },
+        "aborted_attempts": { "type": "integer", "minimum": 0 },
+        "censored_attempts": { "type": "integer", "minimum": 0 },
+        "excluded_attempts": { "type": "integer", "minimum": 0 },
+        "mission_elapsed_s": { "type": "number", "exclusiveMinimum": 0 },
+        "sustained_mission_throughput_per_h": { "type": "number", "minimum": 0 },
+        "summary_notes": { "type": "string" }
+      }
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric_id",
+          "category",
+          "value_status",
+          "value",
+          "unit",
+          "regime",
+          "denominator",
+          "source_class",
+          "verification_state",
+          "evidence_refs",
+          "reason"
+        ],
+        "properties": {
+          "metric_id": { "type": "string", "minLength": 1 },
+          "category": {
+            "enum": [
+              "task_correctness",
+              "task_latency",
+              "attempt_success_fraction",
+              "sustained_mission_throughput",
+              "source_energy",
+              "energy_per_accepted_completion",
+              "cooldown_energy",
+              "temperature",
+              "thermal_limit_event",
+              "derating_event",
+              "recovery_latency",
+              "service_time",
+              "force_error",
+              "repeatability",
+              "other"
+            ]
+          },
+          "value_status": { "enum": ["observed", "derived", "unknown", "not_disclosed", "not_applicable"] },
+          "value": { "type": ["number", "integer", "string", "boolean", "array", "object", "null"] },
+          "unit": { "type": "string", "minLength": 1 },
+          "regime": { "type": "string", "minLength": 1 },
+          "denominator": { "type": "string", "minLength": 1 },
+          "sensor_or_channel": { "type": ["string", "null"] },
+          "source_class": {
+            "enum": [
+              "manufacturer_claim",
+              "vendor_affiliated_measurement",
+              "paper_reported_model",
+              "paper_reported_physical_measurement",
+              "independent_lab_measurement",
+              "internal_physical_measurement",
+              "source_transcription",
+              "derived_arithmetic",
+              "analytic_reference",
+              "numerical_simulation",
+              "other"
+            ]
+          },
+          "verification_state": {
+            "enum": [
+              "unreviewed",
+              "transcribed",
+              "arithmetic_checked",
+              "analytically_tested",
+              "numerically_crosschecked",
+              "physically_measured",
+              "independently_replicated"
+            ]
+          },
+          "evidence_refs": { "type": "array", "items": { "type": "string" } },
+          "reason": { "type": ["string", "null"] }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "value_status": { "enum": ["unknown", "not_disclosed", "not_applicable"] } }, "required": ["value_status"] },
+            "then": {
+              "properties": { "value": { "type": "null" }, "reason": { "type": "string", "minLength": 1 } }
+            }
+          },
+          {
+            "if": { "properties": { "value_status": { "enum": ["observed", "derived"] } }, "required": ["value_status"] },
+            "then": { "properties": { "value": { "not": { "type": "null" } } } }
+          }
+        ]
+      }
+    },
+    "linked_component_records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["record_id", "relationship"],
+        "properties": {
+          "record_id": { "type": "string", "minLength": 1 },
+          "relationship": {
+            "enum": ["actuator", "joint", "finger", "transmission", "sensor", "hand", "other"]
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["evidence_id", "source_type", "uri", "locator", "digest"],
+        "properties": {
+          "evidence_id": { "type": "string", "minLength": 1 },
+          "source_type": {
+            "enum": ["benchmark_protocol", "raw_measurement", "simulation_output", "source_code", "calibration_certificate", "independent_report", "other"]
+          },
+          "uri": { "type": "string", "format": "uri" },
+          "locator": { "type": ["string", "null"] },
+          "digest": { "type": ["string", "null"] },
+          "notes": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "claim_ceiling": { "type": "string", "minLength": 1 }
+  }
+}
