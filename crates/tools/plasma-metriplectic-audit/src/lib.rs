@@ -237,8 +237,10 @@ fn minimum_symmetric_eigenvalue(
             }
         }
         if largest_off_diagonal <= 1.0e-14 {
-            let minimum = (0..dimension)
-                .map(|index| work[index * dimension + index])
+            let minimum = work
+                .chunks_exact(dimension)
+                .enumerate()
+                .map(|(index, row)| row[index])
                 .fold(f64::INFINITY, f64::min);
             if minimum.is_finite() {
                 return Ok(minimum);
@@ -265,14 +267,15 @@ fn minimum_symmetric_eigenvalue(
         let cosine = 1.0 / (1.0 + tangent * tangent).sqrt();
         let sine = tangent * cosine;
 
-        for index in 0..dimension {
-            if index == p || index == q {
-                continue;
-            }
+        let off_diagonal_updates = work
+            .chunks_exact(dimension)
+            .enumerate()
+            .filter(|(index, _)| *index != p && *index != q)
+            .map(|(index, row)| (index, row[p], row[q]))
+            .collect::<Vec<_>>();
+        for (index, aip, aiq) in off_diagonal_updates {
             let ip = index * dimension + p;
             let iq = index * dimension + q;
-            let aip = work[ip];
-            let aiq = work[iq];
             let new_ip = cosine * aip - sine * aiq;
             let new_iq = sine * aip + cosine * aiq;
             work[ip] = new_ip;
