@@ -163,3 +163,21 @@ Source register:
 5. **Cross-site / cross-vendor replication:** a new independent measurement chain and separately qualified profile for each configuration.
 
 No software pass moves a system up this ladder automatically. The current v0.1 kernel is level 1 only.
+
+
+## 9. Integration contract with dispatch readiness
+
+The stop kernel should feed dispatch readiness as a *configuration-bound evidence receipt*, not as a naked distance scalar. The downstream receipt must preserve, at minimum:
+- robot, brake, tool and payload configuration digests;
+- dynamics qualification profile and physical test-campaign receipt digests;
+- sensor profile, target/scenario context and minimum detection-range receipt;
+- trajectory and motion-envelope digest;
+- primitive manifest identifying every body link, tool and payload;
+- site frame, transform, site clock domain and validity interval;
+- stop-distance/time bounds, each margin term and distance-budget remainder;
+- site-ledger sequence/head, dynamic occupancy snapshot, actor manifest, occupancy engine and clearance policy;
+- canonical readiness receipt identity and expiry.
+
+The readiness evaluator should recompute the stop/detection budget from the bound profile, or verify an independently authenticated deterministic assessment whose input digests match the current request. It must refuse when the robot/tool/payload/brake or sensor configuration differs from the qualification, when the scenario context changes, when the envelope or occupancy snapshot is stale, or when any primitive is missing.
+
+The scalar stop distance must be projected into the full robot/tool/payload geometry over the stop-time interval. For a straight, fixed-orientation translation, the longitudinal extension can be swept along the motion tangent. For turning, articulation, lateral slip or nonholonomic recovery, v0.1 is outside scope and the caller must not approximate the missing motion as a straight-line stop tube. A stop-reachability receipt is not a resource reservation; the one-shot reservation reducer remains a separate, atomic decision. Neither readiness nor a reservation is an actuator permit.
