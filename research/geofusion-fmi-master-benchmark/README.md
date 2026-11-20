@@ -42,7 +42,7 @@ Sources:
 | SSP 2.0.1 | System topology / parameterization package | System-structure portability reference; not a master algorithm |
 | VDMCheck | Formal-model-based FMI behavior checks | Complementary semantic validation where compatible |
 
-OpenModelica documentation lists the three OMSimulator CS master methods above. The release maturity must also be explicit in every comparison. As of 20 November 2026, the OMSimulator repository identifies `maintenance/v2.1` as the stable 2.1 branch and v2.1.3 as its latest release; `master` is explicitly the active unstable development branch. The OpenModelica 1.27 documentation reports an OMSimulator build version of `v2.1.3.post17-g81bd489`. Use a pinned v2.1.3 release/build as the production-stability comparator. Development-branch builds may be tested in a separately labelled exploratory lane, but must never be silently mixed into the stable leaderboard. I found no authoritative release evidence sufficient to retain the former specific `3.0.0`/`3.1` version-plan claim, so it is removed.
+OpenModelica documentation lists the three OMSimulator CS master methods above. The release maturity must also be explicit in every comparison. As of 20 November 2026, the OMSimulator repository identifies `maintenance/v2.1` as the stable 2.1 branch and v2.1.3 as its latest stable release; `master` is the active unstable development branch. The OpenModelica 1.27 documentation reports a v2.1.3 build version of `v2.1.3.post17-g81bd489`. Use a pinned v2.1.3 release/build as the production-stability comparator. The repository also lists **OMSimulator 3.0.0 as a prerelease released 11 November 2026**, and explicitly calls it development-only; the first production-ready v3 release is planned as v3.1. The current v3 documentation snapshot is `v3.0.0.post208-g3046f82` (dated 1 November 2026). Test this as a separately labelled exploratory lane only; never mix it into the stable v2.1 leaderboard.
 
 FMPy 0.3.32 is the current PyPI release (9 September 2026). The published universal wheel has SHA-256 `b379deb9417b842028003a288d00c1c5f138d1580e1ff12cc6c42a98719cecf0`, but PyPI reports no provenance attestation for that wheel. Pin and retain the wheel digest, and report the absent publisher provenance rather than implying a verified build origin.
 
@@ -54,7 +54,8 @@ The current OpenModelica User Guide reports FMI 2.0.5 as supported and FMI 3.0.2
 
 Sources:
 - [OMSimulator solver methods](https://openmodelica.org/doc/OpenModelicaUsersGuide/latest/omsimulator.html)
-- [OMSimulator branch/release maturity: stable maintenance/v2.1 at v2.1.3; master is active and unstable](https://github.com/OpenModelica/OMSimulator)
+- [OMSimulator releases: v2.1.3 stable line and v3.0.0 development-only prerelease (11 Nov 2026; v3.1 planned for production)](https://github.com/OpenModelica/OMSimulator/releases)
+- [OMSimulator v3.0.0 development documentation snapshot, dated 1 Nov 2026](https://openmodelica.org/doc/OMSimulator/master/OMSimulator/UsersGuide/pdf/OMSimulator.pdf)
 - [OpenModelica official releases: 1.27.1 official; 1.28.0-dev nightly](https://openmodelica.org/download/download-windows/)
 - [OpenModelica User Guide — FMI 2.0.5 supported / FMI 3.0.2 experimental](https://openmodelica.org/doc/OpenModelicaUsersGuide/OpenModelicaUsersGuide-latest.pdf)
 - [FMPy 0.3.32 release and wheel SHA-256](https://pypi.org/project/FMPy/0.3.32/)
@@ -83,7 +84,7 @@ Sources:
 | Tool / lane | Verified release or branch | Qualification treatment |
 |---|---|---|
 | OMSimulator stable | `maintenance/v2.1`, v2.1.3 (OpenModelica docs build: v2.1.3.post17-g81bd489) | Primary stable FMI-master comparator; pin binary and commit |
-| OMSimulator development | `master` | Explicitly active/unstable development lane; never mix into stable rankings |
+| OMSimulator development | `master`, prerelease tag v3.0.0 (11 Nov 2026; docs snapshot v3.0.0.post208-g3046f82) | Development-only prerelease; first production v3 release planned as v3.1; never mix into stable v2.1 rankings |
 | OpenModelica official | 1.27.1 | Latest official release shown by the project download page |
 | OpenModelica nightly | 1.28.0-dev | Exploratory only; not a production release |
 | OpenModelica FMI compatibility | FMI 2.0.5 supported; FMI 3.0.2 experimental | Separate results into distinct compatibility lanes |
