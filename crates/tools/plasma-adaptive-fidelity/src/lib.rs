@@ -1526,6 +1526,38 @@ mod tests {
         }));
     }
 
+
+    #[test]
+    fn transition_receipt_must_bind_the_exact_local_state() {
+        let current = moment_candidate('a', 4, 0.08, 10.0);
+        let mut next = moment_candidate('b', 8, 0.02, 5.0);
+        let mut transfer = transition(&digest('a'), &digest('b'));
+        transfer.evaluated_state_sha256 = digest('4');
+        next.transition = Some(transfer);
+        let mut req = request(vec![current, next]);
+        req.current_profile_sha256 = Some(digest('a'));
+        req.current_dwell_steps = 10;
+        let decision = evaluate_adaptive_policy(&req).unwrap();
+        let PolicyDecision::Selected { receipt, excluded } = decision else {
+            panic!("a stale transition must not displace the current profile");
+        };
+        assert_eq!(receipt.profile_sha256, digest('a'));
+        assert!(excluded.iter().any(|item| {
+            item.profile_sha256 == digest('b')
+                && item.reason == ExclusionReason::TransitionIdentityMismatch
+        }));
+    }
+
+    #[test]
+    fn invalid_local_state_digest_is_an_input_error() {
+        let mut req = request(vec![moment_candidate('a', 8, 0.02, 1.0)]);
+        req.local_state_sha256 = "unknown-state".into();
+        assert_eq!(
+            evaluate_adaptive_policy(&req),
+            Err(InputError::InvalidStateDigest)
+        );
+    }
+
     #[test]
     fn transition_conservation_residual_must_be_below_threshold() {
         let current = moment_candidate('a', 4, 0.08, 10.0);
