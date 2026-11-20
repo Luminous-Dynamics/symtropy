@@ -38,7 +38,7 @@
       "oneOf": [
         {
           "type": "number",
-          "minimum": 0,
+          "exclusiveMinimum": 0,
           "maximum": 8760
         },
         {
