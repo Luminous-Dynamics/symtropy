@@ -41,7 +41,7 @@ The committed fixture deliberately uses synthetic costs and unqualified gates, s
 
 ## EV-CARRIER-MODULE-MFG-001 — process capacity overlay
 
-The `ev_carrier_module_factory_screen` binary consumes the existing `ev_factory_frontier` report and adds incremental manufacturing routes for carrier modules. It compares a synthetic detachable UAV pod, synthetic AMR handoff module and an intentionally unknown integrated drone-bay route.
+The `ev_carrier_module_factory_screen` binary consumes the existing `ev_factory_frontier` report and adds incremental manufacturing routes for carrier modules. It compares four configurations: synthetic detachable UAV pod, synthetic AMR handoff module, an intentionally unknown integrated drone bay, and an intentionally unknown mobile drone-station trailer.
 
 Run after `ev_factory_frontier`:
 
