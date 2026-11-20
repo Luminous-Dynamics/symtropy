@@ -21,9 +21,10 @@ pub use dispatch_readiness::{
 };
 pub use integrated_dispatch::{
     IntegratedDispatchReadinessFailure, IntegratedDispatchReadinessReceipt,
-    IntegratedDispatchReadinessRequest, IntegratedEvidenceNodeIds,
+    IntegratedDispatchReadinessRequest, IntegratedEvidenceNodeIds, StopTubeEnvelopeReceipt,
     INTEGRATED_DISPATCH_RECEIPT_SCHEMA_VERSION, INTEGRATED_DISPATCH_REQUEST_SCHEMA_VERSION,
-    check_integrated_dispatch_readiness, verify_integrated_dispatch_readiness_receipt_current,
+    STOP_TUBE_ENVELOPE_SCHEMA_VERSION, check_integrated_dispatch_readiness,
+    verify_integrated_dispatch_readiness_receipt_current,
 };
 pub use stopping_reachability::{
     HazardDetectionQualification, HazardStoppingBudget, HazardStoppingMargins,
