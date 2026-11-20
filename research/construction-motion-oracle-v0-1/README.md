@@ -160,3 +160,8 @@ The computation uses floating-point formulas and adds explicit 1 mm / 1 ms numer
 ### Verification corpus
 
 Unit tests cover the jerk-ramp-plus-plateau formula, triangular braking, motion during response latency, speed-domain refusal, malformed evidence digests, nonphysical bounds, outward rounding, 54 generated analytic-vs-time-step braking cases and monotonicity under speed/latency/acceleration/deceleration/jerk changes. The Linux workflow also runs a standalone microbenchmark reporting p50/p95/p99 batch latency and median ns/call. Physical validation must use independent tracking and trigger/brake timing instrumentation in an enclosed test cell before any guarded site trial.
+
+
+The end-to-end qualification plan, industry context and preregistered physical benchmark targets are in docs/stopping-reachability-qualification-benchmark-v0.1.md. The JSON Schema in schema/stopping-dynamics-qualification-v0.1.schema.json defines the dynamics qualification profile; schema/hazard-stopping-budget-v0.1.schema.json defines the paired sensor-range and margin input. The examples are synthetic digest placeholders, not physical evidence. CI validates both Draft 2020-12 schemas and fixtures.
+
+The current test corpus includes an independent time-step integration oracle across 54 deterministic speed/deceleration/jerk combinations, monotonicity controls, and end-to-end detection-range budget pass/fail cases. The benchmark binary measures analytic kernel p50/p95/p99 and median per-call cost; it does not establish physical performance or SOTA.
