@@ -119,7 +119,7 @@
       },
       {
         "step": "preempt_and_checkpoint_background_jobs",
-        "budget_seconds": 180
+        "budget_seconds": 480
       },
       {
         "step": "verify_recovery_image_and_runtime",
@@ -134,7 +134,7 @@
         "budget_seconds": 600
       }
     ],
-    "arithmetic_only_expected_total_seconds": 5700,
+    "arithmetic_only_expected_total_seconds": 6000,
     "target_is_measured": false
   },
   "scenarios": [
@@ -158,7 +158,8 @@
         "background_jobs_fenced",
         "checkpoint_integrity_verified",
         "protected_service_resources_fit",
-        "preemption_within_180_seconds",
+        "quiesce_within_180_seconds",
+        "checkpoint_completion_within_300_seconds",
         "sequential_recovery_budget_within_14400_seconds"
       ]
     },
