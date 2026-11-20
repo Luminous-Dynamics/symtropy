@@ -49,6 +49,18 @@ flowchart LR
 
 The diagram is a logical boundary, not a finished wiring or piping diagram.
 
+### 3.0 Reuse existing measurement and acceptance owners
+
+Do not add a second generic metrology or uncertainty engine. Compose these existing workstreams:
+- [#3987 METROLOGY-ARCH-001](https://github.com/Luminous-Dynamics/symtropy/issues/3987) for traceable physical measurement-system architecture and qualification-record structure.
+- [#5894 KITCHEN-METROLOGY-001](https://github.com/Luminous-Dynamics/symtropy/issues/5894) as a practical pre-trial checklist for instrument selection, calibration scope and frozen measurement procedures; reuse the pattern, not its kitchen-specific measurands.
+- [#6266 ACTUATOR-METROLOGY-SYNCHRONIZATION-001](https://github.com/Luminous-Dynamics/symtropy/issues/6266) for synchronized torque/power channels, time-base offsets, delay and dynamic measurement uncertainty.
+- [#5062 LOCO-MEASUREMENT-UQ-RECEIPT-001](https://github.com/Luminous-Dynamics/symtropy/issues/5062) for dependency/correlation-preserving uncertainty evidence; the ground-cell adapter consumes its output rather than recomputing covariance.
+- [#6140 SYNTH-JOINT-BENCHMARK-CONTRACT-001](https://github.com/Luminous-Dynamics/symtropy/issues/6140) for multidimensional, evidence-bound comparison records and non-composite scorecards.
+- [#4263 ORBITAL-TRUSS-ACCEPTANCE-001](https://github.com/Luminous-Dynamics/symtropy/issues/4263) for as-built geometry, joint inspection and structural response acceptance.
+
+The ground-cell issue owns the system integration, test plan, safety review, selected instrument configuration and physical evidence handoff. The measurement owners remain authoritative for their respective calibration, synchronization, uncertainty and structural calculations.
+
 ### 3.1 Mechanical base and client fixture
 
 A rigid, guarded base supports:
@@ -133,7 +145,7 @@ The test cell must fail safe on loss of power, communications, control software,
 
 ## 4. Instrumentation and metrology
 
-All channels must declare instrument ID/serial, calibration certificate, calibration status/validity, range, resolution, uncertainty, sample rate, clock/time base, units, mounting location and data path.
+All channels must declare instrument ID/serial, calibration certificate, calibration status/validity, range, resolution, uncertainty, sample rate, clock/time base, units, mounting location and data path. Use #3987/#5894 for instrument and calibration completeness, #6266 for dynamic-channel synchronization, and #5062 for uncertainty dependence; this document defines no replacement record schema.
 
 | Measurement | Primary method | Independent cross-check |
 |---|---|---|
