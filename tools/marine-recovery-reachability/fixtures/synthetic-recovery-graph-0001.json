@@ -14,8 +14,8 @@
     "scenario_set_sha256": "d92c6374ecf7356ee88f9518520b49cf0c9ebd23adf3f683899f49f60c49f1e6",
     "mission_window_start": "2026-11-20T10:00:00Z",
     "mission_window_end": "2026-11-21T10:00:00Z",
-    "mission_snapshot_sha256": "1da9d2fe17857d57f801e12ef930ac1ebe9c702383016a1518bd859c595a235f",
-    "capability_roster_sha256": "af4adae9335e29a59dfe670b7e7c5679d3daed9852d7c2a14128bf79d8941c36"
+    "mission_snapshot_sha256": "4bc5084cb3c3e0a7d3cf462c1b4d9ace0767a73785644e0bcd51e417aa0ee1ae",
+    "capability_roster_sha256": "0e72a0865a0c29f26e3ec6c71be7a2feaf8d0e2a285db3ecc1e6e72ff96f741d"
   },
   "service_contract": [
     {
@@ -2306,6 +2306,13 @@
   ],
   "capability_roster": [
     {
+      "capability_id": "controlled_safe_hold",
+      "qualification_status": "qualified",
+      "qualification_scope_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "qualification_evidence_sha256": "2e8dec2fc9710585c41f2e199920377446b83a045741a9c133145980e678e3e2",
+      "valid_until": "2026-11-22T10:00:00Z"
+    },
+    {
       "capability_id": "divert_to_safe_haven",
       "qualification_status": "qualified",
       "qualification_scope_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
@@ -2327,6 +2334,13 @@
       "valid_until": "2026-11-22T10:00:00Z"
     },
     {
+      "capability_id": "engine_repair",
+      "qualification_status": "qualified",
+      "qualification_scope_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "qualification_evidence_sha256": "9419f1a4cd6eafce7606887fde9d8e3fc4796e55098d41b8d2d8bd73b94ffdb4",
+      "valid_until": "2026-11-22T10:00:00Z"
+    },
+    {
       "capability_id": "human_watch",
       "qualification_status": "qualified",
       "qualification_scope_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
@@ -2345,6 +2359,13 @@
       "qualification_status": "qualified",
       "qualification_scope_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
       "qualification_evidence_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "valid_until": "2026-11-22T10:00:00Z"
+    },
+    {
+      "capability_id": "water_system_repair",
+      "qualification_status": "qualified",
+      "qualification_scope_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "qualification_evidence_sha256": "a444d529f531eda69b9bbf824ed7c914045d9ef8ac854431fce5c9a0146ba4fe",
       "valid_until": "2026-11-22T10:00:00Z"
     }
   ]
