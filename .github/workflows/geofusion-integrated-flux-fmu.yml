@@ -1,0 +1,55 @@
+name: GeoFusion Integrated-Flux FMI 3.0.2 Pair
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/geofusion-integrated-flux-fmu-v0.1/**"
+      - "research/geofusion-analytic-fmu-pair-v0.1/third_party/FMI-3.0.2/**"
+      - ".github/workflows/geofusion-integrated-flux-fmu.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "research/geofusion-integrated-flux-fmu-v0.1/**"
+      - "research/geofusion-analytic-fmu-pair-v0.1/third_party/FMI-3.0.2/**"
+      - ".github/workflows/geofusion-integrated-flux-fmu.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: geofusion-integrated-flux-fmu-\${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-import:
+    name: Build and qualify synthetic integrated-flux FMI pair
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build and package both FMUs
+        working-directory: research/geofusion-integrated-flux-fmu-v0.1
+        run: make clean package
+      - name: Download and verify pinned independent FMI importer wheel
+        run: |
+          mkdir -p /tmp/fmpy-wheel
+          python -m pip download --disable-pip-version-check --only-binary=:all: --no-deps --dest /tmp/fmpy-wheel FMPy==0.3.32
+          echo "b379deb9417b842028003a288d00c1c5f138d1580e1ff12cc6c42a98719cecf0  /tmp/fmpy-wheel/fmpy-0.3.32-py3-none-any.whl" | sha256sum --check
+      - name: Install verified importer and dependencies
+        run: python -m pip install --disable-pip-version-check /tmp/fmpy-wheel/fmpy-0.3.32-py3-none-any.whl
+      - name: Execute causal integrated-energy handshake
+        working-directory: research/geofusion-integrated-flux-fmu-v0.1
+        run: make test
+      - name: Upload qualified artifacts and hashes
+        uses: actions/upload-artifact@v4
+        with:
+          name: geofusion-integrated-flux-fmi-3.0.2-pair
+          path: |
+            research/geofusion-integrated-flux-fmu-v0.1/build/stage/*.fmu
+            research/geofusion-integrated-flux-fmu-v0.1/build/stage/artifact-digests.sha256
+            research/geofusion-integrated-flux-fmu-v0.1/tests/fmpy_flux_smoke.py
+          if-no-files-found: error
