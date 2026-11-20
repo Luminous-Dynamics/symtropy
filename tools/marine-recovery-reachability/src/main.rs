@@ -844,6 +844,24 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                 if !valid_digest(string_at(action, "action_evidence_sha256")) {
                     errors.push(format!("scenario '{scenario_id}' action '{action_id}' evidence digest invalid"));
                 }
+                if let Some(required_caps) = action.get("requires_capabilities").and_then(Value::as_array) {
+                    for capability in required_caps.iter().filter_map(Value::as_str) {
+                        if !capability_registry.contains_key(capability) {
+                            errors.push(format!("scenario '{scenario_id}' action '{action_id}' references unregistered capability '{capability}'"));
+                        }
+                    }
+                } else {
+                    errors.push(format!("scenario '{scenario_id}' action '{action_id}' is missing requires_capabilities"));
+                }
+                if let Some(action_triggers) = action.get("trigger_classes").and_then(Value::as_array) {
+                    for action_trigger in action_triggers.iter().filter_map(Value::as_str) {
+                        if !triggers.iter().any(|registered| registered == action_trigger) {
+                            errors.push(format!("scenario '{scenario_id}' action '{action_id}' references unregistered trigger '{action_trigger}'"));
+                        }
+                    }
+                } else {
+                    errors.push(format!("scenario '{scenario_id}' action '{action_id}' is missing trigger_classes"));
+                }
                 if action.get("hard_gate_checks").and_then(Value::as_array).is_none_or(Vec::is_empty) {
                     errors.push(format!("scenario '{scenario_id}' action '{action_id}' lacks hard-gate evidence"));
                 }
@@ -1155,6 +1173,110 @@ mod tests {
         assert_eq!(scenario["outcome"], "RECOVERABLE");
         assert_eq!(scenario["enumeration_complete"], false);
         assert_eq!(report["incomplete_scenario_count"], 1);
+    }
+
+    #[test]
+    fn human_handover_requires_explicit_authority_acknowledgement() {
+        let mut value = fixture();
+        let terminal = value["scenarios"][0]["terminals"].as_array_mut().unwrap().iter_mut()
+            .find(|terminal| terminal["objective_class"] == "human_handover").unwrap();
+        terminal["human_acknowledged"] = json!(false);
+        rebind_scenario(&mut value, 0);
+        let report = audit(&value);
+        assert_eq!(report["disposition"], "SYNTHETIC_ONLY");
+        let scenario = report["scenario_reports"].as_array().unwrap().iter()
+            .find(|item| item["scenario_id"] == "generator-trip").unwrap();
+        assert_eq!(scenario["feasible_path_count"], 1);
+        assert!(!scenario["feasible_paths"].as_array().unwrap().iter()
+            .any(|path| path["objective_class"] == "human_handover"));
+    }
+
+    #[test]
+    fn human_response_latency_must_fit_remaining_intervention_window() {
+        let mut value = fixture();
+        let terminal = value["scenarios"][0]["terminals"].as_array_mut().unwrap().iter_mut()
+            .find(|terminal| terminal["objective_class"] == "human_handover").unwrap();
+        terminal["human_response_upper_hours"] = json!(5.0);
+        rebind_scenario(&mut value, 0);
+        let report = audit(&value);
+        assert_eq!(report["disposition"], "SYNTHETIC_ONLY");
+        let scenario = report["scenario_reports"].as_array().unwrap().iter()
+            .find(|item| item["scenario_id"] == "generator-trip").unwrap();
+        assert_eq!(scenario["feasible_path_count"], 1);
+        assert!(scenario["rejected_edges"].as_array().unwrap().iter()
+            .any(|edge| edge["reasons"].as_array().unwrap().iter()
+                .any(|reason| reason == "human_handover_response_after_intervention_deadline:remote-master-accepted-handover")));
+    }
+
+    #[test]
+    fn shore_resupply_action_requires_its_own_authority_receipt() {
+        let mut value = fixture();
+        let action = value["scenarios"][1]["actions"].as_array_mut().unwrap().iter_mut()
+            .find(|action| action["action_id"] == "divert-water-resupply").unwrap();
+        action["authority_receipt_ref"] = json!("");
+        value["scenarios"][1]["expected_outcome"] = json!("abstain");
+        rebind_scenario(&mut value, 1);
+        let report = audit(&value);
+        assert_eq!(report["disposition"], "SYNTHETIC_ONLY");
+        let scenario = report["scenario_reports"].as_array().unwrap().iter()
+            .find(|item| item["scenario_id"] == "watermaker-trip").unwrap();
+        assert_eq!(scenario["outcome"], "INFEASIBLE/ABSTAIN");
+        assert!(scenario["rejected_edges"].as_array().unwrap().iter()
+            .any(|edge| edge["action_id"] == "divert-water-resupply"
+                && edge["reasons"].as_array().unwrap().iter().any(|reason| reason == "action_requires_authority_receipt")));
+    }
+
+    #[test]
+    fn unregistered_available_capability_invalidates_scenario_evidence() {
+        let mut value = fixture();
+        value["scenarios"][0]["available_capabilities"].as_array_mut().unwrap().push(json!("ghost-capability"));
+        rebind_scenario(&mut value, 0);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn capability_qualification_must_be_current_for_the_operating_envelope() {
+        let mut value = fixture();
+        let capability = value["capability_roster"].as_array_mut().unwrap().iter_mut()
+            .find(|item| item["capability_id"] == "navigation").unwrap();
+        capability["qualification_status"] = json!("suspended");
+        let sorted = value["capability_roster"].clone();
+        value["mission_snapshot"]["capability_roster_sha256"] =
+            json!(canonical_digest(&sorted, None).expect("capability roster canonicalizes"));
+        value["mission_snapshot"]["mission_snapshot_sha256"] = json!(
+            canonical_digest(&value["mission_snapshot"], Some("mission_snapshot_sha256"))
+                .expect("mission snapshot canonicalizes")
+        );
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn every_registered_fault_trigger_requires_exactly_one_scenario() {
+        let mut value = fixture();
+        value["scenarios"][0]["trigger_class"] = json!("watermaker_trip");
+        value["scenarios"][0]["scenario_class"] = json!("watermaker_trip");
+        value["scenarios"][0]["expected_outcome"] = json!("abstain");
+        rebind_scenario(&mut value, 0);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn action_exploration_budget_is_bounded_and_incomplete_is_not_reported_as_exhaustive() {
+        let mut value = fixture();
+        value["graph_limits"]["max_expanded_edges_per_scenario"] = json!(1);
+        let report = audit(&value);
+        let scenario = report["scenario_reports"].as_array().unwrap().iter()
+            .find(|item| item["scenario_id"] == "generator-trip").unwrap();
+        assert_eq!(scenario["outcome"], "SEARCH_INCOMPLETE/ABSTAIN");
+        assert_eq!(scenario["enumeration_complete"], false);
+        assert_eq!(report["incomplete_scenario_count"], 1);
+    }
+
+    #[test]
+    fn action_count_is_bounded_before_reachability_search() {
+        let mut value = fixture();
+        value["graph_limits"]["max_action_count_per_scenario"] = json!(4);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
     }
 
     #[test]
