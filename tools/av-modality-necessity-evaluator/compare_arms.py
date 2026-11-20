@@ -184,8 +184,11 @@ def compare_arms(
     indexed_results: dict[str, dict[str, dict[str, Any]]] = {}
     resource_usage: dict[str, dict[str, Any]] = {}
     for arm, run in by_arm.items():
-        report = evaluate(workload, truth, run["submission"])
         allowed = EXPECTED_ARMS[arm]
+        report = evaluate(
+            workload, truth, run["submission"],
+            permitted_modalities=allowed,
+        )
         for prediction in run["submission"]["predictions"]:
             used = set(prediction.get("used_modalities", []))
             if not used <= allowed:
