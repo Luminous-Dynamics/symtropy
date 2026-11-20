@@ -234,6 +234,28 @@ Do not publish an assumed scalar without a benchmark. Measure at each minute of 
 
 A reserve that is "available" only when idle is not a productive reserve. A reserve whose background jobs cannot be pre-empted is not a reserve at all.
 
+### 4.1 Machine-readable preemption contract
+
+The synthetic fixture `OCEAN_PRODUCTIVE_RESERVE_CONTRACT_V0_1.json` pairs the existing five workload profiles with three protected services (observation QC, port forecast, offshore-wind condition analytics) and two preemptible background jobs (AUV/ROV reconstruction and ocean-science hindcast).
+
+With 100 normalized capacity units in each of compute, memory, network, cooling and power:
+- protected recovery load is 70 / 40 / 33 / 55 / 65 units;
+- normal background load is 95 / 75 / 70 / 55 / 65 units;
+- running both groups concurrently exceeds at least one resource ceiling, so admission is not double-counted;
+- after the background jobs are fenced and checkpointed, the protected recovery service vector fits all five capacity dimensions.
+
+The slowest synthetic quiesce-plus-checkpoint contract is 180 + 300 = 480 seconds. The sequential recovery budget sums to 6,000 seconds against a 14,400-second (4-hour) RTO target. These normalized resource units and timings are test inputs only, not hardware measurements or an SLA.
+
+The standalone verifier also rejects protected-service overcommit, checkpoint timeout beyond the recovery budget, missing checkpoint integrity, profile/contract mismatches and undeclared shared assumptions.
+
+Run from the repository root:
+
+```bash
+cargo test --manifest-path tools/ocean-productive-reserve-verifier/Cargo.toml
+cargo run --manifest-path tools/ocean-productive-reserve-verifier/Cargo.toml
+```
+
+
 ## 5. Energy and workload orchestration
 
 Use ENTSO-E's 2026 workload flexibility taxonomy: AI/ML training and batch/data processing have greater time/geographic shifting potential; inference has lower potential; transactional real-time work is least flexible. Backup/disaster-recovery load is flexible in normal mode but becomes priority load after failover. This must be reflected in job contracts rather than applied as one blanket scheduling rule.
