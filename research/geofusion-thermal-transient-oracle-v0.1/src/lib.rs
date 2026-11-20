@@ -15,6 +15,7 @@ pub enum ModelError {
     NegativeStartTime,
     NonPositiveFrequency,
     NegativeSourcePowerEnvelope,
+    NonPositiveSampleCount,
     NumericalOverflow,
 }
 
@@ -44,6 +45,36 @@ pub struct SinusoidalInput {
     pub amplitude_w: f64,
     pub angular_frequency_rad_per_s: f64,
     pub initial_theta_k: f64,
+}
+
+/// Compensated accumulator used for interval-integrated energy totals.
+#[derive(Debug, Default, Clone, Copy)]
+struct CompensatedSum {
+    sum: f64,
+    correction: f64,
+}
+
+impl CompensatedSum {
+    fn add(&mut self, value: f64) {
+        let adjusted = value - self.correction;
+        let next = self.sum + adjusted;
+        self.correction = (next - self.sum) - adjusted;
+        self.sum = next;
+    }
+
+    fn total(self) -> f64 {
+        self.sum
+    }
+}
+
+/// Stable sin(x)/x evaluation, including the zero-width limit.
+fn sinc(x: f64) -> f64 {
+    let x2 = x * x;
+    if x.abs() < 1.0e-4 {
+        1.0 - x2 / 6.0 + x2 * x2 / 120.0 - x2 * x2 * x2 / 5040.0
+    } else {
+        x.sin() / x
+    }
 }
 
 impl ThermalModel {
@@ -243,23 +274,23 @@ impl ThermalModel {
         let homogeneous = input.initial_theta_k - theta_constant - b;
 
         let half_phase = omega * duration * 0.5;
-        let mid_phase = omega * (start_time_s + end_time_s) * 0.5;
-        let sin_half = half_phase.sin();
-        let cos_difference = 2.0 * mid_phase.sin() * sin_half;
-        let sin_difference = 2.0 * mid_phase.cos() * sin_half;
-        let source_sine_integral = cos_difference / omega;
+        let mid_time = start_time_s + duration * 0.5;
+        let mid_phase = omega * mid_time;
+        // Midpoint/sinc forms avoid subtracting nearly equal trigonometric
+        // endpoint values when the communication interval is very small.
+        let source_sine_integral = duration * mid_phase.sin() * sinc(half_phase);
+        let cosine_integral = duration * mid_phase.cos() * sinc(half_phase);
 
         let energy_input = input.mean_power_w * duration
             + input.amplitude_w * source_sine_integral;
         let energy_service = alpha * energy_input;
 
-        let one_minus_decay = -( -k * duration).exp_m1();
-        let decay_integral =
-            (-k * start_time_s).exp() * one_minus_decay / k;
+        let one_minus_decay = -(-k * duration).exp_m1();
+        let decay_integral = (-k * start_time_s).exp() * one_minus_decay / k;
 
         let integral_theta = theta_constant * duration
             + a * source_sine_integral
-            + b * (sin_difference / omega)
+            + b * cosine_integral
             + homogeneous * decay_integral;
         let energy_loss = ua * integral_theta;
 
@@ -288,6 +319,94 @@ impl ThermalModel {
             end_time_s,
             theta_start_k: theta_start,
             theta_end_k: theta_end,
+            energy_input_j: energy_input,
+            energy_service_j: energy_service,
+            energy_loss_j: energy_loss,
+            storage_delta_j: storage_delta,
+            residual_j: residual,
+        })
+    }
+
+    /// Simulate a sinusoidal source using left-endpoint zero-order hold.
+    ///
+    /// This is not the analytic reference: each communication interval samples
+    /// Q(t) at its left endpoint and holds that value constant. The exact
+    /// piecewise-constant state/energy solution is applied on each interval.
+    /// Comparing this result to `sinusoidal_interval` quantifies communication
+    /// discretization error independently of an FMI master implementation.
+    pub fn sinusoidal_zero_order_hold(
+        self,
+        input: SinusoidalInput,
+        start_time_s: f64,
+        end_time_s: f64,
+        communication_steps: usize,
+    ) -> Result<EnergyBalance, ModelError> {
+        self.validate_sinusoid(input)?;
+        if !start_time_s.is_finite() || !end_time_s.is_finite() {
+            return Err(ModelError::NonFiniteParameter);
+        }
+        if start_time_s < 0.0 {
+            return Err(ModelError::NegativeStartTime);
+        }
+        if end_time_s <= start_time_s || !(end_time_s - start_time_s).is_finite() {
+            return Err(ModelError::NonPositiveInterval);
+        }
+        if communication_steps == 0 {
+            return Err(ModelError::NonPositiveSampleCount);
+        }
+
+        let duration = end_time_s - start_time_s;
+        let step_count = communication_steps as f64;
+        let mut theta = input.initial_theta_k;
+        let theta_start = theta;
+        let mut energy_input = CompensatedSum::default();
+        let mut energy_service = CompensatedSum::default();
+        let mut energy_loss = CompensatedSum::default();
+
+        for index in 0..communication_steps {
+            let fraction_start = index as f64 / step_count;
+            let fraction_end = (index + 1) as f64 / step_count;
+            let interval_start = start_time_s + duration * fraction_start;
+            let interval_end = if index + 1 == communication_steps {
+                end_time_s
+            } else {
+                start_time_s + duration * fraction_end
+            };
+            let interval_duration = interval_end - interval_start;
+            let held_power = input.mean_power_w
+                + input.amplitude_w
+                    * (input.angular_frequency_rad_per_s * interval_start).sin();
+            let interval = self.piecewise_constant(theta, held_power, interval_duration)?;
+            theta = interval.theta_end_k;
+            energy_input.add(interval.energy_input_j);
+            energy_service.add(interval.energy_service_j);
+            energy_loss.add(interval.energy_loss_j);
+        }
+
+        let energy_input = energy_input.total();
+        let energy_service = energy_service.total();
+        let energy_loss = energy_loss.total();
+        let storage_delta = self.heat_capacity_j_per_k * (theta - theta_start);
+        let residual = energy_input - energy_service - energy_loss - storage_delta;
+        if ![
+            theta,
+            energy_input,
+            energy_service,
+            energy_loss,
+            storage_delta,
+            residual,
+        ]
+        .iter()
+        .all(|value| value.is_finite())
+        {
+            return Err(ModelError::NumericalOverflow);
+        }
+
+        Ok(EnergyBalance {
+            start_time_s,
+            end_time_s,
+            theta_start_k: theta_start,
+            theta_end_k: theta,
             energy_input_j: energy_input,
             energy_service_j: energy_service,
             energy_loss_j: energy_loss,
@@ -388,6 +507,80 @@ mod tests {
         close(exact.energy_loss_j, constant.energy_loss_j, 1e-6);
         close(exact.storage_delta_j, constant.storage_delta_j, 1e-7);
         close(exact.residual_j, 0.0, 1e-7);
+    }
+
+    #[test]
+    fn sinusoidal_zero_order_hold_converges_to_continuous_reference() {
+        let model = model();
+        let input = SinusoidalInput {
+            mean_power_w: 500_000.0,
+            amplitude_w: 100_000.0,
+            angular_frequency_rad_per_s: 2.0 * PI / 400.0,
+            initial_theta_k: 2.0,
+        };
+        let reference = model.sinusoidal_interval(input, 0.0, 120.0).unwrap();
+        let frozen = [
+            (15_usize, 0.010_188_510_122_55),
+            (30, 0.004_946_932_769_56),
+            (60, 0.002_437_463_242_23),
+            (120, 0.001_209_833_516_80),
+            (240, 0.000_602_705_019_81),
+            (480, 0.000_300_801_170_68),
+            (960, 0.000_150_262_949_80),
+        ];
+
+        let mut previous_error = f64::INFINITY;
+        let mut errors = Vec::new();
+        for (steps, expected_error) in frozen {
+            let approximate = model
+                .sinusoidal_zero_order_hold(input, 0.0, 120.0, steps)
+                .unwrap();
+            let error = (approximate.theta_end_k - reference.theta_end_k).abs();
+            close(error, expected_error, 2.0e-12);
+            assert!(error < previous_error, "error must decrease with finer communication grids");
+            close(approximate.residual_j, 0.0, 2.0e-7);
+            errors.push(error);
+            previous_error = error;
+        }
+
+        // Left-endpoint zero-order hold should exhibit first-order global
+        // convergence for this smooth, non-event input waveform.
+        for pair in errors.windows(2) {
+            let ratio = pair[0] / pair[1];
+            assert!((1.90..=2.10).contains(&ratio), "observed error ratio {ratio}");
+        }
+    }
+
+    #[test]
+    fn zero_order_hold_energy_balance_is_partition_invariant_for_constant_source() {
+        let model = model();
+        let input = SinusoidalInput {
+            mean_power_w: 500_000.0,
+            amplitude_w: 0.0,
+            angular_frequency_rad_per_s: 0.01,
+            initial_theta_k: 1.5,
+        };
+        let one = model.sinusoidal_zero_order_hold(input, 0.0, 60.0, 1).unwrap();
+        let many = model.sinusoidal_zero_order_hold(input, 0.0, 60.0, 120).unwrap();
+
+        close(one.theta_end_k, many.theta_end_k, 1.0e-12);
+        close(one.energy_input_j, many.energy_input_j, 1.0e-7);
+        close(one.energy_loss_j, many.energy_loss_j, 1.0e-6);
+        close(one.storage_delta_j, many.storage_delta_j, 1.0e-7);
+    }
+
+    #[test]
+    fn zero_order_hold_rejects_empty_communication_grid() {
+        let input = SinusoidalInput {
+            mean_power_w: 500_000.0,
+            amplitude_w: 0.0,
+            angular_frequency_rad_per_s: 0.01,
+            initial_theta_k: 1.5,
+        };
+        assert_eq!(
+            model().sinusoidal_zero_order_hold(input, 0.0, 60.0, 0),
+            Err(ModelError::NonPositiveSampleCount)
+        );
     }
 
     #[test]
