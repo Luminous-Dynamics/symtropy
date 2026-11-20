@@ -33,9 +33,10 @@ pub mod replay;
 pub mod support_map;
 pub mod world;
 
-pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
+pub use articulation::{ArticulatedChain, ChainBuildError, ChainBuilder, LinkSpec};
 pub use body::{
-    BodyHandle, BodyType, MassPropertiesBodyError, NetId, RigidBody, RotationalInertiaModel,
+    BodyHandle, BodyType, CapsuleBodyConstructionError, MassPropertiesBodyError, NetId,
+    RigidBody, RotationalInertiaModel,
 };
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
