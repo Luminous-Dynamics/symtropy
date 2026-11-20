@@ -161,8 +161,10 @@ pub enum SiteJournalReconciliationError {
         parent_event_id: String,
     },
     DuplicateEventWithinJournal(String),
+    EventAlreadyCommitted(String),
     ConflictingEventId(String),
     ConflictingEventContentDigest(String),
+    DuplicatePublishedPackageDigest(String),
     CausalCycle,
 }
 
@@ -253,6 +255,11 @@ pub fn reconcile_site_journal_bundle(
             if entry.event_id.trim().is_empty() || entry.actor_id.trim().is_empty() {
                 return Err(SiteJournalReconciliationError::EmptyEventIdentity(
                     journal.journal_id.clone(),
+                ));
+            }
+            if committed_event_ids.contains(&entry.event_id) {
+                return Err(SiteJournalReconciliationError::EventAlreadyCommitted(
+                    entry.event_id.clone(),
                 ));
             }
             if !is_sha256(&entry.record_sha256) {
@@ -373,6 +380,11 @@ pub fn reconcile_site_journal_bundle(
         }
     }
 
+    // Add domain-derived causal edges for references already explicit in the
+    // payload. Adapters still supply cross-event causal parents that have no
+    // typed reference in SiteEventPayload.
+    add_payload_dependencies(&mut events, committed_event_ids)?;
+
     // A logical event ID and its immutable content digest are one-to-one.
     let mut event_ids_by_digest = BTreeMap::<&str, &str>::new();
     for event in events.values() {
@@ -428,6 +440,119 @@ pub fn reconcile_site_journal_bundle(
         concurrent_mutations: conflicts,
         duplicate_replicas_collapsed,
     })
+}
+
+
+fn add_payload_dependencies(
+    events: &mut BTreeMap<String, EventAccumulator>,
+    committed_event_ids: &BTreeSet<String>,
+) -> Result<(), SiteJournalReconciliationError> {
+    let mut station_events = BTreeSet::new();
+    let mut attempt_starts = BTreeMap::<String, String>::new();
+    let mut attempt_observations = BTreeMap::<String, String>::new();
+    let mut package_publications = BTreeMap::<String, String>::new();
+
+    for event in events.values() {
+        match &event.payload {
+            SiteEventPayload::WorkPackagePublished { package } => {
+                if package_publications
+                    .insert(package.package_sha256.clone(), event.event_id.clone())
+                    .is_some()
+                {
+                    return Err(
+                        SiteJournalReconciliationError::DuplicatePublishedPackageDigest(
+                            package.package_sha256.clone(),
+                        ),
+                    );
+                }
+            }
+            SiteEventPayload::StationQualified { .. } => {
+                station_events.insert(event.event_id.clone());
+            }
+            SiteEventPayload::ExecutionStarted { attempt_id, .. } => {
+                if attempt_starts
+                    .insert(attempt_id.clone(), event.event_id.clone())
+                    .is_some()
+                {
+                    return Err(SiteJournalReconciliationError::ConflictingEventId(
+                        event.event_id.clone(),
+                    ));
+                }
+            }
+            SiteEventPayload::RobotObservationRecorded { attempt_id, .. }
+            | SiteEventPayload::ExecutionInterrupted { attempt_id, .. } => {
+                attempt_observations.insert(attempt_id.clone(), event.event_id.clone());
+            }
+            SiteEventPayload::RefereeAssessmentRecorded { .. }
+            | SiteEventPayload::HumanWaiverIssued { .. } => {}
+        }
+    }
+
+    let event_ids: Vec<String> = events.keys().cloned().collect();
+    for event_id in event_ids {
+        let payload = events
+            .get(&event_id)
+            .expect("event ID is taken from the event map")
+            .payload
+            .clone();
+
+        let mut required_parents = BTreeSet::new();
+        match &payload {
+            SiteEventPayload::WorkPackagePublished { .. } => {}
+            SiteEventPayload::StationQualified { package_sha256, .. }
+            | SiteEventPayload::ExecutionStarted { package_sha256, .. }
+            | SiteEventPayload::RobotObservationRecorded { package_sha256, .. }
+            | SiteEventPayload::ExecutionInterrupted { package_sha256, .. }
+            | SiteEventPayload::RefereeAssessmentRecorded { package_sha256, .. }
+            | SiteEventPayload::HumanWaiverIssued { package_sha256, .. } => {
+                if let Some(package_event_id) = package_publications.get(package_sha256) {
+                    if package_event_id != &event_id {
+                        required_parents.insert(package_event_id.clone());
+                    }
+                }
+            }
+        }
+
+        match &payload {
+            SiteEventPayload::ExecutionStarted {
+                station_qualification_event_id,
+                ..
+            } => {
+                if station_events.contains(station_qualification_event_id) {
+                    required_parents.insert(station_qualification_event_id.clone());
+                } else if !committed_event_ids.contains(station_qualification_event_id) {
+                    return Err(SiteJournalReconciliationError::MissingCausalParent {
+                        event_id: event_id.clone(),
+                        parent_event_id: station_qualification_event_id.clone(),
+                    });
+                }
+            }
+            SiteEventPayload::RobotObservationRecorded { attempt_id, .. }
+            | SiteEventPayload::ExecutionInterrupted { attempt_id, .. }
+            | SiteEventPayload::RefereeAssessmentRecorded { attempt_id, .. } => {
+                if let Some(start_event_id) = attempt_starts.get(attempt_id) {
+                    if start_event_id != &event_id {
+                        required_parents.insert(start_event_id.clone());
+                    }
+                }
+                if let SiteEventPayload::RefereeAssessmentRecorded { .. } = payload {
+                    if let Some(observation_event_id) = attempt_observations.get(attempt_id) {
+                        if observation_event_id != &event_id {
+                            required_parents.insert(observation_event_id.clone());
+                        }
+                    }
+                }
+            }
+            SiteEventPayload::WorkPackagePublished { .. }
+            | SiteEventPayload::StationQualified { .. }
+            | SiteEventPayload::HumanWaiverIssued { .. } => {}
+        }
+
+        if let Some(event) = events.get_mut(&event_id) {
+            event.causal_parents.extend(required_parents);
+        }
+    }
+    Ok(())
 }
 
 fn validate_checkpoint(
@@ -831,7 +956,7 @@ mod tests {
                 '2',
                 "referee-a",
                 SiteActorRole::Referee,
-                &["robot-observation"],
+                &[],
                 SiteEventPayload::RefereeAssessmentRecorded {
                     package_sha256: digest('a'),
                     entity_id: "entity-1".into(),
