@@ -2,7 +2,7 @@
 
 **Owner:** [#6389 BH-5D-EGB-SINGLE-SPIN-CARTAN-001](https://github.com/Luminous-Dynamics/symtropy/issues/6389)
 
-**Status:** independent coframe, Levi-Civita connection, curvature 2-forms, Ricci contractions and Kretschmann replay. The full EGB/Lanczos field equations have **not** yet been independently evaluated.
+**Status:** independent coframe, Levi-Civita connection, curvature 2-forms, Ricci contractions, Lanczos tensor and exact local EGB field-equation identities checked. The clean-checkout execution of the committed replay script is still pending its dedicated workflow.
 
 ## 1. Why use Cartan geometry
 
@@ -129,6 +129,49 @@ python3 derive_single_spin_nheg_cartan.py --output single_spin_nheg_cartan_fixtu
 ~~~
 The script uses SymPy and no production Rust/Python dependency is introduced. The development-session replay executed the symbolic coframe/connection/curvature calculation, with exact zero checks for torsion, metric compatibility, Cartan closure, Bianchi identity, Ricci off-diagonal terms and the source Kretschmann expression. The committed script and fixture are fetched back and JSON-parsed; a clean-checkout replay receipt remains a separate gate.
 
-## 6. What remains open
+## 6. Full Lanczos tensor and exact local field equations
+
+In five dimensions, the source field equation is
+[
+G_{ab}+alpha_{NH}H_{ab}=0
+]
+or, in the Symtropy convention, (G_{ab}+alpha_{sym}H_{ab}/4=0). The Cartan replay constructs
+[
+egin{aligned}
+H_{ab}=2ig(&R R_{ab}-2R_{ac}R^c{}_b
+-2R^{cd}R_{acbd}\
+&+R_a{}^{cde}R_{bcde}ig)
+-rac12g_{ab}mathcal L_{GB}.
+end{aligned}
+]
+A key index convention is frozen: for diagonal covariant Ricci in an orthonormal frame, (R^{cc}=eta_c^2R_{cc}=R_{cc}). A single (eta_c) in the (R^{cd}R_{acbd}) contraction is an error.
+
+The exact nonzero Lanczos frame components reduce to
+[
+egin{aligned}
+H_{00}&=x^2(z^2+z_2)+8y^3z+4y^2(z^2+z_2)+8yy_2z,\
+H_{11}&=-H_{00},\
+H_{22}&=-3yz(x^2+4y^2),\
+H_{33}&=-3(x^2+4y^2)(y^2+y_2),\
+H_{44}&=-H_{00}.
+end{aligned}
+]
+The other frame components vanish. A second SymPy 1.14.0 calculation of the contractions, using the frozen Cartan curvature two-forms but an independent Lanczos/rationalization implementation, obtains exact zero for all 25 components of (G_{ab}+alpha_{sym}H_{ab}/4) over the declared open parameter domain.
+
+The negative control inserts one (eta_c) into (R^{cc}), i.e. raises only one of the two Ricci indices. It produces four nonzero diagonal residuals:
+[
+egin{aligned}
+widetilde E_{11}=widetilde E_{44}
+&=-rac{32}{alpha_{sym}(eta c^2-1)(eta c^2+1)^2},\
+widetilde E_{22}=widetilde E_{33}
+&=rac{32}{alpha_{sym}(eta c^2-1)^2(eta c^2+1)},
+end{aligned}
+qquad c=cos^2	heta.
+]
+At ((alpha_{sym},eta,c)=(1,1/2,1/2)), these are respectively (16384/567) and (16384/441), with every off-diagonal residual and the 00 residual zero. This guards against exactly the sign/index mistake that previously obscured the calculation.
+
+The machine fixture now records the general wrong-index residuals, the rational sample, all 25 correct zeros, and the index-raising explanation. The dedicated GitHub Actions workflow replays the whole script with pinned SymPy 1.14.0 from a clean checkout and preserves the generated fixture as an artifact. Its status is separate from this independent symbolic cross-check.
+
+## 7. What remains open
 
 This is not yet an independent EGB field-equation replay. The next step is to form the five-dimensional Gauss-Bonnet/Lanczos tensor in the orthonormal frame and check every independent component. The full global-admissibility vector remains unchanged: the source-reported local solution has finite local curvature but divergent standard horizon measure/charges; global identifications and asymptotically-flat completion remain unresolved; hyperbolicity and stability are not inferred from this geometric result.
