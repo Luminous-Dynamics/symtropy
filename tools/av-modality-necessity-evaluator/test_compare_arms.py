@@ -121,12 +121,13 @@ class ArmTournamentTests(unittest.TestCase):
             item for item in runs[2]["submission"]["predictions"]
             if item["episode_id"] == "audio-a"
         )
-        row.update(answer=None, confidence=0.0, abstained=True,
-                   used_modalities=["video"], cited_observation_refs=[ "v-audio-a" ])
-        report = comparator.compare_arms(self.workload, self.truth, runs)
-        self.assertLess(
-            report["per_arm"]["audio_video"]["safe_decision_accuracy"], 1.0
+        row.update(
+            answer=None, confidence=0.0, abstained=True,
+            used_modalities=[], cited_observation_refs=[],
         )
+        report = comparator.compare_arms(self.workload, self.truth, runs)
+        self.assertLess(report["per_arm"]["audio_video"]["safe_decision_accuracy"], 1.0)
+        self.assertLess(report["per_arm"]["audio_video"]["answer_accuracy"], 1.0)
 
     def test_mismatched_hardware_is_rejected(self):
         runs = copy.deepcopy(self.runs)
