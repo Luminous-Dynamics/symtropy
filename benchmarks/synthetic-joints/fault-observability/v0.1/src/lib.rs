@@ -665,7 +665,7 @@ pub fn evaluate_fault_campaign(campaign: &FaultCampaign) -> Result<FaultObservab
             assessment.amplitude_unit.clone(),
             assessment.amplitude.to_bits(),
         );
-        let entry = amplitude_groups.entry(key).or_insert((assessment.amplitude, 0, 0));
+        let entry = amplitude_groups.entry(key).or_insert((assessment.amplitude, 0, 0, 0));
         entry.1 += 1;
         match assessment.disposition {
             FaultEventDisposition::Detected => entry.2 += 1,
