@@ -11,6 +11,8 @@ This package builds two separate FMI 3.0.2 Co-Simulation FMUs:
 
 The FMI 3.0.2 C-API headers are vendored verbatim from the official Modelica Association repository at tag `v3.0.2`. Exact upstream blob hashes, release commit and license provenance are recorded in `third_party/FMI-3.0.2/UPSTREAM.md`.
 
+The source also exports the remaining FMI 3.0 function symbols through `src/fmi3_unsupported.c`. Those 66 functions are generated from the pinned FMI 3.0.2 function typedefs and the FMPy 0.3.32 wrapper surface; they return `fmi3Error` (or `NULL` for unsupported interface instantiation) and are not advertised as supported capabilities. This is necessary because FMPy resolves a broad FMI 3 symbol set when constructing its importer object. The explicit stubs make unsupported calls fail closed instead of failing at dynamic symbol lookup.
+
 ## Model and analytic known answer
 
 The first scenario is deliberately simple:
@@ -41,7 +43,7 @@ python3 tests/fmpy_coupled_smoke.py
 
 The Makefile compiles against the vendored official FMI headers with warnings-as-errors, packages the correct `binaries/x86_64-linux/` paths, includes model descriptions, source and upstream licenses, fixes archive timestamps using `SOURCE_DATE_EPOCH`, runs a direct FMI C-API harness and recomputes an independent arithmetic oracle.
 
-FMPy 0.3.32 is pinned as an independent importer. Its model-description validator checks schema validity and model structure. The importer test loads both FMUs, instantiates them, performs typed Float64 exchanges and calls `fmi3DoStep`, then independently recomputes the energy balance.
+FMPy 0.3.32 is pinned as an independent importer (`CATIA-Systems/FMPy` tag `v0.3.32`, `src/fmpy/fmi3.py` blob `ffc0506867078583494b3993ccedee2ba0f886bc`). Its model-description validator checks schema validity, variable declarations, units and model structure. The importer test loads both FMUs, instantiates them, performs typed Float64 exchanges and calls `fmi3DoStep`, then independently recomputes the energy balance.
 
 ## Ownership composition
 
