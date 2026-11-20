@@ -1062,10 +1062,12 @@ mod tests {
             .find(|item| item["scenario_id"] == "generator-trip").unwrap();
         assert_eq!(scenario["outcome"], "RECOVERABLE");
         assert_eq!(scenario["feasible_path_count"], 2);
-        assert!(scenario["feasible_paths"].as_array().unwrap().iter()
-            .any(|path| path["objective_class"] == "safe_haven"));
+        let safe_haven = scenario["feasible_paths"].as_array().unwrap().iter()
+            .find(|path| path["objective_class"] == "safe_haven").unwrap();
+        assert_eq!(safe_haven["action_path"], json!(["shed-load", "divert-haven"]));
         let handover = scenario["feasible_paths"].as_array().unwrap().iter()
             .find(|path| path["objective_class"] == "human_handover").unwrap();
+        assert_eq!(handover["action_path"], json!(["request-human-handover"]));
         assert_eq!(handover["human_response_upper_hours"], 0.5);
         assert!(handover["remaining_intervention_margin_hours"].as_f64().unwrap() > 0.0);
         let ids = scenario["feasible_paths"][0]["action_path"].as_array().unwrap();
