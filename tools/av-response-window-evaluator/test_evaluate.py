@@ -200,7 +200,7 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
         row.update(response_start_tick=4, response_end_tick=6)
         report = self.score(submission=candidate)
         result = self.episode(report, "rw-001-spi-on-time")
-        self.assertIn("early_count", result)
+        self.assertIn("response_precedes_trigger_availability", result["violations"])
         self.assertEqual(result["early_count"], 1)
 
     def test_response_interval_must_have_nonnegative_duration(self):
