@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:power-restoration-action-proposal:0.1.0",
+  "title": "Planner-neutral Evidence-bound Restoration Action Proposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "proposalId",
+    "caseRef",
+    "caseSha256",
+    "planner",
+    "observation",
+    "decisionStep",
+    "actions"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "proposalId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "caseRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "caseSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "planner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plannerId",
+        "plannerRevision",
+        "sourceCommit",
+        "configurationSha256",
+        "promptSha256"
+      ],
+      "properties": {
+        "plannerId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "plannerRevision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceCommit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "configurationSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "promptSha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observationRef",
+        "observedStep",
+        "observationSha256"
+      ],
+      "properties": {
+        "observationRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observedStep": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observationSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "decisionStep": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/action"
+      }
+    }
+  },
+  "$defs": {
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actionId",
+        "actorKind",
+        "actorId",
+        "actionKind",
+        "targetId",
+        "desiredSwitchState",
+        "decisionStep",
+        "observationRef",
+        "preconditionEvidence",
+        "authorityRequirementRef"
+      ],
+      "properties": {
+        "actionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actorKind": {
+          "enum": [
+            "repair_crew",
+            "mobile_power_source",
+            "grid_operator",
+            "system"
+          ]
+        },
+        "actorId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actionKind": {
+          "enum": [
+            "move_crew",
+            "repair_fault",
+            "move_mobile_source",
+            "connect_mobile_source",
+            "disconnect_mobile_source",
+            "set_switch_state",
+            "wait"
+          ]
+        },
+        "targetId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "desiredSwitchState": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "open",
+            "closed",
+            null
+          ]
+        },
+        "decisionStep": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observationRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preconditionEvidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "evidenceRef",
+              "observedStep",
+              "evidenceSha256"
+            ],
+            "properties": {
+              "evidenceRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "observedStep": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "evidenceSha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "authorityRequirementRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
