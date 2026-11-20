@@ -1,0 +1,53 @@
+name: Power restoration transition audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/power-restoration-transition-audit/**"
+      - "tools/power-restoration-action-proposal/**"
+      - "tools/power-restoration-benchmark-case/**"
+      - ".github/workflows/power-restoration-transition-audit.yml"
+  push:
+    paths:
+      - "tools/power-restoration-transition-audit/**"
+      - ".github/workflows/power-restoration-transition-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  transition-audit:
+    name: Recompute supported restoration state deltas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate transition schemas
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("tools/power-restoration-transition-audit/fixtures")
+          for schema_path in sorted(root.glob("*.schema.json")):
+              Draft202012Validator.check_schema(json.loads(schema_path.read_text()))
+          print("PASS: state and transition envelope schemas are valid")
+          PY
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/power-restoration-transition-audit/Cargo.toml --all -- --check
+      - name: Resolve dependency graph
+        run: cargo generate-lockfile --manifest-path tools/power-restoration-transition-audit/Cargo.toml
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/power-restoration-transition-audit/Cargo.toml --all-targets -- -D warnings
+      - name: Run Rust tests
+        run: cargo test --locked --manifest-path tools/power-restoration-transition-audit/Cargo.toml --all-targets

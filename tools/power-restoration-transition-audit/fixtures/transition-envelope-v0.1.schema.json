@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/power-restoration-transition-envelope-v0.1.schema.json",
+  "title": "Power restoration transition envelope v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "transitionId",
+    "caseRef",
+    "caseSha256",
+    "proposalId",
+    "proposalSha256",
+    "decisionStep",
+    "previousStateSha256",
+    "successorStateSha256",
+    "executions"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "transitionId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "caseRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "caseSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "proposalId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "proposalSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "decisionStep": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "previousStateSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "successorStateSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "executions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "actionId",
+          "outcome",
+          "actuationDisposition",
+          "rejectionBoundary",
+          "noActuationReceiptRef",
+          "noActuationReceiptSha256",
+          "resultReceiptRef",
+          "resultReceiptSha256"
+        ],
+        "properties": {
+          "actionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "outcome": {
+            "enum": [
+              "applied",
+              "rejected",
+              "failed",
+              "not_attempted"
+            ]
+          },
+          "actuationDisposition": {
+            "enum": [
+              "not_applicable",
+              "not_acquired",
+              "acquired",
+              "unknown"
+            ]
+          },
+          "rejectionBoundary": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "before_actuation",
+              "after_actuation",
+              "unknown",
+              null
+            ]
+          },
+          "noActuationReceiptRef": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "noActuationReceiptSha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "resultReceiptRef": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "resultReceiptSha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    }
+  }
+}
