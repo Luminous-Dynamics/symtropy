@@ -1,0 +1,68 @@
+name: Power restoration action proposal contract
+
+on:
+  pull_request:
+    paths:
+      - "tools/power-restoration-action-proposal/**"
+      - ".github/workflows/power-restoration-action-proposal.yml"
+      - "tools/power-restoration-benchmark-case/**"
+  push:
+    paths:
+      - "tools/power-restoration-action-proposal/**"
+      - ".github/workflows/power-restoration-action-proposal.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  action-contract:
+    name: Verify planner action envelope against frozen case
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate proposal schema and canonical case identity
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+
+          root = Path("tools/power-restoration-action-proposal")
+          schema = json.loads((root / "fixtures/action-proposal-v0.1.schema.json").read_text())
+          proposal = json.loads((root / "fixtures/synthetic-restoration-action-proposal-v0.1.json").read_text())
+          case_path = Path("tools/power-restoration-benchmark-case/fixtures/synthetic-restoration-case-v0.1.json")
+          case = json.loads(case_path.read_text())
+          errors = sorted(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(proposal), key=lambda error: list(error.path))
+          assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
+          canonical = json.dumps(case, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+          digest = hashlib.sha256(canonical).hexdigest()
+          assert digest == proposal["caseSha256"]
+          assert proposal["caseRef"] == "power-restoration-case://" + case["caseId"]
+          assert proposal["decisionStep"] == proposal["observation"]["observedStep"]
+          assert all(action["decisionStep"] == proposal["decisionStep"] and action["observationRef"] == proposal["observation"]["observationRef"] for action in proposal["actions"])
+          print("PASS: proposal schema, canonical case digest and observation epoch binding")
+          PY
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/power-restoration-action-proposal/Cargo.toml --all -- --check
+      - name: Resolve dependency graph for this run
+        run: cargo generate-lockfile --manifest-path tools/power-restoration-action-proposal/Cargo.toml
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/power-restoration-action-proposal/Cargo.toml --all-targets -- -D warnings
+      - name: Run Rust tests
+        run: cargo test --locked --manifest-path tools/power-restoration-action-proposal/Cargo.toml --all-targets
+      - name: Replay data-only proposal against case
+        run: |
+          set -euo pipefail
+          cargo run --locked --manifest-path tools/power-restoration-action-proposal/Cargo.toml --bin power-restoration-action-validate -- tools/power-restoration-action-proposal/fixtures/synthetic-restoration-action-proposal-v0.1.json tools/power-restoration-benchmark-case/fixtures/synthetic-restoration-case-v0.1.json > /tmp/restoration-action-report.json
+          jq -e '.resultStatus == "proposal_contract_valid" and .actionCount == 1 and (.caseSha256 | length == 64) and (.claimBoundary | contains("not executable"))' /tmp/restoration-action-report.json
