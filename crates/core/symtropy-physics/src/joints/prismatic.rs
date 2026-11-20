@@ -175,19 +175,31 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
             let displacement = body_b.transform.translation.0[self.axis]
                 - body_a.transform.translation.0[self.axis];
             let rel_vel = body_b.linear_velocity[self.axis] - body_a.linear_velocity[self.axis];
-            let desired_total_impulse = motor.calculate_impulse(displacement, rel_vel, dt);
+            let motor_inputs_valid = dt.is_finite()
+                && dt > 0.0
+                && displacement.is_finite()
+                && rel_vel.is_finite()
+                && motor.target_pos.is_finite()
+                && motor.target_vel.is_finite()
+                && motor.kp.is_finite()
+                && motor.kd.is_finite()
+                && motor.max_force.is_finite()
+                && motor.max_force >= 0.0;
 
-            if let Some((delta_impulse, _velocity_after)) = motor_state.project_impulse(
-                desired_total_impulse,
-                motor.max_force * dt,
-                rel_vel,
-                total_inv,
-            ) {
-                if body_a.is_dynamic() {
-                    body_a.linear_velocity[self.axis] -= delta_impulse * inv_mass_a;
-                }
-                if body_b.is_dynamic() {
-                    body_b.linear_velocity[self.axis] += delta_impulse * inv_mass_b;
+            if motor_inputs_valid {
+                let desired_total_impulse = motor.calculate_impulse(displacement, rel_vel, dt);
+                if let Some((delta_impulse, _velocity_after)) = motor_state.project_impulse(
+                    desired_total_impulse,
+                    motor.max_force * dt,
+                    rel_vel,
+                    total_inv,
+                ) {
+                    if body_a.is_dynamic() {
+                        body_a.linear_velocity[self.axis] -= delta_impulse * inv_mass_a;
+                    }
+                    if body_b.is_dynamic() {
+                        body_b.linear_velocity[self.axis] += delta_impulse * inv_mass_b;
+                    }
                 }
             }
         }
