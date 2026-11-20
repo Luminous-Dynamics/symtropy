@@ -317,6 +317,8 @@ mod tests {
 
     fn single_action(kind: ActionKind, actor_kind: ActorKind, actor_id: &str, target: Option<&str>) -> ActionProposal {
         let mut proposal = proposal();
+        let step = proposal.decision_step;
+        let observation_ref = proposal.observation.observation_ref.clone();
         proposal.actions = vec![Action {
             action_id: "action-1".to_string(),
             actor_kind,
