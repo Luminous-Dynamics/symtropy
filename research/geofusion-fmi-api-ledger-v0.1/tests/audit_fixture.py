@@ -202,7 +202,7 @@ def audit_cases():
         if len(c)!=3 or not all(c): fail(f"bad TSV row {n}")
         if c[0] in ids or c[1] not in ("REJECT","NOT_EVALUABLE"): fail(f"duplicate/invalid TSV row {n}")
         ids.add(c[0])
-    if len(ids)!=26: fail(f"expected 26 frozen negative-control rows, got {len(ids)}")
+    if len(ids)!=27: fail(f"expected 26 frozen negative-control rows, got {len(ids)}")
     return len(ids)
 
 def main():
