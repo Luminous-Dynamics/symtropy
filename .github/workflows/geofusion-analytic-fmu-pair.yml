@@ -42,7 +42,10 @@ jobs:
       - name: Validate and execute coupled FMUs through FMPy
         working-directory: research/geofusion-analytic-fmu-pair-v0.1
         run: python tests/fmpy_coupled_smoke.py
-      - name: Upload FMUs and build digests
+      - name: Validate structured FMI API transcript
+        working-directory: research/geofusion-analytic-fmu-pair-v0.1
+        run: python tests/check_dispatch_transcript.py
+      - name: Upload FMUs, transcript contract, and build digests
         uses: actions/upload-artifact@v4
         with:
           name: geofusion-fmi-3.0.2-analytic-pair
@@ -50,6 +53,8 @@ jobs:
             research/geofusion-analytic-fmu-pair-v0.1/build/stage/*.fmu
             research/geofusion-analytic-fmu-pair-v0.1/build/stage/artifact-digests.sha256
             research/geofusion-analytic-fmu-pair-v0.1/build/stage/fmi3-api-transcript.json
+            research/geofusion-analytic-fmu-pair-v0.1/tests/fmi3-dispatch-transcript.schema.json
+            research/geofusion-analytic-fmu-pair-v0.1/tests/check_dispatch_transcript.py
             research/geofusion-analytic-fmu-pair-v0.1/build/GeothermalSource.so
             research/geofusion-analytic-fmu-pair-v0.1/build/HeatExchangerBuffer.so
           if-no-files-found: error
