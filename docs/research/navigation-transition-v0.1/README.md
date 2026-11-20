@@ -95,6 +95,21 @@ For each domain/task, use the strongest exact-match baseline available:
 
 Never compare headline scores across different sensor privileges, reference truth, environments, splits, hardware or scoring protocols.
 
+
+
+### Cooperative fusion / integrity comparators (2026)
+
+Two recent papers should be included as direct method comparators in the cooperative-localization track:
+
+- **DECLARE: conflict-aware evidence fusion for robust decentralized cooperative localization**, *Engineering Applications of Artificial Intelligence* 181, Part 7 (1 October 2026), [DOI 10.1016/j.engappai.2026.115684](https://doi.org/10.1016/j.engappai.2026.115684). Its abstract describes continuous evidence representations, conflict between incoming evidence and predicted beliefs, Bayesian source credibility, entropy-based information quality and a conservative covariance-intersection-compatible discount, evaluated in simulation and on a real multi-robot dataset. It is a direct comparator candidate; exact artifact, dataset, licensing, protocol and results must be frozen before claiming reproduction.
+- **Resilient distributed localization for mobile sensor networks under malicious attacks**, *Information Sciences* 724 (January 2026), [DOI 10.1016/j.ins.2025.122708](https://doi.org/10.1016/j.ins.2025.122708). Its abstract describes innovation-based saturation for unreasonable relative-measurement innovations combined with covariance intersection, with consistency and bounded covariance analysis. Reproduce only the defensive software-level methodology and its stated threat assumptions.
+
+The Mycelix PR #6389 is a correctness repair to the existing CI-labelled primitive, not a reproduction of either method. The matched benchmark should compare corrected two-source diagonal CI, the explicitly named sequential CI approximation, faithful DECLARE reproduction, innovation-saturation + CI, and task-appropriate classical distributed ESKF/factor-graph baselines. The historic trust-weighted average may be retained only as a defective historical baseline.
+
+Extend the report beyond ATE/RPE to include NEES/NIS or an applicable consistency statistic, empirical confidence-region coverage, covariance boundedness under the declared fault model, conflict-detection quality, false accepted-position exposure, false rejection, recovery, communication and compute cost. Do not compare abstract headline claims unless dataset, sensors, split, evaluator, threat model and metric definitions match.
+
+A further research direction is information-driven navigation: monitor observability (including Fisher-information rank/conditioning where the model supports it), and compare next-observation or next-best-view policies against passive fixed-rate sensing. Report information gain alongside measurement cost, travel/energy, time, safety envelope and downstream decision value. This should compose the existing geometry/observability owners, not create a second measurement planner.
+
 ## Metrics — keep them separate
 
 Report by domain, transition, scenario and seed:
