@@ -640,7 +640,7 @@
       "candidate_id": "auv-rov-inspection-reconstruction:cloud",
       "placement_stratum": "external_cloud",
       "candidate_available": true,
-      "source_rights_allowed": true,
+      "source_rights_allowed": false,
       "data_egress_required": true,
       "data_egress_allowed": false,
       "quality_gate_pass": false,
