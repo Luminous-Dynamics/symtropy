@@ -1401,4 +1401,146 @@ mod tests {
         }));
     }
 
+
+    #[test]
+    fn package_station_and_execution_references_create_required_causal_order() {
+        let mut actors = registry();
+        actors.grant("design-authority", SiteActorRole::DesignAuthority).unwrap();
+
+        let package_sha256 = digest('a');
+        let package = crate::site_state_ledger::SiteWorkPackage {
+            package_sha256: package_sha256.clone(),
+            source_model_sha256: digest('b'),
+            source_schema_release: "IFC4X3_ADD2".into(),
+            ids_spec_sha256: digest('c'),
+            ids_version: "1.0".into(),
+            ids_engine_build_sha256: digest('d'),
+            coordinate_context_sha256: digest('e'),
+            design_revision_sha256: digest('f'),
+            frame_id: "site-frame".into(),
+            frame_sha256: digest('1'),
+            transform_sha256: digest('2'),
+            entity_manifest_sha256: digest('3'),
+            acceptance_profile_sha256: digest('4'),
+            entities: vec![crate::field_layout_acceptance::DesignIntentEntity {
+                design_entity_id: "entity-1".into(),
+                entity_type: crate::field_layout_acceptance::FieldLayoutEntityType::Point,
+            }],
+            acceptance_profile: crate::field_layout_acceptance::FieldAcceptanceProfile {
+                max_abs_xy_residual_mm: 1.0,
+                max_reference_u95_xy_mm: 0.25,
+                max_abs_z_residual_mm: None,
+                max_reference_u95_z_mm: None,
+                max_abs_endpoint_residual_mm: None,
+            },
+        };
+
+        let package_journal = journal(
+            "journal-design",
+            "design-authority",
+            vec![entry(
+                1,
+                None,
+                "publish-package",
+                '5',
+                "design-authority",
+                SiteActorRole::DesignAuthority,
+                &[],
+                SiteEventPayload::WorkPackagePublished { package },
+            )],
+        );
+        let station_journal = journal(
+            "journal-surveyor",
+            "surveyor-a",
+            vec![entry(
+                1,
+                None,
+                "station-qualified",
+                '6',
+                "surveyor-a",
+                SiteActorRole::Surveyor,
+                &[],
+                SiteEventPayload::StationQualified {
+                    package_sha256: package_sha256.clone(),
+                    station_id: "station-1".into(),
+                    frame_sha256: digest('1'),
+                    transform_sha256: digest('2'),
+                    calibration_sha256: digest('7'),
+                },
+            )],
+        );
+        let execution_journal = journal(
+            "journal-robot",
+            "robot-a",
+            vec![entry(
+                1,
+                None,
+                "execution-start",
+                '8',
+                "robot-a",
+                SiteActorRole::Robot,
+                &[],
+                SiteEventPayload::ExecutionStarted {
+                    package_sha256,
+                    entity_id: "entity-1".into(),
+                    attempt_id: "attempt-new".into(),
+                    station_qualification_event_id: "station-qualified".into(),
+                },
+            )],
+        );
+
+        let plan = reconcile_site_journal_bundle(
+            &[execution_journal, station_journal, package_journal],
+            "site-001",
+            &checkpoint(),
+            &SiteJournalCommittedContext::default(),
+            &actors,
+        )
+        .unwrap();
+        assert!(plan.can_ingest());
+        let ordered: Vec<_> = plan
+            .ordered_events
+            .iter()
+            .map(|event| event.event_id.as_str())
+            .collect();
+        assert_eq!(
+            ordered,
+            vec!["publish-package", "station-qualified", "execution-start"]
+        );
+    }
+
+    #[test]
+    fn checkpoint_context_cannot_claim_a_station_outside_its_event_prefix() {
+        let first = journal(
+            "journal-a",
+            "robot-a",
+            vec![entry(
+                1,
+                None,
+                "event-a",
+                '1',
+                "robot-a",
+                SiteActorRole::Robot,
+                &[],
+                observation_payload("attempt-a"),
+            )],
+        );
+        let context = SiteJournalCommittedContext {
+            station_qualification_event_ids: BTreeSet::from(["station-not-in-prefix".into()]),
+            package_sha256s: BTreeSet::from([digest('a')]),
+            attempt_ids: BTreeSet::from(["attempt-a".into()]),
+            ..SiteJournalCommittedContext::default()
+        };
+        assert_eq!(
+            reconcile_site_journal_bundle(
+                &[first],
+                "site-001",
+                &checkpoint(),
+                &context,
+                &registry(),
+            ),
+            Err(SiteJournalReconciliationError::InvalidCommittedContext)
+        );
+    }
+
 }
