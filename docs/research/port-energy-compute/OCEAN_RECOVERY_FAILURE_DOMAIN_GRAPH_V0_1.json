@@ -21,6 +21,8 @@
   ],
   "independence_critical_kinds": [
     "site",
+    "compute",
+    "storage",
     "identity",
     "keys",
     "network",
