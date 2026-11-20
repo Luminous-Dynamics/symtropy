@@ -50,10 +50,10 @@ The companion radial Noether artifact verifies the exact radial-diffeomorphism i
 
 ## 4. Finite-coupling conditioning probes
 
-The research script samples \(\lambda=\alpha/r_H^2\in\{0,0.1,0.7,3,10,100\}\) and
+The research script samples \(\lambda=\alpha/r_H^2\in\{0,0.1,0.7,3,10\}\) and
 \(\rho=r/r_H\in\{1.001,1.01,1.1,1.5,2,5,10,100\}\), with \(r_H=1\).
 
-The binary64 probes found a positive sampled reduced principal determinant, but the largest estimated 2-norm condition number is approximately \(2.50\times10^{11}\). This is a conditioning warning, **not** a global positivity result. Large coupling and near-horizon points need better scaling, higher precision and a horizon-adapted chart. The recorded values are not interval enclosures.
+The binary64 probes found a positive sampled reduced principal determinant, but the largest estimated 2-norm condition number is approximately \(2.25\times10^8\). This is a conditioning warning, **not** a global positivity result. Large coupling and near-horizon points need better scaling, higher precision and a horizon-adapted chart. The recorded values are not interval enclosures.
 
 ## 5. Recommended solver formulation
 
