@@ -1,12 +1,14 @@
 {
   "schema_version": 1,
   "artifact_kind": "5d_egb_single_spin_nheg_cartan_geometry",
-  "status": "cartan_frame_connection_curvature_and_kretschmann_replayed_field_equations_not_yet_evaluated",
+  "status": "independent_cartan_lanczos_and_all_local_egb_field_equations_verified",
   "source": {
     "paper": "Celik, Hajian and Kunz, An Exact Single-Rotating Near-Horizon Geometry in Einstein-Gauss-Bonnet Gravity",
     "arxiv": "2605.15005",
     "url": "https://arxiv.org/abs/2605.15005",
     "equations": [
+      "(2)",
+      "(3)",
       "(4)",
       "(5)",
       "(6)",
@@ -190,7 +192,49 @@
     "ricci_off_diagonal_zero_after_x2_relation": true,
     "cartan_kretschmann_matches_source_exactly": true,
     "pole_limit_K_160_over_alpha_sym_squared": true,
-    "full_EGB_field_equations_independently_replayed": false
+    "full_EGB_field_equations_independently_replayed": true,
+    "Lanczos_tensor_formula_from_source_Eq3": true,
+    "all_25_EGB_frame_equations_exactly_zero": true
   },
-  "claim_ceiling": "Independent Cartan coframe, Levi-Civita connection, Riemann/Ricci contractions and Kretschmann replay for the source-reported local near-horizon geometry. No Lanczos tensor, complete EGB field-equation replay, global completion, finite charges, or hyperbolicity result is claimed."
+  "claim_ceiling": "Independent Cartan coframe, Levi-Civita connection, Riemann/Ricci contractions, Lanczos tensor and exact local EGB field-equation replay for the source-reported near-horizon geometry. No global asymptotically-flat completion, finite horizon charges, hyperbolicity, or stability result is claimed.",
+  "gauss_bonnet": {
+    "lagrangian_scalar": "6*(x^2*y^2+x^2*y*z+x^2*y_2+x^2*z^2+x^2*z_2+4*y^4+12*y^3*z+4*y^2*y_2+4*y^2*z^2+4*y^2*z_2+8*y*y_2*z)",
+    "lanczos_tensor_nonzero_frame_components": {
+      "0,0": "x^2*z^2+x^2*z_2+8*y^3*z+4*y^2*z^2+4*y^2*z_2+8*y*y_2*z",
+      "1,1": "-x^2*z^2-x^2*z_2-8*y^3*z-4*y^2*z^2-4*y^2*z_2-8*y*y_2*z",
+      "2,2": "-3*y*z*(x^2+4*y^2)",
+      "3,3": "-3*(x^2+4*y^2)*(y^2+y_2)",
+      "4,4": "-x^2*z^2-x^2*z_2-8*y^3*z-4*y^2*z^2-4*y^2*z_2-8*y*y_2*z"
+    },
+    "field_equation": "G_ab + alpha_sym/4 * H_ab = 0",
+    "all_25_frame_residuals_after_exact_rationalization": {
+      "0,0": "0",
+      "0,1": "0",
+      "0,2": "0",
+      "0,3": "0",
+      "0,4": "0",
+      "1,0": "0",
+      "1,1": "0",
+      "1,2": "0",
+      "1,3": "0",
+      "1,4": "0",
+      "2,0": "0",
+      "2,1": "0",
+      "2,2": "0",
+      "2,3": "0",
+      "2,4": "0",
+      "3,0": "0",
+      "3,1": "0",
+      "3,2": "0",
+      "3,3": "0",
+      "3,4": "0",
+      "4,0": "0",
+      "4,1": "0",
+      "4,2": "0",
+      "4,3": "0",
+      "4,4": "0"
+    },
+    "tensor_formula": "H_ab=2*(R*R_ab-2*R_ac*R^c_b-2*R^{cd}*R_acbd+R_a^{cde}*R_bcde)-0.5*eta_ab*L_GB",
+    "index_raising_note": "R^{cd} is raised on both indices; for diagonal Ricci in an orthonormal frame R^{cc}=eta_c^2 R_cc=R_cc, so no single eta_c factor appears in that contraction."
+  }
 }
