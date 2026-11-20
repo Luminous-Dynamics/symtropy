@@ -66,7 +66,7 @@ def main() -> int:
         if "return fmi3Error;" not in body and "return NULL;" not in body:
             raise AssertionError(f"unsupported symbol does not fail closed: {symbol}")
 
-    if '"3.0.2"' not in blocks["fmi3GetVersion"]:
+    if '"3.0"' not in blocks["fmi3GetVersion"] or '"3.0.2"' in blocks["fmi3GetVersion"]:
         raise AssertionError("FMI version function does not return the pinned interface version")
 
     for xml_path in sorted(MODEL_DIR.glob("*.xml")):
@@ -74,6 +74,9 @@ def main() -> int:
         cosim=root.find("CoSimulation")
         if cosim is None:
             raise AssertionError(f"{xml_path.name}: CoSimulation interface missing")
+        for output in root.findall("./ModelVariables/Float64[@causality='output']"):
+            if "start" in output.attrib:
+                raise AssertionError(f"{xml_path.name}: calculated continuous output {output.get('name')} must not declare start")
         if cosim.get("canGetAndSetFMUState","false").lower()!="false":
             raise AssertionError(f"{xml_path.name}: unqualified FMU state capability advertised")
         if cosim.get("canSerializeFMUState","false").lower()!="false":
