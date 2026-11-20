@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fmiModelDescription fmiVersion="3.0" modelName="SyntheticIntegratedFluxSource" instantiationToken="integrated-flux-source-token-v0.1" description="Synthetic sinusoidal thermal source exposing cumulative and completed-interval energy in joules" generationTool="Luminous Dynamics integrated-flux FMU prototype" generationDateAndTime="2026-11-20T00:00:00Z" variableNamingConvention="flat">
+  <UnitDefinitions>
+    <Unit name="J"><BaseUnit kg="1" m="2" s="-2"/></Unit>
+  </UnitDefinitions>
+  <CoSimulation modelIdentifier="IntegratedFluxSource" canHandleVariableCommunicationStepSize="true" canGetAndSetFMUState="false" canSerializeFMUState="false"/>
+  <DefaultExperiment startTime="0" stopTime="120" tolerance="1e-8"/>
+  <ModelVariables>
+    <Float64 name="cumulativeThermalEnergy" valueReference="11" causality="output" variability="continuous" unit="J" description="Cumulative integrated source thermal energy at the latest committed time [J]"/>
+    <Float64 name="intervalThermalEnergy" valueReference="12" causality="output" variability="continuous" unit="J" description="Exact thermal energy integral over the most recently completed communication interval [J]"/>
+  </ModelVariables>
+  <ModelStructure>
+    <Output><Unknown index="1"/><Unknown index="2"/></Output>
+  </ModelStructure>
+</fmiModelDescription>

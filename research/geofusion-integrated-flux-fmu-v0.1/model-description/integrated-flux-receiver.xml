@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fmiModelDescription fmiVersion="3.0" modelName="SyntheticIntegratedFluxReceiver" instantiationToken="integrated-flux-receiver-token-v0.1" description="Synthetic interval-energy receiver with exactly-once energy allocation" generationTool="Luminous Dynamics integrated-flux FMU prototype" generationDateAndTime="2026-11-20T00:00:00Z" variableNamingConvention="flat">
+  <UnitDefinitions>
+    <Unit name="J"><BaseUnit kg="1" m="2" s="-2"/></Unit>
+  </UnitDefinitions>
+  <CoSimulation modelIdentifier="IntegratedFluxReceiver" canHandleVariableCommunicationStepSize="true" canGetAndSetFMUState="false" canSerializeFMUState="false"/>
+  <DefaultExperiment startTime="0" stopTime="120" tolerance="1e-8"/>
+  <ModelVariables>
+    <Float64 name="intervalThermalEnergy" valueReference="21" causality="input" variability="continuous" unit="J" start="0" description="Producer-reported energy integral for the matching completed source interval [J]"/>
+    <Float64 name="serviceEnergy" valueReference="31" causality="output" variability="continuous" unit="J" description="Useful thermal service energy delivered in the committed interval [J]"/>
+    <Float64 name="lossEnergy" valueReference="32" causality="output" variability="continuous" unit="J" description="Thermal loss energy in the committed interval [J]"/>
+    <Float64 name="storageDeltaEnergy" valueReference="33" causality="output" variability="continuous" unit="J" description="Thermal energy added to storage in the committed interval [J]"/>
+    <Float64 name="storedEnergy" valueReference="34" causality="output" variability="continuous" unit="J" description="Cumulative stored-energy state sampled at the interval end [J]"/>
+  </ModelVariables>
+  <ModelStructure>
+    <Output><Unknown index="2"/><Unknown index="3"/><Unknown index="4"/><Unknown index="5"/></Output>
+  </ModelStructure>
+</fmiModelDescription>
