@@ -2,8 +2,10 @@
 """Adversarial SSP 2.0.1 tests for the integrated-flux FMI pair."""
 from __future__ import annotations
 
+import io
 import json
 from pathlib import Path
+import zipfile
 import sys
 import tempfile
 
@@ -25,6 +27,27 @@ def expect_reject(operation, label: str) -> None:
     except ssp.QualificationError:
         return
     raise AssertionError(f"negative SSP control was accepted: {label}")
+
+
+def rewrite_package(source: bytes, replacement_name: str | None = None,
+                    replacement_bytes: bytes | None = None, extra_member: tuple[str, bytes] | None = None) -> bytes:
+    output = io.BytesIO()
+    with zipfile.ZipFile(io.BytesIO(source), "r") as original:
+        members = {
+            info.filename: original.read(info.filename)
+            for info in original.infolist()
+            if not info.is_dir()
+        }
+    if replacement_name is not None and replacement_bytes is not None:
+        members[replacement_name] = replacement_bytes
+    if extra_member is not None:
+        members[extra_member[0]] = extra_member[1]
+    with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_STORED) as rewritten:
+        for name in sorted(members):
+            info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_STORED
+            rewritten.writestr(info, members[name])
+    return output.getvalue()
 
 
 def main() -> int:
@@ -113,9 +136,25 @@ def main() -> int:
     )
     expect_reject(lambda: ssp.validate_ssd(doctype), "DTD/external entity")
 
+    manifest_name = "resources/geofusion-integrated-flux-evidence.json"
+    duplicate_key_manifest = b'{"schema_version":"0.1.0","schema_version":"0.1.0"}'
+    duplicate_key_package = rewrite_package(package_bytes, manifest_name, duplicate_key_manifest)
+    expect_reject(
+        lambda: ssp.verify_package_bytes(duplicate_key_package),
+        "duplicate manifest JSON key",
+    )
+    traversal_package = rewrite_package(
+        package_bytes,
+        extra_member=("../outside.txt", b"must not escape archive root"),
+    )
+    expect_reject(
+        lambda: ssp.verify_package_bytes(traversal_package),
+        "outer SSP archive path traversal",
+    )
+
     print("Integrated-flux SSP 2.0.1 package audit: PASS")
     print(f"package_sha256={receipt['package_sha256']}")
-    print("negative_controls=wrong-unit,wrong-direction,wrong-transfer,DTD: REJECTED")
+    print("negative_controls=wrong-unit,wrong-direction,wrong-transfer,DTD,duplicate-json-key,path-traversal: REJECTED")
     print("determinism=identical-input-bytes: PASS")
     return 0
 
