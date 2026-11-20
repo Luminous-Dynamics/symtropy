@@ -92,7 +92,7 @@ The calculation reports concentration and mass flux separately; dilution can red
 
 ### 3.4 Uncertainty and covariance
 
-The output flow, temperature and concentration measurements share transport-lag error. Their contribution must use one common perturbation and the relevant temporal sensitivities. A common timebase, shared calibration reference, common laboratory batch, common flow standard or shared environmental correction may create other covariance terms. The current fixture declares instrument calibration domains independent within an interval and uses an explicit common-lag covariance term. Real data must establish, not assume, those relationships.
+The output flow, temperature and concentration measurements share transport-lag error. Their contribution must use one common perturbation and the relevant temporal sensitivities. The intake, outfall and plume chemistry samples also share an explicitly identified laboratory batch with a common additive concentration-bias term. For the paired net load, this shared batch contribution scales with `abs(Q_out - Q_in) × u_batch`; it is not treated as two independent batch errors. For within-batch station contrasts, the common additive batch term cancels, while sample-specific and hydraulic-alignment terms remain. A common timebase, shared calibration reference, common flow standard or shared environmental correction may create other covariance terms. The current fixture declares instrument calibration domains independent within an interval and models the two known shared terms separately. Real data must establish, not assume, those relationships.
 
 The net pollutant-load resolution ratio is `abs(F_net) / u(F_net)`. A value below one standard uncertainty is marked unresolved. It is not evidence of zero pollution, compliance or no impact. The confidence interval and measurement detection limits remain visible.
 
@@ -110,6 +110,7 @@ Each sample carries:
 - sensor and calibration identifiers;
 - calibration-valid-from/to timestamps;
 - signed per-sample sensor/logger clock offset (checked independently for every reading, not inferred from an interval-level health flag);
+- laboratory-batch identity, common batch-error standard uncertainty and a declared batch-independence domain;
 - calibration independence domain;
 - QC and source-rights state;
 - station identity and role;
@@ -150,8 +151,8 @@ The fixture contains three five-minute input windows; 15 temperature station obs
 
 An independent numerical cross-check of 50,000 draws per interval found:
 - first-order and Monte Carlo thermal standard uncertainty relative differences below 0.6%;
-- net pollutant-load standard uncertainty relative differences below 0.4%;
-- the simulated 95% net-load range crossed zero in all three intervals.
+- net pollutant-load standard uncertainty relative differences below 0.5%;
+- the simulated 95% net-load range crossed zero in all three intervals, even after adding the shared laboratory-batch covariance term.
 
 Interpretation: the synthetic net-load change is unresolved under the fixture's uncertainty model. It is neither a claim of increased pollution nor a claim of no pollution. These values are not measured ocean data and must never enter a real-site performance claim.
 
@@ -176,7 +177,7 @@ The expected status explicitly remains:
 - ecological impact `NOT_ASSESSED`; and
 - site clearance `UNKNOWN_BLOCKED`.
 
-The metrology verifier has 27 authored tests and the campaign verifier has seven. These regression/negative-control tests have not yet been compiled or executed in this environment because `rustc` and `cargo` are unavailable. The numerical cross-check is independent JavaScript analysis, not a Rust test pass or CI result.
+The metrology verifier has 30 authored tests and the campaign verifier has seven. These regression/negative-control tests have not yet been compiled or executed in this environment because `rustc` and `cargo` are unavailable. The numerical cross-check is independent JavaScript analysis, not a Rust test pass or CI result.
 
 ## 9. Next physical qualification increments
 
