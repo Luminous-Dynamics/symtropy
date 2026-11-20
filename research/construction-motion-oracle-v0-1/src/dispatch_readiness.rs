@@ -644,6 +644,8 @@ mod tests {
                     frame_sha256: digest('f'),
                     transform_sha256: digest('1'),
                     calibration_sha256: digest('6'),
+                    site_clock_domain_id: "site-clock-01".into(),
+                    valid_until_tick: 10_000,
                 },
             })
             .unwrap();
@@ -751,6 +753,8 @@ mod tests {
                     frame_sha256: digest('f'),
                     transform_sha256: digest('1'),
                     calibration_sha256: digest('6'),
+                    site_clock_domain_id: "site-clock-01".into(),
+                    valid_until_tick: 10_000,
                 },
             })
             .unwrap();
@@ -917,6 +921,8 @@ mod tests {
                     frame_sha256: digest('f'),
                     transform_sha256: digest('1'),
                     calibration_sha256: digest('6'),
+                    site_clock_domain_id: "site-clock-01".into(),
+                    valid_until_tick: 10_000,
                 },
             })
             .unwrap();
@@ -1011,6 +1017,8 @@ mod tests {
                     frame_sha256: digest('f'),
                     transform_sha256: digest('1'),
                     calibration_sha256: digest('6'),
+                    site_clock_domain_id: "site-clock-01".into(),
+                    valid_until_tick: 10_000,
                 },
             })
             .unwrap();
