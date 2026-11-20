@@ -23,7 +23,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -157,7 +157,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -253,7 +253,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -387,7 +387,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.002,
+            "value": 0.006,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -521,7 +521,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -655,7 +655,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -789,7 +789,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -923,7 +923,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -1057,7 +1057,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -1208,7 +1208,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -1342,7 +1342,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v2",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -1476,7 +1476,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -1610,7 +1610,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -1744,7 +1744,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -1878,7 +1878,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -2012,7 +2012,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -2146,7 +2146,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -2280,7 +2280,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -2395,7 +2395,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -2529,7 +2529,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -2663,7 +2663,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -2797,7 +2797,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -2931,7 +2931,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -3065,7 +3065,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -3199,7 +3199,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -3333,7 +3333,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -3467,7 +3467,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -3601,7 +3601,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -3735,7 +3735,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
@@ -3869,7 +3869,7 @@
         "mechanical": {
           "geometry_profile_id": "capture-cone-interface-v1",
           "max_alignment_error": {
-            "value": 0.01,
+            "value": 0.003,
             "unit": "m"
           },
           "max_approach_speed": {
