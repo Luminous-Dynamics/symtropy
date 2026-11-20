@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "0.1.0",
+  "bundleId": "synthetic-run-bundle-0001",
+  "artifacts": [
+    {
+      "artifactUri": "bundle://validator/decision-0.json",
+      "relativePath": "artifacts/validator/decision-0.json",
+      "mediaType": "application/json",
+      "byteLength": 60,
+      "sha256": "4ac0258529aca07bcc9c5c45cf0c23f05eb8176212b6af732f80c9bd8ad5f987"
+    }
+  ]
+}
