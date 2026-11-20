@@ -1213,7 +1213,7 @@ mod tests {
         assert_eq!(metrics.repositioning_events, 0);
         assert_eq!(metrics.hard_gate_blocked_actions, 1);
         assert_eq!(metrics.idle_periods, 1);
-        assert_eq!(metrics.total_cost, 17 + 2 * 5 + 1 * 10 + 1 * 120);
+        assert_eq!(metrics.total_cost, 17 + 2 * 5 + 2 * 100 + 1 * 10 + 1 * 120);
     }
 
     #[test]
