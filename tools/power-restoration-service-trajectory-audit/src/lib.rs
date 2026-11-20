@@ -1248,6 +1248,90 @@ mod tests {
     }
 
     #[test]
+    fn modelled_service_requires_its_model_identity_and_reconciles_weighted_score() {
+        let case = case();
+        let mut receipt = receipt(&case);
+        let mut trajectory = fully_served_trajectory(&case, &receipt);
+        trajectory.stream_kind = ServiceStreamKind::ModelledService;
+        trajectory.producer.model_id = Some("opendss-ac-service-model-v1".to_string());
+        trajectory.producer.instrument_id = None;
+        trajectory.producer.calibration_artifact_ref = None;
+        trajectory.producer.calibration_artifact_sha256 = None;
+        trajectory.source_artifacts.retain(|source| {
+            source.artifact_ref.starts_with("evidence://")
+        });
+        trajectory.source_artifacts.push(ServiceSourceArtifact {
+            artifact_ref: "model://opendss-ac-service-model-v1".to_string(),
+            sha256: "a".repeat(64),
+        });
+        let expected = case.network.loads.iter().map(|load| {
+            load.active_power_kw
+                * f64::from(case.timebase.step_size) / 60.0
+                * f64::from(case.timebase.horizon_steps)
+                * load.priority_weight
+        }).sum::<f64>();
+        bind_final_and_score(&trajectory, &mut receipt, expected);
+        let report = audit_service_trajectory(&trajectory, &receipt, &case).unwrap();
+        assert_eq!(report.result_status, "modelled_service_and_score_reconciled");
+        assert!(nearly_equal(report.weighted_delivered_kwh.unwrap(), expected));
+    }
+
+    #[test]
+    fn modelled_service_without_a_model_identity_is_rejected() {
+        let case = case();
+        let receipt = receipt(&case);
+        let mut trajectory = fully_served_trajectory(&case, &receipt);
+        trajectory.stream_kind = ServiceStreamKind::ModelledService;
+        trajectory.producer.model_id = None;
+        trajectory.producer.instrument_id = None;
+        trajectory.producer.calibration_artifact_ref = None;
+        trajectory.producer.calibration_artifact_sha256 = None;
+        assert!(audit_service_trajectory(&trajectory, &receipt, &case).is_err());
+    }
+
+    #[test]
+    fn service_sample_source_digest_must_match_inventory() {
+        let case = case();
+        let receipt = receipt(&case);
+        let mut trajectory = fully_served_trajectory(&case, &receipt);
+        let sample_ref = trajectory.samples[0].evidence_ref.clone().unwrap();
+        let source = trajectory.source_artifacts.iter_mut()
+            .find(|artifact| artifact.artifact_ref == sample_ref)
+            .unwrap();
+        source.sha256 = "9".repeat(64);
+        assert!(audit_service_trajectory(&trajectory, &receipt, &case).is_err());
+    }
+
+    #[test]
+    fn service_samples_must_be_in_strict_step_load_order() {
+        let case = case();
+        let receipt = receipt(&case);
+        let mut trajectory = fully_served_trajectory(&case, &receipt);
+        trajectory.samples.swap(0, 1);
+        assert!(audit_service_trajectory(&trajectory, &receipt, &case).is_err());
+    }
+
+    #[test]
+    fn incomplete_run_cannot_export_a_completed_cascade_claim() {
+        let case = case();
+        let mut receipt = receipt(&case);
+        let mut trajectory = fully_served_trajectory(&case, &receipt);
+        trajectory.parent_service_artifacts = receipt.decision_steps.iter()
+            .filter(|step| step.disposition == StepDisposition::Executed
+                && step.service_outcome == ServiceOutcome::Scored)
+            .filter_map(|step| step.service_trajectory.as_ref())
+            .map(|artifact| ServiceSourceArtifact {
+                artifact_ref: artifact.artifact_ref.clone(),
+                sha256: artifact.sha256.clone(),
+            }).collect();
+        mark_receipt_incomplete(&mut receipt);
+        let report = audit_service_trajectory(&trajectory, &receipt, &case).unwrap();
+        assert_eq!(report.result_status, "service_trajectory_recomputed_for_incomplete_run");
+        assert!(report.weighted_delivered_kwh.is_some());
+        assert!(per_load_cascade_availability(&report).is_err());
+    }
+
+    #[test]
     fn planned_forecast_never_qualifies_as_delivered_service() {
         let case = case();
         let mut receipt = receipt(&case);
