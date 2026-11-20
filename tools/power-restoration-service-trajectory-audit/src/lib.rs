@@ -90,7 +90,10 @@ pub struct ServiceSample {
     pub evidence_ref: Option<String>,
     pub evidence_sha256: Option<String>,
     pub uncertainty_kwh: Option<f64>,
+    pub unknown_reason: Option<String>,
     pub conflict_reason: Option<String>,
+    /// A conflict is represented by its independent source records, not an average.
+    pub conflict_evidence: Vec<ServiceSourceArtifact>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -247,7 +250,11 @@ fn validate_producer(
     }
 }
 
-fn validate_sample_evidence(sample: &ServiceSample, errors: &mut Vec<String>) {
+fn validate_sample_evidence(
+    sample: &ServiceSample,
+    stream_kind: ServiceStreamKind,
+    errors: &mut Vec<String>,
+) {
     let evidence_pair_valid = match (
         sample.evidence_ref.as_deref(),
         sample.evidence_sha256.as_deref(),
@@ -256,12 +263,25 @@ fn validate_sample_evidence(sample: &ServiceSample, errors: &mut Vec<String>) {
         (None, None) => false,
         _ => false,
     };
+    let service_evidence_required = matches!(
+        stream_kind,
+        ServiceStreamKind::ModelledService | ServiceStreamKind::MeasuredService
+    );
 
     match sample.status {
         ServiceSampleStatus::Known | ServiceSampleStatus::Unavailable => {
-            if !evidence_pair_valid {
+            if service_evidence_required && !evidence_pair_valid {
                 errors.push(format!(
                     "known/unavailable sample {} lacks a complete source evidence reference/digest",
+                    sample.sample_id
+                ));
+            }
+            if sample.unknown_reason.is_some()
+                || sample.conflict_reason.is_some()
+                || !sample.conflict_evidence.is_empty()
+            {
+                errors.push(format!(
+                    "known/unavailable sample {} carries unknown/conflict metadata",
                     sample.sample_id
                 ));
             }
@@ -273,6 +293,23 @@ fn validate_sample_evidence(sample: &ServiceSample, errors: &mut Vec<String>) {
                     sample.sample_id
                 ));
             }
+            if sample.unknown_reason.as_deref().is_none_or(|reason| !valid_id(reason))
+                || sample.conflict_reason.is_some()
+                || !sample.conflict_evidence.is_empty()
+            {
+                errors.push(format!(
+                    "unknown sample {} requires only an explicit unknown reason",
+                    sample.sample_id
+                ));
+            }
+            if sample.evidence_ref.is_some() != sample.evidence_sha256.is_some()
+                || sample.evidence_sha256.as_deref().is_some_and(|digest| !is_lower_hex(digest, 64))
+            {
+                errors.push(format!(
+                    "unknown sample {} has an incomplete optional source evidence reference",
+                    sample.sample_id
+                ));
+            }
         }
         ServiceSampleStatus::Conflicting => {
             if sample.delivered_kwh.is_some() {
@@ -281,11 +318,26 @@ fn validate_sample_evidence(sample: &ServiceSample, errors: &mut Vec<String>) {
                     sample.sample_id
                 ));
             }
-            if sample.conflict_reason.as_deref().is_none_or(|reason| !valid_id(reason)) {
+            if sample.conflict_reason.as_deref().is_none_or(|reason| !valid_id(reason))
+                || sample.unknown_reason.is_some()
+                || sample.conflict_evidence.len() < 2
+            {
                 errors.push(format!(
-                    "conflicting sample {} requires an explicit conflict reason",
+                    "conflicting sample {} requires a reason and at least two source evidence records",
                     sample.sample_id
                 ));
+            }
+            let mut source_refs = BTreeSet::new();
+            for source in &sample.conflict_evidence {
+                if !valid_id(&source.artifact_ref)
+                    || !is_lower_hex(&source.sha256, 64)
+                    || !source_refs.insert(source.artifact_ref.as_str())
+                {
+                    errors.push(format!(
+                        "conflicting sample {} contains invalid or duplicate source records",
+                        sample.sample_id
+                    ));
+                }
             }
         }
     }
@@ -294,6 +346,11 @@ fn validate_sample_evidence(sample: &ServiceSample, errors: &mut Vec<String>) {
         if !is_lower_hex(hash, 64) {
             errors.push(format!("sample {} has an invalid evidence digest", sample.sample_id));
         }
+    }
+    if sample.uncertainty_kwh.is_some_and(|uncertainty| {
+        !uncertainty.is_finite() || uncertainty < 0.0
+    }) {
+        errors.push(format!("sample {} has invalid uncertainty", sample.sample_id));
     }
 }
 
