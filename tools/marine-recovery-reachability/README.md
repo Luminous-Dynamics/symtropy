@@ -35,7 +35,7 @@ cargo run --manifest-path tools/marine-recovery-reachability/Cargo.toml -- audit
 | Intervention deadline exhausted | INFEASIBLE/ABSTAIN | The only route arrives after the declared intervention deadline |
 | Unverified port services | INFEASIBLE/ABSTAIN | Geographic reachability is not terminal success when required shore service evidence is unverified |
 
-The human handover fixture has a 2-hour worst-case transfer duration plus a 0.5-hour response upper bound against a 6-hour intervention deadline; remaining margin is emitted explicitly. Missing acknowledgement or a 5-hour response bound makes that handover non-viable. The generator-repair skill is qualified in the mission registry but unavailable in the generator-trip state, so the repair edge is rejected for availability rather than misclassified as an unqualified skill. All numbers, action deltas, rate bounds, authority receipts and terminal evidence are synthetic known-answer fixtures.
+The human handover fixture has a 2-hour worst-case transfer duration plus a 0.5-hour response upper bound against a 6-hour intervention deadline; remaining margin is emitted explicitly. Missing acknowledgement, a 5-hour response bound, or an acknowledgement after terminal-receipt expiry makes that handover non-viable. The generator-repair skill is qualified in the mission registry but unavailable in the generator-trip state, so the repair edge is rejected for availability rather than misclassified as an unqualified skill. All numbers, action deltas, rate bounds, authority receipts and terminal evidence are synthetic known-answer fixtures.
 
 ## Industry and research boundary
 
@@ -45,7 +45,7 @@ The human handover fixture has a 2-hour worst-case transfer duration plus a 0.5-
 
 The differentiator to test is not a new route optimizer. It is a **separate recovery verifier** that requires an evidenced, authorized, resource-safe continuation after a fault, and abstains before the last intervention point when no such path is demonstrated.
 
-The 20 November increment adds a pinned Rust workflow and **24 authored Rust semantic/negative-control tests** for trigger coverage, qualified-versus-available capabilities, handover acknowledgement and timing, action authority, and graph exploration bounds. No local Cargo pass is claimed; exact-head runner results are tracked in the PR.
+The 20 November increment adds a pinned Rust workflow and **25 authored Rust semantic/negative-control tests** for trigger coverage, qualified-versus-available capabilities, handover acknowledgement and timing, action authority, and graph exploration bounds. No local Cargo pass is claimed; exact-head runner results are tracked in the PR.
 
 ## Claim ceiling
 
