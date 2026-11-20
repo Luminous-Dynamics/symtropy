@@ -16,6 +16,8 @@ pub enum ModelError {
     EventInPast,
     NonPositiveFrequency,
     NegativeSourcePowerEnvelope,
+    NegativeCumulativeEnergy,
+    CumulativeEnergyRegressed,
     NonPositiveSampleCount,
     NumericalOverflow,
 }
@@ -208,6 +210,31 @@ pub fn propose_adaptive_step(
         event_time_s,
         event_step_below_minimum,
     })
+}
+
+/// Derive a non-negative interval-energy increment from two committed cumulative readings.
+///
+/// This function performs no interpolation or prediction. A decrease is
+/// treated as an unobserved reset/restart and rejected; callers must establish
+/// a new counter epoch explicitly before accepting further deltas.
+pub fn cumulative_energy_delta_j(
+    previous_cumulative_j: f64,
+    current_cumulative_j: f64,
+) -> Result<f64, ModelError> {
+    if !previous_cumulative_j.is_finite() || !current_cumulative_j.is_finite() {
+        return Err(ModelError::NonFiniteParameter);
+    }
+    if previous_cumulative_j < 0.0 || current_cumulative_j < 0.0 {
+        return Err(ModelError::NegativeCumulativeEnergy);
+    }
+    if current_cumulative_j < previous_cumulative_j {
+        return Err(ModelError::CumulativeEnergyRegressed);
+    }
+    let delta = current_cumulative_j - previous_cumulative_j;
+    if !delta.is_finite() {
+        return Err(ModelError::NumericalOverflow);
+    }
+    Ok(delta)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -813,6 +840,75 @@ impl ThermalModel {
         })
     }
 
+    /// Consume a producer-reported interval energy in joules without future samples.
+    ///
+    /// A master can obtain the interval energy as the difference of two
+    /// successful cumulative-energy output observations at the boundaries of
+    /// one completed producer step. The receiver represents that exact
+    /// interval integral as a constant average power over duration_s, then
+    /// applies the exact piecewise-constant state transition.
+    ///
+    /// The input energy remains the exact declared J quantity in the returned
+    /// balance. The receiver trajectory is still an average-input
+    /// approximation when the physical within-window waveform is not constant.
+    /// This routine cannot authenticate the producer's integral or interval ID;
+    /// those belong to the FMI/API/physical-port evidence layers.
+    pub fn integrated_flux_exchange(
+        self,
+        theta_start_k: f64,
+        interval_energy_j: f64,
+        start_time_s: f64,
+        end_time_s: f64,
+    ) -> Result<EnergyBalance, ModelError> {
+        self.validate()?;
+        if !theta_start_k.is_finite()
+            || !interval_energy_j.is_finite()
+            || !start_time_s.is_finite()
+            || !end_time_s.is_finite()
+        {
+            return Err(ModelError::NonFiniteParameter);
+        }
+        if interval_energy_j < 0.0 {
+            return Err(ModelError::NegativeSourcePowerEnvelope);
+        }
+        if start_time_s < 0.0 {
+            return Err(ModelError::NegativeStartTime);
+        }
+        let duration_s = end_time_s - start_time_s;
+        if duration_s <= 0.0 || !duration_s.is_finite() {
+            return Err(ModelError::NonPositiveInterval);
+        }
+
+        let average_power_w = interval_energy_j / duration_s;
+        if !average_power_w.is_finite() {
+            return Err(ModelError::NumericalOverflow);
+        }
+        let mut balance = self.piecewise_constant(theta_start_k, average_power_w, duration_s)?;
+        balance.start_time_s = start_time_s;
+        balance.end_time_s = end_time_s;
+        // Preserve the producer's committed integral exactly, rather than
+        // reconstructing its energy from a rounded W × s multiplication.
+        balance.energy_input_j = interval_energy_j;
+        balance.energy_service_j = self.service_fraction * interval_energy_j;
+        balance.residual_j = balance.energy_input_j
+            - balance.energy_service_j
+            - balance.energy_loss_j
+            - balance.storage_delta_j;
+        if ![
+            balance.energy_service_j,
+            balance.residual_j,
+            balance.theta_end_k,
+            balance.energy_loss_j,
+            balance.storage_delta_j,
+        ]
+        .iter()
+        .all(|value| value.is_finite())
+        {
+            return Err(ModelError::NumericalOverflow);
+        }
+        Ok(balance)
+    }
+
     pub fn time_constant_s(self) -> Result<f64, ModelError> {
         self.validate()?;
         Ok(self.heat_capacity_j_per_k / self.loss_conductance_w_per_k)
@@ -934,6 +1030,72 @@ mod tests {
         assert_eq!(
             propose_adaptive_step(input),
             Err(ModelError::NonPositiveInterval)
+        );
+    }
+
+    #[test]
+    fn cumulative_energy_delta_uses_only_committed_monotone_observations() {
+        assert_eq!(cumulative_energy_delta_j(10_000.0, 20_000.0), Ok(10_000.0));
+        assert_eq!(cumulative_energy_delta_j(10_000.0, 10_000.0), Ok(0.0));
+        assert_eq!(
+            cumulative_energy_delta_j(20_000.0, 10_000.0),
+            Err(ModelError::CumulativeEnergyRegressed)
+        );
+        assert_eq!(
+            cumulative_energy_delta_j(-1.0, 10_000.0),
+            Err(ModelError::NegativeCumulativeEnergy)
+        );
+        assert_eq!(
+            cumulative_energy_delta_j(0.0, f64::INFINITY),
+            Err(ModelError::NonFiniteParameter)
+        );
+    }
+
+    #[test]
+    fn integrated_flux_handshake_preserves_exact_declared_source_energy() {
+        let model = model();
+        let input = SinusoidalInput {
+            mean_power_w: 500_000.0,
+            amplitude_w: 100_000.0,
+            angular_frequency_rad_per_s: 2.0 * PI / 400.0,
+            initial_theta_k: 2.0,
+        };
+        let continuous = model.sinusoidal_interval(input, 0.0, 120.0).unwrap();
+        let interval_energy = cumulative_energy_delta_j(
+            0.0,
+            continuous.energy_input_j,
+        ).unwrap();
+        let exchange = model
+            .integrated_flux_exchange(2.0, interval_energy, 0.0, 120.0)
+            .unwrap();
+        let one_window_average = model
+            .sinusoidal_interval_average_exchange(input, 0.0, 120.0, 1)
+            .unwrap();
+
+        assert_eq!(exchange.energy_input_j, continuous.energy_input_j);
+        close(exchange.energy_service_j, 27_333_384.403_937_1, 1.0e-6);
+        close(exchange.theta_end_k, 2.989_979_327_511_903, 1.0e-12);
+        close(exchange.energy_loss_j, 31_100_283.330_786_623, 1.0e-6);
+        close(exchange.storage_delta_j, 9_899_793.275_119_029, 1.0e-6);
+        close(exchange.residual_j, 0.0, 1.0e-7);
+        close(exchange.theta_end_k, one_window_average.theta_end_k, 1.0e-12);
+        assert_eq!(exchange.start_time_s, 0.0);
+        assert_eq!(exchange.end_time_s, 120.0);
+    }
+
+    #[test]
+    fn integrated_flux_handshake_rejects_negative_energy_and_invalid_time() {
+        assert_eq!(
+            model().integrated_flux_exchange(2.0, -1.0, 0.0, 1.0),
+            Err(ModelError::NegativeSourcePowerEnvelope)
+        );
+        assert_eq!(
+            model().integrated_flux_exchange(2.0, 1.0, 2.0, 2.0),
+            Err(ModelError::NonPositiveInterval)
+        );
+        assert_eq!(
+            model().integrated_flux_exchange(2.0, 1.0, -1.0, 2.0),
+            Err(ModelError::NegativeStartTime)
         );
     }
 
