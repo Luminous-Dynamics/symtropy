@@ -62,8 +62,9 @@ This is not a replacement for POMDAR's correctness/speed score and is not an agg
 
 ## Machine-readable contract
 
-- hand_mission_bundle.schema.json — JSON Schema Draft 2020-12, closed-world mission record.
+- hand_mission_bundle.schema.json — JSON Schema Draft 2020-12, closed-world mission record. The `task_set_digest` hashes the task catalog sorted by `task_id` using canonical JSON (sorted object keys, compact separators, UTF-8); `task_mix_digest` hashes the planned task-ID sequence in execution order.
 - examples/pomdar_repeated_mission_illustrative.json — illustrative subset with two accepted tasks, one failed repeat, a 40-second cooldown interval and a 120-second total mission clock.
+- `tools/validate_hand_mission_bundle.py` — schema plus cross-record semantic validation and negative controls.
 
 The example calculates \(2/(120/3600)=60\) accepted tasks per elapsed hour. It is deliberately marked illustrative and contains no physical temperature trace. The schema validates structure; a semantic verifier must additionally check:
 - each attempt references a task in task_catalog;
@@ -76,7 +77,7 @@ The example calculates \(2/(120/3600)=60\) accepted tasks per elapsed hour. It i
 - sustained_mission_throughput_per_h is recomputed from accepted completions and the full elapsed time;
 - excluded/censored/aborted outcomes have reason strings.
 
-A JSON Schema pass alone does not certify these cross-record arithmetic conditions.
+A JSON Schema pass alone does not certify these cross-record arithmetic conditions. The repository validator additionally checks these relationships, recomputes the task-set and task-mix digests, verifies wall-clock arithmetic, refuses a declared complete power boundary when relevant power components remain unknown, and runs negative controls for missing denominators, omitted cooldown, tampered throughput, changed task profiles, inconsistent event timing and duplicate IDs.
 
 ## Benchmark targets
 
@@ -94,3 +95,4 @@ Do not set an arbitrary universal success percentage or claim to beat POMDAR fro
 ## Current limitation
 
 This is an evidence schema and protocol crosswalk, not hardware, policy or safety qualification. The example has synthetic outcomes only. No score, performance advantage or physical measurement is claimed.
+
