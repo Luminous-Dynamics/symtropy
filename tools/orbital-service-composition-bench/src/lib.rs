@@ -264,8 +264,11 @@ fn parse_receipt(
 pub fn compose_receipt_bundle(
     composition_fixture_bytes: &[u8],
     delivery_receipt_bytes: &[u8],
+    delivery_campaign_bytes: &[u8],
     capture_receipt_bytes: &[u8],
+    capture_fixture_bytes: &[u8],
     fluid_receipt_bytes: &[u8],
+    fluid_fixture_bytes: &[u8],
 ) -> Result<ReceiptBundleV1, String> {
     let fixture: Fixture = serde_json::from_slice(composition_fixture_bytes)
         .map_err(|error| format!("invalid composition fixture: {error}"))?;
@@ -329,6 +332,24 @@ pub fn compose_receipt_bundle(
         fluid_pin,
         &fixture.evidence_class,
     )?;
+
+    for (label, receipt, digest_field, source_bytes) in [
+        ("delivery", &delivery, "campaign_sha256", delivery_campaign_bytes),
+        ("capture", &capture, "fixture_sha256", capture_fixture_bytes),
+        ("fluid", &fluid, "fixture_sha256", fluid_fixture_bytes),
+    ] {
+        let embedded = required_str(receipt, digest_field, label)?;
+        let actual = sha256_hex(source_bytes);
+        if embedded != actual {
+            return Err(format!("{label}: {digest_field} does not match supplied source input bytes"));
+        }
+        let source_input: serde_json::Value = serde_json::from_slice(source_bytes)
+            .map_err(|error| format!("{label}: invalid source input JSON: {error}"))?;
+        if required_str(&source_input, "evidence_class", label)? != fixture.evidence_class {
+            return Err(format!("{label}: source input evidence class mismatch"));
+        }
+        required_str(&source_input, "claim_ceiling", label)?;
+    }
 
     let delivery_report = delivery.get("report").expect("delivery report checked above");
     if required_str(delivery_report, "disposition", "delivery")? != "ready" {
@@ -438,8 +459,11 @@ pub fn compose_receipt_bundle(
     let artifact_sha256 = BTreeMap::from([
         ("composition_fixture".to_owned(), sha256_hex(composition_fixture_bytes)),
         ("delivery_receipt".to_owned(), sha256_hex(delivery_receipt_bytes)),
+        ("delivery_campaign".to_owned(), sha256_hex(delivery_campaign_bytes)),
         ("capture_receipt".to_owned(), sha256_hex(capture_receipt_bytes)),
+        ("capture_fixture".to_owned(), sha256_hex(capture_fixture_bytes)),
         ("fluid_receipt".to_owned(), sha256_hex(fluid_receipt_bytes)),
+        ("fluid_fixture".to_owned(), sha256_hex(fluid_fixture_bytes)),
     ]);
     Ok(ReceiptBundleV1 {
         receipt_schema: "luminous.orbital-service-composition.bundle-receipt.v0.1",
@@ -830,7 +854,7 @@ mod tests {
         assert_eq!(report.summary.operational_authority_grants, 0);
     }
 
-    fn receipt_bundle_inputs() -> (Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>) {
+    fn receipt_bundle_inputs() -> (Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>) {
         let data = fixture();
         let source_commit = |component: Component| {
             data.source_pins
@@ -840,11 +864,27 @@ mod tests {
                 .source_commit
                 .clone()
         };
+        let delivery_input = serde_json::json!({
+            "evidence_class": "synthetic",
+            "claim_ceiling": "Synthetic Earth-orbit campaign input."
+        });
+        let capture_input = serde_json::json!({
+            "evidence_class": "synthetic",
+            "claim_ceiling": "Synthetic capture fixture input."
+        });
+        let fluid_input = serde_json::json!({
+            "evidence_class": "synthetic",
+            "claim_ceiling": "Synthetic fluid fixture input."
+        });
+        let delivery_input_bytes = serde_json::to_vec(&delivery_input).expect("delivery input encodes");
+        let capture_input_bytes = serde_json::to_vec(&capture_input).expect("capture input encodes");
+        let fluid_input_bytes = serde_json::to_vec(&fluid_input).expect("fluid input encodes");
+
         let delivery = serde_json::json!({
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
             "validator_version": "0.1.0",
             "source_commit": source_commit(Component::EarthOrbitChain),
-            "campaign_sha256": "a".repeat(64),
+            "campaign_sha256": sha256_hex(&delivery_input_bytes),
             "result": "pass",
             "report": {
                 "evidence_class": "synthetic",
@@ -865,7 +905,7 @@ mod tests {
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
             "validator_version": "0.1.0",
             "source_commit": source_commit(Component::OrbitalCapture),
-            "fixture_sha256": "b".repeat(64),
+            "fixture_sha256": sha256_hex(&capture_input_bytes),
             "result": "pass",
             "report": {
                 "evidence_class": "synthetic",
@@ -887,7 +927,7 @@ mod tests {
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
             "validator_version": "0.1.0",
             "source_commit": source_commit(Component::OrbitalFluid),
-            "fixture_sha256": "c".repeat(64),
+            "fixture_sha256": sha256_hex(&fluid_input_bytes),
             "result": "pass",
             "report": {
                 "evidence_class": "synthetic",
@@ -913,16 +953,22 @@ mod tests {
         (
             include_str!("../fixtures/v0.1/cases.json").as_bytes().to_vec(),
             serde_json::to_vec(&delivery).expect("delivery receipt encodes"),
+            delivery_input_bytes,
             serde_json::to_vec(&capture).expect("capture receipt encodes"),
+            capture_input_bytes,
             serde_json::to_vec(&fluid).expect("fluid receipt encodes"),
+            fluid_input_bytes,
         )
     }
 
     #[test]
-    fn generated_source_receipts_join_on_payload_client_receiver_and_interface() {
-        let (fixture, delivery, capture, fluid) = receipt_bundle_inputs();
-        let receipt = compose_receipt_bundle(&fixture, &delivery, &capture, &fluid)
-            .expect("source receipts should compose");
+    fn generated_source_receipts_join_and_verify_exact_input_bytes() {
+        let (fixture, delivery, delivery_input, capture, capture_input, fluid, fluid_input) =
+            receipt_bundle_inputs();
+        let receipt = compose_receipt_bundle(
+            &fixture, &delivery, &delivery_input, &capture, &capture_input, &fluid, &fluid_input,
+        )
+        .expect("source receipts should compose");
         assert_eq!(receipt.result, "pass");
         assert!(!receipt.authority_granted);
         assert_eq!(receipt.joined_service.cargo_lot_id, "serviced-client-001");
@@ -933,46 +979,69 @@ mod tests {
         assert_eq!(receipt.joined_service.receiver_id, "serviced-client-001");
         assert_eq!(receipt.joined_service.capture_interface_revision, 3);
         assert_eq!(receipt.joined_service.accepted_receiver_mass_g, 390_000);
-        assert_eq!(receipt.artifact_sha256.len(), 4);
+        assert_eq!(receipt.artifact_sha256.len(), 7);
         assert!(receipt.artifact_sha256.values().all(|digest| is_sha256(digest)));
     }
 
     #[test]
     fn mismatched_receiver_in_actual_source_receipt_is_rejected() {
-        let (fixture, delivery, capture, fluid) = receipt_bundle_inputs();
+        let (fixture, delivery, delivery_input, capture, capture_input, fluid, fluid_input) =
+            receipt_bundle_inputs();
         let mut value: serde_json::Value = serde_json::from_slice(&fluid).unwrap();
         value["report"]["scenarios"][0]["receiver_id"] = serde_json::json!("unrelated-receiver");
         let altered_fluid = serde_json::to_vec(&value).unwrap();
         assert!(
-            compose_receipt_bundle(&fixture, &delivery, &capture, &altered_fluid)
-                .unwrap_err()
-                .contains("fluid receiver identity")
+            compose_receipt_bundle(
+                &fixture, &delivery, &delivery_input, &capture, &capture_input, &altered_fluid, &fluid_input,
+            )
+            .unwrap_err()
+            .contains("fluid receiver identity")
         );
     }
 
     #[test]
     fn source_receipt_commit_must_match_exact_frozen_pin() {
-        let (fixture, delivery, mut capture, fluid) = receipt_bundle_inputs();
+        let (fixture, delivery, delivery_input, mut capture, capture_input, fluid, fluid_input) =
+            receipt_bundle_inputs();
         let mut value: serde_json::Value = serde_json::from_slice(&capture).unwrap();
         value["source_commit"] = serde_json::json!("0000000000000000000000000000000000000000");
         capture = serde_json::to_vec(&value).unwrap();
         assert!(
-            compose_receipt_bundle(&fixture, &delivery, &capture, &fluid)
-                .unwrap_err()
-                .contains("source commit does not match")
+            compose_receipt_bundle(
+                &fixture, &delivery, &delivery_input, &capture, &capture_input, &fluid, &fluid_input,
+            )
+            .unwrap_err()
+            .contains("source commit does not match")
+        );
+    }
+
+    #[test]
+    fn supplied_source_input_bytes_must_match_embedded_receipt_digest() {
+        let (fixture, delivery, mut delivery_input, capture, capture_input, fluid, fluid_input) =
+            receipt_bundle_inputs();
+        delivery_input.push(b' ');
+        assert!(
+            compose_receipt_bundle(
+                &fixture, &delivery, &delivery_input, &capture, &capture_input, &fluid, &fluid_input,
+            )
+            .unwrap_err()
+            .contains("campaign_sha256 does not match supplied source input bytes")
         );
     }
 
     #[test]
     fn missing_source_receipt_digest_is_not_accepted() {
-        let (fixture, mut delivery, capture, fluid) = receipt_bundle_inputs();
+        let (fixture, mut delivery, delivery_input, capture, capture_input, fluid, fluid_input) =
+            receipt_bundle_inputs();
         let mut value: serde_json::Value = serde_json::from_slice(&delivery).unwrap();
         value["campaign_sha256"] = serde_json::json!("not-a-sha256");
         delivery = serde_json::to_vec(&value).unwrap();
         assert!(
-            compose_receipt_bundle(&fixture, &delivery, &capture, &fluid)
-                .unwrap_err()
-                .contains("campaign_sha256 is not a SHA-256 digest")
+            compose_receipt_bundle(
+                &fixture, &delivery, &delivery_input, &capture, &capture_input, &fluid, &fluid_input,
+            )
+            .unwrap_err()
+            .contains("campaign_sha256 is not a SHA-256 digest")
         );
     }
 
