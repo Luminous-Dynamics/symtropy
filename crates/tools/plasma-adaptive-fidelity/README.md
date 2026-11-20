@@ -12,13 +12,15 @@ A dependency-free Rust reference for choosing among already-qualified plasma mod
 
 The evaluator is a pure function. It does not train, run or mutate a solver, select its own physical truth, or mint qualification receipts.
 
-A candidate must match the exact physical-system/interface compatibility key, carry a calibrated error-bound declaration within the requested tolerance, and carry a model-kind-specific well-posedness receipt:
-- moment models require hyperbolicity-envelope evidence with a positive declared margin and an eigenbasis condition number below the request threshold;
+A candidate must match the exact physical-system/interface compatibility key, including source revision, solver build, species, collision model, geometry, boundary model, conserved-component layout and interface schema. Its calibration/error and well-posedness evidence must bind the exact candidate profile, model artifact and compatibility contract. All estimated costs must use the same declared accounting unit.
+
+A candidate must carry a calibrated error-bound declaration within the requested tolerance, and a model-kind-specific well-posedness receipt:
+- moment models require hyperbolicity-envelope evidence with a declared margin and an eigenbasis condition number below the request threshold;
 - kinetic patches require a separately declared kinetic admissibility / positivity receipt.
 
-When a current model is supplied, any switch requires a transition receipt bound to the exact source and destination profiles, common interface schema, projection, reconstruction and conservation evidence. Refinement that is needed because the current model exceeds its error or validity envelope can bypass the minimum dwell restriction; coarsening cannot. A current model inside the tighter coarsening band is retained, preventing needless order churn.
+When a current model is supplied, it must also exist in the request's candidate inventory. Any switch requires a transition receipt bound to the exact source and destination profiles and model artifacts, common interface schema, projection, reconstruction and conservation evidence. Refinement required because the current model is invalid or exceeds its error envelope can bypass the minimum-dwell restriction; coarsening cannot. A current model inside the tighter coarsening band is retained, preventing needless order churn.
 
-Among eligible candidates, the evaluator chooses the lowest declared cost, breaking ties by profile digest. It never assumes that higher order is better.
+Among eligible candidates, the evaluator chooses the lowest declared cost, breaking ties by profile digest. fidelity_rank is an explicit ordinal within the admitted physical-system hierarchy; it is not inferred from moment count and must not be compared across unrelated governing systems. The evaluator never assumes that higher order is better.
 
 ## Evidence / claim boundary
 
