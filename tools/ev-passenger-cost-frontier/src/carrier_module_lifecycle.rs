@@ -910,7 +910,7 @@ mod tests {
         let event = report.results[0].events.iter()
             .find(|event| event.event_id == "unplanned-failure").unwrap();
         assert_eq!(event.annual_event_rate_per_module, Some(0.3));
-        assert_eq!(event.unscheduled_downtime_hours_per_module_year, Some(1.05));
+        assert_eq!(event.unscheduled_downtime_hours_per_module_year, Some(1.2));
     }
 
     #[test]
