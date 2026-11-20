@@ -84,7 +84,9 @@ fn validate_observations(observations: &[TimeObservation]) -> Result<ExposureUni
             ));
         }
         if observation.unit != unit {
-            return Err("all observations in one analysis must use the same exposure unit".to_owned());
+            return Err(
+                "all observations in one analysis must use the same exposure unit".to_owned(),
+            );
         }
         if let ObservationStatus::Event { cause } = &observation.status {
             if cause.trim().is_empty() {
@@ -117,9 +119,7 @@ fn sorted_observations(
 ///
 /// This function requires one row per independent specimen and right
 /// censoring only. It does not estimate cause-specific incidence.
-pub fn kaplan_meier(
-    observations: &[TimeObservation],
-) -> Result<Vec<KaplanMeierStep>, String> {
+pub fn kaplan_meier(observations: &[TimeObservation]) -> Result<Vec<KaplanMeierStep>, String> {
     let (unit, sorted) = sorted_observations(observations)?;
     let mut steps = Vec::new();
     let mut survival = 1.0_f64;
@@ -146,8 +146,7 @@ pub fn kaplan_meier(
         if events > 0 {
             survival *= 1.0 - events as f64 / at_risk as f64;
             if events < at_risk {
-                greenwood_sum += events as f64
-                    / (at_risk as f64 * (at_risk - events) as f64);
+                greenwood_sum += events as f64 / (at_risk as f64 * (at_risk - events) as f64);
             }
         }
 
@@ -216,8 +215,7 @@ pub fn cumulative_incidence(
 
         if total_events > 0 {
             for (cause, events) in &events_by_cause {
-                let increment =
-                    survival_before * (*events as f64 / at_risk as f64);
+                let increment = survival_before * (*events as f64 / at_risk as f64);
                 *cumulative_incidence.entry(cause.clone()).or_default() += increment;
             }
             event_free_survival *= 1.0 - total_events as f64 / at_risk as f64;
@@ -225,9 +223,7 @@ pub fn cumulative_incidence(
 
         let incidence_sum: f64 = cumulative_incidence.values().sum();
         let probability_sum = incidence_sum + event_free_survival;
-        if !probability_sum.is_finite()
-            || (probability_sum - 1.0).abs() > 1.0e-10
-        {
+        if !probability_sum.is_finite() || (probability_sum - 1.0).abs() > 1.0e-10 {
             return Err(format!(
                 "Aalen–Johansen probability mass does not sum to one at time {time}"
             ));
@@ -308,10 +304,28 @@ mod tests {
 
     fn fixture() -> Vec<TimeObservation> {
         vec![
-            obs("S1", 1.0, ObservationStatus::Event { cause: "thermal".to_owned() }),
-            obs("S2", 2.0, ObservationStatus::Event { cause: "mechanical".to_owned() }),
+            obs(
+                "S1",
+                1.0,
+                ObservationStatus::Event {
+                    cause: "thermal".to_owned(),
+                },
+            ),
+            obs(
+                "S2",
+                2.0,
+                ObservationStatus::Event {
+                    cause: "mechanical".to_owned(),
+                },
+            ),
             obs("S3", 2.0, ObservationStatus::RightCensored),
-            obs("S4", 3.0, ObservationStatus::Event { cause: "thermal".to_owned() }),
+            obs(
+                "S4",
+                3.0,
+                ObservationStatus::Event {
+                    cause: "thermal".to_owned(),
+                },
+            ),
             obs("S5", 4.0, ObservationStatus::RightCensored),
         ]
     }
@@ -327,10 +341,22 @@ mod tests {
     fn reliability_001_kaplan_meier_known_product_limit_and_risk_table() {
         let steps = kaplan_meier(&fixture()).unwrap();
         assert_eq!(steps.len(), 4);
-        assert_eq!((steps[0].at_risk, steps[0].events, steps[0].right_censored), (5, 1, 0));
-        assert_eq!((steps[1].at_risk, steps[1].events, steps[1].right_censored), (4, 1, 1));
-        assert_eq!((steps[2].at_risk, steps[2].events, steps[2].right_censored), (2, 1, 0));
-        assert_eq!((steps[3].at_risk, steps[3].events, steps[3].right_censored), (1, 0, 1));
+        assert_eq!(
+            (steps[0].at_risk, steps[0].events, steps[0].right_censored),
+            (5, 1, 0)
+        );
+        assert_eq!(
+            (steps[1].at_risk, steps[1].events, steps[1].right_censored),
+            (4, 1, 1)
+        );
+        assert_eq!(
+            (steps[2].at_risk, steps[2].events, steps[2].right_censored),
+            (2, 1, 0)
+        );
+        assert_eq!(
+            (steps[3].at_risk, steps[3].events, steps[3].right_censored),
+            (1, 0, 1)
+        );
         close(steps[0].survival, 0.8, 1.0e-12);
         close(steps[1].survival, 0.6, 1.0e-12);
         close(steps[2].survival, 0.3, 1.0e-12);
@@ -340,7 +366,13 @@ mod tests {
     #[test]
     fn reliability_002_greenwood_standard_error_has_known_value() {
         let observations = vec![
-            obs("A", 1.0, ObservationStatus::Event { cause: "failure".to_owned() }),
+            obs(
+                "A",
+                1.0,
+                ObservationStatus::Event {
+                    cause: "failure".to_owned(),
+                },
+            ),
             obs("B", 2.0, ObservationStatus::RightCensored),
             obs("C", 3.0, ObservationStatus::RightCensored),
         ];
@@ -362,18 +394,42 @@ mod tests {
         close(steps[2].event_free_survival, 0.3, 1.0e-12);
 
         let third = &steps[2].cumulative_incidence_by_cause;
-        let thermal = third.iter().find(|(cause, _)| cause == "thermal").unwrap().1;
-        let mechanical = third.iter().find(|(cause, _)| cause == "mechanical").unwrap().1;
+        let thermal = third
+            .iter()
+            .find(|(cause, _)| cause == "thermal")
+            .unwrap()
+            .1;
+        let mechanical = third
+            .iter()
+            .find(|(cause, _)| cause == "mechanical")
+            .unwrap()
+            .1;
         close(thermal, 0.5, 1.0e-12);
         close(mechanical, 0.2, 1.0e-12);
-        close(thermal + mechanical + steps[2].event_free_survival, 1.0, 1.0e-12);
+        close(
+            thermal + mechanical + steps[2].event_free_survival,
+            1.0,
+            1.0e-12,
+        );
     }
 
     #[test]
     fn reliability_004_same_time_events_and_censoring_share_pre_event_risk_set() {
         let observations = vec![
-            obs("A", 1.0, ObservationStatus::Event { cause: "thermal".to_owned() }),
-            obs("B", 1.0, ObservationStatus::Event { cause: "mechanical".to_owned() }),
+            obs(
+                "A",
+                1.0,
+                ObservationStatus::Event {
+                    cause: "thermal".to_owned(),
+                },
+            ),
+            obs(
+                "B",
+                1.0,
+                ObservationStatus::Event {
+                    cause: "mechanical".to_owned(),
+                },
+            ),
             obs("C", 1.0, ObservationStatus::RightCensored),
             obs("D", 2.0, ObservationStatus::RightCensored),
         ];
@@ -401,7 +457,13 @@ mod tests {
     #[test]
     fn reliability_007_duplicate_specimen_ids_are_not_independent_replicates() {
         let observations = vec![
-            obs("same", 1.0, ObservationStatus::Event { cause: "A".to_owned() }),
+            obs(
+                "same",
+                1.0,
+                ObservationStatus::Event {
+                    cause: "A".to_owned(),
+                },
+            ),
             obs("same", 2.0, ObservationStatus::RightCensored),
         ];
         assert!(kaplan_meier(&observations).is_err());
@@ -425,15 +487,33 @@ mod tests {
         let negative_time = vec![obs("A", -1.0, ObservationStatus::RightCensored)];
         assert!(kaplan_meier(&negative_time).is_err());
 
-        let empty_cause = vec![obs("A", 1.0, ObservationStatus::Event { cause: " ".to_owned() })];
+        let empty_cause = vec![obs(
+            "A",
+            1.0,
+            ObservationStatus::Event {
+                cause: " ".to_owned(),
+            },
+        )];
         assert!(kaplan_meier(&empty_cause).is_err());
     }
 
     #[test]
     fn reliability_009_final_failure_exhausts_risk_set_and_marks_greenwood_se_unknown() {
         let observations = vec![
-            obs("A", 1.0, ObservationStatus::Event { cause: "failure".to_owned() }),
-            obs("B", 1.0, ObservationStatus::Event { cause: "failure".to_owned() }),
+            obs(
+                "A",
+                1.0,
+                ObservationStatus::Event {
+                    cause: "failure".to_owned(),
+                },
+            ),
+            obs(
+                "B",
+                1.0,
+                ObservationStatus::Event {
+                    cause: "failure".to_owned(),
+                },
+            ),
         ];
         let steps = kaplan_meier(&observations).unwrap();
         close(steps[0].survival, 0.0, 1.0e-12);
