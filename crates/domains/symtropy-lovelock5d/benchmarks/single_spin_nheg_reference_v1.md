@@ -181,6 +181,15 @@ python3 derive_single_spin_nheg_reference.py --output single_spin_nheg_reference
 ~~~
 The script symbolically checks the action map, \(\Delta_\pm\), Kretschmann reduction and pole limits, Einstein limit, marginal blowup coefficient, conical period, \(t\)-\(\psi\) signature determinant and exact area primitive. The fixture contains a 95-point \((\beta,u)\) grid and near-boundary stress cases.
 
+## Machine-readable admissibility vector
+
+The reusable schema and the exact status vector for this geometry are now committed alongside this note:
+
+- global_admissibility_vector_v1.schema.json
+- single_spin_nheg_admissibility_vector_v1.json
+
+The schema requires separate statuses for action identity, field equations, Lorentzian signature, local curvature, axis regularities, global identifications, horizon measure, charge integrability, physical characteristics, strong hyperbolicity, mode stability, global completion and EFT validity. It intentionally has no aggregate “regular”, “valid”, or “success” property. The fixture marks local curvature/signature as Pass, finite horizon measure and standard charge integrability as Fail, and all claims without sufficient evidence as Unresolved.
+
 ## Claim ceiling
 
 The cited source supplies the exact local near-horizon candidate. This Symtropy work independently checks its geometric identities and exposes its non-integrable horizon measure. It does not independently reconstruct the full EGB field equations, find a global asymptotically-flat completion, regularize the divergent charges, or establish hyperbolicity/stability.
