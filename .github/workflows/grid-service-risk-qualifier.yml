@@ -84,6 +84,7 @@ jobs:
         run: |
           set -euo pipefail
           cargo run --locked --manifest-path tools/grid-service-risk-qualifier/Cargo.toml --bin grid-service-risk-qualifier -- tools/grid-service-risk-qualifier/fixtures/synthetic-grid-service-risk-case-v0.1.json > /tmp/grid-service-risk-report.json
+          python tools/grid-service-risk-qualifier/reference/interval_simplex_reference.py tools/grid-service-risk-qualifier/fixtures/synthetic-grid-service-risk-case-v0.1.json /tmp/grid-service-risk-report.json
           jq -e '
             .caseMaturity == "synthetic_fixture"
             and .resultStatus == "service_risk_certificate_consistent"
