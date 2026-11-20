@@ -4,6 +4,7 @@ The C-API headers in this directory are copied verbatim from the official Modeli
 
 - Repository: https://github.com/modelica/fmi-standard
 - Release tag: `v3.0.2`
+- FMI C-API header version returned by `fmi3GetVersion()`: `3.0` (the maintenance release suffix is not part of the C-header API version)
 - Release commit: `b8778deaf5b746ba4a2f6c155d53f8a33eebbd33`
 - Release note: maintenance release with clarifications and bug fixes; no new features compared with FMI 3.0.1.
 - Header source blob SHAs:
