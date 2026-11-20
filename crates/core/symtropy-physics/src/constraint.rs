@@ -18,20 +18,22 @@ pub struct MotorStepState {
 }
 
 impl MotorStepState {
-    /// Project a desired total impulse into one step's symmetric effort budget.
+    /// Add one desired impulse increment to the accumulated per-step impulse,
+    /// then project the total into the symmetric effort budget.
     ///
-    /// Returns the incremental impulse to apply and resulting relative
-    /// velocity. The work receipt uses midpoint velocity, so for a fixed
-    /// scalar effective inverse mass it matches the exact kinetic-energy
-    /// change caused by the impulse.
-    pub fn project_impulse(
+    /// The controller is reevaluated on each solver iteration using the
+    /// current relative velocity. Its output is therefore an incremental
+    /// impulse, not an absolute accumulated impulse. Returns only the change
+    /// to apply and the resulting relative velocity. Midpoint work matches the
+    /// exact kinetic-energy change for a fixed scalar effective inverse mass.
+    pub fn apply_impulse_increment(
         &mut self,
-        desired_total_impulse: f64,
+        desired_impulse_increment: f64,
         maximum_step_impulse: f64,
         relative_velocity_before: f64,
         effective_inverse_mass: f64,
     ) -> Option<(f64, f64)> {
-        if !desired_total_impulse.is_finite()
+        if !desired_impulse_increment.is_finite()
             || !maximum_step_impulse.is_finite()
             || !relative_velocity_before.is_finite()
             || !effective_inverse_mass.is_finite()
@@ -41,8 +43,14 @@ impl MotorStepState {
             return None;
         }
 
-        let projected_total = desired_total_impulse
-            .clamp(-maximum_step_impulse, maximum_step_impulse);
+        let candidate_total = self.accumulated_impulse + desired_impulse_increment;
+        if !candidate_total.is_finite() {
+            return None;
+        }
+        let projected_total = candidate_total.clamp(
+            -maximum_step_impulse,
+            maximum_step_impulse,
+        );
         let delta_impulse = projected_total - self.accumulated_impulse;
         let relative_velocity_after =
             relative_velocity_before + effective_inverse_mass * delta_impulse;
@@ -249,8 +257,10 @@ mod motor_step_state_tests {
             let mut state = MotorStepState::default();
             let mut velocity = 0.0;
             for _ in 0..iterations {
+                let target_velocity = 3.0;
+                let desired_increment = (target_velocity - velocity) / 0.5;
                 let (delta_impulse, velocity_after) = state
-                    .project_impulse(6.0, 10.0, velocity, 0.5)
+                    .apply_impulse_increment(desired_increment, 10.0, velocity, 0.5)
                     .expect("finite motor projection");
                 velocity = velocity_after;
                 if iterations == 1 {
