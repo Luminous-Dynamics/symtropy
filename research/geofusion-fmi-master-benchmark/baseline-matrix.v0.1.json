@@ -174,6 +174,10 @@
     {
       "id": "sundials_790",
       "url": "https://computing.llnl.gov/projects/sundials/sundials-software"
+    },
+    {
+      "id": "ssp_tool_support_matrix",
+      "url": "https://ssp-standard.org/tools/"
     }
   ],
   "claim_ceiling": "A comparative result qualifies only the exact pinned FMU artifacts, tool versions, FMI lane, models, capability subset, parameters, communication policy, tolerances, output times and compute budget tested. It does not establish general FMI conformance, universal master superiority, real geothermal/fusion plant performance, equipment safety, economics or physical validation.",
@@ -351,5 +355,124 @@
     "generic_fmi3_claim_does_not_prove_fmi3_0_2_capability_support": true,
     "importer_or_master_must_be_probed_against_each_fmu_advertised_capability": true,
     "unsupported_compatibility_lane_disposition": "NOT_EVALUABLE"
+  },
+  "ssp_interop_tool_matrix": [
+    {
+      "tool": "easySSP / orchideo",
+      "vendor": "eXXcellent solutions",
+      "declared_import": [
+        "1.0",
+        "2.0"
+      ],
+      "declared_export": [
+        "1.0",
+        "2.0"
+      ],
+      "benchmark_lane": "ssp_2_0_1_primary_candidate",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "FMI Bench",
+      "vendor": "PMSF",
+      "declared_import": [
+        "1.0",
+        "2.0"
+      ],
+      "declared_export": [
+        "1.0",
+        "2.0"
+      ],
+      "benchmark_lane": "ssp_2_0_1_primary_independent_candidate",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "OMSimulator",
+      "vendor": "OpenModelica",
+      "declared_import": [
+        "1.0"
+      ],
+      "declared_export": [
+        "1.0"
+      ],
+      "benchmark_lane": "ssp_1_0_legacy_compatibility_only",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "SYNECT Model Management",
+      "vendor": "dSPACE",
+      "declared_import": [
+        "1.0"
+      ],
+      "declared_export": [
+        "1.0"
+      ],
+      "benchmark_lane": "ssp_1_0_legacy_compatibility",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "Model.CONNECT",
+      "vendor": "AVL",
+      "declared_import": [
+        "1.0"
+      ],
+      "declared_export": [
+        "1.0"
+      ],
+      "benchmark_lane": "ssp_1_0_legacy_compatibility",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
+      "tool": "Simcenter System Architect",
+      "vendor": "Siemens",
+      "declared_import": [
+        "1.0"
+      ],
+      "declared_export": [
+        "1.0"
+      ],
+      "benchmark_lane": "ssp_1_0_legacy_compatibility",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    }
+  ],
+  "ssp_round_trip_protocol": {
+    "patch_version_rule": "SSP 2.0.1 SSD version attribute encodes 2.0 only; record patch release and schema digests in external manifest",
+    "primary_cross_tool_pair": [
+      "FMI Bench",
+      "easySSP / orchideo"
+    ],
+    "required_sequence": [
+      "import original SSP",
+      "export imported system",
+      "cross-import each export into the other tool",
+      "canonicalize and compare"
+    ],
+    "compare_fields": [
+      "component_names",
+      "component_source_uris",
+      "connector_names",
+      "connector_kinds",
+      "connector_types",
+      "unit_base_exponents",
+      "parameter_values",
+      "connections",
+      "referenced_FMU_SHA256"
+    ],
+    "required_receipts": [
+      "exact_product_build",
+      "host_OS",
+      "import_warnings",
+      "export_warnings",
+      "source_SSP_SHA256",
+      "exported_SSP_SHA256",
+      "canonical_graph_diff"
+    ],
+    "unsupported_or_inaccessible_disposition": "NOT_EVALUABLE",
+    "no_round_trip_claim_without_both_import_and_export_runs": true
   }
 }
