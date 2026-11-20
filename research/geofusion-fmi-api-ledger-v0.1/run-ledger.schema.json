@@ -313,7 +313,8 @@
           "enum": [
             "coupling_source",
             "coupling_sink",
-            "terminal_sink"
+            "terminal_sink",
+            "state_observation"
           ]
         }
       }
@@ -447,6 +448,14 @@
         },
         "transfer_id": {
           "type": "string"
+        },
+        "sampling_semantics": {
+          "enum": [
+            "constant_over_declared_half_open_interval",
+            "sample_at_interval_end",
+            "sample_at_interval_start",
+            "interval_average"
+          ]
         }
       }
     },
