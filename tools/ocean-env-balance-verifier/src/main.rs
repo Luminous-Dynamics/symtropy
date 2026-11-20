@@ -714,13 +714,13 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
                 return Err(format!("analyte {} concentration station mismatch for {role}", pair.analyte_id));
             }
             let delta = concentration - reference_sample.concentration_mg_l;
-            let mut station_rate = 0.0;
-            if role == "intake" {
-                station_rate = 0.0;
-            } else {
-                station_rate = plume_by_role.get(role)
-                    .map(|s| s.temporal_rate_mg_l_per_s).unwrap_or(0.0);
-            }
+            let station_rate = match role {
+                "intake" => pair.intake.temporal_rate_mg_l_per_s,
+                "outfall" => pair.outfall.temporal_rate_mg_l_per_s,
+                _ => plume_by_role.get(role)
+                    .map(|sample| sample.temporal_rate_mg_l_per_s)
+                    .unwrap_or(0.0),
+            };
             let lag_sensitivity = if role == "intake" {
                 -reference_sample.temporal_rate_mg_l_per_s
             } else {
@@ -932,7 +932,7 @@ mod tests {
     fn unpaired_sample_window_is_rejected() {
         let mut b = fixture();
         b.interval_records[0].flow_samples[0].evidence.interval_end_utc = "2026-10-12T10:04:59Z".into();
-        assert!(validate(&b).unwrap_err().contains("not exactly paired"));
+        assert!(validate(&b).unwrap_err().contains("residence-time-adjusted window"));
     }
     #[test]
     fn intake_outfall_flow_imbalance_is_rejected() {
@@ -963,7 +963,7 @@ mod tests {
         let mut b = fixture();
         let intake_domain = b.interval_records[0].concentration_pairs[0].intake.evidence.calibration_independence_domain.clone();
         b.interval_records[0].concentration_pairs[0].outfall.evidence.calibration_independence_domain = intake_domain;
-        assert!(validate(&b).unwrap_err().contains("shares a calibration domain"));
+        assert!(validate(&b).unwrap_err().contains("shares a calibration independence domain"));
     }
     #[test]
     fn expired_calibration_validity_window_is_rejected() {
@@ -993,7 +993,7 @@ mod tests {
         b.interval_records[0].plume_concentration_observations.retain(|sample|
             sample.station_role != "far_field_impact"
         );
-        assert!(validate(&b).unwrap_err().contains("three plume/reference samples"));
+        assert!(validate(&b).unwrap_err().contains("three plume/reference samples"))
     }
     #[test]
     fn missing_calibration_independence_domain_is_rejected() {
@@ -1007,5 +1007,22 @@ mod tests {
         let end = parse_utc_timestamp("2026-10-13T00:03:00Z").unwrap();
         assert_eq!(end - start, 300);
         assert!(parse_utc_timestamp("2026-02-30T00:00:00Z").is_none());
+    }
+    #[test]
+    fn hydraulic_lag_uncertainty_is_propagated_into_thermal_output() {
+        let report = validate(&fixture()).expect("fixture validates");
+        assert!(report.interval_results.iter().all(|i|
+            i.thermal_power_hydraulic_alignment_standard_uncertainty_kw > 0.0
+                && i.delta_temperature_hydraulic_alignment_standard_uncertainty_deg_c > 0.0
+        ));
+    }
+    #[test]
+    fn hydraulic_lag_uncertainty_is_propagated_into_pollutant_flux() {
+        let report = validate(&fixture()).expect("fixture validates");
+        assert!(report.interval_results.iter().all(|i|
+            i.pollutant_results.iter().all(|p|
+                p.outfall_hydraulic_alignment_standard_uncertainty_g_s > 0.0
+            )
+        ));
     }
 }
