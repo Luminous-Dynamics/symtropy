@@ -3,7 +3,7 @@
   "artifact_kind": "5d_egb_spin2_dae_and_radial_constraint_structure",
   "status": "symbolically_derived_with_finite_grid_conditioning_probes",
   "input": {
-    "equation_json_sha256": "60f719389bb2e81bb96df7236091a2ddbae6418220ef490660c953797936dc8e",
+    "equation_json_sha256": "019ef493497c11efd26958481de9bd4b040f365d29076065d0195c9d26ccf237",
     "operator_keys": [
       "b",
       "f",
@@ -61,8 +61,7 @@
       0.1,
       0.7,
       3,
-      10,
-      100
+      10
     ],
     "rho_grid": [
       1.001,
@@ -74,9 +73,9 @@
       10,
       100
     ],
-    "sample_count": 48,
-    "minimum_reduced_principal_determinant": 0.00023344395815751251,
-    "maximum_reduced_principal_condition_number_2": 250255751911.47375,
+    "sample_count": 40,
+    "minimum_reduced_principal_determinant": 0.0005002499977152921,
+    "maximum_reduced_principal_condition_number_2": 225135621.2515507,
     "minimum_Ef_F2_pivot": 10.666666666666666,
     "interpretation": "Binary64 floating-point conditioning probes only; not a global nonsingularity proof or interval enclosure. Large condition numbers require higher precision or better scaling."
   },
