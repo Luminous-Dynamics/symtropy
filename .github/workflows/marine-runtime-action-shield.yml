@@ -1,0 +1,58 @@
+name: Marine Runtime Action Shield
+
+on:
+  pull_request:
+    paths:
+      - "tools/marine-runtime-action-shield/**"
+      - ".github/workflows/marine-runtime-action-shield.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marine-runtime-action-shield-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  action-shield:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/marine-runtime-action-shield/Cargo.toml -- --check
+
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/marine-runtime-action-shield/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run semantic and negative-control tests
+        run: cargo test --manifest-path tools/marine-runtime-action-shield/Cargo.toml
+
+      - name: Check schema and frozen synthetic scenarios
+        run: |
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.service_contract.minItems == 11 and .properties.candidates.minItems >= 1 and .properties.scenario_roster.minItems == 5' tools/marine-runtime-action-shield/schema/marine-runtime-action-shield.schema.json
+          for f in tools/marine-runtime-action-shield/fixtures/*.json; do
+            jq -e '.record_status == "synthetic" and (.scenario_roster | length == 5) and ([.candidates[] | select(.role == "proposed")] | length == 1) and all(.candidates[]; (.scenario_successors | length == 5))' "$f"
+          done
+
+      - name: Safe proposal is admitted only as a receipt
+        run: |
+          cargo run --quiet --manifest-path tools/marine-runtime-action-shield/Cargo.toml -- audit-action tools/marine-runtime-action-shield/fixtures/synthetic-proposed-action-permit-0001.json > /tmp/shield-proposed.json
+          jq -e '.disposition == "SYNTHETIC_ONLY" and .runtime_decision == "PERMIT_PROPOSED_ACTION" and .executor_authorization == "NONE" and (.decision_receipt_sha256 | length == 64)' /tmp/shield-proposed.json
+
+      - name: Unsafe proposal uses the first predeclared safe fallback
+        run: |
+          cargo run --quiet --manifest-path tools/marine-runtime-action-shield/Cargo.toml -- audit-action tools/marine-runtime-action-shield/fixtures/synthetic-fallback-action-permit-0001.json > /tmp/shield-fallback.json
+          jq -e '.disposition == "SYNTHETIC_ONLY" and .runtime_decision == "PERMIT_FALLBACK_ACTION" and .selected_candidate_id == "fallback-reduce-speed" and .executor_authorization == "NONE"' /tmp/shield-fallback.json
+
+      - name: No safe action forces abstention
+        run: |
+          cargo run --quiet --manifest-path tools/marine-runtime-action-shield/Cargo.toml -- audit-action tools/marine-runtime-action-shield/fixtures/synthetic-no-safe-action-abstain-0001.json > /tmp/shield-abstain.json
+          jq -e '.disposition == "ABSTAIN" and .runtime_decision == "ABSTAIN_NO_SAFE_ACTION" and .selected_candidate_id == null' /tmp/shield-abstain.json
