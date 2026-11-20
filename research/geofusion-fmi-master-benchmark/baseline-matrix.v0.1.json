@@ -230,6 +230,14 @@
     {
       "id": "precice_bounds_violation_policy",
       "url": "https://precice.org/configuration-xml-reference/"
+    },
+    {
+      "id": "omsimulator_3_0_0_prerelease",
+      "url": "https://github.com/OpenModelica/OMSimulator/releases"
+    },
+    {
+      "id": "omsimulator_3_0_0_docs_snapshot",
+      "url": "https://openmodelica.org/doc/OMSimulator/master/OMSimulator/UsersGuide/pdf/OMSimulator.pdf"
     }
   ],
   "claim_ceiling": "A comparative result qualifies only the exact pinned FMU artifacts, tool versions, FMI lane, models, capability subset, parameters, communication policy, tolerances, output times and compute budget tested. It does not establish general FMI conformance, universal master superiority, real geothermal/fusion plant performance, equipment safety, economics or physical validation.",
@@ -274,11 +282,20 @@
       "stable_branch_evidence": "official repository identifies maintenance/v2.1 as stable",
       "development_branch": "master",
       "development_branch_status": "active unstable development branch",
-      "baseline_policy": "Use a pinned 2.1.3 build for the stable production-comparator lane. Treat master builds as separately labelled exploratory evidence. No production v3 release plan is asserted.",
+      "baseline_policy": "Use a pinned 2.1.3 build for the stable production-comparator lane. OMSimulator 3.0.0 is a development-only prerelease; test it in a separately labelled exploratory lane. Do not mix v3 development results into the stable leaderboard.",
       "sources": [
         "https://github.com/OpenModelica/OMSimulator",
         "https://openmodelica.org/doc/OpenModelicaUsersGuide/latest/omsimulator.html"
-      ]
+      ],
+      "current_prerelease": {
+        "version": "3.0.0",
+        "tag_date": "2026-11-11",
+        "release_status": "pre_release_development_only",
+        "documentation_snapshot": "v3.0.0.post208-g3046f82 (documentation dated 2026-11-01)",
+        "production_v3_target": "v3.1",
+        "production_ready": false,
+        "baseline_policy": "Use stable v2.1.3 for production comparator lane. Test v3.0.0 only in a separately labelled exploratory lane and retain exact source/build digest."
+      }
     },
     "fmpy": {
       "version": "0.3.32",
@@ -324,14 +341,6 @@
       "documentation_build": "v2.1.3.post17-g81bd489",
       "role": "direct_fmi_master_comparator",
       "maturity": "stable",
-      "evidence_url": "https://github.com/OpenModelica/OMSimulator"
-    },
-    {
-      "tool": "OMSimulator",
-      "lane": "development",
-      "branch": "master",
-      "role": "exploratory_only",
-      "maturity": "active_unstable",
       "evidence_url": "https://github.com/OpenModelica/OMSimulator"
     },
     {
@@ -399,6 +408,17 @@
       "released": "2026-05-05",
       "role": "system_topology_parameterization_standard_not_master",
       "evidence_url": "https://ssp-standard.org/docs/2.0.1/"
+    },
+    {
+      "tool": "OMSimulator",
+      "lane": "v3-development-prerelease",
+      "version": "3.0.0",
+      "tag_date": "2026-11-11",
+      "documentation_build": "v3.0.0.post208-g3046f82",
+      "role": "exploratory_fmi_master_comparator",
+      "maturity": "development_only_pre_release",
+      "evidence_url": "https://github.com/OpenModelica/OMSimulator/releases",
+      "qualification_rule": "Never mix v3 development/prerelease outcomes into stable v2.1 leaderboard; pin exact commit/build and capability surface"
     }
   ],
   "maturity_policy": {
