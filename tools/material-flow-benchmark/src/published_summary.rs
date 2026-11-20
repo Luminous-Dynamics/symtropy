@@ -146,6 +146,12 @@ fn validate_input(input: &PublishedSummaryInput) -> Result<(), Vec<String>> {
     {
         errors.push("published_platform_or_fleet_description_mismatch".into());
     }
+    if input.battery_feasibility_enforced {
+        errors.push("paper_table_3_battery_feasibility_flag_must_remain_disabled".into());
+    }
+    if input.raw_dataset_loaded {
+        errors.push("summary_integrity_verifier_does_not_load_raw_amazon_dataset".into());
+    }
     for (label, metrics) in [
         ("baseline", &input.baseline),
         ("collaborative", &input.collaborative),
@@ -340,13 +346,20 @@ mod tests {
     }
 
     #[test]
-    fn enabling_paper_battery_parameter_does_not_turn_summary_check_into_qualification() {
-        let mut test = input();
-        test.battery_feasibility_enforced = true;
-        let report = verify_published_summary(&test).expect("valid metadata");
-        assert!(report.published_battery_feasibility_enforced);
-        assert!(!report.battery_feasibility_claim_permitted);
-        assert!(!report.paper_milp_reexecuted);
+    fn summary_input_rejects_tampering_with_paper_battery_flag_or_raw_data_boundary() {
+        let mut battery = input();
+        battery.battery_feasibility_enforced = true;
+        assert!(validate_input(&battery)
+            .expect_err("paper battery flag must stay off")
+            .iter()
+            .any(|error| error.contains("battery_feasibility_flag_must_remain_disabled")));
+
+        let mut raw_data = input();
+        raw_data.raw_dataset_loaded = true;
+        assert!(validate_input(&raw_data)
+            .expect_err("summary verifier does not load raw data")
+            .iter()
+            .any(|error| error.contains("does_not_load_raw_amazon_dataset")));
     }
 
     #[test]
