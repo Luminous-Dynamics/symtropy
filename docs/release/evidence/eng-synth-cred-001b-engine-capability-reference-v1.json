@@ -5,7 +5,7 @@
   "source_identity": {
     "repository": "Luminous-Dynamics/symtropy",
     "branch_at_resolution": "main",
-    "commit": "8b6a56fcee11f120a91adbf32fc7978286f84346",
+    "commit": "4ebbc115b38d509efa199e9e2a4f7d7ae52ed3a8",
     "package": "symtropy-physics",
     "package_version": "0.2.1",
     "rust_edition": "2024",
@@ -614,7 +614,7 @@
   "content_identity": {
     "algorithm": "SHA-256",
     "canonicalization": "UTF-8 JSON; sort object keys; compact separators; omit content_identity.digest from input",
-    "digest": "4b0ad44b72d58c4849e48c701a2becb9373c5376365102a6611dacb8450b9532"
+    "digest": "08922826d665a0942f7a820190c0f1027307cf407c081ba0f51e4334d745718e"
   },
   "feature_profiles": [
     {
