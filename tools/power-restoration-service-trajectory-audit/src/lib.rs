@@ -368,7 +368,6 @@ fn validate_work_milestones(
             || !valid_id(&milestone.evidence_ref)
             || !is_lower_hex(&milestone.evidence_sha256, 64)
             || milestone.step >= case.timebase.horizon_steps
-            || milestone.observed_at_unix_ms == 0
         {
             errors.push(format!("work milestone {} has invalid identity, evidence or time", milestone.milestone_id));
             continue;
@@ -514,6 +513,86 @@ fn validate_common(
     }
 }
 
+fn validate_forecast_samples(
+    trajectory: &ServiceTrajectoryRecord,
+    case: &BenchmarkCase,
+) -> Result<(), Vec<String>> {
+    let mut errors = Vec::new();
+    let expected_count = case.network.loads.len()
+        .checked_mul(case.timebase.horizon_steps as usize)
+        .ok_or_else(|| vec!["expected forecast sample count overflowed".to_string()])?;
+    if trajectory.samples.len() != expected_count {
+        errors.push(format!(
+            "planned forecast must contain exactly {expected_count} load/interval samples; got {}",
+            trajectory.samples.len()
+        ));
+    }
+    let loads: BTreeMap<&str, _> = case.network.loads.iter()
+        .map(|load| (load.load_id.as_str(), load))
+        .collect();
+    let interval_ms = u64::from(trajectory.timebase.interval_duration_seconds) * 1_000;
+    let mut keys = BTreeSet::new();
+    let mut ids = BTreeSet::new();
+    let mut prior_key: Option<(u32, String)> = None;
+    for sample in &trajectory.samples {
+        if !valid_id(&sample.sample_id) || !ids.insert(sample.sample_id.as_str()) {
+            errors.push(format!("forecast sample {} has an empty or duplicate ID", sample.sample_id));
+        }
+        let key = (sample.step, sample.load_id.clone());
+        if prior_key.as_ref().is_some_and(|prior| prior >= &key) {
+            errors.push("planned forecast samples must be in strict step/load-ID order".to_string());
+        }
+        prior_key = Some(key);
+        if sample.utc_offset_minutes.unsigned_abs() > 14 * 60
+            || sample.step >= case.timebase.horizon_steps
+            || !keys.insert((sample.load_id.as_str(), sample.step))
+        {
+            errors.push(format!("forecast sample {} has an invalid offset, step or duplicate load/step key", sample.sample_id));
+            continue;
+        }
+        let Some(load) = loads.get(sample.load_id.as_str()) else {
+            errors.push(format!("forecast sample {} references unknown load {}", sample.sample_id, sample.load_id));
+            continue;
+        };
+        let expected_start = trajectory.timebase.first_interval_start_unix_ms
+            .checked_add(u64::from(sample.step).saturating_mul(interval_ms));
+        if expected_start != Some(sample.interval_start_unix_ms) {
+            errors.push(format!("forecast sample {} timestamp does not match its interval index", sample.sample_id));
+        }
+        let expected_demand = expected_demand_kwh(load.active_power_kw, trajectory.timebase.interval_duration_seconds);
+        if !sample.demand_kwh.is_finite() || !nearly_equal(sample.demand_kwh, expected_demand) {
+            errors.push(format!("forecast sample {} demand denominator differs from frozen case load", sample.sample_id));
+        }
+        if sample.uncertainty_kwh.is_some_and(|value| !value.is_finite() || value < 0.0) {
+            errors.push(format!("forecast sample {} has invalid uncertainty", sample.sample_id));
+        }
+        validate_sample_evidence(sample, ServiceStreamKind::PlannedForecast, &mut errors);
+        match sample.status {
+            ServiceSampleStatus::Known => {
+                if sample.delivered_kwh.is_none_or(|value| {
+                    !value.is_finite() || value <= 0.0 || value > sample.demand_kwh + FLOAT_TOLERANCE
+                }) {
+                    errors.push(format!("forecast sample {} has invalid predicted delivered kWh", sample.sample_id));
+                }
+            }
+            ServiceSampleStatus::Unavailable => {
+                if sample.delivered_kwh != Some(0.0) {
+                    errors.push(format!("unavailable forecast sample {} must have predicted delivered_kwh=0", sample.sample_id));
+                }
+            }
+            ServiceSampleStatus::Unknown | ServiceSampleStatus::Conflicting => {
+                if sample.delivered_kwh.is_some() {
+                    errors.push(format!("unknown/conflicting forecast sample {} must not carry numeric delivery", sample.sample_id));
+                }
+            }
+        }
+    }
+    if keys.len() != expected_count {
+        errors.push("planned forecast load/interval mapping is incomplete".to_string());
+    }
+    if errors.is_empty() { Ok(()) } else { Err(errors) }
+}
+
 fn validate_stream_separation(
     trajectory: &ServiceTrajectoryRecord,
     case: &BenchmarkCase,
@@ -538,10 +617,8 @@ fn validate_stream_separation(
             if !trajectory.work_milestones.is_empty() {
                 errors.push("planned_forecast stream must not contain observed work milestones".to_string());
             }
-            if trajectory.samples.len()
-                != case.network.loads.len().saturating_mul(case.timebase.horizon_steps as usize)
-            {
-                errors.push("planned_forecast must account for every load and horizon interval".to_string());
+            if let Err(forecast_errors) = validate_forecast_samples(trajectory, case) {
+                errors.extend(forecast_errors);
             }
             if errors.is_empty() {
                 Ok(Some("forecast_only_not_realized_service".to_string()))
@@ -592,6 +669,7 @@ fn summarize_service(
     let mut errors = Vec::new();
     let mut sample_ids = BTreeSet::new();
     let mut sample_keys = BTreeSet::new();
+    let mut prior_key: Option<(u32, String)> = None;
     let loads: BTreeMap<&str, _> = case.network.loads.iter()
         .map(|load| (load.load_id.as_str(), load))
         .collect();
@@ -641,6 +719,11 @@ fn summarize_service(
                 sample.load_id, sample.step
             ));
         }
+        let current_key = (sample.step, sample.load_id.clone());
+        if prior_key.as_ref().is_some_and(|prior| prior >= &current_key) {
+            errors.push("service samples must be in strict step/load-ID order".to_string());
+        }
+        prior_key = Some(current_key);
 
         let expected_time = trajectory.timebase.first_interval_start_unix_ms
             .checked_add(u64::from(sample.step).saturating_mul(interval_duration_ms));
@@ -666,7 +749,7 @@ fn summarize_service(
         }) {
             errors.push(format!("sample {} has invalid uncertainty", sample.sample_id));
         }
-        validate_sample_evidence(sample, &mut errors);
+        validate_sample_evidence(sample, trajectory.stream_kind, &mut errors);
 
         *per_load_demand.entry(sample.load_id.clone()).or_default() += sample.demand_kwh;
         match sample.status {
