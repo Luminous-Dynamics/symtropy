@@ -1,0 +1,394 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/synthetic-joints/calibration-chain-audit/v0.1/calibration_chain_audit.schema.json",
+  "title": "Actuator Calibration Chain Audit Record v0.1",
+  "description": "Ordered, evidence-referenced calibration links and before/after measurement assurance. Schema validity does not authenticate calibration certificates or establish SI traceability.",
+  "type": "array",
+  "minItems": 1,
+  "items": {
+    "$ref": "#/$defs/chain_record"
+  },
+  "$defs": {
+    "link_uncertainty_kind": {
+      "enum": [
+        "validated_absolute_bound",
+        "standard_uncertainty",
+        "expanded_uncertainty",
+        "unknown"
+      ]
+    },
+    "uncertainty_source_kind": {
+      "enum": [
+        "type_a",
+        "type_b",
+        "combined",
+        "not_specified"
+      ]
+    },
+    "assurance_status": {
+      "enum": [
+        "within_limit",
+        "out_of_tolerance",
+        "unknown"
+      ]
+    },
+    "assurance_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "check_day",
+        "method_reference",
+        "reference_artifact_id",
+        "raw_check_digest",
+        "observed_drift",
+        "declared_drift_limit",
+        "unit"
+      ],
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/assurance_status"
+        },
+        "check_day": {
+          "type": "integer"
+        },
+        "method_reference": {
+          "type": "string",
+          "format": "uri"
+        },
+        "reference_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_check_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_drift": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "declared_drift_limit": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "calibration_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "link_id",
+        "calibrated_item_id",
+        "reference_standard_id",
+        "calibration_certificate_reference",
+        "reference_standard_reference",
+        "calibration_procedure_reference",
+        "competence_evidence_reference",
+        "calibration_day",
+        "valid_from_day",
+        "valid_until_day",
+        "uncertainty_unit",
+        "uncertainty_kind",
+        "uncertainty_value",
+        "uncertainty_source_kind",
+        "coverage_factor",
+        "coverage_probability",
+        "distribution_reference",
+        "conversion_model_reference",
+        "certificate_digest"
+      ],
+      "properties": {
+        "link_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibrated_item_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_standard_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_certificate_reference": {
+          "type": "string",
+          "format": "uri"
+        },
+        "reference_standard_reference": {
+          "type": "string",
+          "format": "uri"
+        },
+        "calibration_procedure_reference": {
+          "type": "string",
+          "format": "uri"
+        },
+        "competence_evidence_reference": {
+          "type": "string",
+          "format": "uri"
+        },
+        "calibration_day": {
+          "type": "integer"
+        },
+        "valid_from_day": {
+          "type": "integer"
+        },
+        "valid_until_day": {
+          "type": "integer"
+        },
+        "uncertainty_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uncertainty_kind": {
+          "$ref": "#/$defs/link_uncertainty_kind"
+        },
+        "uncertainty_value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "uncertainty_source_kind": {
+          "$ref": "#/$defs/uncertainty_source_kind"
+        },
+        "coverage_factor": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "coverage_probability": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "distribution_reference": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "conversion_model_reference": {
+          "type": "string",
+          "format": "uri"
+        },
+        "certificate_digest": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "uncertainty_kind": {
+                "const": "validated_absolute_bound"
+              }
+            },
+            "required": [
+              "uncertainty_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "uncertainty_value": {
+                "type": "number",
+                "minimum": 0
+              },
+              "uncertainty_source_kind": {
+                "const": "not_specified"
+              },
+              "coverage_factor": {
+                "type": "null"
+              },
+              "coverage_probability": {
+                "type": "null"
+              },
+              "distribution_reference": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "uncertainty_kind": {
+                "const": "standard_uncertainty"
+              }
+            },
+            "required": [
+              "uncertainty_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "uncertainty_value": {
+                "type": "number",
+                "minimum": 0
+              },
+              "uncertainty_source_kind": {
+                "enum": [
+                  "type_a",
+                  "type_b",
+                  "combined"
+                ]
+              },
+              "coverage_factor": {
+                "type": "null"
+              },
+              "coverage_probability": {
+                "type": "null"
+              },
+              "distribution_reference": {
+                "type": "string",
+                "format": "uri"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "uncertainty_kind": {
+                "const": "expanded_uncertainty"
+              }
+            },
+            "required": [
+              "uncertainty_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "uncertainty_value": {
+                "type": "number",
+                "minimum": 0
+              },
+              "uncertainty_source_kind": {
+                "enum": [
+                  "type_a",
+                  "type_b",
+                  "combined"
+                ]
+              },
+              "coverage_factor": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "coverage_probability": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "exclusiveMaximum": 1
+              },
+              "distribution_reference": {
+                "type": "string",
+                "format": "uri"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "uncertainty_kind": {
+                "const": "unknown"
+              }
+            },
+            "required": [
+              "uncertainty_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "uncertainty_value": {
+                "type": "null"
+              },
+              "uncertainty_source_kind": {
+                "const": "not_specified"
+              },
+              "coverage_factor": {
+                "type": "null"
+              },
+              "coverage_probability": {
+                "type": "null"
+              },
+              "distribution_reference": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "chain_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sensor_serial",
+        "measurement_day",
+        "measurand_unit",
+        "terminal_reference_id",
+        "terminal_reference_source",
+        "chain_digest",
+        "links",
+        "pre_use_check",
+        "post_use_check"
+      ],
+      "properties": {
+        "sensor_serial": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_day": {
+          "type": "integer"
+        },
+        "measurand_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "terminal_reference_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "terminal_reference_source": {
+          "type": "string",
+          "format": "uri"
+        },
+        "chain_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "links": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/calibration_link"
+          }
+        },
+        "pre_use_check": {
+          "$ref": "#/$defs/assurance_check"
+        },
+        "post_use_check": {
+          "$ref": "#/$defs/assurance_check"
+        }
+      }
+    }
+  }
+}
