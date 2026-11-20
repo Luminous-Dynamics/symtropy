@@ -2402,6 +2402,63 @@ mod tests {
         root
     }
 
+    fn verified_single_artifact_fixture(bytes: &[u8]) -> (PathBuf, VerifiedBundle) {
+        let root = test_bundle_root();
+        fs::create_dir_all(root.join("artifacts/service")).unwrap();
+        fs::write(root.join("artifacts/service/trajectory.json"), bytes).unwrap();
+        let manifest = BundleManifest {
+            schema_version: "0.1.0".to_string(),
+            bundle_id: "verified-service-artifact-bundle".to_string(),
+            artifacts: vec![ArtifactRecord {
+                artifact_uri: "service://trajectory/final".to_string(),
+                relative_path: "artifacts/service/trajectory.json".to_string(),
+                media_type: "application/json".to_string(),
+                byte_length: bytes.len() as u64,
+                sha256: sha256_hex(bytes),
+            }],
+        };
+        let verified = verify_bundle_manifest(&root, &manifest, 1024 * 1024).unwrap();
+        (root, verified)
+    }
+
+    #[test]
+    fn verified_bundle_re_reads_exact_service_artifact_bytes() {
+        let bytes = br#"{"status":"synthetic"}"#;
+        let (root, bundle) = verified_single_artifact_fixture(bytes);
+        let read = bundle.read_verified_artifact_bytes(
+            &root,
+            "service://trajectory/final",
+            1024 * 1024,
+        ).unwrap();
+        assert_eq!(read, bytes);
+    }
+
+    #[test]
+    fn verified_bundle_rejects_service_artifact_mutation_after_initial_verification() {
+        let bytes = br#"{"status":"synthetic"}"#;
+        let (root, bundle) = verified_single_artifact_fixture(bytes);
+        fs::write(
+            root.join("artifacts/service/trajectory.json"),
+            br#"{"status":"substituted"}"#,
+        ).unwrap();
+        assert!(bundle.read_verified_artifact_bytes(
+            &root,
+            "service://trajectory/final",
+            1024 * 1024,
+        ).is_err());
+    }
+
+    #[test]
+    fn verified_bundle_does_not_read_artifacts_outside_its_manifest() {
+        let bytes = br#"{"status":"synthetic"}"#;
+        let (root, bundle) = verified_single_artifact_fixture(bytes);
+        assert!(bundle.read_verified_artifact_bytes(
+            &root,
+            "service://trajectory/other",
+            1024 * 1024,
+        ).is_err());
+    }
+
     #[test]
     fn fresh_command_bound_actuation_witness_verifies_and_consumes_nonce() {
         let (trust, receipt, binding, envelope, root_sha256) =
