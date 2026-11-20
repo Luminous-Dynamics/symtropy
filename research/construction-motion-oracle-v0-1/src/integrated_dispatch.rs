@@ -484,7 +484,7 @@ fn validate_stopping_envelope_binding(
         }
     }
     if tube.trigger_domain_start_tick < envelope.generated_at_tick
-        || tube.trigger_domain_end_tick < tube.trigger_domain_start_tick
+        || tube.trigger_domain_end_tick <= tube.trigger_domain_start_tick
         || tube.trigger_domain_end_tick > envelope.valid_until_tick
         || tube.valid_until_tick <= request.dispatch.now_tick
     {
@@ -498,7 +498,9 @@ fn validate_stopping_envelope_binding(
     {
         return Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeCoverageIncomplete);
     }
-    if tube.conservative_stop_distance_bound_mm < stopping.conservative_distance_bound_mm
+    if tube.conservative_stop_distance_bound_mm == 0
+        || tube.stop_coverage_duration_ms == 0
+        || tube.conservative_stop_distance_bound_mm < stopping.conservative_distance_bound_mm
         || tube.stop_coverage_duration_ms < stopping.conservative_stop_time_bound_ms
     {
         return Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeBoundTooSmall);
@@ -1387,6 +1389,29 @@ mod tests {
             check_integrated_dispatch_readiness(&ledger, &graph, &request),
             Err(IntegratedDispatchReadinessFailure::MissingEvidenceNode(_))
         ));
+    }
+
+
+    #[test]
+    fn empty_trigger_domain_and_zero_stop_coverage_are_rejected() {
+        let (ledger, _, station_event_id) = setup_ledger();
+        let mut request = make_request(&ledger, station_event_id);
+        request.stopping_envelope.trigger_domain_end_tick =
+            request.stopping_envelope.trigger_domain_start_tick;
+        let graph = make_graph(&request, &ledger);
+        assert_eq!(
+            check_integrated_dispatch_readiness(&ledger, &graph, &request),
+            Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeExpired)
+        );
+
+        let (ledger, _, station_event_id) = setup_ledger();
+        let mut request = make_request(&ledger, station_event_id);
+        request.stopping_envelope.stop_coverage_duration_ms = 0;
+        let graph = make_graph(&request, &ledger);
+        assert_eq!(
+            check_integrated_dispatch_readiness(&ledger, &graph, &request),
+            Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeBoundTooSmall)
+        );
     }
 
 }
