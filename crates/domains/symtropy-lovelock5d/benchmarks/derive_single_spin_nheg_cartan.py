@@ -379,10 +379,8 @@ def main():
                 - sp.Rational(1,2)*ETA[aa]*int(aa==bb)*gauss_bonnet_scalar
             )
             wrong_raising_residuals[(aa,bb)] = sp.factor(
-                G_ab if False else (
-                    (ric_ab-sp.Rational(1,2)*ETA[aa]*int(aa==bb)*scalar)
-                    + alpha*H_wrong/4
-                )
+                (ric_ab-sp.Rational(1,2)*ETA[aa]*int(aa==bb)*scalar)
+                + alpha*H_wrong/4
             )
     wrong_rational = {
         key:rationalize_frame_polynomial(value)
