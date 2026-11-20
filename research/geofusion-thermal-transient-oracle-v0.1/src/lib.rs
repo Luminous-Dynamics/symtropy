@@ -255,6 +255,9 @@ pub struct CumulativeEnergyDelta {
 
 fn positive_float_ulp(value: f64) -> f64 {
     debug_assert!(value.is_finite() && value >= 0.0);
+    if value == 0.0 {
+        return f64::from_bits(1);
+    }
     let next = f64::from_bits(value.to_bits() + 1);
     next - value
 }
@@ -1205,6 +1208,13 @@ mod tests {
             cumulative_energy_delta_with_precision_j(previous, current, 1_024.0).unwrap();
         assert_eq!(accepted.energy_j, 256.0);
         assert!(accepted.resolution_bound_j > 1.0);
+    }
+
+    #[test]
+    fn cumulative_energy_resolution_normalizes_negative_zero() {
+        let delta = cumulative_energy_delta_with_precision_j(-0.0, 1.0, 1.0e-15).unwrap();
+        assert_eq!(delta.energy_j, 1.0);
+        assert!(delta.resolution_bound_j > 0.0);
     }
 
     #[test]
