@@ -44,7 +44,7 @@ The fixture contains two federates and one normalized barrier. The heat-exchange
 
 ## Run the fixture audit
 
-The Rust crate in `validator/` is the authoritative typed validator. It uses strict Serde decoding, root-confined SHA-256 artifact checks, FMI lifecycle and call-order validation, exact Float64 bit checking, exact binary64-to-rational clock conversion (fractional nanoseconds are refused), transfer identity, explicit interval-end state sampling, trace/barrier cross-checks and independent energy residual recomputation. The small Python script is secondary fixture/schema tooling, not a production runtime or adapter. Its frozen adversarial corpus includes a stale-state interval control in addition to the value-reference, exact-bit, boundary and time-linkage checks. It validates the JSON Schema, root-confined artifact byte length/digests, ordered call shape, exact Float64 encodings, one-to-one trace links, barrier membership and synthetic energy cross-reference.
+The Rust crate in `validator/` is the authoritative typed validator. It uses strict Serde decoding, root-confined SHA-256 artifact checks, FMI lifecycle and call-order validation, exact Float64 bit checking, exact binary64-to-rational clock conversion (fractional nanoseconds are refused), transfer identity, exact lastSuccessfulTime-bound interval-end state sampling, unique state observation per boundary, and state-port unit/causality constraints, trace/barrier cross-checks and independent energy residual recomputation. The small Python script is secondary fixture/schema tooling, not a production runtime or adapter. Its frozen adversarial corpus includes a stale-state interval control in addition to the value-reference, exact-bit, boundary and time-linkage checks. It validates the JSON Schema, root-confined artifact byte length/digests, ordered call shape, exact Float64 encodings, one-to-one trace links, barrier membership and synthetic energy cross-reference.
 
 ```sh
 python3 -m pip install --requirement research/geofusion-fmi-api-ledger-v0.1/tests/requirements.txt
@@ -55,7 +55,7 @@ CI pins jsonschema and runs only this fixture audit. It does not compile Rust, l
 
 ## Frozen negative controls
 
-fixtures/frozen-cases.tsv records 25 planned adversarial controls with expected REJECT or NOT_EVALUABLE dispositions. The current Python fixture audit checks corpus shape and unique case IDs. The Rust validator adds executable mutation tests for core API-order, identity, interval, Float64, barrier, trace-link and root-traversal failures; the full 25-case matrix still needs one-to-one mutation implementations. Their presence is a frozen test plan, not a 25/25 executed pass.
+fixtures/frozen-cases.tsv records 29 planned adversarial controls with expected REJECT or NOT_EVALUABLE dispositions. The current Python fixture audit checks corpus shape and unique case IDs. The Rust validator adds executable mutation tests for core API-order, identity, interval, Float64, barrier, trace-link and root-traversal failures; the full 29-case matrix still needs one-to-one mutation implementations. Their presence is a frozen test plan, not a 29/29 executed pass.
 
 ## Unsupported in v0.1
 
