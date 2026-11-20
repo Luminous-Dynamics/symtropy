@@ -46,7 +46,10 @@
         "memory_bytes_used": null,
         "input_tokens": null,
         "retrieval_latency_ms": null,
-        "energy_joules": null
+        "energy_joules": null,
+        "retrieved_memory_item_refs": [],
+        "retained_memory_item_refs": [],
+        "purge_receipts": []
       },
       {
         "episode_id": "lh-002-repeated-event-dedup",
@@ -73,7 +76,10 @@
         "memory_bytes_used": null,
         "input_tokens": null,
         "retrieval_latency_ms": null,
-        "energy_joules": null
+        "energy_joules": null,
+        "retrieved_memory_item_refs": [],
+        "retained_memory_item_refs": [],
+        "purge_receipts": []
       },
       {
         "episode_id": "lh-003-correction-supersession",
@@ -94,7 +100,10 @@
         "memory_bytes_used": null,
         "input_tokens": null,
         "retrieval_latency_ms": null,
-        "energy_joules": null
+        "energy_joules": null,
+        "retrieved_memory_item_refs": [],
+        "retained_memory_item_refs": [],
+        "purge_receipts": []
       },
       {
         "episode_id": "lh-004-common-cause-dependence",
@@ -116,7 +125,10 @@
         "memory_bytes_used": null,
         "input_tokens": null,
         "retrieval_latency_ms": null,
-        "energy_joules": null
+        "energy_joules": null,
+        "retrieved_memory_item_refs": [],
+        "retained_memory_item_refs": [],
+        "purge_receipts": []
       },
       {
         "episode_id": "lh-005-nuisance-interference",
@@ -136,7 +148,10 @@
         "memory_bytes_used": null,
         "input_tokens": null,
         "retrieval_latency_ms": null,
-        "energy_joules": null
+        "energy_joules": null,
+        "retrieved_memory_item_refs": [],
+        "retained_memory_item_refs": [],
+        "purge_receipts": []
       },
       {
         "episode_id": "lh-006-absent-event-false-memory",
@@ -152,7 +167,10 @@
         "memory_bytes_used": null,
         "input_tokens": null,
         "retrieval_latency_ms": null,
-        "energy_joules": null
+        "energy_joules": null,
+        "retrieved_memory_item_refs": [],
+        "retained_memory_item_refs": [],
+        "purge_receipts": []
       },
       {
         "episode_id": "lh-007-cross-clock-and-event-order",
@@ -178,7 +196,10 @@
         "memory_bytes_used": null,
         "input_tokens": null,
         "retrieval_latency_ms": null,
-        "energy_joules": null
+        "energy_joules": null,
+        "retrieved_memory_item_refs": [],
+        "retained_memory_item_refs": [],
+        "purge_receipts": []
       },
       {
         "episode_id": "lh-008-memory-revocation",
@@ -198,7 +219,50 @@
         "memory_bytes_used": null,
         "input_tokens": null,
         "retrieval_latency_ms": null,
-        "energy_joules": null
+        "energy_joules": null,
+        "retrieved_memory_item_refs": [
+          "mem-public-action-summary"
+        ],
+        "retained_memory_item_refs": [
+          "mem-public-action-summary"
+        ],
+        "purge_receipts": [
+          {
+            "item_ref": "mem-private-summary",
+            "status": "purged",
+            "purge_tick": 1800,
+            "receipt_id": "synthetic-evidence_ledger-purge-mem-private-summary",
+            "attestation_level": "candidate_self_reported"
+          },
+          {
+            "item_ref": "mem-private-embedding",
+            "status": "purged",
+            "purge_tick": 1800,
+            "receipt_id": "synthetic-evidence_ledger-purge-mem-private-embedding",
+            "attestation_level": "candidate_self_reported"
+          },
+          {
+            "item_ref": "mem-private-retrieval-index",
+            "status": "purged",
+            "purge_tick": 1800,
+            "receipt_id": "synthetic-evidence_ledger-purge-mem-private-retrieval-index",
+            "attestation_level": "candidate_self_reported"
+          },
+          {
+            "item_ref": "mem-private-working-context",
+            "status": "purged",
+            "purge_tick": 1800,
+            "receipt_id": "synthetic-evidence_ledger-purge-mem-private-working-context",
+            "attestation_level": "candidate_self_reported"
+          },
+          {
+            "item_ref": "mem-private-response-cache",
+            "status": "purged",
+            "purge_tick": 1800,
+            "receipt_id": "synthetic-evidence_ledger-purge-mem-private-response-cache",
+            "attestation_level": "candidate_self_reported"
+          }
+        ]
       },
       {
         "episode_id": "lh-009-compression-retention",
@@ -218,7 +282,10 @@
         "memory_bytes_used": null,
         "input_tokens": null,
         "retrieval_latency_ms": null,
-        "energy_joules": null
+        "energy_joules": null,
+        "retrieved_memory_item_refs": [],
+        "retained_memory_item_refs": [],
+        "purge_receipts": []
       }
     ]
   }
