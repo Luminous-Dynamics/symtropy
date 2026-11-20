@@ -38,6 +38,7 @@ pub enum EvidenceNodeKind {
     MotionEnvelope,
     StoppingTubeEnvelope,
     StoppingTubeBuilderBuild,
+    TriggerDomain,
     ExecutionEvidence,
     InspectionEvidence,
     AcceptedOutput,
