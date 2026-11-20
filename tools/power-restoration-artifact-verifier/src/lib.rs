@@ -2430,6 +2430,174 @@ mod tests {
         (root, bundle)
     }
 
+    fn final_service_bundle_fixture(
+        include_source_artifacts: bool,
+    ) -> (
+        PathBuf,
+        VerifiedBundle,
+        BenchmarkCase,
+        RunReceipt,
+        power_restoration_run_receipt::ArtifactRef,
+    ) {
+        let case: BenchmarkCase = serde_json::from_str(include_str!(
+            "../../power-restoration-benchmark-case/fixtures/synthetic-restoration-case-v0.1.json"
+        )).unwrap();
+        let mut receipt: RunReceipt = serde_json::from_str(include_str!(
+            "../../power-restoration-run-receipt/fixtures/synthetic-restoration-run-receipt-v0.1.json"
+        )).unwrap();
+        let case_sha = canonical_case_sha256(&case).unwrap();
+        receipt.case.case_sha256 = case_sha.clone();
+        receipt.case.case_ref = format!("power-restoration-case://{}", case.case_id);
+
+        let meter_bytes = b"synthetic raw meter capture bytes";
+        let calibration_bytes = b"synthetic calibration certificate bytes";
+        let meter_uri = "meter-capture://synthetic-run-0001".to_string();
+        let calibration_uri = "calibration://meter-set-001".to_string();
+        let meter_sha = sha256_hex(meter_bytes);
+        let calibration_sha = sha256_hex(calibration_bytes);
+
+        let interval_duration_seconds = case.timebase.step_size * 60;
+        let interval_duration_ms = u64::from(interval_duration_seconds) * 1_000;
+        let first_start = 1_800_000_000_000_u64;
+        let mut samples = Vec::new();
+        for step in 0..case.timebase.horizon_steps {
+            for load in &case.network.loads {
+                let demand_kwh = load.active_power_kw
+                    * f64::from(interval_duration_seconds) / 3_600.0;
+                samples.push(
+                    power_restoration_service_trajectory_audit::ServiceSample {
+                        sample_id: format!("sample-{}-{step}", load.load_id),
+                        load_id: load.load_id.clone(),
+                        step,
+                        interval_start_unix_ms: first_start
+                            + u64::from(step) * interval_duration_ms,
+                        utc_offset_minutes: 0,
+                        demand_kwh,
+                        delivered_kwh: Some(demand_kwh),
+                        status: power_restoration_service_trajectory_audit::ServiceSampleStatus::Known,
+                        evidence_ref: Some(meter_uri.clone()),
+                        evidence_sha256: Some(meter_sha.clone()),
+                        uncertainty_kwh: Some(0.01),
+                        unknown_reason: None,
+                        conflict_reason: None,
+                        conflict_evidence: Vec::new(),
+                    }
+                );
+            }
+        }
+
+        let mut parents = receipt.decision_steps.iter()
+            .filter(|step| step.disposition == StepDisposition::Executed
+                && step.service_outcome == ServiceOutcome::Scored)
+            .filter_map(|step| step.service_trajectory.as_ref())
+            .map(|artifact| power_restoration_service_trajectory_audit::ServiceSourceArtifact {
+                artifact_ref: artifact.artifact_ref.clone(),
+                sha256: artifact.sha256.clone(),
+            })
+            .collect::<Vec<_>>();
+        parents.sort_by(|left, right| left.artifact_ref.cmp(&right.artifact_ref));
+
+        let trajectory = ServiceTrajectoryRecord {
+            schema_version: "0.1.0".to_string(),
+            trajectory_id: "service-trajectory-claim-test-0001".to_string(),
+            artifact_uri: "synthetic://final-service-trajectory".to_string(),
+            run_id: receipt.run_id.clone(),
+            case_ref: receipt.case.case_ref.clone(),
+            case_sha256: case_sha.clone(),
+            stream_kind: power_restoration_service_trajectory_audit::ServiceStreamKind::MeasuredService,
+            service_id: "electricity-service".to_string(),
+            service_type: "electricity".to_string(),
+            service_boundary_id: "load-terminal".to_string(),
+            native_unit: "kWh".to_string(),
+            timebase: power_restoration_service_trajectory_audit::ServiceTimebase {
+                timezone_id: "UTC".to_string(),
+                first_interval_start_unix_ms: first_start,
+                interval_duration_seconds,
+                horizon_steps: case.timebase.horizon_steps,
+            },
+            producer: power_restoration_service_trajectory_audit::ServiceProducer {
+                producer_id: "synthetic-metering-system".to_string(),
+                source_commit: "1".repeat(40),
+                configuration_sha256: "2".repeat(64),
+                model_id: None,
+                instrument_id: Some("meter-set-001".to_string()),
+                calibration_artifact_ref: Some(calibration_uri.clone()),
+                calibration_artifact_sha256: Some(calibration_sha.clone()),
+            },
+            source_artifacts: vec![
+                power_restoration_service_trajectory_audit::ServiceSourceArtifact {
+                    artifact_ref: meter_uri.clone(),
+                    sha256: meter_sha.clone(),
+                },
+                power_restoration_service_trajectory_audit::ServiceSourceArtifact {
+                    artifact_ref: calibration_uri.clone(),
+                    sha256: calibration_sha.clone(),
+                },
+            ],
+            samples,
+            work_milestones: Vec::new(),
+            parent_service_artifacts: parents,
+        };
+
+        let weighted_delivered = trajectory.samples.iter().map(|sample| {
+            let load = case.network.loads.iter()
+                .find(|load| load.load_id == sample.load_id)
+                .unwrap();
+            sample.delivered_kwh.unwrap() * load.priority_weight
+        }).sum::<f64>();
+        receipt.objective.metric = case.objective.metric.clone();
+        receipt.objective.unit = "weighted_kWh".to_string();
+        let score = receipt.aggregate_score.as_mut().unwrap();
+        score.metric_id = case.objective.metric.clone();
+        score.unit = "weighted_kWh".to_string();
+        score.value = weighted_delivered;
+
+        let trajectory_bytes = canonical_bytes(&trajectory).unwrap();
+        let final_ref = power_restoration_run_receipt::ArtifactRef {
+            artifact_ref: trajectory.artifact_uri.clone(),
+            sha256: sha256_hex(&trajectory_bytes),
+        };
+        receipt.final_service_trajectory = Some(final_ref.clone());
+
+        let root = test_bundle_root();
+        fs::create_dir_all(root.join("artifacts/service")).unwrap();
+        fs::write(root.join("artifacts/service/final.json"), &trajectory_bytes).unwrap();
+        let mut artifacts = vec![ArtifactRecord {
+            artifact_uri: final_ref.artifact_ref.clone(),
+            relative_path: "artifacts/service/final.json".to_string(),
+            media_type: "application/json".to_string(),
+            byte_length: trajectory_bytes.len() as u64,
+            sha256: final_ref.sha256.clone(),
+        }];
+
+        if include_source_artifacts {
+            fs::write(root.join("artifacts/service/meter.bin"), meter_bytes).unwrap();
+            fs::write(root.join("artifacts/service/calibration.bin"), calibration_bytes).unwrap();
+            artifacts.push(ArtifactRecord {
+                artifact_uri: meter_uri,
+                relative_path: "artifacts/service/meter.bin".to_string(),
+                media_type: "application/octet-stream".to_string(),
+                byte_length: meter_bytes.len() as u64,
+                sha256: meter_sha,
+            });
+            artifacts.push(ArtifactRecord {
+                artifact_uri: calibration_uri,
+                relative_path: "artifacts/service/calibration.bin".to_string(),
+                media_type: "application/octet-stream".to_string(),
+                byte_length: calibration_bytes.len() as u64,
+                sha256: calibration_sha,
+            });
+        }
+
+        let manifest = BundleManifest {
+            schema_version: "0.1.0".to_string(),
+            bundle_id: "synthetic-final-service-trajectory-bundle".to_string(),
+            artifacts,
+        };
+        let verified = verify_bundle_manifest(&root, &manifest, 8 * 1024 * 1024).unwrap();
+        (root, verified, case, receipt, final_ref)
+    }
+
     fn test_bundle_root() -> PathBuf {
         let root = std::env::temp_dir().join(format!(
             "power-restoration-artifact-verifier-{}-{}",
@@ -2463,6 +2631,37 @@ mod tests {
         };
         let verified = verify_bundle_manifest(&root, &manifest, 1024 * 1024).unwrap();
         (root, verified)
+    }
+
+    #[test]
+    fn final_service_trajectory_passes_only_with_every_source_byte_in_verified_bundle() {
+        let (root, bundle, case, receipt, final_ref) =
+            final_service_bundle_fixture(true);
+        let (trajectory, report) = verify_final_service_trajectory_bundle(
+            &root,
+            &bundle,
+            &final_ref,
+            &receipt,
+            &case,
+            8 * 1024 * 1024,
+        ).unwrap();
+        assert_eq!(trajectory.artifact_uri, final_ref.artifact_ref);
+        assert_eq!(report.result_status, "measured_service_and_score_reconciled");
+    }
+
+    #[test]
+    fn final_service_trajectory_fails_when_source_bytes_are_omitted() {
+        let (root, bundle, case, receipt, final_ref) =
+            final_service_bundle_fixture(false);
+        let errors = verify_final_service_trajectory_bundle(
+            &root,
+            &bundle,
+            &final_ref,
+            &receipt,
+            &case,
+            8 * 1024 * 1024,
+        ).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("missing from the byte-verified bundle")));
     }
 
     #[test]
