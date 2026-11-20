@@ -761,14 +761,14 @@ pub fn verify_bundle_manifest(
 
 use power_restoration_action_proposal::{ActionKind, ActionProposal};
 use power_restoration_benchmark_case::{
-    BenchmarkCase, CaseMaturity, ElectricalDataProfile, canonical_case_sha256,
+    BenchmarkCase, ElectricalDataProfile, canonical_case_sha256,
 };
 use power_restoration_observation_evidence::{
     EvidenceArtifact, EvidenceBatch, EvidenceQuality, SourceProvenance, validate_evidence_batch,
 };
 use power_restoration_run_receipt::{
     RunReceipt, RunStatus, ServiceOutcome, StepDisposition, TerminalReason,
-    TransitionOutcome, ValidatorOutcome, canonical_sha256 as receipt_canonical_sha256,
+    TransitionOutcome, canonical_sha256 as receipt_canonical_sha256,
     qualify as qualify_run_receipt,
 };
 
