@@ -7,6 +7,11 @@
 pub mod field_layout_acceptance;
 pub mod ifc_ids_preflight;
 pub use ifc_ids_preflight::{
+    GeometryPreflightEvaluation, IdsRequirementEvaluation, IfcCoordinateContext,
+    IfcIdsPreflightError, IfcIdsPreflightReport, IfcIdsWorkPackageInput, IfcLengthUnit,
+    IfcSourceEntity, SourceEntityBinding, preflight_ifc_ids_work_package,
+};
+pub use ifc_ids_preflight::{
     IdsRequirementEvaluation, IfcIdsPreflightError, IfcIdsPreflightReport, IfcIdsWorkPackageInput,
     IfcSourceEntity, SourceEntityBinding, preflight_ifc_ids_work_package,
 };
@@ -34,9 +39,14 @@ pub use field_layout_acceptance::{
     RefereeMeasurement, RobotClaimedEntityState, score_field_layout_run,
 };
 pub use site_state_ledger::{
-    RobotExecutionDisposition, SiteActorRole, SiteApplyOutcome, SiteEntityState, SiteEventEnvelope,
-    SiteEventPayload, SiteLedgerError, SiteRefereeAssessment, SiteRejectionReason, SiteStateLedger,
-    SiteWorkPackage,
+    RobotExecutionDisposition, SiteActorRegistry, SiteActorRole, SiteApplyOutcome, SiteEntityState,
+    SiteEventEnvelope, SiteEventPayload, SiteLedgerError, SiteLedgerTip, SiteRefereeAssessment,
+    SiteRejectionReason, SiteStateLedger, SiteWorkPackage,
+};
+pub mod site_change_bridge;
+pub use site_change_bridge::{
+    EntityVersionBinding, SiteChangeImpactError, SiteChangeImpactRequest, SiteRevisionSnapshot,
+    build_site_package_change_set, compile_site_package_change_impact,
 };
 
 use construction_motion_envelope::{
