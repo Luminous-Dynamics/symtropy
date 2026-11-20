@@ -64,6 +64,14 @@ jobs:
           assert profile["modelAudit"]["voltageConstraintEvidence"] == "not_found_in_audited_source"
           assert profile["objectiveAudit"]["unitResolutionStatus"] == "ambiguous"
           assert profile["benchmarkReadiness"]["status"] == "source_audited_not_reproduced"
+          comparators = profile["additionalComparators"]
+          assert len(comparators) == 4
+          agentic = next(item for item in comparators if item["arxivId"] == "2611.22016")
+          assert agentic["evidenceClass"] == "arxiv_preprint"
+          assert agentic["scenarioProtocol"] == {"perTopology": 250, "training": 200, "validation": 25, "heldOut": 25}
+          assert agentic["reproductionStatus"] == "paper_audited_not_reproduced"
+          assert any(item["networkClass"] == "unbalanced_three_phase_distribution" for item in comparators)
+          assert any(item["networkClass"] == "207_node_hybrid_ac_dc_distribution" for item in comparators)
 
           nodes = {item["nodeRef"] for item in instance["network"]["nodes"]}
           assert instance["network"]["gridSourceNodeRef"] in nodes
