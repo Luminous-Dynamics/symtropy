@@ -39,7 +39,7 @@ def main() -> None:
 
     def D(expr: sp.Expr) -> sp.Expr:
         # Unit-speed derivative along the radial direction of the 3D horizon section.
-        return sp.factor(sp.diff(expr,eps)/sp.sqrt(h_eps_eps))
+        return sp.factor(sp.diff(expr,eps)/lapse)
 
     Df,Dg=D(f),D(g)
     D2f,D2g=D(Df),D(Dg)
@@ -57,8 +57,8 @@ def main() -> None:
     exact_zero("intrinsic horizon scalar curvature",R_h-expected_r)
 
     # Extrinsic curvature of epsilon=constant tori, normal directed toward eps=0.
-    K_phi=sp.factor(-sp.diff(sp.log(f),eps)/sp.sqrt(h_eps_eps))
-    K_psi=sp.factor(-sp.diff(sp.log(g),eps)/sp.sqrt(h_eps_eps))
+    K_phi=sp.factor(-sp.diff(sp.log(f),eps)/lapse)
+    K_psi=sp.factor(-sp.diff(sp.log(g),eps)/lapse)
     K_trace=sp.factor(K_phi+K_psi)
     K_phi_expected=sp.sqrt(p)/(L*q*sp.sqrt(1-eps**2))
     K_psi_expected=sp.sqrt(1-eps**2)/(L*sp.sqrt(p))
@@ -67,7 +67,10 @@ def main() -> None:
     exact_zero("mean extrinsic curvature",K_trace-K_phi_expected-K_psi_expected)
 
     # Exact induced volume density and cutoff area.
-    volume_density=sp.factor(sp.sqrt(h_eps_eps*h_phi_phi*h_psi_psi))
+    exact_zero("positive radial lapse square",lapse**2-h_eps_eps)
+    exact_zero("positive phi warp square",f**2-h_phi_phi)
+    exact_zero("positive psi warp square",g**2-h_psi_psi)
+    volume_density=sp.factor(lapse*f*g)
     volume_expected=a*alpha*q/(2*eps**3)
     exact_zero("horizon section volume density",volume_density-volume_expected)
     primitive=a*alpha/4*(eps**-2+beta*eps**2-1-beta)
@@ -84,7 +87,7 @@ def main() -> None:
     exact_zero("boundary psi metric",boundary_psi-alpha/2)
 
     # Proper distance to the end and hyperbolic limiting radius.
-    d_sigma_d_log=sp.factor(sp.sqrt(h_eps_eps)*eps)
+    d_sigma_d_log=sp.factor(lapse*eps)
     exact_zero("proper-distance lapse",d_sigma_d_log-L*q/sp.sqrt(p*(1-eps**2)))
     sigma_lapse_limit=sp.limit(d_sigma_d_log,eps,0,dir="+")
     exact_zero("asymptotic hyperbolic radius",sigma_lapse_limit-L)
