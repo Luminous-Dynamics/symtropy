@@ -49,7 +49,8 @@
         "energy_joules": null,
         "retrieved_memory_item_refs": [],
         "retained_memory_item_refs": [],
-        "purge_receipts": []
+        "purge_receipts": [],
+        "claimed_distinct_event_count": null
       },
       {
         "episode_id": "lh-002-repeated-event-dedup",
@@ -103,7 +104,8 @@
         "energy_joules": null,
         "retrieved_memory_item_refs": [],
         "retained_memory_item_refs": [],
-        "purge_receipts": []
+        "purge_receipts": [],
+        "claimed_distinct_event_count": null
       },
       {
         "episode_id": "lh-004-common-cause-dependence",
@@ -128,7 +130,8 @@
         "energy_joules": null,
         "retrieved_memory_item_refs": [],
         "retained_memory_item_refs": [],
-        "purge_receipts": []
+        "purge_receipts": [],
+        "claimed_distinct_event_count": null
       },
       {
         "episode_id": "lh-005-nuisance-interference",
@@ -151,11 +154,12 @@
         "energy_joules": null,
         "retrieved_memory_item_refs": [],
         "retained_memory_item_refs": [],
-        "purge_receipts": []
+        "purge_receipts": [],
+        "claimed_distinct_event_count": null
       },
       {
         "episode_id": "lh-006-absent-event-false-memory",
-        "decision": "abstain",
+        "decision": "answer",
         "answer": null,
         "confidence": 0,
         "cited_observation_refs": [],
@@ -170,7 +174,8 @@
         "energy_joules": null,
         "retrieved_memory_item_refs": [],
         "retained_memory_item_refs": [],
-        "purge_receipts": []
+        "purge_receipts": [],
+        "claimed_distinct_event_count": null
       },
       {
         "episode_id": "lh-007-cross-clock-and-event-order",
@@ -199,7 +204,8 @@
         "energy_joules": null,
         "retrieved_memory_item_refs": [],
         "retained_memory_item_refs": [],
-        "purge_receipts": []
+        "purge_receipts": [],
+        "claimed_distinct_event_count": null
       },
       {
         "episode_id": "lh-008-memory-revocation",
@@ -262,7 +268,8 @@
             "receipt_id": "synthetic-evidence_ledger-purge-mem-private-response-cache",
             "attestation_level": "candidate_self_reported"
           }
-        ]
+        ],
+        "claimed_distinct_event_count": null
       },
       {
         "episode_id": "lh-009-compression-retention",
@@ -285,7 +292,8 @@
         "energy_joules": null,
         "retrieved_memory_item_refs": [],
         "retained_memory_item_refs": [],
-        "purge_receipts": []
+        "purge_receipts": [],
+        "claimed_distinct_event_count": null
       }
     ]
   }
