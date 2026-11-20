@@ -48,9 +48,9 @@
     {
       "episode_id": "mod-004-audio-video-conflict",
       "necessity": "conflict_abstain_or_separate_hypotheses",
-      "video_sufficient": true,
-      "audio_sufficient": true,
-      "joint_sufficient": false
+      "video_sufficient": false,
+      "audio_sufficient": false,
+      "joint_sufficient": true
     },
     {
       "episode_id": "mod-005-common-cause-redundancy",
@@ -69,9 +69,9 @@
     {
       "episode_id": "mod-007-temporal-misalignment",
       "necessity": "no_cross_modal_association",
-      "video_sufficient": true,
-      "audio_sufficient": true,
-      "joint_sufficient": false
+      "video_sufficient": false,
+      "audio_sufficient": false,
+      "joint_sufficient": true
     },
     {
       "episode_id": "mod-008-missing-audio",
