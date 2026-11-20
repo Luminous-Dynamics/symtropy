@@ -29,6 +29,8 @@ pub const INTEGRATED_DISPATCH_REQUEST_SCHEMA_VERSION: &str =
     "construction-integrated-dispatch-readiness-request/0.1";
 pub const INTEGRATED_DISPATCH_RECEIPT_SCHEMA_VERSION: &str =
     "construction-integrated-dispatch-readiness-receipt/0.1";
+pub const STOP_TUBE_ENVELOPE_SCHEMA_VERSION: &str =
+    "construction-stop-tube-envelope-receipt/0.1";
 
 /// Names the exact dependency nodes whose versions must appear in the
 /// dispatch-readiness snapshot. The graph may contain additional nodes, but it
@@ -52,12 +54,54 @@ pub struct IntegratedEvidenceNodeIds {
     pub tool_configuration: String,
     pub payload_configuration: String,
     pub motion_envelope: String,
+    pub stopping_tube_envelope: String,
     pub sensor_configuration: String,
     pub stopping_dynamics: String,
     pub hazard_detection: String,
     pub operating_condition: String,
     pub occupancy_engine_build: String,
     pub clearance_policy: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct StopTubeEnvelopeReceipt {
+    pub schema_version: String,
+    /// Digest of the complete swept union of all stop trajectories reachable
+    /// from every trigger point in the frozen nominal trajectory domain.
+    pub stop_tube_sha256: String,
+    /// Canonical, independently verifiable receipt digest from the envelope builder.
+    pub stop_tube_receipt_sha256: String,
+    pub stop_tube_builder_build_sha256: String,
+    /// Composite envelope assessed by the occupancy engine: nominal motion
+    /// envelope plus the complete stopping tube.
+    pub composite_envelope_sha256: String,
+    pub nominal_trajectory_sha256: String,
+    pub trigger_domain_sha256: String,
+    pub primitive_manifest_sha256: String,
+    pub robot_configuration_sha256: String,
+    pub tool_configuration_sha256: String,
+    pub payload_configuration_sha256: String,
+    pub frame_sha256: String,
+    pub transform_sha256: String,
+    pub stopping_profile_sha256: String,
+    pub stopping_qualification_receipt_sha256: String,
+    pub operating_condition_sha256: String,
+    pub scenario_context_sha256: String,
+    pub site_clock_domain_id: String,
+    /// Trigger domain is the complete time interval in which the planned
+    /// trajectory could detect a hazard and initiate a stop.
+    pub trigger_domain_start_tick: u64,
+    pub trigger_domain_end_tick: u64,
+    /// Builder-declared time coverage in milliseconds for the union of all
+    /// stop trajectories after each possible trigger point.
+    pub stop_coverage_duration_ms: u64,
+    pub conservative_stop_distance_bound_mm: u64,
+    pub primitive_count: u64,
+    pub trigger_domain_coverage_complete: bool,
+    pub primitive_coverage_complete: bool,
+    pub continuous_time_coverage_complete: bool,
+    pub conservative_outer_bound: bool,
+    pub valid_until_tick: u64,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -78,6 +122,7 @@ pub struct IntegratedDispatchReadinessRequest {
     pub station_qualification_event_id: String,
     pub speed_upper_mm_s: f64,
     pub stopping_dynamics: StoppingDynamicsQualification,
+    pub stopping_envelope: StopTubeEnvelopeReceipt,
     pub hazard_detection: HazardDetectionQualification,
     pub stopping_margins: HazardStoppingMargins,
 }
@@ -104,6 +149,10 @@ pub struct IntegratedDispatchReadinessReceipt {
     pub speed_upper_mm_s: f64,
     pub conservative_stop_distance_mm: u64,
     pub conservative_stop_time_ms: u64,
+    pub stopping_tube_sha256: String,
+    pub stopping_tube_receipt_sha256: String,
+    pub stopping_tube_builder_build_sha256: String,
+    pub stopping_tube_coverage_duration_ms: u64,
     pub minimum_detection_distance_mm: f64,
     pub required_stopping_distance_mm: u64,
     pub remaining_stopping_distance_mm: f64,
@@ -140,6 +189,12 @@ pub enum IntegratedDispatchReadinessFailure {
     RobotBrakeConfigurationMismatch,
     StoppingEvidenceExpired,
     DetectionEvidenceExpired,
+    InvalidStoppingEnvelopeDigest(&'static str),
+    StoppingEnvelopeContextMismatch(&'static str),
+    StoppingEnvelopeExpired,
+    StoppingEnvelopeBoundTooSmall,
+    StoppingEnvelopeCoverageIncomplete,
+    OccupancyDidNotAssessStoppingEnvelope,
     StoppingBudgetExceeded {
         required_distance_mm: u64,
         available_distance_mm: f64,
@@ -270,6 +325,8 @@ pub fn check_integrated_dispatch_readiness(
         request.stopping_margins,
     )
     .map_err(IntegratedDispatchReadinessFailure::StoppingQualification)?;
+    validate_stopping_envelope_binding(request, stopping)?;
+
     if !stopping_budget.distance_budget_satisfied {
         return Err(IntegratedDispatchReadinessFailure::StoppingBudgetExceeded {
             required_distance_mm: stopping_budget.required_distance_bound_mm,
@@ -285,7 +342,8 @@ pub fn check_integrated_dispatch_readiness(
         .valid_until_tick
         .min(station_valid_until_tick)
         .min(request.stopping_dynamics.valid_until_tick)
-        .min(request.hazard_detection.valid_until_tick);
+        .min(request.hazard_detection.valid_until_tick)
+        .min(request.stopping_envelope.valid_until_tick);
 
     Ok(IntegratedDispatchReadinessReceipt {
         schema_version: INTEGRATED_DISPATCH_RECEIPT_SCHEMA_VERSION.to_owned(),
@@ -320,6 +378,10 @@ pub fn check_integrated_dispatch_readiness(
         speed_upper_mm_s: request.speed_upper_mm_s,
         conservative_stop_distance_mm: stopping.conservative_distance_bound_mm,
         conservative_stop_time_ms: stopping.conservative_stop_time_bound_ms,
+        stopping_tube_sha256: request.stopping_envelope.stop_tube_sha256.clone(),
+        stopping_tube_receipt_sha256: request.stopping_envelope.stop_tube_receipt_sha256.clone(),
+        stopping_tube_builder_build_sha256: request.stopping_envelope.stop_tube_builder_build_sha256.clone(),
+        stopping_tube_coverage_duration_ms: request.stopping_envelope.stop_coverage_duration_ms,
         minimum_detection_distance_mm: stopping_budget.minimum_qualified_detection_distance_mm,
         required_stopping_distance_mm: stopping_budget.required_distance_bound_mm,
         remaining_stopping_distance_mm: stopping_budget.remaining_distance_mm,
@@ -363,6 +425,90 @@ pub fn verify_integrated_dispatch_readiness_receipt_current(
 
     if &current != receipt {
         return Err(IntegratedDispatchReadinessFailure::IntegratedReceiptContextMismatch);
+    }
+    Ok(())
+}
+
+fn validate_stopping_envelope_binding(
+    request: &IntegratedDispatchReadinessRequest,
+    stopping: crate::stopping_reachability::StoppingReachabilityResult,
+) -> Result<(), IntegratedDispatchReadinessFailure> {
+    let tube = &request.stopping_envelope;
+    for (label, digest) in [
+        ("stopping tube", tube.stop_tube_sha256.as_str()),
+        ("stopping tube receipt", tube.stop_tube_receipt_sha256.as_str()),
+        ("stopping tube builder", tube.stop_tube_builder_build_sha256.as_str()),
+        ("composite envelope", tube.composite_envelope_sha256.as_str()),
+        ("nominal trajectory", tube.nominal_trajectory_sha256.as_str()),
+        ("trigger domain", tube.trigger_domain_sha256.as_str()),
+        ("primitive manifest", tube.primitive_manifest_sha256.as_str()),
+        ("robot configuration", tube.robot_configuration_sha256.as_str()),
+        ("tool configuration", tube.tool_configuration_sha256.as_str()),
+        ("payload configuration", tube.payload_configuration_sha256.as_str()),
+        ("frame", tube.frame_sha256.as_str()),
+        ("transform", tube.transform_sha256.as_str()),
+        ("stopping profile", tube.stopping_profile_sha256.as_str()),
+        ("stopping qualification", tube.stopping_qualification_receipt_sha256.as_str()),
+        ("operating condition", tube.operating_condition_sha256.as_str()),
+        ("scenario context", tube.scenario_context_sha256.as_str()),
+    ] {
+        if !is_sha256(digest) {
+            return Err(IntegratedDispatchReadinessFailure::InvalidStoppingEnvelopeDigest(label));
+        }
+    }
+    if tube.schema_version != STOP_TUBE_ENVELOPE_SCHEMA_VERSION {
+        return Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeContextMismatch(
+            "schema version",
+        ));
+    }
+    let envelope = &request.dispatch.envelope;
+    let expected = [
+        (tube.composite_envelope_sha256.as_str(), envelope.envelope_sha256.as_str(), "composite envelope"),
+        (tube.nominal_trajectory_sha256.as_str(), envelope.trajectory_sha256.as_str(), "nominal trajectory"),
+        (tube.trigger_domain_sha256.as_str(), envelope.trajectory_sha256.as_str(), "trigger domain"),
+        (tube.primitive_manifest_sha256.as_str(), envelope.primitive_manifest_sha256.as_str(), "primitive manifest"),
+        (tube.robot_configuration_sha256.as_str(), envelope.robot_configuration_sha256.as_str(), "robot configuration"),
+        (tube.tool_configuration_sha256.as_str(), envelope.tool_configuration_sha256.as_str(), "tool configuration"),
+        (tube.payload_configuration_sha256.as_str(), envelope.payload_configuration_sha256.as_str(), "payload configuration"),
+        (tube.frame_sha256.as_str(), envelope.frame_sha256.as_str(), "frame"),
+        (tube.transform_sha256.as_str(), envelope.transform_sha256.as_str(), "transform"),
+        (tube.stopping_profile_sha256.as_str(), request.stopping_dynamics.profile_sha256.as_str(), "stopping profile"),
+        (tube.stopping_qualification_receipt_sha256.as_str(), request.stopping_dynamics.qualification_receipt_sha256.as_str(), "stopping qualification"),
+        (tube.operating_condition_sha256.as_str(), request.stopping_dynamics.operating_condition_sha256.as_str(), "operating condition"),
+        (tube.scenario_context_sha256.as_str(), request.stopping_dynamics.scenario_context_sha256.as_str(), "scenario context"),
+        (tube.site_clock_domain_id.as_str(), envelope.site_clock_domain_id.as_str(), "site clock domain"),
+    ];
+    for (actual, expected, label) in expected {
+        if actual != expected {
+            return Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeContextMismatch(label));
+        }
+    }
+    if tube.trigger_domain_start_tick < envelope.generated_at_tick
+        || tube.trigger_domain_end_tick < tube.trigger_domain_start_tick
+        || tube.trigger_domain_end_tick > envelope.valid_until_tick
+        || tube.valid_until_tick <= request.dispatch.now_tick
+    {
+        return Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeExpired);
+    }
+    if tube.primitive_count == 0
+        || !tube.trigger_domain_coverage_complete
+        || !tube.primitive_coverage_complete
+        || !tube.continuous_time_coverage_complete
+        || !tube.conservative_outer_bound
+    {
+        return Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeCoverageIncomplete);
+    }
+    if tube.conservative_stop_distance_bound_mm < stopping.conservative_distance_bound_mm
+        || tube.stop_coverage_duration_ms < stopping.conservative_stop_time_bound_ms
+    {
+        return Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeBoundTooSmall);
+    }
+    if request.dispatch.occupancy.assessed_stop_tube_sha256 != tube.stop_tube_sha256
+        || !request.dispatch.occupancy.stop_tube_coverage_complete
+        || request.dispatch.occupancy.assessed_envelope_sha256
+            != tube.composite_envelope_sha256
+    {
+        return Err(IntegratedDispatchReadinessFailure::OccupancyDidNotAssessStoppingEnvelope);
     }
     Ok(())
 }
@@ -424,7 +570,7 @@ fn validate_dependency_snapshot(
         return Err(IntegratedDispatchReadinessFailure::EvidenceSnapshotNotCurrent);
     }
 
-    let expected: [(&str, EvidenceNodeKind, &str); 20] = [
+    let expected: [(&str, EvidenceNodeKind, &str); 21] = [
         (
             &bindings.work_package,
             EvidenceNodeKind::WorkPackage,
@@ -494,6 +640,11 @@ fn validate_dependency_snapshot(
             &bindings.motion_envelope,
             EvidenceNodeKind::MotionEnvelope,
             request.dispatch.envelope.envelope_sha256.as_str(),
+        ),
+        (
+            &bindings.stopping_tube_envelope,
+            EvidenceNodeKind::StoppingTubeEnvelope,
+            request.stopping_envelope.stop_tube_sha256.as_str(),
         ),
         (
             &bindings.sensor_configuration,
@@ -701,6 +852,8 @@ mod tests {
             required_clearance_policy_sha256: digest('f'),
             occupancy: OccupancyAssessmentReceipt {
                 assessed_envelope_sha256: digest('d'),
+                assessed_stop_tube_sha256: digest('8'),
+                stop_tube_coverage_complete: true,
                 primitive_manifest_sha256: digest('b'),
                 site_snapshot_sha256: digest('1'),
                 site_ledger_sequence: ledger.last_sequence(),
@@ -744,6 +897,36 @@ mod tests {
             minimum_braking_jerk_mm_s3: 3_000.0,
             additional_distance_guard_mm: 10.0,
         };
+        let stopping_envelope = StopTubeEnvelopeReceipt {
+            schema_version: STOP_TUBE_ENVELOPE_SCHEMA_VERSION.into(),
+            stop_tube_sha256: digest('8'),
+            stop_tube_receipt_sha256: digest('9'),
+            stop_tube_builder_build_sha256: digest('a'),
+            composite_envelope_sha256: digest('d'),
+            nominal_trajectory_sha256: digest('c'),
+            trigger_domain_sha256: digest('c'),
+            primitive_manifest_sha256: digest('b'),
+            robot_configuration_sha256: digest('8'),
+            tool_configuration_sha256: digest('9'),
+            payload_configuration_sha256: digest('a'),
+            frame_sha256: digest('1'),
+            transform_sha256: digest('2'),
+            stopping_profile_sha256: digest('5'),
+            stopping_qualification_receipt_sha256: digest('6'),
+            operating_condition_sha256: digest('3'),
+            scenario_context_sha256: digest('4'),
+            site_clock_domain_id: "site-clock-01".into(),
+            trigger_domain_start_tick: 100,
+            trigger_domain_end_tick: 1_000,
+            stop_coverage_duration_ms: 6_000,
+            conservative_stop_distance_bound_mm: 500,
+            primitive_count: 4,
+            trigger_domain_coverage_complete: true,
+            primitive_coverage_complete: true,
+            continuous_time_coverage_complete: true,
+            conservative_outer_bound: true,
+            valid_until_tick: 5_500,
+        };
         let hazard_detection = HazardDetectionQualification {
             sensor_profile_sha256: digest('5'),
             detection_qualification_receipt_sha256: digest('6'),
@@ -772,6 +955,7 @@ mod tests {
             tool_configuration: "tool-config".into(),
             payload_configuration: "payload-config".into(),
             motion_envelope: "motion-envelope".into(),
+            stopping_tube_envelope: "stopping-tube-envelope".into(),
             sensor_configuration: "sensor-config".into(),
             stopping_dynamics: "stopping-dynamics".into(),
             hazard_detection: "hazard-detection".into(),
@@ -795,6 +979,7 @@ mod tests {
             evidence_node("tool-config", EvidenceNodeKind::ToolConfiguration, &dispatch.envelope.tool_configuration_sha256),
             evidence_node("payload-config", EvidenceNodeKind::PayloadConfiguration, &dispatch.envelope.payload_configuration_sha256),
             evidence_node("motion-envelope", EvidenceNodeKind::MotionEnvelope, &dispatch.envelope.envelope_sha256),
+            evidence_node("stopping-tube-envelope", EvidenceNodeKind::StoppingTubeEnvelope, &stopping_envelope.stop_tube_sha256),
             evidence_node("sensor-config", EvidenceNodeKind::SensorConfiguration, &hazard_detection.sensor_profile_sha256),
             evidence_node("stopping-dynamics", EvidenceNodeKind::StoppingDynamicsQualification, &stopping_dynamics.profile_sha256),
             evidence_node("hazard-detection", EvidenceNodeKind::HazardDetectionQualification, &hazard_detection.detection_qualification_receipt_sha256),
@@ -809,6 +994,7 @@ mod tests {
             dependency("dispatch-readiness", "tool-config"),
             dependency("dispatch-readiness", "payload-config"),
             dependency("dispatch-readiness", "motion-envelope"),
+            dependency("dispatch-readiness", "stopping-tube-envelope"),
             dependency("dispatch-readiness", "station-qualification"),
             dependency("dispatch-readiness", "sensor-config"),
             dependency("dispatch-readiness", "stopping-dynamics"),
@@ -840,6 +1026,7 @@ mod tests {
             station_qualification_event_id: station_event_id,
             speed_upper_mm_s: 500.0,
             stopping_dynamics,
+            stopping_envelope,
             hazard_detection,
             stopping_margins: HazardStoppingMargins {
                 localization_uncertainty_mm: 10.0,
@@ -886,6 +1073,7 @@ mod tests {
             (&ids.tool_configuration, EvidenceNodeKind::ToolConfiguration, &request.dispatch.envelope.tool_configuration_sha256),
             (&ids.payload_configuration, EvidenceNodeKind::PayloadConfiguration, &request.dispatch.envelope.payload_configuration_sha256),
             (&ids.motion_envelope, EvidenceNodeKind::MotionEnvelope, &request.dispatch.envelope.envelope_sha256),
+            (&ids.stopping_tube_envelope, EvidenceNodeKind::StoppingTubeEnvelope, &request.stopping_envelope.stop_tube_sha256),
             (&ids.sensor_configuration, EvidenceNodeKind::SensorConfiguration, &request.hazard_detection.sensor_profile_sha256),
             (&ids.stopping_dynamics, EvidenceNodeKind::StoppingDynamicsQualification, &request.stopping_dynamics.profile_sha256),
             (&ids.hazard_detection, EvidenceNodeKind::HazardDetectionQualification, &request.hazard_detection.detection_qualification_receipt_sha256),
@@ -903,6 +1091,7 @@ mod tests {
             &ids.tool_configuration,
             &ids.payload_configuration,
             &ids.motion_envelope,
+            &ids.stopping_tube_envelope,
             &ids.station_qualification,
             &ids.sensor_configuration,
             &ids.stopping_dynamics,
