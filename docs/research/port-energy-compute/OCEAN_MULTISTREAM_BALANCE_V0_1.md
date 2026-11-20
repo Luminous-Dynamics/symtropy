@@ -1,7 +1,7 @@
 # Ocean Multi-stream Hydraulic Balance v0.1
 
 **Status:** synthetic software qualification fixture and control-volume contract only.  
-**Owner issue:** [OCEAN-MULTISTREAM-BALANCE-001](https://github.com/Luminous-Dynamics/symtropy/issues/...)  
+**Owner workstream:** OCEAN-MULTISTREAM-BALANCE-001 (opened as a separate public Symtropy issue; linked from the PR discussion)  
 **PR:** [#6322](https://github.com/Luminous-Dynamics/symtropy/pull/6322)  
 **Date:** 2026-11-20
 
