@@ -9630,7 +9630,7 @@
         }
       ],
       "expected_status": "rejected",
-      "expected_reason": "active_provider_qualification_rejected"
+      "expected_reason": "candidate_robust_qualification_rejected"
     },
     {
       "case_id": "QUALIFICATION_EXPIRES_BEFORE_ACTIVATION",
@@ -9679,7 +9679,7 @@
         }
       ],
       "expected_status": "indeterminate",
-      "expected_reason": "active_provider_qualification_indeterminate"
+      "expected_reason": "candidate_robust_qualification_indeterminate"
     },
     {
       "case_id": "CONFIGURATION_CHANGED_AFTER_QUALIFICATION",
@@ -9728,7 +9728,7 @@
         }
       ],
       "expected_status": "indeterminate",
-      "expected_reason": "active_provider_qualification_indeterminate"
+      "expected_reason": "candidate_robust_qualification_indeterminate"
     },
     {
       "case_id": "POST_MAINTENANCE_LIFECYCLE_MISMATCH",
@@ -9777,7 +9777,7 @@
         }
       ],
       "expected_status": "indeterminate",
-      "expected_reason": "active_provider_qualification_indeterminate"
+      "expected_reason": "candidate_robust_qualification_indeterminate"
     },
     {
       "case_id": "HANDOFF_OR_REQUALIFICATION_INCOMPLETE",
@@ -10415,7 +10415,7 @@
         }
       ],
       "expected_status": "indeterminate",
-      "expected_reason": "active_provider_qualification_indeterminate"
+      "expected_reason": "candidate_robust_qualification_indeterminate"
     },
     {
       "case_id": "DUPLICATE_PROVIDER_ALLOCATION",
