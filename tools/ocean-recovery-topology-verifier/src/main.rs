@@ -124,8 +124,11 @@ fn validate(t: &Topology) -> Result<Report, String> {
     let mut paths: HashMap<&str, &RecoveryPath> = HashMap::new();
     let mut path_domains: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     for p in &t.recovery_paths {
-        if p.path_id.trim().is_empty() || p.component_ids.is_empty()
-            || !unique(&p.component_ids) || p.targets_are_measured {
+        if p.path_id.trim().is_empty() || p.label.trim().is_empty() || p.role.trim().is_empty()
+            || p.service_tier.trim().is_empty() || p.component_ids.is_empty()
+            || !unique(&p.component_ids) || p.targets_are_measured
+            || p.target_rpo_minutes == 0 && p.service_tier != "degraded_local"
+            || p.target_rto_minutes == 0 {
             return Err(format!("path {} has invalid identity or claims measured targets", p.path_id));
         }
         if paths.insert(&p.path_id, p).is_some() {
