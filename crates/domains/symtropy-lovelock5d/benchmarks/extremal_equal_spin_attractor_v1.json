@@ -1,0 +1,410 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_extremal_equal_spin_near_horizon_attractor",
+  "status": "exact_symbolic_specialization_with_dimensionless_reference_grid",
+  "source": "Kleihaus, Kunz and Radu, Universe 9 (2023) 156, DOI 10.3390/universe9040156, Eqs. (13), (16)-(20)",
+  "coupling_map": "alpha_sym = 4*alpha_NH",
+  "reference_grid": {
+    "v3_start": "0.05",
+    "v3_end": "1.95",
+    "step": "0.05",
+    "point_count": 39,
+    "samples": [
+      {
+        "v3": "0.050000000000000003",
+        "V_v2_over_alpha_sym": "0.0013504027365630925",
+        "U1_v1_over_alpha_sym": "0.25021253944989119",
+        "J_over_pi_alpha_sym_3_2": "0.000065838266397389434",
+        "area_over_alpha_sym_3_2": "0.00021903307854259703",
+        "entropy_over_alpha_sym_3_2": "0.16022561634365512",
+        "k": "61.675750177334677"
+      },
+      {
+        "v3": "0.10000000000000001",
+        "V_v2_over_alpha_sym": "0.0058636556221709256",
+        "U1_v1_over_alpha_sym": "0.25092910800124252",
+        "J_over_pi_alpha_sym_3_2": "0.00055729543615905784",
+        "area_over_alpha_sym_3_2": "0.0028027375034565950",
+        "entropy_over_alpha_sym_3_2": "0.46673573860683759",
+        "k": "21.261034664542141"
+      },
+      {
+        "v3": "0.14999999999999999",
+        "V_v2_over_alpha_sym": "0.014397581444046530",
+        "U1_v1_over_alpha_sym": "0.25229517887472575",
+        "J_over_pi_alpha_sym_3_2": "0.0020000656288728874",
+        "area_over_alpha_sym_3_2": "0.013207167519509948",
+        "entropy_over_alpha_sym_3_2": "0.88622082845075645",
+        "k": "11.284591450246815"
+      },
+      {
+        "v3": "0.20000000000000001",
+        "V_v2_over_alpha_sym": "0.028093170300089978",
+        "U1_v1_over_alpha_sym": "0.25450188516594274",
+        "J_over_pi_alpha_sym_3_2": "0.0050697770717892032",
+        "area_over_alpha_sym_3_2": "0.041566730596328635",
+        "entropy_over_alpha_sym_3_2": "1.4160142465925230",
+        "k": "7.1494250127416494"
+      },
+      {
+        "v3": "0.25000000000000000",
+        "V_v2_over_alpha_sym": "0.048476332439602032",
+        "U1_v1_over_alpha_sym": "0.25780087049387113",
+        "J_over_pi_alpha_sym_3_2": "0.010655702638422620",
+        "area_over_alpha_sym_3_2": "0.10534025808374736",
+        "entropy_over_alpha_sym_3_2": "2.0635455337031203",
+        "k": "4.9938838945115780"
+      },
+      {
+        "v3": "0.29999999999999999",
+        "V_v2_over_alpha_sym": "0.077588021211450448",
+        "U1_v1_over_alpha_sym": "0.26252226324811068",
+        "J_over_pi_alpha_sym_3_2": "0.019952880250464915",
+        "area_over_alpha_sym_3_2": "0.23365892925042903",
+        "entropy_over_alpha_sym_3_2": "2.8440832695680687",
+        "k": "3.7135582224435977"
+      },
+      {
+        "v3": "0.34999999999999998",
+        "V_v2_over_alpha_sym": "0.11813327905979359",
+        "U1_v1_over_alpha_sym": "0.26909346719533822",
+        "J_over_pi_alpha_sym_3_2": "0.034591058746387099",
+        "area_over_alpha_sym_3_2": "0.47415698387481325",
+        "entropy_over_alpha_sym_3_2": "3.7810825295320964",
+        "k": "2.8868373797018436"
+      },
+      {
+        "v3": "0.40000000000000002",
+        "V_v2_over_alpha_sym": "0.17361025271221173",
+        "U1_v1_over_alpha_sym": "0.27805195705840718",
+        "J_over_pi_alpha_sym_3_2": "0.056802655907858060",
+        "area_over_alpha_sym_3_2": "0.90307285990523267",
+        "entropy_over_alpha_sym_3_2": "4.9073210680903774",
+        "k": "2.3219213196356323"
+      },
+      {
+        "v3": "0.45000000000000001",
+        "V_v2_over_alpha_sym": "0.24832439822098992",
+        "U1_v1_over_alpha_sym": "0.29003788019886201",
+        "J_over_pi_alpha_sym_3_2": "0.089610641645746544",
+        "area_over_alpha_sym_3_2": "1.6385703253374859",
+        "entropy_over_alpha_sym_3_2": "6.2658177061115303",
+        "k": "1.9204784817363427"
+      },
+      {
+        "v3": "0.50000000000000000",
+        "V_v2_over_alpha_sym": "0.34712708838303657",
+        "U1_v1_over_alpha_sym": "0.30574582323392674",
+        "J_over_pi_alpha_sym_3_2": "0.13697331526329456",
+        "area_over_alpha_sym_3_2": "2.8546147241985667",
+        "entropy_over_alpha_sym_3_2": "7.9092542759463669",
+        "k": "1.6273908471977558"
+      },
+      {
+        "v3": "0.55000000000000004",
+        "V_v2_over_alpha_sym": "0.47472940045888784",
+        "U1_v1_over_alpha_sym": "0.32582284018401581",
+        "J_over_pi_alpha_sym_3_2": "0.20377307523313196",
+        "area_over_alpha_sym_3_2": "4.7882881667932411",
+        "entropy_over_alpha_sym_3_2": "9.8965512394625232",
+        "k": "1.4093804210061311"
+      },
+      {
+        "v3": "0.59999999999999998",
+        "V_v2_over_alpha_sym": "0.63467524923765672",
+        "U1_v1_over_alpha_sym": "0.35073737262293470",
+        "J_over_pi_alpha_sym_3_2": "0.29555202252871338",
+        "area_over_alpha_sym_3_2": "7.7309472429824755",
+        "entropy_over_alpha_sym_3_2": "12.286543997063756",
+        "k": "1.2449400438475209"
+      },
+      {
+        "v3": "0.65000000000000002",
+        "V_v2_over_alpha_sym": "0.82846585044859111",
+        "U1_v1_over_alpha_sym": "0.38069285835334560",
+        "J_over_pi_alpha_sym_3_2": "0.41805259246093646",
+        "area_over_alpha_sym_3_2": "12.000472235490554",
+        "entropy_over_alpha_sym_3_2": "15.131451525160150",
+        "k": "1.1193157225122674"
+      },
+      {
+        "v3": "0.69999999999999996",
+        "V_v2_over_alpha_sym": "1.0554365319572190",
+        "U1_v1_over_alpha_sym": "0.41565348333046781",
+        "J_over_pi_alpha_sym_3_2": "0.57681687807950366",
+        "area_over_alpha_sym_3_2": "17.907169508568856",
+        "entropy_over_alpha_sym_3_2": "18.474237412679543",
+        "k": "1.0219802196666774"
+      },
+      {
+        "v3": "0.75000000000000000",
+        "V_v2_over_alpha_sym": "1.3134661099511598",
+        "U1_v1_over_alpha_sym": "0.45546654946340198",
+        "J_over_pi_alpha_sym_3_2": "0.77708471081932218",
+        "area_over_alpha_sym_3_2": "25.732896909710487",
+        "entropy_over_alpha_sym_3_2": "22.351395682888484",
+        "k": "0.94532589687479684"
+      },
+      {
+        "v3": "0.80000000000000004",
+        "V_v2_over_alpha_sym": "1.5999999999999990",
+        "U1_v1_over_alpha_sym": "0.49999999999999978",
+        "J_over_pi_alpha_sym_3_2": "1.0239999999999994",
+        "area_over_alpha_sym_3_2": "35.731784702151032",
+        "entropy_over_alpha_sym_3_2": "26.798838526613284",
+        "k": "0.88388347648318444"
+      },
+      {
+        "v3": "0.84999999999999998",
+        "V_v2_over_alpha_sym": "1.9128526874078429",
+        "U1_v1_over_alpha_sym": "0.54923391978785507",
+        "J_over_pi_alpha_sym_3_2": "1.3229689707742689",
+        "area_over_alpha_sym_3_2": "48.146141963237895",
+        "entropy_over_alpha_sym_3_2": "31.857762209229477",
+        "k": "0.83375504754376550"
+      },
+      {
+        "v3": "0.90000000000000002",
+        "V_v2_over_alpha_sym": "2.2506266206354417",
+        "U1_v1_over_alpha_sym": "0.60330024753899580",
+        "J_over_pi_alpha_sym_3_2": "1.6800388276657185",
+        "area_over_alpha_sym_3_2": "63.227523684366439",
+        "entropy_over_alpha_sym_3_2": "37.579186645240981",
+        "k": "0.79217086070033682"
+      },
+      {
+        "v3": "0.94999999999999996",
+        "V_v2_over_alpha_sym": "2.6128518755331678",
+        "U1_v1_over_alpha_sym": "0.66249327409936598",
+        "J_over_pi_alpha_sym_3_2": "2.1022622166539278",
+        "area_over_alpha_sym_3_2": "81.257550912194048",
+        "entropy_over_alpha_sym_3_2": "44.027512513549368",
+        "k": "0.75715296934917287"
+      },
+      {
+        "v3": "1.0000000000000000",
+        "V_v2_over_alpha_sym": "3.0000000000000000",
+        "U1_v1_over_alpha_sym": "0.72727272727272729",
+        "J_over_pi_alpha_sym_3_2": "2.5980762113533160",
+        "area_over_alpha_sym_3_2": "102.56793763975300",
+        "entropy_over_alpha_sym_3_2": "51.283968819876499",
+        "k": "0.72727272727272729"
+      },
+      {
+        "v3": "1.0500000000000000",
+        "V_v2_over_alpha_sym": "3.4134778013017897",
+        "U1_v1_over_alpha_sym": "0.79827213410219700",
+        "J_over_pi_alpha_sym_3_2": "3.1777476164709757",
+        "area_over_alpha_sym_3_2": "127.56161672777775",
+        "entropy_over_alpha_sym_3_2": "59.450768658566574",
+        "k": "0.70148239960506031"
+      },
+      {
+        "v3": "1.1000000000000001",
+        "V_v2_over_alpha_sym": "3.8556570247742874",
+        "U1_v1_over_alpha_sym": "0.87631873776403335",
+        "J_over_pi_alpha_sym_3_2": "3.8539457574477640",
+        "area_over_alpha_sym_3_2": "156.73777445495199",
+        "entropy_over_alpha_sym_3_2": "68.656693284724341",
+        "k": "0.67900041918361187"
+      },
+      {
+        "v3": "1.1499999999999999",
+        "V_v2_over_alpha_sym": "4.3299692373534624",
+        "U1_v1_over_alpha_sym": "0.96246894843607977",
+        "J_over_pi_alpha_sym_3_2": "4.6425183825479444",
+        "area_over_alpha_sym_3_2": "190.72423321987063",
+        "entropy_over_alpha_sym_3_2": "79.064887778134150",
+        "k": "0.65923352476890640"
+      },
+      {
+        "v3": "1.2000000000000000",
+        "V_v2_over_alpha_sym": "4.8410882339705452",
+        "U1_v1_over_alpha_sym": "1.0580638629440602",
+        "J_over_pi_alpha_sym_3_2": "5.5635757327614481",
+        "area_over_alpha_sym_3_2": "230.32170210082833",
+        "entropy_over_alpha_sym_3_2": "90.883927481490730",
+        "k": "0.64172363581674374"
+      },
+      {
+        "v3": "1.2500000000000000",
+        "V_v2_over_alpha_sym": "5.3952284379684201",
+        "U1_v1_over_alpha_sym": "1.1648119300025543",
+        "J_over_pi_alpha_sym_3_2": "6.6430415171817732",
+        "area_over_alpha_sym_3_2": "276.56645576655967",
+        "entropy_over_alpha_sym_3_2": "104.38376179981421",
+        "k": "0.62611119180300090"
+      },
+      {
+        "v3": "1.3000000000000000",
+        "V_v2_over_alpha_sym": "6.0006047870892791",
+        "U1_v1_over_alpha_sym": "1.2849104478870372",
+        "J_over_pi_alpha_sym_3_2": "7.9149233385373892",
+        "area_over_alpha_sym_3_2": "330.82167285284953",
+        "entropy_over_alpha_sym_3_2": "119.91910534957054",
+        "k": "0.61210947824113826"
+      },
+      {
+        "v3": "1.3500000000000001",
+        "V_v2_over_alpha_sym": "6.6681303552417566",
+        "U1_v1_over_alpha_sym": "1.4212253485715300",
+        "J_over_pi_alpha_sym_3_2": "9.4247199427313522",
+        "area_over_alpha_sym_3_2": "394.91419742439967",
+        "entropy_over_alpha_sym_3_2": "137.96453333592709",
+        "k": "0.59948634334231787"
+      },
+      {
+        "v3": "1.3999999999999999",
+        "V_v2_over_alpha_sym": "7.4124817429016590",
+        "U1_v1_over_alpha_sym": "1.5775621466160685",
+        "J_over_pi_alpha_sym_3_2": "11.234680300741370",
+        "area_over_alpha_sym_3_2": "471.34533586681266",
+        "entropy_over_alpha_sym_3_2": "159.16857314649181",
+        "k": "0.58805093784044915"
+      },
+      {
+        "v3": "1.4500000000000000",
+        "V_v2_over_alpha_sym": "8.2537593494716255",
+        "U1_v1_over_alpha_sym": "1.7590851581959162",
+        "J_over_pi_alpha_sym_3_2": "13.432187875448360",
+        "area_over_alpha_sym_3_2": "563.62655372144502",
+        "entropy_over_alpha_sym_3_2": "184.43976228142475",
+        "k": "0.57764390300474877"
+      },
+      {
+        "v3": "1.5000000000000000",
+        "V_v2_over_alpha_sym": "9.2201532544552762",
+        "U1_v1_over_alpha_sym": "1.9729879656672380",
+        "J_over_pi_alpha_sym_3_2": "16.143640236777753",
+        "area_over_alpha_sym_3_2": "676.83464431849006",
+        "entropy_over_alpha_sym_3_2": "215.08877185702718",
+        "k": "0.56812994151695173"
+      },
+      {
+        "v3": "1.5500000000000000",
+        "V_v2_over_alpha_sym": "10.352391851783789",
+        "U1_v1_over_alpha_sym": "2.2296096965485264",
+        "J_over_pi_alpha_sym_3_2": "19.558469023837308",
+        "area_over_alpha_sym_3_2": "818.57154462509664",
+        "entropy_over_alpha_sym_3_2": "253.07372979715518",
+        "k": "0.55939203307303542"
+      },
+      {
+        "v3": "1.6000000000000001",
+        "V_v2_over_alpha_sym": "11.711528238439875",
+        "U1_v1_over_alpha_sym": "2.5443861695081638",
+        "J_over_pi_alpha_sym_3_2": "23.972977211398177",
+        "area_over_alpha_sym_3_2": "1000.7142571894976",
+        "entropy_over_alpha_sym_3_2": "301.44672862992985",
+        "k": "0.55132676438806594"
+      },
+      {
+        "v3": "1.6499999999999999",
+        "V_v2_over_alpha_sym": "13.393396467635599",
+        "U1_v1_over_alpha_sym": "2.9414692973758751",
+        "J_over_pi_alpha_sym_3_2": "29.875699208124189",
+        "area_over_alpha_sym_3_2": "1242.8187608885307",
+        "entropy_over_alpha_sym_3_2": "365.22081119162635",
+        "k": "0.54384036978992367"
+      },
+      {
+        "v3": "1.7000000000000000",
+        "V_v2_over_alpha_sym": "15.557511409355367",
+        "U1_v1_over_alpha_sym": "3.4609586648440342",
+        "J_over_pi_alpha_sym_3_2": "38.127624516879592",
+        "area_over_alpha_sym_3_2": "1579.2991221551911",
+        "entropy_over_alpha_sym_3_2": "453.19510541563886",
+        "k": "0.53684514450023602"
+      },
+      {
+        "v3": "1.7500000000000000",
+        "V_v2_over_alpha_sym": "18.490620601344041",
+        "U1_v1_over_alpha_sym": "4.1747980736057713",
+        "J_over_pi_alpha_sym_3_2": "50.384534614103181",
+        "area_over_alpha_sym_3_2": "2076.2325570707394",
+        "entropy_over_alpha_sym_3_2": "582.21885401770260",
+        "k": "0.53025590494789610"
+      },
+      {
+        "v3": "1.8000000000000000",
+        "V_v2_over_alpha_sym": "22.765525060596442",
+        "U1_v1_over_alpha_sym": "5.2264923761010351",
+        "J_over_pi_alpha_sym_3_2": "70.235763939472818",
+        "area_over_alpha_sym_3_2": "2876.6200323963781",
+        "entropy_over_alpha_sym_3_2": "788.65224190357401",
+        "k": "0.52398612127143618"
+      },
+      {
+        "v3": "1.8500000000000001",
+        "V_v2_over_alpha_sym": "29.717410538504765",
+        "U1_v1_over_alpha_sym": "6.9502067407600290",
+        "J_over_pi_alpha_sym_3_2": "106.95852195301930",
+        "area_over_alpha_sym_3_2": "4349.4270510665638",
+        "entropy_over_alpha_sym_3_2": "1166.0250248253144",
+        "k": "0.51794320626792201"
+      },
+      {
+        "v3": "1.8999999999999999",
+        "V_v2_over_alpha_sym": "43.348835890129642",
+        "U1_v1_over_alpha_sym": "10.347038105655919",
+        "J_over_pi_alpha_sym_3_2": "192.56711758538640",
+        "area_over_alpha_sym_3_2": "7765.5585832733377",
+        "entropy_over_alpha_sym_3_2": "2035.4387286253495",
+        "k": "0.51202213700720345"
+      },
+      {
+        "v3": "1.9500000000000000",
+        "V_v2_over_alpha_sym": "83.663448177152361",
+        "U1_v1_over_alpha_sym": "20.418481975181532",
+        "J_over_pi_alpha_sym_3_2": "528.20153522045325",
+        "area_over_alpha_sym_3_2": "21093.599055226667",
+        "entropy_over_alpha_sym_3_2": "5402.6135333959037",
+        "k": "0.50609592793733182"
+      }
+    ],
+    "numeric_method": "binary64 evaluation of the exact formulas; the SymPy replay emits higher-precision decimal strings"
+  },
+  "exact_positivity": {
+    "R_bernstein_on_0_1": [
+      "16",
+      "2",
+      "1/6",
+      "2",
+      "4"
+    ],
+    "R_bernstein_on_1_2": [
+      "4",
+      "6",
+      "49/6",
+      "7",
+      "4"
+    ],
+    "R_minus_P_squared": "v3^2*(v3-4)*(v3-2)",
+    "v_star": "0.295840542120770452",
+    "V_positive": true,
+    "U1_positive": true
+  },
+  "validation": {
+    "coupling_conversion_exact": true,
+    "static_BD_lapse_conversion_exact": true,
+    "v1_v2_reductions_exact": true,
+    "J_AH_S_scalings_exact": true,
+    "k_reduction_exact": true,
+    "entropy_area_identity_exact": true,
+    "critical_endpoint_limits_exact": true,
+    "binary64_grid_points_generated": true,
+    "static_mass_temperature_area_entropy_conversion_exact": true,
+    "static_first_law_exact": true,
+    "dimensionless_static_coupling_map_exact": true
+  },
+  "claim_ceiling": "Exact local extremal near-horizon attractor specialization only; no global extremal black-hole solution or matched near-extremal sequence is claimed.",
+  "static_thermodynamics_symtropy": {
+    "mass": "3*pi/16*(2*r_H^2+alpha_sym)",
+    "temperature": "r_H/(2*pi*(r_H^2+alpha_sym))",
+    "horizon_area": "2*pi^2*r_H^3",
+    "wald_entropy": "pi^2*r_H^3/2*(1+3*alpha_sym/r_H^2)",
+    "source_dimensionless_static_coupling": "x=alpha_sym/(2*r_H^2+alpha_sym)",
+    "source": "Kleihaus, Kunz & Radu (2023), Eq. (10), converted with alpha_sym=4*alpha_NH",
+    "first_law_fixed_alpha": "dM = T_H dS; exact derivative identity with J=0"
+  }
+}
