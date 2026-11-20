@@ -707,12 +707,23 @@ mod tests {
 
     #[test]
     fn malformed_nonconservative_face_receipt_is_rejected() {
-        let mut face = internal_face("face", "cell-0", "cell-1", vec![1.0, 1.0]);
-        face.left_integrated_update[0] += 0.1;
+        let mut nonconservative = internal_face("face", "cell-0", "cell-1", vec![1.0, 1.0]);
+        nonconservative.left_integrated_update[0] += 0.1;
         assert!(matches!(
             assemble_domain_balance(&request(
                 vec!["cell-0", "cell-1"],
-                vec![face],
+                vec![nonconservative],
+                vec![],
+            )),
+            Err(DomainBalanceError::InvalidInternalFaceReceipt(_))
+        ));
+
+        let mut wrong_area = internal_face("wrong-area", "cell-0", "cell-1", vec![1.0, 1.0]);
+        wrong_area.face_measure = 2.0;
+        assert!(matches!(
+            assemble_domain_balance(&request(
+                vec!["cell-0", "cell-1"],
+                vec![wrong_area],
                 vec![],
             )),
             Err(DomainBalanceError::InvalidInternalFaceReceipt(_))
