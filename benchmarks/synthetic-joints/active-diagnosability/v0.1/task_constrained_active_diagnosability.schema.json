@@ -1,0 +1,389 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/synthetic-joints/active-diagnosability/v0.1/task_constrained_active_diagnosability.schema.json",
+  "title": "Task-Constrained Active Diagnosability Profile v0.1",
+  "description": "Bounded feature-signature intervals, sensor-availability scenarios and prequalified task/actuator hard margins. Schema validation does not establish physical safety or validate the supplied bounds.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "profile": {
+      "$ref": "#/$defs/profile"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "evidence_class": {
+      "enum": [
+        "independent_physical",
+        "source_author_physical",
+        "vendor_physical",
+        "model_derived",
+        "synthetic_fixture",
+        "unknown"
+      ]
+    },
+    "interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lower",
+        "upper"
+      ],
+      "properties": {
+        "lower": {
+          "type": "number"
+        },
+        "upper": {
+          "type": "number"
+        }
+      }
+    },
+    "constraint_kind": {
+      "enum": [
+        "task_performance",
+        "torque_speed",
+        "peak_duration",
+        "thermal_headroom",
+        "energy_budget",
+        "passivity",
+        "workspace",
+        "exposure_time"
+      ]
+    },
+    "constraint_margin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "minimum_robust_margin",
+        "unit",
+        "evidence_class",
+        "source_reference",
+        "method",
+        "configuration_digest",
+        "system_boundary_digest",
+        "operating_condition_digest",
+        "mission_set_digest",
+        "profile_digest"
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/constraint_kind"
+        },
+        "minimum_robust_margin": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        },
+        "source_reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "method": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "system_boundary_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operating_condition_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mission_set_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_digest": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "feature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "feature_id",
+        "sensor_channel_id",
+        "modality",
+        "unit",
+        "interval",
+        "separation_scale",
+        "evidence_class",
+        "source_reference",
+        "method",
+        "calibration_digest",
+        "raw_trace_digest",
+        "configuration_digest",
+        "system_boundary_digest",
+        "operating_condition_digest",
+        "mission_set_digest",
+        "profile_digest"
+      ],
+      "properties": {
+        "feature_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sensor_channel_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "modality": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "interval": {
+          "$ref": "#/$defs/interval"
+        },
+        "separation_scale": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        },
+        "source_reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "method": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "calibration_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "raw_trace_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "system_boundary_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operating_condition_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mission_set_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_digest": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hypothesis_id",
+        "features"
+      ],
+      "properties": {
+        "hypothesis_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "features": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/feature"
+          }
+        }
+      }
+    },
+    "sensor_scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "available_channel_ids",
+        "evidence_class",
+        "source_reference",
+        "method",
+        "configuration_digest",
+        "system_boundary_digest",
+        "operating_condition_digest",
+        "mission_set_digest",
+        "profile_digest"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "available_channel_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        },
+        "source_reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "method": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "system_boundary_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operating_condition_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mission_set_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_digest": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "profile_digest",
+        "configuration_digest",
+        "system_boundary_digest",
+        "operating_condition_digest",
+        "mission_set_digest",
+        "diagnostic_duration_s",
+        "electrical_energy_j",
+        "hard_constraint_margins",
+        "fault_signatures",
+        "sensor_scenarios"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "system_boundary_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operating_condition_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mission_set_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "diagnostic_duration_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "electrical_energy_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "hard_constraint_margins": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/constraint_margin"
+          }
+        },
+        "fault_signatures": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/signature"
+          }
+        },
+        "sensor_scenarios": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/sensor_scenario"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,41 @@
+name: Task-Constrained Active Diagnosability Reference
+
+on:
+  push:
+    paths:
+      - "benchmarks/synthetic-joints/active-diagnosability/v0.1/**"
+      - ".github/workflows/task-constrained-active-diagnosability.yml"
+  pull_request:
+    paths:
+      - "benchmarks/synthetic-joints/active-diagnosability/v0.1/**"
+      - ".github/workflows/task-constrained-active-diagnosability.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: task-constrained-active-diagnosability-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.96.0
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/synthetic-joints/active-diagnosability/v0.1/Cargo.toml -- --check
+
+      - name: Run active diagnosability tests
+        run: cargo test --manifest-path benchmarks/synthetic-joints/active-diagnosability/v0.1/Cargo.toml --locked
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path benchmarks/synthetic-joints/active-diagnosability/v0.1/Cargo.toml --all-targets --locked -- -D warnings
