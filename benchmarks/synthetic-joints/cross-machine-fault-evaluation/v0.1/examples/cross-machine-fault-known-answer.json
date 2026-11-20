@@ -1,0 +1,548 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "synthetic-cross-machine-compound-fault-v0.1",
+  "plan": {
+    "model_digest": "fault-model-v1",
+    "feature_schema_digest": "multimodal-feature-schema-v1",
+    "training_split_digest": "train-split-v1",
+    "calibration_split_digest": "calibration-split-v1",
+    "test_split_digest": "test-split-v1",
+    "domain_digest": "robot-harmonic-drive-domain-v1",
+    "fault_taxonomy": [
+      "bearing_wear",
+      "gear_tooth_wear",
+      "lubrication_loss"
+    ],
+    "thresholds": [
+      {
+        "fault_label": "bearing_wear",
+        "probability_threshold": 0.5
+      },
+      {
+        "fault_label": "gear_tooth_wear",
+        "probability_threshold": 0.5
+      },
+      {
+        "fault_label": "lubrication_loss",
+        "probability_threshold": 0.5
+      }
+    ],
+    "training_specimen_ids": [
+      "train-specimen-1"
+    ],
+    "calibration_specimen_ids": [
+      "cal-specimen-1"
+    ],
+    "training_machine_ids": [
+      "robot-A"
+    ],
+    "maximum_time_mapping_skew_ns": 1000000
+  },
+  "dataset": {
+    "split_digest": "test-split-v1",
+    "model_digest": "fault-model-v1",
+    "feature_schema_digest": "multimodal-feature-schema-v1",
+    "domain_digest": "robot-harmonic-drive-domain-v1",
+    "source_dataset_id": "synthetic-GD-HDD-shaped-fixture",
+    "source_dataset_license": "Synthetic fixture only; contains no GD-HDD raw data or derivatives.",
+    "attribution_reference": "https://github.com/GDUT-YANGGUO/Harmonic-Drive-Dataset",
+    "episodes": [
+      {
+        "episode_id": "healthy-reference",
+        "specimen_id": "test-specimen-healthy",
+        "machine_id": "robot-A",
+        "axis_id": "axis-5",
+        "session_id": "session-healthy-reference",
+        "operating_condition_digest": "speed-medium-load-3kg-v1",
+        "source_record_digest": "synthetic-record-healthy-reference",
+        "start_time_ns": 0,
+        "end_time_ns": 10000000000,
+        "true_faults": [],
+        "unknown_fault_class": false,
+        "fault_onset_time_ns": null,
+        "verified_healthy_exposure_seconds": 10,
+        "in_domain": true,
+        "timebase": {
+          "status": "synchronized",
+          "reference_clock_id": "ptp-synthetic-01",
+          "mapping_digest": "map-synthetic-01",
+          "maximum_residual_skew_ns": 100000,
+          "synchronization_method": "Synthetic PTP mapping; fixture only."
+        },
+        "channels": [
+          {
+            "channel_id": "vibration-x",
+            "native_sample_rate_hz": 512,
+            "state": "healthy"
+          },
+          {
+            "channel_id": "servo-torque",
+            "native_sample_rate_hz": 800,
+            "state": "healthy"
+          }
+        ],
+        "predictions": [
+          {
+            "window_id": "healthy-w1",
+            "timestamp_ns": 1000000000,
+            "abstained": false,
+            "probabilities": [
+              {
+                "fault_label": "bearing_wear",
+                "probability": 0.1
+              },
+              {
+                "fault_label": "gear_tooth_wear",
+                "probability": 0.1
+              },
+              {
+                "fault_label": "lubrication_loss",
+                "probability": 0.1
+              }
+            ]
+          },
+          {
+            "window_id": "healthy-w2",
+            "timestamp_ns": 2000000000,
+            "abstained": false,
+            "probabilities": [
+              {
+                "fault_label": "bearing_wear",
+                "probability": 0.9
+              },
+              {
+                "fault_label": "gear_tooth_wear",
+                "probability": 0.1
+              },
+              {
+                "fault_label": "lubrication_loss",
+                "probability": 0.1
+              }
+            ]
+          },
+          {
+            "window_id": "healthy-w3",
+            "timestamp_ns": 3000000000,
+            "abstained": false,
+            "probabilities": [
+              {
+                "fault_label": "bearing_wear",
+                "probability": 0.8
+              },
+              {
+                "fault_label": "gear_tooth_wear",
+                "probability": 0.1
+              },
+              {
+                "fault_label": "lubrication_loss",
+                "probability": 0.1
+              }
+            ]
+          },
+          {
+            "window_id": "healthy-w4",
+            "timestamp_ns": 4000000000,
+            "abstained": false,
+            "probabilities": [
+              {
+                "fault_label": "bearing_wear",
+                "probability": 0.1
+              },
+              {
+                "fault_label": "gear_tooth_wear",
+                "probability": 0.1
+              },
+              {
+                "fault_label": "lubrication_loss",
+                "probability": 0.1
+              }
+            ]
+          },
+          {
+            "window_id": "healthy-w5",
+            "timestamp_ns": 5000000000,
+            "abstained": false,
+            "probabilities": [
+              {
+                "fault_label": "bearing_wear",
+                "probability": 0.1
+              },
+              {
+                "fault_label": "gear_tooth_wear",
+                "probability": 0.9
+              },
+              {
+                "fault_label": "lubrication_loss",
+                "probability": 0.1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "episode_id": "single-gear-fault",
+        "specimen_id": "test-specimen-single",
+        "machine_id": "robot-B",
+        "axis_id": "axis-5",
+        "session_id": "session-single-gear-fault",
+        "operating_condition_digest": "speed-medium-load-3kg-v1",
+        "source_record_digest": "synthetic-record-single-gear-fault",
+        "start_time_ns": 0,
+        "end_time_ns": 10000000000,
+        "true_faults": [
+          "gear_tooth_wear"
+        ],
+        "unknown_fault_class": false,
+        "fault_onset_time_ns": 5000000000,
+        "verified_healthy_exposure_seconds": 5,
+        "in_domain": true,
+        "timebase": {
+          "status": "synchronized",
+          "reference_clock_id": "ptp-synthetic-01",
+          "mapping_digest": "map-synthetic-01",
+          "maximum_residual_skew_ns": 100000,
+          "synchronization_method": "Synthetic PTP mapping; fixture only."
+        },
+        "channels": [
+          {
+            "channel_id": "vibration-x",
+            "native_sample_rate_hz": 2560,
+            "state": "healthy"
+          },
+          {
+            "channel_id": "servo-torque",
+            "native_sample_rate_hz": 800,
+            "state": "healthy"
+          }
+        ],
+        "predictions": [
+          {
+            "window_id": "single-w1",
+            "timestamp_ns": 4000000000,
+            "abstained": false,
+            "probabilities": [
+              {
+                "fault_label": "bearing_wear",
+                "probability": 0.1
+              },
+              {
+                "fault_label": "gear_tooth_wear",
+                "probability": 0.1
+              },
+              {
+                "fault_label": "lubrication_loss",
+                "probability": 0.1
+              }
+            ]
+          },
+          {
+            "window_id": "single-w2",
+            "timestamp_ns": 5250000000,
+            "abstained": true,
+            "probabilities": [
+              {
+                "fault_label": "bearing_wear",
+                "probability": 0.1
+              },
+              {
+                "fault_label": "gear_tooth_wear",
+                "probability": 0.1
+              },
+              {
+                "fault_label": "lubrication_loss",
+                "probability": 0.1
+              }
+            ]
+          },
+          {
+            "window_id": "single-w3",
+            "timestamp_ns": 5500000000,
+            "abstained": false,
+            "probabilities": [
+              {
+                "fault_label": "bearing_wear",
+                "probability": 0.1
+              },
+              {
+                "fault_label": "gear_tooth_wear",
+                "probability": 0.9
+              },
+              {
+                "fault_label": "lubrication_loss",
+                "probability": 0.1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "episode_id": "compound-bearing-gear",
+        "specimen_id": "test-specimen-compound",
+        "machine_id": "robot-C",
+        "axis_id": "axis-5",
+        "session_id": "session-compound-bearing-gear",
+        "operating_condition_digest": "speed-medium-load-3kg-v1",
+        "source_record_digest": "synthetic-record-compound-bearing-gear",
+        "start_time_ns": 0,
+        "end_time_ns": 10000000000,
+        "true_faults": [
+          "bearing_wear",
+          "gear_tooth_wear"
+        ],
+        "unknown_fault_class": false,
+        "fault_onset_time_ns": 4000000000,
+        "verified_healthy_exposure_seconds": 4,
+        "in_domain": true,
+        "timebase": {
+          "status": "synchronized",
+          "reference_clock_id": "ptp-synthetic-01",
+          "mapping_digest": "map-synthetic-01",
+          "maximum_residual_skew_ns": 100000,
+          "synchronization_method": "Synthetic PTP mapping; fixture only."
+        },
+        "channels": [
+          {
+            "channel_id": "vibration-x",
+            "native_sample_rate_hz": 2560,
+            "state": "missing"
+          },
+          {
+            "channel_id": "servo-torque",
+            "native_sample_rate_hz": 800,
+            "state": "healthy"
+          }
+        ],
+        "predictions": [
+          {
+            "window_id": "compound-w1",
+            "timestamp_ns": 4500000000,
+            "abstained": false,
+            "probabilities": [
+              {
+                "fault_label": "bearing_wear",
+                "probability": 0.9
+              },
+              {
+                "fault_label": "gear_tooth_wear",
+                "probability": 0.1
+              },
+              {
+                "fault_label": "lubrication_loss",
+                "probability": 0.1
+              }
+            ]
+          },
+          {
+            "window_id": "compound-w2",
+            "timestamp_ns": 5500000000,
+            "abstained": false,
+            "probabilities": [
+              {
+                "fault_label": "bearing_wear",
+                "probability": 0.9
+              },
+              {
+                "fault_label": "gear_tooth_wear",
+                "probability": 0.9
+              },
+              {
+                "fault_label": "lubrication_loss",
+                "probability": 0.1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "episode_id": "lubrication-partial-corruption",
+        "specimen_id": "test-specimen-lubrication",
+        "machine_id": "robot-B",
+        "axis_id": "axis-5",
+        "session_id": "session-lubrication-partial-corruption",
+        "operating_condition_digest": "speed-medium-load-3kg-v1",
+        "source_record_digest": "synthetic-record-lubrication-partial-corruption",
+        "start_time_ns": 0,
+        "end_time_ns": 10000000000,
+        "true_faults": [
+          "lubrication_loss"
+        ],
+        "unknown_fault_class": false,
+        "fault_onset_time_ns": 6000000000,
+        "verified_healthy_exposure_seconds": 6,
+        "in_domain": true,
+        "timebase": {
+          "status": "synchronized",
+          "reference_clock_id": "ptp-synthetic-01",
+          "mapping_digest": "map-synthetic-01",
+          "maximum_residual_skew_ns": 100000,
+          "synchronization_method": "Synthetic PTP mapping; fixture only."
+        },
+        "channels": [
+          {
+            "channel_id": "vibration-x",
+            "native_sample_rate_hz": 2560,
+            "state": "partial_corruption"
+          },
+          {
+            "channel_id": "servo-torque",
+            "native_sample_rate_hz": 800,
+            "state": "healthy"
+          }
+        ],
+        "predictions": [
+          {
+            "window_id": "lubrication-w1",
+            "timestamp_ns": 5500000000,
+            "abstained": false,
+            "probabilities": [
+              {
+                "fault_label": "bearing_wear",
+                "probability": 0.1
+              },
+              {
+                "fault_label": "gear_tooth_wear",
+                "probability": 0.1
+              },
+              {
+                "fault_label": "lubrication_loss",
+                "probability": 0.1
+              }
+            ]
+          },
+          {
+            "window_id": "lubrication-w2",
+            "timestamp_ns": 7000000000,
+            "abstained": false,
+            "probabilities": [
+              {
+                "fault_label": "bearing_wear",
+                "probability": 0.1
+              },
+              {
+                "fault_label": "gear_tooth_wear",
+                "probability": 0.1
+              },
+              {
+                "fault_label": "lubrication_loss",
+                "probability": 0.9
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "episode_id": "out-of-domain-episode",
+        "specimen_id": "test-specimen-ood",
+        "machine_id": "robot-D",
+        "axis_id": "axis-5",
+        "session_id": "session-out-of-domain-episode",
+        "operating_condition_digest": "unseen-speed-load-domain-v9",
+        "source_record_digest": "synthetic-record-out-of-domain-episode",
+        "start_time_ns": 0,
+        "end_time_ns": 10000000000,
+        "true_faults": [],
+        "unknown_fault_class": false,
+        "fault_onset_time_ns": null,
+        "verified_healthy_exposure_seconds": 10,
+        "in_domain": false,
+        "timebase": {
+          "status": "synchronized",
+          "reference_clock_id": "ptp-synthetic-01",
+          "mapping_digest": "map-synthetic-01",
+          "maximum_residual_skew_ns": 100000,
+          "synchronization_method": "Synthetic PTP mapping; fixture only."
+        },
+        "channels": [
+          {
+            "channel_id": "vibration-x",
+            "native_sample_rate_hz": 2560,
+            "state": "healthy"
+          },
+          {
+            "channel_id": "servo-torque",
+            "native_sample_rate_hz": 800,
+            "state": "healthy"
+          }
+        ],
+        "predictions": [
+          {
+            "window_id": "ood-w1",
+            "timestamp_ns": 2000000000,
+            "abstained": false,
+            "probabilities": [
+              {
+                "fault_label": "bearing_wear",
+                "probability": 0.9
+              },
+              {
+                "fault_label": "gear_tooth_wear",
+                "probability": 0.1
+              },
+              {
+                "fault_label": "lubrication_loss",
+                "probability": 0.1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "episode_id": "unsynchronized-episode",
+        "specimen_id": "test-specimen-unsynced",
+        "machine_id": "robot-D",
+        "axis_id": "axis-5",
+        "session_id": "session-unsynchronized-episode",
+        "operating_condition_digest": "speed-medium-load-3kg-v1",
+        "source_record_digest": "synthetic-record-unsynchronized-episode",
+        "start_time_ns": 0,
+        "end_time_ns": 10000000000,
+        "true_faults": [],
+        "unknown_fault_class": false,
+        "fault_onset_time_ns": null,
+        "verified_healthy_exposure_seconds": 10,
+        "in_domain": true,
+        "timebase": {
+          "status": "unknown",
+          "reference_clock_id": "",
+          "mapping_digest": "",
+          "maximum_residual_skew_ns": null,
+          "synchronization_method": "No valid common-clock mapping supplied."
+        },
+        "channels": [
+          {
+            "channel_id": "vibration-x",
+            "native_sample_rate_hz": 2560,
+            "state": "healthy"
+          },
+          {
+            "channel_id": "servo-torque",
+            "native_sample_rate_hz": 800,
+            "state": "healthy"
+          }
+        ],
+        "predictions": [
+          {
+            "window_id": "unsynced-w1",
+            "timestamp_ns": 2000000000,
+            "abstained": false,
+            "probabilities": [
+              {
+                "fault_label": "bearing_wear",
+                "probability": 0.9
+              },
+              {
+                "fault_label": "gear_tooth_wear",
+                "probability": 0.1
+              },
+              {
+                "fault_label": "lubrication_loss",
+                "probability": 0.1
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "claim_ceiling": "Synthetic evaluation arithmetic and data-integrity fixture only. No GD-HDD raw data, model output from real signals, or physical fault diagnosis is included."
+}
