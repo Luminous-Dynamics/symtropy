@@ -261,7 +261,9 @@
         "station_id",
         "frame_sha256",
         "transform_sha256",
-        "calibration_sha256"
+        "calibration_sha256",
+        "site_clock_domain_id",
+        "valid_until_tick"
       ],
       "properties": {
         "kind": {
@@ -282,6 +284,14 @@
         },
         "calibration_sha256": {
           "$ref": "#/$defs/sha256"
+        },
+        "site_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "valid_until_tick": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },
