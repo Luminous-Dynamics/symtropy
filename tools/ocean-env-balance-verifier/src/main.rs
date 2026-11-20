@@ -99,6 +99,7 @@ struct IntervalRecord {
     thermal_observations: Vec<ThermalObservation>,
     flow_samples: Vec<FlowSample>,
     concentration_pairs: Vec<ConcentrationPair>,
+    plume_concentration_observations: Vec<PlumeConcentrationObservation>,
 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -123,6 +124,8 @@ struct Evidence {
     evidence_state: String,
     source_rights_state: String,
     calibration_independence_domain: String,
+    calibration_valid_from_utc: String,
+    calibration_valid_until_utc: String,
 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -163,6 +166,19 @@ struct ConcentrationSample {
     standard_uncertainty_mg_l: f64,
     detection_limit_mg_l: f64,
 }
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PlumeConcentrationObservation {
+    analyte_id: String,
+    method_id: String,
+    method_quality_state: String,
+    evidence: Evidence,
+    station_id: String,
+    station_role: String,
+    concentration_mg_l: f64,
+    standard_uncertainty_mg_l: f64,
+    detection_limit_mg_l: f64,
+}
 
 #[derive(Debug, Serialize)]
 struct StationAnomaly {
@@ -170,6 +186,14 @@ struct StationAnomaly {
     distance_from_outfall_m: f64,
     delta_from_reference_deg_c: f64,
     standard_uncertainty_deg_c: f64,
+}
+#[derive(Debug, Serialize)]
+struct StationConcentrationAnomaly {
+    analyte_id: String,
+    station_role: String,
+    distance_from_outfall_m: f64,
+    delta_from_reference_mg_l: f64,
+    standard_uncertainty_mg_l: f64,
 }
 #[derive(Debug, Serialize)]
 struct PollutantResult {
@@ -201,6 +225,7 @@ struct IntervalResult {
     thermal_power_kw: f64,
     thermal_power_standard_uncertainty_kw: f64,
     station_anomalies: Vec<StationAnomaly>,
+    pollutant_station_anomalies: Vec<StationConcentrationAnomaly>,
     pollutant_results: Vec<PollutantResult>,
 }
 #[derive(Debug, Serialize)]
@@ -293,6 +318,17 @@ fn validate_evidence(e: &Evidence, interval: &IntervalRecord, ids: &mut HashSet<
     }
     if e.calibration_state != "in_calibration" {
         return Err(format!("sample {} calibration is not current", e.sample_id));
+    }
+    let valid_from = parse_utc_timestamp(&e.calibration_valid_from_utc)
+        .ok_or_else(|| format!("sample {} has invalid calibration start", e.sample_id))?;
+    let valid_until = parse_utc_timestamp(&e.calibration_valid_until_utc)
+        .ok_or_else(|| format!("sample {} has invalid calibration end", e.sample_id))?;
+    let sample_start = parse_utc_timestamp(&interval.interval_start_utc)
+        .ok_or_else(|| format!("interval {} has invalid start", interval.interval_id))?;
+    let sample_end = parse_utc_timestamp(&interval.interval_end_utc)
+        .ok_or_else(|| format!("interval {} has invalid end", interval.interval_id))?;
+    if valid_until <= valid_from || valid_from > sample_start || valid_until < sample_end {
+        return Err(format!("sample {} calibration validity does not cover observation interval", e.sample_id));
     }
     if e.quality_state != "valid" {
         return Err(format!("sample {} quality state is not valid", e.sample_id));
@@ -450,6 +486,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
     }
 
     let mut pollutant_results = Vec::new();
+    let mut pollutant_station_anomalies = Vec::new();
     let mut analytes = HashSet::new();
     for pair in &interval.concentration_pairs {
         if pair.analyte_id.trim().is_empty() || !analytes.insert(pair.analyte_id.as_str())
@@ -509,6 +546,71 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
             net_added_to_standard_uncertainty_ratio:resolution_ratio,
             net_flux_resolution_status:resolution_status.into(),
         });
+        let matching_plume: Vec<&PlumeConcentrationObservation> =
+            interval.plume_concentration_observations.iter()
+                .filter(|sample| sample.analyte_id == pair.analyte_id)
+                .collect();
+        let required_plume_roles = ["near_field_plume", "far_field_impact", "independent_reference_control"];
+        if matching_plume.len() != required_plume_roles.len() {
+            return Err(format!("analyte {} requires near-field, far-field and reference concentration samples", pair.analyte_id));
+        }
+        let mut plume_by_role = std::collections::HashMap::new();
+        let mut calibration_domains = HashSet::new();
+        calibration_domains.insert(pair.intake.evidence.calibration_independence_domain.as_str());
+        calibration_domains.insert(pair.outfall.evidence.calibration_independence_domain.as_str());
+        for sample in matching_plume {
+            validate_evidence(&sample.evidence, interval, &mut sample_ids)?;
+            if sample.method_id != pair.method_id || sample.method_quality_state != "valid"
+                || !required_plume_roles.contains(&sample.station_role.as_str())
+                || plume_by_role.contains_key(sample.station_role.as_str()) {
+                return Err(format!("analyte {} has invalid or duplicate plume sample", pair.analyte_id));
+            }
+            let station = temperatures.get(sample.station_role.as_str())
+                .ok_or_else(|| format!("analyte {} plume sample has no thermal station", pair.analyte_id))?;
+            if sample.station_id != station.station_id {
+                return Err(format!("analyte {} plume sample station identity mismatch", pair.analyte_id));
+            }
+            if !calibration_domains.insert(sample.evidence.calibration_independence_domain.as_str()) {
+                return Err(format!("analyte {} has a shared calibration domain; covariance model required", pair.analyte_id));
+            }
+            nonnegative(sample.concentration_mg_l, "plume concentration_mg_l")?;
+            nonnegative(sample.standard_uncertainty_mg_l, "plume concentration uncertainty")?;
+            positive(sample.detection_limit_mg_l, "plume detection limit")?;
+            if sample.concentration_mg_l < sample.detection_limit_mg_l {
+                return Err(format!("analyte {} plume concentration below detection limit; censored-data method required", pair.analyte_id));
+            }
+            plume_by_role.insert(sample.station_role.as_str(), sample);
+        }
+        let reference_sample = *plume_by_role.get("independent_reference_control")
+            .ok_or_else(|| format!("analyte {} missing reference chemistry sample", pair.analyte_id))?;
+        let mut station_concentrations: Vec<(&str, &str, f64, f64)> = vec![
+            ("intake", &pair.intake.station_id, pair.intake.concentration_mg_l, pair.intake.standard_uncertainty_mg_l),
+            ("outfall", &pair.outfall.station_id, pair.outfall.concentration_mg_l, pair.outfall.standard_uncertainty_mg_l),
+        ];
+        for role in ["near_field_plume", "far_field_impact"] {
+            let sample = *plume_by_role.get(role)
+                .ok_or_else(|| format!("analyte {} missing {role} chemistry sample", pair.analyte_id))?;
+            station_concentrations.push((role, &sample.station_id, sample.concentration_mg_l, sample.standard_uncertainty_mg_l));
+        }
+        for (role, station_id, concentration, uncertainty) in station_concentrations {
+            let station = temperatures.get(role)
+                .ok_or_else(|| format!("analyte {} has no station metadata for {role}", pair.analyte_id))?;
+            if station_id != &station.station_id {
+                return Err(format!("analyte {} concentration station mismatch for {role}", pair.analyte_id));
+            }
+            let delta = concentration - reference_sample.concentration_mg_l;
+            let delta_uncertainty = (uncertainty.powi(2)
+                + reference_sample.standard_uncertainty_mg_l.powi(2)).sqrt();
+            finite(delta, "station concentration anomaly")?;
+            nonnegative(delta_uncertainty, "station concentration anomaly uncertainty")?;
+            pollutant_station_anomalies.push(StationConcentrationAnomaly {
+                analyte_id:pair.analyte_id.clone(),
+                station_role:role.to_string(),
+                distance_from_outfall_m:station.distance_from_outfall_m,
+                delta_from_reference_mg_l:delta,
+                standard_uncertainty_mg_l:delta_uncertainty,
+            });
+        }
     }
 
     Ok(IntervalResult {
@@ -526,6 +628,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
         thermal_power_kw:thermal_kw,
         thermal_power_standard_uncertainty_kw:u_thermal_kw,
         station_anomalies,
+        pollutant_station_anomalies,
         pollutant_results,
     })
 }
