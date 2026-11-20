@@ -20,7 +20,10 @@
         "obs-tap-3",
         "obs-tap-4"
       ],
-      "expected_answer": "four_distinct_taps"
+      "expected_answer": "four_distinct_taps",
+      "excluded_duplicate_event_ids": [
+        "ev-tap-2-replay"
+      ]
     },
     {
       "episode_id": "lh-003-correction-supersession",
