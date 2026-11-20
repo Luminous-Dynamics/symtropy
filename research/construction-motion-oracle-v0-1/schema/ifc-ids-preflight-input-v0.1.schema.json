@@ -236,6 +236,8 @@
       "required": [
         "global_id",
         "entity_type",
+        "source_entity_sha256",
+        "entity_revision_sha256",
         "geometry_sha256",
         "required_ids_properties",
         "delivered_ids_properties",
@@ -301,6 +303,12 @@
         },
         "geometry_preflight": {
           "$ref": "#/$defs/geometry_preflight"
+        },
+        "source_entity_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "entity_revision_sha256": {
+          "$ref": "#/$defs/sha256"
         }
       }
     },
