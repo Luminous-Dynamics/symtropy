@@ -53,7 +53,11 @@ def index_unique(rows: list[dict[str, Any]], key: str) -> dict[str, dict[str, An
 
 
 def _event_index(episode: dict[str, Any]) -> tuple[
-    dict[str, dict[str, Any]], dict[str, list[str]], dict[str, int], dict[str, int], set[str]
+    dict[str, dict[str, Any]],
+    dict[str, list[str]],
+    dict[str, int],
+    dict[str, int],
+    dict[str, int],
 ]:
     """Return unique observations, observation->event IDs, first delivery ticks,
     revocation ticks, and superseded refs at their effective ticks.
@@ -122,10 +126,9 @@ def _event_index(episode: dict[str, Any]) -> tuple[
         else:
             raise EvaluationError(f"{event_id}: unsupported stream event kind {kind!r}")
 
-    # Re-run the effective-time pass because the event identity table above was
-    # built in arrival order; corrections/revocations take effect at their own
-    # availability tick and only after the referenced observations exist.
-    return observations, delivery_event_ids, first_available_tick, revoked_at, set(superseded_at)
+    # The event stream is availability-ordered. These maps preserve the exact
+    # tick at which a correction or revocation becomes effective.
+    return observations, delivery_event_ids, first_available_tick, revoked_at, superseded_at
 
 
 def _metric(rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -196,7 +199,7 @@ def evaluate(
         deadline = query.get("response_deadline_tick")
         if not isinstance(query_tick, int) or isinstance(query_tick, bool):
             raise EvaluationError(f"{episode_id}: invalid query_tick")
-        observations, delivery_event_ids, first_available, revoked_at, superseded_refs = _event_index(episode)
+        observations, delivery_event_ids, first_available, revoked_at, superseded_at = _event_index(episode)
 
         violations: list[str] = []
         decision = prediction.get("decision")
@@ -257,19 +260,9 @@ def evaluate(
             if ref in revoked_at and as_of_valid and revoked_at[ref] <= as_of_tick:
                 violations.append("revoked_observation_cited")
         for ref in current:
-            if ref in superseded_refs and as_of_valid:
-                # Only count an effective supersession when its event has arrived.
-                correction_tick = next(
-                    (
-                        event.get("availability_tick")
-                        for event in episode["stream_events"]
-                        if event.get("kind") == "correction"
-                        and event.get("supersedes_observation_ref") == ref
-                    ),
-                    None,
-                )
-                if isinstance(correction_tick, int) and correction_tick <= as_of_tick:
-                    violations.append("superseded_observation_claimed_current")
+            correction_tick = superseded_at.get(ref)
+            if isinstance(correction_tick, int) and as_of_valid and correction_tick <= as_of_tick:
+                violations.append("superseded_observation_claimed_current")
 
         required_refs = label.get("required_observation_refs") or []
         required_set = set(required_refs)
