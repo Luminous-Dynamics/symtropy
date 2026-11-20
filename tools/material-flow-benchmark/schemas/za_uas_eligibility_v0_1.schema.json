@@ -178,6 +178,7 @@
                     "stale",
                     "expired",
                     "revoked",
+                    "conflicted",
                     "mismatched",
                     "out_of_scope"
                   ]
