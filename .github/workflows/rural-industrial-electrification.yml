@@ -48,6 +48,7 @@ jobs:
           jq empty tools/rural-industrial-electrification-evaluator/schemas/vehicle_platforms_v0_1.schema.json
           jq empty tools/rural-industrial-electrification-evaluator/schemas/vehicle_subsystem_architectures_v0_1.schema.json
           jq empty tools/rural-industrial-electrification-evaluator/schemas/vehicle_verification_matrix_v0_1.schema.json
+          jq empty tools/rural-industrial-electrification-evaluator/schemas/ev_carrier_configurations_v0_1.schema.json
           jq empty tools/rural-industrial-electrification-evaluator/schemas/charging_queue_v0_1.schema.json
           jq empty tools/rural-industrial-electrification-evaluator/schemas/charging_curve_v0_1.schema.json
       - name: Run all evaluator tests
@@ -78,6 +79,18 @@ jobs:
           jq -e '.results | length == 19 and all(.[]; .evidence_class == "synthetic" and (.status == "passes_synthetic_screen" or .status == "blocked"))' vehicle-design-report.json
           jq -e '[.results[] | select(.design_id == "open-pit-haul-battery-only-control") | .status] == ["blocked"]' vehicle-design-report.json
           jq -e '[.results[] | select(.design_id != "open-pit-haul-battery-only-control") | select(.status != "passes_synthetic_screen")] | length == 0' vehicle-design-report.json
+      - name: Run EV carrier incremental configuration screen
+        run: |
+          cargo run --quiet --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml \
+            --bin ev_carrier_configuration_screen -- vehicle-design-report.json \
+            tools/rural-industrial-electrification-evaluator/fixtures/ev_carrier_configurations_v0_1.json > ev-carrier-config-report.json
+          jq -e '.results | length == 6 and all(.[]; (.status == "passes_synthetic_screen" or .status == "indeterminate" or .status == "blocked"))' ev-carrier-config-report.json
+          jq -e '[.results[] | select(.architecture == "truck_only") | .status] == ["passes_synthetic_screen", "passes_synthetic_screen"]' ev-carrier-config-report.json
+          jq -e '[.results[] | select(.architecture != "truck_only") | .status] | all(. == "indeterminate")' ev-carrier-config-report.json
+          jq -e '[.results[] | select(.architecture != "truck_only") | .missing_fields | length] | all(. > 0)' ev-carrier-config-report.json
+          jq -e '[.results[] | select(.config_id == "urban-truck-only-control") | .gross_mass_margin_after_module_kg] == [5800]' ev-carrier-config-report.json
+          jq -e '[.results[] | select(.config_id == "urban-truck-only-control") | select((.vehicle_battery_energy_margin_after_module_kwh - 64.462) < 0.000001 and (64.462 - .vehicle_battery_energy_margin_after_module_kwh) < 0.000001)] | length == 1' ev-carrier-config-report.json
+          cat ev-carrier-config-report.json
       - name: Run longitudinal EV mission physics screen
         run: |
           cargo run --quiet --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml \
@@ -129,7 +142,7 @@ jobs:
             ($designs == $verified and ($verified | unique | length) == 19 and $family_refs_ok)
           '
       - name: Hash deterministic screen reports and inputs
-        run: sha256sum shift-report.json path-report.json dispatch-report.json vehicle-design-report.json vehicle-mission-report.json charging-queue-report.json charging-curve-report.json tools/rural-industrial-electrification-evaluator/fixtures/charging_curve_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/charging_curve_v0_1.schema.json docs/research/EV_CHARGING_CURVE_SCREEN_V0_1.md tools/rural-industrial-electrification-evaluator/fixtures/charging_queue_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/charging_queue_v0_1.schema.json docs/research/EV_CHARGING_QUEUE_SCREEN_V0_1.md tools/rural-industrial-electrification-evaluator/fixtures/vehicle_designs_v0_1.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_missions_v0_2.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_platforms_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_designs_v0_1.schema.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_missions_v0_2.schema.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_platforms_v0_1.schema.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_subsystem_architectures_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_subsystem_architectures_v0_1.schema.json docs/research/ELECTRIC_MOBILITY_DESIGN_PORTFOLIO_V0_1.md docs/research/ELECTRIC_MOBILITY_DESIGN_CARDS_V0_1.md docs/research/EV_MISSION_PHYSICS_SCREEN_V0_2.md docs/research/EV_PLATFORM_FAMILIES_AND_INTERFACES_V0_1.md tools/rural-industrial-electrification-evaluator/fixtures/vehicle_verification_matrix_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_verification_matrix_v0_1.schema.json docs/research/EV_VERIFICATION_AND_BENCHMARKS_V0_1.md > screen-report.sha256
+        run: sha256sum shift-report.json path-report.json dispatch-report.json vehicle-design-report.json vehicle-mission-report.json charging-queue-report.json charging-curve-report.json ev-carrier-config-report.json tools/rural-industrial-electrification-evaluator/fixtures/ev_carrier_configurations_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/ev_carrier_configurations_v0_1.schema.json tools/rural-industrial-electrification-evaluator/fixtures/charging_curve_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/charging_curve_v0_1.schema.json docs/research/EV_CHARGING_CURVE_SCREEN_V0_1.md tools/rural-industrial-electrification-evaluator/fixtures/charging_queue_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/charging_queue_v0_1.schema.json docs/research/EV_CHARGING_QUEUE_SCREEN_V0_1.md tools/rural-industrial-electrification-evaluator/fixtures/vehicle_designs_v0_1.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_missions_v0_2.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_platforms_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_designs_v0_1.schema.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_missions_v0_2.schema.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_platforms_v0_1.schema.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_subsystem_architectures_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_subsystem_architectures_v0_1.schema.json docs/research/ELECTRIC_MOBILITY_DESIGN_PORTFOLIO_V0_1.md docs/research/ELECTRIC_MOBILITY_DESIGN_CARDS_V0_1.md docs/research/EV_MISSION_PHYSICS_SCREEN_V0_2.md docs/research/EV_PLATFORM_FAMILIES_AND_INTERFACES_V0_1.md tools/rural-industrial-electrification-evaluator/fixtures/vehicle_verification_matrix_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_verification_matrix_v0_1.schema.json docs/research/EV_VERIFICATION_AND_BENCHMARKS_V0_1.md > screen-report.sha256
       - name: Upload reproducible screen reports
         uses: actions/upload-artifact@v4
         with:
@@ -142,6 +155,9 @@ jobs:
             vehicle-mission-report.json
             charging-queue-report.json
             charging-curve-report.json
+            ev-carrier-config-report.json
+            tools/rural-industrial-electrification-evaluator/fixtures/ev_carrier_configurations_v0_1.json
+            tools/rural-industrial-electrification-evaluator/schemas/ev_carrier_configurations_v0_1.schema.json
             screen-report.sha256
             tools/rural-industrial-electrification-evaluator/fixtures/vehicle_designs_v0_1.json
             tools/rural-industrial-electrification-evaluator/fixtures/vehicle_missions_v0_2.json
