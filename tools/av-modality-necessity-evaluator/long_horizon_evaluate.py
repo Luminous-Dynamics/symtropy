@@ -379,6 +379,14 @@ def evaluate(
 
         if label.get("independence_claim_allowed") is False and prediction.get("claimed_independent_corroboration") is True:
             violations.append("common_cause_views_claimed_independent")
+        if not required <= valid_current_refs and not any(
+            code in violations for code in (
+                "current_reference_uses_superseded_observation",
+                "current_reference_not_in_episode_evidence",
+                "current_reference_not_available_at_evidence_cutoff",
+            )
+        ):
+            violations.append("required_current_observation_missing")
         if (
             label.get("cross_clock_comparison") == "incomparable_without_qualified_transform"
             and prediction.get("claimed_cross_clock_order") is True
@@ -394,12 +402,16 @@ def evaluate(
             violations.append("decision_abstention_mismatch")
         if expected_decision not in {"answer", "abstain"}:
             raise EvaluationError(f"{episode_id}: unsupported expected_decision")
+        count_correct = (
+            label.get("expected_distinct_event_count") is None
+            or prediction.get("claimed_distinct_event_count") == label.get("expected_distinct_event_count")
+        )
         if expected_decision == "abstain":
             answer_correct = False
             decision_correct = abstained and answer is None
             false_memory = not abstained
         else:
-            answer_correct = not abstained and answer == expected_answer
+            answer_correct = not abstained and answer == expected_answer and count_correct
             decision_correct = answer_correct
             false_memory = not abstained and not answer_correct
 
