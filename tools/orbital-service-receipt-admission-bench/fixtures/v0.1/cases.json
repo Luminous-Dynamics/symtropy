@@ -1837,6 +1837,72 @@
       ],
       "expected_status": "indeterminate",
       "expected_reason": "receipt_arrived_after_finalization"
+    },
+    {
+      "case_id": "IDEMPOTENCY_KEY_REUSED_ACROSS_EVENT_TIME",
+      "capacity_plan_case_id": "CAPACITY_PLAN",
+      "capacity_plan_receipt_json": "{\"receipt_schema\":\"luminous.orbital-service-reconfiguration.receipt.v0.1\",\"source_commit\":\"61e54ffbb8cb1ee0b6ff5f0d53de67e0bc7721fc\",\"fixture_sha256\":\"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"result\":\"pass\",\"authority_granted\":false,\"report\":{\"result\":\"pass\",\"evidence_class\":\"synthetic\",\"claim_ceiling\":\"synthetic-service-reconfiguration-only\",\"authority_granted\":false,\"summary\":{\"scenario_count\":28,\"expected_result_mismatches\":0},\"scenarios\":[{\"case_id\":\"CAPACITY_PLAN\",\"actual_status\":\"planned_capacity_floor_met_synthetic\",\"authority_granted\":false,\"ticks\":[{\"tick\":0,\"provider_id\":\"A\",\"qualification_status\":\"robustly_compatible_synthetic\",\"provider_available\":true,\"demanded_units\":5,\"available_capacity_units\":5,\"unserved_demand_units\":0},{\"tick\":1,\"provider_id\":\"A\",\"qualification_status\":\"unavailable_or_faulted\",\"provider_available\":false,\"demanded_units\":5,\"available_capacity_units\":0,\"unserved_demand_units\":5},{\"tick\":2,\"provider_id\":\"A\",\"qualification_status\":\"unavailable_or_faulted\",\"provider_available\":false,\"demanded_units\":5,\"available_capacity_units\":0,\"unserved_demand_units\":5},{\"tick\":3,\"provider_id\":\"B\",\"qualification_status\":\"robustly_compatible_synthetic\",\"provider_available\":true,\"demanded_units\":5,\"available_capacity_units\":5,\"unserved_demand_units\":0},{\"tick\":4,\"provider_id\":\"B\",\"qualification_status\":\"robustly_compatible_synthetic\",\"provider_available\":true,\"demanded_units\":5,\"available_capacity_units\":5,\"unserved_demand_units\":0}]}]}}",
+      "capacity_plan_receipt_sha256": "bb05b4cd62c05393cdda3d077cb97bcb48e069b8111d8aaa9b10a24acf6a14e8",
+      "required_operation_ticks": [
+        0,
+        3,
+        4
+      ],
+      "receipts": [
+        {
+          "event_id": "transfer-0",
+          "idempotency_key": "svc:serviced-client-001:transfer-0",
+          "provider_id": "A",
+          "provider_profile_id": "servicer-a-profile-v1",
+          "provider_configuration_revision": "rev-A",
+          "provider_lifecycle_state_id": "state-A",
+          "event_time_tick": 0,
+          "observed_at_tick": 0,
+          "composition_receipt_json": "{\"receipt_schema\":\"luminous.orbital-service-composition.cli-receipt.v0.1\",\"validator_version\":\"0.1.0\",\"source_commit\":\"5601fd8984eb10880283cd9d08ef39e4a647ec\",\"result\":\"pass\",\"bundle\":{\"receipt_schema\":\"luminous.orbital-service-composition.bundle-receipt.v0.1\",\"result\":\"pass\",\"evidence_class\":\"synthetic\",\"claim_ceiling\":\"Synthetic composition only; no physical qualification.\",\"source_commits\":{\"earth_orbit_chain\":\"4cd244805ecf3de344583b79f042afbf3312d40f\",\"orbital_capture\":\"df2d878519acdbed6df3b15c1ff637ad3bc295c5\",\"orbital_fluid\":\"a8e611dc3b86370d1f684f0da7e97507f7333999\"},\"artifact_sha256\":{\"composition_fixture\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"delivery_receipt\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"capture_receipt\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"fluid_receipt\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"},\"authority_granted\":false,\"joined_service\":{\"cargo_lot_id\":\"serviced-client-001\",\"cargo_mass_grams\":500000,\"target_orbit_id\":\"leo-550km\",\"destination_node_id\":\"orbit\",\"delivery_epoch\":1000,\"client_id\":\"serviced-client-001\",\"capture_interface_id\":\"COOPERATIVE-CAPTURE-PORT-A\",\"capture_interface_revision\":3,\"capture_frame_id\":\"PORT-DATUM-A\",\"capture_epoch_tick\":1001,\"fluid_transfer_event_id\":\"transfer-0\",\"receiver_id\":\"serviced-client-001\",\"fluid_id\":\"synthetic-hydrazine-analogue\",\"fluid_class\":\"storable_liquid\",\"phase\":\"liquid\",\"accepted_receiver_mass_g\":380000,\"final_temperature_mk\":293150,\"final_pressure_pa\":101325,\"measurement_uncertainty_g\":1000}}}",
+          "composition_receipt_sha256": "29d854dcf5750a56d367f9e772a5731c68075317e39455418e8359a6401c0204"
+        },
+        {
+          "event_id": "transfer-3",
+          "idempotency_key": "svc:serviced-client-001:transfer-3",
+          "provider_id": "B",
+          "provider_profile_id": "servicer-b-profile-v1",
+          "provider_configuration_revision": "rev-B",
+          "provider_lifecycle_state_id": "state-B",
+          "event_time_tick": 3,
+          "observed_at_tick": 3,
+          "causal_predecessor_event_id": "transfer-0",
+          "composition_receipt_json": "{\"receipt_schema\":\"luminous.orbital-service-composition.cli-receipt.v0.1\",\"validator_version\":\"0.1.0\",\"source_commit\":\"5601fd8984eb10880283cd9d08ef39e4a647ec\",\"result\":\"pass\",\"bundle\":{\"receipt_schema\":\"luminous.orbital-service-composition.bundle-receipt.v0.1\",\"result\":\"pass\",\"evidence_class\":\"synthetic\",\"claim_ceiling\":\"Synthetic composition only; no physical qualification.\",\"source_commits\":{\"earth_orbit_chain\":\"4cd244805ecf3de344583b79f042afbf3312d40f\",\"orbital_capture\":\"df2d878519acdbed6df3b15c1ff637ad3bc295c5\",\"orbital_fluid\":\"a8e611dc3b86370d1f684f0da7e97507f7333999\"},\"artifact_sha256\":{\"composition_fixture\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"delivery_receipt\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"capture_receipt\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"fluid_receipt\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"},\"authority_granted\":false,\"joined_service\":{\"cargo_lot_id\":\"serviced-client-001\",\"cargo_mass_grams\":500000,\"target_orbit_id\":\"leo-550km\",\"destination_node_id\":\"orbit\",\"delivery_epoch\":1000,\"client_id\":\"serviced-client-001\",\"capture_interface_id\":\"COOPERATIVE-CAPTURE-PORT-A\",\"capture_interface_revision\":3,\"capture_frame_id\":\"PORT-DATUM-A\",\"capture_epoch_tick\":1001,\"fluid_transfer_event_id\":\"transfer-3\",\"receiver_id\":\"serviced-client-001\",\"fluid_id\":\"synthetic-hydrazine-analogue\",\"fluid_class\":\"storable_liquid\",\"phase\":\"liquid\",\"accepted_receiver_mass_g\":380000,\"final_temperature_mk\":293150,\"final_pressure_pa\":101325,\"measurement_uncertainty_g\":1000}}}",
+          "composition_receipt_sha256": "20681f8f71516529b7feed2064f67da4987b9355d21d137835e9d7f0883a1b9e"
+        },
+        {
+          "event_id": "transfer-4",
+          "idempotency_key": "svc:serviced-client-001:transfer-4",
+          "provider_id": "B",
+          "provider_profile_id": "servicer-b-profile-v1",
+          "provider_configuration_revision": "rev-B",
+          "provider_lifecycle_state_id": "state-B",
+          "event_time_tick": 4,
+          "observed_at_tick": 4,
+          "causal_predecessor_event_id": "transfer-3",
+          "composition_receipt_json": "{\"receipt_schema\":\"luminous.orbital-service-composition.cli-receipt.v0.1\",\"validator_version\":\"0.1.0\",\"source_commit\":\"5601fd8984eb10880283cd9d08ef39e4a647ec\",\"result\":\"pass\",\"bundle\":{\"receipt_schema\":\"luminous.orbital-service-composition.bundle-receipt.v0.1\",\"result\":\"pass\",\"evidence_class\":\"synthetic\",\"claim_ceiling\":\"Synthetic composition only; no physical qualification.\",\"source_commits\":{\"earth_orbit_chain\":\"4cd244805ecf3de344583b79f042afbf3312d40f\",\"orbital_capture\":\"df2d878519acdbed6df3b15c1ff637ad3bc295c5\",\"orbital_fluid\":\"a8e611dc3b86370d1f684f0da7e97507f7333999\"},\"artifact_sha256\":{\"composition_fixture\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"delivery_receipt\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"capture_receipt\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"fluid_receipt\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"},\"authority_granted\":false,\"joined_service\":{\"cargo_lot_id\":\"serviced-client-001\",\"cargo_mass_grams\":500000,\"target_orbit_id\":\"leo-550km\",\"destination_node_id\":\"orbit\",\"delivery_epoch\":1000,\"client_id\":\"serviced-client-001\",\"capture_interface_id\":\"COOPERATIVE-CAPTURE-PORT-A\",\"capture_interface_revision\":3,\"capture_frame_id\":\"PORT-DATUM-A\",\"capture_epoch_tick\":1001,\"fluid_transfer_event_id\":\"transfer-4\",\"receiver_id\":\"serviced-client-001\",\"fluid_id\":\"synthetic-hydrazine-analogue\",\"fluid_class\":\"storable_liquid\",\"phase\":\"liquid\",\"accepted_receiver_mass_g\":380000,\"final_temperature_mk\":293150,\"final_pressure_pa\":101325,\"measurement_uncertainty_g\":1000}}}",
+          "composition_receipt_sha256": "96f766b0f1afb5c075f0bc263c8495d3fee0da847cfe93c93c844ee52587ba7c"
+        },
+        {
+          "event_id": "transfer-3",
+          "idempotency_key": "svc:serviced-client-001:transfer-3",
+          "provider_id": "B",
+          "provider_profile_id": "servicer-b-profile-v1",
+          "provider_configuration_revision": "rev-B",
+          "provider_lifecycle_state_id": "state-B",
+          "event_time_tick": 4,
+          "observed_at_tick": 5,
+          "causal_predecessor_event_id": "transfer-0",
+          "composition_receipt_json": "{\"receipt_schema\":\"luminous.orbital-service-composition.cli-receipt.v0.1\",\"validator_version\":\"0.1.0\",\"source_commit\":\"5601fd8984eb10880283cd9d08ef39e4a647ec\",\"result\":\"pass\",\"bundle\":{\"receipt_schema\":\"luminous.orbital-service-composition.bundle-receipt.v0.1\",\"result\":\"pass\",\"evidence_class\":\"synthetic\",\"claim_ceiling\":\"Synthetic composition only; no physical qualification.\",\"source_commits\":{\"earth_orbit_chain\":\"4cd244805ecf3de344583b79f042afbf3312d40f\",\"orbital_capture\":\"df2d878519acdbed6df3b15c1ff637ad3bc295c5\",\"orbital_fluid\":\"a8e611dc3b86370d1f684f0da7e97507f7333999\"},\"artifact_sha256\":{\"composition_fixture\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"delivery_receipt\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"capture_receipt\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"fluid_receipt\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"},\"authority_granted\":false,\"joined_service\":{\"cargo_lot_id\":\"serviced-client-001\",\"cargo_mass_grams\":500000,\"target_orbit_id\":\"leo-550km\",\"destination_node_id\":\"orbit\",\"delivery_epoch\":1000,\"client_id\":\"serviced-client-001\",\"capture_interface_id\":\"COOPERATIVE-CAPTURE-PORT-A\",\"capture_interface_revision\":3,\"capture_frame_id\":\"PORT-DATUM-A\",\"capture_epoch_tick\":1001,\"fluid_transfer_event_id\":\"transfer-3\",\"receiver_id\":\"serviced-client-001\",\"fluid_id\":\"synthetic-hydrazine-analogue\",\"fluid_class\":\"storable_liquid\",\"phase\":\"liquid\",\"accepted_receiver_mass_g\":380000,\"final_temperature_mk\":293150,\"final_pressure_pa\":101325,\"measurement_uncertainty_g\":1000}}}",
+          "composition_receipt_sha256": "20681f8f71516529b7feed2064f67da4987b9355d21d137835e9d7f0883a1b9e"
+        }
+      ],
+      "expected_status": "disputed",
+      "expected_reason": "idempotency_key_reused_outside_event_scope"
     }
   ]
 }
