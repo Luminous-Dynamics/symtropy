@@ -734,16 +734,37 @@ mod tests {
     #[test]
     fn operator_checks_are_scale_invariant_for_small_and_large_coefficients() {
         let mut small = base_request();
-        small.reversible_operator = small.reversible_operator.iter().map(|value| value * 1.0e-100).collect();
-        small.dissipative_operator = small.dissipative_operator.iter().map(|value| value * 1.0e-100).collect();
+        small.reversible_operator = small
+            .reversible_operator
+            .iter()
+            .map(|value| value * 1.0e-100)
+            .collect();
+        small.dissipative_operator = small
+            .dissipative_operator
+            .iter()
+            .map(|value| value * 1.0e-100)
+            .collect();
         let report_small = audit_metriplectic_structure(&small).expect("small audit");
         assert_eq!(report_small.body.disposition, AuditDisposition::Admissible);
         assert!(report_small.body.reversible_skew_relative_residual < 1.0e-12);
-        assert!(report_small.body.dissipative_minimum_normalized_eigenvalue >= -1.0e-12);
+        assert!(
+            report_small
+                .body
+                .dissipative_minimum_normalized_eigenvalue
+                .is_some_and(|value| value >= -1.0e-12)
+        );
 
         let mut large = base_request();
-        large.reversible_operator = large.reversible_operator.iter().map(|value| value * 1.0e100).collect();
-        large.dissipative_operator = large.dissipative_operator.iter().map(|value| value * 1.0e100).collect();
+        large.reversible_operator = large
+            .reversible_operator
+            .iter()
+            .map(|value| value * 1.0e100)
+            .collect();
+        large.dissipative_operator = large
+            .dissipative_operator
+            .iter()
+            .map(|value| value * 1.0e100)
+            .collect();
         let report_large = audit_metriplectic_structure(&large).expect("large audit");
         assert_eq!(report_large.body.disposition, AuditDisposition::Admissible);
         assert!(report_large.body.reversible_skew_relative_residual < 1.0e-12);
