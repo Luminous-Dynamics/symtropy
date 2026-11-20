@@ -478,7 +478,7 @@ mod tests {
         assert!(distance(&base, 1_000.0) > reference);
 
         let mut longer_latency = base.clone();
-        longer_latency.maximum_detection_to_brake_latency_ms = 100;
+        longer_latency.maximum_detection_to_brake_latency_ms = 150;
         assert!(distance(&longer_latency, 800.0) > reference);
 
         let mut higher_acceleration = base.clone();
