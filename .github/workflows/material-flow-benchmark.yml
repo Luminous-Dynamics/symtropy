@@ -38,6 +38,8 @@ jobs:
         run: |
           jq empty tools/material-flow-benchmark/schemas/shared_aircraft_repositioning_v0_1.schema.json
           jq empty tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft.json
+          jq empty tools/material-flow-benchmark/schemas/za_uas_eligibility_v0_1.schema.json
+          jq empty tools/material-flow-benchmark/fixtures/synthetic-za-uas-eligibility-v0_1.json
       - name: Clippy
         run: cargo clippy --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --all-targets -- -D warnings
       - name: Tests
@@ -98,6 +100,23 @@ jobs:
             and .dispatch_commands_emitted == false
           ' mfb-l1-evidence/shared-aircraft-tail-risk-report.json
           cat mfb-l1-evidence/shared-aircraft-tail-risk-report.json
+      - name: Evaluate source-versioned South African UAS eligibility gates
+        run: |
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-check-za-uas-eligibility -- tools/material-flow-benchmark/fixtures/synthetic-za-uas-eligibility-v0_1.json > mfb-l1-evidence/za-uas-eligibility-report.json
+          jq -e '
+            .benchmark_id == "ZA-UAS-OPS-GATE-001"
+            and .operation_count == 8
+            and .blocked_count == 2
+            and .indeterminate_count == 3
+            and .eligible_for_external_operator_review_count == 3
+            and .flight_authorization_granted == false
+            and .dispatch_commands_emitted == false
+            and ([.results[] | select(.operation_id == "autonomous-commercial-delivery")][0].candidate_status == "blocked")
+            and ([.results[] | select(.operation_id == "commercial-brlos")][0].candidate_status == "blocked")
+            and ([.results[] | select(.operation_id == "commercial-bvlos-missing-director-approval")][0].candidate_status == "indeterminate")
+            and ([.results[] | select(.operation_id == "private-class-1a-rvlos-non-delivery")][0].candidate_status == "eligible_for_external_operator_review")
+          ' mfb-l1-evidence/za-uas-eligibility-report.json
+          cat mfb-l1-evidence/za-uas-eligibility-report.json
       - name: Validate synthetic 3D cargo-bay loading
         run: |
           mkdir -p mfb-l1-evidence
@@ -285,6 +304,15 @@ jobs:
             sha256sum tools/material-flow-benchmark/src/shared_fleet.rs
             sha256sum tools/material-flow-benchmark/src/bin/mfb-evaluate-shared-fleet.rs
             sha256sum mfb-l1-evidence/shared-aircraft-report.json
+            echo
+            echo "[za_uas_schema_fixture_digest]"
+            sha256sum tools/material-flow-benchmark/schemas/za_uas_eligibility_v0_1.schema.json
+            sha256sum tools/material-flow-benchmark/fixtures/synthetic-za-uas-eligibility-v0_1.json
+            echo
+            echo "[za_uas_source_digest]"
+            sha256sum tools/material-flow-benchmark/src/za_uas_eligibility.rs
+            sha256sum tools/material-flow-benchmark/src/bin/mfb-check-za-uas-eligibility.rs
+            sha256sum mfb-l1-evidence/za-uas-eligibility-report.json
             echo
             echo "[dependency_lock_digest]"
             sha256sum tools/material-flow-benchmark/Cargo.lock
