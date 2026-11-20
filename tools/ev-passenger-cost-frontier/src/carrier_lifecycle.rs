@@ -257,7 +257,7 @@ fn sum_path(
     }
 
     let observed_phases: Vec<PhaseKind> = path.phases.iter().map(|phase| phase.phase).collect();
-    if observed_phases != expected_phases {
+    if observed_phases.as_slice() != expected_phases {
         blocked.push("service_phase_order_or_identity_mismatch".into());
     }
 
