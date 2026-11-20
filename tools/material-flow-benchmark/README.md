@@ -372,3 +372,19 @@ The v0.1 fixture has two regions, three periods, two scenarios, five observed-hi
 Detailed formulation, independent fixture replay, limits, target benchmarks and current literature comparators: [Shared aircraft repositioning v0.1](../../docs/research/MFB_SHARED_AIRCRAFT_REPOSITIONING_V0_1.md).
 
 This is a synthetic small-instance oracle, not a fleet-scale optimizer or flight model. The main fixture pins the expected-cost baseline. A separate 5%-probability rare-event stress fixture demonstrates that expected-cost, CVaR90, minimax-cost and service-robust objectives can select different nonanticipative policies: CVaR90 falls from 866 to 825 synthetic units at an expected-cost increase from 524 to 527; minimax cost falls from 1,246 to 1,156 at an expected-cost increase to 570; worst-case unserved demand falls from 22 to 21 under the service-robust policy. These are fixture arithmetic, not operational savings or calibrated risk guarantees. A probability-ambiguity radius of 1,000 basis points lets an adversary shift up to 10 percentage points of probability mass from lower-cost to higher-cost scenarios (fixed scenario support). The exact evaluator reports the resulting worst-case expected cost and finds the policy that minimizes it. This is not protection against omitted scenarios or a calibrated confidence interval; probability support and radius require out-of-sample calibration. A hand case with 5% probability of cost 100 and 95% probability of cost 20 yields nominal expectation 24, a 5% TV worst-case expectation 28 and a 10% TV worst-case expectation 32. The objective only protects against the supplied finite scenario support; omitted regimes and out-of-sample calibration remain open work. The full programme remains [LOGISTICS-MODE-OPTIONS-001 #6153](https://github.com/Luminous-Dynamics/symtropy/issues/6153).
+
+
+## Published truck–drone benchmark summary integrity
+
+The `mfb-verify-published-summary` binary checks the published summary arithmetic for Cicek, Simsek and Kantarci (2026), DOI `10.3390/drones10070476`. It pins the reported makespan/energy/distance metrics, checks truck+drone energy and delivery-count reconciliation, preserves the paper's `battery_feasibility_enforced=false` parameter, and reports the 1 Wh discrepancy between the article narrative (30,983 Wh truck energy) and Table 8 (30,984 Wh).
+
+Run:
+
+```bash
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-verify-published-summary -- \
+  tools/material-flow-benchmark/fixtures/cicek_2026_shared_fleet_published_summary_v0_1.json
+```
+
+**This is not a paper reproduction**: no raw Amazon route data, regression, or MILP is loaded or re-executed. The source paper's battery-feasibility flag is off, so the reported Pareto point must not be described as battery-feasible. The Amazon dataset licence is CC BY-NC 4.0; the fixture marks raw data not loaded and commercial reuse not permitted under that licence.
+
+Detailed values, source boundaries, the paper-faithful vs battery-feasible two-track reproduction protocol, and comparison metrics: [Cicek 2026 summary integrity v0.1](../../docs/research/MFB_SOTA_CICEK_2026_PUBLISHED_SUMMARY_V0_1.md). The wider matched-instance tournament remains [MFB-SOTA-REPRO-001 #6247](https://github.com/Luminous-Dynamics/symtropy/issues/6247).
