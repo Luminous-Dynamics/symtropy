@@ -72,10 +72,15 @@ Each unit is assessed separately:
 - loaded output-speed upper bound versus the unit's qualified speed lower bound;
 - temperature upper bound versus thermal-limit lower bound.
 
-The joint disposition is:
-- **Infeasible:** at least one unit has a known torque, duration, speed or thermal violation, or the unit-torque sum contradicts the independent joint-output transducer.
-- **Unknown:** at least one required per-unit torque, capability, speed, temperature or evidence field is unsupported, and there is no known violation.
-- **Feasible:** every per-unit gate passes under the submitted bounds and evidence.
+The output has **two independent dimensions**:
+
+**Arithmetic/capability disposition** (`Feasible`, `Infeasible`, `Unknown`) evaluates the submitted interval and limit values. `Feasible` means only that the submitted values pass those M1 gates; it does not certify the provenance of those values.
+
+**Evidence qualification** (`FullyIndependentPhysical`, `PhysicalWithNonIndependentSources`, `ModelDependent`, `SyntheticOnly`, `MixedSynthetic`, `Incomplete`) summarizes the required per-unit torque, capability and thermal inputs. A synthetic known-answer case can be `Feasible + SyntheticOnly`; that is an arithmetic test pass, never a physical capability pass. A mixed synthetic/physical record remains `MixedSynthetic`, and any missing required evidence remains `Incomplete`.
+
+- **Infeasible:** at least one unit has a known torque, duration, speed or thermal violation, or the submitted torque-sum cross-check is contradictory.
+- **Unknown:** at least one required per-unit input or capability is unsupported, and there is no known violation.
+- **Feasible:** every per-unit arithmetic gate passes under the submitted bounds. Consult `evidence_qualification` separately before making any physical claim.
 
 This is a qualification disposition under submitted M1 records only; it is not whole-robot task success or a safety decision. The hottest unit and minimum thermal margin are reported. Average temperature is not used to pass the joint.
 
@@ -104,7 +109,7 @@ Each actuator unit preserves separate evidence for:
 - temperature/thermal limit and its calibration/method/source;
 - optional current magnitude, its calibration/method/source.
 
-Evidence classes remain Synthetic, IndependentPhysical, SourceAuthorPhysical, VendorPhysical, ModelDerived or Unknown. Synthetic is a first-class non-physical class: synthetic known-answer inputs and their synthetic joint-output cross-checks must never be labelled IndependentPhysical. Only an IndependentPhysical joint-output cross-check is an independent physical measurement; the evaluator preserves the class in every report. A vendor current measurement cannot be promoted to independent torque; a model-derived torque envelope cannot be silently treated as independent physical capability.
+Evidence classes remain Synthetic, IndependentPhysical, SourceAuthorPhysical, VendorPhysical, ModelDerived or Unknown. Synthetic is a first-class non-physical class: synthetic known-answer inputs and their synthetic joint-output cross-checks must never be labelled IndependentPhysical. Only an IndependentPhysical joint-output cross-check is an independent physical measurement; the evaluator preserves the class in every report. The JSON Schema and Rust validator also require any `urn:synthetic:` source reference to be paired with the `Synthetic` class, and require Synthetic inputs to use that URN namespace. A vendor current measurement cannot be promoted to independent torque; a model-derived torque envelope cannot be silently treated as independent physical capability.
 
 ## 7. Synthetic known-answer fixtures
 
