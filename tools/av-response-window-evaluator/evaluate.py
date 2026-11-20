@@ -212,7 +212,6 @@ def evaluate(
                 episode_total["on_time_count"] += 1
                 on_time_offsets.append(tick - start)
                 on_time_quality_denominator += 1
-                episode_quality_denominator += 1
             else:
                 total["late_count"] += 1
                 episode_total["late_count"] += 1
@@ -233,8 +232,7 @@ def evaluate(
 
         total["opportunity_count"] += episode_total["opportunity_count"]
         episode_total["response_quality_accuracy"] = ratio(
-            episode_total["content_correct_count"],
-            episode_total["responses_assigned"] - episode_total["false_intervention_count"],
+            episode_total["content_correct_count"], episode_quality_denominator
         )
         episode_total["deadline_miss_count"] = episode_deadline_misses
         per_episode.append({
