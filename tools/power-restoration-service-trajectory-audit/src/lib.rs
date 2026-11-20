@@ -1335,6 +1335,7 @@ mod tests {
                 source_commit: "1".repeat(40),
                 configuration_sha256: "2".repeat(64),
                 model_id: None,
+                evidence_provider_id: Some("synthetic-meter-data-source".to_string()),
                 instrument_id: Some("meter-set-001".to_string()),
                 calibration_artifact_ref: Some("calibration://meter-set-001".to_string()),
                 calibration_artifact_sha256: Some("3".repeat(64)),
