@@ -55,6 +55,7 @@ pub struct IntegratedEvidenceNodeIds {
     pub payload_configuration: String,
     pub motion_envelope: String,
     pub stopping_tube_envelope: String,
+    pub stopping_tube_builder_build: String,
     pub sensor_configuration: String,
     pub stopping_dynamics: String,
     pub hazard_detection: String,
@@ -572,7 +573,7 @@ fn validate_dependency_snapshot(
         return Err(IntegratedDispatchReadinessFailure::EvidenceSnapshotNotCurrent);
     }
 
-    let expected: [(&str, EvidenceNodeKind, &str); 21] = [
+    let expected: [(&str, EvidenceNodeKind, &str); 22] = [
         (
             &bindings.work_package,
             EvidenceNodeKind::WorkPackage,
@@ -647,6 +648,11 @@ fn validate_dependency_snapshot(
             &bindings.stopping_tube_envelope,
             EvidenceNodeKind::StoppingTubeEnvelope,
             request.stopping_envelope.stop_tube_sha256.as_str(),
+        ),
+        (
+            &bindings.stopping_tube_builder_build,
+            EvidenceNodeKind::StoppingTubeBuilderBuild,
+            request.stopping_envelope.stop_tube_builder_build_sha256.as_str(),
         ),
         (
             &bindings.sensor_configuration,
@@ -958,6 +964,7 @@ mod tests {
             payload_configuration: "payload-config".into(),
             motion_envelope: "motion-envelope".into(),
             stopping_tube_envelope: "stopping-tube-envelope".into(),
+            stopping_tube_builder_build: "stopping-tube-builder-build".into(),
             sensor_configuration: "sensor-config".into(),
             stopping_dynamics: "stopping-dynamics".into(),
             hazard_detection: "hazard-detection".into(),
@@ -982,6 +989,7 @@ mod tests {
             evidence_node("payload-config", EvidenceNodeKind::PayloadConfiguration, &dispatch.envelope.payload_configuration_sha256),
             evidence_node("motion-envelope", EvidenceNodeKind::MotionEnvelope, &dispatch.envelope.envelope_sha256),
             evidence_node("stopping-tube-envelope", EvidenceNodeKind::StoppingTubeEnvelope, &stopping_envelope.stop_tube_sha256),
+            evidence_node("stopping-tube-builder-build", EvidenceNodeKind::StoppingTubeBuilderBuild, &stopping_envelope.stop_tube_builder_build_sha256),
             evidence_node("sensor-config", EvidenceNodeKind::SensorConfiguration, &hazard_detection.sensor_profile_sha256),
             evidence_node("stopping-dynamics", EvidenceNodeKind::StoppingDynamicsQualification, &stopping_dynamics.profile_sha256),
             evidence_node("hazard-detection", EvidenceNodeKind::HazardDetectionQualification, &hazard_detection.detection_qualification_receipt_sha256),
@@ -997,6 +1005,7 @@ mod tests {
             dependency("dispatch-readiness", "payload-config"),
             dependency("dispatch-readiness", "motion-envelope"),
             dependency("dispatch-readiness", "stopping-tube-envelope"),
+            dependency("dispatch-readiness", "stopping-tube-builder-build"),
             dependency("dispatch-readiness", "station-qualification"),
             dependency("dispatch-readiness", "sensor-config"),
             dependency("dispatch-readiness", "stopping-dynamics"),
@@ -1076,6 +1085,7 @@ mod tests {
             (&ids.payload_configuration, EvidenceNodeKind::PayloadConfiguration, &request.dispatch.envelope.payload_configuration_sha256),
             (&ids.motion_envelope, EvidenceNodeKind::MotionEnvelope, &request.dispatch.envelope.envelope_sha256),
             (&ids.stopping_tube_envelope, EvidenceNodeKind::StoppingTubeEnvelope, &request.stopping_envelope.stop_tube_sha256),
+            (&ids.stopping_tube_builder_build, EvidenceNodeKind::StoppingTubeBuilderBuild, &request.stopping_envelope.stop_tube_builder_build_sha256),
             (&ids.sensor_configuration, EvidenceNodeKind::SensorConfiguration, &request.hazard_detection.sensor_profile_sha256),
             (&ids.stopping_dynamics, EvidenceNodeKind::StoppingDynamicsQualification, &request.stopping_dynamics.profile_sha256),
             (&ids.hazard_detection, EvidenceNodeKind::HazardDetectionQualification, &request.hazard_detection.detection_qualification_receipt_sha256),
@@ -1094,6 +1104,7 @@ mod tests {
             &ids.payload_configuration,
             &ids.motion_envelope,
             &ids.stopping_tube_envelope,
+            &ids.stopping_tube_builder_build,
             &ids.station_qualification,
             &ids.sensor_configuration,
             &ids.stopping_dynamics,
@@ -1411,6 +1422,25 @@ mod tests {
         assert_eq!(
             check_integrated_dispatch_readiness(&ledger, &graph, &request),
             Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeBoundTooSmall)
+        );
+    }
+
+
+    #[test]
+    fn changing_the_stop_tube_builder_build_invalidates_the_integrated_readiness_snapshot() {
+        let (ledger, _, station_event_id) = setup_ledger();
+        let request = make_request(&ledger, station_event_id);
+        let mut graph = make_graph(&request, &ledger);
+        graph
+            .apply_revision(&[EvidenceRevisionChange {
+                node_id: request.evidence_nodes.stopping_tube_builder_build.clone(),
+                new_version_sha256: digest('0'),
+                reason: "stop-tube builder implementation changed".into(),
+            }])
+            .unwrap();
+        assert_eq!(
+            check_integrated_dispatch_readiness(&ledger, &graph, &request),
+            Err(IntegratedDispatchReadinessFailure::EvidenceSnapshotNotCurrent)
         );
     }
 
