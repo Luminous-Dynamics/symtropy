@@ -617,6 +617,9 @@ pub fn verify_bundle_manifest(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static NEXT_BUNDLE_ID: AtomicU64 = AtomicU64::new(0);
 
     const TRUST_ROOT_SHA256: &str =
         "973efb60a07f0a0d49d50e0ee40ff42eaf0bc50a406c483fce39325f01c9cbd3";
@@ -652,8 +655,9 @@ mod tests {
 
     fn test_bundle_root() -> PathBuf {
         let root = std::env::temp_dir().join(format!(
-            "power-restoration-artifact-verifier-{}",
-            std::process::id()
+            "power-restoration-artifact-verifier-{}-{}",
+            std::process::id(),
+            NEXT_BUNDLE_ID.fetch_add(1, Ordering::Relaxed)
         ));
         let _ = fs::remove_dir_all(&root);
         fs::create_dir_all(root.join("artifacts/validator")).expect("test bundle directories");
