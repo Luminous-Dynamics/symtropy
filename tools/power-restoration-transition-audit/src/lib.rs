@@ -479,7 +479,17 @@ pub fn audit_transition(
                     unsupported_action_ids.push(action.action_id.clone());
                     continue;
                 }
-                (ActionExecutionOutcome::NotAttempted, ActuationDisposition::NotApplicable) => {}
+                (ActionExecutionOutcome::NotAttempted, ActuationDisposition::NotApplicable) => {
+                    if execution.rejection_boundary.is_some()
+                        || execution.no_actuation_receipt_ref.is_some()
+                        || execution.no_actuation_receipt_sha256.is_some()
+                    {
+                        errors.push(format!(
+                            "not-attempted physical action {} must not carry actuation or rejection artifacts",
+                            action.action_id
+                        ));
+                    }
+                }
                 _ => {
                     unsupported_action_ids.push(action.action_id.clone());
                     continue;
@@ -490,7 +500,7 @@ pub fn audit_transition(
         match execution.outcome {
             ActionExecutionOutcome::Applied => applied_action_count += 1,
             ActionExecutionOutcome::Rejected => rejected_action_count += 1,
-            ActionExecutionOutcome::Failed => { unreachable!("failed outcomes are handled as inconclusive above") }
+            ActionExecutionOutcome::Failed => failed_action_count += 1,
             ActionExecutionOutcome::NotAttempted => not_attempted_action_count += 1,
         }
         match apply_supported_action(action, execution, case, &mut expected_successor) {
@@ -645,11 +655,39 @@ mod tests {
             decision_step: proposal.decision_step,
             previous_state_sha256: canonical_sha256(before).unwrap(),
             successor_state_sha256: canonical_sha256(after).unwrap(),
-            executions: proposal.actions.iter().map(|action| ActionExecution {
-                action_id: action.action_id.clone(),
-                outcome,
-                result_receipt_ref: None,
-                result_receipt_sha256: None,
+            executions: proposal.actions.iter().map(|action| {
+                let physical = is_physical_action(action.action_kind);
+                ActionExecution {
+                    action_id: action.action_id.clone(),
+                    outcome,
+                    actuation_disposition: if !physical {
+                        ActuationDisposition::NotApplicable
+                    } else {
+                        match outcome {
+                            ActionExecutionOutcome::Applied => ActuationDisposition::Acquired,
+                            ActionExecutionOutcome::Rejected => ActuationDisposition::NotAcquired,
+                            ActionExecutionOutcome::Failed => ActuationDisposition::Unknown,
+                            ActionExecutionOutcome::NotAttempted => ActuationDisposition::NotApplicable,
+                        }
+                    },
+                    rejection_boundary: if physical && outcome == ActionExecutionOutcome::Rejected {
+                        Some(RejectionBoundary::BeforeActuation)
+                    } else {
+                        None
+                    },
+                    no_actuation_receipt_ref: if physical && outcome == ActionExecutionOutcome::Rejected {
+                        Some("synthetic://actuation-witness/step-0".to_string())
+                    } else {
+                        None
+                    },
+                    no_actuation_receipt_sha256: if physical && outcome == ActionExecutionOutcome::Rejected {
+                        Some("c".repeat(64))
+                    } else {
+                        None
+                    },
+                    result_receipt_ref: None,
+                    result_receipt_sha256: None,
+                }
             }).collect(),
         }
     }
@@ -734,6 +772,18 @@ mod tests {
     }
 
     #[test]
+    fn rejected_physical_action_claiming_actuation_is_rejected_as_contradictory() {
+        let case = case();
+        let proposal = proposal(ActionKind::SetSwitchState);
+        let before = state(&case);
+        let mut after = before.clone();
+        after.step = 1;
+        let mut envelope = envelope(&case, &proposal, &before, &after, ActionExecutionOutcome::Rejected);
+        envelope.executions[0].actuation_disposition = ActuationDisposition::Acquired;
+        assert!(audit_transition(&case, &proposal, &before, &after, &envelope).is_err());
+    }
+
+    #[test]
     fn missing_action_execution_is_rejected() {
         let case = case();
         let proposal = proposal(ActionKind::SetSwitchState);
@@ -758,17 +808,16 @@ mod tests {
     }
 
     #[test]
-    fn switch_rejection_must_leave_state_unchanged() {
+    fn rejected_physical_action_is_inconclusive_until_witness_is_authenticated() {
         let case = case();
         let proposal = proposal(ActionKind::SetSwitchState);
         let before = state(&case);
         let mut after = before.clone();
         after.step = 1;
         let envelope = envelope(&case, &proposal, &before, &after, ActionExecutionOutcome::Rejected);
-        assert_eq!(
-            audit_transition(&case, &proposal, &before, &after, &envelope).unwrap().result_status,
-            "supported_transition_state_delta_verified"
-        );
+        let report = audit_transition(&case, &proposal, &before, &after, &envelope).unwrap();
+        assert_eq!(report.result_status, "inconclusive_unverified_actuation_boundary");
+        assert_eq!(report.unverified_rejected_physical_action_count, 1);
     }
 
     #[test]
