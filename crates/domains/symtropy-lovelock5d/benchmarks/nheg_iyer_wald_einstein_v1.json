@@ -22,7 +22,7 @@
   },
   "conventions": {
     "dimension": 5,
-    "signature": "(-++)",
+    "signature": "(-++++)",
     "source_action": "R+alpha_NH*L_GB",
     "symtropy_action": "R+alpha_sym*L_GB/4",
     "coupling_map": "alpha_sym=4*alpha_NH",
