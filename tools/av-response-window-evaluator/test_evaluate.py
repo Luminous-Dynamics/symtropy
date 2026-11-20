@@ -108,6 +108,15 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
         self.assertIn("response_starts_after_cancellation", result["violations"])
         self.assertEqual(result["false_intervention_count"], 1)
 
+    def test_cancellation_cannot_precede_a_primary_trigger(self):
+        workload = copy.deepcopy(self.workload)
+        episode = next(x for x in workload["episodes"] if x["episode_id"] == "rw-008-canceled-trigger")
+        episode["stream_events"] = [
+            event for event in episode["stream_events"] if event["kind"] != "trigger"
+        ]
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(workload=workload)
+
     def test_response_that_overhangs_cancellation_is_rejected(self):
         candidate = copy.deepcopy(self.submission)
         candidate["responses"].append({
