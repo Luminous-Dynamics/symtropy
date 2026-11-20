@@ -98,6 +98,69 @@ def _episode_state(
             revoked.add(target)
     return observations, superseded, revoked
 
+
+def _revoked_derived_item_ticks(
+    episode: dict[str, Any], as_of_tick: int
+) -> dict[str, int]:
+    """Return derived memory items invalidated by an effective source revocation.
+
+    Revocation propagates transitively from source observation references through
+    derived-memory item dependencies. The earliest invalidating revocation tick
+    is retained for each item.
+    """
+    source_revocations: dict[str, int] = {}
+    for event in episode.get("stream_events", []):
+        if event.get("kind") == "revocation" and event.get("availability_tick", as_of_tick + 1) <= as_of_tick:
+            target = event.get("target_observation_ref")
+            if isinstance(target, str) and target:
+                source_revocations[target] = min(
+                    source_revocations.get(target, event["availability_tick"]),
+                    event["availability_tick"],
+                )
+
+    items = episode.get("derived_memory_items", [])
+    if not isinstance(items, list):
+        raise EvaluationError(f"{episode.get('episode_id')}: derived_memory_items must be an array")
+    by_ref: dict[str, dict[str, Any]] = {}
+    for item in items:
+        if not isinstance(item, dict):
+            raise EvaluationError("derived memory item must be an object")
+        ref = item.get("item_ref")
+        if not isinstance(ref, str) or not ref or ref in by_ref:
+            raise EvaluationError(f"invalid or duplicate derived memory item ref: {ref!r}")
+        by_ref[ref] = item
+
+    invalidated: dict[str, int] = {}
+    for _ in range(len(by_ref) + 1):
+        changed = False
+        for ref, item in by_ref.items():
+            source_refs = item.get("derived_from_observation_refs", [])
+            parent_refs = item.get("derived_from_item_refs", [])
+            if not isinstance(source_refs, list) or not isinstance(parent_refs, list):
+                raise EvaluationError(f"{ref}: derived-memory dependency lists must be arrays")
+            ticks = [
+                source_revocations[source]
+                for source in source_refs
+                if source in source_revocations
+            ]
+            ticks.extend(
+                invalidated[parent]
+                for parent in parent_refs
+                if parent in invalidated
+            )
+            if ticks:
+                tick = min(ticks)
+                if ref not in invalidated or tick < invalidated[ref]:
+                    invalidated[ref] = tick
+                    changed = True
+            for parent in parent_refs:
+                if parent not in by_ref:
+                    raise EvaluationError(f"{ref}: unknown derived-memory parent {parent!r}")
+        if not changed:
+            break
+    return invalidated
+
+
 def _score_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
     answered = [row for row in rows if not row["abstained"]]
     count = len(rows)
@@ -206,20 +269,43 @@ def evaluate(
         if len(citations) != len(set(citations)):
             violations.append("duplicate_observation_reference")
 
+        current_refs = prediction.get("current_observation_refs")
+        if not isinstance(current_refs, list) or any(not isinstance(ref, str) or not ref for ref in current_refs):
+            current_refs = []
+            violations.append("invalid_current_observation_reference_list")
+        if len(current_refs) != len(set(current_refs)):
+            violations.append("duplicate_current_observation_reference")
+        if not set(current_refs) <= set(citations):
+            violations.append("current_observation_not_in_citation_set")
+
         observations, superseded, revoked = _episode_state(episode, max(as_of_tick, 0))
         eligible = set(observations) - superseded - revoked
-        valid_citations: set[str] = set()
+        valid_historical_citations: set[str] = set()
+        revoked_citation = False
         for ref in citations:
             if ref not in observations:
                 violations.append("citation_not_in_episode_evidence")
             elif observations[ref] > as_of_tick:
                 violations.append("citation_not_available_at_evidence_cutoff")
-            elif ref in superseded:
-                violations.append("citation_uses_superseded_observation")
             elif ref in revoked:
-                violations.append("citation_uses_revoked_observation")
+                revoked_citation = True
             else:
-                valid_citations.add(ref)
+                # Superseded evidence remains citable as history; it is not
+                # eligible to support the current state.
+                valid_historical_citations.add(ref)
+
+        valid_current_refs: set[str] = set()
+        for ref in current_refs:
+            if ref not in observations:
+                violations.append("current_reference_not_in_episode_evidence")
+            elif observations[ref] > as_of_tick:
+                violations.append("current_reference_not_available_at_evidence_cutoff")
+            elif ref in superseded:
+                violations.append("current_reference_uses_superseded_observation")
+            elif ref in revoked:
+                revoked_citation = True
+            else:
+                valid_current_refs.add(ref)
 
         required = set(label.get("required_observation_refs") or [])
         if any(not isinstance(ref, str) or not ref for ref in required):
@@ -229,16 +315,83 @@ def evaluate(
         if not required <= eligible:
             raise EvaluationError(f"{episode_id}: truth requires superseded or revoked evidence")
 
+        derived_items = {
+            item["item_ref"]: item for item in episode.get("derived_memory_items", [])
+        }
+        known_memory_refs = set(derived_items)
+        retrieved_refs = prediction.get("retrieved_memory_item_refs", [])
+        retained_refs = prediction.get("retained_memory_item_refs", [])
+        purge_receipts = prediction.get("purge_receipts", [])
+        for field_name, refs in (
+            ("retrieved_memory_item_refs", retrieved_refs),
+            ("retained_memory_item_refs", retained_refs),
+        ):
+            if not isinstance(refs, list) or any(not isinstance(ref, str) or not ref for ref in refs):
+                violations.append(f"invalid_{field_name}")
+                refs = []
+            if len(refs) != len(set(refs)):
+                violations.append(f"duplicate_{field_name}")
+            for ref in refs:
+                if ref not in known_memory_refs:
+                    violations.append("unknown_derived_memory_item_reference")
+                elif derived_items[ref].get("created_tick", as_of_tick + 1) > as_of_tick:
+                    violations.append("derived_memory_item_not_available_at_query")
+
+        invalidated_items = _revoked_derived_item_ticks(episode, max(as_of_tick, 0))
+        referenced_invalidated = (
+            set(retrieved_refs if isinstance(retrieved_refs, list) else [])
+            | set(retained_refs if isinstance(retained_refs, list) else [])
+        ) & set(invalidated_items)
+        purge_by_ref: dict[str, dict[str, Any]] = {}
+        if not isinstance(purge_receipts, list):
+            purge_receipts = []
+            violations.append("invalid_purge_receipt_list")
+        for receipt in purge_receipts:
+            if not isinstance(receipt, dict):
+                violations.append("invalid_purge_receipt")
+                continue
+            item_ref = receipt.get("item_ref")
+            if not isinstance(item_ref, str) or not item_ref or item_ref in purge_by_ref:
+                violations.append("invalid_or_duplicate_purge_receipt_item")
+                continue
+            purge_by_ref[item_ref] = receipt
+
+        purge_incomplete = False
+        for item_ref, revoked_tick in invalidated_items.items():
+            receipt = purge_by_ref.get(item_ref)
+            if (
+                receipt is None
+                or receipt.get("status") != "purged"
+                or not isinstance(receipt.get("purge_tick"), int)
+                or isinstance(receipt.get("purge_tick"), bool)
+                or receipt.get("purge_tick") < revoked_tick
+            ):
+                purge_incomplete = True
+        # One fail-closed violation per episode captures any post-revocation
+        # source citation, derived-memory residue or incomplete purge receipt.
+        if revoked_citation or referenced_invalidated or purge_incomplete:
+            violations.append("revoked_evidence_or_derived_memory_reuse")
+
+        expected_count = label.get("expected_distinct_event_count")
+        claimed_count = prediction.get("claimed_distinct_event_count")
+        if expected_count is not None and claimed_count != expected_count:
+            violations.append("claimed_distinct_event_count_mismatch")
+
         if label.get("independence_claim_allowed") is False and prediction.get("claimed_independent_corroboration") is True:
             violations.append("common_cause_views_claimed_independent")
         if (
             label.get("cross_clock_comparison") == "incomparable_without_qualified_transform"
-            and prediction.get("claimed_cross_clock_ordering") is True
+            and prediction.get("claimed_cross_clock_order") is True
         ):
             violations.append("cross_clock_order_claim_without_qualified_transform")
 
         expected_decision = label.get("expected_decision")
         expected_answer = label.get("expected_answer")
+        declared_decision = prediction.get("decision")
+        if declared_decision not in {"answer", "abstain"}:
+            violations.append("invalid_decision")
+        elif declared_decision != ("abstain" if abstained else "answer"):
+            violations.append("decision_abstention_mismatch")
         if expected_decision not in {"answer", "abstain"}:
             raise EvaluationError(f"{episode_id}: unsupported expected_decision")
         if expected_decision == "abstain":
@@ -250,12 +403,12 @@ def evaluate(
             decision_correct = answer_correct
             false_memory = not abstained and not answer_correct
 
-        tp = len(valid_citations & required)
-        fp = len(citations) - tp
-        fn = len(required - valid_citations)
+        tp = len(valid_current_refs & required)
+        fp = len(set(current_refs) - (valid_current_refs & required))
+        fn = len(required - valid_current_refs)
         citation_precision = ratio(tp, tp + fp)
         citation_recall = ratio(tp, tp + fn)
-        provenance_complete = valid_citations == required and not violations
+        provenance_complete = valid_current_refs == required and not violations
         row = {
             "episode_id": episode_id,
             "horizon_seconds": episode.get("horizon_seconds", 0),
