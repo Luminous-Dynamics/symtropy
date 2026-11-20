@@ -508,7 +508,11 @@ pub fn audit_metriplectic_structure(request: &AuditRequest) -> Result<AuditRepor
         entropy_rate_relative_residual,
         time_derivative,
         findings,
-        claim_ceiling: "FINITE_DIMENSIONAL_LOCAL_GENERIC_IDENTITIES_ONLY_NOT_A_FUNCTION_SPACE_OR_PLASMA_SOLVER_PROOF".to_owned(),
+        claim_ceiling: concat!(
+            "FINITE_DIMENSIONAL_LOCAL_GENERIC_IDENTITIES_ONLY_",
+            "NOT_A_FUNCTION_SPACE_OR_PLASMA_SOLVER_PROOF"
+        )
+        .to_owned(),
     };
     let receipt_bytes =
         serde_json::to_vec(&body).map_err(|error| format!("report serialization failed: {error}"))?;
@@ -548,7 +552,7 @@ mod tests {
     fn base_request() -> AuditRequest {
         AuditRequest {
             schema_version: SCHEMA_VERSION.to_owned(),
-            request_id: "mixed-gener ic-known-answer".replace(' ', ""),
+            request_id: "mixed-generic-known-answer".to_owned(),
             source_id: "synthetic-structure-fixture".to_owned(),
             state_id: "state-3d-1".to_owned(),
             coordinate_frame_id: "state-space-basis-xyz".to_owned(),
@@ -737,7 +741,11 @@ mod tests {
 
     #[test]
     fn unknown_schema_fields_are_refused() {
-        let input = r#"{"schema_version":"luminous.plasma-metriplectic-audit.v0.1","request_id":"x","unexpected":true}"#;
+        let input = r#"{
+            "schema_version":"luminous.plasma-metriplectic-audit.v0.1",
+            "request_id":"x",
+            "unexpected":true
+        }"#;
         assert!(serde_json::from_str::<AuditRequest>(input).is_err());
     }
 }
