@@ -77,6 +77,7 @@ pub struct FaceFluxBlendReport {
     pub face_id: String,
     pub left_cell_id: String,
     pub right_cell_id: String,
+    pub face_measure: f64,
     pub compatibility: FaceCompatibility,
     pub candidate_receipts: Vec<CandidateReceipt>,
     pub candidate_weights: Vec<f64>,
@@ -238,6 +239,7 @@ pub fn compose_shared_face_flux(
         face_id: request.face_id.clone(),
         left_cell_id: request.left_cell_id.clone(),
         right_cell_id: request.right_cell_id.clone(),
+        face_measure: request.face_measure,
         compatibility: request.compatibility.clone(),
         candidate_receipts: candidates
             .iter()
