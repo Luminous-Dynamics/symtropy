@@ -1,0 +1,12 @@
+[package]
+name = "geofusion-thermal-transient-oracle"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Closed-form thermal transient reference for FMI co-simulation qualification"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
