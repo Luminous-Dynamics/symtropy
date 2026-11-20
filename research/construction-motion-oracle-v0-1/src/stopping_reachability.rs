@@ -231,7 +231,7 @@ fn outward_integer_bound(value: f64, numeric_guard: f64) -> Option<u64> {
         return None;
     }
     let guarded = value + numeric_guard;
-    if !guarded.is_finite() || guarded > (u64::MAX - 1) as f64 {
+    if !guarded.is_finite() || guarded >= u64::MAX as f64 {
         return None;
     }
     Some(guarded.ceil() as u64)
