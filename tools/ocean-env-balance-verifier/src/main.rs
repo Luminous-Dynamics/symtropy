@@ -94,6 +94,7 @@ struct IntervalRecord {
     quality_state: String,
     evidence_state: String,
     uncertainty_model_state: String,
+    uncertainty_covariance_state: String,
     fluid_properties: FluidProperties,
     thermal_observations: Vec<ThermalObservation>,
     flow_samples: Vec<FlowSample>,
@@ -121,6 +122,7 @@ struct Evidence {
     quality_state: String,
     evidence_state: String,
     source_rights_state: String,
+    calibration_independence_domain: String,
 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -336,6 +338,9 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
         return Err(format!("interval {} lacks fluid-property source", interval.interval_id));
     }
 
+    if interval.uncertainty_covariance_state != "paired_measurement_calibration_domains_independent" {
+        return Err(format!("interval {} lacks an explicit paired-input covariance assessment", interval.interval_id));
+    }
     let mut sample_ids = HashSet::new();
     let mut temperatures = std::collections::HashMap::new();
     let mut station_ids = HashSet::new();
@@ -379,6 +384,9 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
     }
     let intake_flow = flows.get("intake").copied().ok_or("missing intake flow")?;
     let outfall_flow = flows.get("outfall").copied().ok_or("missing outfall flow")?;
+    if intake_flow.evidence.calibration_independence_domain == outfall_flow.evidence.calibration_independence_domain {
+        return Err("shared calibration independence domain for intake/outfall flow requires covariance model".into());
+    }
     if temperatures["intake"].station_id != intake_flow.station_id
         || temperatures["outfall"].station_id != outfall_flow.station_id {
         return Err(format!("interval {} flow meters do not match the paired thermal stations", interval.interval_id));
@@ -386,6 +394,10 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
 
     if interval.concentration_pairs.is_empty() {
         return Err(format!("interval {} has no paired pollutant samples", interval.interval_id));
+    }
+    if temperatures["intake"].evidence.calibration_independence_domain
+        == temperatures["outfall"].evidence.calibration_independence_domain {
+        return Err("shared calibration independence domain for paired thermal inputs requires covariance model".into());
     }
     let intake_temp = temperatures["intake"].temperature_deg_c;
     let outfall_temp = temperatures["outfall"].temperature_deg_c;
@@ -446,6 +458,10 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
             || pair.intake.station_id != intake_flow.station_id
             || pair.outfall.station_id != outfall_flow.station_id {
             return Err(format!("analyte {} concentration samples do not match flow stations", pair.analyte_id));
+        }
+        if pair.intake.evidence.calibration_independence_domain
+            == pair.outfall.evidence.calibration_independence_domain {
+            return Err(format!("analyte {} shares a calibration domain; covariance model required", pair.analyte_id));
         }
         for (sample, name) in [(&pair.intake, "intake"), (&pair.outfall, "outfall")] {
             nonnegative(sample.concentration_mg_l, "concentration_mg_l")?;
@@ -522,9 +538,40 @@ fn validate(bundle: &Bundle) -> Result<Report, String> {
         || bundle.standards_context.observation_interoperability_url.trim().is_empty() {
         return Err("standards context incomplete".into());
     }
-    if bundle.ogc_sensorthings_mapping.standard.trim().is_empty()
-        || bundle.ogc_sensorthings_mapping.data_model_policy.trim().is_empty() {
-        return Err("OGC SensorThings mapping metadata incomplete".into());
+    if !bundle.equation_contract.thermal_power_kw.contains("density")
+        || !bundle.equation_contract.thermal_power_kw.contains("specific_heat_capacity")
+        || !bundle.equation_contract.pollutant_mass_flux_g_s.contains("concentration_mg_l")
+        || !bundle.equation_contract.pollutant_mass_flux_g_s.contains("flow_m3_s")
+        || !bundle.equation_contract.net_pollutant_mass_flux_g_s.contains("outfall")
+        || !bundle.equation_contract.net_pollutant_mass_flux_g_s.contains("intake")
+        || !bundle.equation_contract.covariance_assumption.contains("independent") {
+        return Err("equation and covariance contract incomplete".into());
+    }
+    for rule in [
+        bundle.equation_contract.temperature_difference_standard_uncertainty_c.as_str(),
+        bundle.equation_contract.thermal_power_standard_uncertainty_kw.as_str(),
+        bundle.equation_contract.pollutant_mass_flux_kg_day.as_str(),
+        bundle.equation_contract.net_pollutant_mass_flux_standard_uncertainty_g_s.as_str(),
+    ] {
+        if rule.trim().is_empty() {
+            return Err("uncertainty or unit-conversion equation missing".into());
+        }
+    }
+    if !bundle.pairing_contract.water_balance_screen.method.contains("uncertainty")
+        || !bundle.pairing_contract.water_balance_screen.purpose.contains("not a discharge permit") {
+        return Err("water-balance screen must remain a metrology check, not permit compliance".into());
+    }
+    let mapping = &bundle.ogc_sensorthings_mapping;
+    if mapping.standard != "OGC SensorThings API Part 1: Sensing 1.1"
+        || mapping.entity_mapping.station_or_platform != "Thing"
+        || mapping.entity_mapping.station_location != "Location"
+        || mapping.entity_mapping.sensor_and_calibration_identity != "Sensor"
+        || mapping.entity_mapping.measured_property != "ObservedProperty"
+        || mapping.entity_mapping.sensor_and_property_series != "Datastream"
+        || mapping.entity_mapping.individual_measurement != "Observation"
+        || mapping.entity_mapping.intake_outfall_or_reference_station != "FeatureOfInterest"
+        || mapping.data_model_policy.trim().is_empty() {
+        return Err("OGC SensorThings entity mapping incomplete or unsupported".into());
     }
 
     let mut interval_ids = HashSet::new();
@@ -639,5 +686,19 @@ mod tests {
         let mut b = fixture();
         b.interval_records[0].uncertainty_model_state = "material_nonlinearity_unresolved".into();
         assert!(validate(&b).unwrap_err().contains("nonlinear/Monte Carlo"));
+    }
+    #[test]
+    fn shared_calibration_domain_requires_covariance_model() {
+        let mut b = fixture();
+        let intake_domain = b.interval_records[0].concentration_pairs[0].intake.evidence.calibration_independence_domain.clone();
+        b.interval_records[0].concentration_pairs[0].outfall.evidence.calibration_independence_domain = intake_domain;
+        assert!(validate(&b).unwrap_err().contains("shares a calibration domain"));
+    }
+    #[test]
+    fn utc_interval_duration_handles_midnight() {
+        let start = parse_utc_timestamp("2026-10-12T23:58:00Z").unwrap();
+        let end = parse_utc_timestamp("2026-10-13T00:03:00Z").unwrap();
+        assert_eq!(end - start, 300);
+        assert!(parse_utc_timestamp("2026-02-30T00:00:00Z").is_none());
     }
 }
