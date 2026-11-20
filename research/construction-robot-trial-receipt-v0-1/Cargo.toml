@@ -1,0 +1,13 @@
+[package]
+name = "construction-robot-trial-receipt"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Machine-readable physical trial receipt schema and semantic admissibility validator."
+
+[dependencies]
+jsonschema = "=0.60.2"
+serde_json = "=1.0.154"
+
+[workspace]

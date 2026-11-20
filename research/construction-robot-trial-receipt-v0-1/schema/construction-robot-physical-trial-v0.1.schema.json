@@ -1,0 +1,1126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:construction-robot-physical-trial:0.1",
+  "title": "Construction Robot Physical Trial Receipt",
+  "description": "A versioned evidence receipt. Structural validity does not authenticate source bytes, calibrations, physical truth, assessor independence, or safety.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "trial_id",
+    "trial",
+    "claim",
+    "subject",
+    "task",
+    "site",
+    "odd",
+    "evidence",
+    "result"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-robot-physical-trial/0.1"
+    },
+    "trial_id": {
+      "$ref": "#/$defs/id"
+    },
+    "trial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "started_at_unix_ns",
+        "ended_at_unix_ns",
+        "protocol_id",
+        "protocol_sha256",
+        "test_site_id",
+        "clock_domain"
+      ],
+      "properties": {
+        "started_at_unix_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ended_at_unix_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "protocol_id": {
+          "$ref": "#/$defs/id"
+        },
+        "protocol_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "test_site_id": {
+          "$ref": "#/$defs/id"
+        },
+        "clock_domain": {
+          "$ref": "#/$defs/id"
+        },
+        "operator_role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "supervisor_role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "criterion_id",
+        "criterion_sha256",
+        "evidence_class",
+        "claim_ceiling"
+      ],
+      "properties": {
+        "claim_id": {
+          "$ref": "#/$defs/id"
+        },
+        "criterion_id": {
+          "$ref": "#/$defs/id"
+        },
+        "criterion_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evidence_class": {
+          "enum": [
+            "synthetic",
+            "simulated",
+            "bench_measured",
+            "hil_measured",
+            "field_observed",
+            "independently_adjudicated"
+          ]
+        },
+        "claim_ceiling": {
+          "enum": [
+            "synthetic",
+            "simulated",
+            "bench_measured",
+            "hil_measured",
+            "field_observed",
+            "independently_adjudicated"
+          ]
+        },
+        "scope_statement": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "excluded_claims": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform",
+        "tool",
+        "payload",
+        "software",
+        "sensors"
+      ],
+      "properties": {
+        "platform": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "platform_id",
+            "model",
+            "as_built_revision",
+            "asset_token"
+          ],
+          "properties": {
+            "platform_id": {
+              "$ref": "#/$defs/id"
+            },
+            "manufacturer": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "model": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "as_built_revision": {
+              "$ref": "#/$defs/id"
+            },
+            "asset_token": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        },
+        "tool": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tool_id",
+            "tool_revision"
+          ],
+          "properties": {
+            "tool_id": {
+              "$ref": "#/$defs/id"
+            },
+            "tool_revision": {
+              "$ref": "#/$defs/id"
+            },
+            "end_effector_revision": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 128
+            }
+          }
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mass_kg",
+            "configuration_id"
+          ],
+          "properties": {
+            "mass_kg": {
+              "type": "number",
+              "minimum": 0
+            },
+            "configuration_id": {
+              "$ref": "#/$defs/id"
+            },
+            "centre_of_mass_reference": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 256
+            }
+          }
+        },
+        "software": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "firmware_revision",
+            "controller_revision",
+            "safety_configuration_sha256",
+            "policy_sha256"
+          ],
+          "properties": {
+            "firmware_revision": {
+              "$ref": "#/$defs/id"
+            },
+            "controller_revision": {
+              "$ref": "#/$defs/id"
+            },
+            "safety_configuration_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "policy_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        "sensors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sensor_id",
+              "modality",
+              "firmware_revision",
+              "calibration_id",
+              "calibration_sha256",
+              "fault_domain"
+            ],
+            "properties": {
+              "sensor_id": {
+                "$ref": "#/$defs/id"
+              },
+              "modality": {
+                "enum": [
+                  "camera",
+                  "lidar",
+                  "radar",
+                  "ultrasonic",
+                  "imu",
+                  "gnss",
+                  "encoder",
+                  "force",
+                  "other"
+                ]
+              },
+              "firmware_revision": {
+                "$ref": "#/$defs/id"
+              },
+              "calibration_id": {
+                "$ref": "#/$defs/id"
+              },
+              "calibration_sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "fault_domain": {
+                "$ref": "#/$defs/id"
+              },
+              "calibration_valid_from_unix_ns": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "calibration_valid_until_unix_ns": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "task_revision",
+        "scenario_id",
+        "work_package_id"
+      ],
+      "properties": {
+        "task_id": {
+          "$ref": "#/$defs/id"
+        },
+        "task_revision": {
+          "$ref": "#/$defs/id"
+        },
+        "scenario_id": {
+          "$ref": "#/$defs/id"
+        },
+        "work_package_id": {
+          "$ref": "#/$defs/id"
+        },
+        "work_package_revision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 128
+        },
+        "task_family": {
+          "enum": [
+            "survey_layout",
+            "mobile_navigation",
+            "material_transport",
+            "inspection",
+            "placement",
+            "earthmoving",
+            "lifting",
+            "drilling_cutting",
+            "masonry",
+            "other"
+          ]
+        }
+      }
+    },
+    "site": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "site_id",
+        "site_snapshot_sha256",
+        "coordinate_frame"
+      ],
+      "properties": {
+        "site_id": {
+          "$ref": "#/$defs/id"
+        },
+        "site_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "privacy_preserving_location_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        },
+        "coordinate_frame": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "frame_id",
+            "horizontal_crs_or_definition",
+            "vertical_datum_or_definition",
+            "axis_order",
+            "units",
+            "handedness"
+          ],
+          "properties": {
+            "frame_id": {
+              "$ref": "#/$defs/id"
+            },
+            "horizontal_crs_or_definition": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "vertical_datum_or_definition": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "coordinate_epoch": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 64
+            },
+            "axis_order": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "units": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "handedness": {
+              "enum": [
+                "right",
+                "left"
+              ]
+            },
+            "transform_bundle_sha256": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        }
+      }
+    },
+    "odd": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "profile_revision",
+        "strata"
+      ],
+      "properties": {
+        "profile_id": {
+          "$ref": "#/$defs/id"
+        },
+        "profile_revision": {
+          "$ref": "#/$defs/id"
+        },
+        "strata": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "condition_id",
+              "value",
+              "unit",
+              "measured_at_unix_ns",
+              "evidence_artifact_ids"
+            ],
+            "properties": {
+              "condition_id": {
+                "$ref": "#/$defs/id"
+              },
+              "value": {
+                "type": [
+                  "number",
+                  "string",
+                  "boolean"
+                ]
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "measured_at_unix_ns": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "evidence_artifact_ids": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/id"
+                },
+                "uniqueItems": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raw_artifacts",
+        "source_records"
+      ],
+      "properties": {
+        "raw_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "artifact_id",
+              "sha256",
+              "media_type",
+              "byte_length",
+              "captured_at_unix_ns",
+              "custody_reference"
+            ],
+            "properties": {
+              "artifact_id": {
+                "$ref": "#/$defs/id"
+              },
+              "sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "media_type": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "byte_length": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "captured_at_unix_ns": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "custody_reference": {
+                "$ref": "#/$defs/id"
+              },
+              "privacy_class": {
+                "enum": [
+                  "public",
+                  "restricted",
+                  "personal_data",
+                  "commercial_confidential"
+                ]
+              }
+            }
+          }
+        },
+        "source_records": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source_id",
+              "source_sha256",
+              "role"
+            ],
+            "properties": {
+              "source_id": {
+                "$ref": "#/$defs/id"
+              },
+              "source_sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "role": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "issuer_reference": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 256
+              }
+            }
+          }
+        }
+      }
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "independence",
+        "instruments",
+        "time_synchronization"
+      ],
+      "properties": {
+        "independence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "assessment_reference",
+            "shared_fault_domains"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "independent",
+                "partial",
+                "not_independent",
+                "pending"
+              ]
+            },
+            "assessment_reference": {
+              "$ref": "#/$defs/id"
+            },
+            "shared_fault_domains": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/id"
+              },
+              "uniqueItems": true
+            },
+            "rationale": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 2048
+            }
+          }
+        },
+        "instruments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "instrument_id",
+              "role",
+              "model",
+              "calibration_id",
+              "calibration_sha256",
+              "calibration_valid_from_unix_ns",
+              "calibration_valid_until_unix_ns",
+              "fault_domain"
+            ],
+            "properties": {
+              "instrument_id": {
+                "$ref": "#/$defs/id"
+              },
+              "role": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "manufacturer": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "model": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "serial_token": {
+                "$ref": "#/$defs/id"
+              },
+              "calibration_id": {
+                "$ref": "#/$defs/id"
+              },
+              "calibration_sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "calibration_valid_from_unix_ns": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "calibration_valid_until_unix_ns": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "fault_domain": {
+                "$ref": "#/$defs/id"
+              }
+            }
+          }
+        },
+        "time_synchronization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "reference_clock_domain",
+            "maximum_error_ns"
+          ],
+          "properties": {
+            "method": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "reference_clock_domain": {
+              "$ref": "#/$defs/id"
+            },
+            "maximum_error_ns": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "synchronization_record_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        }
+      }
+    },
+    "sample_plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total_encounters",
+        "valid_encounters",
+        "excluded_encounters",
+        "independent_encounters",
+        "independence_unit"
+      ],
+      "properties": {
+        "total_encounters": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_encounters": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "excluded_encounters": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "independent_encounters": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "distinct_sites": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "distinct_configurations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "independence_unit": {
+          "enum": [
+            "encounter",
+            "site_cluster",
+            "recording_cluster",
+            "day_cluster",
+            "other_declared_unit"
+          ]
+        },
+        "clustering_note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 1024
+        },
+        "exclusion_policy_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "measurements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "measurement_id",
+          "quantity",
+          "value",
+          "unit",
+          "expanded_uncertainty_u95",
+          "decision_margin",
+          "reference_instrument_ids",
+          "sample_count",
+          "decision_margin_unit",
+          "sample_unit",
+          "raw_artifact_ids"
+        ],
+        "properties": {
+          "measurement_id": {
+            "$ref": "#/$defs/id"
+          },
+          "quantity": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "statistic": {
+            "enum": [
+              "single_trial",
+              "mean",
+              "median",
+              "p50",
+              "p95",
+              "p99",
+              "maximum",
+              "minimum",
+              "count",
+              "rate"
+            ]
+          },
+          "value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "expanded_uncertainty_u95": {
+            "type": "number",
+            "minimum": 0
+          },
+          "decision_margin": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "reference_instrument_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/$defs/id"
+            },
+            "uniqueItems": true
+          },
+          "sample_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "raw_artifact_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/id"
+            },
+            "uniqueItems": true,
+            "minItems": 1
+          },
+          "decision_margin_unit": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "sample_unit": {
+            "enum": [
+              "encounter",
+              "feature",
+              "frame",
+              "site",
+              "task_cycle",
+              "robot_hour",
+              "other_declared_unit"
+            ]
+          }
+        }
+      }
+    },
+    "challenge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "visibility",
+        "challenge_set_commitment_sha256"
+      ],
+      "properties": {
+        "visibility": {
+          "enum": [
+            "public",
+            "public_held_out_by_generation",
+            "blind_independent"
+          ]
+        },
+        "challenge_set_commitment_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "custodian_reference": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        },
+        "producer_output_commitment_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "revealed_at_unix_ns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      }
+    },
+    "adjudication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assessor_reference",
+        "independent_review",
+        "decision",
+        "record_sha256"
+      ],
+      "properties": {
+        "assessor_reference": {
+          "$ref": "#/$defs/id"
+        },
+        "independent_review": {
+          "type": "boolean"
+        },
+        "decision": {
+          "enum": [
+            "accepted_within_scope",
+            "rejected",
+            "indeterminate",
+            "not_evaluated"
+          ]
+        },
+        "record_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "reason_codes"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "measured_within_declared_criterion",
+            "measured_outside_declared_criterion",
+            "blocked_by_safety_gate",
+            "indeterminate",
+            "not_evaluated",
+            "invalid_evidence",
+            "unsupported_odd"
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 2048
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "claim": {
+            "properties": {
+              "evidence_class": {
+                "enum": [
+                  "bench_measured",
+                  "hil_measured",
+                  "field_observed",
+                  "independently_adjudicated"
+                ]
+              }
+            },
+            "required": [
+              "evidence_class"
+            ]
+          }
+        },
+        "required": [
+          "claim"
+        ]
+      },
+      "then": {
+        "required": [
+          "reference",
+          "sample_plan",
+          "measurements"
+        ],
+        "properties": {
+          "evidence": {
+            "properties": {
+              "raw_artifacts": {
+                "minItems": 1
+              }
+            }
+          },
+          "subject": {
+            "properties": {
+              "sensors": {
+                "items": {
+                  "required": [
+                    "calibration_valid_from_unix_ns",
+                    "calibration_valid_until_unix_ns"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "measured_within_declared_criterion",
+                  "measured_outside_declared_criterion"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        },
+        "required": [
+          "result"
+        ]
+      },
+      "then": {
+        "required": [
+          "reference",
+          "sample_plan",
+          "measurements"
+        ],
+        "properties": {
+          "measurements": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "claim": {
+            "properties": {
+              "evidence_class": {
+                "const": "independently_adjudicated"
+              }
+            },
+            "required": [
+              "evidence_class"
+            ]
+          }
+        },
+        "required": [
+          "claim"
+        ]
+      },
+      "then": {
+        "required": [
+          "adjudication"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "challenge": {
+            "properties": {
+              "visibility": {
+                "const": "blind_independent"
+              }
+            },
+            "required": [
+              "visibility"
+            ]
+          }
+        },
+        "required": [
+          "challenge"
+        ]
+      },
+      "then": {
+        "properties": {
+          "challenge": {
+            "required": [
+              "custodian_reference",
+              "producer_output_commitment_sha256"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
