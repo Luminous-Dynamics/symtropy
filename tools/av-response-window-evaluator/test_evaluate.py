@@ -45,6 +45,46 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
             response["output_stop_request_event_ref"] = stop_request_ref
         return response
 
+    def append_synthetic_response(self, candidate, response_id, episode_id, trigger_ref,
+                                  start, end, content, end_kind="playback_ended"):
+        stop_request_ref = f"stop-request-{response_id}" if end_kind == "output_stopped" else None
+        response = self.synthetic_response(
+            response_id, episode_id, trigger_ref, start, end, content,
+            end_kind=end_kind, stop_request_ref=stop_request_ref,
+        )
+        turn_id = response["turn_id"]
+        epoch = response["session_epoch"]
+        candidate["renderer_lifecycle_events"].append({
+            "event_ref": response["controller_permission_event_ref"],
+            "session_epoch": epoch, "turn_id": turn_id,
+            "event_kind": "assistant_speech_permitted", "tick": max(0, start - 1),
+        })
+        candidate["renderer_lifecycle_events"].append({
+            "event_ref": response["playback_start_event_ref"],
+            "session_epoch": epoch, "turn_id": turn_id,
+            "event_kind": "playback_started", "tick": start,
+        })
+        if end_kind == "output_stopped":
+            request_tick = max(start, end - 1)
+            candidate["renderer_lifecycle_events"].append({
+                "event_ref": stop_request_ref,
+                "session_epoch": epoch, "turn_id": turn_id,
+                "event_kind": "output_stop_requested", "tick": request_tick,
+            })
+            candidate["renderer_lifecycle_events"].append({
+                "event_ref": response["playback_end_event_ref"],
+                "session_epoch": epoch, "turn_id": turn_id,
+                "event_kind": "output_stopped", "tick": end,
+                "cause_event_ref": stop_request_ref,
+            })
+        else:
+            candidate["renderer_lifecycle_events"].append({
+                "event_ref": response["playback_end_event_ref"],
+                "session_epoch": epoch, "turn_id": turn_id,
+                "event_kind": "playback_ended", "tick": end,
+            })
+        candidate["responses"].append(response)
+
     def episode(self, report, episode_id):
         return next(row for row in report["per_episode"] if row["episode_id"] == episode_id)
 
@@ -97,9 +137,9 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
 
     def test_expected_silence_response_is_false_intervention(self):
         candidate = copy.deepcopy(self.submission)
-        candidate["responses"].append(self.synthetic_response(
-            "false-silence", "rw-007-expected-silence", "silence-7", 12, 14, "unsolicited"
-        ))
+        self.append_synthetic_response(
+            candidate, "false-silence", "rw-007-expected-silence", "silence-7", 12, 14, "unsolicited"
+        )
         report = self.score(submission=candidate)
         result = self.episode(report, "rw-007-expected-silence")
         self.assertEqual(result["false_intervention_count"], 1)
@@ -108,11 +148,10 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
 
     def test_response_after_cancellation_is_rejected(self):
         candidate = copy.deepcopy(self.submission)
-        candidate["responses"].append(self.synthetic_response(
-            "stale-after-cancel", "rw-008-canceled-trigger", "trig-8", 16, 18,
-            "stale intervention", end_kind="output_stopped",
-            stop_request_ref="stop-request-stale-after-cancel"
-        ))
+        self.append_synthetic_response(
+            candidate, "stale-after-cancel", "rw-008-canceled-trigger", "trig-8", 16, 18,
+            "stale intervention", end_kind="output_stopped"
+        )
         report = self.score(submission=candidate)
         result = self.episode(report, "rw-008-canceled-trigger")
         self.assertIn("response_starts_after_cancellation", result["violations"])
@@ -129,20 +168,19 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
 
     def test_response_that_overhangs_cancellation_is_rejected(self):
         candidate = copy.deepcopy(self.submission)
-        candidate["responses"].append(self.synthetic_response(
-            "crosses-cancel", "rw-008-canceled-trigger", "trig-8", 14, 16,
-            "canceled while speaking", end_kind="output_stopped",
-            stop_request_ref="stop-request-crosses-cancel"
-        ))
+        self.append_synthetic_response(
+            candidate, "crosses-cancel", "rw-008-canceled-trigger", "trig-8", 14, 16,
+            "canceled while speaking", end_kind="output_stopped"
+        )
         report = self.score(submission=candidate)
         result = self.episode(report, "rw-008-canceled-trigger")
         self.assertIn("response_continues_after_cancellation", result["violations"])
 
     def test_two_responses_for_one_opportunity_are_duplicate_interventions(self):
         candidate = copy.deepcopy(self.submission)
-        candidate["responses"].append(self.synthetic_response(
-            "duplicate-r1", "rw-001-spi-on-time", "trig-1", 14, 16, "safety_correction"
-        ))
+        self.append_synthetic_response(
+            candidate, "duplicate-r1", "rw-001-spi-on-time", "trig-1", 14, 16, "safety_correction"
+        )
         report = self.score(submission=candidate)
         result = self.episode(report, "rw-001-spi-on-time")
         self.assertIn("multiple_responses_assigned_to_one_opportunity", result["violations"])
