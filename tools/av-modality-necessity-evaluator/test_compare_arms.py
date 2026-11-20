@@ -28,8 +28,7 @@ def build_run(workload, truth, arm, run_id):
                 used.append(modality)
                 refs.append(observation["observation_ref"])
         # Use the same frozen necessity table as the production evaluator.
-        import evaluate
-        necessary = evaluate.NECESSARY_MODALITIES.get(label["necessity"], set())
+        necessary = comparator.NECESSARY_MODALITIES.get(label["necessity"], set())
         can_answer = necessary <= set(used)
         if label["necessity"] == "abstain_audio_missing":
             can_answer = False
@@ -128,6 +127,20 @@ class ArmTournamentTests(unittest.TestCase):
         prediction["cited_observation_refs"] = [
             next(row["audio"]["observation_ref"] for row in self.workload["episodes"] if row["episode_id"] == prediction["episode_id"])
         ]
+        with self.assertRaises(comparator.EvaluationError):
+            comparator.compare_arms(self.workload, self.truth, runs)
+
+
+    def test_wrong_exact_workload_blob_reference_is_rejected(self):
+        with self.assertRaises(comparator.EvaluationError):
+            comparator.compare_arms(
+                self.workload, self.truth, self.runs,
+                workload_ref="git-blob-sha1:" + "0" * 40,
+            )
+
+    def test_nested_model_revision_must_match_arm_envelope(self):
+        runs = copy.deepcopy(self.runs)
+        runs[2]["submission"]["runtime_revision"] = "different-runtime"
         with self.assertRaises(comparator.EvaluationError):
             comparator.compare_arms(self.workload, self.truth, runs)
 
