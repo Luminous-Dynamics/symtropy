@@ -922,7 +922,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index:
             ("intake", &pair.intake.station_id, pair.intake.concentration_mg_l, pair.intake.standard_uncertainty_mg_l),
             ("outfall", &pair.outfall.station_id, pair.outfall.concentration_mg_l, pair.outfall.standard_uncertainty_mg_l),
         ];
-        for role in ["near_field_plume", "far_field_impact"] {
+        for role in ["near_field_plume", "far_field_impact", "independent_reference_control"] {
             let sample = *plume_by_role.get(role)
                 .ok_or_else(|| format!("analyte {} missing {role} chemistry sample", pair.analyte_id))?;
             station_concentrations.push((role, &sample.station_id, sample.concentration_mg_l, sample.standard_uncertainty_mg_l));
@@ -1201,7 +1201,7 @@ mod tests {
         assert!(report.interval_results.iter().all(|interval|
             interval.pollutant_results.iter().all(|p|
                 p.net_flux_resolution_status == "BELOW_1_STANDARD_UNCERTAINTY_UNRESOLVED"
-            ) && interval.pollutant_station_anomalies.len() == 4
+            ) && interval.pollutant_station_anomalies.len() == 5
         ));
     }
     #[test]
