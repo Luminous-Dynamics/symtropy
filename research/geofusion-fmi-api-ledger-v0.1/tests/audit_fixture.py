@@ -77,6 +77,10 @@ def audit_fixture(d, arts):
             if k=="set_float64" and fid in successful: fail(f"input written after doStep: {eid}")
             iv=p["interval"]
             if iv["start_master_ns"]>=iv["end_master_ns"]: fail(f"bad interval: {eid}")
+            if iv["sampling_semantics"] not in (
+                "constant_over_declared_half_open_interval", "sample_at_interval_end",
+                "sample_at_interval_start", "interval_average", "integral_over_half_open_interval"
+            ): fail(f"invalid interval sampling semantics: {eid}")
             if k=="get_float64" and last_successful_interval[fid]!=(iv["start_master_ns"],iv["end_master_ns"]):
                 fail(f"getFloat64 interval does not match most recent successful lastSuccessfulTime: {eid}")
             vals=p["values"]; refs=[x["value_reference"] for x in vals]
@@ -88,12 +92,21 @@ def audit_fixture(d, arts):
                 if v["causality"]!=("input" if k=="set_float64" else "output"): fail(f"wrong variable causality: {eid}")
                 if v["port_id"]!=x["port_id"] or x["source_interval_id"]!=iv["source_interval_id"]: fail(f"port or interval mismatch: {eid}")
                 value_semantics=x.get("sampling_semantics",iv["sampling_semantics"])
-                if value_semantics not in ("constant_over_declared_half_open_interval","sample_at_interval_end","sample_at_interval_start","interval_average"):
+                if value_semantics not in (
+                    "constant_over_declared_half_open_interval", "sample_at_interval_end",
+                    "sample_at_interval_start", "interval_average", "integral_over_half_open_interval"
+                ):
                     fail(f"invalid per-value sampling semantics: {eid}")
+                if v["port_role"] in ("coupling_source", "coupling_sink") and "transfer_id" not in x:
+                    fail(f"coupling port value missing transfer identity: {eid}")
                 if v["port_role"]=="state_observation" and (
                     k!="get_float64" or value_semantics!="sample_at_interval_end" or "transfer_id" in x
                 ):
                     fail(f"state observation must be a non-transfer output sampled at interval end: {eid}")
+                if v["port_role"]!="state_observation" and v["unit"]=="J" and value_semantics!="integral_over_half_open_interval":
+                    fail(f"joule-valued flow must be an interval-integrated quantity: {eid}")
+                if v["unit"]!="J" and value_semantics=="integral_over_half_open_interval":
+                    fail(f"interval-integrated sampling semantics require joule units: {eid}")
                 y=float(x["value"])
                 if not math.isfinite(y) or bits(y)!=x["raw_f64_bits"] or not math.isfinite(unbits(x["raw_f64_bits"])): fail(f"Float64 exact-bit mismatch: {eid}")
                 values.append((k,fid,v,x,iv))
@@ -128,7 +141,11 @@ def audit_fixture(d, arts):
     for kind,fid,var,x,iv in values:
         tid=x.get("transfer_id")
         if tid:
-            key=(x["source_interval_id"],x["raw_f64_bits"],iv["start_master_ns"],iv["end_master_ns"])
+            key=(
+                x["source_interval_id"], x["raw_f64_bits"],
+                iv["start_master_ns"], iv["end_master_ns"],
+                x.get("sampling_semantics", iv["sampling_semantics"])
+            )
             target=reads if kind=="get_float64" else writes
             if tid in target: fail(f"duplicate transfer leg: {tid}")
             target[tid]=(key,fid,var,iv)
