@@ -1,0 +1,284 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-service-reconfiguration-v0.1.json",
+  "title": "Orbital Service Reconfiguration Corpus v0.1",
+  "type": "object",
+  "required": [
+    "schema",
+    "evidence_class",
+    "claim_ceiling",
+    "client_profile_id",
+    "client_configuration_revision",
+    "start_tick",
+    "end_tick",
+    "providers",
+    "scenarios"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-service-reconfiguration.corpus.v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic-service-reconfiguration-only"
+    },
+    "client_profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "client_configuration_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "start_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "end_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "providers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/provider"
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    }
+  },
+  "$defs": {
+    "provider": {
+      "type": "object",
+      "required": [
+        "provider_id",
+        "supplier_id",
+        "profile_id",
+        "configuration_revision",
+        "lifecycle_state_id",
+        "service_kind",
+        "capacity_per_tick",
+        "available_from_tick",
+        "available_until_tick",
+        "failure_domains",
+        "handoff_ticks",
+        "requalification_ticks",
+        "requires_spare",
+        "spare_ready",
+        "requires_propellant",
+        "propellant_ready",
+        "qualification"
+      ],
+      "properties": {
+        "provider_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "supplier_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lifecycle_state_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "service_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capacity_per_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "available_from_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "available_until_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failure_domains": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "handoff_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "requalification_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "requires_spare": {
+          "type": "boolean"
+        },
+        "spare_ready": {
+          "type": "boolean"
+        },
+        "requires_propellant": {
+          "type": "boolean"
+        },
+        "propellant_ready": {
+          "type": "boolean"
+        },
+        "qualification": {
+          "$ref": "../../orbital-robust-compatibility-bench/schemas/cases.schema.json#/$defs/robustCase"
+        }
+      },
+      "additionalProperties": false
+    },
+    "demand": {
+      "type": "object",
+      "required": [
+        "tick",
+        "required_units"
+      ],
+      "properties": {
+        "tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "required_units": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "fault": {
+      "type": "object",
+      "required": [
+        "failure_domain_id",
+        "start_tick",
+        "end_tick"
+      ],
+      "properties": {
+        "failure_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_tick": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "planStep": {
+      "type": "object",
+      "required": [
+        "provider_id",
+        "switch_start_tick",
+        "activation_tick",
+        "prior_outcome_reconciliation"
+      ],
+      "properties": {
+        "provider_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "switch_start_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "activation_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "prior_outcome_reconciliation": {
+          "enum": [
+            "not_applicable",
+            "resolved",
+            "unknown"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "scenario": {
+      "type": "object",
+      "required": [
+        "case_id",
+        "service_kind",
+        "minimum_accepted_service",
+        "demand",
+        "faults",
+        "plan",
+        "expected_status",
+        "expected_reason"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minimum_accepted_service": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "demand": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/demand"
+          }
+        },
+        "faults": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/fault"
+          }
+        },
+        "plan": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/planStep"
+          }
+        },
+        "expected_status": {
+          "enum": [
+            "service_floor_met_synthetic",
+            "service_shortfall",
+            "indeterminate",
+            "rejected"
+          ]
+        },
+        "expected_reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "service_kind": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
