@@ -874,9 +874,13 @@ mod tests {
     }
 
     fn observation_payload(attempt_id: &str) -> SiteEventPayload {
+        observation_payload_for("entity-1", attempt_id)
+    }
+
+    fn observation_payload_for(entity_id: &str, attempt_id: &str) -> SiteEventPayload {
         SiteEventPayload::RobotObservationRecorded {
             package_sha256: digest('a'),
-            entity_id: "entity-1".into(),
+            entity_id: entity_id.into(),
             attempt_id: attempt_id.into(),
             disposition: crate::site_state_ledger::RobotExecutionDisposition::Printed,
             robot_receipt_sha256: digest('b'),
@@ -938,6 +942,7 @@ mod tests {
             "site-001",
             &checkpoint(),
             &SiteJournalCommittedContext {
+                event_ids: BTreeSet::from(["station-1".to_owned()]),
                 package_sha256s: BTreeSet::from([digest('a')]),
                 attempt_ids: BTreeSet::from([
                     "attempt-a".to_owned(),
@@ -963,7 +968,7 @@ mod tests {
                 "robot-a",
                 SiteActorRole::Robot,
                 &[],
-                observation_payload("attempt-a"),
+                observation_payload_for("entity-a", "attempt-a"),
             )],
         );
         let second = journal(
@@ -977,7 +982,7 @@ mod tests {
                 "robot-b",
                 SiteActorRole::Robot,
                 &[],
-                observation_payload("attempt-b"),
+                observation_payload_for("entity-b", "attempt-b"),
             )],
         );
         let forward = reconcile(&[first.clone(), second.clone()]).unwrap();
@@ -1130,13 +1135,13 @@ mod tests {
         );
         let plan = reconcile(&[robot, interruption]).unwrap();
         assert!(!plan.can_ingest());
-        assert_eq!(
-            plan.concurrent_mutations[0].key,
-            SiteMutationKey::Attempt {
-                package_sha256: digest('a'),
-                attempt_id: "attempt-a".into()
-            }
-        );
+        assert!(plan.concurrent_mutations.iter().any(|conflict| {
+            conflict.key
+                == SiteMutationKey::Attempt {
+                    package_sha256: digest('a'),
+                    attempt_id: "attempt-a".into()
+                }
+        }));
     }
 
     #[test]
