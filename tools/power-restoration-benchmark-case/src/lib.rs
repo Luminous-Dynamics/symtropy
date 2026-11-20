@@ -679,7 +679,12 @@ mod tests {
     #[test]
     fn artifact_hash_shapes_are_explicit() {
         let mut case = fixture();
-        case.provenance.source_artifacts[0].vcs_object_id = "short".to_string();
+        case.provenance.source_artifacts.push(SourceArtifact {
+            path: "source-case.json".to_string(),
+            vcs_object_id: "short".to_string(),
+            vcs_object_format: VcsObjectFormat::GitSha1,
+            raw_sha256: None,
+        });
         assert!(!validate_case(&case).is_empty());
     }
 }
