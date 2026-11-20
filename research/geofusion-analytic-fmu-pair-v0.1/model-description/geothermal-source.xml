@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fmiModelDescription fmiVersion="3.0" modelName="SyntheticGeothermalSource" instantiationToken="geo-source-token-v0.1" description="Synthetic constant thermal source for GeoFusion FMI API qualification" generationTool="Luminous Dynamics analytic FMU prototype" generationDateAndTime="2026-11-20T00:00:00Z" variableNamingConvention="flat">
+  <UnitDefinitions>
+    <Unit name="W"><BaseUnit kg="1" m="2" s="-3"/></Unit>
+  </UnitDefinitions>
+  <CoSimulation modelIdentifier="GeothermalSource" canHandleVariableCommunicationStepSize="true" canGetAndSetFMUState="false" canSerializeFMUState="false"/>
+  <DefaultExperiment startTime="0" stopTime="10" tolerance="1e-8"/>
+  <ModelVariables>
+    <Float64 name="thermalPowerOut" valueReference="11" causality="output" variability="continuous" unit="W" start="500000" description="Synthetic geothermal thermal power output [W]"/>
+  </ModelVariables>
+  <ModelStructure>
+    <Output><Unknown index="1"/></Output>
+  </ModelStructure>
+</fmiModelDescription>
