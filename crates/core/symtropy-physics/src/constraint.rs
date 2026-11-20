@@ -230,3 +230,66 @@ mod tests {
         assert!((dist - 3.0).abs() < 0.1, "dist = {dist}, expected ~3.0");
     }
 }
+
+
+#[cfg(test)]
+mod motor_step_state_tests {
+    use super::MotorStepState;
+
+    fn close(actual: f64, expected: f64, tolerance: f64) {
+        assert!(
+            (actual - expected).abs() <= tolerance,
+            "actual {actual:.15e}, expected {expected:.15e}"
+        );
+    }
+
+    #[test]
+    fn repeated_solver_iterations_share_one_impulse_and_work_budget() {
+        for iterations in [1, 2, 4, 8] {
+            let mut state = MotorStepState::default();
+            let mut velocity = 0.0;
+            for _ in 0..iterations {
+                let (delta_impulse, velocity_after) = state
+                    .project_impulse(6.0, 10.0, velocity, 0.5)
+                    .expect("finite motor projection");
+                velocity = velocity_after;
+                if iterations == 1 {
+                    close(delta_impulse, 6.0, 1.0e-12);
+                }
+            }
+
+            close(state.accumulated_impulse(), 6.0, 1.0e-12);
+            close(velocity, 3.0, 1.0e-12);
+            close(state.take_work_receipt().expect("one work receipt"), 9.0, 1.0e-12);
+            assert_eq!(state.take_work_receipt(), None);
+        }
+    }
+
+    #[test]
+    fn effort_saturation_is_a_single_step_bound() {
+        let mut state = MotorStepState::default();
+        let (delta, velocity) = state
+            .project_impulse(100.0, 0.2, 0.0, 0.5)
+            .expect("finite saturated projection");
+        close(delta, 0.2, 1.0e-12);
+        close(velocity, 0.1, 1.0e-12);
+        for _ in 0..7 {
+            let (additional, after) = state
+                .project_impulse(100.0, 0.2, velocity, 0.5)
+                .expect("finite saturated projection");
+            close(additional, 0.0, 1.0e-12);
+            close(after, velocity, 1.0e-12);
+        }
+        close(state.accumulated_impulse(), 0.2, 1.0e-12);
+        close(state.take_work_receipt().expect("receipt"), 0.01, 1.0e-12);
+    }
+
+    #[test]
+    fn invalid_inputs_do_not_mutate_the_step_state() {
+        let mut state = MotorStepState::default();
+        assert_eq!(state.project_impulse(1.0, 1.0, 0.0, 0.0), None);
+        assert_eq!(state.project_impulse(f64::NAN, 1.0, 0.0, 1.0), None);
+        assert_eq!(state.accumulated_impulse(), 0.0);
+        assert_eq!(state.take_work_receipt(), None);
+    }
+}
