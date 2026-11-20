@@ -1464,6 +1464,25 @@ fn add_service_source_attestations(
             errors,
         );
     }
+
+    // The derived trajectory provider signs the trajectory digest with the
+    // exact source artifact digests as parents. This closes the provenance DAG:
+    // EvidenceProvider -> source bytes -> ServiceProvider -> service trajectory.
+    if let Some(requirement) = requirements.iter_mut().find(|requirement| {
+        requirement.artifact_uri == trajectory.artifact_uri
+            && requirement.signer_role == SignerRole::ServiceProvider
+    }) {
+        let mut service_parents = requirement.parent_artifact_sha256.clone();
+        service_parents.extend(
+            trajectory.source_artifacts.iter().map(|source| source.sha256.clone())
+        );
+        requirement.parent_artifact_sha256 = canonical_parent_digests(service_parents);
+    } else {
+        errors.push(
+            "final service trajectory has no distinct ServiceProvider attestation requirement"
+                .to_string(),
+        );
+    }
 }
 
 pub fn verify_restoration_claim_evidence(
@@ -2761,11 +2780,22 @@ mod tests {
         );
         assert!(errors.is_empty(), "{errors:?}");
         assert_eq!(requirements.len(), trajectory.source_artifacts.len());
-        assert!(requirements.iter().all(|requirement| {
+        assert!(requirements.iter().filter(|requirement| {
             requirement.signer_role == SignerRole::EvidenceProvider
-                && requirement.issuer_id == "synthetic-meter-data-source"
+        }).all(|requirement| {
+            requirement.issuer_id == "synthetic-meter-data-source"
                 && requirement.predicate_type == "power-restoration/service-source-evidence/v1"
+                && requirement.parent_artifact_sha256.contains(&canonical_case_sha256(&case).unwrap())
+                && requirement.parent_artifact_sha256.contains(&proposal_set_sha256(&receipt).unwrap())
         }));
+        let service_requirement = requirements.iter()
+            .find(|requirement| {
+                requirement.artifact_uri == trajectory.artifact_uri
+                    && requirement.signer_role == SignerRole::ServiceProvider
+            }).unwrap();
+        for source in &trajectory.source_artifacts {
+            assert!(service_requirement.parent_artifact_sha256.contains(&source.sha256));
+        }
         assert_eq!(expected_artifacts.len(), trajectory.source_artifacts.len());
     }
 
