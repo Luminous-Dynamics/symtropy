@@ -874,15 +874,15 @@ mod tests {
         };
         let delivery_input = serde_json::json!({
             "evidence_class": "synthetic",
-            "claim_ceiling": "Synthetic Earth-orbit campaign input."
+            "claim_ceiling": "Synthetic Earth-orbit campaign only."
         });
         let capture_input = serde_json::json!({
             "evidence_class": "synthetic",
-            "claim_ceiling": "Synthetic capture fixture input."
+            "claim_ceiling": "Synthetic capture contract only."
         });
         let fluid_input = serde_json::json!({
             "evidence_class": "synthetic",
-            "claim_ceiling": "Synthetic fluid fixture input."
+            "claim_ceiling": "Synthetic fluid accounting only."
         });
         let delivery_input_bytes = serde_json::to_vec(&delivery_input).expect("delivery input encodes");
         let capture_input_bytes = serde_json::to_vec(&capture_input).expect("capture input encodes");
@@ -1034,6 +1034,25 @@ mod tests {
             )
             .unwrap_err()
             .contains("campaign_sha256 does not match supplied source input bytes")
+        );
+    }
+
+    #[test]
+    fn report_claim_ceiling_must_equal_the_exact_source_input_claim() {
+        let (fixture, mut delivery, mut delivery_input, capture, capture_input, fluid, fluid_input) =
+            receipt_bundle_inputs();
+        let mut source: serde_json::Value = serde_json::from_slice(&delivery_input).unwrap();
+        source["claim_ceiling"] = serde_json::json!("broader-than-source-claim");
+        delivery_input = serde_json::to_vec(&source).unwrap();
+        let mut receipt: serde_json::Value = serde_json::from_slice(&delivery).unwrap();
+        receipt["campaign_sha256"] = serde_json::json!(sha256_hex(&delivery_input));
+        delivery = serde_json::to_vec(&receipt).unwrap();
+        assert!(
+            compose_receipt_bundle(
+                &fixture, &delivery, &delivery_input, &capture, &capture_input, &fluid, &fluid_input,
+            )
+            .unwrap_err()
+            .contains("report claim ceiling differs from exact source input")
         );
     }
 
