@@ -813,6 +813,16 @@ mod tests {
         }
     }
 
+    fn set_objective_bounds(
+        candidate: &mut DesignCandidate,
+        index: usize,
+        lower: f64,
+        upper: f64,
+    ) {
+        candidate.objectives[index].lower_bound = Some(lower);
+        candidate.objectives[index].upper_bound = Some(upper);
+    }
+
     fn constraint(margin: f64, unit: &str, class: EvidenceClass) -> ConstraintEvidence {
         ConstraintEvidence {
             name: String::new(),
@@ -1284,22 +1294,12 @@ mod tests {
         let mut a = candidate("point-better", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
         let mut b = candidate("point-worse", 1.1, 105.0, 0.88, EvidenceClass::IndependentPhysical);
         // A has better point estimates on all objectives, but the intervals overlap.
-        for (metric, lower, upper) in [
-            (&mut a.objectives[0], 0.8, 1.2),
-            (&mut a.objectives[1], 90.0, 110.0),
-            (&mut a.objectives[2], 0.85, 0.95),
-        ] {
-            metric.lower_bound = Some(lower);
-            metric.upper_bound = Some(upper);
-        }
-        for (metric, lower, upper) in [
-            (&mut b.objectives[0], 0.9, 1.3),
-            (&mut b.objectives[1], 95.0, 115.0),
-            (&mut b.objectives[2], 0.84, 0.94),
-        ] {
-            metric.lower_bound = Some(lower);
-            metric.upper_bound = Some(upper);
-        }
+        set_objective_bounds(&mut a, 0, 0.8, 1.2);
+        set_objective_bounds(&mut a, 1, 90.0, 110.0);
+        set_objective_bounds(&mut a, 2, 0.85, 0.95);
+        set_objective_bounds(&mut b, 0, 0.9, 1.3);
+        set_objective_bounds(&mut b, 1, 95.0, 115.0);
+        set_objective_bounds(&mut b, 2, 0.84, 0.94);
         let report = robust_pareto_report(&[a, b], &objective_defs(), &constraint_defs()).unwrap();
         assert_eq!(report.fronts[0].candidate_ids, vec!["point-better", "point-worse"]);
         assert!(report.assessments.iter().all(|assessment| assessment.dominated_by.is_empty()));
@@ -1309,22 +1309,12 @@ mod tests {
     fn pareto_034_nonoverlapping_objective_intervals_allow_robust_dominance() {
         let mut a = candidate("robust-winner", 1.0, 80.0, 0.9, EvidenceClass::IndependentPhysical);
         let mut b = candidate("robust-loser", 2.0, 100.0, 0.8, EvidenceClass::IndependentPhysical);
-        for (metric, lower, upper) in [
-            (&mut a.objectives[0], 0.9, 1.1),
-            (&mut a.objectives[1], 75.0, 85.0),
-            (&mut a.objectives[2], 0.88, 0.92),
-        ] {
-            metric.lower_bound = Some(lower);
-            metric.upper_bound = Some(upper);
-        }
-        for (metric, lower, upper) in [
-            (&mut b.objectives[0], 1.9, 2.1),
-            (&mut b.objectives[1], 95.0, 105.0),
-            (&mut b.objectives[2], 0.78, 0.82),
-        ] {
-            metric.lower_bound = Some(lower);
-            metric.upper_bound = Some(upper);
-        }
+        set_objective_bounds(&mut a, 0, 0.9, 1.1);
+        set_objective_bounds(&mut a, 1, 75.0, 85.0);
+        set_objective_bounds(&mut a, 2, 0.88, 0.92);
+        set_objective_bounds(&mut b, 0, 1.9, 2.1);
+        set_objective_bounds(&mut b, 1, 95.0, 105.0);
+        set_objective_bounds(&mut b, 2, 0.78, 0.82);
         let report = robust_pareto_report(&[a, b], &objective_defs(), &constraint_defs()).unwrap();
         assert_eq!(report.fronts[0].candidate_ids, vec!["robust-winner"]);
         assert_eq!(assessment(&report, "robust-loser").dominated_by, vec!["robust-winner"]);
@@ -1340,7 +1330,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_036_malformed_or_point-excluding_objective_interval_rejects() {
+    fn pareto_036_malformed_or_point_excluding_objective_interval_rejects() {
         let mut inverted = candidate("inverted", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
         inverted.objectives[0].lower_bound = Some(2.0);
         inverted.objectives[0].upper_bound = Some(1.0);
