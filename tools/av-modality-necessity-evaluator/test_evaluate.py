@@ -115,6 +115,26 @@ class EvaluatorTests(unittest.TestCase):
         score = evaluator.evaluate(self.workload, self.truth, candidate)
         self.assertTrue(any("necessary_modality_not_declared_as_used" in x["violations"] for x in score["hard_violations"]))
 
+
+    def test_conflicting_sources_may_be_safely_abstained(self):
+        candidate = copy.deepcopy(self.submission)
+        row = next(x for x in candidate["predictions"] if x["episode_id"] == "misaligned")
+        row.update(answer=None, confidence=0.0, abstained=True)
+        score = evaluator.evaluate(self.workload, self.truth, candidate)
+        result = next(x for x in score["per_episode"] if x["episode_id"] == "misaligned")
+        self.assertTrue(result["decision_correct"])
+        self.assertFalse(result["answer_correct"])
+        self.assertTrue(result["evidence_compliant"])
+
+    def test_conflict_episode_can_abstain_without_forced_association(self):
+        candidate = copy.deepcopy(self.submission)
+        row = next(x for x in candidate["predictions"] if x["episode_id"] == "misaligned")
+        row.update(answer=None, confidence=0.0, abstained=True, claimed_cross_modal_association=False)
+        score = evaluator.evaluate(self.workload, self.truth, candidate)
+        result = next(x for x in score["per_episode"] if x["episode_id"] == "misaligned")
+        self.assertTrue(result["decision_correct"])
+        self.assertEqual(result["violations"], [])
+
     def test_submission_must_cover_every_episode_once(self):
         candidate = copy.deepcopy(self.submission)
         candidate["predictions"].pop()
