@@ -106,8 +106,13 @@ pub struct StepReceipt {
     pub energy_before: f64,
     pub energy_after: f64,
     /// This is a numerical conservative-energy defect, not dissipation.
+    /// Kinetic-energy change over the step.
     pub energy_defect: f64,
     pub relative_energy_defect: f64,
+    /// Work of the constant body-force covectors over the realized displacement.
+    pub external_work: f64,
+    /// Kinetic-energy change minus external work; a numerical work-balance residual.
+    pub work_energy_residual: f64,
     pub link_constraint_residuals: [f64; EDGE_COUNT],
     pub relative_link_constraint_residuals: [f64; EDGE_COUNT],
     pub midpoint_constraint_residuals: [f64; EDGE_COUNT],
@@ -124,7 +129,8 @@ impl StepReceipt {
     pub fn preserves_links_within(&self, tolerance: f64) -> bool {
         tolerance.is_finite()
             && tolerance >= 0.0
-            && self.relative_link_constraint_residuals
+            && self
+                .relative_link_constraint_residuals
                 .iter()
                 .all(|residual| residual.is_finite() && *residual <= tolerance)
     }
@@ -132,7 +138,8 @@ impl StepReceipt {
     pub fn preserves_endpoint_tangency_within(&self, tolerance: f64) -> bool {
         tolerance.is_finite()
             && tolerance >= 0.0
-            && self.relative_endpoint_velocity_constraint_residuals
+            && self
+                .relative_endpoint_velocity_constraint_residuals
                 .iter()
                 .all(|residual| residual.is_finite() && *residual <= tolerance)
     }
@@ -166,6 +173,7 @@ pub fn norm(a: Vec3) -> f64 {
     dot(a, a).sqrt()
 }
 
+#[cfg(test)]
 fn rotate(value: Vec3, rotation_vector: Vec3) -> Vec3 {
     let angle = norm(rotation_vector);
     if angle < 1.0e-8 {
@@ -208,7 +216,10 @@ fn gram_matrix(
 ) -> [[f64; EDGE_COUNT]; EDGE_COUNT] {
     let mut gram = [[0.0; EDGE_COUNT]; EDGE_COUNT];
     for row in 0..EDGE_COUNT {
-        let relative_row = sub(positions[EDGES[edges[row]].1], positions[EDGES[edges[row]].0]);
+        let relative_row = sub(
+            positions[EDGES[edges[row]].1],
+            positions[EDGES[edges[row]].0],
+        );
         for column in 0..EDGE_COUNT {
             let relative_column = sub(
                 positions[EDGES[edges[column]].1],
@@ -273,10 +284,7 @@ fn matrix_rcond_2x2(matrix: [[f64; 2]; 2]) -> f64 {
 }
 
 impl CartesianRattleChain {
-    pub fn new(
-        masses: [f64; BODY_COUNT],
-        lengths: [f64; EDGE_COUNT],
-    ) -> Result<Self, Error> {
+    pub fn new(masses: [f64; BODY_COUNT], lengths: [f64; EDGE_COUNT]) -> Result<Self, Error> {
         if !masses.iter().all(|value| value.is_finite())
             || !lengths.iter().all(|value| value.is_finite())
             || masses.iter().any(|value| *value <= 0.0)
@@ -364,9 +372,8 @@ impl CartesianRattleChain {
                 length: self.lengths[1],
             },
         ];
-        let graph =
-            rank::ConstraintGraph3::new(revision, bodies, edges, policy)
-                .map_err(Error::RankPreflight)?;
+        let graph = rank::ConstraintGraph3::new(revision, bodies, edges, policy)
+            .map_err(Error::RankPreflight)?;
         let receipt = graph.assess_geometry().map_err(Error::RankPreflight)?;
         match receipt.status {
             rank::GeometryStatus::FullRank => Ok(receipt),
@@ -395,9 +402,8 @@ impl CartesianRattleChain {
             let relative_velocity = edge_velocity(state, edge);
             let position_residual =
                 (dot(relative_position, relative_position) - self.lengths[edge].powi(2)).abs();
-            let position_scale = 1.0
-                + dot(relative_position, relative_position)
-                + self.lengths[edge].powi(2);
+            let position_scale =
+                1.0 + dot(relative_position, relative_position) + self.lengths[edge].powi(2);
             if position_residual > self.constraint_tolerance * position_scale {
                 return Err(Error::InvalidInitialLinkConstraint { edge });
             }
@@ -416,17 +422,24 @@ impl CartesianRattleChain {
         &self,
         before: State,
         dt: f64,
+        external_force: [Vec3; BODY_COUNT],
         position_multipliers: [f64; EDGE_COUNT],
     ) -> (State, [f64; EDGE_COUNT], [[f64; EDGE_COUNT]; EDGE_COUNT]) {
         let mut after = before;
         for body in 0..BODY_COUNT {
-            after.q[body] = add(before.q[body], scale(before.v[body], dt));
+            after.q[body] = add(
+                add(before.q[body], scale(before.v[body], dt)),
+                scale(external_force[body], 0.5 * dt * dt / self.masses[body]),
+            );
             after.v[body] = before.v[body];
         }
         for edge in 0..EDGE_COUNT {
             let relative_position = edge_vector(before, edge);
             let (from, to) = EDGES[edge];
-            let impulse = scale(relative_position, 0.5 * dt * dt * position_multipliers[edge]);
+            let impulse = scale(
+                relative_position,
+                0.5 * dt * dt * position_multipliers[edge],
+            );
             after.q[from] = add(after.q[from], scale(impulse, 1.0 / self.masses[from]));
             after.q[to] = sub(after.q[to], scale(impulse, 1.0 / self.masses[to]));
         }
@@ -456,8 +469,7 @@ impl CartesianRattleChain {
     fn scaled_position_residual(&self, residuals: [f64; EDGE_COUNT]) -> f64 {
         let mut sum = 0.0;
         for edge in 0..EDGE_COUNT {
-            let scaled = residuals[edge]
-                / (1.0 + self.lengths[edge] * self.lengths[edge]);
+            let scaled = residuals[edge] / (1.0 + self.lengths[edge] * self.lengths[edge]);
             sum += scaled * scaled;
         }
         sum.sqrt()
@@ -467,13 +479,29 @@ impl CartesianRattleChain {
         &self,
         before: State,
         dt: f64,
+        external_force: [Vec3; BODY_COUNT],
         options: SolverOptions,
-    ) -> Result<(State, [f64; EDGE_COUNT], [[f64; EDGE_COUNT]; EDGE_COUNT], usize, usize), Error> {
+    ) -> Result<
+        (
+            State,
+            [f64; EDGE_COUNT],
+            [[f64; EDGE_COUNT]; EDGE_COUNT],
+            usize,
+            usize,
+        ),
+        Error,
+    > {
         // Acceleration-level multiplier estimate: C(q) lambda = |w_e|^2.
         let geometry = gram_matrix(before.q, self.masses, [0, 1]);
         let mut rhs = [0.0; EDGE_COUNT];
         for edge in 0..EDGE_COUNT {
-            rhs[edge] = dot(edge_velocity(before, edge), edge_velocity(before, edge));
+            let (from, to) = EDGES[edge];
+            let relative_acceleration = sub(
+                scale(external_force[to], 1.0 / self.masses[to]),
+                scale(external_force[from], 1.0 / self.masses[from]),
+            );
+            rhs[edge] = dot(edge_velocity(before, edge), edge_velocity(before, edge))
+                + dot(edge_vector(before, edge), relative_acceleration);
         }
         let mut multipliers = solve_2x2(
             geometry,
@@ -485,15 +513,13 @@ impl CartesianRattleChain {
         let mut backtracks = 0usize;
         let mut converged = false;
         let mut final_after = before;
-        let mut final_residuals = [0.0; EDGE_COUNT];
         let mut final_jacobian = [[0.0; EDGE_COUNT]; EDGE_COUNT];
 
         for iteration in 0..options.max_iterations {
             let (candidate_state, residuals, jacobian) =
-                self.shake_trial(before, dt, multipliers);
+                self.shake_trial(before, dt, external_force, multipliers);
             let residual_norm = self.scaled_position_residual(residuals);
             final_after = candidate_state;
-            final_residuals = residuals;
             final_jacobian = jacobian;
             if residual_norm <= options.relative_tolerance {
                 iterations = iteration;
@@ -515,12 +541,10 @@ impl CartesianRattleChain {
                     multipliers[1] + fraction * delta[1],
                 ];
                 if trial.iter().all(|value| value.is_finite()) {
-                    let (trial_state, trial_residuals, _) =
-                        self.shake_trial(before, dt, trial);
+                    let (_, trial_residuals, _) =
+                        self.shake_trial(before, dt, external_force, trial);
                     let trial_norm = self.scaled_position_residual(trial_residuals);
-                    if trial_norm < residual_norm
-                        || trial_norm <= options.relative_tolerance
-                    {
+                    if trial_norm < residual_norm || trial_norm <= options.relative_tolerance {
                         multipliers = trial;
                         accepted = true;
                         break;
@@ -537,12 +561,10 @@ impl CartesianRattleChain {
 
         if !converged {
             let (candidate_state, residuals, jacobian) =
-                self.shake_trial(before, dt, multipliers);
+                self.shake_trial(before, dt, external_force, multipliers);
             final_after = candidate_state;
-            final_residuals = residuals;
             final_jacobian = jacobian;
-            converged = self.scaled_position_residual(residuals)
-                <= options.relative_tolerance;
+            converged = self.scaled_position_residual(residuals) <= options.relative_tolerance;
         }
         if !converged {
             return Err(Error::NoConvergence);
@@ -564,11 +586,15 @@ impl CartesianRattleChain {
         after_positions: [Vec3; BODY_COUNT],
         position_multipliers: [f64; EDGE_COUNT],
         dt: f64,
+        external_force: [Vec3; BODY_COUNT],
         options: SolverOptions,
     ) -> Result<(State, [f64; EDGE_COUNT]), Error> {
         let mut half_momentum = [[0.0; 3]; BODY_COUNT];
         for body in 0..BODY_COUNT {
-            half_momentum[body] = scale(before.v[body], self.masses[body]);
+            half_momentum[body] = add(
+                scale(before.v[body], self.masses[body]),
+                scale(external_force[body], 0.5 * dt),
+            );
         }
         for edge in 0..EDGE_COUNT {
             let r0 = edge_vector(before, edge);
@@ -578,6 +604,11 @@ impl CartesianRattleChain {
             half_momentum[to] = sub(half_momentum[to], impulse);
         }
 
+        // The second half of the constant external-force kick is applied
+        // before the endpoint constraint projection.
+        for body in 0..BODY_COUNT {
+            half_momentum[body] = add(half_momentum[body], scale(external_force[body], 0.5 * dt));
+        }
         let mut after = State {
             q: after_positions,
             v: [[0.0; 3]; BODY_COUNT],
@@ -614,12 +645,28 @@ impl CartesianRattleChain {
         Ok((after, velocity_multipliers))
     }
 
+    /// Force-free compatibility wrapper around the constant-force RATTLE step.
     pub fn step(
         &self,
         before: State,
         dt: f64,
         options: SolverOptions,
     ) -> Result<StepReceipt, Error> {
+        self.step_with_force(before, dt, [[0.0; 3]; BODY_COUNT], options)
+    }
+
+    /// Velocity-Verlet/RATTLE step under constant per-body external force
+    /// covectors. The force acts in both half-kicks and in the SHAKE free drift.
+    pub fn step_with_force(
+        &self,
+        before: State,
+        dt: f64,
+        external_force: [Vec3; BODY_COUNT],
+        options: SolverOptions,
+    ) -> Result<StepReceipt, Error> {
+        if !external_force.iter().flatten().all(|value| value.is_finite()) {
+            return Err(Error::NonFiniteInput);
+        }
         let options = options.validate()?;
         if !dt.is_finite() || dt <= 0.0 {
             return Err(Error::InvalidTimeStep);
@@ -630,12 +677,13 @@ impl CartesianRattleChain {
         let angular_before = self.angular_momentum(before);
 
         let (position_state, position_multipliers, position_jacobian, iterations, backtracks) =
-            self.solve_position_stage(before, dt, options)?;
+            self.solve_position_stage(before, dt, external_force, options)?;
         let (after, velocity_multipliers) = self.project_endpoint_momentum(
             before,
             position_state.q,
             position_multipliers,
             dt,
+            external_force,
             options,
         )?;
         let geometry_after = self.graph_receipt(after, options.rank_policy, 1)?;
@@ -657,41 +705,57 @@ impl CartesianRattleChain {
             let rbar = scale(add(r0, r1), 0.5);
             let wbar = scale(add(w0, w1), 0.5);
             midpoint_residuals[edge] = dot(rbar, wbar);
-            relative_midpoint_residuals[edge] = midpoint_residuals[edge].abs()
-                / (1.0 + norm(rbar) * norm(wbar));
+            relative_midpoint_residuals[edge] =
+                midpoint_residuals[edge].abs() / (1.0 + norm(rbar) * norm(wbar));
             endpoint_residuals[edge] = dot(r1, w1);
-            relative_endpoint_residuals[edge] = endpoint_residuals[edge].abs()
-                / (1.0 + self.lengths[edge] * norm(w1));
+            relative_endpoint_residuals[edge] =
+                endpoint_residuals[edge].abs() / (1.0 + self.lengths[edge] * norm(w1));
         }
 
-        if relative_link_residuals.iter().any(|value| !value.is_finite())
-            || relative_midpoint_residuals.iter().any(|value| !value.is_finite())
-            || relative_endpoint_residuals.iter().any(|value| !value.is_finite())
+        if relative_link_residuals
+            .iter()
+            .any(|value| !value.is_finite())
+            || relative_midpoint_residuals
+                .iter()
+                .any(|value| !value.is_finite())
+            || relative_endpoint_residuals
+                .iter()
+                .any(|value| !value.is_finite())
         {
             return Err(Error::NonFiniteResult);
         }
-        if relative_link_residuals.iter().any(|value| *value > self.constraint_tolerance)
-            || relative_endpoint_residuals.iter().any(|value| *value > self.constraint_tolerance)
+        if relative_link_residuals
+            .iter()
+            .any(|value| *value > self.constraint_tolerance)
+            || relative_endpoint_residuals
+                .iter()
+                .any(|value| *value > self.constraint_tolerance)
         {
             return Err(Error::NoConvergence);
         }
 
         let energy_after = self.hamiltonian(after)?;
         let energy_defect = energy_after - energy_before;
-        let relative_energy_defect = energy_defect.abs()
-            / (1.0 + energy_before.abs() + energy_after.abs());
+        let relative_energy_defect =
+            energy_defect.abs() / (1.0 + energy_before.abs() + energy_after.abs());
+        let external_work = (0..BODY_COUNT)
+            .map(|body| dot(external_force[body], sub(after.q[body], before.q[body])))
+            .sum::<f64>();
+        let work_energy_residual = energy_defect - external_work;
         let linear_after = self.linear_momentum(after);
         let linear_residual = sub(linear_after, linear_before);
-        let relative_linear_residual = norm(linear_residual)
-            / (1.0 + norm(linear_before) + norm(linear_after));
+        let relative_linear_residual =
+            norm(linear_residual) / (1.0 + norm(linear_before) + norm(linear_after));
         let angular_after = self.angular_momentum(after);
         let angular_residual = sub(angular_after, angular_before);
-        let relative_angular_residual = norm(angular_residual)
-            / (1.0 + norm(angular_before) + norm(angular_after));
+        let relative_angular_residual =
+            norm(angular_residual) / (1.0 + norm(angular_before) + norm(angular_after));
         let position_jacobian_rcond = matrix_rcond_2x2(position_jacobian);
 
         if !energy_defect.is_finite()
             || !relative_energy_defect.is_finite()
+            || !external_work.is_finite()
+            || !work_energy_residual.is_finite()
             || !relative_linear_residual.is_finite()
             || !relative_angular_residual.is_finite()
             || !position_jacobian_rcond.is_finite()
@@ -710,8 +774,11 @@ impl CartesianRattleChain {
             ],
             position_jacobian,
             position_jacobian_rcond,
-            geometric_rank: geometry_before.numerical_rank.min(geometry_after.numerical_rank),
-            geometric_rcond: geometry_before.reciprocal_condition_indicator
+            geometric_rank: geometry_before
+                .numerical_rank
+                .min(geometry_after.numerical_rank),
+            geometric_rcond: geometry_before
+                .reciprocal_condition_indicator
                 .min(geometry_after.reciprocal_condition_indicator),
             newton_iterations: iterations,
             backtracks,
@@ -719,6 +786,8 @@ impl CartesianRattleChain {
             energy_after,
             energy_defect,
             relative_energy_defect,
+            external_work,
+            work_energy_residual,
             link_constraint_residuals: link_residuals,
             relative_link_constraint_residuals: relative_link_residuals,
             midpoint_constraint_residuals: midpoint_residuals,
@@ -733,11 +802,7 @@ impl CartesianRattleChain {
     }
 }
 
-fn final_constraint_residual(
-    state: &State,
-    lengths: [f64; EDGE_COUNT],
-    edge: usize,
-) -> f64 {
+fn final_constraint_residual(state: &State, lengths: [f64; EDGE_COUNT], edge: usize) -> f64 {
     let r = edge_vector(*state, edge);
     0.5 * (dot(r, r) - lengths[edge] * lengths[edge])
 }
@@ -750,11 +815,7 @@ mod tests {
 
     fn initial_state() -> State {
         State {
-            q: [
-                [-0.45, 0.10, 0.30],
-                [0.25, 0.60, 0.60],
-                [0.05, 1.40, 1.10],
-            ],
+            q: [[-0.45, 0.10, 0.30], [0.25, 0.60, 0.60], [0.05, 1.40, 1.10]],
             v: [
                 [0.0723809523809524, -0.262857142857143, 0.313174603174603],
                 [0.1723809523809524, -0.242857142857143, 0.0465079365079363],
@@ -808,13 +869,7 @@ mod tests {
                 gram[row][column] = value;
             }
         }
-        let lambda = solve_2x2(
-            gram,
-            rhs,
-            1.0e-14,
-            Error::SingularVelocityGram,
-        )
-        .unwrap();
+        let lambda = solve_2x2(gram, rhs, 1.0e-14, Error::SingularVelocityGram).unwrap();
         let mut acceleration = [[0.0; 3]; BODY_COUNT];
         for body in 0..BODY_COUNT {
             for edge in 0..EDGE_COUNT {
@@ -842,12 +897,7 @@ mod tests {
         result
     }
 
-    fn rk4_reference(
-        mut state: State,
-        masses: [f64; BODY_COUNT],
-        dt: f64,
-        steps: usize,
-    ) -> State {
+    fn rk4_reference(mut state: State, masses: [f64; BODY_COUNT], dt: f64, steps: usize) -> State {
         for _ in 0..steps {
             let k1 = continuous_rhs(state, masses);
             let k2 = continuous_rhs(state_add_scaled(state, k1, 0.5 * dt), masses);
@@ -910,7 +960,10 @@ mod tests {
         let j0 = model.angular_momentum(initial);
         let mut state = initial;
         for _ in 0..2000 {
-            state = model.step(state, 0.002, SolverOptions::default()).unwrap().after;
+            state = model
+                .step(state, 0.002, SolverOptions::default())
+                .unwrap()
+                .after;
         }
         assert!(norm(sub(model.linear_momentum(state), p0)) < 5.0e-11);
         assert!(norm(sub(model.angular_momentum(state), j0)) < 5.0e-11);
@@ -922,10 +975,13 @@ mod tests {
         let initial = initial_state();
         let reference = rk4_reference(initial, MASSES, 1.0 / 40_000.0, 40_000);
         let mut errors = Vec::new();
-        for dt in [0.02, 0.01, 0.005, 0.0025] {
+        for dt in [0.02_f64, 0.01, 0.005, 0.0025] {
             let mut state = initial;
             for _ in 0..(1.0 / dt).round() as usize {
-                state = model.step(state, dt, SolverOptions::default()).unwrap().after;
+                state = model
+                    .step(state, dt, SolverOptions::default())
+                    .unwrap()
+                    .after;
             }
             errors.push(state_error(state, reference));
         }
@@ -951,7 +1007,11 @@ mod tests {
             ];
             let rotation = scale(raw, 0.173 * (index as f64 + 1.0) / norm(raw));
             let rotated = model
-                .step(rotate_state(initial, rotation), 0.01, SolverOptions::default())
+                .step(
+                    rotate_state(initial, rotation),
+                    0.01,
+                    SolverOptions::default(),
+                )
                 .unwrap();
             assert!(state_error(rotated.after, rotate_state(normal.after, rotation)) < 2.0e-10);
         }
@@ -977,9 +1037,7 @@ mod tests {
                     add(normal.after.q[body], scale(boost, 0.01))
                 )) < 2.0e-10
             );
-            assert!(
-                norm(sub(boosted.after.v[body], add(normal.after.v[body], boost))) < 2.0e-10
-            );
+            assert!(norm(sub(boosted.after.v[body], add(normal.after.v[body], boost))) < 2.0e-10);
         }
     }
 
@@ -989,18 +1047,24 @@ mod tests {
         let mut invalid = initial_state();
         invalid.q[1][0] += 0.1;
         assert_eq!(
-            model.step(invalid, 0.01, SolverOptions::default()).unwrap_err(),
+            model
+                .step(invalid, 0.01, SolverOptions::default())
+                .unwrap_err(),
             Error::RankPreflight(rank::GraphError::PositionDoesNotMatchEdge { edge_id: 101 })
         );
 
         let mut nonfinite = initial_state();
         nonfinite.v[2][1] = f64::NAN;
         assert_eq!(
-            model.step(nonfinite, 0.01, SolverOptions::default()).unwrap_err(),
+            model
+                .step(nonfinite, 0.01, SolverOptions::default())
+                .unwrap_err(),
             Error::NonFiniteInput
         );
         assert_eq!(
-            model.step(initial_state(), 0.0, SolverOptions::default()).unwrap_err(),
+            model
+                .step(initial_state(), 0.0, SolverOptions::default())
+                .unwrap_err(),
             Error::InvalidTimeStep
         );
         assert_eq!(
@@ -1023,11 +1087,7 @@ mod tests {
 #[cfg(not(test))]
 fn main() {
     let state = State {
-        q: [
-            [-0.45, 0.10, 0.30],
-            [0.25, 0.60, 0.60],
-            [0.05, 1.40, 1.10],
-        ],
+        q: [[-0.45, 0.10, 0.30], [0.25, 0.60, 0.60], [0.05, 1.40, 1.10]],
         v: [
             [0.0723809523809524, -0.262857142857143, 0.313174603174603],
             [0.1723809523809524, -0.242857142857143, 0.0465079365079363],
@@ -1061,3 +1121,7 @@ fn main() {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "dense_coordinate_covariance.rs"]
+mod dense_coordinate_covariance;

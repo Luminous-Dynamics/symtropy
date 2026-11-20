@@ -1,0 +1,434 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/dense-coupled-coordinate-covariance-001/fixtures/dense_coupled_chain_rattle_step_case_v0.2.schema.json",
+  "title": "Dense coupled-chain RATTLE step covariance fixture v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "status",
+    "coordinate_convention",
+    "units",
+    "physical_model",
+    "transformation_laws",
+    "physical_generators",
+    "basis_cases",
+    "negative_control_expectations",
+    "claim_boundary",
+    "separate_force_duality_control",
+    "step_map_case"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0"
+    },
+    "case_id": {
+      "type": "string",
+      "const": "symtropy-dense-coupled-chain-rattle-step-covariance-v0.2"
+    },
+    "status": {
+      "const": "dense_coordinate_rattle_step_map_test_vector"
+    },
+    "coordinate_convention": {
+      "type": "string",
+      "minLength": 1
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "position",
+        "velocity",
+        "mass",
+        "force",
+        "time"
+      ],
+      "properties": {
+        "position": {
+          "const": "m"
+        },
+        "velocity": {
+          "const": "m/s"
+        },
+        "mass": {
+          "const": "kg"
+        },
+        "force": {
+          "const": "N"
+        },
+        "time": {
+          "const": "s"
+        }
+      }
+    },
+    "physical_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "masses",
+        "initial_position",
+        "initial_velocity",
+        "external_force_covector",
+        "time_step",
+        "constraints",
+        "initial_constraint_tangency_residuals"
+      ],
+      "properties": {
+        "masses": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "initial_position": {
+          "$ref": "#/$defs/vector9"
+        },
+        "initial_velocity": {
+          "$ref": "#/$defs/vector9"
+        },
+        "external_force_covector": {
+          "$ref": "#/$defs/vector9"
+        },
+        "time_step": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "constraints": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "edge_id",
+              "bodies",
+              "length_squared",
+              "jacobian_row"
+            ],
+            "properties": {
+              "edge_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "bodies": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2
+                },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "length_squared": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "jacobian_row": {
+                "$ref": "#/$defs/vector9"
+              }
+            }
+          }
+        },
+        "initial_constraint_tangency_residuals": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    },
+    "transformation_laws": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      },
+      "required": [
+        "mass_metric",
+        "position",
+        "velocity",
+        "force_covector",
+        "constraint_jacobian",
+        "momentum_covector",
+        "physical_generator",
+        "constraint_multiplier"
+      ]
+    },
+    "physical_generators": {
+      "type": "string",
+      "minLength": 1
+    },
+    "basis_cases": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "determinant_exact",
+          "basis_matrix",
+          "inverse_basis_matrix",
+          "condition_number_2_reference",
+          "transformed_mass_metric_condition_number_2_reference",
+          "expected_transformed_position",
+          "expected_transformed_velocity",
+          "expected_transformed_force_covector",
+          "expected_transformed_constraint_jacobian",
+          "expected_transformed_momentum_covector",
+          "expected_so3_metric_skew_defect_inf",
+          "one_form_pairing"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "determinant_exact": {
+            "const": 1
+          },
+          "basis_matrix": {
+            "$ref": "#/$defs/matrix9Integer"
+          },
+          "inverse_basis_matrix": {
+            "$ref": "#/$defs/matrix9Integer"
+          },
+          "condition_number_2_reference": {
+            "type": "number",
+            "exclusiveMinimum": 1
+          },
+          "transformed_mass_metric_condition_number_2_reference": {
+            "type": "number",
+            "exclusiveMinimum": 1
+          },
+          "expected_transformed_position": {
+            "$ref": "#/$defs/vector9"
+          },
+          "expected_transformed_velocity": {
+            "$ref": "#/$defs/vector9"
+          },
+          "expected_transformed_force_covector": {
+            "$ref": "#/$defs/vector9"
+          },
+          "expected_transformed_constraint_jacobian": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/vector9"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "expected_transformed_momentum_covector": {
+            "$ref": "#/$defs/vector9"
+          },
+          "expected_so3_metric_skew_defect_inf": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": 0
+            },
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "one_form_pairing": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "canonical",
+              "transformed",
+              "absolute_defect"
+            ],
+            "properties": {
+              "canonical": {
+                "type": "number"
+              },
+              "transformed": {
+                "type": "number"
+              },
+              "absolute_defect": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "negative_control_expectations": {
+      "type": "object",
+      "minProperties": 6,
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "claim_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "established_by_fixture",
+        "not_established"
+      ],
+      "properties": {
+        "established_by_fixture": {
+          "type": "string",
+          "minLength": 1
+        },
+        "not_established": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "separate_force_duality_control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "external_force_covector",
+        "use"
+      ],
+      "properties": {
+        "external_force_covector": {
+          "$ref": "#/$defs/vector9"
+        },
+        "use": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "step_map_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "integrator",
+        "dt",
+        "solver_profile",
+        "dense_path_contract",
+        "reference_path",
+        "comparison",
+        "claim_boundary"
+      ],
+      "properties": {
+        "integrator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dt": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "solver_profile": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "relative_tolerance",
+            "max_iterations",
+            "max_backtracks",
+            "pivot_tolerance"
+          ],
+          "properties": {
+            "relative_tolerance": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "max_iterations": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "max_backtracks": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "pivot_tolerance": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "dense_path_contract": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "comparison": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lifted_position_max_abs_tolerance",
+            "lifted_velocity_max_abs_tolerance",
+            "position_multiplier_max_abs_tolerance",
+            "velocity_multiplier_max_abs_tolerance",
+            "per_edge_squared_length_residual_max_abs",
+            "endpoint_tangency_max_abs"
+          ],
+          "properties": {
+            "lifted_position_max_abs_tolerance": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "lifted_velocity_max_abs_tolerance": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "position_multiplier_max_abs_tolerance": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "velocity_multiplier_max_abs_tolerance": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "per_edge_squared_length_residual_max_abs": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "endpoint_tangency_max_abs": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "claim_boundary": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "$defs": {
+    "vector9": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 9,
+      "maxItems": 9
+    },
+    "matrix9Integer": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "minItems": 9,
+        "maxItems": 9
+      },
+      "minItems": 9,
+      "maxItems": 9
+    }
+  }
+}

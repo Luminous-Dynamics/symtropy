@@ -2,6 +2,7 @@ name: Rank-aware constraint graph diagnostics
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - "tools/constraint-graph-rank/**"
       - "docs/research/CONSTRAINT_GRAPH_RANK_DIAGNOSTICS_2026-10-31.md"
@@ -15,13 +16,16 @@ permissions:
 
 jobs:
   rank-diagnostics:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact commit
         uses: actions/checkout@v4
 
       - name: Install pinned Rust toolchain
-        run: rustup toolchain install 1.96.0 --profile minimal
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal
+          rustup component add rustfmt --toolchain 1.96.0
 
       - name: Check formatting
         run: rustup run 1.96.0 rustfmt --edition 2021 --check tools/constraint-graph-rank/constraint_graph_rank.rs

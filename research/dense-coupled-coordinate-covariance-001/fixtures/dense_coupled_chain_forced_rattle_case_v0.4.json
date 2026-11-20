@@ -1,0 +1,768 @@
+{
+  "schema_version": "0.4.0",
+  "case_id": "symtropy-dense-coupled-chain-forced-rattle-covariance-v0.4",
+  "status": "dense_coordinate_forced_rattle_step_map_test_vector",
+  "coordinate_convention": "q = S y; 9D generalized coordinates are body-major xyz",
+  "units": {
+    "position": "m",
+    "velocity": "m/s",
+    "mass": "kg",
+    "force": "N",
+    "time": "s"
+  },
+  "physical_model": {
+    "masses": [
+      1.3,
+      2.1,
+      0.8
+    ],
+    "initial_position": [
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      1,
+      0.5
+    ],
+    "initial_velocity": [
+      0.1,
+      0.2,
+      -0.1,
+      0.1,
+      0.5,
+      0,
+      0.3,
+      0.6,
+      -0.2
+    ],
+    "external_force_covector": [
+      0.4,
+      -0.2,
+      0.1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "time_step": 0.01,
+    "constraints": [
+      {
+        "edge_id": "e01",
+        "bodies": [
+          0,
+          1
+        ],
+        "length_squared": 1,
+        "jacobian_row": [
+          -1,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "edge_id": "e12",
+        "bodies": [
+          1,
+          2
+        ],
+        "length_squared": 1.25,
+        "jacobian_row": [
+          0,
+          0,
+          0,
+          0,
+          -1,
+          -0.5,
+          0,
+          1,
+          0.5
+        ]
+      }
+    ],
+    "initial_constraint_tangency_residuals": [
+      0,
+      0
+    ]
+  },
+  "transformation_laws": {
+    "mass_metric": "M_y = S^T M_q S",
+    "position": "y = S^-1 q",
+    "velocity": "v_y = S^-1 v_q",
+    "force_covector": "Q_y = S^T Q_q",
+    "constraint_jacobian": "J_y = J_q S",
+    "momentum_covector": "p_y = S^T p_q",
+    "physical_generator": "A_y = S^-1 A_q S",
+    "constraint_multiplier": "unchanged when original constraint functions are composed with S without rescaling"
+  },
+  "physical_generators": "Standard simultaneous SO(3) x,y,z infinitesimal generators, block-diagonal over the three bodies.",
+  "basis_cases": [
+    {
+      "id": "dense_shear_1",
+      "determinant_exact": 1,
+      "basis_matrix": [
+        [
+          2,
+          1,
+          1,
+          1,
+          -1,
+          -1,
+          -1,
+          -1,
+          0
+        ],
+        [
+          1,
+          2,
+          1,
+          1,
+          -1,
+          -1,
+          -1,
+          -1,
+          0
+        ],
+        [
+          1,
+          1,
+          2,
+          1,
+          -1,
+          -1,
+          -1,
+          -1,
+          0
+        ],
+        [
+          2,
+          2,
+          2,
+          3,
+          -2,
+          -2,
+          -2,
+          -2,
+          0
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          0,
+          -1,
+          -1,
+          -1,
+          0
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          -1,
+          0,
+          -1,
+          -1,
+          0
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          -1,
+          -1,
+          0,
+          -1,
+          0
+        ],
+        [
+          2,
+          2,
+          2,
+          2,
+          -2,
+          -2,
+          -2,
+          -1,
+          0
+        ],
+        [
+          3,
+          3,
+          3,
+          3,
+          -3,
+          -3,
+          -3,
+          -3,
+          1
+        ]
+      ],
+      "inverse_basis_matrix": [
+        [
+          0,
+          -1,
+          -1,
+          -1,
+          1,
+          1,
+          1,
+          1,
+          0
+        ],
+        [
+          -1,
+          0,
+          -1,
+          -1,
+          1,
+          1,
+          1,
+          1,
+          0
+        ],
+        [
+          -1,
+          -1,
+          0,
+          -1,
+          1,
+          1,
+          1,
+          1,
+          0
+        ],
+        [
+          -2,
+          -2,
+          -2,
+          -1,
+          2,
+          2,
+          2,
+          2,
+          0
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          2,
+          1,
+          1,
+          1,
+          0
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          1,
+          2,
+          1,
+          1,
+          0
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          1,
+          1,
+          2,
+          1,
+          0
+        ],
+        [
+          -2,
+          -2,
+          -2,
+          -2,
+          2,
+          2,
+          2,
+          3,
+          0
+        ],
+        [
+          -3,
+          -3,
+          -3,
+          -3,
+          3,
+          3,
+          3,
+          3,
+          1
+        ]
+      ],
+      "condition_number_2_reference": 185.994623500501,
+      "transformed_mass_metric_condition_number_2_reference": 33712.94140961074,
+      "expected_transformed_position": [
+        1,
+        1,
+        1,
+        3,
+        1,
+        1,
+        2,
+        3,
+        3.5
+      ],
+      "expected_transformed_velocity": [
+        1.2,
+        1.3,
+        1,
+        2.3,
+        1.6,
+        1.1,
+        1.4,
+        2.8,
+        3.1
+      ],
+      "expected_transformed_force_covector": [
+        0.7000000000000001,
+        0.1,
+        0.4,
+        0.30000000000000004,
+        -0.30000000000000004,
+        -0.30000000000000004,
+        -0.30000000000000004,
+        -0.30000000000000004,
+        0
+      ],
+      "expected_transformed_constraint_jacobian": [
+        [
+          0,
+          1,
+          1,
+          2,
+          -1,
+          -1,
+          -1,
+          -1,
+          0
+        ],
+        [
+          2,
+          2,
+          2,
+          2,
+          -3,
+          -2.5,
+          -2,
+          -1,
+          0.5
+        ]
+      ],
+      "expected_transformed_momentum_covector": [
+        2.58,
+        2.71,
+        2.32,
+        2.66,
+        -1.4,
+        -2.45,
+        -2.21,
+        -1.97,
+        -0.16
+      ],
+      "expected_so3_metric_skew_defect_inf": [
+        5.59e-13,
+        2.58e-13,
+        4.98e-13
+      ],
+      "one_form_pairing": {
+        "canonical": -1.732,
+        "transformed": -1.732,
+        "absolute_defect": 0
+      }
+    },
+    {
+      "id": "dense_shear_2",
+      "determinant_exact": 1,
+      "basis_matrix": [
+        [
+          3,
+          2,
+          2,
+          2,
+          -2,
+          -2,
+          -2,
+          -2,
+          0
+        ],
+        [
+          2,
+          3,
+          2,
+          2,
+          -2,
+          -2,
+          -2,
+          -2,
+          0
+        ],
+        [
+          2,
+          2,
+          3,
+          2,
+          -2,
+          -2,
+          -2,
+          -2,
+          0
+        ],
+        [
+          4,
+          4,
+          4,
+          5,
+          -4,
+          -4,
+          -4,
+          -4,
+          0
+        ],
+        [
+          2,
+          2,
+          2,
+          2,
+          -1,
+          -2,
+          -2,
+          -2,
+          0
+        ],
+        [
+          2,
+          2,
+          2,
+          2,
+          -2,
+          -1,
+          -2,
+          -2,
+          0
+        ],
+        [
+          2,
+          2,
+          2,
+          2,
+          -2,
+          -2,
+          -1,
+          -2,
+          0
+        ],
+        [
+          4,
+          4,
+          4,
+          4,
+          -4,
+          -4,
+          -4,
+          -3,
+          0
+        ],
+        [
+          6,
+          6,
+          6,
+          6,
+          -6,
+          -6,
+          -6,
+          -6,
+          1
+        ]
+      ],
+      "inverse_basis_matrix": [
+        [
+          -1,
+          -2,
+          -2,
+          -2,
+          2,
+          2,
+          2,
+          2,
+          0
+        ],
+        [
+          -2,
+          -1,
+          -2,
+          -2,
+          2,
+          2,
+          2,
+          2,
+          0
+        ],
+        [
+          -2,
+          -2,
+          -1,
+          -2,
+          2,
+          2,
+          2,
+          2,
+          0
+        ],
+        [
+          -4,
+          -4,
+          -4,
+          -3,
+          4,
+          4,
+          4,
+          4,
+          0
+        ],
+        [
+          -2,
+          -2,
+          -2,
+          -2,
+          3,
+          2,
+          2,
+          2,
+          0
+        ],
+        [
+          -2,
+          -2,
+          -2,
+          -2,
+          2,
+          3,
+          2,
+          2,
+          0
+        ],
+        [
+          -2,
+          -2,
+          -2,
+          -2,
+          2,
+          2,
+          3,
+          2,
+          0
+        ],
+        [
+          -4,
+          -4,
+          -4,
+          -4,
+          4,
+          4,
+          4,
+          5,
+          0
+        ],
+        [
+          -6,
+          -6,
+          -6,
+          -6,
+          6,
+          6,
+          6,
+          6,
+          1
+        ]
+      ],
+      "condition_number_2_reference": 737.998644983973,
+      "transformed_mass_metric_condition_number_2_reference": 520513.261569179,
+      "expected_transformed_position": [
+        2,
+        2,
+        2,
+        5,
+        2,
+        2,
+        3,
+        5,
+        6.5
+      ],
+      "expected_transformed_velocity": [
+        2.3,
+        2.4,
+        2.1,
+        4.5,
+        2.7,
+        2.2,
+        2.5,
+        5,
+        6.4
+      ],
+      "expected_transformed_force_covector": [
+        1.0000000000000002,
+        0.39999999999999997,
+        0.7000000000000001,
+        0.6000000000000001,
+        -0.6000000000000001,
+        -0.6000000000000001,
+        -0.6000000000000001,
+        -0.6000000000000001,
+        0
+      ],
+      "expected_transformed_constraint_jacobian": [
+        [
+          1,
+          2,
+          2,
+          3,
+          -2,
+          -2,
+          -2,
+          -2,
+          0
+        ],
+        [
+          4,
+          4,
+          4,
+          4,
+          -5,
+          -4.5,
+          -4,
+          -3,
+          0.5
+        ]
+      ],
+      "expected_transformed_momentum_covector": [
+        5.03,
+        5.16,
+        4.77,
+        5.11,
+        -3.85,
+        -4.9,
+        -4.66,
+        -4.42,
+        -0.16
+      ],
+      "expected_so3_metric_skew_defect_inf": [
+        9.947e-12,
+        1.497e-12,
+        5.889e-12
+      ],
+      "one_form_pairing": {
+        "canonical": -3.447,
+        "transformed": -3.447,
+        "absolute_defect": 4.44e-16
+      }
+    }
+  ],
+  "negative_control_expectations": {
+    "force_as_vector_instead_of_covector": "nonzero force/work duality defect",
+    "inverse_mass_congruence": "nonzero kinetic-metric defect",
+    "constraint_jacobian_with_inverse_basis": "nonzero constraint/tangent covariance defect",
+    "wrong_generator_conjugation": "nonzero metric-skew defect",
+    "identity_metric_after_rebasis": "rejected as an invalid transformed physical metric",
+    "singular_basis_transform": "rejected before solver execution"
+  },
+  "claim_boundary": {
+    "established_by_fixture": "frozen exact integer basis/inverse data, algebraic force covector laws, and a constant-force dense-coordinate RATTLE comparison input with independent equation-level reference values",
+    "not_established": "successful forced dense-coordinate RATTLE equivalence until exact-head Rust tests pass; time-varying or state-dependent force, pHDAE step equivalence, closed-loop integration, contact/friction, physical calibration, production readiness, performance advantage"
+  },
+  "separate_force_duality_control": {
+    "external_force_covector": [
+      0.4,
+      -0.2,
+      0.1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "use": "applied constant body-0 force for the matched Cartesian/dense RATTLE step; additionally test S^T Q covector power duality against the deliberately wrong S^-1 Q vector law"
+  },
+  "step_map_case": {
+    "integrator": "constant-force velocity-Verlet SHAKE/RATTLE: half force kick, coupled SHAKE position solve, second force half-kick, RATTLE endpoint momentum projection",
+    "dt": 0.01,
+    "applied_force_model": "constant force covector on body 0 only; bodies 1 and 2 have zero applied force",
+    "solver_profile": {
+      "relative_tolerance": 1e-13,
+      "max_iterations": 32,
+      "max_backtracks": 24,
+      "pivot_tolerance": 1e-13
+    },
+    "dense_path_contract": "solve y-space SHAKE and RATTLE equations directly with M_y and J_y and Q_y=S^T Q_q; apply force in both half-kicks and in the free drift; never call the Cartesian step solver from the dense implementation",
+    "reference_path": "independent CartesianRattleChain::step_with_force on identical physical masses, positions, velocities, body forces, links and dt",
+    "comparison": {
+      "lifted_position_max_abs_tolerance": 3e-8,
+      "lifted_velocity_max_abs_tolerance": 3e-8,
+      "position_multiplier_max_abs_tolerance": 3e-8,
+      "velocity_multiplier_max_abs_tolerance": 3e-8,
+      "per_edge_squared_length_residual_max_abs": 2e-12,
+      "endpoint_tangency_max_abs": 3e-9,
+      "force_covector_power_pairing_abs_tolerance": 1e-10,
+      "wrong_vector_force_power_defect_minimum": 0.01,
+      "work_energy_balance_residual_max_abs": 0.000002
+    },
+    "claim_boundary": "This is a frozen constant-force one-step RATTLE vector. It does not qualify time-varying force, state-dependent force Jacobians, pHDAE equivalence, contact/friction, long-horizon forced integration or physical calibration."
+  },
+  "expected_cartesian_reference": {
+    "position": [
+      0.001008984643691528,
+      0.0019923076923076925,
+      -0.0009961538461538463,
+      1.0010039618872384,
+      0.005000991358266545,
+      4.95679133272476e-7,
+      1.003,
+      1.0059973976845504,
+      0.49799869884227516
+    ],
+    "velocity": [
+      0.10179846480785,
+      0.19845961752440786,
+      -0.09923140555591733,
+      0.10079162346812849,
+      0.5001990790143844,
+      0.000099092207644122,
+      0.29999948308340646,
+      0.5994805391100781,
+      -0.2002590830167002
+    ],
+    "position_multipliers": [
+      -0.1663992640202769,
+      0.04163704719488798
+    ],
+    "velocity_multipliers": [
+      -0.16600071971991018,
+      0.04143540868925833
+    ],
+    "external_work": -0.00009448306560031196,
+    "kinetic_energy_work_balance_residual": 2.063453827157993e-9
+  }
+}
