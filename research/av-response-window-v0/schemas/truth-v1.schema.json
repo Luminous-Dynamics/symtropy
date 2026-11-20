@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-response-window-truth-v1.schema.json",
+  "title": "AV Response Window Evaluator Truth v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "warning",
+    "episodes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "av-response-window-v0"
+    },
+    "warning": {
+      "type": "string"
+    },
+    "episodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "episode_id",
+          "opportunities"
+        ],
+        "properties": {
+          "episode_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "opportunities": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "opportunity_id",
+                "trigger_ref",
+                "expected_participation"
+              ],
+              "properties": {
+                "opportunity_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "trigger_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "expected_participation": {
+                  "enum": [
+                    "respond",
+                    "silent"
+                  ]
+                },
+                "window_start_tick": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "window_end_tick": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "expected_content": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_refs": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "expected_participation": {
+                        "const": "respond"
+                      }
+                    },
+                    "required": [
+                      "expected_participation"
+                    ]
+                  },
+                  "then": {
+                    "required": [
+                      "window_start_tick",
+                      "window_end_tick",
+                      "expected_content"
+                    ],
+                    "properties": {
+                      "window_end_tick": {
+                        "exclusiveMinimum": 0
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
