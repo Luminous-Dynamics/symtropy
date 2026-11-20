@@ -26,6 +26,8 @@ The five radial functions are \(b,f,g,h,w\). The gauge \(g(r)=r^2\) is imposed o
 - An executed high-precision reference for the areal-to-isotropic map of the static BD exterior and its linear-spin transformation.
 - An exact radial-diffeomorphism Noether identity, a differential-algebraic reduction of the spin-squared system, and an exact Laurent asymptotic for the horizon algebraic pivot.
 - A matched-asymptotic strong-coupling reference for the isotropic horizon coordinate, showing exponential chart compression and motivating a horizon-relative logarithmic radial chart.
+- A radial Noether identity and spin-squared DAE/horizon-pivot research lane, with independent symbolic fixtures.
+- New branch-topology and hyperbolicity qualification protocols: [#6333](https://github.com/Luminous-Dynamics/symtropy/issues/6333) and [#6334](https://github.com/Luminous-Dynamics/symtropy/issues/6334).
 
 The finite-\(\alpha\) first-order angular mode obeys
 \[
@@ -96,6 +98,9 @@ A successful research script is not a substitute for compiling the Rust implemen
 3. **L2 spin squared:** solve the finite-coupling linear BVP for \(B_2,F_2,H_2\), retain \(E_g\), verify horizon/infinity conditions and exact MP limit.
 4. **L3 nonlinear rotating branch:** reproduce the published 5D equal-spin EGB branch with matched \((r_H,\alpha,\Omega_H)\); compare both continuation directions and both radial gauges.
 5. **L4 physical qualification:** thermodynamic first law, independent full-domain residual bounds, and only then perturbation/QNM calculations.
+
+6. **L5 branch topology:** pseudo-arclength continuation, fold/branch-point detection and deflated disconnected-branch searches under #6333.
+7. **L6 hyperbolicity:** physical principal-symbol and strong-hyperbolicity qualification under #6334; separate from mode stability and EFT validity.
 
 The common scorecard includes held-out residuals, full-domain enclosures, angular flux drift, radial-constraint defect, asymptotic charges, horizon observables, first-law defect, gauge mismatch, spectral tails, conditioning, convergence failures, runtime, memory and energy per qualified solution.
 
