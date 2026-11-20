@@ -360,6 +360,7 @@ fn validate_work_milestones(
     errors: &mut Vec<String>,
 ) {
     let mut ids = BTreeSet::new();
+    let interval_ms = u64::from(trajectory.timebase.interval_duration_seconds) * 1_000;
     for milestone in &trajectory.work_milestones {
         if !valid_id(&milestone.milestone_id)
             || !ids.insert(milestone.milestone_id.as_str())
@@ -367,8 +368,34 @@ fn validate_work_milestones(
             || !valid_id(&milestone.evidence_ref)
             || !is_lower_hex(&milestone.evidence_sha256, 64)
             || milestone.step >= case.timebase.horizon_steps
+            || milestone.observed_at_unix_ms == 0
         {
             errors.push(format!("work milestone {} has invalid identity, evidence or time", milestone.milestone_id));
+            continue;
+        }
+
+        let asset_known = case.network.nodes.iter().any(|item| item.node_id == milestone.asset_id)
+            || case.network.branches.iter().any(|item| item.branch_id == milestone.asset_id)
+            || case.network.switches.iter().any(|item| item.switch_id == milestone.asset_id)
+            || case.network.loads.iter().any(|item| item.load_id == milestone.asset_id)
+            || case.network.grid_sources.iter().any(|item| item.source_id == milestone.asset_id)
+            || case.faults.iter().any(|item| item.fault_id == milestone.asset_id)
+            || case.repair_crews.iter().any(|item| item.crew_id == milestone.asset_id)
+            || case.mobile_power_sources.iter().any(|item| item.mobile_source_id == milestone.asset_id);
+        if !asset_known {
+            errors.push(format!(
+                "work milestone {} references unknown asset {}",
+                milestone.milestone_id, milestone.asset_id
+            ));
+        }
+        let start = trajectory.timebase.first_interval_start_unix_ms
+            .checked_add(u64::from(milestone.step).saturating_mul(interval_ms));
+        let end = start.and_then(|value| value.checked_add(interval_ms));
+        if !matches!((start, end), (Some(start), Some(end)) if milestone.observed_at_unix_ms >= start && milestone.observed_at_unix_ms < end) {
+            errors.push(format!(
+                "work milestone {} timestamp falls outside its declared interval",
+                milestone.milestone_id
+            ));
         }
     }
 }
@@ -376,8 +403,8 @@ fn validate_work_milestones(
 fn validate_parent_service_artifacts(
     trajectory: &ServiceTrajectoryRecord,
     receipt: &RunReceipt,
-    errors: &mut Vec<String>,
-) {
+) -> Result<(), Vec<String>> {
+    let mut errors = Vec::new();
     let mut expected: Vec<(String, String)> = receipt
         .decision_steps
         .iter()
@@ -411,6 +438,7 @@ fn validate_parent_service_artifacts(
             errors.push(format!("aggregate service trajectory has invalid or duplicate parent artifact {uri}"));
         }
     }
+    if errors.is_empty() { Ok(()) } else { Err(errors) }
 }
 
 fn validate_common(
@@ -437,9 +465,12 @@ fn validate_common(
         errors.push("service trajectory identity, case/run binding, service boundary or native unit is invalid".to_string());
     }
 
+    let expected_interval_ms = case_interval_duration_ms(case);
     if !valid_id(&trajectory.timebase.timezone_id)
         || trajectory.timebase.horizon_steps != case.timebase.horizon_steps
-        || trajectory.timebase.interval_duration_seconds != case_interval_duration_ms(case).unwrap_or(0) as u32 / 1_000
+        || expected_interval_ms
+            .ok()
+            .is_none_or(|interval_ms| interval_ms != u64::from(trajectory.timebase.interval_duration_seconds) * 1_000)
     {
         errors.push("service trajectory timezone, horizon or interval does not match the frozen case timebase".to_string());
     }
@@ -454,12 +485,25 @@ fn validate_common(
         errors.push("modelled/measured service requires at least one source artifact".to_string());
     }
     let mut source_uris = BTreeSet::new();
+    let mut source_digests = BTreeMap::new();
     for source in &trajectory.source_artifacts {
         if !valid_id(&source.artifact_ref)
             || !is_lower_hex(&source.sha256, 64)
             || !source_uris.insert(source.artifact_ref.as_str())
         {
             errors.push(format!("service source artifact {} is invalid or duplicated", source.artifact_ref));
+        }
+        source_digests.insert(source.artifact_ref.as_str(), source.sha256.as_str());
+    }
+
+    if trajectory.stream_kind == ServiceStreamKind::MeasuredService {
+        if let (Some(calibration_ref), Some(calibration_digest)) = (
+            trajectory.producer.calibration_artifact_ref.as_deref(),
+            trajectory.producer.calibration_artifact_sha256.as_deref(),
+        ) {
+            if source_digests.get(calibration_ref).copied() != Some(calibration_digest) {
+                errors.push("meter calibration artifact must be present in the source artifact set with its exact digest".to_string());
+            }
         }
     }
 
