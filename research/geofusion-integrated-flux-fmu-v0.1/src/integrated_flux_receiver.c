@@ -16,8 +16,11 @@ typedef struct {
     fmi3Float64 storageDeltaEnergyJ;
     fmi3Float64 cumulativeStoredEnergyJ;
     fmi3Boolean inputSet;
+    fmi3Boolean initializationEntered;
     fmi3Boolean initialized;
     fmi3Boolean terminated;
+    fmi3Boolean stopTimeDefined;
+    fmi3Float64 stopTime;
 } IntegratedFluxReceiver;
 
 FMI3_Export const char *fmi3GetVersion(void) {
@@ -46,7 +49,8 @@ FMI3_Export fmi3Instance fmi3InstantiateCoSimulation(
     (void)instanceEnvironment;
     (void)logMessage;
     (void)intermediateUpdate;
-    if (instanceName == NULL || instantiationToken == NULL || visible) return NULL;
+    if (instanceName == NULL || instantiationToken == NULL || visible
+        || eventModeUsed || nRequiredIntermediateVariables != 0) return NULL;
     if (strcmp(instantiationToken, "integrated-flux-receiver-token-v0.1") != 0) return NULL;
     return calloc(1, sizeof(IntegratedFluxReceiver));
 }
@@ -63,10 +67,13 @@ FMI3_Export fmi3Status fmi3EnterInitializationMode(
     fmi3Boolean stopTimeDefined,
     fmi3Float64 stopTime) {
     IntegratedFluxReceiver *receiver = instance;
-    if (receiver == NULL || receiver->initialized || receiver->terminated || !isfinite(startTime)
+    if (receiver == NULL || receiver->initializationEntered || receiver->initialized || receiver->terminated || !isfinite(startTime)
         || (toleranceDefined && (!isfinite(tolerance) || tolerance <= 0.0))
         || (stopTimeDefined && (!isfinite(stopTime) || stopTime <= startTime))) return fmi3Error;
     receiver->time = startTime;
+    receiver->stopTimeDefined = stopTimeDefined;
+    receiver->stopTime = stopTime;
+    receiver->initializationEntered = fmi3True;
     receiver->pendingIntervalEnergyJ = 0.0;
     receiver->serviceEnergyJ = 0.0;
     receiver->lossEnergyJ = 0.0;
@@ -78,7 +85,7 @@ FMI3_Export fmi3Status fmi3EnterInitializationMode(
 
 FMI3_Export fmi3Status fmi3ExitInitializationMode(fmi3Instance instance) {
     IntegratedFluxReceiver *receiver = instance;
-    if (receiver == NULL || receiver->initialized || receiver->terminated) return fmi3Error;
+    if (receiver == NULL || !receiver->initializationEntered || receiver->initialized || receiver->terminated) return fmi3Error;
     receiver->initialized = fmi3True;
     return fmi3OK;
 }
@@ -146,7 +153,10 @@ FMI3_Export fmi3Status fmi3DoStep(
     const fmi3Float64 nextTime = currentCommunicationPoint + communicationStepSize;
     const fmi3Float64 residual = receiver->pendingIntervalEnergyJ - service - loss - storage;
     if (!isfinite(service) || !isfinite(loss) || !isfinite(storage)
-        || !isfinite(nextStoredEnergy) || !isfinite(nextTime) || !isfinite(residual)
+        || !isfinite(nextStoredEnergy) || !isfinite(nextTime)
+        || nextTime <= currentCommunicationPoint
+        || (receiver->stopTimeDefined && nextTime > receiver->stopTime)
+        || !isfinite(residual)
         || fabs(residual) > 16.0 * DBL_EPSILON * fmax(receiver->pendingIntervalEnergyJ, 1.0)) {
         return fmi3Error;
     }
