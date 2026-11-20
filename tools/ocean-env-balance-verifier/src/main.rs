@@ -1072,7 +1072,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index:
                 "outfall" => pair.outfall.temporal_rate_mg_l_per_s,
                 _ => plume_by_role.get(role)
                     .map(|sample| sample.temporal_rate_mg_l_per_s)
-                    .unwrap_or(0.0),
+                    .ok_or_else(|| format!("analyte {} missing temporal sensitivity for {role}", pair.analyte_id))?,
             };
             let lag_sensitivity = if role == "independent_reference_control" {
                 0.0
