@@ -59,7 +59,7 @@ def main() -> None:
     )
     exact_zero(
         "Wald entropy cutoff derivative",
-        sp.diff(wald_entropy_cutoff,eps)-wald_density_4G/(4*G)
+        sp.diff(wald_entropy_cutoff,eps)+wald_density_4G/(4*G)
     )
 
     # Asymptotic local density and integrated entropy.
@@ -108,7 +108,7 @@ def main() -> None:
         delta,0,4
     ).removeO()
     expected_wald_reexpanded=(
-        primitive_at_axis-5/(2*delta**2)-5*s-sp.Rational(7,2)*beta*delta**2
+        primitive_at_axis-5/(2*delta**2)-5*s+(sp.Rational(15,2)*s**2-sp.Rational(7,2)*beta)*delta**2
     )
     exact_zero("Wald defining-function re-expansion",
                wald_bracket_in_delta-expected_wald_reexpanded)
