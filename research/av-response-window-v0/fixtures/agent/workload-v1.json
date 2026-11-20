@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-response-window-v0",
+  "note": "Synthetic prompt/trigger timelines only; no raw audio/video or measured latency.",
+  "episodes": [
+    {
+      "episode_id": "rw-001-spi-on-time",
+      "task_class": "spi",
+      "prompt": "Intervene if a spoken statement introduces an imminent safety misconception.",
+      "query_tick": 0,
+      "response_deadline_tick": 30,
+      "stream_events": [
+        {
+          "event_id": "e1",
+          "kind": "trigger",
+          "tick": 5,
+          "trigger_ref": "trig-1"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-002-vti-start-boundary",
+      "task_class": "vti",
+      "prompt": "Intervene when the visual stream shows the specified emerging hazard.",
+      "query_tick": 0,
+      "response_deadline_tick": 40,
+      "stream_events": [
+        {
+          "event_id": "e2",
+          "kind": "trigger",
+          "tick": 10,
+          "trigger_ref": "trig-2"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-003-cqi-end-minus-one",
+      "task_class": "cqi",
+      "prompt": "Answer the visually grounded query at the appropriate moment.",
+      "query_tick": 0,
+      "response_deadline_tick": 40,
+      "stream_events": [
+        {
+          "event_id": "e3",
+          "kind": "trigger",
+          "tick": 5,
+          "trigger_ref": "trig-3"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-004-overlapping-windows",
+      "task_class": "ora",
+      "prompt": "Coordinate two distinct participants without assigning one response twice.",
+      "query_tick": 0,
+      "response_deadline_tick": 40,
+      "stream_events": [
+        {
+          "event_id": "e4a",
+          "kind": "trigger",
+          "tick": 5,
+          "trigger_ref": "trig-4a"
+        },
+        {
+          "event_id": "e4b",
+          "kind": "trigger",
+          "tick": 8,
+          "trigger_ref": "trig-4b"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-005-cat-action-tracking",
+      "task_class": "cat",
+      "prompt": "Report the completed repeated action count after its valid cue.",
+      "query_tick": 0,
+      "response_deadline_tick": 60,
+      "stream_events": [
+        {
+          "event_id": "e5",
+          "kind": "trigger",
+          "tick": 30,
+          "trigger_ref": "trig-5"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-006-spi-second",
+      "task_class": "spi",
+      "prompt": "Correct the new actionable misconception during the second interaction.",
+      "query_tick": 0,
+      "response_deadline_tick": 50,
+      "stream_events": [
+        {
+          "event_id": "e6",
+          "kind": "trigger",
+          "tick": 20,
+          "trigger_ref": "trig-6"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-007-expected-silence",
+      "task_class": "cqi",
+      "prompt": "Continue listening; no response is requested in this interval.",
+      "query_tick": 0,
+      "response_deadline_tick": 40,
+      "stream_events": [
+        {
+          "event_id": "e7",
+          "kind": "observation",
+          "tick": 10
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-008-canceled-trigger",
+      "task_class": "spi",
+      "prompt": "A prior intervention opportunity is canceled before it becomes actionable.",
+      "query_tick": 0,
+      "response_deadline_tick": 50,
+      "stream_events": [
+        {
+          "event_id": "e8t",
+          "kind": "trigger",
+          "tick": 10,
+          "trigger_ref": "trig-8"
+        },
+        {
+          "event_id": "e8c",
+          "kind": "cancel",
+          "tick": 15,
+          "trigger_ref": "trig-8"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-009-duplicate-trigger",
+      "task_class": "vti",
+      "prompt": "One underlying trigger is redelivered; intervene only once.",
+      "query_tick": 0,
+      "response_deadline_tick": 40,
+      "stream_events": [
+        {
+          "event_id": "e9t",
+          "kind": "trigger",
+          "tick": 10,
+          "trigger_ref": "trig-9"
+        },
+        {
+          "event_id": "e9d",
+          "kind": "duplicate_trigger",
+          "tick": 12,
+          "trigger_ref": "trig-9"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-010-silence-again",
+      "task_class": "avat",
+      "prompt": "Remain silent while the other speaker is still completing a turn.",
+      "query_tick": 0,
+      "response_deadline_tick": 60,
+      "stream_events": [
+        {
+          "event_id": "e10",
+          "kind": "observation",
+          "tick": 20
+        }
+      ]
+    }
+  ]
+}
