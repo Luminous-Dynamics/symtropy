@@ -1456,9 +1456,13 @@ fn add_service_source_attestations(
             // match the source producer asserted by this trajectory.
             if existing.issuer_id != evidence_profile.issuer_id
                 || existing.artifact_sha256 != source.sha256
+                || existing.run_id != receipt.run_id
+                || existing.case_sha256 != case_sha256
+                || existing.tool_source_commit != evidence_profile.tool_source_commit
+                || existing.tool_configuration_sha256 != evidence_profile.tool_configuration_sha256
             {
                 errors.push(format!(
-                    "existing EvidenceProvider attestation for {} does not match the trajectory's source identity and digest",
+                    "existing EvidenceProvider attestation for {} does not match the trajectory's source identity, bytes, run/case or pinned tool profile",
                     source.artifact_ref
                 ));
             }
