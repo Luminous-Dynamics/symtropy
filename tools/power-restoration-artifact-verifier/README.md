@@ -1,6 +1,6 @@
 # Power restoration artifact verifier v0.1
 
-**Owner:** Symtropy #6402  
+**Owner:** Symtropy #6402 and end-to-end claim gate #6419  
 **Run receipt:** #6352 / PR #6366  
 **Observation evidence:** #6397 / PR #6401  
 **Physical validation tier:** #6353  
@@ -35,6 +35,37 @@ cargo run --locked --manifest-path tools/power-restoration-artifact-verifier/Car
 
 The requirements file is a JSON array of `ExpectedAttestationBinding` records. It must be derived from the exact run receipt, observation results, independent validator receipts and service/scorer evidence—not copied from untrusted artifact claims. Missing, extra, duplicate or unexpected subject/role envelopes fail closed. The CLI defaults to a 64 MiB maximum per artifact; library callers can set a tighter bound.
 
+## End-to-end restoration claim CLI
+
+The `power-restoration-claim-verify` binary consumes the typed benchmark case, run receipt, per-proposal observation-result batches, bundle manifest and attestation envelopes. It derives the artifact and signature obligations itself; callers cannot choose a reduced subset.
+
+```sh
+cargo run --locked --manifest-path tools/power-restoration-artifact-verifier/Cargo.toml --bin power-restoration-claim-verify -- \
+  ./evidence-bundle \
+  ./claim-package.json \
+  ./trusted-roots/power-grid-root.json \
+  <out-of-band-trust-root-sha256> \
+  ./trusted-producers.json \
+  <verification-time-unix-ms>
+```
+
+The claim package contains `case`, `runReceipt`, `observationBatches`, `manifest`, `attestations`, and `runReceiptArtifactUri`. The trust-root digest, producer profiles and verification time are supplied separately from the evidence bundle. Producer profiles pin issuer identity, tool source commit and configuration digest for run recorders, service providers and evidence providers.
+
+The integrated gate derives requirements for:
+- canonical run receipt and each signed decision-observation snapshot;
+- each planner proposal (or raw malformed planner output);
+- every observation batch, evidence artifact and source snapshot;
+- every transition and independent-validator receipt;
+- every per-step and final service trajectory;
+- the aggregate scorer receipt;
+- every serialized attestation envelope itself.
+
+It verifies the exact artifact inventory (no missing or extra entries), exact byte digests, signature subjects and parents, signer roles, issuer identities and time/revocation policy. Every action precondition must resolve to previously acquired evidence whose digest matches and whose availability, freshness and quality are admissible at that decision epoch. Source-provenance references must identify the exact serialized provider attestation.
+
+Role policy separates planner, run recorder, evidence provider, transition engine, independent/electrical validator, service provider and scorer keys by public-key fingerprint. A single key cannot impersonate two producer identities, even through key-ID aliases.
+
+The resulting status is deliberately scoped: a completed synthetic case is reported as a synthetic evidence-chain completion, not a physical restoration success. A field-observed case still requires qualified domain methods; a signature authenticates a claim, it does not prove that claim true.
+
 ## Security properties
 
 - Manifest paths must be normalized relative paths with only normal components; absolute paths, \`..\`, symlinks, non-files and bundle-root escapes are rejected.
@@ -44,7 +75,7 @@ The requirements file is a JSON array of `ExpectedAttestationBinding` records. I
 - Ed25519 uses \`verify_strict\`, rejecting weak public keys and noncanonical/malleable signatures under the selected library policy.
 - Trust roots are digest-pinned out of band. Key IDs, producer identities, allowed roles, validity intervals and revocation are checked.
 - Attestation payloads bind predicate type, subject URI/digest, run ID, case digest, decision step, proposal digest, tool source commit/configuration, expiry and parent artifact digests.
-- Role separation compares public-key fingerprints rather than key-ID strings, so aliases for the same key do not bypass the separation check.
+- Role separation compares public-key fingerprints rather than key-ID strings, so aliases for the same key do not bypass the separation check. A public key cannot authenticate multiple producer identities, even within one role.
 - The bundle resolver returns an opaque `VerifiedBundle` type with a private constructor. The high-level attestation-set verifier accepts only that type, so downstream code cannot manufacture a success-shaped manifest report without first resolving and hashing artifact bytes.
 - The attestation-set verifier requires an exact caller-declared set of subject/role obligations, rejects missing, duplicate and unexpected envelopes, verifies all bindings and enforces role separation.
 
@@ -56,7 +87,7 @@ The resolver verifies every declared artifact. It does not yet enforce a closed-
 
 A trusted signature authenticates that a trusted key signed the bound claim. It **does not prove that the claim is true**. An electrical-validator signature is not a load-flow calculation, protection study, switching safety approval or operator authorization. A service-provider signature is not itself proof that customers received service. Each producer must still execute its independently qualified domain method, and the run receipt must bind the resulting artifacts.
 
-This crate does not yet parse the full #6352 run receipt or #6397 information-result report end-to-end. A caller must derive and supply the required attestation obligations from those records. The verified-bundle type and exact attestation-set API establish the offline manifest, bytes, signature and role-separation primitive for that integration.
+The end-to-end claim gate parses and qualifies the existing #6352 run receipt and #6397 observation batches and derives its own required artifact/signature set. It does not parse domain-specific contents inside arbitrary transition, validator, service or scorer artifacts beyond their exact digests and signed parent bindings; domain-specific semantic receipt validators remain necessary.
 
 ## Synthetic fixture
 
