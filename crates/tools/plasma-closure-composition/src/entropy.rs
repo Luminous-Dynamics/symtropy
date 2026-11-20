@@ -340,6 +340,7 @@ mod tests {
             physics_model_id: "synthetic-conservation-law".into(),
             conserved_state_id: "u".into(),
             closure_quantity_id: "fhat".into(),
+            component_layout_id: "single-scalar-flux-v1".into(),
             species_scope_id: "single-species".into(),
             normalization_id: "dimensionless".into(),
             units_id: "flux-units".into(),
