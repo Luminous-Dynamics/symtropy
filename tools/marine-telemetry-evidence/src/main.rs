@@ -93,6 +93,9 @@ struct SourceRecord {
     transport: String,
     trust_status: String,
     identity_status: String,
+    identity_evidence_sha256: String,
+    device_identity_ref: String,
+    calibration_chain_id: String,
     firmware_sha256: String,
     decoder_id: String,
     decoder_version: String,
@@ -131,6 +134,8 @@ struct SourceCursor {
     boot_epoch_id: String,
     boot_epoch_ordinal: u64,
     source_sequence: u64,
+    observed_at: DateTime<FixedOffset>,
+    received_at: DateTime<FixedOffset>,
 }
 
 fn build_source_registry(
@@ -164,17 +169,26 @@ fn build_source_registry(
             }
         }
         if string_at(item, "gateway_id").is_none_or(str::is_empty)
+            || string_at(item, "network_segment_id").is_none_or(str::is_empty)
+            || string_at(item, "power_domain_id").is_none_or(str::is_empty)
+            || string_at(item, "calibration_chain_id").is_none_or(str::is_empty)
             || string_at(item, "device_identity_ref").is_none_or(str::is_empty)
             || string_at(item, "decoder_id").is_none_or(str::is_empty)
             || string_at(item, "decoder_version").is_none_or(str::is_empty)
+            || !["nmea2000_can","iec61162_450_ethernet","synthetic"].contains(&string_at(item,"transport").unwrap_or(""))
+            || !["verified","unverified","revoked"].contains(&string_at(item,"identity_status").unwrap_or(""))
+            || !["qualified","quarantined","revoked"].contains(&string_at(item,"trust_status").unwrap_or(""))
         {
-            errors.push(format!("source '{source_id}' lacks gateway, device or decoder identity"));
+            errors.push(format!("source '{source_id}' lacks valid gateway, device, decoder, transport or trust identity"));
         }
         let record = SourceRecord {
             gateway_id: string_at(item, "gateway_id").unwrap_or("").to_owned(),
             transport: string_at(item, "transport").unwrap_or("").to_owned(),
             trust_status: string_at(item, "trust_status").unwrap_or("").to_owned(),
             identity_status: string_at(item, "identity_status").unwrap_or("").to_owned(),
+            identity_evidence_sha256: string_at(item, "identity_evidence_sha256").unwrap_or("").to_owned(),
+            device_identity_ref: string_at(item, "device_identity_ref").unwrap_or("").to_owned(),
+            calibration_chain_id: string_at(item, "calibration_chain_id").unwrap_or("").to_owned(),
             firmware_sha256: string_at(item, "firmware_sha256").unwrap_or("").to_owned(),
             decoder_id: string_at(item, "decoder_id").unwrap_or("").to_owned(),
             decoder_version: string_at(item, "decoder_version").unwrap_or("").to_owned(),
@@ -227,6 +241,18 @@ fn build_signal_contracts(
         ];
         if numeric_fields.iter().any(|field| number_at(item, field).is_none()) {
             errors.push(format!("signal '{signal_id}' has non-finite numeric contract values"));
+            continue;
+        }
+        let future_skew = number_at(item,"max_future_clock_skew_seconds").unwrap_or(-1.0);
+        let clock_uncertainty = number_at(item,"max_clock_uncertainty_seconds").unwrap_or(-1.0);
+        let measurement_uncertainty = number_at(item,"max_measurement_uncertainty").unwrap_or(-1.0);
+        let disagreement = number_at(item,"max_source_disagreement").unwrap_or(-1.0);
+        let coverage = number_at(item,"minimum_coverage_fraction").unwrap_or(-1.0);
+        if future_skew < 0.0 || clock_uncertainty < 0.0
+            || measurement_uncertainty < 0.0 || disagreement < 0.0
+            || !(0.0..=1.0).contains(&coverage)
+        {
+            errors.push(format!("signal '{signal_id}' has negative tolerances or invalid coverage"));
             continue;
         }
         if string_at(item, "unit").is_none_or(str::is_empty) {
@@ -327,6 +353,10 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         };
 
         let raw_hex = string_at(observation, "raw_frame_hex").unwrap_or("");
+        if raw_hex.len() < 4 || raw_hex.len() > 512 || raw_hex.len() % 2 != 0 {
+            errors.push(format!("sample '{sample_id}' raw frame must contain 2..=256 complete bytes"));
+            continue;
+        }
         match decode_hex(raw_hex) {
             Some(bytes) if string_at(observation, "raw_frame_sha256") == Some(sha256_hex(&bytes).as_str()) => {}
             _ => errors.push(format!("sample '{sample_id}' raw_frame_sha256 does not match raw_frame_hex")),
@@ -343,6 +373,9 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             || source.identity_status != "verified"
             || string_at(observation,"transport") != Some(source.transport.as_str())
             || string_at(observation,"gateway_id") != Some(source.gateway_id.as_str())
+            || string_at(observation,"device_identity_ref") != Some(source.device_identity_ref.as_str())
+            || string_at(observation,"identity_evidence_sha256") != Some(source.identity_evidence_sha256.as_str())
+            || string_at(observation,"calibration_chain_id") != Some(source.calibration_chain_id.as_str())
             || string_at(observation,"firmware_sha256") != Some(source.firmware_sha256.as_str())
             || string_at(observation,"decoder_id") != Some(source.decoder_id.as_str())
             || string_at(observation,"decoder_version") != Some(source.decoder_version.as_str())
@@ -369,12 +402,18 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             boot_epoch_id: string_at(observation,"boot_epoch_id").unwrap_or("").to_owned(),
             boot_epoch_ordinal: u64_at(observation,"boot_epoch_ordinal").unwrap_or(0),
             source_sequence: u64_at(observation,"source_sequence").unwrap_or(0),
+            observed_at,
+            received_at,
         };
         if cursor.boot_epoch_id.is_empty() || cursor.source_sequence == 0 {
             errors.push(format!("sample '{sample_id}' has missing boot epoch or source sequence"));
             continue;
         }
         if let Some(previous) = cursors.get(&source_id) {
+            if cursor.received_at < previous.received_at || cursor.observed_at < previous.observed_at {
+                errors.push(format!("sample '{sample_id}' source or gateway event time moved backwards"));
+                continue;
+            }
             if cursor.boot_epoch_id == previous.boot_epoch_id {
                 if cursor.boot_epoch_ordinal != previous.boot_epoch_ordinal
                     || cursor.source_sequence <= previous.source_sequence
@@ -600,8 +639,8 @@ mod tests {
         }
         let observations_copy=value["observations"].clone();
         value["observations_sha256"]=json!(canonical_digest(&observations_copy).unwrap());
-        value["batch_sha256"]=Value::Null;
-        value["batch_sha256"]=json!(digest_without_field(value,"batch_sha256").unwrap());
+        let batch_digest=digest_without_field(value,"batch_sha256").unwrap();
+        value["batch_sha256"]=json!(batch_digest);
     }
 
     fn audit(value: &Value) -> Value {
@@ -709,6 +748,36 @@ mod tests {
     fn unknown_clock_quality_is_not_treated_as_synchronized() {
         let mut value=fixture();
         value["observations"][0]["clock_quality"]=json!("unknown");
+        reseal(&mut value);
+        assert_eq!(audit(&value)["disposition"],"DEGRADED/ABSTAIN");
+    }
+
+    #[test]
+    fn out_of_order_delivery_is_rejected_even_when_samples_are_fresh() {
+        let mut value=fixture();
+        value["observations"][1]["source_id"]=json!("tank-level-a");
+        value["observations"][1]["boot_epoch_id"]=json!("boot-a-001");
+        value["observations"][1]["boot_epoch_ordinal"]=json!(1);
+        value["observations"][1]["source_sequence"]=json!(1002);
+        value["observations"][1]["gateway_id"]=json!("gateway-a");
+        value["observations"][1]["transport"]=json!("nmea2000_can");
+        value["observations"][1]["firmware_sha256"]=value["source_registry"][0]["firmware_sha256"].clone();
+        value["observations"][1]["decoder_id"]=value["source_registry"][0]["decoder_id"].clone();
+        value["observations"][1]["decoder_version"]=value["source_registry"][0]["decoder_version"].clone();
+        value["observations"][1]["decoder_sha256"]=value["source_registry"][0]["decoder_sha256"].clone();
+        value["observations"][1]["device_identity_ref"]=value["source_registry"][0]["device_identity_ref"].clone();
+        value["observations"][1]["identity_evidence_sha256"]=value["source_registry"][0]["identity_evidence_sha256"].clone();
+        value["observations"][1]["calibration_chain_id"]=value["source_registry"][0]["calibration_chain_id"].clone();
+        value["observations"][1]["received_at"]=json!("2026-11-20T04:59:21Z");
+        value["observations"][1]["observed_at"]=json!("2026-11-20T04:59:19Z");
+        reseal(&mut value);
+        assert_eq!(audit(&value)["disposition"],"INVALID");
+    }
+
+    #[test]
+    fn observation_identity_must_bind_the_registered_device_and_calibration_chain() {
+        let mut value=fixture();
+        value["observations"][0]["device_identity_ref"]=json!("UNRELATED-DEVICE");
         reseal(&mut value);
         assert_eq!(audit(&value)["disposition"],"DEGRADED/ABSTAIN");
     }
