@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "0.1.0",
+  "proposalId": "synthetic-lara-adapter-proposal-001",
+  "caseRef": "power-restoration-case://synthetic-feeder-repair-mps-six-node-v1",
+  "caseSha256": "428e0a9f6ca8ea95a970ae4ee486be5814be727f4dc59e8117def374732c49c1",
+  "planner": {
+    "plannerId": "synthetic-planner-adapter",
+    "plannerRevision": "adapter-v0.1",
+    "sourceCommit": "1111111111111111111111111111111111111111",
+    "configurationSha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "promptSha256": "3333333333333333333333333333333333333333333333333333333333333333"
+  },
+  "observation": {
+    "observationRef": "synthetic://observation/decision-step-4/v1",
+    "observedStep": 4,
+    "observationSha256": "4444444444444444444444444444444444444444444444444444444444444444"
+  },
+  "decisionStep": 4,
+  "actions": [
+    {
+      "actionId": "action-0001",
+      "actorKind": "repair_crew",
+      "actorId": "CREW-A",
+      "actionKind": "repair_fault",
+      "targetId": "F23-A",
+      "desiredSwitchState": null,
+      "decisionStep": 4,
+      "observationRef": "synthetic://observation/decision-step-4/v1",
+      "preconditionEvidence": [
+        {
+          "evidenceRef": "synthetic://evidence/fault-inspection/F23-A/v1",
+          "observedStep": 3,
+          "evidenceSha256": "5555555555555555555555555555555555555555555555555555555555555555"
+        }
+      ],
+      "authorityRequirementRef": "synthetic://authority/asset-owner/repair"
+    }
+  ]
+}
