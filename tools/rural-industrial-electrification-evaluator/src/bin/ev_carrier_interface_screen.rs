@@ -200,7 +200,8 @@ fn valid_utc_timestamp(value: &str) -> bool {
         2 => 28,
         _ => return false,
     };
-    (1..=days_in_month).contains(&day)
+    year > 0
+        && (1..=days_in_month).contains(&day)
         && hour <= 23
         && minute <= 59
         && second <= 59
@@ -616,6 +617,7 @@ mod tests {
         for port in &mut input.ports {
             if port.mating_profile_id == "HV-CONNECTOR-PROFILE-UNSELECTED" {
                 port.evidence.classification = EvidenceClass::IndependentlyQualified;
+                port.evidence.source_reference = format!("test://unit/qualified-port/{}", port.port_id);
                 port.evidence.report_digest = Some(port.profile_digest.clone());
                 port.evidence.valid_until = Some("2027-01-01T00:00:00Z".into());
                 port.evidence.scoped_configuration_digest = if port.side == PortSide::Vehicle {
@@ -645,6 +647,7 @@ mod tests {
             .find(|pair| pair.pair_id == "vehicle-pod-hv-power")
             .expect("HV pair");
         pair.qualification_evidence.classification = EvidenceClass::IndependentlyQualified;
+        pair.qualification_evidence.source_reference = "test://unit/qualified-interface-pair".into();
         pair.qualification_evidence.report_digest = Some(compatibility_profile_digest.clone());
         pair.qualification_evidence.valid_until = Some("2027-01-01T00:00:00Z".into());
         pair.qualification_evidence.vehicle_configuration_digest = vehicle_digest;
@@ -688,6 +691,27 @@ mod tests {
         let mut input = fixture();
         input.ports[0].side = PortSide::Module;
         assert!(validate_input(&input).is_err());
+    }
+
+    #[test]
+    fn pair_evidence_must_bind_the_compatibility_profile_digest() {
+        let mut input = fixture();
+        input.interface_pairs[1].qualification_evidence.compatibility_profile_digest =
+            "sha256:abababababababababababababababababababababababababababababababab".into();
+        let report = evaluate(&input).expect("wrong digest is classified, not admitted");
+        let hv = report.results.iter().find(|item| item.pair_id == "vehicle-pod-hv-power").expect("HV result");
+        assert_eq!(hv.disposition, Disposition::Indeterminate);
+        assert!(hv.reason_codes.iter().any(|reason| reason == "PAIR_PROFILE_EVIDENCE_DIGEST_MISMATCH"));
+    }
+
+    #[test]
+    fn rejects_impossible_calendar_dates_and_non_utc_offsets() {
+        let mut input = fixture();
+        input.evaluated_at_utc = "2026-02-30T00:00:00Z".into();
+        assert!(validate_input(&input).is_err());
+        let mut offset = fixture();
+        offset.evaluated_at_utc = "2026-11-20T02:00:00+02:00".into();
+        assert!(validate_input(&offset).is_err());
     }
 
     #[test]
