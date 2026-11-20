@@ -1,0 +1,3987 @@
+{
+  "schema": "luminous.orbital-interface-conformance.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic-profile-only",
+  "cases": [
+    {
+      "case_id": "NOMINAL_FULL_CONTAINMENT",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "compatible_synthetic_profile",
+      "expected_reason": "all_requirements_contained"
+    },
+    {
+      "case_id": "CAPTURE_ONLY_FLUID_OMITTED",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_only",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": null,
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": null,
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "compatible_synthetic_profile",
+      "expected_reason": "all_requirements_contained"
+    },
+    {
+      "case_id": "APPROACH_SPEED_OUTSIDE",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.02,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "approach_speed_not_supported"
+    },
+    {
+      "case_id": "ALIGNMENT_ENVELOPE_OUTSIDE",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.002,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "alignment_envelope_not_contained"
+    },
+    {
+      "case_id": "CONTACT_FORCE_OUTSIDE",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 100,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "contact_force_envelope_not_contained"
+    },
+    {
+      "case_id": "RETENTION_REQUIREMENT_NOT_MET",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 300,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "retention_requirement_not_met"
+    },
+    {
+      "case_id": "SAME_STANDARD_DIFFERENT_ICD",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "OTHER-PROJECT-ICD",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "icd_id_mismatch"
+    },
+    {
+      "case_id": "ICD_REVISION_WITHOUT_MAPPING",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "1",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "indeterminate",
+      "expected_reason": "icd_revision_unmapped"
+    },
+    {
+      "case_id": "ICD_REVISION_VERIFIED_MAPPING",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "1",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "compatible_synthetic_profile",
+      "expected_reason": "all_requirements_contained",
+      "compatibility_map": {
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "provider_revision": "2",
+        "client_revision": "1",
+        "verified": true,
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      }
+    },
+    {
+      "case_id": "FRAME_MAPPING_UNAVAILABLE",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "CLIENT-LOCAL-FRAME",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "indeterminate",
+      "expected_reason": "frame_mapping_unavailable"
+    },
+    {
+      "case_id": "GEOMETRY_PROFILE_MISMATCH",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v2",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "geometry_profile_mismatch"
+    },
+    {
+      "case_id": "FLUID_TEMPERATURE_PARTIAL_OVERLAP",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 295,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "fluid_temperature_envelope_not_contained"
+    },
+    {
+      "case_id": "FLUID_PRESSURE_PARTIAL_OVERLAP",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 200000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "fluid_pressure_envelope_not_contained"
+    },
+    {
+      "case_id": "FLUID_CLASS_MISMATCH",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "cryogenic",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "fluid_class_mismatch"
+    },
+    {
+      "case_id": "FLUID_IDENTITY_MISMATCH",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "different-batch-fluid",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "fluid_identity_mismatch"
+    },
+    {
+      "case_id": "FLUID_PHASE_MISMATCH",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "gas",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "fluid_phase_mismatch"
+    },
+    {
+      "case_id": "FLUID_CONNECTOR_MISMATCH",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "other-coupler",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "fluid_connector_mismatch"
+    },
+    {
+      "case_id": "MISSING_FLUID_PROFILE",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": null,
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "indeterminate",
+      "expected_reason": "missing_fluid_profile"
+    },
+    {
+      "case_id": "MISSING_EVIDENCE_DIGEST",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": null,
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "indeterminate",
+      "expected_reason": "incomplete_evidence_envelope"
+    },
+    {
+      "case_id": "MALFORMED_EVIDENCE_DIGEST",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "not-a-sha256",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "malformed_evidence_digest"
+    },
+    {
+      "case_id": "STALE_PROFILE_EVIDENCE",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 99
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "indeterminate",
+      "expected_reason": "evidence_not_effective"
+    },
+    {
+      "case_id": "WRONG_EVIDENCE_CONTEXT",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "unrelated-context",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "indeterminate",
+      "expected_reason": "evidence_context_mismatch"
+    },
+    {
+      "case_id": "UNSUPPORTED_APPROACH_SPEED_UNIT",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "km/h"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "unsupported_unit"
+    },
+    {
+      "case_id": "CLAIM_CEILING_ESCALATION",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "flight-qualified",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "claim_ceiling_escalation"
+    },
+    {
+      "case_id": "INVERTED_TEMPERATURE_RANGE",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 320,
+            "max": 290,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "inverted_range"
+    },
+    {
+      "case_id": "SELF_COMPATIBILITY_NOT_ADMISSIBLE",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "self_compatibility_not_admissible"
+    },
+    {
+      "case_id": "MISSING_EVIDENCE_AUTHORITY_SCOPE",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": null,
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "indeterminate",
+      "expected_reason": "incomplete_evidence_envelope"
+    },
+    {
+      "case_id": "WRONG_SOURCE_COMMIT_SHAPE",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "main",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "malformed_source_commit"
+    },
+    {
+      "case_id": "RECEIVER_MASS_NOT_SUPPORTED",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.2,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "client-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "receiver_accepted_mass_not_supported"
+    },
+    {
+      "case_id": "DUPLICATE_PROFILE_IDENTITY",
+      "at_tick": 100,
+      "context_of_use": "prepared-interface-profile-v0.1",
+      "service": "capture_and_storable_fluid",
+      "provider": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "provider",
+        "organization_id": "provider-alpha",
+        "config_revision": "hardware-rev-a",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.01,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.05,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 200,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 500,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 270,
+            "max": 310,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 100000,
+            "max": 300000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.4,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "client": {
+        "profile_id": "provider-port-profile-v1",
+        "role": "client",
+        "organization_id": "client-beta",
+        "config_revision": "hardware-rev-b",
+        "icd_id": "ICD-ORBITAL-PORT-01",
+        "icd_revision": "2",
+        "standard_refs": [
+          "ANSI/AIAA-S-157-2025",
+          "PROJECT-PORT-SPEC"
+        ],
+        "frame_id": "PORT-DATUM-A",
+        "mechanical": {
+          "geometry_profile_id": "capture-cone-interface-v1",
+          "max_alignment_error": {
+            "value": 0.005,
+            "unit": "m"
+          },
+          "max_approach_speed": {
+            "value": 0.03,
+            "unit": "m/s"
+          },
+          "max_contact_force": {
+            "value": 150,
+            "unit": "N"
+          },
+          "min_retention_force": {
+            "value": 400,
+            "unit": "N"
+          }
+        },
+        "fluid": {
+          "connector_profile_id": "prepared-fluid-coupler-a",
+          "fluid_class": "storable_liquid",
+          "fluid_id": "test-fluid-water-analogue",
+          "phase": "liquid",
+          "temperature": {
+            "min": 280,
+            "max": 300,
+            "unit": "K"
+          },
+          "pressure": {
+            "min": 150000,
+            "max": 250000,
+            "unit": "Pa"
+          },
+          "min_receiver_accepted_mass": {
+            "value": 0.3,
+            "unit": "kg"
+          }
+        },
+        "evidence": {
+          "evidence_class": "synthetic",
+          "claim_ceiling": "synthetic-profile-only",
+          "source_commit": "0123456789abcdef0123456789abcdef01234567",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "producer_id": "synthetic-profile-producer",
+          "authority_scope": "synthetic-profile-comparison",
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "valid_from_tick": 0,
+          "valid_until_tick": 1000
+        }
+      },
+      "expected_status": "rejected",
+      "expected_reason": "self_compatibility_not_admissible"
+    }
+  ]
+}
