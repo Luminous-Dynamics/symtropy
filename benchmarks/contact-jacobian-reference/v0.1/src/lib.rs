@@ -260,7 +260,14 @@ mod tests {
         let k=body.contact_inverse_effective_mass([0.0,0.5,0.0],[1.0,0.0,0.0]).expect("k");
         // Izz=Cxx+Cyy=5/6; rotational term=(0.5)^2/(5/6)=0.3.
         close(k,0.8,1.0e-12);
-        assert!((k-1.75).abs()>0.1,"anisotropic result must differ from spherical shortcut");
+        // Conditional comparison: if the three principal moments above are fed
+        // to the production mean-of-reciprocals approximation, its result is
+        // 0.5 + 0.25 * mean(1/Ix, 1/Iy, 1/Iz) = 1.117647... kg^-1.
+        // The exact tensor-Jacobian oracle is 0.8 kg^-1 for this pose.
+        let legacy_mean_inverse = 0.5 + 0.25 * ((24.0/5.0 + 24.0/17.0 + 6.0/5.0) / 3.0);
+        close(legacy_mean_inverse, 1.1176470588235294, 1.0e-12);
+        assert!((k-legacy_mean_inverse).abs()>0.3,
+            "full tensor response must expose the isotropic mean-inertia shortcut");
     }
 
     #[test]
