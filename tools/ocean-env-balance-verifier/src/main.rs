@@ -988,8 +988,6 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index:
             analyte_id:pair.analyte_id.clone(),
             intake_g_s:fin,
             intake_standard_uncertainty_g_s:u_fin,
-            intake_g_s:fin,
-            intake_standard_uncertainty_g_s:u_fin,
             intake_independent_standard_uncertainty_g_s:u_fin_independent,
             intake_lab_batch_common_standard_uncertainty_g_s:u_fin_batch,
             outfall_g_s:fout,
