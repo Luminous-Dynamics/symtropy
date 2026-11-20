@@ -18,6 +18,23 @@ It performs two checks:
 
 The crate does not fetch remote URLs. A caller supplies the trust-root digest through a separately controlled configuration channel; a bundle cannot make itself trusted by shipping a new trust root beside its artifacts.
 
+## Offline CLI
+
+The `power-restoration-artifact-verify` binary resolves an offline bundle and checks a caller-supplied exact attestation-obligation list:
+
+```sh
+cargo run --locked --manifest-path tools/power-restoration-artifact-verifier/Cargo.toml --bin power-restoration-artifact-verify -- \
+  ./evidence-bundle \
+  ./evidence-bundle/manifest.json \
+  ./trusted-roots/power-grid-root.json \
+  <out-of-band-trust-root-sha256> \
+  <verification-time-unix-ms> \
+  ./run-derived-attestation-requirements.json \
+  ./evidence-bundle/attestations.json
+```
+
+The requirements file is a JSON array of `ExpectedAttestationBinding` records. It must be derived from the exact run receipt, observation results, independent validator receipts and service/scorer evidence—not copied from untrusted artifact claims. Missing, extra, duplicate or unexpected subject/role envelopes fail closed. The CLI defaults to a 64 MiB maximum per artifact; library callers can set a tighter bound.
+
 ## Security properties
 
 - Manifest paths must be normalized relative paths with only normal components; absolute paths, \`..\`, symlinks, non-files and bundle-root escapes are rejected.
