@@ -10,7 +10,7 @@ description = "Lossless adapter from deterministic camera policy receipts into A
 [workspace]
 
 [dependencies]
-action-conditioned-offscreen-camera = { git = "https://github.com/Luminous-Dynamics/symtropy", rev = "25ce4da44bbb2bd0272e2bcc8014f27091048246", package = "action-conditioned-offscreen-camera" }
+action-conditioned-offscreen-camera = { git = "https://github.com/Luminous-Dynamics/symtropy", rev = "58fe24f95f06cbd387e8e2b99891eb2555dbbb29", package = "action-conditioned-offscreen-camera" }
 av-observation-replay-v0 = { git = "https://github.com/Luminous-Dynamics/symtropy", rev = "311f65ca8af4dadd2deeb582b3389b296e9bda5d", package = "av-observation-replay-v0" }
 serde = { version = "=1.0.228", features = ["derive"] }
 
