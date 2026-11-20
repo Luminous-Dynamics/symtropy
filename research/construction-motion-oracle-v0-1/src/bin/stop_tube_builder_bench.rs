@@ -141,9 +141,9 @@ fn run_case(segment_count: usize) {
     assert_eq!(warm.slices.len(), expected_slices);
     black_box(warm.canonical_bytes());
 
-    let mut samples = Vec::with_capacity(9);
+    let mut samples = Vec::with_capacity(31);
     let mut canonical_bytes_len = 0_usize;
-    for _ in 0..9 {
+    for _ in 0..31 {
         let start = Instant::now();
         let output = build_stop_tube(request()).expect("stop-tube benchmark must build");
         let bytes = output.canonical_bytes();
