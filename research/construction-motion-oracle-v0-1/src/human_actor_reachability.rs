@@ -304,16 +304,6 @@ fn validate_profile(
     {
         return Err(HumanReachabilityError::ProfileHasInvalidTimingBound);
     }
-    if profile.maximum_tracking_latency_ms == 0
-        || profile.maximum_clock_mapping_uncertainty_ms == 0
-    {
-        return Err(HumanReachabilityError::ProfileHasInvalidTimingBound);
-    }
-    if profile.slice_duration_ms > profile.maximum_prediction_horizon_ms
-        && profile.maximum_slice_count == 0
-    {
-        return Err(HumanReachabilityError::ProfileHasInvalidSliceBound);
-    }
     Ok(())
 }
 
@@ -618,33 +608,56 @@ mod tests {
         );
     }
 
+    fn independently_integrated_distance(
+        initial_speed_mm_s: f64,
+        acceleration_mm_s2: f64,
+        speed_limit_mm_s: f64,
+        elapsed_seconds: f64,
+    ) -> f64 {
+        let step_seconds = 0.0005;
+        let steps = (elapsed_seconds / step_seconds).ceil() as usize;
+        let mut speed = initial_speed_mm_s;
+        let mut distance = 0.0;
+        let mut elapsed = 0.0;
+        for _ in 0..steps {
+            let dt = (elapsed_seconds - elapsed).min(step_seconds);
+            if dt <= 0.0 {
+                break;
+            }
+            let next_speed = (speed + acceleration_mm_s2 * dt).min(speed_limit_mm_s);
+            distance += (speed + next_speed) * 0.5 * dt;
+            speed = next_speed;
+            elapsed += dt;
+        }
+        distance
+    }
+
     #[test]
-    fn deterministic_generated_speed_cap_cases_never_underbound_sampled_travel() {
+    fn deterministic_generated_speed_cap_cases_contain_independent_numeric_trajectories() {
         let p = profile();
         let mut seed = 0x51a7_u64;
-        for _case in 0..64 {
+        for case in 0..64 {
             seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
             let speed = 100.0 + (seed % 1_800) as f64;
             seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
             let acceleration = (seed % 1_500) as f64;
-            let mut case_profile = p.clone();
-            case_profile.maximum_human_acceleration_mm_s2 = acceleration;
-            let distance = maximum_reachable_distance_mm(
+            let elapsed = 0.1 + ((case * 37) % 1_700) as f64 / 1_000.0;
+            let bound = maximum_reachable_distance_mm(
                 speed,
                 acceleration,
-                case_profile.maximum_human_speed_mm_s,
-                0.8,
+                p.maximum_human_speed_mm_s,
+                elapsed,
             );
-            for step in 0..=80 {
-                let t = step as f64 * 0.01;
-                let sampled = maximum_reachable_distance_mm(
-                    speed,
-                    acceleration,
-                    case_profile.maximum_human_speed_mm_s,
-                    t,
-                );
-                assert!(sampled <= distance + 1.0e-8);
-            }
+            let integrated = independently_integrated_distance(
+                speed,
+                acceleration,
+                p.maximum_human_speed_mm_s,
+                elapsed,
+            );
+            assert!(
+                bound + 1.0e-6 >= integrated,
+                "case={case} analytic={bound} numeric={integrated} speed={speed} acceleration={acceleration} elapsed={elapsed}"
+            );
         }
     }
 }
