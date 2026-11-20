@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-foreground-background-isolation-v0",
+  "warning": "Evaluator only. Never mount in candidate/agent process.",
+  "episodes": [
+    {
+      "episode_id": "fg-001-compaction-contention",
+      "expected": [
+        {
+          "policy": "shared_fifo_non_preemptive",
+          "foreground_start_tick": 120,
+          "foreground_finish_tick": 144,
+          "deadline_miss": true
+        },
+        {
+          "policy": "shared_priority_preemptive",
+          "foreground_start_tick": 80,
+          "foreground_finish_tick": 104,
+          "deadline_miss": false
+        },
+        {
+          "policy": "reserved_foreground_lane",
+          "foreground_start_tick": 80,
+          "foreground_finish_tick": 104,
+          "deadline_miss": false
+        }
+      ],
+      "source_truth": "event_requires_response",
+      "source_dependency_groups": {
+        "obs:cam:frame-021": "camera-root-1",
+        "obs:mic:chunk-017": "microphone-root-1"
+      }
+    },
+    {
+      "episode_id": "as-known-002-late-index",
+      "actual_index_ready_tick": 95,
+      "query_cutoff_tick": 80,
+      "source_event_truth": "event_occurred",
+      "expected_disposition": "NOT_AVAILABLE_AS_KNOWN_AT_CUTOFF",
+      "expected_no_claim": true
+    },
+    {
+      "episode_id": "cancel-003-stale-retrieval",
+      "actual_retrieval_finish_tick": 70,
+      "retrieval_request_revision": 1,
+      "current_task_revision_at_finish": 2,
+      "expected_disposition": "STALE_COMPLETION_REJECTED_FOR_CURRENT_TASK",
+      "may_retain_as_history": true
+    },
+    {
+      "episode_id": "backlog-004-bounded-progress",
+      "background_jobs_total_work_units": 105,
+      "foreground_jobs_total_work_units": 45,
+      "available_background_service_after_final_foreground_tick": 120,
+      "latest_required_background_finish_tick": 180,
+      "expected_disposition": "BOUNDED_BACKGROUND_PROGRESS"
+    },
+    {
+      "episode_id": "compact-005-preserve-source-anchors",
+      "required_source_refs": [
+        "obs:cam:frame-7",
+        "obs:mic:chunk-4"
+      ],
+      "required_source_digests": [
+        "sha256:cam7",
+        "sha256:mic4"
+      ],
+      "expected_disposition": "ALL_SOURCE_ANCHORS_RETAINED",
+      "expected_anchor_count": 2
+    }
+  ]
+}

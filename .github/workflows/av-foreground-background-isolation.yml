@@ -1,0 +1,111 @@
+name: AV foreground-background isolation fixture integrity
+
+on:
+  push:
+    branches:
+      - research/av-foreground-background-isolation-v0
+    paths:
+      - "research/av-foreground-background-isolation-v0/**"
+      - ".github/workflows/av-foreground-background-isolation.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/av-foreground-background-isolation-v0/**"
+      - ".github/workflows/av-foreground-background-isolation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: av-foreground-background-isolation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  fixture-integrity:
+    name: Exact-head JSON and evidence-plane integrity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+
+      - name: Assert exact checkout
+        run: test "$(git rev-parse HEAD)" = "${QUALIFIED_SHA}"
+
+      - name: Validate agent workload schema
+        run: |
+          jq -e '
+            .schema_version == 1
+            and .benchmark_id == "av-foreground-background-isolation-v0"
+            and (.episodes | length == 5)
+            and ([.episodes[].episode_id] | unique | length == 5)
+          ' research/av-foreground-background-isolation-v0/fixtures/agent/workload-v1.json
+
+      - name: Validate evaluator oracle schema
+        run: |
+          jq -e '
+            .schema_version == 1
+            and .benchmark_id == "av-foreground-background-isolation-v0"
+            and (.episodes | length == 5)
+            and ([.episodes[].episode_id] | unique | length == 5)
+          ' research/av-foreground-background-isolation-v0/fixtures/evaluator-only/scheduler-oracle-v1.json
+
+      - name: Validate known-answer scorecard schema
+        run: |
+          jq -e '
+            .schema_version == 1
+            and .benchmark_id == "av-foreground-background-isolation-v0"
+            and (.episodes | length == 5)
+            and ([.episodes[].episode_id] | unique | length == 5)
+          ' research/av-foreground-background-isolation-v0/fixtures/expected/known-answer-v1.json
+
+      - name: Assert episode identity alignment
+        run: |
+          diff \
+            <(jq -r '.episodes[].episode_id' research/av-foreground-background-isolation-v0/fixtures/agent/workload-v1.json) \
+            <(jq -r '.episodes[].episode_id' research/av-foreground-background-isolation-v0/fixtures/evaluator-only/scheduler-oracle-v1.json)
+          diff \
+            <(jq -r '.episodes[].episode_id' research/av-foreground-background-isolation-v0/fixtures/agent/workload-v1.json) \
+            <(jq -r '.episodes[].episode_id' research/av-foreground-background-isolation-v0/fixtures/expected/known-answer-v1.json)
+
+      - name: Reject evaluator-only fields in public workload
+        run: |
+          ! grep -Eq '"(source_truth|actual_index_ready_tick|actual_retrieval_finish_tick|realized_hypothesis_id|hidden_state|future_observations)"' \
+            research/av-foreground-background-isolation-v0/fixtures/agent/workload-v1.json
+
+      - name: Verify foreground deadline and as-known invariants
+        run: |
+          jq -e '.episodes[] | select(.episode_id == "fg-001-compaction-contention") |
+            .foreground_requests[0].deadline_tick == 120 and
+            .foreground_requests[0].required_work_units == 24' \
+            research/av-foreground-background-isolation-v0/fixtures/agent/workload-v1.json
+          jq -e '.episodes[] | select(.episode_id == "fg-001-compaction-contention") |
+            (.expected[] | select(.policy == "shared_fifo_non_preemptive") | .foreground_finish_tick) > 120 and
+            (.expected[] | select(.policy == "reserved_foreground_lane") | .foreground_finish_tick) <= 120' \
+            research/av-foreground-background-isolation-v0/fixtures/evaluator-only/scheduler-oracle-v1.json
+          jq -e '.episodes[] | select(.episode_id == "as-known-002-late-index") |
+            .actual_index_ready_tick > .query_cutoff_tick and
+            .expected_disposition == "NOT_AVAILABLE_AS_KNOWN_AT_CUTOFF"' \
+            research/av-foreground-background-isolation-v0/fixtures/evaluator-only/scheduler-oracle-v1.json
+          jq -e '.episodes[] | select(.episode_id == "as-known-002-late-index") |
+            .query.as_known_cutoff_tick == 80 and
+            .source_observation.available_to_foreground_tick == 25 and
+            .source_observation.foreground_working_buffer_expires_tick == 40 and
+            .query.retrieval_scope == "committed_background_event_memory_only"' \
+            research/av-foreground-background-isolation-v0/fixtures/agent/workload-v1.json
+          jq -e '.episodes[] | select(.episode_id == "cancel-003-stale-retrieval") |
+            .retrieval_request_revision < .current_task_revision_at_finish and
+            .expected_disposition == "STALE_COMPLETION_REJECTED_FOR_CURRENT_TASK"' \
+            research/av-foreground-background-isolation-v0/fixtures/evaluator-only/scheduler-oracle-v1.json
+          jq -e '.episodes[] | select(.episode_id == "compact-005-preserve-source-anchors") |
+            (.required_source_refs | length) == .expected_anchor_count and
+            (.required_source_digests | length) == .expected_anchor_count and
+            .expected_disposition == "ALL_SOURCE_ANCHORS_RETAINED"' \
+            research/av-foreground-background-isolation-v0/fixtures/evaluator-only/scheduler-oracle-v1.json
