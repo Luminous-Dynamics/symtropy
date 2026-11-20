@@ -5,8 +5,8 @@
 //! The evaluator never assumes equal sharing and never converts current into
 //! torque. It consumes per-unit output-equivalent torque intervals at one
 //! declared reference plane, checks each unit against its own speed/torque/
-//! duration/thermal envelope, and optionally reconciles the sum with an
-//! independent joint-output torque interval.
+//! duration/thermal envelope, and optionally compares the sum with a joint-output
+//! reference whose evidence class is preserved (Synthetic or IndependentPhysical).
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Interval {
