@@ -42,15 +42,21 @@ Sources:
 | SSP 2.0.1 | System topology / parameterization package | System-structure portability reference; not a master algorithm |
 | VDMCheck | Formal-model-based FMI behavior checks | Complementary semantic validation where compatible |
 
-OpenModelica documentation lists the three OMSimulator CS master methods above. The current OpenModelica User Guide reports FMI 3.0.2 support as experimental. Therefore:
-- pin the exact OpenModelica/OMSimulator release or commit and binary;
+OpenModelica documentation lists the three OMSimulator CS master methods above. The release maturity must also be explicit in every comparison. As of 20 November 2026, OMSimulator 2.1.3 is the latest stable 2.1 release; OMSimulator 3.0.0 is explicitly a development-only tag intended for testing, with the first production-ready v3 release planned as 3.1. Use 2.1.3 as the production-stability comparator and put 3.0.0 in a separately labelled exploratory lane. Do not label the 3.0.0 development build as production SOTA.
+
+FMPy 0.3.32 is the current PyPI release (9 September 2026). The published universal wheel has SHA-256 `b379deb9417b842028003a288d00c1c5f138d1580e1ff12cc6c42a98719cecf0`, but PyPI reports no provenance attestation for that wheel. Pin and retain the wheel digest, and report the absent publisher provenance rather than implying a verified build origin.
+
+The current OpenModelica User Guide reports FMI 2.0.5 as supported and FMI 3.0.2 as experimental. Keep two separate compatibility lanes: a mature FMI 2.0.5 production-comparator lane and an exploratory FMI 3.0.2 lane. Do not aggregate them into one leaderboard. For every run:
+- pin the exact OpenModelica/OMSimulator release, commit and binary;
 - record the actual FMI version used by each FMU and importer;
 - record each FMU capability flag and whether the importer supports it;
 - report unsupported capabilities as `NOT_SUPPORTED` / `NOT_EVALUABLE`, not as a passing result.
 
 Sources:
 - [OMSimulator solver methods](https://openmodelica.org/doc/OpenModelicaUsersGuide/latest/omsimulator.html)
-- [OpenModelica User Guide — FMI version support](https://openmodelica.org/doc/OpenModelicaUsersGuide/OpenModelicaUsersGuide-latest.pdf)
+- [OMSimulator release maturity: stable 2.1.3, development-only 3.0.0, planned production 3.1](https://github.com/OpenModelica/OMSimulator/releases)
+- [OpenModelica User Guide — FMI 2.0.5 supported / FMI 3.0.2 experimental](https://openmodelica.org/doc/OpenModelicaUsersGuide/OpenModelicaUsersGuide-latest.pdf)
+- [FMPy 0.3.32 release and wheel SHA-256](https://pypi.org/project/FMPy/0.3.32/)
 - [FMPy supported FMI interfaces](https://github.com/CATIA-Systems/FMPy)
 - [FMI Implementers' Guide — validation recommendations](https://modelica.github.io/fmi-guides/main/fmi-guide/)
 
@@ -70,6 +76,20 @@ Sources:
 - [SUNDIALS 7.9.0 release information](https://computing.llnl.gov/projects/sundials/sundials-software)
 - [preCICE coupling scheme configuration](https://precice.org/docs/configuration/basics/coupling/)
 - [OpenModelica current User Guide — FMI support table](https://openmodelica.org/doc/OpenModelicaUsersGuide/OpenModelicaUsersGuide-latest.pdf)
+
+## 3B. Release maturity and compatibility lanes (snapshot: 20 Nov 2026)
+
+| Tool / lane | Exact snapshot | Maturity treatment |
+|---|---|---|
+| OMSimulator production comparator | 2.1.3 | Latest stable 2.1 line; use for production-stability baseline |
+| OMSimulator development lane | 3.0.0 | Development-only tag; testing/iteration only; production v3 planned as 3.1 |
+| FMPy importer | 0.3.32 | Latest published PyPI release in this snapshot; pin wheel digest, retain wheel; no PyPI provenance attestation reported |
+| OpenModelica FMI 2 lane | FMI 2.0.5 | Documented supported; keep separate mature lane |
+| OpenModelica FMI 3 lane | FMI 3.0.2 | Documented experimental; exploratory lane only |
+
+FMPy wheel SHA-256: `b379deb9417b842028003a288d00c1c5f138d1580e1ff12cc6c42a98719cecf0`.
+
+A benchmark receipt must include tool release, commit, binary hash, dependency manifest, FMI version, FMU capability flags and unsupported-feature dispositions. A development build and a stable production release must never share one undifferentiated ranking.
 
 ## 4. Do not conflate the comparison layers
 
