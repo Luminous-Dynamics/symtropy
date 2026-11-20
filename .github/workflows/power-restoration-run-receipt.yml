@@ -1,0 +1,77 @@
+name: Power restoration benchmark run receipt
+
+on:
+  pull_request:
+    paths:
+      - "tools/power-restoration-run-receipt/**"
+      - ".github/workflows/power-restoration-run-receipt.yml"
+  push:
+    paths:
+      - "tools/power-restoration-run-receipt/**"
+      - ".github/workflows/power-restoration-run-receipt.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify immutable restoration benchmark run receipt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate receipt schema and event accounting
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+
+          root = Path("tools/power-restoration-run-receipt")
+          schema = json.loads((root / "fixtures/run-receipt-v0.1.schema.json").read_text())
+          envelope = json.loads((root / "fixtures/synthetic-run-receipt-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(envelope), key=lambda error: list(error.path))
+          assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
+          receipt = envelope["receipt"]
+          assert receipt["declaredAttemptCount"] == len(receipt["attempts"]) == 5
+          assert [item["sequence"] for item in receipt["attempts"]] == list(range(5))
+          assert receipt["measuredUsage"]["timeoutCount"] == 1
+          assert any(item["outcome"] == "rejected" for item in receipt["attempts"])
+          assert any(item["outcome"] == "applied" for item in receipt["attempts"])
+          assert envelope["collectorAttestation"] is None
+          print("PASS: schema, ordered five-event ledger, failed attempt retention and explicit unverified attestation")
+          PY
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/power-restoration-run-receipt/Cargo.toml --all -- --check
+      - name: Resolve dependency graph for this run
+        run: cargo generate-lockfile --manifest-path tools/power-restoration-run-receipt/Cargo.toml
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/power-restoration-run-receipt/Cargo.toml --all-targets -- -D warnings
+      - name: Run Rust unit tests
+        run: cargo test --locked --manifest-path tools/power-restoration-run-receipt/Cargo.toml --all-targets
+      - name: Replay the synthetic receipt
+        run: |
+          set -euo pipefail
+          cargo run --locked --manifest-path tools/power-restoration-run-receipt/Cargo.toml --bin power-restoration-run-receipt -- tools/power-restoration-run-receipt/fixtures/synthetic-run-receipt-v0.1.json > /tmp/power-restoration-run-report.json
+          jq -e '
+            .resultStatus == "score_present_collector_attestation_unverified"
+            and .declaredAttemptCount == 5
+            and .recordedAttemptCount == 5
+            and .failedAttemptCount == 2
+            and .appliedActionCount == 1
+            and .rejectedActionCount == 1
+            and .timedOutAttemptCount == 1
+            and .independentScorePresent == true
+            and ([.scoreMetrics[].unit] | index("kWh") != null)
+            and ([.scoreMetrics[].unit] | index("m3") != null)
+          ' /tmp/power-restoration-run-report.json
