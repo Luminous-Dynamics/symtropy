@@ -24,7 +24,7 @@ It does **not** compute diagnoses, posteriors, likelihoods, probabilities, infor
 - Mutually exclusive branches are scheduled independently and resource-hours are probability-weighted, not summed as concurrent work.
 - Service trajectories remain references to #6235. Candidate action completion is never labelled service restored.
 
-Only resources explicitly in `available` state can be allocated. A resource marked degraded, unknown, unavailable or proposed-only fails closed. Unknown reservations block overlapping intervals until their end; confirmed reservations consume capacity.
+Resources in `available` state can be allocated. A `degraded` resource can be allocated only when its current manifest contains explicit remaining capacity windows and current evidence; `unknown`, `unavailable` and `proposed_only` states fail closed. Unknown reservations block overlapping intervals until their end; confirmed reservations consume capacity.
 
 ## Synthetic fixture
 
@@ -45,6 +45,8 @@ The leaf weights are 3,000, 1,400 and 5,600 bp. The package does not claim these
 
 ## External comparison
 
+- **LARA (Warrier et al., Findings EACL 2026, DOI 10.18653/v1/2026.findings-eacl.321):** constrained LLM planning over prevalidated restoration actions, with repair crews, mobile power sources, switching and physics-aware simulation. The paper reports near-MILP performance on IEEE 13-node and about 13% improvement over a time-capped MILP on IEEE 33-node at under 1% of its runtime. Its public code is at https://github.com/jishnuwarrier/LARA-Power-Restoration. We should reproduce that comparison under matched constraints, not claim LLM restoration or fast planning as novel. The current scenario-generation parser at `scenario_creation/ieee13_define_scenarios.py` uses `eval()` on parsed archive text; a benchmark adapter should ingest safe data-only fixtures instead of executing that parser on untrusted inputs.
+- **Distributionally robust whole-process restoration (Lin & Xu, Applied Sciences, 26 October 2026, DOI 10.3390/app162110584):** joint black-start, network reconfiguration and load restoration with PV-BESS uncertainty, AC verification and out-of-sample irradiance years on IEEE 118-bus. It reports that DC-only schedules had no AC operating point at 8 of 22 steps. This qualifies as a physical-network and uncertainty comparator, not a directly matched crew-repair benchmark.
 - Symthaea's #12436 depth-two exact policy tree already enumerates adaptive diagnostic choices under a finite model. This package deliberately does not duplicate that search.
 - Kumari & De (June 2026), DOI 10.1016/j.segan.2026.102294, jointly models repair-crew depot placement, uncertain travel/repair duration and mobile generators.
 - Han et al. (2026), DOI 10.1109/ICPSAsia70813.2026.11692267, combine UAV visual assessment, crew routing, reinspection and restoration timing.
