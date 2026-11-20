@@ -157,6 +157,7 @@
                 "requirement": {
                   "enum": [
                     "uas_operating_certificate",
+                    "uas_operations_specification",
                     "air_service_licence",
                     "remote_pilot_licence",
                     "remote_operator_letter_of_approval",
