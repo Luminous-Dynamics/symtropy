@@ -123,8 +123,8 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
         &self,
         body_a: &mut RigidBody<D>,
         body_b: &mut RigidBody<D>,
-        dt: f64,
-        mut callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
+        _dt: f64,
+        _callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
     ) {
         let total_inv = body_a.inv_mass + body_b.inv_mass;
         if total_inv < 1e-15 {
@@ -149,29 +149,6 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
             }
         }
 
-        // Motor drive on slide axis
-        if let Some(ref motor) = self.motor {
-            let displacement = body_b.transform.translation.0[self.axis]
-                - body_a.transform.translation.0[self.axis];
-            let rel_vel = body_b.linear_velocity[self.axis] - body_a.linear_velocity[self.axis];
-
-            // PD controller: impulse = (kp * (target - pos) + kd * (target_vel - vel)) * dt
-            let impulse = motor.calculate_impulse(displacement, rel_vel, dt);
-
-            // METABOLIC HEARTBEAT: Calculate Work and Energy Recovery
-            // Work = Impulse * Velocity
-            let work_joules = impulse * rel_vel;
-            if let Some(ref mut cb) = callback {
-                cb.record_work(self.body_b, work_joules);
-            }
-
-            if body_a.is_dynamic() {
-                body_a.linear_velocity[self.axis] -= impulse * body_a.inv_mass;
-            }
-            if body_b.is_dynamic() {
-                body_b.linear_velocity[self.axis] += impulse * body_b.inv_mass;
-            }
-        }
 
         // Damp all angular velocity (prismatic = no rotation)
         for i in 0..D {
@@ -198,6 +175,76 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
             }
         }
     }
+
+    fn solve_actuator(
+        &self,
+        body_a: &mut RigidBody<D>,
+        body_b: &mut RigidBody<D>,
+        dt: f64,
+        callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
+    ) {
+        let Some(motor) = self.motor.as_ref() else {
+            return;
+        };
+        if self.axis >= D
+            || !dt.is_finite()
+            || dt <= 0.0
+            || !motor.target_pos.is_finite()
+            || !motor.target_vel.is_finite()
+            || !motor.kp.is_finite()
+            || !motor.kd.is_finite()
+            || !motor.max_force.is_finite()
+            || motor.max_force < 0.0
+        {
+            return;
+        }
+
+        let displacement =
+            body_b.transform.translation.0[self.axis] - body_a.transform.translation.0[self.axis];
+        let relative_velocity =
+            body_b.linear_velocity[self.axis] - body_a.linear_velocity[self.axis];
+        if !displacement.is_finite() || !relative_velocity.is_finite() {
+            return;
+        }
+
+        let impulse = motor.calculate_impulse(displacement, relative_velocity, dt);
+        if !impulse.is_finite() {
+            return;
+        }
+
+        let inverse_mass_a = if body_a.is_dynamic() { body_a.inv_mass } else { 0.0 };
+        let inverse_mass_b = if body_b.is_dynamic() { body_b.inv_mass } else { 0.0 };
+        let effective_inverse_mass = inverse_mass_a + inverse_mass_b;
+        if !effective_inverse_mass.is_finite()
+            || effective_inverse_mass <= 0.0
+            || inverse_mass_a < 0.0
+            || inverse_mass_b < 0.0
+        {
+            return;
+        }
+
+        // Apply equal/opposite linear impulse according to inverse mass. A
+        // static/kinematic endpoint receives no velocity update; a lone
+        // dynamic endpoint receives the full impulse.
+        if body_a.is_dynamic() {
+            body_a.linear_velocity[self.axis] -= impulse * inverse_mass_a;
+        }
+        if body_b.is_dynamic() {
+            body_b.linear_velocity[self.axis] += impulse * inverse_mass_b;
+        }
+
+        // Midpoint work equals the kinetic-energy change for this generalized
+        // impulse and avoids counting a fresh full-frame interval per iteration.
+        let relative_velocity_after =
+            body_b.linear_velocity[self.axis] - body_a.linear_velocity[self.axis];
+        let work_joules = impulse * 0.5 * (relative_velocity + relative_velocity_after);
+        if let Some(cb) = callback {
+            if work_joules.is_finite() {
+                cb.record_work(self.body_b, work_joules);
+            }
+        }
+    }
+
 }
 
 #[cfg(test)]
