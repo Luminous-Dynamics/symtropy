@@ -6,7 +6,7 @@
 
 ## Paradigm shift
 
-Redundancy is not the number of nominal providers. It is the ability to preserve an accepted-service floor after a deterministic disruption by switching to an alternative whose exact configuration remains robustly qualified, independent of the failed domains, available within the mission window, and ready after handoff/requalification.
+Redundancy is not the number of nominal providers. It is the ability to preserve an planned-capacity floor after a deterministic disruption by switching to an alternative whose exact configuration remains robustly qualified, independent of the failed domains, available within the mission window, and ready after handoff/requalification.
 
 The adapter calls the robust compatibility evaluator from #6372 for every active provider at each service tick. It does not reimplement interface or uncertainty semantics.
 
@@ -18,7 +18,7 @@ The adapter calls the robust compatibility evaluator from #6372 for every active
 - Handoff and requalification must be complete before activation.
 - Provider availability, exact service-kind match, spare and propellant readiness are hard gates.
 - Deterministic fault sets have no implied probabilities.
-- Partial or unaccepted service does not count as accepted service.
+- Partial or unplanned service capacity does not count as planned service capacity.
 - No spacecraft, valve, fluid or propulsion command is issued; `authority_granted` is always false.
 
 ## Frozen scenario corpus
@@ -41,11 +41,11 @@ A deliberately weak **nominal-only scheduled fallback** was replayed on the same
 | Nominal-only scheduled fallback | 17 / 27 | 14 |
 | Frozen evidence-qualified reference | 3 / 27 | 0 |
 
-A false continuity claim means the nominal-only baseline says the service floor is met when the frozen reference says Rejected, Indeterminate or ServiceShortfall. These are adversarial synthetic fixture outcomes, not operational outage rates or a comparison with a production flight planner.
+A false continuity claim means the nominal-only baseline says the capacity floor is met when the frozen reference says Rejected, Indeterminate or PlannedCapacityShortfall. These are adversarial synthetic fixture outcomes, not operational outage rates or a comparison with a production flight planner.
 
 ## Metrics
 
-The receipt reports accepted and unmet service units, outage ticks, first restored-service tick, qualification status and accepted units per tick. It reports service-floor success, shortfall, indeterminate and rejected counts separately. No weighted aggregate can hide a service-floor failure.
+The receipt reports accepted and unmet service units, outage ticks, first restored-service tick, qualification status and available capacity units per tick. It reports service-floor success, shortfall, indeterminate and rejected counts separately. No weighted aggregate can hide a service-floor failure.
 
 ## Baselines for future matched comparison
 
