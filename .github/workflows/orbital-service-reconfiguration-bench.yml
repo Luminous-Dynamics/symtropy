@@ -69,7 +69,7 @@ jobs:
             and .report.claim_ceiling == "synthetic-service-reconfiguration-only"
             and .report.summary.scenario_count == 27
             and .report.summary.expected_result_mismatches == 0
-            and .report.summary.false_continuity_claims == 0
+            and .report.summary.nominal_false_capacity_claims == 0
             and .report.summary.authority_grants == 0
             and .authority_granted == false
           ' orbital-service-reconfiguration-receipt.json
