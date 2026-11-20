@@ -18,6 +18,7 @@ pub mod mode_options;
 pub mod observation;
 pub mod procedure;
 pub mod shared_fleet;
+pub mod scenario_calibration;
 pub mod simulation;
 pub mod transaction;
 

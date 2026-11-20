@@ -1,0 +1,617 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "MFB-SCENARIO-CALIBRATION-001",
+  "dataset_id": "synthetic-demand-weather-calibration",
+  "dataset_version": "0.1.0",
+  "dataset_license": "synthetic-test-data",
+  "geography": "synthetic-two-region",
+  "target_definition": "joint demand/weather operating regime",
+  "forecast_model_id": "synthetic-probability-model",
+  "forecast_model_version": "0.1.0",
+  "forecast_model_digest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "probability_basis": "synthetic_arithmetic",
+  "probability_evidence_reference": "synthetic://probability-basis",
+  "model_trained_through_unix_ms": 1000,
+  "evaluation_start_unix_ms": 2000,
+  "evaluation_end_unix_ms": 100000,
+  "outcomes": [
+    {
+      "outcome_id": "normal",
+      "baseline_probability_bps": 7500
+    },
+    {
+      "outcome_id": "surge",
+      "baseline_probability_bps": 1500
+    },
+    {
+      "outcome_id": "weather_blocked",
+      "baseline_probability_bps": 800
+    },
+    {
+      "outcome_id": "other",
+      "baseline_probability_bps": 200
+    }
+  ],
+  "forecasts": [
+    {
+      "forecast_id": "forecast-00",
+      "region_id": "rural",
+      "lead_time_bucket": "same_day",
+      "issued_at_unix_ms": 2000,
+      "valid_at_unix_ms": 100000,
+      "observed_at_unix_ms": 110000,
+      "observed_outcome_id": "normal",
+      "forecast_source_reference": "synthetic://forecast/0",
+      "observation_source_reference": "synthetic://observation/0",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 7000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 2000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 800
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 200
+        }
+      ]
+    },
+    {
+      "forecast_id": "forecast-01",
+      "region_id": "urban",
+      "lead_time_bucket": "next_day",
+      "issued_at_unix_ms": 3000,
+      "valid_at_unix_ms": 101000,
+      "observed_at_unix_ms": 111000,
+      "observed_outcome_id": "normal",
+      "forecast_source_reference": "synthetic://forecast/1",
+      "observation_source_reference": "synthetic://observation/1",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 7000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 2000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 800
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 200
+        }
+      ]
+    },
+    {
+      "forecast_id": "forecast-02",
+      "region_id": "rural",
+      "lead_time_bucket": "next_day",
+      "issued_at_unix_ms": 4000,
+      "valid_at_unix_ms": 102000,
+      "observed_at_unix_ms": 112000,
+      "observed_outcome_id": "normal",
+      "forecast_source_reference": "synthetic://forecast/2",
+      "observation_source_reference": "synthetic://observation/2",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 7000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 2000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 800
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 200
+        }
+      ]
+    },
+    {
+      "forecast_id": "forecast-03",
+      "region_id": "urban",
+      "lead_time_bucket": "same_day",
+      "issued_at_unix_ms": 5000,
+      "valid_at_unix_ms": 103000,
+      "observed_at_unix_ms": 113000,
+      "observed_outcome_id": "normal",
+      "forecast_source_reference": "synthetic://forecast/3",
+      "observation_source_reference": "synthetic://observation/3",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 7000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 2000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 800
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 200
+        }
+      ]
+    },
+    {
+      "forecast_id": "forecast-04",
+      "region_id": "rural",
+      "lead_time_bucket": "next_day",
+      "issued_at_unix_ms": 6000,
+      "valid_at_unix_ms": 104000,
+      "observed_at_unix_ms": 114000,
+      "observed_outcome_id": "normal",
+      "forecast_source_reference": "synthetic://forecast/4",
+      "observation_source_reference": "synthetic://observation/4",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 7000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 2000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 800
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 200
+        }
+      ]
+    },
+    {
+      "forecast_id": "forecast-05",
+      "region_id": "urban",
+      "lead_time_bucket": "next_day",
+      "issued_at_unix_ms": 7000,
+      "valid_at_unix_ms": 105000,
+      "observed_at_unix_ms": 115000,
+      "observed_outcome_id": "normal",
+      "forecast_source_reference": "synthetic://forecast/5",
+      "observation_source_reference": "synthetic://observation/5",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 7000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 2000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 800
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 200
+        }
+      ]
+    },
+    {
+      "forecast_id": "forecast-06",
+      "region_id": "rural",
+      "lead_time_bucket": "same_day",
+      "issued_at_unix_ms": 8000,
+      "valid_at_unix_ms": 106000,
+      "observed_at_unix_ms": 116000,
+      "observed_outcome_id": "normal",
+      "forecast_source_reference": "synthetic://forecast/6",
+      "observation_source_reference": "synthetic://observation/6",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 7000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 2000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 800
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 200
+        }
+      ]
+    },
+    {
+      "forecast_id": "forecast-07",
+      "region_id": "urban",
+      "lead_time_bucket": "next_day",
+      "issued_at_unix_ms": 9000,
+      "valid_at_unix_ms": 107000,
+      "observed_at_unix_ms": 117000,
+      "observed_outcome_id": "normal",
+      "forecast_source_reference": "synthetic://forecast/7",
+      "observation_source_reference": "synthetic://observation/7",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 7000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 2000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 800
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 200
+        }
+      ]
+    },
+    {
+      "forecast_id": "forecast-08",
+      "region_id": "rural",
+      "lead_time_bucket": "next_day",
+      "issued_at_unix_ms": 10000,
+      "valid_at_unix_ms": 108000,
+      "observed_at_unix_ms": 118000,
+      "observed_outcome_id": "normal",
+      "forecast_source_reference": "synthetic://forecast/8",
+      "observation_source_reference": "synthetic://observation/8",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 7000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 2000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 800
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 200
+        }
+      ]
+    },
+    {
+      "forecast_id": "forecast-09",
+      "region_id": "urban",
+      "lead_time_bucket": "same_day",
+      "issued_at_unix_ms": 11000,
+      "valid_at_unix_ms": 109000,
+      "observed_at_unix_ms": 119000,
+      "observed_outcome_id": "normal",
+      "forecast_source_reference": "synthetic://forecast/9",
+      "observation_source_reference": "synthetic://observation/9",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 7000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 2000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 800
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 200
+        }
+      ]
+    },
+    {
+      "forecast_id": "forecast-10",
+      "region_id": "rural",
+      "lead_time_bucket": "next_day",
+      "issued_at_unix_ms": 12000,
+      "valid_at_unix_ms": 110000,
+      "observed_at_unix_ms": 120000,
+      "observed_outcome_id": "normal",
+      "forecast_source_reference": "synthetic://forecast/10",
+      "observation_source_reference": "synthetic://observation/10",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 7000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 2000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 800
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 200
+        }
+      ]
+    },
+    {
+      "forecast_id": "forecast-11",
+      "region_id": "urban",
+      "lead_time_bucket": "next_day",
+      "issued_at_unix_ms": 13000,
+      "valid_at_unix_ms": 111000,
+      "observed_at_unix_ms": 121000,
+      "observed_outcome_id": "normal",
+      "forecast_source_reference": "synthetic://forecast/11",
+      "observation_source_reference": "synthetic://observation/11",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 7000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 2000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 800
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 200
+        }
+      ]
+    },
+    {
+      "forecast_id": "forecast-12",
+      "region_id": "rural",
+      "lead_time_bucket": "same_day",
+      "issued_at_unix_ms": 14000,
+      "valid_at_unix_ms": 112000,
+      "observed_at_unix_ms": 122000,
+      "observed_outcome_id": "surge",
+      "forecast_source_reference": "synthetic://forecast/12",
+      "observation_source_reference": "synthetic://observation/12",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 5000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 4000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 800
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 200
+        }
+      ]
+    },
+    {
+      "forecast_id": "forecast-13",
+      "region_id": "urban",
+      "lead_time_bucket": "next_day",
+      "issued_at_unix_ms": 15000,
+      "valid_at_unix_ms": 113000,
+      "observed_at_unix_ms": 123000,
+      "observed_outcome_id": "surge",
+      "forecast_source_reference": "synthetic://forecast/13",
+      "observation_source_reference": "synthetic://observation/13",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 5000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 4000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 800
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 200
+        }
+      ]
+    },
+    {
+      "forecast_id": "forecast-14",
+      "region_id": "rural",
+      "lead_time_bucket": "next_day",
+      "issued_at_unix_ms": 16000,
+      "valid_at_unix_ms": 114000,
+      "observed_at_unix_ms": 124000,
+      "observed_outcome_id": "surge",
+      "forecast_source_reference": "synthetic://forecast/14",
+      "observation_source_reference": "synthetic://observation/14",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 5000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 4000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 800
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 200
+        }
+      ]
+    },
+    {
+      "forecast_id": "forecast-15",
+      "region_id": "urban",
+      "lead_time_bucket": "same_day",
+      "issued_at_unix_ms": 17000,
+      "valid_at_unix_ms": 115000,
+      "observed_at_unix_ms": 125000,
+      "observed_outcome_id": "surge",
+      "forecast_source_reference": "synthetic://forecast/15",
+      "observation_source_reference": "synthetic://observation/15",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 5000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 4000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 800
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 200
+        }
+      ]
+    },
+    {
+      "forecast_id": "forecast-16",
+      "region_id": "rural",
+      "lead_time_bucket": "next_day",
+      "issued_at_unix_ms": 18000,
+      "valid_at_unix_ms": 116000,
+      "observed_at_unix_ms": 126000,
+      "observed_outcome_id": "weather_blocked",
+      "forecast_source_reference": "synthetic://forecast/16",
+      "observation_source_reference": "synthetic://observation/16",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 7000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 1000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 1800
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 200
+        }
+      ]
+    },
+    {
+      "forecast_id": "forecast-17",
+      "region_id": "urban",
+      "lead_time_bucket": "next_day",
+      "issued_at_unix_ms": 19000,
+      "valid_at_unix_ms": 117000,
+      "observed_at_unix_ms": 127000,
+      "observed_outcome_id": "weather_blocked",
+      "forecast_source_reference": "synthetic://forecast/17",
+      "observation_source_reference": "synthetic://observation/17",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 7000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 1000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 1800
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 200
+        }
+      ]
+    },
+    {
+      "forecast_id": "forecast-18",
+      "region_id": "rural",
+      "lead_time_bucket": "same_day",
+      "issued_at_unix_ms": 20000,
+      "valid_at_unix_ms": 118000,
+      "observed_at_unix_ms": 128000,
+      "observed_outcome_id": "weather_blocked",
+      "forecast_source_reference": "synthetic://forecast/18",
+      "observation_source_reference": "synthetic://observation/18",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 7000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 1000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 1800
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 200
+        }
+      ]
+    },
+    {
+      "forecast_id": "forecast-19",
+      "region_id": "urban",
+      "lead_time_bucket": "next_day",
+      "issued_at_unix_ms": 21000,
+      "valid_at_unix_ms": 119000,
+      "observed_at_unix_ms": 129000,
+      "observed_outcome_id": "other",
+      "forecast_source_reference": "synthetic://forecast/19",
+      "observation_source_reference": "synthetic://observation/19",
+      "outcome_probabilities": [
+        {
+          "outcome_id": "normal",
+          "probability_bps": 7000
+        },
+        {
+          "outcome_id": "surge",
+          "probability_bps": 1000
+        },
+        {
+          "outcome_id": "weather_blocked",
+          "probability_bps": 500
+        },
+        {
+          "outcome_id": "other",
+          "probability_bps": 1500
+        }
+      ]
+    }
+  ]
+}

@@ -38,6 +38,8 @@ jobs:
         run: |
           jq empty tools/material-flow-benchmark/schemas/shared_aircraft_repositioning_v0_1.schema.json
           jq empty tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft.json
+          jq empty tools/material-flow-benchmark/schemas/scenario_calibration_v0_1.schema.json
+          jq empty tools/material-flow-benchmark/fixtures/synthetic-scenario-calibration-v0_1.json
       - name: Clippy
         run: cargo clippy --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --all-targets -- -D warnings
       - name: Tests
@@ -98,6 +100,29 @@ jobs:
             and .dispatch_commands_emitted == false
           ' mfb-l1-evidence/shared-aircraft-tail-risk-report.json
           cat mfb-l1-evidence/shared-aircraft-tail-risk-report.json
+      - name: Evaluate held-out scenario probability calibration diagnostics
+        run: |
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-evaluate-scenario-calibration -- tools/material-flow-benchmark/fixtures/synthetic-scenario-calibration-v0_1.json > mfb-l1-evidence/scenario-calibration-report.json
+          jq -e '
+            .benchmark_id == "MFB-SCENARIO-CALIBRATION-001"
+            and .forecast_count == 20
+            and .outcome_class_count == 4
+            and .probability_basis == "synthetic_arithmetic"
+            and .probability_claim_class == "synthetic_arithmetic_only"
+            and .field_risk_claim_authorized == false
+            and .independent_review_required == true
+            and .zero_probability_observed_outcome_count == 0
+            and .log_loss_nats != null
+            and .multiclass_brier_score >= 0
+            and .climatology_brier_score >= 0
+            and .multiclass_brier_score == 0.44261
+            and .climatology_brier_score == 0.6058
+            and .brier_skill_score_vs_training_climatology == 0.269379
+            and .log_loss_nats == 0.749339
+            and .expected_calibration_error_bps == 1628
+            and ([.outcomes[].reliability_bins[].sample_count] | add) == 80
+          ' mfb-l1-evidence/scenario-calibration-report.json
+          cat mfb-l1-evidence/scenario-calibration-report.json
       - name: Validate synthetic 3D cargo-bay loading
         run: |
           mkdir -p mfb-l1-evidence
@@ -285,6 +310,15 @@ jobs:
             sha256sum tools/material-flow-benchmark/src/shared_fleet.rs
             sha256sum tools/material-flow-benchmark/src/bin/mfb-evaluate-shared-fleet.rs
             sha256sum mfb-l1-evidence/shared-aircraft-report.json
+            echo
+            echo "[scenario_calibration_schema_fixture_digest]"
+            sha256sum tools/material-flow-benchmark/schemas/scenario_calibration_v0_1.schema.json
+            sha256sum tools/material-flow-benchmark/fixtures/synthetic-scenario-calibration-v0_1.json
+            echo
+            echo "[scenario_calibration_source_digest]"
+            sha256sum tools/material-flow-benchmark/src/scenario_calibration.rs
+            sha256sum tools/material-flow-benchmark/src/bin/mfb-evaluate-scenario-calibration.rs
+            sha256sum mfb-l1-evidence/scenario-calibration-report.json
             echo
             echo "[dependency_lock_digest]"
             sha256sum tools/material-flow-benchmark/Cargo.lock
