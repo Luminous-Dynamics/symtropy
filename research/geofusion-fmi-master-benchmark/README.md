@@ -199,6 +199,8 @@ Publish each metric separately; do not collapse them into an arbitrary weighted 
 - predictor family and data-access contract (zero-order hold, causal bounded predictor, exact interval-average oracle, derivative-assisted, iterative);
 - number of historical samples consumed and future-sample reads (must be zero for causal lanes);
 - predictor residual against the later observed interval integral and trajectory error against the analytic reference;
+- cumulative counter endpoint ULP bound, allowed absolute-energy error and interval transfer energy error;
+- exactly-once consumption of each source interval-energy transfer, with explicit reset/restart epoch evidence;
 - envelope-limiter activation count and maximum correction, with the exact declared source bounds;
 - local error estimate calibration, rejected-step decisions and error reduction per communication call;
 - derivative API calls, seed vectors and derivative results when the FMU advertises directional/adjoint derivatives.
@@ -223,6 +225,8 @@ Hard gates:
 - no silent fallback, extrapolation, status downgrade or capability emulation;
 - deterministic receipts for deterministic fixed inputs/builds;
 - zero future-sample access in any lane labelled causal;
+- cumulative-counter resolution bound remains within its declared absolute-energy tolerance;
+- exactly-once interval-energy consumption with explicit reset/restart epochs;
 - 100% of predictor limiter activations, declared bounds and interval corrections recorded;
 - SSP structural round-trip preserves 100% of declared components, connections, parameter values and unit semantics across the tested tools;
 - failures, timeouts and unsupported cases remain in the published denominator.
@@ -241,12 +245,13 @@ A faster result that is less accurate, less conservative, less repeatable or les
 
 The FMI standard deliberately leaves the co-simulation algorithm to the importer. FMI 3's optional mechanisms create a feature space that a serious master benchmark must exercise separately: variable communication steps; state-based reject/repeat where the FMU advertises state support; intermediate updates; early return with the actual `lastSuccessfulTime`; external event mode; clock activations; and optional directional/adjoint derivatives. The current FMI Implementers' Guide explains that early return can preserve the exact internal event time, that event mode transfers event iteration responsibility to the importer, and that clock ticks have a cause which the importer must schedule. Partial derivatives can support iterative co-simulation and algebraic-loop solution.
 
-This yields four distinct predictor/coupling tracks:
+This yields five distinct predictor/coupling tracks:
 
 1. **Reference ZOH:** left-endpoint sample-and-hold; simple, causal baseline with first-order global error on smooth forcing.
 2. **Oracle interval average:** exact whole-interval source integral; non-causal upper bound / method reference, never reported as a causal master win.
 3. **Causal bounded linear prediction:** current and previous committed source samples only, explicit source envelope, limiter receipts and later correction against observed interval flux. The current analytic oracle records about 12.94× lower 15-step endpoint error than ZOH while remaining about 6.13× less accurate than the exact-average oracle.
 4. **Derivative-assisted / iterative coupling:** use FMI-reported output derivatives or directional/adjoint derivatives only when modelDescription capabilities permit; compare explicit/implicit convergence, iteration count, checkpoint/rollback cost and residual reduction against preCICE-style coupling references.
+5. **Cumulative-energy / integrated-flux handshake:** consume a producer-reported interval integral in J after the producer step has completed. This is causal with respect to future samples because it reads two successful cumulative observations (or a direct per-interval J output) rather than predicting a future power sample. Report Float64 endpoint resolution, reject unobserved resets, and apply the interval energy exactly once. The receiver may represent the macro-step integral as average power for its state update, so exact interface energy must be scored separately from trajectory error. A cumulative scalar is not an FMU checkpoint.
 
 The next master-algorithm paradigm is an **event-fenced, energy-aware adaptive scheduler**. It should propose a communication horizon from a combined error budget (state prediction error, interface mismatch, conservation residual and model uncertainty), then shorten that horizon before the earliest known event/clock tick. Every decision should carry the input samples and capability flags it used. It must distinguish an observed bound from a heuristic estimate; it may not call a heuristic a proof. On an unavailable checkpoint or derivative feature it must choose a separately qualified fallback lane or return `NOT_EVALUABLE`—never silently emulate the feature.
 
