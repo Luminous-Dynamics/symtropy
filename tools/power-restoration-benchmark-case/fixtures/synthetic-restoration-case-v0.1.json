@@ -1,0 +1,332 @@
+{
+  "formatVersion": "0.1.0",
+  "caseId": "synthetic-feeder-repair-mps-six-node-v1",
+  "maturity": "synthetic_fixture",
+  "provenance": {
+    "datasetId": "synthetic://power-fabric/restoration-case/six-node-v1",
+    "sourceRepository": "https://github.com/Luminous-Dynamics/symtropy",
+    "sourceCommit": "9faad6a5a5874e37a48a0b7cd5f544f69f661076",
+    "sourceLicenseRef": "SPDX:MIT OR Apache-2.0",
+    "conversionReceiptRef": "synthetic://conversion-receipt/six-node-v1",
+    "sourceArtifacts": []
+  },
+  "units": {
+    "length": "km",
+    "time": "minute",
+    "activePower": "kW",
+    "reactivePower": "kvar",
+    "apparentPower": "kVA",
+    "energy": "kWh",
+    "work": "repair_work_unit"
+  },
+  "timebase": {
+    "unit": "minute",
+    "stepSize": 5,
+    "horizonSteps": 24,
+    "firstStepSemantics": "actions accepted at step start; travel/work progresses during the step; restoration is scored after transition"
+  },
+  "modelProfile": {
+    "electricalDataProfile": "topology_only",
+    "topologyConstraints": [
+      "radiality",
+      "source_reachability",
+      "fault_isolation"
+    ],
+    "mpsConstraints": [
+      "active_power_limit",
+      "apparent_power_limit",
+      "available_energy_limit",
+      "permitted_connection_nodes"
+    ],
+    "independentValidatorRef": "synthetic://validator/topology-and-mps-capacity/v1"
+  },
+  "network": {
+    "nodes": [
+      {
+        "nodeId": "N1"
+      },
+      {
+        "nodeId": "N2"
+      },
+      {
+        "nodeId": "N3"
+      },
+      {
+        "nodeId": "N4"
+      },
+      {
+        "nodeId": "N5"
+      },
+      {
+        "nodeId": "N6"
+      }
+    ],
+    "branches": [
+      {
+        "branchId": "B12",
+        "fromNodeId": "N1",
+        "toNodeId": "N2",
+        "lengthKm": 1.2,
+        "normallyEnergized": true,
+        "electrical": null
+      },
+      {
+        "branchId": "B23",
+        "fromNodeId": "N2",
+        "toNodeId": "N3",
+        "lengthKm": 0.8,
+        "normallyEnergized": true,
+        "electrical": null
+      },
+      {
+        "branchId": "B24",
+        "fromNodeId": "N2",
+        "toNodeId": "N4",
+        "lengthKm": 1,
+        "normallyEnergized": true,
+        "electrical": null
+      },
+      {
+        "branchId": "B45",
+        "fromNodeId": "N4",
+        "toNodeId": "N5",
+        "lengthKm": 0.7,
+        "normallyEnergized": true,
+        "electrical": null
+      },
+      {
+        "branchId": "B36",
+        "fromNodeId": "N3",
+        "toNodeId": "N6",
+        "lengthKm": 1.1,
+        "normallyEnergized": true,
+        "electrical": null
+      }
+    ],
+    "switches": [
+      {
+        "switchId": "T56",
+        "fromNodeId": "N5",
+        "toNodeId": "N6",
+        "initiallyClosed": false,
+        "normallyOpenTie": true
+      },
+      {
+        "switchId": "T34",
+        "fromNodeId": "N3",
+        "toNodeId": "N4",
+        "initiallyClosed": false,
+        "normallyOpenTie": true
+      }
+    ],
+    "loads": [
+      {
+        "loadId": "L3",
+        "nodeId": "N3",
+        "activePowerKw": 180,
+        "reactivePowerKvar": 65,
+        "priorityWeight": 3,
+        "essentialServiceClass": "residential"
+      },
+      {
+        "loadId": "L4",
+        "nodeId": "N4",
+        "activePowerKw": 260,
+        "reactivePowerKvar": 90,
+        "priorityWeight": 5,
+        "essentialServiceClass": "community-water"
+      },
+      {
+        "loadId": "L5",
+        "nodeId": "N5",
+        "activePowerKw": 310,
+        "reactivePowerKvar": 110,
+        "priorityWeight": 8,
+        "essentialServiceClass": "health-clinic"
+      },
+      {
+        "loadId": "L6",
+        "nodeId": "N6",
+        "activePowerKw": 140,
+        "reactivePowerKvar": 45,
+        "priorityWeight": 2,
+        "essentialServiceClass": "residential"
+      }
+    ],
+    "gridSources": [
+      {
+        "sourceId": "GRID-1",
+        "nodeId": "N1",
+        "maximumActivePowerKw": 2000,
+        "maximumReactivePowerKvar": 1200,
+        "maximumApparentPowerKva": 2300
+      }
+    ],
+    "electricalSettings": null
+  },
+  "roadNetwork": {
+    "nodes": [
+      {
+        "nodeId": "R1",
+        "powerNodeId": "N1"
+      },
+      {
+        "nodeId": "R2",
+        "powerNodeId": "N2"
+      },
+      {
+        "nodeId": "R3",
+        "powerNodeId": "N3"
+      },
+      {
+        "nodeId": "R4",
+        "powerNodeId": "N4"
+      },
+      {
+        "nodeId": "R5",
+        "powerNodeId": "N5"
+      },
+      {
+        "nodeId": "R6",
+        "powerNodeId": "N6"
+      }
+    ],
+    "edges": [
+      {
+        "edgeId": "R12",
+        "fromNodeId": "R1",
+        "toNodeId": "R2",
+        "lengthKm": 1.2,
+        "nominalSpeedKph": 30,
+        "closedAtStart": false
+      },
+      {
+        "edgeId": "R23",
+        "fromNodeId": "R2",
+        "toNodeId": "R3",
+        "lengthKm": 0.9,
+        "nominalSpeedKph": 25,
+        "closedAtStart": false
+      },
+      {
+        "edgeId": "R24",
+        "fromNodeId": "R2",
+        "toNodeId": "R4",
+        "lengthKm": 1.1,
+        "nominalSpeedKph": 25,
+        "closedAtStart": false
+      },
+      {
+        "edgeId": "R45",
+        "fromNodeId": "R4",
+        "toNodeId": "R5",
+        "lengthKm": 0.8,
+        "nominalSpeedKph": 20,
+        "closedAtStart": false
+      },
+      {
+        "edgeId": "R36",
+        "fromNodeId": "R3",
+        "toNodeId": "R6",
+        "lengthKm": 1.2,
+        "nominalSpeedKph": 30,
+        "closedAtStart": false
+      },
+      {
+        "edgeId": "R56",
+        "fromNodeId": "R5",
+        "toNodeId": "R6",
+        "lengthKm": 1.5,
+        "nominalSpeedKph": 15,
+        "closedAtStart": false
+      }
+    ]
+  },
+  "faults": [
+    {
+      "faultId": "F23-A",
+      "powerBranchId": "B23",
+      "positionFraction": 0.6,
+      "workUnits": 8,
+      "maximumParallelCrews": 2,
+      "requiredSkillRef": "skill://distribution-line-repair"
+    }
+  ],
+  "repairCrews": [
+    {
+      "crewId": "CREW-A",
+      "startingRoadNodeId": "R1",
+      "travelSpeedKph": 35,
+      "workUnitsPerStep": 1.5,
+      "skillRefs": [
+        "skill://distribution-line-repair"
+      ],
+      "resourceCapacities": [
+        {
+          "resourceRef": "resource://test-set",
+          "capacityUnits": 1
+        },
+        {
+          "resourceRef": "resource://insulated-tools",
+          "capacityUnits": 1
+        }
+      ],
+      "calendar": {
+        "timezoneRef": "timezone://UTC",
+        "windows": [
+          {
+            "startStep": 0,
+            "endStep": 24
+          }
+        ]
+      }
+    },
+    {
+      "crewId": "CREW-B",
+      "startingRoadNodeId": "R5",
+      "travelSpeedKph": 30,
+      "workUnitsPerStep": 1,
+      "skillRefs": [
+        "skill://distribution-line-repair"
+      ],
+      "resourceCapacities": [
+        {
+          "resourceRef": "resource://test-set",
+          "capacityUnits": 1
+        }
+      ],
+      "calendar": {
+        "timezoneRef": "timezone://UTC",
+        "windows": [
+          {
+            "startStep": 0,
+            "endStep": 18
+          }
+        ]
+      }
+    }
+  ],
+  "mobilePowerSources": [
+    {
+      "mobileSourceId": "MPS-1",
+      "startingRoadNodeId": "R5",
+      "maximumActivePowerKw": 500,
+      "maximumApparentPowerKva": 600,
+      "availableEnergyKwh": 2500,
+      "fuelOrEnergyModelRef": "synthetic://mps-energy-model/diesel-equivalent-v1",
+      "permittedConnectionNodeIds": [
+        "N3",
+        "N4",
+        "N5",
+        "N6"
+      ]
+    }
+  ],
+  "objective": {
+    "objectiveId": "weighted-restored-energy-24-step-v1",
+    "metric": "cumulative_time_weighted_priority_energy_restored",
+    "expressionRef": "synthetic://objective/sum-served-kW-times-step-hours-times-priority-weight",
+    "horizonSteps": 24,
+    "loadPriorityWeightSemantics": "dimensionless service priority multiplier; raw P*W is not energy; multiply by step duration to score weighted kWh"
+  }
+}

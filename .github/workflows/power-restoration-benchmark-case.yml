@@ -1,0 +1,70 @@
+name: Power restoration benchmark case contract
+
+on:
+  pull_request:
+    paths:
+      - "tools/power-restoration-benchmark-case/**"
+      - ".github/workflows/power-restoration-benchmark-case.yml"
+  push:
+    paths:
+      - "tools/power-restoration-benchmark-case/**"
+      - ".github/workflows/power-restoration-benchmark-case.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  case-contract:
+    name: Validate planner-neutral data-only case
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate schema and synthetic case
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import math
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+
+          root = Path("tools/power-restoration-benchmark-case")
+          schema = json.loads((root / "fixtures/power-restoration-case-v0.1.schema.json").read_text())
+          case = json.loads((root / "fixtures/synthetic-restoration-case-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(case),
+              key=lambda error: list(error.path),
+          )
+          assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
+          assert case["maturity"] == "synthetic_fixture"
+          assert case["modelProfile"]["electricalDataProfile"] == "topology_only"
+          assert case["objective"]["horizonSteps"] == case["timebase"]["horizonSteps"]
+          assert all(branch["electrical"] is None for branch in case["network"]["branches"])
+          assert case["network"]["electricalSettings"] is None
+          assert {fault["powerBranchId"] for fault in case["faults"]} <= {branch["branchId"] for branch in case["network"]["branches"]}
+          assert {crew["startingRoadNodeId"] for crew in case["repairCrews"]} <= {node["nodeId"] for node in case["roadNetwork"]["nodes"]}
+          print("PASS: schema, maturity, topology-only fidelity and initial reference checks")
+          PY
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/power-restoration-benchmark-case/Cargo.toml --all -- --check
+      - name: Resolve dependency graph for this run
+        run: cargo generate-lockfile --manifest-path tools/power-restoration-benchmark-case/Cargo.toml
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/power-restoration-benchmark-case/Cargo.toml --all-targets -- -D warnings
+      - name: Run Rust tests
+        run: cargo test --locked --manifest-path tools/power-restoration-benchmark-case/Cargo.toml --all-targets
+      - name: Validate case through Rust CLI
+        run: |
+          set -euo pipefail
+          cargo run --locked --manifest-path tools/power-restoration-benchmark-case/Cargo.toml --bin power-restoration-case-validate -- tools/power-restoration-benchmark-case/fixtures/synthetic-restoration-case-v0.1.json > /tmp/restoration-case-report.json
+          jq -e '.status == "case_contract_valid" and .caseId == "synthetic-feeder-repair-mps-six-node-v1" and (.caseSha256 | length == 64)' /tmp/restoration-case-report.json
