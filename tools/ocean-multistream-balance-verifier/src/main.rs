@@ -207,9 +207,6 @@ fn timestamp_seconds(value: &str) -> Option<i64> {
     let days = era * 146097 + day_of_era - 719468;
     Some(days * 86400 + hour * 3600 + minute * 60 + second)
 }
-fn valid_timestamp(value: &str) -> bool {
-    timestamp_seconds(value).is_some()
-}
 fn check_window(start: &str, end: &str, bundle: &Bundle, context: &str) -> Result<(), String> {
     let start_seconds = timestamp_seconds(start)
         .ok_or_else(|| format!("{context} has an invalid UTC start"))?;
@@ -653,7 +650,7 @@ fn validate(bundle: &Bundle) -> Result<Receipt, String> {
 fn run(path: &Path) -> Result<Receipt, String> {
     let bytes = fs::read(path).map_err(|e| format!("cannot read {}: {e}", path.display()))?;
     let digest = Sha256::digest(&bytes);
-    let mut bundle: Bundle =
+    let bundle: Bundle =
         serde_json::from_slice(&bytes).map_err(|e| format!("invalid bundle JSON: {e}"))?;
     if bundle.interval_duration_seconds == 0 {
         return Err("interval duration cannot be zero".into());
@@ -721,6 +718,17 @@ mod tests {
     fn common_scale_error_is_summed_algebraically_at_global_boundary() {
         let report = validate(&fixture()).expect("fixture should close");
         assert!((report.global_boundary.common_mode_standard_uncertainty_kg_s - 0.009).abs() < 1e-12);
+    }
+    #[test]
+    fn storage_and_flow_common_mode_uncertainty_share_one_covariance_group() {
+        let mut b = fixture();
+        for cv in &mut b.control_volumes {
+            cv.storage_inventory.common_mode_standard_uncertainty_kg = 3.0;
+            cv.storage_inventory.correlation_group_id = Some("FLOW-SCALE-COMMON-01".into());
+        }
+        let report = validate(&b).expect("shared covariance group remains auditable");
+        let expected_common = (0.009 + 2.0 * (3.0 / 300.0)).abs();
+        assert!((report.global_boundary.common_mode_standard_uncertainty_kg_s - expected_common).abs() < 1e-12);
     }
     #[test]
     fn missing_purge_port_stream_is_rejected() {
