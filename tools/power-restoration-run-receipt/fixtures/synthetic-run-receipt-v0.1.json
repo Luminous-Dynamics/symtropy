@@ -121,7 +121,9 @@
         "inputTokens": 400,
         "outputTokens": 100,
         "cost": null,
-        "failureRef": null
+        "failureRef": null,
+        "startedAtMs": 50,
+        "endedAtMs": 130
       },
       {
         "attemptId": "attempt-001",
@@ -137,7 +139,9 @@
         "inputTokens": 0,
         "outputTokens": 0,
         "cost": null,
-        "failureRef": "synthetic://failure/rejected-unsafe-switch"
+        "failureRef": "synthetic://failure/rejected-unsafe-switch",
+        "startedAtMs": 130,
+        "endedAtMs": 135
       },
       {
         "attemptId": "attempt-002",
@@ -153,7 +157,9 @@
         "inputTokens": 800,
         "outputTokens": 200,
         "cost": null,
-        "failureRef": null
+        "failureRef": null,
+        "startedAtMs": 20050,
+        "endedAtMs": 20140
       },
       {
         "attemptId": "attempt-003",
@@ -169,7 +175,9 @@
         "inputTokens": 0,
         "outputTokens": 0,
         "cost": null,
-        "failureRef": null
+        "failureRef": null,
+        "startedAtMs": 20140,
+        "endedAtMs": 20147
       },
       {
         "attemptId": "attempt-004",
@@ -185,7 +193,9 @@
         "inputTokens": 0,
         "outputTokens": 0,
         "cost": null,
-        "failureRef": "synthetic://failure/tool-timeout-004"
+        "failureRef": "synthetic://failure/tool-timeout-004",
+        "startedAtMs": 30000,
+        "endedAtMs": 35000
       }
     ],
     "declaredAttemptCount": 5,
