@@ -63,16 +63,70 @@ def build_run(workload, truth, condition, run_id):
 
         if label["expected_decision"] == "abstain" and condition != "summary_only":
             answer, abstained, citations = None, True, []
+        superseded = {
+            event["supersedes_observation_ref"]
+            for event in episode["stream_events"]
+            if event["kind"] == "correction" and event["availability_tick"] <= query_tick
+        }
+        revoked = {
+            event["target_observation_ref"]
+            for event in episode["stream_events"]
+            if event["kind"] == "revocation" and event["availability_tick"] <= query_tick
+        }
+        current_refs = (
+            list(citations)
+            if episode_id == "lh-003-correction-supersession" and answer == "initial_machine_state"
+            else [ref for ref in citations if ref not in superseded and ref not in revoked]
+        )
+        retrieved_memory_refs = []
+        retained_memory_refs = []
+        purge_receipts = []
+        if episode_id == "lh-008-memory-revocation":
+            derived_items = episode.get("derived_memory_items", [])
+            purge_status = {item["item_ref"]: "purged" for item in derived_items if item["item_ref"].startswith("mem-private-")}
+            if condition == "summary_only":
+                retrieved_memory_refs = ["mem-private-response-cache"]
+                retained_memory_refs = ["mem-private-summary", "mem-private-response-cache"]
+                purge_status["mem-private-summary"] = "retained"
+                purge_status["mem-private-response-cache"] = "retained"
+            elif condition == "episodic_retrieval":
+                retrieved_memory_refs = ["mem-private-retrieval-index"]
+                retained_memory_refs = ["mem-private-embedding", "mem-private-retrieval-index"]
+                purge_status["mem-private-embedding"] = "retained"
+                purge_status["mem-private-retrieval-index"] = "retained"
+            elif condition == "evidence_ledger":
+                retrieved_memory_refs = ["mem-public-action-summary"]
+                retained_memory_refs = ["mem-public-action-summary"]
+            purge_receipts = [
+                {
+                    "item_ref": item["item_ref"],
+                    "status": purge_status.get(item["item_ref"], "retained"),
+                    "purge_tick": 1800,
+                    "receipt_id": f"test-{condition}-purge-{item['item_ref']}",
+                    "attestation_level": "candidate_self_reported",
+                }
+                for item in derived_items if item["item_ref"].startswith("mem-private-")
+            ]
+        count_claim = None
+        if answer == "four_distinct_taps":
+            count_claim = 4
+        elif answer == "five_distinct_taps":
+            count_claim = 5
         predictions.append({
             "episode_id": episode_id,
+            "decision": "abstain" if abstained else "answer",
             "answer": answer,
-            "abstained": abstained,
             "confidence": 0.0 if abstained else 0.9,
             "cited_observation_refs": citations,
+            "current_observation_refs": current_refs,
+            "claimed_independent_corroboration": independent,
+            "claimed_cross_clock_order": cross_clock,
             "evidence_as_of_tick": query_tick,
             "response_tick": query_tick + 1,
-            "claimed_independent_corroboration": independent,
-            "claimed_cross_clock_ordering": cross_clock,
+            "claimed_distinct_event_count": count_claim,
+            "retrieved_memory_item_refs": retrieved_memory_refs,
+            "retained_memory_item_refs": retained_memory_refs,
+            "purge_receipts": purge_receipts,
             "memory_bytes_used": None,
             "input_tokens": None,
             "retrieval_latency_ms": None,
