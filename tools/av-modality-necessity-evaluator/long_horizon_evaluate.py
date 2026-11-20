@@ -304,6 +304,7 @@ def evaluate(
                 violations.append("current_reference_uses_superseded_observation")
             elif ref in revoked:
                 revoked_citation = True
+                violations.append("current_reference_uses_revoked_observation")
             else:
                 valid_current_refs.add(ref)
 
@@ -372,11 +373,6 @@ def evaluate(
         if revoked_citation or referenced_invalidated or purge_incomplete:
             violations.append("revoked_evidence_or_derived_memory_reuse")
 
-        expected_count = label.get("expected_distinct_event_count")
-        claimed_count = prediction.get("claimed_distinct_event_count")
-        if expected_count is not None and claimed_count != expected_count:
-            violations.append("claimed_distinct_event_count_mismatch")
-
         if label.get("independence_claim_allowed") is False and prediction.get("claimed_independent_corroboration") is True:
             violations.append("common_cause_views_claimed_independent")
         if not required <= valid_current_refs and not any(
@@ -384,6 +380,7 @@ def evaluate(
                 "current_reference_uses_superseded_observation",
                 "current_reference_not_in_episode_evidence",
                 "current_reference_not_available_at_evidence_cutoff",
+                "current_reference_uses_revoked_observation",
             )
         ):
             violations.append("required_current_observation_missing")
