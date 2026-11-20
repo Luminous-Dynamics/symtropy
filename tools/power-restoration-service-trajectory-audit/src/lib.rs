@@ -98,6 +98,28 @@ pub struct ServiceSample {
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CascadeLoadMappingRow {
+    pub load_id: String,
+    pub cascade_node_id: String,
+    pub service_type: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CascadeEndpointMapping {
+    pub mapping_id: String,
+    pub case_sha256: String,
+    pub service_id: String,
+    pub service_type: String,
+    pub service_boundary_id: String,
+    pub mapping_sha256: String,
+    pub mapping_source_ref: String,
+    pub mapping_source_sha256: String,
+    pub rows: Vec<CascadeLoadMappingRow>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WorkMilestone {
     pub milestone_id: String,
     pub kind: WorkMilestoneKind,
@@ -1073,6 +1095,129 @@ pub fn per_load_cascade_availability(
         result.insert(load.load_id.clone(), values.clone());
     }
     Ok(result)
+}
+
+/// Convert load-terminal electricity service into CIVDYN cascade endpoint availability.
+///
+/// Multiple feeder loads may map to one cascade service node. Their service
+/// fractions are aggregated by delivered-energy / demand-energy share at each
+/// interval; plain arithmetic averaging is deliberately not used.
+pub fn aggregate_cascade_endpoint_availability(
+    report: &ServiceTrajectoryAuditReport,
+    case: &BenchmarkCase,
+    mapping: &CascadeEndpointMapping,
+) -> Result<BTreeMap<String, Vec<f64>>, Vec<String>> {
+    let mut errors = Vec::new();
+    let case_sha = canonical_case_sha256(case)
+        .map_err(|error| vec![format!("case canonicalization failed: {error}")])?;
+    if !matches!(
+        report.result_status.as_str(),
+        "modelled_service_and_score_reconciled" | "measured_service_and_score_reconciled"
+    ) {
+        errors.push("cascade mapping requires a complete, reconciled modelled/measured service trajectory".to_string());
+    }
+    if report.case_sha256 != case_sha
+        || mapping.case_sha256 != case_sha
+        || report.stream_kind != ServiceStreamKind::ModelledService
+            && report.stream_kind != ServiceStreamKind::MeasuredService
+        || mapping.service_id != report.load_summaries.first().map(|_| report.trajectory_id.as_str()).unwrap_or("")
+            && mapping.service_id.is_empty()
+        || !valid_id(&mapping.mapping_id)
+        || !valid_id(&mapping.service_id)
+        || mapping.service_type != "electricity"
+        || mapping.service_boundary_id != "load-terminal"
+        || !is_lower_hex(&mapping.mapping_sha256, 64)
+        || !valid_id(&mapping.mapping_source_ref)
+        || !is_lower_hex(&mapping.mapping_source_sha256, 64)
+    {
+        errors.push("cascade endpoint mapping identity, service boundary or case binding is invalid".to_string());
+    }
+
+    let rows_digest = canonical_sha256(&mapping.rows)
+        .map_err(|error| vec![format!("cascade mapping canonicalization failed: {error}")])?;
+    if rows_digest != mapping.mapping_sha256 {
+        errors.push("cascade mapping rows do not match mapping_sha256".to_string());
+    }
+
+    let expected_loads: BTreeMap<&str, &power_restoration_benchmark_case::Load> =
+        case.network.loads.iter().map(|load| (load.load_id.as_str(), load)).collect();
+    let mut mapped_loads = BTreeSet::new();
+    let mut by_node = BTreeMap::<String, Vec<(f64, Vec<f64>)>>::new();
+    let mut prior_load: Option<&str> = None;
+    let summaries: BTreeMap<&str, &LoadServiceSummary> = report.load_summaries.iter()
+        .map(|summary| (summary.load_id.as_str(), summary))
+        .collect();
+
+    if mapping.rows.len() != expected_loads.len() {
+        errors.push("cascade mapping must contain exactly one row for every frozen case load".to_string());
+    }
+
+    for row in &mapping.rows {
+        if !valid_id(&row.load_id)
+            || !valid_id(&row.cascade_node_id)
+            || row.service_type != mapping.service_type
+            || prior_load.is_some_and(|prior| prior >= row.load_id.as_str())
+            || !mapped_loads.insert(row.load_id.as_str())
+        {
+            errors.push(format!("cascade mapping row for load {} is invalid, duplicated or not canonically ordered", row.load_id));
+            continue;
+        }
+        prior_load = Some(row.load_id.as_str());
+        let Some(load) = expected_loads.get(row.load_id.as_str()) else {
+            errors.push(format!("cascade mapping references unknown feeder load {}", row.load_id));
+            continue;
+        };
+        let Some(summary) = summaries.get(row.load_id.as_str()) else {
+            errors.push(format!("service report has no summary for mapped load {}", row.load_id));
+            continue;
+        };
+        let Some(fractions) = summary.service_fraction_by_step.as_ref() else {
+            errors.push(format!("mapped load {} has no complete interval fraction series", row.load_id));
+            continue;
+        };
+        if fractions.len() != report.horizon_steps as usize {
+            errors.push(format!("mapped load {} service fraction length does not equal report horizon", row.load_id));
+            continue;
+        }
+        let demand_kwh_per_step = expected_demand_kwh(
+            load.active_power_kw,
+            report.interval_duration_seconds,
+        );
+        by_node.entry(row.cascade_node_id.clone())
+            .or_default()
+            .push((demand_kwh_per_step, fractions.clone()));
+    }
+
+    let expected_ids: BTreeSet<&str> = expected_loads.keys().copied().collect();
+    if mapped_loads != expected_ids {
+        errors.push("cascade mapping does not provide exact one-to-one coverage of the frozen case loads".to_string());
+    }
+    if by_node.is_empty() {
+        errors.push("cascade mapping has no valid endpoint nodes".to_string());
+    }
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+
+    let mut output = BTreeMap::new();
+    for (node_id, contributions) in by_node {
+        let mut denominator = vec![0.0_f64; report.horizon_steps as usize];
+        let mut numerator = vec![0.0_f64; report.horizon_steps as usize];
+        for (demand, fractions) in contributions {
+            for step in 0..fractions.len() {
+                denominator[step] += demand;
+                numerator[step] += demand * fractions[step];
+            }
+        }
+        let values = denominator.iter().zip(numerator.iter())
+            .map(|(demand, delivered)| delivered / demand)
+            .collect::<Vec<_>>();
+        if values.iter().any(|value| !value.is_finite() || !(0.0..=1.0).contains(value)) {
+            return Err(vec![format!("cascade endpoint {node_id} has an invalid aggregated service fraction")]);
+        }
+        output.insert(node_id, values);
+    }
+    Ok(output)
 }
 
 pub fn parse_and_audit(
