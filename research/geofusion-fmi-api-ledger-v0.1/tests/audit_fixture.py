@@ -47,7 +47,7 @@ def audit_fixture(d, arts):
                 fail(f"unsupported port role: {fid}/{vr}")
             seen.add(vr); vars[(fid,vr)]=v
     life={fid:{"created":False,"entered":False,"initialized":False,"terminated":False,"freed":False} for fid in feds}
-    steps={}; successful=set(); values=[]; event_ids=set()
+    steps={}; successful=set(); last_successful_interval={fid:None for fid in feds}; values=[]; event_ids=set()
     for seq,e in enumerate(d["events"]):
         fid=e["federate_id"]; k=e["kind"]; p=e["payload"]; eid=e["event_id"]; state=life.get(fid)
         if e["sequence"]!=seq or eid in event_ids or state is None: fail(f"event order/id/federate error at {eid}")
@@ -77,6 +77,8 @@ def audit_fixture(d, arts):
             if k=="set_float64" and fid in successful: fail(f"input written after doStep: {eid}")
             iv=p["interval"]
             if iv["start_master_ns"]>=iv["end_master_ns"]: fail(f"bad interval: {eid}")
+            if k=="get_float64" and last_successful_interval[fid]!=(iv["start_master_ns"],iv["end_master_ns"]):
+                fail(f"getFloat64 interval does not match most recent successful lastSuccessfulTime: {eid}")
             vals=p["values"]; refs=[x["value_reference"] for x in vals]
             if refs!=p["value_references"] or p["n_value_references"]!=len(refs): fail(f"VR list/count mismatch: {eid}")
             if not vals: fail(f"empty value call: {eid}")
@@ -106,6 +108,7 @@ def audit_fixture(d, arts):
             duration_ns=(last-cp)*1_000_000_000
             if duration_ns!=round(duration_ns) or p["master_end_ns"]-p["master_start_ns"]!=round(duration_ns): fail(f"master and FMI times differ: {eid}")
             steps[aid]={"federate_id":fid,"start_master_ns":p["master_start_ns"],"end_master_ns":p["master_end_ns"],"status":"accepted"}
+            last_successful_interval[fid]=(p["master_start_ns"],p["master_end_ns"])
             successful.add(fid)
         elif k=="terminate":
             if not state["initialized"] or state["terminated"]: fail(f"bad terminate: {fid}")
