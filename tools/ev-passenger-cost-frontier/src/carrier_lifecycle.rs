@@ -960,6 +960,19 @@ mod tests {
     }
 
     #[test]
+    fn configuration_mismatched_post_test_blocks_return_to_service() {
+        let mut test = profile();
+        test.repair_path.post_test_status = PostTestStatus::Mismatched;
+        let result = evaluate_pair(&factory_row(), &test);
+        assert!(result
+            .repair_path
+            .blocked_reasons
+            .contains(&"post_maintenance_test_configuration_mismatch".into()));
+        assert_ne!(result.selected_fault_path.as_deref(), Some("repair"));
+        assert!(!result.return_to_service_authority_granted);
+    }
+
+    #[test]
     fn unknown_service_path_evidence_remains_indeterminate() {
         let mut test = profile();
         test.repair_path.evidence_class = EvidenceClass::Unknown;
