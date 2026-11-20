@@ -277,6 +277,111 @@ mod tests {
     }
 
     #[test]
+    fn harmonic_oscillator_map_preserves_phase_space_area_inside_stability_envelope() {
+        let dt = 0.05;
+        let omega = 10.0;
+        let steps = 2_000;
+        let amplitude = 1.0e-3;
+
+        // For this specific velocity-first Euler map, 0 < dt*omega < 2
+        // gives unit-modulus eigenvalues. Two independent initial states
+        // span an area in (q, v); a symplectic map preserves that area.
+        assert!(dt * omega > 0.0 && dt * omega < 2.0);
+
+        let run = |initial_position: f64, initial_velocity: f64, handle: usize| {
+            let mut body = RigidBody::<3>::dynamic_sphere(
+                BodyHandle(handle),
+                Point::origin(),
+                0.2,
+                1.0,
+            );
+            body.transform.translation.0[0] = initial_position;
+            body.linear_velocity[0] = initial_velocity;
+            body.linear_damping = 0.0;
+            body.angular_damping = 0.0;
+
+            let mut max_scaled_amplitude =
+                initial_position.hypot(initial_velocity / omega);
+            for _ in 0..steps {
+                let gravity = SVector::from([
+                    -(omega * omega) * body.transform.translation.0[0],
+                    0.0,
+                    0.0,
+                ]);
+                integrate(&mut body, &gravity, dt);
+                max_scaled_amplitude = max_scaled_amplitude.max(
+                    body.transform.translation.0[0]
+                        .hypot(body.linear_velocity[0] / omega),
+                );
+            }
+            assert!(body.linear_velocity[0].abs() < 1000.0, "velocity clamp activated");
+            (
+                body.transform.translation.0[0],
+                body.linear_velocity[0],
+                max_scaled_amplitude,
+            )
+        };
+
+        let state_a = run(amplitude, 0.0, 72);
+        let state_b = run(0.0, omega * amplitude, 73);
+        let initial_area = amplitude * (omega * amplitude);
+        let final_area = state_a.0 * state_b.1 - state_b.0 * state_a.1;
+        let relative_area_error = (final_area - initial_area).abs() / initial_area;
+
+        assert!(
+            relative_area_error < 1.0e-9,
+            "phase-space area changed under the undamped symplectic map: relative error={relative_area_error}"
+        );
+        assert!(
+            state_a.2 < 1.5 * amplitude && state_b.2 < 1.5 * amplitude,
+            "oscillator amplitude should remain bounded inside the linear stability envelope: {:?}, {:?}",
+            state_a.2,
+            state_b.2
+        );
+    }
+
+    #[test]
+    fn harmonic_oscillator_negative_control_exceeds_velocity_first_stability_limit() {
+        let dt = 0.1;
+        let omega = 21.0;
+        let steps = 8;
+        let amplitude = 1.0e-3;
+        assert!(dt * omega > 2.0);
+
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(74),
+            Point::origin(),
+            0.2,
+            1.0,
+        );
+        body.transform.translation.0[0] = amplitude;
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+
+        let initial_scaled_amplitude = amplitude;
+        for _ in 0..steps {
+            let gravity = SVector::from([
+                -(omega * omega) * body.transform.translation.0[0],
+                0.0,
+                0.0,
+            ]);
+            integrate(&mut body, &gravity, dt);
+        }
+
+        let final_scaled_amplitude = body.transform.translation.0[0]
+            .hypot(body.linear_velocity[0] / omega);
+        assert!(
+            final_scaled_amplitude / initial_scaled_amplitude > 100.0,
+            "outside dt*omega < 2 the unstable mode must grow; observed amplification={}",
+            final_scaled_amplitude / initial_scaled_amplitude
+        );
+        assert!(
+            body.linear_velocity[0].abs() < 1000.0,
+            "negative control must show the unstable map before the safety velocity clamp"
+        );
+    }
+
+    #[test]
     fn free_fall_3d() {
         let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
         let gravity = SVector::from([0.0, -9.81, 0.0]);
