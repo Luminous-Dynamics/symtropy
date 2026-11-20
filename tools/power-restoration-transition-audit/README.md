@@ -17,7 +17,7 @@ A transition receipt's signature and before/after hashes do not establish that t
 - disconnect_mobile_source: only from the node at which that source is currently recorded as connected;
 - observation, query, simulation, escalation and wait actions: non-mutating with respect to the tracked live state.
 
-The state snapshot binds exact switch inventory, crew road positions, mobile-source road positions and mobile-source connection state to the frozen case digest and decision epoch.
+The state snapshot binds exact switch inventory, crew road positions, mobile-source road positions and mobile-source connection state to the frozen case digest and decision epoch. Every mobile-source connection must match both the permitted node and current road/power interface.
 
 ## Explicitly unsupported
 
