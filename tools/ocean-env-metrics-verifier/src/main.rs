@@ -18,6 +18,15 @@ const REQUIRED_SENSORS: [&str; 7] = [
     "water_quality", "ecology_and_habitat", "underwater_acoustics", "meteorology_and_sea_state",
 ];
 
+fn check_keys(value: &Value, allowed: &[&str], context: &str) -> Result<(), String> {
+    let object = value.as_object().ok_or_else(|| format!("{context} must be an object"))?;
+    for key in object.keys() {
+        if !allowed.contains(&key.as_str()) {
+            return Err(format!("{context} contains unknown field {key}"));
+        }
+    }
+    Ok(())
+}
 fn required_string<'a>(value: &'a Value, key: &str, context: &str) -> Result<&'a str, String> {
     value.get(key).and_then(Value::as_str)
         .filter(|s| !s.trim().is_empty())
@@ -95,11 +104,19 @@ fn validate(catalog: &Value) -> Result<String, String> {
     }
 
     let standard = catalog.get("primary_standard").ok_or("primary_standard missing")?;
+    check_keys(standard, &["id", "title", "approved", "status", "url", "metric_count"], "primary_standard")?;
     if required_string(standard, "id", "primary_standard")? != "ITU-T L.1312 (07/2026)"
         || required_string(standard, "status", "primary_standard")? != "in_force"
         || required_string(standard, "url", "primary_standard")?.is_empty()
         || standard.get("metric_count").and_then(Value::as_u64) != Some(14) {
         return Err("primary standard must be ITU-T L.1312 (07/2026), in force, with 14 metrics".into());
+    }
+
+    let supporting = required_array(catalog, "supporting_standards", "catalogue")?;
+    for (i, standard) in supporting.iter().enumerate() {
+        let ctx = format!("supporting_standards[{i}]");
+        check_keys(standard, &["id", "topic", "url"], &ctx)?;
+        for key in ["id", "topic", "url"] { required_string(standard, key, &ctx)?; }
     }
 
     let official = required_array(catalog, "official_metrics", "catalogue")?;
@@ -108,6 +125,7 @@ fn validate(catalog: &Value) -> Result<String, String> {
     }
     let official_ids = unique_ids(official, "official_metrics")?;
     for (i, metric) in official.iter().enumerate() {
+        check_keys(metric, &["metric_id", "name", "dimension", "unit", "direction", "definition", "lifecycle_stages", "boundary", "standard_reference", "comparison_rule"], &format!("official_metrics[{i}]"))?;
         validate_metric(metric, i, true)?;
     }
     let actual: HashSet<&str> = official_ids.iter().map(String::as_str).collect();
@@ -135,6 +153,7 @@ fn validate(catalog: &Value) -> Result<String, String> {
     }
     let marine_ids = unique_ids(marine, "marine_extension_metrics")?;
     for (i, metric) in marine.iter().enumerate() {
+        check_keys(metric, &["metric_id", "name", "unit", "direction", "purpose", "required_context"], &format!("marine_extension_metrics[{i}]"))?;
         validate_extension(metric, i)?;
     }
     if marine_ids.iter().any(|id| actual.contains(id.as_str())) {
@@ -150,6 +169,7 @@ fn validate(catalog: &Value) -> Result<String, String> {
     }
     for (i, sensor) in sensors.iter().enumerate() {
         let ctx = format!("sensor_package[{i}]");
+        check_keys(sensor, &["sensor_class", "measurements", "placement", "cadence", "minimum_evidence"], &ctx)?;
         required_string(sensor, "placement", &ctx)?;
         required_string(sensor, "cadence", &ctx)?;
         let measurements = required_array(sensor, "measurements", &ctx)?;
@@ -160,6 +180,7 @@ fn validate(catalog: &Value) -> Result<String, String> {
     }
 
     let record = catalog.get("site_evidence_record_contract").ok_or("site_evidence_record_contract missing")?;
+    check_keys(record, &["required_fields", "quality_states", "evidence_states", "rule", "time_rule", "uncertainty_rule"], "site_evidence_record_contract")?;
     let record_fields = required_array(record, "required_fields", "site_evidence_record_contract")?;
     let required_record: HashSet<&str> = [
         "record_id", "metric_id", "value", "unit", "interval_start_utc", "interval_end_utc",
@@ -186,6 +207,7 @@ fn validate(catalog: &Value) -> Result<String, String> {
     }
 
     let spatial = catalog.get("spatial_sampling_design").ok_or("spatial_sampling_design missing")?;
+    check_keys(spatial, &["required_station_roles", "rule", "lifecycle_phases", "seasonal_rule"], "spatial_sampling_design")?;
     let stations: HashSet<&str> = required_array(spatial, "required_station_roles", "spatial_sampling_design")?
         .iter().filter_map(Value::as_str).collect();
     for station in ["intake", "outfall", "near_field_plume", "far_field_impact", "independent_reference_control"] {
@@ -223,6 +245,7 @@ fn validate(catalog: &Value) -> Result<String, String> {
     }
     for (i, gate) in gates.iter().enumerate() {
         let ctx = format!("non_compensatory_gates[{i}]");
+        check_keys(gate, &["gate_id", "condition", "disposition"], &ctx)?;
         required_string(gate, "condition", &ctx)?;
         let disposition = required_string(gate, "disposition", &ctx)?;
         let normalized = disposition.to_ascii_lowercase();
@@ -231,6 +254,7 @@ fn validate(catalog: &Value) -> Result<String, String> {
         }
     }
     let aggregate = catalog.get("aggregation_policy").ok_or("aggregation_policy missing")?;
+    check_keys(aggregate, &["optional_itu_comprehensive_metric", "project_rule", "environmental_claim_ceiling"], "aggregation_policy")?;
     if !required_string(aggregate, "optional_itu_comprehensive_metric", "aggregation_policy")?.contains("supplementary")
         || !required_string(aggregate, "project_rule", "aggregation_policy")?.contains("Never let a composite score offset") {
         return Err("composite environmental metric must remain supplementary to hard gates".into());
@@ -292,5 +316,11 @@ mod tests {
         v["site_evidence_record_contract"]["required_fields"].as_array_mut().unwrap()
             .retain(|x| x != "calibration_reference" && x != "custody_receipt");
         assert!(validate(&v).unwrap_err().contains("missing provenance/calibration"));
+    }
+    #[test]
+    fn unknown_nested_field_is_rejected() {
+        let mut v = fixture();
+        v["official_metrics"][0]["unreviewed_shortcut"] = Value::Bool(true);
+        assert!(validate(&v).unwrap_err().contains("unknown field unreviewed_shortcut"));
     }
 }
