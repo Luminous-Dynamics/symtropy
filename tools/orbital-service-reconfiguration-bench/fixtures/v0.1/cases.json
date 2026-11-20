@@ -11480,7 +11480,7 @@
       "service_kind": "prepared_storable_fluid_service"
     },
     {
-      "case_id": "PARTIAL_SERVICE_COUNTS_ONLY_ACCEPTED_UNITS",
+      "case_id": "PLANNED_CAPACITY_SHORTFALL",
       "minimum_planned_service_capacity": 15,
       "demand": [
         {
