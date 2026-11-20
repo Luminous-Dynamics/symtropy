@@ -1,0 +1,327 @@
+#!/usr/bin/env python3
+"""Deterministic evaluator for long-horizon audiovisual evidence-memory fixtures."""
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import sys
+from collections import defaultdict
+from pathlib import Path
+from typing import Any
+
+BENCHMARK_ID = "av-long-horizon-evidence-v0"
+MEMORY_CONDITIONS = {
+    "recent_window", "summary_only", "episodic_retrieval", "evidence_ledger"
+}
+
+
+class EvaluationError(ValueError):
+    """The workload, truth or candidate submission is structurally invalid."""
+
+
+def read_json(path: str | Path) -> dict[str, Any]:
+    with Path(path).open("r", encoding="utf-8") as handle:
+        value = json.load(handle)
+    if not isinstance(value, dict):
+        raise EvaluationError(f"{path}: root must be an object")
+    return value
+
+
+def index_unique(rows: list[dict[str, Any]], key: str, label: str) -> dict[str, dict[str, Any]]:
+    result: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        identifier = row.get(key)
+        if not isinstance(identifier, str) or not identifier:
+            raise EvaluationError(f"{label}: missing {key}")
+        if identifier in result:
+            raise EvaluationError(f"{label}: duplicate {key}: {identifier}")
+        result[identifier] = row
+    return result
+
+
+def ratio(numerator: int, denominator: int) -> float | None:
+    return numerator / denominator if denominator else None
+
+
+def _episode_state(
+    episode: dict[str, Any], as_of_tick: int
+) -> tuple[dict[str, int], set[str], set[str]]:
+    """Return first-seen observation availability, superseded refs and revoked refs."""
+    events = episode.get("stream_events")
+    if not isinstance(events, list):
+        raise EvaluationError(f"{episode.get('episode_id')}: stream_events must be an array")
+    event_ids: set[str] = set()
+    observations: dict[str, int] = {}
+    superseded: set[str] = set()
+    revoked: set[str] = set()
+
+    for event in events:
+        if not isinstance(event, dict):
+            raise EvaluationError("stream event must be an object")
+        event_id = event.get("event_id")
+        if not isinstance(event_id, str) or not event_id or event_id in event_ids:
+            raise EvaluationError(f"invalid or duplicate event_id: {event_id!r}")
+        event_ids.add(event_id)
+        kind = event.get("kind")
+        tick = event.get("availability_tick")
+        if isinstance(tick, bool) or not isinstance(tick, int) or tick < 0:
+            raise EvaluationError(f"{episode.get('episode_id')}: invalid event availability tick")
+        if tick > as_of_tick:
+            continue
+        if kind == "observation":
+            ref = event.get("observation_ref")
+            if not isinstance(ref, str) or not ref:
+                raise EvaluationError(f"{episode.get('episode_id')}: observation missing ref")
+            # A duplicate delivery reuses the original observation identity. First availability wins.
+            observations[ref] = min(observations.get(ref, tick), tick)
+        elif kind == "correction":
+            old_ref = event.get("supersedes_observation_ref")
+            new_ref = event.get("replacement_observation_ref")
+            if old_ref not in observations or new_ref not in observations:
+                raise EvaluationError(f"{episode.get('episode_id')}: correction ancestry is unresolved")
+            superseded.add(old_ref)
+        elif kind == "revocation":
+            target = event.get("target_observation_ref")
+            if target not in observations:
+                raise EvaluationError(f"{episode.get('episode_id')}: revocation target is unresolved")
+            revoked.add(target)
+        else:
+            raise EvaluationError(f"{episode.get('episode_id')}: unknown event kind {kind!r}")
+    return observations, superseded, revoked
+
+
+def _score_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    answered = [row for row in rows if not row["abstained"]]
+    count = len(rows)
+    answer_correct = sum(row["answer_correct"] for row in rows)
+    decision_correct = sum(row["decision_correct"] for row in rows)
+    tp = sum(row["citation_tp"] for row in rows)
+    fp = sum(row["citation_fp"] for row in rows)
+    fn = sum(row["citation_fn"] for row in rows)
+    provenance = sum(row["provenance_complete"] for row in rows)
+    compliant = sum(row["evidence_compliant"] for row in rows)
+    false_memory = sum(row["false_memory"] for row in rows)
+    violations = sum(len(row["violations"]) for row in rows)
+    deadline_misses = sum(row["deadline_miss"] for row in rows)
+    return {
+        "episode_count": count,
+        "answer_correct_count": answer_correct,
+        "decision_correct_count": decision_correct,
+        "answer_accuracy": ratio(answer_correct, count),
+        "decision_accuracy": ratio(decision_correct, count),
+        "coverage": ratio(len(answered), count),
+        "selective_accuracy": ratio(sum(row["answer_correct"] for row in answered), len(answered)),
+        "citation_precision": ratio(tp, tp + fp),
+        "citation_recall": ratio(tp, tp + fn),
+        "provenance_complete_count": provenance,
+        "provenance_complete_rate": ratio(provenance, count),
+        "evidence_compliant_count": compliant,
+        "evidence_compliance_rate": ratio(compliant, count),
+        "false_memory_count": false_memory,
+        "hard_violation_count": violations,
+        "deadline_miss_count": deadline_misses,
+    }
+
+
+def evaluate(
+    workload: dict[str, Any], truth: dict[str, Any], submission: dict[str, Any]
+) -> dict[str, Any]:
+    for label, document in (("workload", workload), ("truth", truth), ("submission", submission)):
+        if document.get("schema_version") != 1 or document.get("benchmark_id") != BENCHMARK_ID:
+            raise EvaluationError(f"{label}: schema version or benchmark identity mismatch")
+
+    workload_rows = workload.get("episodes")
+    truth_rows = truth.get("episodes")
+    predictions = submission.get("predictions")
+    if not all(isinstance(value, list) for value in (workload_rows, truth_rows, predictions)):
+        raise EvaluationError("episodes and predictions must be arrays")
+
+    work = index_unique(workload_rows, "episode_id", "workload")
+    labels = index_unique(truth_rows, "episode_id", "truth")
+    candidate = index_unique(predictions, "episode_id", "submission")
+    if set(work) != set(labels) or set(work) != set(candidate):
+        raise EvaluationError("workload, truth and submission episode IDs must match exactly")
+
+    condition = submission.get("memory_condition")
+    if condition not in MEMORY_CONDITIONS:
+        raise EvaluationError(f"unsupported memory_condition: {condition!r}")
+
+    results: list[dict[str, Any]] = []
+    by_horizon: dict[str, list[dict[str, Any]]] = defaultdict(list)
+
+    for episode_id in sorted(work):
+        episode = work[episode_id]
+        label = labels[episode_id]
+        prediction = candidate[episode_id]
+        query = episode.get("query") or {}
+        query_tick = query.get("query_tick")
+        deadline = query.get("response_deadline_tick")
+        as_of_tick = prediction.get("evidence_as_of_tick")
+        response_tick = prediction.get("response_tick")
+        abstained = prediction.get("abstained") is True
+        answer = prediction.get("answer")
+        confidence = prediction.get("confidence")
+        violations: list[str] = []
+
+        if isinstance(query_tick, bool) or not isinstance(query_tick, int):
+            raise EvaluationError(f"{episode_id}: invalid query_tick")
+        if isinstance(deadline, bool) or not isinstance(deadline, int):
+            raise EvaluationError(f"{episode_id}: invalid response deadline")
+        if isinstance(as_of_tick, bool) or not isinstance(as_of_tick, int):
+            violations.append("invalid_evidence_as_of_tick")
+            as_of_tick = -1
+        elif as_of_tick != query_tick:
+            violations.append("evidence_cutoff_must_equal_query_tick")
+        if isinstance(response_tick, bool) or not isinstance(response_tick, int):
+            violations.append("invalid_response_tick")
+            response_tick = query_tick
+        elif response_tick < query_tick:
+            violations.append("response_precedes_query")
+        deadline_miss = response_tick > deadline
+
+        if isinstance(confidence, bool) or not isinstance(confidence, (int, float)) or not math.isfinite(float(confidence)) or not 0.0 <= float(confidence) <= 1.0:
+            violations.append("confidence_outside_finite_unit_interval")
+            confidence = 0.0
+        else:
+            confidence = float(confidence)
+        if abstained and answer is not None:
+            violations.append("abstention_must_not_include_answer")
+        if not abstained and (not isinstance(answer, str) or not answer):
+            violations.append("answer_requires_nonempty_text")
+        if abstained and confidence != 0.0:
+            violations.append("abstention_confidence_must_be_zero")
+
+        citations = prediction.get("cited_observation_refs")
+        if not isinstance(citations, list) or any(not isinstance(ref, str) or not ref for ref in citations):
+            citations = []
+            violations.append("invalid_citation_list")
+        if len(citations) != len(set(citations)):
+            violations.append("duplicate_observation_reference")
+
+        observations, superseded, revoked = _episode_state(episode, max(as_of_tick, 0))
+        eligible = set(observations) - superseded - revoked
+        valid_citations: set[str] = set()
+        for ref in citations:
+            if ref not in observations:
+                violations.append("citation_not_in_episode_evidence")
+            elif observations[ref] > as_of_tick:
+                violations.append("citation_not_available_at_evidence_cutoff")
+            elif ref in superseded:
+                violations.append("citation_uses_superseded_observation")
+            elif ref in revoked:
+                violations.append("citation_uses_revoked_observation")
+            else:
+                valid_citations.add(ref)
+
+        required = set(label.get("required_observation_refs") or [])
+        if any(not isinstance(ref, str) or not ref for ref in required):
+            raise EvaluationError(f"{episode_id}: truth contains invalid required observation ref")
+        if not required <= set(observations):
+            raise EvaluationError(f"{episode_id}: truth requires an observation not present in stream")
+
+        if label.get("independence_claim_allowed") is False and prediction.get("claimed_independent_corroboration") is True:
+            violations.append("common_cause_views_claimed_independent")
+        if (
+            label.get("cross_clock_comparison") == "incomparable_without_qualified_transform"
+            and prediction.get("claimed_cross_clock_ordering") is True
+        ):
+            violations.append("cross_clock_order_claim_without_qualified_transform")
+
+        expected_decision = label.get("expected_decision")
+        expected_answer = label.get("expected_answer")
+        if expected_decision not in {"answer", "abstain"}:
+            raise EvaluationError(f"{episode_id}: unsupported expected_decision")
+        if expected_decision == "abstain":
+            answer_correct = False
+            decision_correct = abstained and answer is None
+            false_memory = not abstained
+        else:
+            answer_correct = not abstained and answer == expected_answer
+            decision_correct = answer_correct
+            false_memory = not abstained and not answer_correct
+
+        tp = len(valid_citations & required)
+        fp = len(citations) - tp
+        fn = len(required - valid_citations)
+        citation_precision = ratio(tp, tp + fp)
+        citation_recall = ratio(tp, tp + fn)
+        provenance_complete = valid_citations == required and not violations
+        row = {
+            "episode_id": episode_id,
+            "horizon_seconds": episode.get("horizon_seconds", 0),
+            "answer_correct": bool(answer_correct),
+            "decision_correct": bool(decision_correct),
+            "abstained": bool(abstained),
+            "confidence": confidence,
+            "citation_precision": citation_precision,
+            "citation_recall": citation_recall,
+            "provenance_complete": bool(provenance_complete),
+            "evidence_compliant": not violations,
+            "violations": sorted(set(violations)),
+            "false_memory": bool(false_memory),
+            "deadline_miss": bool(deadline_miss),
+            "citation_tp": tp,
+            "citation_fp": fp,
+            "citation_fn": fn,
+        }
+        results.append(row)
+        by_horizon[str(row["horizon_seconds"])].append(row)
+
+    totals = _score_metrics(results)
+    per_horizon = {key: _score_metrics(rows) for key, rows in sorted(by_horizon.items(), key=lambda item: int(item[0]))}
+    public_episode_rows = [
+        {key: value for key, value in row.items() if not key.startswith("citation_") or key in {"citation_precision", "citation_recall"}}
+        for row in results
+    ]
+    return {
+        "schema_version": 1,
+        "benchmark_id": BENCHMARK_ID,
+        "policy_id": submission.get("policy_id"),
+        "run_id": submission.get("run_id"),
+        "memory_condition": condition,
+        "interpretation": {
+            "status": "synthetic_reference_score",
+            "limitations": [
+                "This score is computed on nine authored synthetic metadata-only episodes, not model runs or external media.",
+                "Artifact digests are placeholders; no PCM/RGB bytes or physical sensor qualification is present.",
+                "The public evaluator-truth file is not a blind holdout or security boundary.",
+                "Memory bytes, tokens, latency and energy are not inferred from logical replay ticks and are not claimed by this reference submission.",
+                "A complete provenance score is a source-citation contract check, not proof that a model internally used the cited evidence."
+            ]
+        },
+        "totals": totals,
+        "per_horizon_seconds": per_horizon,
+        "hard_violations": [
+            {"episode_id": row["episode_id"], "violations": row["violations"]}
+            for row in results if row["violations"]
+        ],
+        "per_episode": public_episode_rows,
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--workload", required=True)
+    parser.add_argument("--truth", required=True)
+    parser.add_argument("--submission", required=True)
+    parser.add_argument("--output", required=True)
+    args = parser.parse_args()
+    try:
+        report = evaluate(read_json(args.workload), read_json(args.truth), read_json(args.submission))
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    except (OSError, json.JSONDecodeError, EvaluationError) as error:
+        print(f"long-horizon evaluation failed: {error}", file=sys.stderr)
+        return 2
+    print(
+        f"wrote {output}; episodes={report['totals']['episode_count']} "
+        f"answers={report['totals']['answer_correct_count']} "
+        f"violations={report['totals']['hard_violation_count']}"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
