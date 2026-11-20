@@ -44,5 +44,51 @@
       "residual_j": 0
     }
   },
-  "claim_ceiling": "Synthetic closed-form mathematical oracle only. No FMU, master, physical heat exchanger or geothermal plant qualification."
+  "claim_ceiling": "Synthetic closed-form mathematical oracle only. No FMU, master, physical heat exchanger or geothermal plant qualification.",
+  "zero_order_hold_convergence": {
+    "source_policy": "left_endpoint_zero_order_hold",
+    "reference": "continuous_sinusoidal_solution",
+    "time_interval_s": [
+      0,
+      120
+    ],
+    "input": {
+      "mean_power_w": 500000,
+      "amplitude_w": 100000,
+      "period_s": 400,
+      "initial_theta_k": 2
+    },
+    "step_count_error_k": [
+      {
+        "steps": 15,
+        "theta_end_abs_error_k": 0.01018851012255
+      },
+      {
+        "steps": 30,
+        "theta_end_abs_error_k": 0.00494693276956
+      },
+      {
+        "steps": 60,
+        "theta_end_abs_error_k": 0.00243746324223
+      },
+      {
+        "steps": 120,
+        "theta_end_abs_error_k": 0.0012098335168
+      },
+      {
+        "steps": 240,
+        "theta_end_abs_error_k": 0.00060270501981
+      },
+      {
+        "steps": 480,
+        "theta_end_abs_error_k": 0.00030080117068
+      },
+      {
+        "steps": 960,
+        "theta_end_abs_error_k": 0.0001502629498
+      }
+    ],
+    "observed_global_convergence_order": "approximately 1 for smooth forcing and left-endpoint hold",
+    "claim_ceiling": "Reference discretization study only; not a measured OMSimulator, FMPy or commercial-master result."
+  }
 }
