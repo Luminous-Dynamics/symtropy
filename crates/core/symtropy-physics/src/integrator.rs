@@ -40,6 +40,10 @@ pub enum IntegratorError {
     NonFiniteLinearVelocity,
     /// The initial angular velocity contains a NaN or infinity.
     NonFiniteAngularVelocity,
+    /// The initial orientation contains a NaN or infinity.
+    NonFiniteRotation,
+    /// The initial orientation is not a proper rotation.
+    InvalidRotation,
 }
 
 /// Checked integration entry point.
@@ -85,6 +89,13 @@ pub fn try_integrate<const D: usize>(
         }
         if !body.angular_velocity.is_finite() {
             return Err(IntegratorError::NonFiniteAngularVelocity);
+        }
+        let rotation = body.transform.rotation.to_matrix();
+        if !rotation.iter().all(|component| component.is_finite()) {
+            return Err(IntegratorError::NonFiniteRotation);
+        }
+        if !body.transform.rotation.is_proper_rotation(1.0e-8) {
+            return Err(IntegratorError::InvalidRotation);
         }
     }
     integrate_validated_timestep(body, gravity, dt);
@@ -350,6 +361,33 @@ mod tests {
             Err(IntegratorError::NonFiniteAngularVelocity)
         );
         assert!(angular_body.angular_velocity.get(0, 2).is_nan());
+    }
+
+    #[test]
+    fn non_finite_and_improper_orientations_are_rejected_without_mutation() {
+        let mut non_finite =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(64), Point::origin(), 0.2, 1.0);
+        non_finite.transform.rotation = Rotor::from_matrix(
+            nalgebra::SMatrix::<f64, 3, 3>::from_element(f64::NAN),
+        );
+        let before = *non_finite.transform.rotation.to_matrix();
+        assert_eq!(
+            try_integrate(&mut non_finite, &SVector::zeros(), 0.01),
+            Err(IntegratorError::NonFiniteRotation)
+        );
+        assert!(non_finite.transform.rotation.to_matrix().iter().all(|x| x.is_nan()));
+        assert!(before.iter().all(|x| x.is_nan()));
+
+        let mut improper =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(63), Point::origin(), 0.2, 1.0);
+        improper.transform.rotation =
+            Rotor::from_matrix(nalgebra::SMatrix::<f64, 3, 3>::identity() * 2.0);
+        let before = *improper.transform.rotation.to_matrix();
+        assert_eq!(
+            try_integrate(&mut improper, &SVector::zeros(), 0.01),
+            Err(IntegratorError::InvalidRotation)
+        );
+        assert_eq!(*improper.transform.rotation.to_matrix(), before);
     }
 
     #[test]
