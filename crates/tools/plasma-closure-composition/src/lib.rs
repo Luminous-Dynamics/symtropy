@@ -494,12 +494,20 @@ mod tests {
     }
 
     #[test]
-    fn incompatible_units_and_mesh_are_not_coerced() {
-        let mut incompatible = candidate("expert-a", 1.0, vec![1.0, 1.0]);
-        incompatible.compatibility.units_id = "other-units".into();
+    fn incompatible_units_and_component_layout_are_not_coerced() {
+        let mut incompatible_units = candidate("expert-a", 1.0, vec![1.0, 1.0]);
+        incompatible_units.compatibility.units_id = "other-units".into();
         assert_eq!(
-            compose_shared_face_flux(&request(vec![incompatible])),
+            compose_shared_face_flux(&request(vec![incompatible_units])),
             Err(BlendError::IncompatibleCandidate("expert-a".into()))
+        );
+
+        let mut incompatible_layout = candidate("expert-b", 1.0, vec![1.0, 1.0]);
+        incompatible_layout.compatibility.component_layout_id =
+            "reordered-or-different-vector-v2".into();
+        assert_eq!(
+            compose_shared_face_flux(&request(vec![incompatible_layout])),
+            Err(BlendError::IncompatibleCandidate("expert-b".into()))
         );
     }
 
