@@ -555,6 +555,118 @@ pub fn verify_artifact_bytes(
     })
 }
 
+/// Verifies a caller-declared, complete set of attestation obligations against
+/// the bytes already resolved from the bundle manifest. The caller derives
+/// obligations from the run receipt and chooses which roles/artifacts are
+/// mandatory for the specific claim being evaluated.
+pub fn verify_attestation_set(
+    manifest_report: &BundleVerificationReport,
+    trust_root: &TrustRoot,
+    pinned_root_sha256: &str,
+    now_unix_ms: u64,
+    requirements: &[ExpectedAttestationBinding],
+    envelopes: &[AttestationEnvelope],
+) -> Result<Vec<VerifiedAttestation>, Vec<String>> {
+    let mut errors = Vec::new();
+    if manifest_report.result_status != "all_manifest_artifact_bytes_verified" {
+        errors.push("attestation set cannot consume an unverified artifact manifest report".to_string());
+    }
+    if requirements.is_empty() || requirements.len() != envelopes.len() {
+        errors.push("attestation count must exactly match the non-empty caller-declared requirement set".to_string());
+    }
+
+    let mut requirement_keys = BTreeSet::new();
+    for requirement in requirements {
+        if !requirement_keys.insert((
+            requirement.artifact_uri.as_str(),
+            requirement.signer_role,
+        )) {
+            errors.push(format!(
+                "duplicate attestation requirement for {} and {:?}",
+                requirement.artifact_uri, requirement.signer_role
+            ));
+        }
+        let Some(artifact) = manifest_report
+            .verified_artifacts
+            .iter()
+            .find(|artifact| artifact.artifact_uri == requirement.artifact_uri)
+        else {
+            errors.push(format!(
+                "required attestation subject {} is absent from the verified bundle",
+                requirement.artifact_uri
+            ));
+            continue;
+        };
+        if artifact.sha256 != requirement.artifact_sha256 {
+            errors.push(format!(
+                "required subject digest for {} differs from the verified bundle bytes",
+                requirement.artifact_uri
+            ));
+        }
+    }
+
+    let mut envelope_keys = BTreeSet::new();
+    for envelope in envelopes {
+        let key = (
+            envelope.payload.subject_uri.as_str(),
+            envelope.payload.signer_role,
+        );
+        if !envelope_keys.insert(key) {
+            errors.push(format!(
+                "duplicate attestation envelope for {} and {:?}",
+                envelope.payload.subject_uri, envelope.payload.signer_role
+            ));
+        }
+        if !requirement_keys.contains(&key) {
+            errors.push(format!(
+                "unexpected attestation envelope for {} and {:?}",
+                envelope.payload.subject_uri, envelope.payload.signer_role
+            ));
+        }
+    }
+
+    if let Err(role_errors) = validate_role_separation(envelopes, trust_root) {
+        errors.extend(role_errors);
+    }
+
+    let mut verified = Vec::new();
+    for requirement in requirements {
+        let matching: Vec<&AttestationEnvelope> = envelopes
+            .iter()
+            .filter(|envelope| {
+                envelope.payload.subject_uri == requirement.artifact_uri
+                    && envelope.payload.signer_role == requirement.signer_role
+            })
+            .collect();
+        match matching.as_slice() {
+            [envelope] => match verify_attestation(
+                envelope,
+                trust_root,
+                pinned_root_sha256,
+                now_unix_ms,
+                requirement,
+            ) {
+                Ok(report) => verified.push(report),
+                Err(attestation_errors) => errors.extend(attestation_errors),
+            },
+            [] => errors.push(format!(
+                "missing required attestation for {} and {:?}",
+                requirement.artifact_uri, requirement.signer_role
+            )),
+            _ => errors.push(format!(
+                "ambiguous attestations for {} and {:?}",
+                requirement.artifact_uri, requirement.signer_role
+            )),
+        }
+    }
+
+    if errors.is_empty() {
+        Ok(verified)
+    } else {
+        Err(errors)
+    }
+}
+
 pub fn verify_bundle_manifest(
     bundle_root: &Path,
     manifest: &BundleManifest,
@@ -782,6 +894,71 @@ mod tests {
         )
         .unwrap();
         assert_eq!(verified.subject_sha256, result.verified_artifacts[0].sha256);
+        fs::remove_dir_all(root).expect("remove test bundle");
+    }
+
+    #[test]
+    fn attestation_set_requires_manifest_subjects_and_every_declared_role() {
+        let root = test_bundle_root();
+        let (trust, envelope, expected, manifest) = fixtures();
+        let manifest_report = verify_bundle_manifest(&root, &manifest, 1024).unwrap();
+        let verified = verify_attestation_set(
+            &manifest_report,
+            &trust,
+            TRUST_ROOT_SHA256,
+            2_000,
+            &[expected.clone()],
+            &[envelope.clone()],
+        )
+        .unwrap();
+        assert_eq!(verified.len(), 1);
+
+        assert!(verify_attestation_set(
+            &manifest_report,
+            &trust,
+            TRUST_ROOT_SHA256,
+            2_000,
+            &[expected.clone()],
+            &[],
+        ).is_err());
+
+        let mut missing_subject = expected;
+        missing_subject.artifact_uri = "bundle://validator/missing.json".to_string();
+        assert!(verify_attestation_set(
+            &manifest_report,
+            &trust,
+            TRUST_ROOT_SHA256,
+            2_000,
+            &[missing_subject],
+            &[envelope],
+        ).is_err());
+        fs::remove_dir_all(root).expect("remove test bundle");
+    }
+
+    #[test]
+    fn attestation_set_rejects_duplicate_and_unexpected_envelopes() {
+        let root = test_bundle_root();
+        let (trust, envelope, expected, manifest) = fixtures();
+        let manifest_report = verify_bundle_manifest(&root, &manifest, 1024).unwrap();
+        assert!(verify_attestation_set(
+            &manifest_report,
+            &trust,
+            TRUST_ROOT_SHA256,
+            2_000,
+            &[expected.clone()],
+            &[envelope.clone(), envelope.clone()],
+        ).is_err());
+
+        let mut unexpected = envelope.clone();
+        unexpected.payload.subject_uri = "bundle://validator/other.json".to_string();
+        assert!(verify_attestation_set(
+            &manifest_report,
+            &trust,
+            TRUST_ROOT_SHA256,
+            2_000,
+            &[expected],
+            &[unexpected],
+        ).is_err());
         fs::remove_dir_all(root).expect("remove test bundle");
     }
 
