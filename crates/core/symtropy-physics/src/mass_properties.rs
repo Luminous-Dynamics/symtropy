@@ -37,7 +37,12 @@ pub enum MassPropertiesError {
     NonFiniteMatrix,
     /// The matrix is not symmetric within the declared relative tolerance.
     NotSymmetric,
-    /// The symmetric matrix is not positive definite.
+    /// The matrix has an eigenvalue below the scale-relative PSD tolerance.
+    NotPositiveSemidefinite,
+    /// The second-moment support is too small to give positive rotational energy
+    /// in every plane of so(D).
+    InsufficientSecondMomentRank { minimum: usize, actual: usize },
+    /// A derived rotational inertia operator is not positive definite.
     NotPositiveDefinite,
     /// A vector does not have the expected bivector-coordinate count.
     VectorSizeMismatch { expected: usize, actual: usize },
@@ -155,10 +160,11 @@ impl<const D: usize> RotationalInertiaOperator<D> {
     ///
     /// Consequently, `T_rot = 0.5 * omega^T * I * omega` equals
     /// `0.5 * integral(||Omega r||^2 dm)`. The input second-moment matrix must
-    /// be finite, symmetric and positive definite. This gives a physically
-    /// realizable inertia operator for a full-dimensional mass distribution;
-    /// degenerate lower-dimensional bodies require a separate semidefinite
-    /// representation and are not accepted by this dynamic-body constructor.
+    /// be finite, symmetric and positive semidefinite, with numerical rank at
+    /// least D-1. This admits physically valid lower-dimensional supports
+    /// (e.g. a planar lamina in 3D) while rejecting supports that leave a
+    /// zero-energy rotational plane. The derived inertia operator is still
+    /// required to be strictly positive definite.
     pub fn from_body_second_moment_matrix(
         second_moment_row_major: Vec<f64>,
     ) -> Result<Self, MassPropertiesError> {
@@ -181,9 +187,11 @@ impl<const D: usize> RotationalInertiaOperator<D> {
             return Err(MassPropertiesError::NonFiniteMatrix);
         }
 
+        // Use the matrix's own magnitude rather than a unit-sized floor so
+        // uniform mass scaling does not change the symmetry or rank decision.
         let scale = second_moment_row_major
             .iter()
-            .fold(1.0_f64, |maximum, value| maximum.max(value.abs()));
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
         let tolerance = 1e-12 * scale;
         for row in 0..D {
             for column in 0..row {
@@ -195,9 +203,38 @@ impl<const D: usize> RotationalInertiaOperator<D> {
             }
         }
 
-        let second_moment = DMatrix::from_row_slice(D, D, &second_moment_row_major);
-        if second_moment.clone().cholesky().is_none() {
-            return Err(MassPropertiesError::NotPositiveDefinite);
+        // Canonicalize only the sub-tolerance antisymmetric roundoff already
+        // admitted above. A materially asymmetric input is rejected.
+        let second_moment = DMatrix::from_fn(D, D, |row, column| {
+            let a = second_moment_row_major[row * D + column];
+            let b = second_moment_row_major[column * D + row];
+            0.5 * a + 0.5 * b
+        });
+
+        // S is a geometric second-moment matrix, so it is PSD rather than
+        // necessarily SPD. A planar 3D lamina has rank 2 but still induces
+        // positive rotational energy in all three so(3) planes. In general,
+        // I(S) is positive definite iff rank(S) >= D-1: a nullspace of
+        // dimension >= 2 would admit a nonzero skew generator with zero energy.
+        let eigen = nalgebra::linalg::SymmetricEigen::new(second_moment.clone());
+        let mut numerical_rank = 0usize;
+        for value in eigen.eigenvalues.iter() {
+            if !value.is_finite() {
+                return Err(MassPropertiesError::NonFiniteValue);
+            }
+            if *value < -tolerance {
+                return Err(MassPropertiesError::NotPositiveSemidefinite);
+            }
+            if *value > tolerance {
+                numerical_rank += 1;
+            }
+        }
+        let minimum_rank = D - 1;
+        if numerical_rank < minimum_rank {
+            return Err(MassPropertiesError::InsufficientSecondMomentRank {
+                minimum: minimum_rank,
+                actual: numerical_rank,
+            });
         }
 
         let dof = rotational_dof_count::<D>();
@@ -769,11 +806,107 @@ mod tests {
             ]),
             Err(MassPropertiesError::NotSymmetric)
         );
+        let planar = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
+            1.0, 0.0, 0.0,
+            0.0, 0.0, 0.0,
+            0.0, 0.0, 1.0,
+        ])
+        .unwrap();
+        let planar_matrix = planar.as_row_major();
+        // Canonical plane order (01), (02), (12): [1, 2, 1].
+        assert!((planar_matrix[0] - 1.0).abs() < 1.0e-12);
+        assert!((planar_matrix[4] - 2.0).abs() < 1.0e-12);
+        assert!((planar_matrix[8] - 1.0).abs() < 1.0e-12);
+
         assert_eq!(
             RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
-                1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+                1.0, 0.0, 0.0,
+                0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0,
             ]),
-            Err(MassPropertiesError::NotPositiveDefinite)
+            Err(MassPropertiesError::InsufficientSecondMomentRank {
+                minimum: 2,
+                actual: 1,
+            })
+        );
+    }
+
+    #[test]
+    fn rank_three_hyperplane_second_moment_is_rotationally_positive_definite_in_4d() {
+        let inertia = RotationalInertiaOperator::<4>::from_body_second_moment_matrix(vec![
+            2.0, 0.0, 0.0, 0.0,
+            0.0, 3.0, 0.0, 0.0,
+            0.0, 0.0, 5.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+        ])
+        .unwrap();
+
+        // Plane order (01),(02),(03),(12),(13),(23).
+        let expected = [5.0, 7.0, 2.0, 8.0, 3.0, 5.0];
+        let dof = rotational_dof_count::<4>();
+        for (index, expected_moment) in expected.into_iter().enumerate() {
+            assert!(
+                (inertia.as_row_major()[index * dof + index] - expected_moment).abs() < 1.0e-12
+            );
+        }
+    }
+
+    #[test]
+    fn rank_two_second_moment_is_degenerate_in_4d() {
+        assert_eq!(
+            RotationalInertiaOperator::<4>::from_body_second_moment_matrix(vec![
+                2.0, 0.0, 0.0, 0.0,
+                0.0, 3.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0,
+            ]),
+            Err(MassPropertiesError::InsufficientSecondMomentRank {
+                minimum: 3,
+                actual: 2,
+            })
+        );
+    }
+
+    #[test]
+    fn materially_indefinite_second_moment_is_rejected() {
+        assert_eq!(
+            RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
+                -0.01, 0.0, 0.0,
+                0.0, 1.0, 0.0,
+                0.0, 0.0, 1.0,
+            ]),
+            Err(MassPropertiesError::NotPositiveSemidefinite)
+        );
+    }
+
+    #[test]
+    fn second_moment_rank_admission_is_uniform_scale_invariant() {
+        for scale in [1.0e-18, 1.0, 1.0e18] {
+            let inertia = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
+                2.0 * scale, 0.0, 0.0,
+                0.0, 3.0 * scale, 0.0,
+                0.0, 0.0, 0.0,
+            ])
+            .unwrap();
+            let matrix = inertia.as_row_major();
+            assert!((matrix[0] / scale - 5.0).abs() < 1.0e-10);
+            assert!((matrix[4] / scale - 2.0).abs() < 1.0e-10);
+            assert!((matrix[8] / scale - 3.0).abs() < 1.0e-10);
+        }
+    }
+
+    #[test]
+    fn second_moment_subthreshold_positive_support_is_treated_as_numerical_rank_zero() {
+        assert_eq!(
+            RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
+                1.0, 0.0, 0.0,
+                0.0, 0.5e-12, 0.0,
+                0.0, 0.0, 0.0,
+            ]),
+            Err(MassPropertiesError::InsufficientSecondMomentRank {
+                minimum: 2,
+                actual: 1,
+            })
         );
     }
 
@@ -857,9 +990,17 @@ mod tests {
             (1.2, SVector::<f64, 3>::new(-0.3, 0.7, 1.4)),
             (0.4, SVector::<f64, 3>::new(0.8, -1.2, 0.4)),
         ];
+        let total_weight = samples.iter().map(|(weight, _)| *weight).sum::<f64>();
+        let center_of_mass = samples
+            .iter()
+            .fold(SVector::<f64, 3>::zeros(), |center, (weight, point)| {
+                center + *point * *weight
+            })
+            / total_weight;
         let mut second_moment = SMatrix::<f64, 3, 3>::zeros();
-        for (weight, point) in samples {
-            second_moment += (point * point.transpose()) * (2.0 * weight);
+        for (weight, point) in samples.iter() {
+            let centered = *point - center_of_mass;
+            second_moment += (centered * centered.transpose()) * *weight;
         }
         let mut row_major = Vec::with_capacity(9);
         for row in 0..3 {
@@ -878,10 +1019,112 @@ mod tests {
         let angular_map = angular.to_matrix();
         let direct_energy = samples
             .iter()
-            .map(|(weight, point)| weight * (angular_map * point).norm_squared())
+            .map(|(weight, point)| {
+                0.5 * *weight * (angular_map * (*point - center_of_mass)).norm_squared()
+            })
             .sum::<f64>();
 
         assert!((operator_energy - direct_energy).abs() < 1.0e-11);
+    }
+
+    #[test]
+    fn planar_mass_points_match_direct_rotational_kinetic_energy() {
+        use nalgebra::SMatrix;
+
+        // Three non-collinear samples embedded in the XZ plane. Their central
+        // second-moment matrix has rank 2, while the 3D rotational inertia is SPD.
+        let samples = [
+            (0.7, SVector::<f64, 3>::new(1.0, 0.0, 2.0)),
+            (1.2, SVector::<f64, 3>::new(-0.3, 0.0, 0.7)),
+            (0.4, SVector::<f64, 3>::new(0.8, 0.0, -1.2)),
+        ];
+        let total_weight = samples.iter().map(|(weight, _)| *weight).sum::<f64>();
+        let center_of_mass = samples
+            .iter()
+            .fold(SVector::<f64, 3>::zeros(), |center, (weight, point)| {
+                center + *point * *weight
+            })
+            / total_weight;
+        let mut second_moment = SMatrix::<f64, 3, 3>::zeros();
+        for (weight, point) in samples.iter() {
+            let centered = *point - center_of_mass;
+            second_moment += (centered * centered.transpose()) * *weight;
+        }
+        let mut row_major = Vec::with_capacity(9);
+        for row in 0..3 {
+            for column in 0..3 {
+                row_major.push(second_moment[(row, column)]);
+            }
+        }
+        let inertia =
+            RotationalInertiaOperator::<3>::from_body_second_moment_matrix(row_major).unwrap();
+
+        let mut angular = Bivector::<3>::zero();
+        angular.set(0, 1, 0.31);
+        angular.set(0, 2, -0.47);
+        angular.set(1, 2, 0.83);
+        let operator_energy = inertia.kinetic_energy_bivector_joules(&angular).unwrap();
+        let angular_map = angular.to_matrix();
+        let direct_energy = samples
+            .iter()
+            .map(|(weight, point)| {
+                0.5 * *weight * (angular_map * (*point - center_of_mass)).norm_squared()
+            })
+            .sum::<f64>();
+        assert!((operator_energy - direct_energy).abs() < 1.0e-11);
+    }
+
+    #[test]
+    fn rank_two_planar_second_moment_is_covariant_under_body_frame_rotation() {
+        use nalgebra::SMatrix;
+        use symtropy_math::Rotor;
+
+        // A planar distribution has a rank-2 central second moment in 3D.
+        let second_moment = SMatrix::<f64, 3, 3>::new(
+            2.0, 0.0, 0.0,
+            0.0, 0.0, 0.0,
+            0.0, 0.0, 3.0,
+        );
+        let mut angular = Bivector::<3>::zero();
+        angular.set(0, 1, 0.31);
+        angular.set(0, 2, -0.47);
+        angular.set(1, 2, 0.83);
+
+        let flatten = |matrix: &SMatrix<f64, 3, 3>| {
+            let mut values = Vec::with_capacity(9);
+            for row in 0..3 {
+                for column in 0..3 {
+                    values.push(matrix[(row, column)]);
+                }
+            }
+            values
+        };
+        let original = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(
+            flatten(&second_moment),
+        )
+        .unwrap();
+        let original_energy = original.kinetic_energy_bivector_joules(&angular).unwrap();
+
+        let mut generator = Bivector::<3>::zero();
+        generator.set(0, 1, 0.37);
+        generator.set(0, 2, -0.22);
+        generator.set(1, 2, 0.29);
+        let frame_change = Rotor::<3>::from_bivector(&generator);
+        let rotation = *frame_change.to_matrix();
+        let transformed_second_moment = rotation * second_moment * rotation.transpose();
+        let transformed_angular = frame_change.rotate_bivector(&angular);
+        let transformed = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(
+            flatten(&transformed_second_moment),
+        )
+        .unwrap();
+        let transformed_energy = transformed
+            .kinetic_energy_bivector_joules(&transformed_angular)
+            .unwrap();
+
+        assert!(
+            (original_energy - transformed_energy).abs() < 1.0e-10,
+            "rank-2 planar inertia energy changed under a body-frame rotation: {original_energy} vs {transformed_energy}"
+        );
     }
 
     #[test]
