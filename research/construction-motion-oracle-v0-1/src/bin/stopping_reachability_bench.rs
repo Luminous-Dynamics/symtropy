@@ -23,6 +23,8 @@ fn main() {
             "3333333333333333333333333333333333333333333333333333333333333333".into(),
         operating_condition_sha256:
             "4444444444444444444444444444444444444444444444444444444444444444".into(),
+        scenario_context_sha256:
+            "8888888888888888888888888888888888888888888888888888888888888888".into(),
         maximum_qualified_speed_mm_s: 2_500.0,
         maximum_detection_to_brake_latency_ms: 150,
         maximum_positive_acceleration_mm_s2: 750.0,
