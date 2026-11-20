@@ -1055,6 +1055,40 @@ pub fn verify_restoration_claim_evidence(
     let mut expected_artifacts = BTreeMap::new();
     let mut requirements = Vec::new();
 
+    // Preserve and resolve every imported source artifact used to construct the
+    // frozen case. A VCS object ID without a raw byte digest is not enough for
+    // this offline package verifier to prove that the imported bytes are present.
+    for source_artifact in &case.provenance.source_artifacts {
+        let Some(raw_sha256) = source_artifact.raw_sha256.as_deref() else {
+            errors.push(format!(
+                "case source artifact {} lacks a raw SHA-256 digest",
+                source_artifact.path
+            ));
+            continue;
+        };
+        if !valid_id(&source_artifact.path)
+            || !valid_id(&source_artifact.vcs_object_id)
+            || !is_lower_hex(raw_sha256, 64)
+        {
+            errors.push(format!(
+                "case source artifact {} has invalid path, VCS object ID or raw digest",
+                source_artifact.path
+            ));
+            continue;
+        }
+        let path_digest = hash_text(&source_artifact.path);
+        let source_uri = format!(
+            "power-fabric://case-source/{}/{}",
+            source_artifact.vcs_object_id, path_digest
+        );
+        add_expected_artifact(
+            &mut expected_artifacts,
+            &source_uri,
+            raw_sha256,
+            &mut errors,
+        );
+    }
+
     // The exact canonical run receipt itself must be present and signed.
     let recorder = match profile_for_role(
         producer_profiles,
@@ -1853,6 +1887,60 @@ mod tests {
         assert_eq!(report.stale_at_presentation_count, 1);
         // It remains a valid, visible observation record. A later proposal
         // citing it as a precondition is rejected by the integrated gate.
+    }
+
+    #[test]
+    fn declared_case_source_artifact_requires_raw_bytes_digest() {
+        let mut case: power_restoration_benchmark_case::BenchmarkCase = serde_json::from_str(include_str!(
+            "../../power-restoration-benchmark-case/fixtures/synthetic-restoration-case-v0.1.json"
+        )).unwrap();
+        case.provenance.source_artifacts.push(
+            power_restoration_benchmark_case::SourceArtifact {
+                path: "feeders/feeder.dss".to_string(),
+                vcs_object_id: "a".repeat(40),
+                vcs_object_format: power_restoration_benchmark_case::VcsObjectFormat::GitSha1,
+                raw_sha256: None,
+            }
+        );
+        let receipt: power_restoration_run_receipt::RunReceipt = serde_json::from_str(include_str!(
+            "../../power-restoration-run-receipt/fixtures/synthetic-restoration-run-receipt-v0.1.json"
+        )).unwrap();
+        let manifest = BundleManifest {
+            schema_version: "0.1.0".to_string(),
+            bundle_id: "empty-claim-bundle".to_string(),
+            artifacts: Vec::new(),
+        };
+        let trust = TrustRoot {
+            schema_version: "0.1.0".to_string(),
+            root_id: "empty-root".to_string(),
+            valid_from_unix_ms: 0,
+            valid_until_unix_ms: 10_000,
+            keys: Vec::new(),
+        };
+        let profiles = vec![ClaimProducerProfile {
+            signer_role: SignerRole::RunRecorder,
+            issuer_id: "synthetic-run-recorder".to_string(),
+            tool_source_commit: "1".repeat(40),
+            tool_configuration_sha256: "2".repeat(64),
+        }];
+        let pinned = "0".repeat(64);
+        let result = verify_restoration_claim_evidence(
+            Path::new("."),
+            &case,
+            &receipt,
+            &[],
+            &manifest,
+            &trust,
+            &pinned,
+            &[],
+            &profiles,
+            "power-fabric://run/synthetic/receipt",
+            2_000,
+            1024,
+        );
+        assert!(result.unwrap_err().iter().any(|error| {
+            error.contains("lacks a raw SHA-256 digest")
+        }));
     }
 
     #[test]
