@@ -332,20 +332,27 @@ mod motor_step_state_tests {
             .initialize_velocity_target(0.0, 0.4, 1.0)
             .expect("valid target");
         close(target, 0.4, 1.0e-12);
+        let (first_delta, first_velocity) = state
+            .apply_impulse_increment((target - 0.0) / 1.0, 0.5, 0.0, 1.0)
+            .expect("first motor impulse");
+        close(first_delta, 0.4, 1.0e-12);
+        close(first_velocity, 0.4, 1.0e-12);
 
-        // A later solver iteration sees a passive constraint disturbance, but
-        // it must continue solving toward the same per-step target.
+        // A passive constraint then changes relative velocity from 0.4 to
+        // 0.2 m/s. The motor continues toward the original target, but the
+        // remaining step impulse cap permits only a 0.1 Ns correction.
+        let disturbed_velocity = first_velocity - 0.2;
         let reused = state
-            .initialize_velocity_target(0.2, 100.0, 1.0)
+            .initialize_velocity_target(disturbed_velocity, 100.0, 1.0)
             .expect("reused target");
         close(reused, 0.4, 1.0e-12);
 
         let (delta, after) = state
-            .apply_impulse_increment(reused - 0.2, 0.5, 0.2, 1.0)
+            .apply_impulse_increment((reused - disturbed_velocity) / 1.0, 0.5, disturbed_velocity, 1.0)
             .expect("remaining motor correction");
-        close(delta, 0.2, 1.0e-12);
-        close(after, 0.4, 1.0e-12);
-        close(state.accumulated_impulse(), 0.2, 1.0e-12);
+        close(delta, 0.1, 1.0e-12);
+        close(after, 0.3, 1.0e-12);
+        close(state.accumulated_impulse(), 0.5, 1.0e-12);
     }
 
     #[test]
