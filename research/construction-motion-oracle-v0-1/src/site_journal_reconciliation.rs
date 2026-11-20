@@ -80,7 +80,8 @@ pub enum SiteMutationKey {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ConcurrentSiteMutation {
     pub key: SiteMutationKey,
-    /// Deterministically sorted logical event IDs; neither event is selected.
+    /// All logical writers in this conflicting resource group, ordered by the
+    /// candidate topological order. No winner is selected.
     pub event_ids: Vec<String>,
 }
 
@@ -456,8 +457,8 @@ pub fn reconcile_site_journal_bundle(
         }
     }
 
-    let (topological_event_ids, ancestors) = topological_order_and_ancestors(&events)?;
-    let conflicts = find_concurrent_mutations(&events, &topological_event_ids, &ancestors);
+    let topological_event_ids = topological_order(&events)?;
+    let conflicts = find_concurrent_mutations(&events, &topological_event_ids);
 
     let ordered_events = topological_event_ids
         .iter()
@@ -669,9 +670,9 @@ fn validate_checkpoint(
     }
 }
 
-fn topological_order_and_ancestors(
+fn topological_order(
     events: &BTreeMap<String, EventAccumulator>,
-) -> Result<(Vec<String>, BTreeMap<String, BTreeSet<String>>), SiteJournalReconciliationError> {
+) -> Result<Vec<String>, SiteJournalReconciliationError> {
     let mut indegree = BTreeMap::<String, usize>::new();
     let mut children = BTreeMap::<String, BTreeSet<String>>::new();
 
@@ -699,24 +700,9 @@ fn topological_order_and_ancestors(
         .filter_map(|(event_id, degree)| (*degree == 0).then_some(event_id.clone()))
         .collect();
     let mut ordered = Vec::with_capacity(events.len());
-    let mut ancestors = BTreeMap::<String, BTreeSet<String>>::new();
 
     while let Some(event_id) = ready.pop_first() {
-        let event = events
-            .get(&event_id)
-            .expect("ready event IDs are drawn from the event map");
-        let mut event_ancestors = BTreeSet::new();
-        for parent_id in &event.causal_parents {
-            if events.contains_key(parent_id) {
-                event_ancestors.insert(parent_id.clone());
-                if let Some(parent_ancestors) = ancestors.get(parent_id) {
-                    event_ancestors.extend(parent_ancestors.iter().cloned());
-                }
-            }
-        }
-        ancestors.insert(event_id.clone(), event_ancestors);
         ordered.push(event_id.clone());
-
         if let Some(event_children) = children.get(&event_id) {
             for child_id in event_children {
                 let degree = indegree
@@ -733,52 +719,87 @@ fn topological_order_and_ancestors(
     if ordered.len() != events.len() {
         return Err(SiteJournalReconciliationError::CausalCycle);
     }
-    Ok((ordered, ancestors))
+    Ok(ordered)
+}
+
+/// Determine reachability only for events that contend for the same mutation
+/// key. This avoids retaining a transitive-ancestor set for every event (which
+/// can require O(n²) memory for a long single-journal history).
+fn is_causal_ancestor(
+    ancestor_event_id: &str,
+    descendant_event_id: &str,
+    events: &BTreeMap<String, EventAccumulator>,
+) -> bool {
+    let mut pending = vec![descendant_event_id.to_owned()];
+    let mut visited = BTreeSet::new();
+
+    while let Some(event_id) = pending.pop() {
+        if !visited.insert(event_id.clone()) {
+            continue;
+        }
+        let Some(event) = events.get(&event_id) else {
+            continue;
+        };
+        for parent_id in &event.causal_parents {
+            if parent_id == ancestor_event_id {
+                return true;
+            }
+            if events.contains_key(parent_id) && !visited.contains(parent_id) {
+                pending.push(parent_id.clone());
+            }
+        }
+    }
+    false
 }
 
 fn find_concurrent_mutations(
     events: &BTreeMap<String, EventAccumulator>,
     topological_order: &[String],
-    ancestors: &BTreeMap<String, BTreeSet<String>>,
 ) -> Vec<ConcurrentSiteMutation> {
-    let mut occurrences = Vec::<(String, SiteMutationKey)>::new();
+    let mut positions = BTreeMap::new();
+    for (index, event_id) in topological_order.iter().enumerate() {
+        positions.insert(event_id.as_str(), index);
+    }
+
+    let mut event_ids_by_key = BTreeMap::<SiteMutationKey, BTreeSet<String>>::new();
     for event_id in topological_order {
         if let Some(event) = events.get(event_id) {
             for key in mutation_keys(&event.payload) {
-                occurrences.push((event.event_id.clone(), key));
+                event_ids_by_key
+                    .entry(key)
+                    .or_default()
+                    .insert(event.event_id.clone());
             }
         }
     }
 
     let mut conflicts = Vec::new();
-    for first_index in 0..occurrences.len() {
-        for second_index in (first_index + 1)..occurrences.len() {
-            let (first_id, first_key) = &occurrences[first_index];
-            let (second_id, second_key) = &occurrences[second_index];
-            if first_key != second_key {
-                continue;
-            }
-            let first_before_second = ancestors
-                .get(second_id)
-                .is_some_and(|items| items.contains(first_id));
-            let second_before_first = ancestors
-                .get(first_id)
-                .is_some_and(|items| items.contains(second_id));
-            if !first_before_second && !second_before_first {
-                let mut event_ids = vec![first_id.clone(), second_id.clone()];
-                event_ids.sort();
-                conflicts.push(ConcurrentSiteMutation {
-                    key: first_key.clone(),
-                    event_ids,
-                });
-            }
+    for (key, event_ids) in event_ids_by_key {
+        if event_ids.len() < 2 {
+            continue;
+        }
+        let mut ordered_writers: Vec<String> = event_ids.into_iter().collect();
+        ordered_writers.sort_by_key(|event_id| {
+            positions
+                .get(event_id.as_str())
+                .copied()
+                .unwrap_or(usize::MAX)
+        });
+
+        // In topological order, every adjacent pair must be causally ordered
+        // for the complete resource-write sequence to be unambiguous. If one
+        // adjacent pair is incomparable, preserve the whole resource write set
+        // as a single conflict group; do not pick a winner.
+        let has_concurrent_pair = ordered_writers.windows(2).any(|pair| {
+            !is_causal_ancestor(&pair[0], &pair[1], events)
+        });
+        if has_concurrent_pair {
+            conflicts.push(ConcurrentSiteMutation {
+                key,
+                event_ids: ordered_writers,
+            });
         }
     }
-    conflicts.sort_by(|left, right| {
-        left.key
-            .cmp(&right.key)
-            .then_with(|| left.event_ids.cmp(&right.event_ids))
-    });
     conflicts
 }
 
