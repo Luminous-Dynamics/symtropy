@@ -42,11 +42,11 @@ Sources:
 | SSP 2.0.1 | System topology / parameterization package | System-structure portability reference; not a master algorithm |
 | VDMCheck | Formal-model-based FMI behavior checks | Complementary semantic validation where compatible |
 
-OpenModelica documentation lists the three OMSimulator CS master methods above. The release maturity must also be explicit in every comparison. As of 20 November 2026, OMSimulator 2.1.3 is the latest stable 2.1 release; OMSimulator 3.0.0 is explicitly a development-only tag intended for testing, with the first production-ready v3 release planned as 3.1. Use 2.1.3 as the production-stability comparator and put 3.0.0 in a separately labelled exploratory lane. Do not label the 3.0.0 development build as production SOTA.
+OpenModelica documentation lists the three OMSimulator CS master methods above. The release maturity must also be explicit in every comparison. As of 20 November 2026, the OMSimulator repository identifies `maintenance/v2.1` as the stable 2.1 branch and v2.1.3 as its latest release; `master` is explicitly the active unstable development branch. The OpenModelica 1.27 documentation reports an OMSimulator build version of `v2.1.3.post17-g81bd489`. Use a pinned v2.1.3 release/build as the production-stability comparator. Development-branch builds may be tested in a separately labelled exploratory lane, but must never be silently mixed into the stable leaderboard. I found no authoritative release evidence sufficient to retain the former specific `3.0.0`/`3.1` version-plan claim, so it is removed.
 
 FMPy 0.3.32 is the current PyPI release (9 September 2026). The published universal wheel has SHA-256 `b379deb9417b842028003a288d00c1c5f138d1580e1ff12cc6c42a98719cecf0`, but PyPI reports no provenance attestation for that wheel. Pin and retain the wheel digest, and report the absent publisher provenance rather than implying a verified build origin.
 
-The current OpenModelica User Guide reports FMI 2.0.5 as supported and FMI 3.0.2 as experimental. Keep two separate compatibility lanes: a mature FMI 2.0.5 production-comparator lane and an exploratory FMI 3.0.2 lane. Do not aggregate them into one leaderboard. For every run:
+The current OpenModelica User Guide reports FMI 2.0.5 as supported and FMI 3.0.2 as experimental. The current download page lists OpenModelica 1.27.1 as the latest official release and 1.28.0-dev as the nightly development build. Keep two separate FMI compatibility lanes: a mature FMI 2.0.5 production-comparator lane and an exploratory FMI 3.0.2 lane. Do not aggregate them into one leaderboard. For every run:
 - pin the exact OpenModelica/OMSimulator release, commit and binary;
 - record the actual FMI version used by each FMU and importer;
 - record each FMU capability flag and whether the importer supports it;
@@ -54,7 +54,8 @@ The current OpenModelica User Guide reports FMI 2.0.5 as supported and FMI 3.0.2
 
 Sources:
 - [OMSimulator solver methods](https://openmodelica.org/doc/OpenModelicaUsersGuide/latest/omsimulator.html)
-- [OMSimulator release maturity: stable 2.1.3, development-only 3.0.0, planned production 3.1](https://github.com/OpenModelica/OMSimulator/releases)
+- [OMSimulator branch/release maturity: stable maintenance/v2.1 at v2.1.3; master is active and unstable](https://github.com/OpenModelica/OMSimulator)
+- [OpenModelica official releases: 1.27.1 official; 1.28.0-dev nightly](https://openmodelica.org/download/download-windows/)
 - [OpenModelica User Guide — FMI 2.0.5 supported / FMI 3.0.2 experimental](https://openmodelica.org/doc/OpenModelicaUsersGuide/OpenModelicaUsersGuide-latest.pdf)
 - [FMPy 0.3.32 release and wheel SHA-256](https://pypi.org/project/FMPy/0.3.32/)
 - [FMPy supported FMI interfaces](https://github.com/CATIA-Systems/FMPy)
@@ -67,10 +68,10 @@ The direct OMSimulator master comparison is only one layer. Use these establishe
 | Method reference | Pinned research snapshot | Role | Correct comparison |
 |---|---|---|---|
 | SUNDIALS ARKODE MRIStep / ExtSTS | SUNDIALS 7.9.0 (released 3 Sep 2026) | Multirate time-integration reference, especially parabolic components | Compare component trajectory/error/CPU envelopes on the same analytic stiff diffusion subproblem; not an FMI master |
-| preCICE implicit coupling | Pin exact preCICE release/commit at run time; docs updated 20 Oct 2026 | Explicit/implicit partitioned multi-physics coupling, convergence measures and IQN-ILS acceleration | Compare interface residual/convergence, rollback/checkpoint cost and coupling iterations using an equivalent two-participant adapter; not an FMI importer |
+| preCICE implicit coupling | v3.5.0 (released 11 Nov 2026) | Explicit/implicit partitioned multi-physics coupling, convergence measures, IQN-ILS acceleration and conservative PU-RBF mappings | Compare interface residual/convergence, mapping conservation, rollback/checkpoint cost and coupling iterations using an equivalent two-participant adapter; not an FMI importer |
 | OpenModelica / OMSimulator | Pin exact build; User Guide snapshot reports FMI 3.0.2 as experimental | Actual FMI importer/master path | Direct master leaderboard, with capability flags and unsupported paths listed |
 
-SUNDIALS 7.9.0 adds extended Super Time Stepping through ARKODE MRIStep for multirate parabolic simulations. It is a component integrator, not an FMI co-simulation master. preCICE supports serial/parallel and explicit/implicit schemes; implicit schemes iterate until declared convergence measures are satisfied and can use IQN-ILS acceleration. A method reference is only valid when the same equations, coupling window, tolerance, initial conditions and compute budget are compared.
+SUNDIALS 7.9.0 adds extended Super Time Stepping through ARKODE MRIStep for multirate parabolic simulations. It is a component integrator, not an FMI co-simulation master. preCICE v3.5.0 adds conservative PU-RBF mappings via Kokkos and more robust timestamp comparisons for longer-running simulations; preCICE supports serial/parallel and explicit/implicit schemes, with quasi-Newton acceleration. A method reference is only valid when the same equations, coupling window, mapping/conservation rules, tolerance, initial conditions and compute budget are compared.
 
 Sources:
 - [SUNDIALS 7.9.0 release information](https://computing.llnl.gov/projects/sundials/sundials-software)
@@ -90,6 +91,23 @@ Sources:
 FMPy wheel SHA-256: `b379deb9417b842028003a288d00c1c5f138d1580e1ff12cc6c42a98719cecf0`.
 
 A benchmark receipt must include tool release, commit, binary hash, dependency manifest, FMI version, FMU capability flags and unsupported-feature dispositions. A development build and a stable production release must never share one undifferentiated ranking.
+
+
+## 3B. Verified release-maturity snapshot (20 November 2026)
+
+| Tool / lane | Verified release or branch | Qualification treatment |
+|---|---|---|
+| OMSimulator stable | `maintenance/v2.1`, v2.1.3 (OpenModelica docs build: v2.1.3.post17-g81bd489) | Primary stable FMI-master comparator; pin binary and commit |
+| OMSimulator development | `master` | Explicitly active/unstable development lane; never mix into stable rankings |
+| OpenModelica official | 1.27.1 | Latest official release shown by the project download page |
+| OpenModelica nightly | 1.28.0-dev | Exploratory only; not a production release |
+| OpenModelica FMI compatibility | FMI 2.0.5 supported; FMI 3.0.2 experimental | Separate results into distinct compatibility lanes |
+| FMPy importer | 0.3.32 (9 Sep 2026) | Latest published PyPI importer in this snapshot; wheel digest pinned; PyPI reports no provenance attestation |
+| preCICE adjacent coupling | 3.5.0 (11 Nov 2026) | Current coupling-method reference, not an FMI master |
+| SUNDIALS / ARKODE | 7.9.0 (Sep 2026) | Current multirate integrator reference, not an FMI master |
+| SSP | 2.0.1 (5 May 2026) | Fixed system-description package standard for topology/parameterization round trips |
+
+Do not infer FMI 3.0.2 support from a tool's generic FMI 3 statement. Probe each exact importer build against each FMU's advertised capability flags and exercised function path. A tool that cannot run the declared FMI lane is `NOT_EVALUABLE` for that lane, not a failed numerical algorithm and not an implicit pass.
 
 ## 4. Do not conflate the comparison layers
 
