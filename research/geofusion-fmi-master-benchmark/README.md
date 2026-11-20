@@ -94,6 +94,28 @@ Sources:
 
 Do not infer FMI 3.0.2 support from a tool's generic FMI 3 statement. Probe each exact importer build against each FMU's advertised capability flags and exercised function path. A tool that cannot run the declared FMI lane is `NOT_EVALUABLE` for that lane, not a failed numerical algorithm and not an implicit pass.
 
+
+## 3C. SSP 2.0 inter-tool round-trip candidates
+
+The official SSP tool-support matrix currently lists the following declared import/export coverage:
+
+| Tool | Vendor | Declared SSP import/export | Benchmark lane |
+|---|---|---|---|
+| easySSP / orchideo | eXXcellent solutions | 1.0 / 2.0 | Primary SSP 2.0.1 round-trip candidate |
+| FMI Bench | PMSF | 1.0 / 2.0 | Primary independent SSP 2.0.1 round-trip candidate |
+| OMSimulator | OpenModelica | 1.0 | Legacy SSP 1.0 compatibility only unless a later exact build is independently shown to support SSP 2.0 |
+| SYNECT Model Management | dSPACE | 1.0 | Legacy SSP 1.0 compatibility |
+| Model.CONNECT | AVL | 1.0 | Legacy SSP 1.0 compatibility |
+| Simcenter System Architect | Siemens | 1.0 | Legacy SSP 1.0 compatibility |
+
+The official SSP tool page gives standard-version coverage, but does not pin product build numbers or feature-by-feature round-trip behavior. Thus this is a *candidate matrix*, not proof that a specific installed release correctly preserves the GeoFusion package. Each campaign must record exact product/version/build, host OS, import warnings, export warnings, resulting package digests and a canonical diff of components, source URIs, connectors, connector kinds, types, unit exponents, parameter values and connections.
+
+SSP 2.0.1 is a maintenance patch to SSP 2.0. The SSD schema's version attribute encodes only major/minor (here `2.0`), not the patch version; the exact SSP release and XSD blob hashes therefore belong in the benchmark manifest. Do not infer SSP 2.0.1 support from a tool's SSP 1.0 listing, or infer correct round-trip behavior solely from a `2.0` label.
+
+The initial two-tool target is **FMI Bench ↔ easySSP**: import the exact same SSP package into each, export it, then cross-import the exported results. Compare canonicalized graph and FMU resource digests. Unsupported or inaccessible tools are `NOT_EVALUABLE`, not a fail and never a pass.
+
+Source: [official SSP tool support matrix](https://ssp-standard.org/tools/); [SSP 2.0.1 specification and versioning](https://ssp-standard.org/docs/2.0.1/).
+
 ## 4. Do not conflate the comparison layers
 
 1. **FMU/package correctness:** modelDescription/schema, binaries, variables, units, capabilities, license and platform.
