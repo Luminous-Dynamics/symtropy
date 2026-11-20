@@ -419,6 +419,32 @@ fn validate_receipt(receipt: &RunReceipt, errors: &mut Vec<String>) {
     {
         errors.push("measured usage counters under-report events in the attempt log".to_string());
     }
+    let attempt_input_tokens: u64 = receipt.attempts.iter().map(|attempt| attempt.input_tokens).sum();
+    let attempt_output_tokens: u64 = receipt.attempts.iter().map(|attempt| attempt.output_tokens).sum();
+    if receipt.measured_usage.input_tokens < attempt_input_tokens
+        || receipt.measured_usage.output_tokens < attempt_output_tokens
+    {
+        errors.push("measured token usage under-reports the attempt ledger".to_string());
+    }
+    let mut attempt_costs: BTreeMap<&str, f64> = BTreeMap::new();
+    for attempt in &receipt.attempts {
+        if let Some(cost) = &attempt.cost {
+            *attempt_costs.entry(cost.currency.as_str()).or_insert(0.0) += cost.amount;
+        }
+    }
+    if !attempt_costs.is_empty() {
+        let Some(measured_cost) = receipt.measured_usage.api_cost.as_ref() else {
+            errors.push("attempt-level API costs exist but measured run cost is absent".to_string());
+            return;
+        };
+        let Some(attempt_total) = attempt_costs.get(measured_cost.currency.as_str()) else {
+            errors.push("measured API cost currency does not match attempt-level costs".to_string());
+            return;
+        };
+        if attempt_costs.len() != 1 || measured_cost.amount + TOLERANCE < *attempt_total {
+            errors.push("measured API cost under-reports the attempt ledger or mixes currencies".to_string());
+        }
+    }
     if let Some(limit) = &budget.token_limit {
         let actual = receipt.measured_usage.input_tokens.saturating_add(receipt.measured_usage.output_tokens);
         if actual > *limit {
@@ -493,7 +519,8 @@ fn validate_receipt(receipt: &RunReceipt, errors: &mut Vec<String>) {
             continue;
         }
         let epoch = epochs[&attempt.decision_step];
-        if attempt.started_at_ms > attempt.ended_at_ms
+        if attempt.started_at_ms < epoch.decision_time_ms
+            || attempt.started_at_ms > attempt.ended_at_ms
             || attempt.ended_at_ms.saturating_sub(attempt.started_at_ms) != attempt.latency_ms
             || attempt.ended_at_ms > receipt.measured_usage.wall_clock_ms
             || attempt.latency_ms > receipt.budget.decision_limit_ms
@@ -597,6 +624,15 @@ fn validate_receipt(receipt: &RunReceipt, errors: &mut Vec<String>) {
             errors.push(format!("validator receipt {} is not bound to a frozen decision proposal", item.receipt_id));
         }
         validate_component(&item.validator, "validator receipt component", errors);
+        for action_id in &item.rejected_action_ids {
+            if !receipt.attempts.iter().any(|attempt| {
+                attempt.validator_receipt_id.as_deref() == Some(item.receipt_id.as_str())
+                    && attempt.outcome == AttemptOutcome::Rejected
+                    && attempt.action_id.as_deref() == Some(action_id.as_str())
+            }) {
+                errors.push(format!("validator receipt {} rejected action {} without a matching rejected attempt", item.receipt_id, action_id));
+            }
+        }
     }
     for item in &receipt.transition_receipts {
         if !valid_id(&item.receipt_id)
@@ -609,9 +645,30 @@ fn validate_receipt(receipt: &RunReceipt, errors: &mut Vec<String>) {
             || item.applied_action_ids.iter().collect::<BTreeSet<_>>().len() != item.applied_action_ids.len()
             || item.failed_action_ids.iter().collect::<BTreeSet<_>>().len() != item.failed_action_ids.len()
             || item.applied_action_ids.iter().any(|id| item.failed_action_ids.contains(id))
+            || (item.status == TransitionStatus::Applied && (item.applied_action_ids.is_empty() || !item.failed_action_ids.is_empty()))
+            || (item.status == TransitionStatus::Failed && item.failed_action_ids.is_empty())
+            || (item.status == TransitionStatus::Rejected && (!item.applied_action_ids.is_empty() || !item.failed_action_ids.is_empty() || item.state_before_sha256 != item.state_after_sha256))
             || !receipt.attempts.iter().any(|attempt| attempt.transition_receipt_id.as_deref() == Some(item.receipt_id.as_str()))
         {
             errors.push(format!("transition receipt {} is not bound to a frozen proposal/state", item.receipt_id));
+        }
+        for action_id in &item.applied_action_ids {
+            if !receipt.attempts.iter().any(|attempt| {
+                attempt.transition_receipt_id.as_deref() == Some(item.receipt_id.as_str())
+                    && attempt.outcome == AttemptOutcome::Applied
+                    && attempt.action_id.as_deref() == Some(action_id.as_str())
+            }) {
+                errors.push(format!("transition receipt {} applied action {} without a matching applied attempt", item.receipt_id, action_id));
+            }
+        }
+        for action_id in &item.failed_action_ids {
+            if !receipt.attempts.iter().any(|attempt| {
+                attempt.transition_receipt_id.as_deref() == Some(item.receipt_id.as_str())
+                    && attempt.outcome == AttemptOutcome::ExecutionFailed
+                    && attempt.action_id.as_deref() == Some(action_id.as_str())
+            }) {
+                errors.push(format!("transition receipt {} failed action {} without a matching execution-failed attempt", item.receipt_id, action_id));
+            }
         }
         validate_component(&item.engine, "transition receipt component", errors);
     }
@@ -885,6 +942,40 @@ mod tests {
         let second = qualify(&envelope).unwrap();
         assert_eq!(first.receipt_sha256, second.receipt_sha256);
         assert_eq!(serde_json::to_string(&first).unwrap(), serde_json::to_string(&second).unwrap());
+    }
+
+    #[test]
+    fn attempt_must_start_after_its_observation_decision_epoch() {
+        let mut envelope = fixture();
+        envelope.receipt.attempts[2].started_at_ms = 20_000;
+        envelope.receipt.attempts[2].ended_at_ms = 20_090;
+        envelope.receipt.attempts[2].latency_ms = 90;
+        refresh_envelope_digest(&mut envelope);
+        assert!(qualify(&envelope).is_err());
+    }
+
+    #[test]
+    fn measured_usage_cannot_under_report_attempt_tokens() {
+        let mut envelope = fixture();
+        envelope.receipt.measured_usage.input_tokens -= 1;
+        refresh_envelope_digest(&mut envelope);
+        assert!(qualify(&envelope).is_err());
+    }
+
+    #[test]
+    fn timeout_requires_failure_reference() {
+        let mut envelope = fixture();
+        envelope.receipt.attempts[4].failure_ref = None;
+        refresh_envelope_digest(&mut envelope);
+        assert!(qualify(&envelope).is_err());
+    }
+
+    #[test]
+    fn transition_receipt_cannot_claim_an_unlogged_applied_action() {
+        let mut envelope = fixture();
+        envelope.receipt.transition_receipts[0].applied_action_ids.push("unlogged-action".to_string());
+        refresh_envelope_digest(&mut envelope);
+        assert!(qualify(&envelope).is_err());
     }
 
     #[test]
