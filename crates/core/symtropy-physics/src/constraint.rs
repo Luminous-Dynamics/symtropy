@@ -51,11 +51,13 @@ impl MotorStepState {
     /// Add one desired impulse increment to the accumulated per-step impulse,
     /// then project the total into the symmetric effort budget.
     ///
-    /// The controller is reevaluated on each solver iteration using the
-    /// current relative velocity. Its output is therefore an incremental
-    /// impulse, not an absolute accumulated impulse. Returns only the change
-    /// to apply and the resulting relative velocity. Midpoint work matches the
-    /// exact kinetic-energy change for a fixed scalar effective inverse mass.
+    /// The solver reevaluates the residual velocity error on each iteration;
+    /// the controller target itself is initialized once per step by
+    /// initialize_velocity_target. This method accumulates the residual impulse
+    /// and projects the total into the per-step effort budget. It returns only
+    /// the incremental impulse to apply and the resulting relative velocity.
+    /// Midpoint work matches the exact kinetic-energy change for a fixed scalar
+    /// effective inverse mass.
     pub fn apply_impulse_increment(
         &mut self,
         desired_impulse_increment: f64,
@@ -309,13 +311,13 @@ mod motor_step_state_tests {
     fn effort_saturation_is_a_single_step_bound() {
         let mut state = MotorStepState::default();
         let (delta, velocity) = state
-            .project_impulse(100.0, 0.2, 0.0, 0.5)
+            .apply_impulse_increment(100.0, 0.2, 0.0, 0.5)
             .expect("finite saturated projection");
         close(delta, 0.2, 1.0e-12);
         close(velocity, 0.1, 1.0e-12);
         for _ in 0..7 {
             let (additional, after) = state
-                .project_impulse(100.0, 0.2, velocity, 0.5)
+                .apply_impulse_increment(100.0, 0.2, velocity, 0.5)
                 .expect("finite saturated projection");
             close(additional, 0.0, 1.0e-12);
             close(after, velocity, 1.0e-12);
@@ -358,8 +360,8 @@ mod motor_step_state_tests {
     #[test]
     fn invalid_inputs_do_not_mutate_the_step_state() {
         let mut state = MotorStepState::default();
-        assert_eq!(state.project_impulse(1.0, 1.0, 0.0, 0.0), None);
-        assert_eq!(state.project_impulse(f64::NAN, 1.0, 0.0, 1.0), None);
+        assert_eq!(state.apply_impulse_increment(1.0, 1.0, 0.0, 0.0), None);
+        assert_eq!(state.apply_impulse_increment(f64::NAN, 1.0, 0.0, 1.0), None);
         assert_eq!(state.accumulated_impulse(), 0.0);
         assert_eq!(state.take_work_receipt(), None);
     }
