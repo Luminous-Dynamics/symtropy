@@ -173,7 +173,7 @@ fn matrix_skew_residual(matrix: &[f64], dimension: usize) -> f64 {
     for (row, row_values) in matrix.chunks_exact(dimension).enumerate() {
         for (column, value) in row_values.iter().enumerate() {
             residual = residual.max(
-                (value / scale + matrix[column * dimension + row] / scale).abs(),
+                (*value / scale + matrix[column * dimension + row] / scale).abs(),
             );
         }
     }
@@ -189,7 +189,7 @@ fn matrix_symmetry_residual(matrix: &[f64], dimension: usize) -> f64 {
     for (row, row_values) in matrix.chunks_exact(dimension).enumerate() {
         for (column, value) in row_values.iter().enumerate() {
             residual = residual.max(
-                (value / scale - matrix[column * dimension + row] / scale).abs(),
+                (*value / scale - matrix[column * dimension + row] / scale).abs(),
             );
         }
     }
@@ -350,8 +350,8 @@ pub fn audit_metriplectic_structure(request: &AuditRequest) -> Result<AuditRepor
         serde_json::to_vec(request).map_err(|error| format!("request serialization failed: {error}"))?;
     let request_sha256 = sha256_hex(&request_bytes);
 
-    let l_scale = max_abs(&request.reversible_operator).max(1.0);
-    let m_scale = max_abs(&request.dissipative_operator).max(1.0);
+    let l_scale = max_abs(&request.reversible_operator).max(f64::MIN_POSITIVE);
+    let m_scale = max_abs(&request.dissipative_operator).max(f64::MIN_POSITIVE);
     let l_normalized = normalized_matrix(&request.reversible_operator, l_scale);
     let m_normalized = normalized_matrix(&request.dissipative_operator, m_scale);
 
@@ -363,8 +363,8 @@ pub fn audit_metriplectic_structure(request: &AuditRequest) -> Result<AuditRepor
     let dissipative_minimum_normalized_eigenvalue =
         minimum_symmetric_eigenvalue(&symmetric_dissipative, dimension)?;
 
-    let entropy_gradient_scale = max_abs(&request.entropy_gradient).max(1.0);
-    let energy_gradient_scale = max_abs(&request.energy_gradient).max(1.0);
+    let entropy_gradient_scale = max_abs(&request.entropy_gradient).max(f64::MIN_POSITIVE);
+    let energy_gradient_scale = max_abs(&request.energy_gradient).max(f64::MIN_POSITIVE);
     let entropy_gradient_normalized: Vec<f64> = request
         .entropy_gradient
         .iter()
@@ -409,17 +409,21 @@ pub fn audit_metriplectic_structure(request: &AuditRequest) -> Result<AuditRepor
         return Err("derived GENERIC time derivative or rate is non-finite".to_owned());
     }
 
+    let time_derivative_scale = max_abs(&time_derivative).max(f64::MIN_POSITIVE);
+    let normalized_time_derivative: Vec<f64> = time_derivative
+        .iter()
+        .map(|value| value / time_derivative_scale)
+        .collect();
     let energy_rate_relative_residual = relative_residual(
-        &vec![energy_rate],
-        &request.energy_gradient,
-        &time_derivative,
+        &[dot(&energy_gradient_normalized, &normalized_time_derivative)],
+        &energy_gradient_normalized,
+        &normalized_time_derivative,
     );
-    let entropy_rate_scale = stable_norm(&request.entropy_gradient) * stable_norm(&time_derivative);
-    let entropy_rate_relative_residual = if entropy_rate_scale > f64::MIN_POSITIVE {
-        (-entropy_rate).max(0.0) / entropy_rate_scale
-    } else {
-        (-entropy_rate).max(0.0)
-    };
+    let entropy_rate_relative_residual = relative_residual(
+        &[(-dot(&entropy_gradient_normalized, &normalized_time_derivative)).max(0.0)],
+        &entropy_gradient_normalized,
+        &normalized_time_derivative,
+    );
 
     let mut findings = Vec::new();
     let mut rejected = false;
@@ -691,6 +695,24 @@ mod tests {
         let mut request = base_request();
         request.state = vec![0.0; 65];
         assert!(audit_metriplectic_structure(&request).is_err());
+    }
+
+    #[test]
+    fn operator_checks_are_scale_invariant_for_small_and_large_coefficients() {
+        let mut small = base_request();
+        small.reversible_operator = small.reversible_operator.iter().map(|value| value * 1.0e-100).collect();
+        small.dissipative_operator = small.dissipative_operator.iter().map(|value| value * 1.0e-100).collect();
+        let report_small = audit_metriplectic_structure(&small).expect("small audit");
+        assert_eq!(report_small.body.disposition, AuditDisposition::Admissible);
+        assert!(report_small.body.reversible_skew_relative_residual < 1.0e-12);
+        assert!(report_small.body.dissipative_minimum_normalized_eigenvalue >= -1.0e-12);
+
+        let mut large = base_request();
+        large.reversible_operator = large.reversible_operator.iter().map(|value| value * 1.0e100).collect();
+        large.dissipative_operator = large.dissipative_operator.iter().map(|value| value * 1.0e100).collect();
+        let report_large = audit_metriplectic_structure(&large).expect("large audit");
+        assert_eq!(report_large.body.disposition, AuditDisposition::Admissible);
+        assert!(report_large.body.reversible_skew_relative_residual < 1.0e-12);
     }
 
     #[test]
