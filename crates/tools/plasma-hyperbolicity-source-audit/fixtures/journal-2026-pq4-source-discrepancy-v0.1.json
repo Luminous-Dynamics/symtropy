@@ -1,0 +1,76 @@
+{
+  "schema_version": "0.1.0",
+  "audit_id": "plasma-hyperbolicity-journal-p4-matrix-polynomial-dimension",
+  "status": "source_inconsistency_unresolved",
+  "claim_ceiling": "Printed-equation consistency audit only. Not a corrected paper, matrix reproduction, hyperbolicity result, or plasma simulation.",
+  "journal_article": {
+    "title": "Hyperbolicity of a Hermite-Laguerre moment model for the plasma edge in slab geometry",
+    "authors": ["Julian Koellermeier", "Nikita Mischenko", "Josefine H. E. Proll"],
+    "published": "2026-10-23",
+    "doi": "10.1007/s10404-026-02946-4",
+    "url": "https://doi.org/10.1007/s10404-026-02946-4",
+    "equation_pairs": [
+      {
+        "matrix_equation": "64",
+        "polynomial_equation": "66",
+        "matrix_dimension_as_printed": 5,
+        "matrix_trace_as_printed": 0.0,
+        "polynomial_degree_as_printed": 6,
+        "leading_coefficient": 1.0,
+        "coefficient_lambda_4_expression": "-2 * (1 + 9*sqrt(2) + sqrt(3))",
+        "expected_coefficient_lambda_4_from_trace": 0.0,
+        "expected_audit_disposition": "inconsistent"
+      },
+      {
+        "matrix_equation": "65",
+        "polynomial_equation": "67",
+        "matrix_dimension_as_printed": 5,
+        "matrix_trace_as_printed": 0.0,
+        "polynomial_degree_as_printed": 6,
+        "leading_coefficient": 1.0,
+        "coefficient_lambda_4_expression": "-4 * (1 + 7*sqrt(2))",
+        "expected_coefficient_lambda_4_from_trace": 0.0,
+        "expected_audit_disposition": "inconsistent"
+      }
+    ],
+    "internal_definition_checks": [
+      {
+        "equation": "57",
+        "statement": "p_(i,j) is a polynomial of degree j",
+        "consequence": "For P=4, p_(i,P+1) has degree 5"
+      },
+      {
+        "equation": "63",
+        "statement": "The factors are p_(0,P+1), p_(1,P+1), and equilibrium p_(2,P+1) factors",
+        "consequence": "For P=4, the displayed non-equilibrium factors are named with degree 5"
+      }
+    ]
+  },
+  "predecessor_thesis": {
+    "author": "Nikita Mischenko",
+    "title": "Hyperbolicity of a Hermite-Laguerre Moment Model of the Plasma Periphery in Slab Geometry",
+    "award_date": "2024-02",
+    "url": "https://research.tue.nl/en/studentTheses/hyperbolicity-of-a-hermite-laguerre-moment-model-of-the-plasma-pe/",
+    "cross_checks": [
+      {
+        "equation": "5.61",
+        "statement": "Each diagonal block is (P+1) x (P+1)"
+      },
+      {
+        "equation": "5.67 / Theorem 7",
+        "statement": "Characteristic polynomial is built from Hermite factors of degree P+1"
+      }
+    ]
+  },
+  "disposition": {
+    "known_answer_fixture_admission": "blocked",
+    "silent_correction_permitted": false,
+    "possible_explanations_not_decided": [
+      "typesetting error in a matrix display",
+      "typesetting error in a polynomial expression",
+      "omitted matrix row or column",
+      "indexing or normalization change between predecessor thesis and journal article"
+    ],
+    "required_resolution": "Author clarification or authoritative corrected matrix/polynomial derivation; then independently recompute the determinant and eigenbasis."
+  }
+}
