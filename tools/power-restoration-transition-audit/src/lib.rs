@@ -476,7 +476,11 @@ mod tests {
         let mut proposal: ActionProposal = serde_json::from_str(include_str!(
             "../../power-restoration-action-proposal/fixtures/synthetic-restoration-action-proposal-v0.1.json"
         )).unwrap();
+        proposal.case_sha256 = canonical_case_sha256(&case()).unwrap();
+        proposal.decision_step = 0;
+        proposal.observation.observed_step = 0;
         let action = &mut proposal.actions[0];
+        action.decision_step = 0;
         action.action_kind = kind;
         action.actor_id = match kind {
             ActionKind::SetSwitchState => "GRID-OP-1".to_string(),
@@ -502,17 +506,13 @@ mod tests {
         } else {
             None
         };
-        if kind == ActionKind::ObserveScada {
-            action.precondition_evidence.clear();
-        } else {
-            action.precondition_evidence = vec![
-                power_restoration_action_proposal::EvidenceReference {
-                    evidence_ref: "synthetic://evidence/test".to_string(),
-                    observed_step: 0,
-                    evidence_sha256: "a".repeat(64),
-                }
-            ];
-        }
+        action.precondition_evidence = vec![
+            power_restoration_action_proposal::EvidenceReference {
+                evidence_ref: "synthetic://evidence/test".to_string(),
+                observed_step: 0,
+                evidence_sha256: "a".repeat(64),
+            }
+        ];
         proposal
     }
 
