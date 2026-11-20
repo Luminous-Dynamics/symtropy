@@ -33,17 +33,21 @@ jobs:
           ifc_fixture = json.loads((root / "examples/ifc-ids-preflight-input-synthetic-v0.1.json").read_text())
           stop_schema = json.loads((root / "schema/stopping-dynamics-qualification-v0.1.schema.json").read_text())
           stop_fixture = json.loads((root / "examples/stopping-dynamics-qualification-synthetic-v0.1.json").read_text())
+          hazard_schema = json.loads((root / "schema/hazard-stopping-budget-v0.1.schema.json").read_text())
+          hazard_fixture = json.loads((root / "examples/hazard-stopping-budget-synthetic-v0.1.json").read_text())
 
-          for schema in (event_schema, ifc_schema, stop_schema):
+          for schema in (event_schema, ifc_schema, stop_schema, hazard_schema):
               Draft202012Validator.check_schema(schema)
           event_validator = Draft202012Validator(event_schema)
           ifc_validator = Draft202012Validator(ifc_schema)
           stop_validator = Draft202012Validator(stop_schema)
+          hazard_validator = Draft202012Validator(hazard_schema)
 
           for event in event_fixture:
               event_validator.validate(event)
           ifc_validator.validate(ifc_fixture)
           stop_validator.validate(stop_fixture)
+          hazard_validator.validate(hazard_fixture)
 
           ids = [event["event_id"] for event in event_fixture]
           sequences = [event["sequence"] for event in event_fixture]
@@ -55,7 +59,7 @@ jobs:
           assert any(event["payload"]["kind"] == "execution_interrupted" for event in event_fixture)
           assert all(isinstance(item, dict) for item in event_schema["properties"]["payload"]["oneOf"])
 
-          print(f"PASS: three Draft 2020-12 schemas; {len(event_fixture)} site-state events; IFC/IDS and stopping-profile fixtures")
+          print(f"PASS: four Draft 2020-12 schemas; {len(event_fixture)} site-state events; IFC/IDS, stopping-profile and hazard-budget fixtures")
           print("LIMIT: fixture hashes are synthetic and this does not verify real signatures or event digests")
           PY
   rust:
