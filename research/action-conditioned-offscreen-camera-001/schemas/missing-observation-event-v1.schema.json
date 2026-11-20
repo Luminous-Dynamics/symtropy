@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/camera-missing-observation-v1.schema.json",
+  "title": "Missing camera observation event v1",
+  "description": "An explicit ordered event for an expected camera frame that was not available to the policy.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "episode_id",
+    "agent_id",
+    "clock_id",
+    "tick",
+    "sequence",
+    "capture_timestamp_us",
+    "noticed_timestamp_us",
+    "reason"
+  ],
+  "properties": {
+    "episode_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "agent_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "clock_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "tick": { "type": "integer", "minimum": 0 },
+    "sequence": { "type": "integer", "minimum": 1 },
+    "capture_timestamp_us": { "type": "integer", "minimum": 0 },
+    "noticed_timestamp_us": { "type": "integer", "minimum": 0 },
+    "reason": {
+      "enum": [
+        "camera_drop",
+        "camera_unavailable",
+        "renderer_overrun",
+        "transport_drop",
+        "malformed_capture",
+        "censored"
+      ]
+    }
+  },
+  "x-invariants": [
+    "noticed_timestamp_us is greater than or equal to capture_timestamp_us.",
+    "Recording this event consumes the sequence and capture timestamp in the stream guard; a later frame with the same sequence cannot be admitted."
+  ]
+}
