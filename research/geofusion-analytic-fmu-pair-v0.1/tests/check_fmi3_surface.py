@@ -41,14 +41,12 @@ def function_blocks(source: str):
     return blocks
 
 def main() -> int:
-    sources={p.name:p.read_text(encoding="utf-8") for p in sorted(SOURCE_DIR.glob("*.c"))}
-    blocks={}
-    for name,source in sources.items():
-        for symbol,body in function_blocks(source).items():
-            if symbol in blocks:
-                raise AssertionError(f"duplicate FMI symbol {symbol} across source files")
-            blocks[symbol]=body
-
+    # These are separate shared libraries. They intentionally export the
+    # same FMI C-API names; duplicate detection is scoped to each link unit.
+    source_units = {
+        "GeothermalSource": ("geothermal_source.c", "fmi3_unsupported.c"),
+        "HeatExchangerBuffer": ("heat_exchanger_buffer.c", "fmi3_unsupported.c"),
+    }
     expected=set(MANIFEST["importer_resolved_symbols"])
     implemented=set(MANIFEST["implemented_symbols"])
     unsupported=set(MANIFEST["unsupported_fail_closed_symbols"])
@@ -56,15 +54,34 @@ def main() -> int:
         raise AssertionError("manifest implementation/stub sets do not partition importer symbol surface")
     if implemented & unsupported:
         raise AssertionError("implemented and unsupported symbol sets overlap")
-    if set(blocks) != expected:
-        missing=sorted(expected-set(blocks))
-        extra=sorted(set(blocks)-expected)
-        raise AssertionError(f"FMI symbol surface mismatch; missing={missing}, extra={extra}")
 
-    for symbol in unsupported:
-        body=blocks[symbol]
-        if "return fmi3Error;" not in body and "return NULL;" not in body:
-            raise AssertionError(f"unsupported symbol does not fail closed: {symbol}")
+    common_source = (SOURCE_DIR / "fmi3_unsupported.c").read_text(encoding="utf-8")
+    for component_name, source_names in source_units.items():
+        blocks={}
+        for source_name in source_names:
+            source = common_source if source_name == "fmi3_unsupported.c" else (
+                SOURCE_DIR / source_name
+            ).read_text(encoding="utf-8")
+            for symbol,body in function_blocks(source).items():
+                if symbol in blocks:
+                    raise AssertionError(
+                        f"{component_name}: duplicate FMI symbol {symbol} within one shared library"
+                    )
+                blocks[symbol]=body
+
+        if set(blocks) != expected:
+            missing=sorted(expected-set(blocks))
+            extra=sorted(set(blocks)-expected)
+            raise AssertionError(
+                f"{component_name}: FMI symbol surface mismatch; missing={missing}, extra={extra}"
+            )
+
+        for symbol in unsupported:
+            body=blocks[symbol]
+            if "return fmi3Error;" not in body and "return NULL;" not in body:
+                raise AssertionError(
+                    f"{component_name}: unsupported symbol does not fail closed: {symbol}"
+                )
 
     if '"3.0"' not in blocks["fmi3GetVersion"] or '"3.0.2"' in blocks["fmi3GetVersion"]:
         raise AssertionError("FMI version function does not return the pinned interface version")
@@ -83,7 +100,7 @@ def main() -> int:
             raise AssertionError(f"{xml_path.name}: unqualified serialized state capability advertised")
 
     print("FMI API symbol/capability closure: PASS")
-    print(f"pinned_importer_symbols={len(expected)} implemented={len(implemented)} fail_closed_unsupported={len(unsupported)}")
+    print(f"shared_libraries={len(source_units)} pinned_symbols_per_library={len(expected)} implemented={len(implemented)} fail_closed_unsupported={len(unsupported)}")
     print("FMU-state and serialization capabilities: not advertised")
     return 0
 
