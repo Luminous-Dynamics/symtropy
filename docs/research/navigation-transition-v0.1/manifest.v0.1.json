@@ -14,7 +14,7 @@
     "case_schema": "./nav_transition_case.schema.json",
     "synthetic_cases": "./fixtures/nav_transition_cases.v0.1.json"
   },
-  "case_count": 8,
+  "case_count": 12,
   "case_ids": [
     "nav.land.open-urban-tunnel.v0.1",
     "nav.surface-to-underwater-acoustic-loss.v0.1",
@@ -23,7 +23,11 @@
     "nav.common-mode-false-independence.negative.v0.1",
     "nav.frame-time-basis-mismatch.negative.v0.1",
     "nav.lunar-body-fixed-to-local-terrain.v0.1",
-    "nav.independent-multimodal-positive.v0.1"
+    "nav.independent-multimodal-positive.v0.1",
+    "nav.land.valid-reacquisition-positive.v0.1",
+    "nav.air.benign-vision-degradation-control.v0.1",
+    "nav.space.occultation-reacquisition.v0.1",
+    "nav.indoor.observability-recovery.v0.1"
   ],
   "controller_evaluator_separation": {
     "controller_input": "Each case controller_stream only",
@@ -146,14 +150,14 @@
     "Declare public-test exposure and previous tuning use; do not label exposed tests as pristine blind evidence."
   ],
   "prerequisites_before_preregistration": [
-    "Expand to at least 12–20 frozen episodes including positive controls.",
-    "Implement semantic validation beyond JSON Schema.",
+    "Freeze the 12-case corpus, exact seeds, profile assumptions and one primary outcome per profile before held-out evaluation.",
+    "Implement and execute semantic validation plus a full JSON Schema Draft 2020-12 validator.",
     "Qualify ground-truth/oracle independence and provenance.",
     "Complete external dataset rights, version, calibration and ground-truth audits.",
     "Pin matched classical and benchmark-native baselines.",
     "Review the exact Symtropy model-capability path; unsupported physics stays abstract or unknown.",
     "Reproduce or document non-reproducibility of the 2026 DECLARE and innovation-saturation-plus-CI method comparators under exact protocol and rights constraints.",
-    "Add a positive-control/negative-control ablation for conflict detection, source credibility, covariance discounting and common-mode provenance.",
+    "Add positive-control/negative-control ablations for conflict detection, source credibility, covariance discounting and common-mode provenance.",
     "Compare passive fixed-rate measurement with observability-aware active sensing using matched travel/energy/time costs."
   ]
 }
