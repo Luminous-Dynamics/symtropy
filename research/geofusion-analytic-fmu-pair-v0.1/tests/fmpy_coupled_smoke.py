@@ -134,7 +134,13 @@ def instrument_dispatch(slave: FMU3Slave, federate_id: str, events: list):
                     "early_return": bool(pointer_output(args[6])),
                     "last_successful_time_bits": f64_bits(pointer_output(args[7])),
                 })
-            if isinstance(result, int):
+            if function_name == "fmi3InstantiateCoSimulation":
+                # The C API returns an opaque instance pointer, not fmi3Status.
+                # Do not misclassify an integer-address c_void_p result as a status.
+                event["status"] = "returned"
+                event["result_type"] = "instance_pointer"
+                event["payload"]["instance_created"] = bool(result)
+            elif isinstance(result, int):
                 event["status_code"] = int(result)
                 event["status"] = STATUS_LABELS.get(int(result), "unknown")
             elif result is None:
@@ -142,8 +148,6 @@ def instrument_dispatch(slave: FMU3Slave, federate_id: str, events: list):
             else:
                 event["status"] = "returned"
                 event["result_type"] = type(result).__name__
-                if function_name == "fmi3InstantiateCoSimulation":
-                    event["payload"]["instance_created"] = bool(result)
             return result
         except Exception as error:
             event["exception_type"] = type(error).__name__
