@@ -362,5 +362,35 @@
     "missingness": "zero silent interpolation or zero-fill; publish observed duration, gap durations and reason codes",
     "adaptation_auditability": "100% of adaptive changes have immutable design-version and reviewer receipts"
   },
-  "comparison_policy": "Compare alternative placements or cooling architectures only with matched primary contrasts, season/hydrodynamic regimes, service/load states, metrology and measurement uncertainty. No site or architecture wins by having fewer samples or missing regimes."
+  "comparison_policy": "Compare alternative placements or cooling architectures only with matched primary contrasts, season/hydrodynamic regimes, service/load states, metrology and measurement uncertainty. No site or architecture wins by having fewer samples or missing regimes.",
+  "owner_native_research": [
+    {
+      "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/2069",
+      "scope": "bias-aware non-contact survey design; this campaign consumes its survey-bias and non-contact evidence guidance"
+    },
+    {
+      "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/2077",
+      "scope": "temporal replication and imperfect-detection benchmark; this campaign adopts explicit detection-probability and repeated-visit constraints"
+    },
+    {
+      "issue": "https://github.com/Luminous-Dynamics/symthaea/issues/11559",
+      "scope": "sensor selection by parameter identifiability and decision value; this campaign uses a constrained expected-information/decision-regret allocation objective"
+    }
+  ],
+  "imperfect_detection_model": {
+    "rule": "Latent ecological state and observation/detection process are separate model layers. A non-detection is not absence unless the sampling method, detection probability, effort, conditions and uncertainty support that inference.",
+    "required_components": [
+      "latent_occupancy_or_abundance_state",
+      "method_specific_detection_probability",
+      "sampling_effort_and_duration",
+      "visibility_or_acoustic_background_conditions",
+      "observer_or_algorithm_identity",
+      "repeat_visit_or_temporal_replication",
+      "false_positive_model_where_material",
+      "detection_limit_or_resolution",
+      "uncertainty_interval"
+    ],
+    "acceptance": "For any primary ecological contrast based on detection, estimate or justify detection probability using the registered design. Where detectability is unknown or insufficient, report absence as UNKNOWN and do not infer no effect.",
+    "integration": "Use the current sequential-design and observation-allocation work for repeated visits, imperfect detection and non-contact survey bias; do not reimplement a competing ecological estimator in this campaign contract."
+  }
 }
