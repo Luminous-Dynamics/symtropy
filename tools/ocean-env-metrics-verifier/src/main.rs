@@ -31,9 +31,12 @@ fn unique_ids(items: &[Value], context: &str) -> Result<Vec<String>, String> {
     let mut seen = HashSet::new();
     let mut ids = Vec::new();
     for item in items {
-        let id = required_string(item, "metric_id", context)
-            .or_else(|_| required_string(item, "sensor_class", context))?
-            .to_string();
+        let key = match context {
+            "sensor_package" => "sensor_class",
+            "non_compensatory_gates" => "gate_id",
+            _ => "metric_id",
+        };
+        let id = required_string(item, key, context)?.to_string();
         if !seen.insert(id.clone()) {
             return Err(format!("{context} contains duplicate identifier {id}"));
         }
@@ -114,6 +117,18 @@ fn validate(catalog: &Value) -> Result<String, String> {
         }
     }
 
+    let wue = official.iter().find(|m| m["metric_id"] == "ITU-WUE").unwrap();
+    let wue_rule = required_string(wue, "comparison_rule", "ITU-WUE")?;
+    if !wue_rule.contains("category") || !wue_rule.contains("same categories") {
+        return Err("WUE comparison must require declared and comparable ISO/IEC 30134-9 categories".into());
+    }
+    let reclaimed = official.iter().find(|m| m["metric_id"] == "ITU-P-RECLAIMED").unwrap();
+    let reclaimed_rule = required_string(reclaimed, "comparison_rule", "ITU-P-RECLAIMED")?;
+    if !reclaimed_rule.contains("excludes seawater")
+        || !reclaimed_rule.contains("report seawater intake and discharge separately") {
+        return Err("reclaimed-water metric must preserve seawater exclusion and separate seawater reporting".into());
+    }
+
     let marine = required_array(catalog, "marine_extension_metrics", "catalogue")?;
     if marine.len() < 10 {
         return Err("marine extension must define at least ten distinct ocean-specific metrics".into());
@@ -192,6 +207,20 @@ fn validate(catalog: &Value) -> Result<String, String> {
             return Err(format!("environmental gate {id} missing"));
         }
     }
+    let expected_gate_dispositions = [
+        ("ENV-GATE-01", "reject_industrial_site_candidate"),
+        ("ENV-GATE-02", "site_clearance_unknown_and_blocked"),
+        ("ENV-GATE-03", "block_discharge_and_site_clearance"),
+        ("ENV-GATE-04", "quarantine_result_and_investigate"),
+        ("ENV-GATE-05", "reduce_or_stop_affected_operation_per_approved_response_plan"),
+        ("ENV-GATE-06", "evidence_unknown_no_clearance"),
+    ];
+    for (id, expected) in expected_gate_dispositions {
+        let gate = gates.iter().find(|g| g["gate_id"] == id).unwrap();
+        if required_string(gate, "disposition", id)? != expected {
+            return Err(format!("environmental gate {id} disposition was weakened or changed"));
+        }
+    }
     for (i, gate) in gates.iter().enumerate() {
         let ctx = format!("non_compensatory_gates[{i}]");
         required_string(gate, "condition", &ctx)?;
@@ -248,7 +277,7 @@ mod tests {
         let metric = v["official_metrics"].as_array_mut().unwrap()
             .iter_mut().find(|m| m["metric_id"] == "ITU-P-RECLAIMED").unwrap();
         metric["comparison_rule"] = Value::String("No separate seawater account required".into());
-        assert!(!metric["comparison_rule"].as_str().unwrap().contains("seawater"));
+        assert!(validate(&v).unwrap_err().contains("seawater exclusion"));
     }
     #[test]
     fn weakening_any_environmental_gate_is_rejected() {
