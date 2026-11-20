@@ -137,11 +137,21 @@ struct Report {
     claim_ceiling: String,
 }
 
-fn sum_resources<I: Iterator<Item = Resources>>(items: I) -> Resources {
-    items.fold(Resources { compute:0, memory:0, network:0, cooling:0, power:0 }, |a,b| Resources {
-        compute:a.compute+b.compute, memory:a.memory+b.memory,
-        network:a.network+b.network, cooling:a.cooling+b.cooling, power:a.power+b.power
+fn add_resources(a: Resources, b: Resources) -> Result<Resources, String> {
+    Ok(Resources {
+        compute:a.compute.checked_add(b.compute).ok_or("compute resource sum overflow")?,
+        memory:a.memory.checked_add(b.memory).ok_or("memory resource sum overflow")?,
+        network:a.network.checked_add(b.network).ok_or("network resource sum overflow")?,
+        cooling:a.cooling.checked_add(b.cooling).ok_or("cooling resource sum overflow")?,
+        power:a.power.checked_add(b.power).ok_or("power resource sum overflow")?,
     })
+}
+fn sum_resources<I: Iterator<Item = Resources>>(items: I) -> Result<Resources, String> {
+    let mut total = Resources { compute:0, memory:0, network:0, cooling:0, power:0 };
+    for item in items {
+        total = add_resources(total, item)?;
+    }
+    Ok(total)
 }
 fn fits(load: Resources, capacity: Resources) -> bool {
     load.compute <= capacity.compute && load.memory <= capacity.memory
@@ -180,7 +190,7 @@ fn validate(c: &Contract, w: &WorkloadFixture) -> Result<Report, String> {
     }
     let mut seen_jobs = HashSet::new();
     for s in &c.protected_recovery_services {
-        if !seen_jobs.insert(s.profile_id.as_str()) {
+        if s.priority.trim().is_empty() || !seen_jobs.insert(s.profile_id.as_str()) {
             return Err(format!("duplicate protected service {}", s.profile_id));
         }
         let p = profiles.get(s.profile_id.as_str())
@@ -197,7 +207,7 @@ fn validate(c: &Contract, w: &WorkloadFixture) -> Result<Report, String> {
     let mut worst_preemption = 0;
     let mut background_ids = HashSet::new();
     for j in &c.background_preemptible_jobs {
-        if !background_ids.insert(j.profile_id.as_str()) || !seen_jobs.insert(j.profile_id.as_str()) {
+        if j.priority.trim().is_empty() || !background_ids.insert(j.profile_id.as_str()) || !seen_jobs.insert(j.profile_id.as_str()) {
             return Err(format!("duplicate or overlapping background job {}", j.profile_id));
         }
         let p = profiles.get(j.profile_id.as_str())
@@ -207,31 +217,29 @@ fn validate(c: &Contract, w: &WorkloadFixture) -> Result<Report, String> {
             || j.preemption.maximum_deferral_seconds > p.maximum_deferral_seconds {
             return Err(format!("background job {} has unsafe or unbounded preemption contract", j.profile_id));
         }
-        worst_preemption = worst_preemption.max(
-            j.preemption.max_quiesce_seconds + j.preemption.max_checkpoint_seconds
-        );
+        let job_preemption = j.preemption.max_quiesce_seconds
+            .checked_add(j.preemption.max_checkpoint_seconds)
+            .ok_or_else(|| format!("preemption time overflow for {}", j.profile_id))?;
+        worst_preemption = worst_preemption.max(job_preemption);
     }
 
     let capacity = c.reserve_capacity.capacity;
-    let protected = sum_resources(c.protected_recovery_services.iter().map(|x| x.resource_demand));
-    let background = sum_resources(c.background_preemptible_jobs.iter().map(|x| x.resource_demand));
+    let protected = sum_resources(c.protected_recovery_services.iter().map(|x| x.resource_demand))?;
+    let background = sum_resources(c.background_preemptible_jobs.iter().map(|x| x.resource_demand))?;
     if !fits(protected, capacity) {
         return Err("protected recovery workload exceeds at least one reserve resource ceiling".into());
     }
     if !fits(background, capacity) {
         return Err("normal background workload exceeds at least one reserve resource ceiling".into());
     }
-    if !exceeds(Resources {
-        compute:protected.compute+background.compute,
-        memory:protected.memory+background.memory,
-        network:protected.network+background.network,
-        cooling:protected.cooling+background.cooling,
-        power:protected.power+background.power
-    }, capacity) {
+    let combined = add_resources(protected, background)?;
+    if !exceeds(combined, capacity) {
         return Err("fixture does not exercise a real preemption/headroom conflict".into());
     }
 
-    let budget_total: u64 = c.recovery_budget.sequential_budget_steps.iter().map(|s| s.budget_seconds).sum();
+    let budget_total: u64 = c.recovery_budget.sequential_budget_steps.iter()
+        .try_fold(0_u64, |total, step| total.checked_add(step.budget_seconds))
+        .ok_or_else(|| "recovery budget sum overflow".to_string())?;
     if budget_total != c.recovery_budget.arithmetic_only_expected_total_seconds
         || budget_total > c.recovery_budget.target_rto_seconds {
         return Err("recovery budget arithmetic exceeds target or declared total".into());
@@ -349,5 +357,12 @@ mod tests {
         let (mut c,w)=fixtures();
         c.background_preemptible_jobs[0].preemption.checkpoint_integrity_required=false;
         assert!(validate(&c,&w).unwrap_err().contains("unsafe or unbounded preemption"));
+    }
+    #[test]
+    fn resource_sum_overflow_is_rejected() {
+        let (mut c,w)=fixtures();
+        c.background_preemptible_jobs[0].resource_demand.compute=u64::MAX;
+        c.background_preemptible_jobs[1].resource_demand.compute=1;
+        assert!(validate(&c,&w).unwrap_err().contains("compute resource sum overflow"));
     }
 }
