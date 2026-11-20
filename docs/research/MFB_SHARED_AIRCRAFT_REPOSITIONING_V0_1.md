@@ -141,6 +141,29 @@ Do not treat algorithm labels as evidence of superiority. Reproduce the original
 - On reproduced published instances, first match the published feasibility/objective within stated numerical tolerances; only then test Pareto improvements in cost, unserved demand, energy, repositioning and runtime.
 - Keep a full service-cost-energy Pareto frontier rather than collapsing service, cost, energy and reliability into one opaque score.
 
+## South African operational eligibility is a separate hard gate
+
+The shared-fleet input now consumes the result contract defined by [ZA-UAS-OPS-GATE-001 #6330](https://github.com/Luminous-Dynamics/symtropy/issues/6330). This is distinct from weather, live permission and MFB co-availability.
+
+The v0.1 envelope carries:
+- jurisdiction profile revision and source snapshot ID;
+- jurisdiction code and operator activity class;
+- structural review status (`eligible_for_external_operator_review`, `approval_required`, `unsupported`, `stale`, `revoked`, `out_of_scope`, `unknown`);
+- operator identity reference, aircraft configuration reference and operations-manual revision reference;
+- exact subject-scope SHA-256 and evidence reference.
+
+The shared-fleet oracle allocates aerial service/reposition capacity only when the profile status is `eligible_for_external_operator_review`, in addition to the separate fresh weather/permission and co-availability/mission-envelope requirements. The status means only that the declared approval/applicability evidence package is structurally eligible for review; it is **not** SACAA approval and is never `authorized_to_fly`. The report continues to set `physical_dispatch_authorized=false` and emits no command.
+
+### Current ZA source snapshot boundaries
+
+The fixture pins the profile ID `ZA-UAS-OPS-GATE-001-v0.1-2026-11-20`. The SACAA UAS page lists the approval matrix by activity class: for commercial operation it shows ASL, UASOC, RLA, RPL and Certificate of Registration; for corporate and non-profit it lists UASOC, RLA, RPL and CofR, with ASL not shown as required. The page also distinguishes RLOS modes (R-VLOS, VLOS, EVLOS, BVLOS) from BRLOS, which it reserves for future use.
+
+The 26th Amendment to Part 101 (Government Gazette 48228, 17 March 2023) states that delivery/release of an object or substance from an unmanned aircraft must be by a UASOC holder and as approved by the Director in that holder's Operations Manual. It also requires Director approval in the Operations Manual and relevant local-authority approval for public-road takeoff/landing. The issue #6330 source snapshot separately records the BVLOS approval and SA-CATS 101 conditions.
+
+These source summaries are not a legal opinion. They are only the profile source anchors; an accountable operator must verify current law, certificate conditions, actual operation scope and all competent-authority approvals. In particular, the SACAA page's Part 101 applicability exclusions for "autonomous unmanned aircraft" must not be interpreted as an automatic exemption or operating permission. The source snapshot marks autonomous operation unsupported until SACAA provides a written applicable pathway.
+
+Synthetic fixtures set the structural result to `eligible_for_external_operator_review` only to test that the typed gate can pass. Their operator, aircraft configuration, operations manual, scope digest and evidence reference are synthetic placeholders. They do not demonstrate any actual certificate, licence, authority review or permission.
+
 ## Prequalified service-envelope regression controls
 
 The exact policy engine now requires the co-availability status/reference and a per-period service-capacity / mission-energy upper bound before it can allocate aerial service. Tests cover stale co-availability despite clear weather and approved permission, per-period service-capacity caps, energy upper bounds overriding the generic floor, and missing evidence references. The reference fixtures use synthetic source identifiers and therefore test only fail-closed contract behavior.
