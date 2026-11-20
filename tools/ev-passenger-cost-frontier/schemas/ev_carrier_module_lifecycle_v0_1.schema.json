@@ -1,0 +1,357 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EV Carrier Module Lifecycle Catalog v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "currency",
+    "cost_year",
+    "annual_operating_hours_per_module",
+    "annual_operating_hours_evidence_class",
+    "annual_operating_hours_evidence_reference",
+    "labour_rate_per_technician_hour",
+    "labour_rate_evidence_class",
+    "labour_rate_evidence_reference",
+    "profiles",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "EV-CARRIER-LIFECYCLE-001"
+    },
+    "currency": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cost_year": {
+      "type": "integer",
+      "minimum": 2020,
+      "maximum": 2100
+    },
+    "annual_operating_hours_per_module": {
+      "oneOf": [
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8760
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "annual_operating_hours_evidence_class": {
+      "enum": [
+        "synthetic",
+        "measured",
+        "independent_test",
+        "unknown"
+      ]
+    },
+    "annual_operating_hours_evidence_reference": {
+      "type": "string",
+      "minLength": 1
+    },
+    "labour_rate_per_technician_hour": {
+      "oneOf": [
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "labour_rate_evidence_class": {
+      "enum": [
+        "synthetic",
+        "measured",
+        "independent_test",
+        "unknown"
+      ]
+    },
+    "labour_rate_evidence_reference": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile_id",
+          "config_id",
+          "architecture",
+          "acquisition_cost_per_good_module",
+          "acquisition_cost_evidence_class",
+          "acquisition_cost_evidence_reference",
+          "amortization_years",
+          "events",
+          "notes"
+        ],
+        "properties": {
+          "profile_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "config_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "architecture": {
+            "enum": [
+              "integrated_enclosed_bay",
+              "detachable_drone_pod",
+              "mobile_drone_station_trailer",
+              "amr_cargo_handoff"
+            ]
+          },
+          "acquisition_cost_per_good_module": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "acquisition_cost_evidence_class": {
+            "enum": [
+              "synthetic",
+              "measured",
+              "independent_test",
+              "unknown"
+            ]
+          },
+          "acquisition_cost_evidence_reference": {
+            "type": "string",
+            "minLength": 1
+          },
+          "amortization_years": {
+            "oneOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 100
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "events": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 32,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "event_id",
+                "event_class",
+                "remedy",
+                "annual_occurrences_per_module",
+                "observed_event_count",
+                "exposure_module_years",
+                "frequency_evidence_class",
+                "frequency_evidence_reference",
+                "tasks"
+              ],
+              "properties": {
+                "event_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "event_class": {
+                  "enum": [
+                    "planned",
+                    "unscheduled"
+                  ]
+                },
+                "remedy": {
+                  "oneOf": [
+                    {
+                      "enum": [
+                        "repair",
+                        "replace",
+                        "remanufacture",
+                        "repurpose"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "annual_occurrences_per_module": {
+                  "oneOf": [
+                    {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100000
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "observed_event_count": {
+                  "oneOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "exposure_module_years": {
+                  "oneOf": [
+                    {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "maximum": 1000000
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "frequency_evidence_class": {
+                  "enum": [
+                    "synthetic",
+                    "measured",
+                    "independent_test",
+                    "unknown"
+                  ]
+                },
+                "frequency_evidence_reference": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "tasks": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 16,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "phase",
+                      "elapsed_downtime_minutes_per_event",
+                      "technician_minutes_per_event",
+                      "crew_size",
+                      "parts_cost_per_event",
+                      "evidence_class",
+                      "evidence_reference"
+                    ],
+                    "properties": {
+                      "phase": {
+                        "enum": [
+                          "safe_isolation",
+                          "access_and_disassembly",
+                          "diagnose_and_inspect",
+                          "remove",
+                          "repair_or_replace",
+                          "reinstall_reconnect_configure",
+                          "post_maintenance_test",
+                          "return_to_service_disposition"
+                        ]
+                      },
+                      "elapsed_downtime_minutes_per_event": {
+                        "oneOf": [
+                          {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1000000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "technician_minutes_per_event": {
+                        "oneOf": [
+                          {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1000000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "crew_size": {
+                        "oneOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "parts_cost_per_event": {
+                        "oneOf": [
+                          {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1000000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "measured",
+                          "independent_test",
+                          "unknown"
+                        ]
+                      },
+                      "evidence_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "notes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}
