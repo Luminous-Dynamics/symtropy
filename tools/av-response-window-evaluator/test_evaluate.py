@@ -174,6 +174,35 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
         result = self.episode(report, "rw-001-spi-on-time")
         self.assertIn("response_assigned_to_unknown_trigger", result["violations"])
 
+
+    def test_response_audio_overhang_past_episode_deadline_is_counted(self):
+        candidate = copy.deepcopy(self.submission)
+        row = next(x for x in candidate["responses"] if x["response_id"] == "r1")
+        row.update(response_start_tick=28, response_end_tick=31)
+        report = self.score(submission=candidate)
+        result = self.episode(report, "rw-001-spi-on-time")
+        self.assertIn("response_overhang_past_episode_deadline", result["violations"])
+        self.assertEqual(result["deadline_miss_count"], 1)
+        self.assertEqual(report["totals"]["deadline_miss_count"], 1)
+
+    def test_duplicate_delivery_cannot_exist_without_primary_trigger(self):
+        workload = copy.deepcopy(self.workload)
+        episode = next(x for x in workload["episodes"] if x["episode_id"] == "rw-009-duplicate-trigger")
+        episode["stream_events"] = [
+            event for event in episode["stream_events"] if event["kind"] != "trigger"
+        ]
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(workload=workload)
+
+    def test_response_start_cannot_precede_trigger_availability(self):
+        candidate = copy.deepcopy(self.submission)
+        row = next(x for x in candidate["responses"] if x["response_id"] == "r1")
+        row.update(response_start_tick=4, response_end_tick=6)
+        report = self.score(submission=candidate)
+        result = self.episode(report, "rw-001-spi-on-time")
+        self.assertIn("early_count", result)
+        self.assertEqual(result["early_count"], 1)
+
     def test_response_interval_must_have_nonnegative_duration(self):
         candidate = copy.deepcopy(self.submission)
         candidate["responses"][0]["response_end_tick"] = candidate["responses"][0]["response_start_tick"] - 1
