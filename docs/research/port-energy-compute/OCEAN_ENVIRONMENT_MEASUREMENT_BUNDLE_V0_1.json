@@ -49,8 +49,10 @@
     "pollutant_mass_flux_g_s": "concentration_mg_l * flow_m3_s",
     "pollutant_mass_flux_kg_day": "pollutant_mass_flux_g_s * 86.4",
     "net_pollutant_mass_flux_g_s": "outfall_concentration_mg_l * outfall_flow_m3_s - intake_concentration_mg_l * intake_flow_m3_s",
-    "net_pollutant_mass_flux_standard_uncertainty_g_s": "root-sum-square of independently propagated intake and outfall concentration/flow uncertainties",
-    "covariance_assumption": "Instrument measurement errors are independent only across distinct declared calibration domains. A common hydraulic residence-time perturbation and a shared laboratory-batch concentration bias are explicit common inputs; real campaigns must also model any common calibration, reference, operator, or sample-preparation effects."
+    "net_pollutant_mass_flux_standard_uncertainty_g_s": "sqrt(u_intake_independent_g_s^2 + u_outfall_instrument_and_lag_g_s^2 + ((Q_out - Q_in) * u_common_laboratory_batch_concentration)^2); one additive batch error is shared by intake/outfall samples",
+    "covariance_assumption": "Instrument measurement errors are independent only across distinct declared calibration domains. A common hydraulic residence-time perturbation and a shared laboratory-batch concentration bias are explicit common inputs; real campaigns must also model any common calibration, reference, operator, or sample-preparation effects.",
+    "laboratory_batch_common_mode_contribution_g_s": "(Q_out - Q_in) * u_common_laboratory_batch_concentration; covariance-aware net residual, not two independent batch terms",
+    "outfall_pollutant_flux_standard_uncertainty_g_s": "sqrt(u_outfall_instrument_g_s^2 + u_outfall_lag_g_s^2 + (Q_out * u_common_laboratory_batch_concentration)^2)"
   },
   "ogc_sensorthings_mapping": {
     "standard": "OGC SensorThings API 2.0",
