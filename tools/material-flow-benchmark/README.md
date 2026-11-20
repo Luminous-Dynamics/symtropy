@@ -376,7 +376,7 @@ This is a synthetic small-instance oracle, not a fleet-scale optimizer or flight
 
 ## South African UAS applicability and evidence gate (synthetic)
 
-The `mfb-check-za-uas-eligibility` binary evaluates a source-versioned operation corpus against a declared Part 101 applicability profile. It distinguishes commercial / corporate / non-profit / private activity, remotely piloted versus autonomous aircraft, aircraft class, R-VLOS/VLOS/EVLOS/BVLOS/BRLOS, payload release, multi-UAS and controlled airspace. Every approval item is bound to aircraft, operator, operation scope, validity interval and (where relevant) Operations Manual revision.
+The `mfb-check-za-uas-eligibility` binary evaluates a source-versioned operation corpus against a declared Part 101 applicability profile. It distinguishes commercial / corporate / non-profit / private activity, remotely piloted versus autonomous aircraft, aircraft class, R-VLOS/VLOS/EVLOS/BVLOS/BRLOS, payload release, multi-UAS and controlled airspace. Commercial and corporate/non-profit profiles require both a current UASOC and a separate current OpSpec; every approval item is bound to aircraft, operator, operation scope, validity interval and (where relevant) Operations Manual revision.
 
 Run:
 
