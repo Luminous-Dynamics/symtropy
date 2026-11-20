@@ -58,7 +58,7 @@ The crate also samples the same sinusoidal source at each communication interval
 
 ## Frozen known answers
 
-The machine-readable inputs, decimal reference values and both communication-grid ladders are in `fixtures/known-answers.v0.1.json`. Rust tests verify the frozen cases, partition invariance for constant inputs, zero-amplitude reduction, exact interval-average source energy, monotonic grid refinement, and first- versus second-order convergence.
+The machine-readable inputs, decimal reference values and both communication-grid ladders are in `fixtures/known-answers.v0.1.json`. Rust tests verify the frozen cases, partition invariance for constant inputs, zero-amplitude reduction, exact interval-average source energy, monotonic grid refinement, first- versus second-order convergence, and the causal bounded predictor's limiter/convergence diagnostics.
 
 ## Run
 
