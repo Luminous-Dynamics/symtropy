@@ -25,7 +25,8 @@
       "query_as_of_tick": 900,
       "excluded_duplicate_event_ids": [
         "ev-tap-2-replay"
-      ]
+      ],
+      "expected_distinct_event_count": 4
     },
     {
       "episode_id": "lh-003-correction-supersession",
