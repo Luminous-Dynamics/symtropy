@@ -8725,6 +8725,677 @@
         "expected_status": "robustly_compatible_synthetic",
         "expected_reason": "all_hard_bound_margins_nonnegative"
       }
+    },
+    {
+      "provider_id": "N",
+      "supplier_id": "supplier-N",
+      "profile_id": "servicer-n-profile-v1",
+      "configuration_revision": "rev-N",
+      "lifecycle_state_id": "state-N",
+      "service_kind": "prepared_storable_fluid_service",
+      "capacity_per_tick": 6,
+      "available_from_tick": 0,
+      "available_until_tick": 4,
+      "failure_domains": [
+        "power:N",
+        "depot:N",
+        "supplier:subtier-N"
+      ],
+      "handoff_ticks": 4,
+      "requalification_ticks": 2,
+      "requires_spare": false,
+      "spare_ready": true,
+      "requires_propellant": false,
+      "propellant_ready": true,
+      "qualification": {
+        "case_id": "N-qualification",
+        "at_tick": 100,
+        "context_of_use": "robust-prepared-interface-v0.1",
+        "provider_lifecycle_state_id": "state-N",
+        "client_lifecycle_state_id": "client-service-state-01",
+        "nominal_case": {
+          "case_id": "N-nominal-source",
+          "at_tick": 100,
+          "context_of_use": "prepared-interface-profile-v0.1",
+          "service": "capture_and_storable_fluid",
+          "provider": {
+            "profile_id": "servicer-n-profile-v1",
+            "role": "provider",
+            "organization_id": "org-n",
+            "config_revision": "rev-N",
+            "icd_id": "ICD-ORBITAL-PORT-01",
+            "icd_revision": "2",
+            "standard_refs": [
+              "ANSI/AIAA-S-157-2025",
+              "PROJECT-PORT-SPEC"
+            ],
+            "frame_id": "PORT-DATUM-A",
+            "mechanical": {
+              "geometry_profile_id": "capture-cone-interface-v1",
+              "max_alignment_error": {
+                "value": 0.003,
+                "unit": "m"
+              },
+              "max_approach_speed": {
+                "value": 0.05,
+                "unit": "m/s"
+              },
+              "max_contact_force": {
+                "value": 200,
+                "unit": "N"
+              },
+              "min_retention_force": {
+                "value": 500,
+                "unit": "N"
+              }
+            },
+            "fluid": {
+              "connector_profile_id": "prepared-fluid-coupler-a",
+              "fluid_class": "storable_liquid",
+              "fluid_id": "test-fluid-water-analogue",
+              "phase": "liquid",
+              "temperature": {
+                "min": 270,
+                "max": 310,
+                "unit": "K"
+              },
+              "pressure": {
+                "min": 100000,
+                "max": 300000,
+                "unit": "Pa"
+              },
+              "min_receiver_accepted_mass": {
+                "value": 0.4,
+                "unit": "kg"
+              }
+            },
+            "evidence": {
+              "evidence_class": "synthetic",
+              "claim_ceiling": "synthetic-profile-only",
+              "source_commit": "0123456789abcdef0123456789abcdef01234567",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "producer_id": "synthetic-profile-producer",
+              "authority_scope": "synthetic-profile-comparison",
+              "context_of_use": "prepared-interface-profile-v0.1",
+              "valid_from_tick": 0,
+              "valid_until_tick": 1000
+            }
+          },
+          "client": {
+            "profile_id": "client-port-profile-v1",
+            "role": "client",
+            "organization_id": "client-beta",
+            "config_revision": "hardware-rev-b",
+            "icd_id": "ICD-ORBITAL-PORT-01",
+            "icd_revision": "2",
+            "standard_refs": [
+              "ANSI/AIAA-S-157-2025",
+              "PROJECT-PORT-SPEC"
+            ],
+            "frame_id": "PORT-DATUM-A",
+            "mechanical": {
+              "geometry_profile_id": "capture-cone-interface-v1",
+              "max_alignment_error": {
+                "value": 0.005,
+                "unit": "m"
+              },
+              "max_approach_speed": {
+                "value": 0.03,
+                "unit": "m/s"
+              },
+              "max_contact_force": {
+                "value": 150,
+                "unit": "N"
+              },
+              "min_retention_force": {
+                "value": 400,
+                "unit": "N"
+              }
+            },
+            "fluid": {
+              "connector_profile_id": "prepared-fluid-coupler-a",
+              "fluid_class": "storable_liquid",
+              "fluid_id": "test-fluid-water-analogue",
+              "phase": "liquid",
+              "temperature": {
+                "min": 280,
+                "max": 300,
+                "unit": "K"
+              },
+              "pressure": {
+                "min": 150000,
+                "max": 250000,
+                "unit": "Pa"
+              },
+              "min_receiver_accepted_mass": {
+                "value": 0.3,
+                "unit": "kg"
+              }
+            },
+            "evidence": {
+              "evidence_class": "synthetic",
+              "claim_ceiling": "synthetic-profile-only",
+              "source_commit": "0123456789abcdef0123456789abcdef01234567",
+              "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "producer_id": "synthetic-profile-producer",
+              "authority_scope": "synthetic-profile-comparison",
+              "context_of_use": "prepared-interface-profile-v0.1",
+              "valid_from_tick": 0,
+              "valid_until_tick": 1000
+            }
+          },
+          "expected_status": "compatible_synthetic_profile",
+          "expected_reason": "all_requirements_contained"
+        },
+        "uncertainty_receipts": [
+          {
+            "receipt_id": "uq-provider-port-profile-v1-mechanical.alignment_capacity",
+            "source_schema": "luminous.orbital-robust-compatibility.uq-adapter-envelope.v0.1",
+            "source_commit": "0123456789abcdef0123456789abcdef01234567",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "profile_id": "servicer-n-profile-v1",
+            "configuration_revision": "rev-N",
+            "lifecycle_state_id": "state-N",
+            "measurand_id": "mechanical.alignment_capacity",
+            "unit": "m",
+            "representation": "hard_bounded_error",
+            "disposition": "qualified",
+            "uncertainty_minus": 0.0001,
+            "uncertainty_plus": 0.0001,
+            "context_of_use": "robust-prepared-interface-v0.1",
+            "valid_from_tick": 0,
+            "valid_until_tick": 1000,
+            "claim_ceiling": "synthetic-profile-only",
+            "dependence": {
+              "group_id": "pair-mechanical.alignment_capacity",
+              "profile_bindings": [
+                {
+                  "profile_id": "servicer-n-profile-v1",
+                  "configuration_revision": "rev-N"
+                },
+                {
+                  "profile_id": "client-port-profile-v1",
+                  "configuration_revision": "hardware-rev-b"
+                }
+              ],
+              "context_of_use": "robust-prepared-interface-v0.1",
+              "disposition": "no_shared_source_assessed",
+              "receipt_id": "pair-dependence-mechanical.alignment_capacity",
+              "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            }
+          },
+          {
+            "receipt_id": "uq-provider-port-profile-v1-mechanical.approach_speed_capacity",
+            "source_schema": "luminous.orbital-robust-compatibility.uq-adapter-envelope.v0.1",
+            "source_commit": "0123456789abcdef0123456789abcdef01234567",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "profile_id": "servicer-n-profile-v1",
+            "configuration_revision": "rev-N",
+            "lifecycle_state_id": "state-N",
+            "measurand_id": "mechanical.approach_speed_capacity",
+            "unit": "m/s",
+            "representation": "hard_bounded_error",
+            "disposition": "qualified",
+            "uncertainty_minus": 0.0001,
+            "uncertainty_plus": 0.0001,
+            "context_of_use": "robust-prepared-interface-v0.1",
+            "valid_from_tick": 0,
+            "valid_until_tick": 1000,
+            "claim_ceiling": "synthetic-profile-only",
+            "dependence": {
+              "group_id": "pair-mechanical.approach_speed_capacity",
+              "profile_bindings": [
+                {
+                  "profile_id": "servicer-n-profile-v1",
+                  "configuration_revision": "rev-N"
+                },
+                {
+                  "profile_id": "client-port-profile-v1",
+                  "configuration_revision": "hardware-rev-b"
+                }
+              ],
+              "context_of_use": "robust-prepared-interface-v0.1",
+              "disposition": "no_shared_source_assessed",
+              "receipt_id": "pair-dependence-mechanical.approach_speed_capacity",
+              "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            }
+          },
+          {
+            "receipt_id": "uq-provider-port-profile-v1-mechanical.contact_force_capacity",
+            "source_schema": "luminous.orbital-robust-compatibility.uq-adapter-envelope.v0.1",
+            "source_commit": "0123456789abcdef0123456789abcdef01234567",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "profile_id": "servicer-n-profile-v1",
+            "configuration_revision": "rev-N",
+            "lifecycle_state_id": "state-N",
+            "measurand_id": "mechanical.contact_force_capacity",
+            "unit": "N",
+            "representation": "hard_bounded_error",
+            "disposition": "qualified",
+            "uncertainty_minus": 0.1,
+            "uncertainty_plus": 0.1,
+            "context_of_use": "robust-prepared-interface-v0.1",
+            "valid_from_tick": 0,
+            "valid_until_tick": 1000,
+            "claim_ceiling": "synthetic-profile-only",
+            "dependence": {
+              "group_id": "pair-mechanical.contact_force_capacity",
+              "profile_bindings": [
+                {
+                  "profile_id": "servicer-n-profile-v1",
+                  "configuration_revision": "rev-N"
+                },
+                {
+                  "profile_id": "client-port-profile-v1",
+                  "configuration_revision": "hardware-rev-b"
+                }
+              ],
+              "context_of_use": "robust-prepared-interface-v0.1",
+              "disposition": "no_shared_source_assessed",
+              "receipt_id": "pair-dependence-mechanical.contact_force_capacity",
+              "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            }
+          },
+          {
+            "receipt_id": "uq-provider-port-profile-v1-mechanical.retention_capacity",
+            "source_schema": "luminous.orbital-robust-compatibility.uq-adapter-envelope.v0.1",
+            "source_commit": "0123456789abcdef0123456789abcdef01234567",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "profile_id": "servicer-n-profile-v1",
+            "configuration_revision": "rev-N",
+            "lifecycle_state_id": "state-N",
+            "measurand_id": "mechanical.retention_capacity",
+            "unit": "N",
+            "representation": "hard_bounded_error",
+            "disposition": "qualified",
+            "uncertainty_minus": 0.1,
+            "uncertainty_plus": 0.1,
+            "context_of_use": "robust-prepared-interface-v0.1",
+            "valid_from_tick": 0,
+            "valid_until_tick": 1000,
+            "claim_ceiling": "synthetic-profile-only",
+            "dependence": {
+              "group_id": "pair-mechanical.retention_capacity",
+              "profile_bindings": [
+                {
+                  "profile_id": "servicer-n-profile-v1",
+                  "configuration_revision": "rev-N"
+                },
+                {
+                  "profile_id": "client-port-profile-v1",
+                  "configuration_revision": "hardware-rev-b"
+                }
+              ],
+              "context_of_use": "robust-prepared-interface-v0.1",
+              "disposition": "no_shared_source_assessed",
+              "receipt_id": "pair-dependence-mechanical.retention_capacity",
+              "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            }
+          },
+          {
+            "receipt_id": "uq-provider-port-profile-v1-fluid.temperature_envelope",
+            "source_schema": "luminous.orbital-robust-compatibility.uq-adapter-envelope.v0.1",
+            "source_commit": "0123456789abcdef0123456789abcdef01234567",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "profile_id": "servicer-n-profile-v1",
+            "configuration_revision": "rev-N",
+            "lifecycle_state_id": "state-N",
+            "measurand_id": "fluid.temperature_envelope",
+            "unit": "K",
+            "representation": "hard_bounded_error",
+            "disposition": "qualified",
+            "uncertainty_minus": 0.1,
+            "uncertainty_plus": 0.1,
+            "context_of_use": "robust-prepared-interface-v0.1",
+            "valid_from_tick": 0,
+            "valid_until_tick": 1000,
+            "claim_ceiling": "synthetic-profile-only",
+            "dependence": {
+              "group_id": "pair-fluid.temperature_envelope",
+              "profile_bindings": [
+                {
+                  "profile_id": "servicer-n-profile-v1",
+                  "configuration_revision": "rev-N"
+                },
+                {
+                  "profile_id": "client-port-profile-v1",
+                  "configuration_revision": "hardware-rev-b"
+                }
+              ],
+              "context_of_use": "robust-prepared-interface-v0.1",
+              "disposition": "no_shared_source_assessed",
+              "receipt_id": "pair-dependence-fluid.temperature_envelope",
+              "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            }
+          },
+          {
+            "receipt_id": "uq-provider-port-profile-v1-fluid.pressure_envelope",
+            "source_schema": "luminous.orbital-robust-compatibility.uq-adapter-envelope.v0.1",
+            "source_commit": "0123456789abcdef0123456789abcdef01234567",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "profile_id": "servicer-n-profile-v1",
+            "configuration_revision": "rev-N",
+            "lifecycle_state_id": "state-N",
+            "measurand_id": "fluid.pressure_envelope",
+            "unit": "Pa",
+            "representation": "hard_bounded_error",
+            "disposition": "qualified",
+            "uncertainty_minus": 100,
+            "uncertainty_plus": 100,
+            "context_of_use": "robust-prepared-interface-v0.1",
+            "valid_from_tick": 0,
+            "valid_until_tick": 1000,
+            "claim_ceiling": "synthetic-profile-only",
+            "dependence": {
+              "group_id": "pair-fluid.pressure_envelope",
+              "profile_bindings": [
+                {
+                  "profile_id": "servicer-n-profile-v1",
+                  "configuration_revision": "rev-N"
+                },
+                {
+                  "profile_id": "client-port-profile-v1",
+                  "configuration_revision": "hardware-rev-b"
+                }
+              ],
+              "context_of_use": "robust-prepared-interface-v0.1",
+              "disposition": "no_shared_source_assessed",
+              "receipt_id": "pair-dependence-fluid.pressure_envelope",
+              "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            }
+          },
+          {
+            "receipt_id": "uq-provider-port-profile-v1-fluid.receiver_accepted_mass",
+            "source_schema": "luminous.orbital-robust-compatibility.uq-adapter-envelope.v0.1",
+            "source_commit": "0123456789abcdef0123456789abcdef01234567",
+            "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "profile_id": "servicer-n-profile-v1",
+            "configuration_revision": "rev-N",
+            "lifecycle_state_id": "state-N",
+            "measurand_id": "fluid.receiver_accepted_mass",
+            "unit": "kg",
+            "representation": "hard_bounded_error",
+            "disposition": "qualified",
+            "uncertainty_minus": 0.001,
+            "uncertainty_plus": 0.001,
+            "context_of_use": "robust-prepared-interface-v0.1",
+            "valid_from_tick": 0,
+            "valid_until_tick": 1000,
+            "claim_ceiling": "synthetic-profile-only",
+            "dependence": {
+              "group_id": "pair-fluid.receiver_accepted_mass",
+              "profile_bindings": [
+                {
+                  "profile_id": "servicer-n-profile-v1",
+                  "configuration_revision": "rev-N"
+                },
+                {
+                  "profile_id": "client-port-profile-v1",
+                  "configuration_revision": "hardware-rev-b"
+                }
+              ],
+              "context_of_use": "robust-prepared-interface-v0.1",
+              "disposition": "no_shared_source_assessed",
+              "receipt_id": "pair-dependence-fluid.receiver_accepted_mass",
+              "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            }
+          },
+          {
+            "receipt_id": "uq-client-port-profile-v1-mechanical.alignment_capacity",
+            "source_schema": "luminous.orbital-robust-compatibility.uq-adapter-envelope.v0.1",
+            "source_commit": "0123456789abcdef0123456789abcdef01234567",
+            "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "profile_id": "client-port-profile-v1",
+            "configuration_revision": "hardware-rev-b",
+            "lifecycle_state_id": "client-service-state-01",
+            "measurand_id": "mechanical.alignment_capacity",
+            "unit": "m",
+            "representation": "hard_bounded_error",
+            "disposition": "qualified",
+            "uncertainty_minus": 0.0001,
+            "uncertainty_plus": 0.0001,
+            "context_of_use": "robust-prepared-interface-v0.1",
+            "valid_from_tick": 0,
+            "valid_until_tick": 1000,
+            "claim_ceiling": "synthetic-profile-only",
+            "dependence": {
+              "group_id": "pair-mechanical.alignment_capacity",
+              "profile_bindings": [
+                {
+                  "profile_id": "servicer-n-profile-v1",
+                  "configuration_revision": "rev-N"
+                },
+                {
+                  "profile_id": "client-port-profile-v1",
+                  "configuration_revision": "hardware-rev-b"
+                }
+              ],
+              "context_of_use": "robust-prepared-interface-v0.1",
+              "disposition": "no_shared_source_assessed",
+              "receipt_id": "pair-dependence-mechanical.alignment_capacity",
+              "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            }
+          },
+          {
+            "receipt_id": "uq-client-port-profile-v1-mechanical.approach_speed_capacity",
+            "source_schema": "luminous.orbital-robust-compatibility.uq-adapter-envelope.v0.1",
+            "source_commit": "0123456789abcdef0123456789abcdef01234567",
+            "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "profile_id": "client-port-profile-v1",
+            "configuration_revision": "hardware-rev-b",
+            "lifecycle_state_id": "client-service-state-01",
+            "measurand_id": "mechanical.approach_speed_capacity",
+            "unit": "m/s",
+            "representation": "hard_bounded_error",
+            "disposition": "qualified",
+            "uncertainty_minus": 0.0001,
+            "uncertainty_plus": 0.0001,
+            "context_of_use": "robust-prepared-interface-v0.1",
+            "valid_from_tick": 0,
+            "valid_until_tick": 1000,
+            "claim_ceiling": "synthetic-profile-only",
+            "dependence": {
+              "group_id": "pair-mechanical.approach_speed_capacity",
+              "profile_bindings": [
+                {
+                  "profile_id": "servicer-n-profile-v1",
+                  "configuration_revision": "rev-N"
+                },
+                {
+                  "profile_id": "client-port-profile-v1",
+                  "configuration_revision": "hardware-rev-b"
+                }
+              ],
+              "context_of_use": "robust-prepared-interface-v0.1",
+              "disposition": "no_shared_source_assessed",
+              "receipt_id": "pair-dependence-mechanical.approach_speed_capacity",
+              "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            }
+          },
+          {
+            "receipt_id": "uq-client-port-profile-v1-mechanical.contact_force_capacity",
+            "source_schema": "luminous.orbital-robust-compatibility.uq-adapter-envelope.v0.1",
+            "source_commit": "0123456789abcdef0123456789abcdef01234567",
+            "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "profile_id": "client-port-profile-v1",
+            "configuration_revision": "hardware-rev-b",
+            "lifecycle_state_id": "client-service-state-01",
+            "measurand_id": "mechanical.contact_force_capacity",
+            "unit": "N",
+            "representation": "hard_bounded_error",
+            "disposition": "qualified",
+            "uncertainty_minus": 0.1,
+            "uncertainty_plus": 0.1,
+            "context_of_use": "robust-prepared-interface-v0.1",
+            "valid_from_tick": 0,
+            "valid_until_tick": 1000,
+            "claim_ceiling": "synthetic-profile-only",
+            "dependence": {
+              "group_id": "pair-mechanical.contact_force_capacity",
+              "profile_bindings": [
+                {
+                  "profile_id": "servicer-n-profile-v1",
+                  "configuration_revision": "rev-N"
+                },
+                {
+                  "profile_id": "client-port-profile-v1",
+                  "configuration_revision": "hardware-rev-b"
+                }
+              ],
+              "context_of_use": "robust-prepared-interface-v0.1",
+              "disposition": "no_shared_source_assessed",
+              "receipt_id": "pair-dependence-mechanical.contact_force_capacity",
+              "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            }
+          },
+          {
+            "receipt_id": "uq-client-port-profile-v1-mechanical.retention_capacity",
+            "source_schema": "luminous.orbital-robust-compatibility.uq-adapter-envelope.v0.1",
+            "source_commit": "0123456789abcdef0123456789abcdef01234567",
+            "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "profile_id": "client-port-profile-v1",
+            "configuration_revision": "hardware-rev-b",
+            "lifecycle_state_id": "client-service-state-01",
+            "measurand_id": "mechanical.retention_capacity",
+            "unit": "N",
+            "representation": "hard_bounded_error",
+            "disposition": "qualified",
+            "uncertainty_minus": 0.1,
+            "uncertainty_plus": 0.1,
+            "context_of_use": "robust-prepared-interface-v0.1",
+            "valid_from_tick": 0,
+            "valid_until_tick": 1000,
+            "claim_ceiling": "synthetic-profile-only",
+            "dependence": {
+              "group_id": "pair-mechanical.retention_capacity",
+              "profile_bindings": [
+                {
+                  "profile_id": "servicer-n-profile-v1",
+                  "configuration_revision": "rev-N"
+                },
+                {
+                  "profile_id": "client-port-profile-v1",
+                  "configuration_revision": "hardware-rev-b"
+                }
+              ],
+              "context_of_use": "robust-prepared-interface-v0.1",
+              "disposition": "no_shared_source_assessed",
+              "receipt_id": "pair-dependence-mechanical.retention_capacity",
+              "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            }
+          },
+          {
+            "receipt_id": "uq-client-port-profile-v1-fluid.temperature_envelope",
+            "source_schema": "luminous.orbital-robust-compatibility.uq-adapter-envelope.v0.1",
+            "source_commit": "0123456789abcdef0123456789abcdef01234567",
+            "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "profile_id": "client-port-profile-v1",
+            "configuration_revision": "hardware-rev-b",
+            "lifecycle_state_id": "client-service-state-01",
+            "measurand_id": "fluid.temperature_envelope",
+            "unit": "K",
+            "representation": "hard_bounded_error",
+            "disposition": "qualified",
+            "uncertainty_minus": 0.1,
+            "uncertainty_plus": 0.1,
+            "context_of_use": "robust-prepared-interface-v0.1",
+            "valid_from_tick": 0,
+            "valid_until_tick": 1000,
+            "claim_ceiling": "synthetic-profile-only",
+            "dependence": {
+              "group_id": "pair-fluid.temperature_envelope",
+              "profile_bindings": [
+                {
+                  "profile_id": "servicer-n-profile-v1",
+                  "configuration_revision": "rev-N"
+                },
+                {
+                  "profile_id": "client-port-profile-v1",
+                  "configuration_revision": "hardware-rev-b"
+                }
+              ],
+              "context_of_use": "robust-prepared-interface-v0.1",
+              "disposition": "no_shared_source_assessed",
+              "receipt_id": "pair-dependence-fluid.temperature_envelope",
+              "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            }
+          },
+          {
+            "receipt_id": "uq-client-port-profile-v1-fluid.pressure_envelope",
+            "source_schema": "luminous.orbital-robust-compatibility.uq-adapter-envelope.v0.1",
+            "source_commit": "0123456789abcdef0123456789abcdef01234567",
+            "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "profile_id": "client-port-profile-v1",
+            "configuration_revision": "hardware-rev-b",
+            "lifecycle_state_id": "client-service-state-01",
+            "measurand_id": "fluid.pressure_envelope",
+            "unit": "Pa",
+            "representation": "hard_bounded_error",
+            "disposition": "qualified",
+            "uncertainty_minus": 100,
+            "uncertainty_plus": 100,
+            "context_of_use": "robust-prepared-interface-v0.1",
+            "valid_from_tick": 0,
+            "valid_until_tick": 1000,
+            "claim_ceiling": "synthetic-profile-only",
+            "dependence": {
+              "group_id": "pair-fluid.pressure_envelope",
+              "profile_bindings": [
+                {
+                  "profile_id": "servicer-n-profile-v1",
+                  "configuration_revision": "rev-N"
+                },
+                {
+                  "profile_id": "client-port-profile-v1",
+                  "configuration_revision": "hardware-rev-b"
+                }
+              ],
+              "context_of_use": "robust-prepared-interface-v0.1",
+              "disposition": "no_shared_source_assessed",
+              "receipt_id": "pair-dependence-fluid.pressure_envelope",
+              "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            }
+          },
+          {
+            "receipt_id": "uq-client-port-profile-v1-fluid.receiver_accepted_mass",
+            "source_schema": "luminous.orbital-robust-compatibility.uq-adapter-envelope.v0.1",
+            "source_commit": "0123456789abcdef0123456789abcdef01234567",
+            "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "profile_id": "client-port-profile-v1",
+            "configuration_revision": "hardware-rev-b",
+            "lifecycle_state_id": "client-service-state-01",
+            "measurand_id": "fluid.receiver_accepted_mass",
+            "unit": "kg",
+            "representation": "hard_bounded_error",
+            "disposition": "qualified",
+            "uncertainty_minus": 0.001,
+            "uncertainty_plus": 0.001,
+            "context_of_use": "robust-prepared-interface-v0.1",
+            "valid_from_tick": 0,
+            "valid_until_tick": 1000,
+            "claim_ceiling": "synthetic-profile-only",
+            "dependence": {
+              "group_id": "pair-fluid.receiver_accepted_mass",
+              "profile_bindings": [
+                {
+                  "profile_id": "servicer-n-profile-v1",
+                  "configuration_revision": "rev-N"
+                },
+                {
+                  "profile_id": "client-port-profile-v1",
+                  "configuration_revision": "hardware-rev-b"
+                }
+              ],
+              "context_of_use": "robust-prepared-interface-v0.1",
+              "disposition": "no_shared_source_assessed",
+              "receipt_id": "pair-dependence-fluid.receiver_accepted_mass",
+              "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            }
+          }
+        ],
+        "expected_status": "robustly_compatible_synthetic",
+        "expected_reason": "all_hard_bound_margins_nonnegative"
+      }
     }
   ],
   "scenarios": [
@@ -9197,7 +9868,7 @@
           "prior_outcome_reconciliation": "not_applicable"
         },
         {
-          "provider_id": "B",
+          "provider_id": "N",
           "switch_start_tick": 1,
           "activation_tick": 3,
           "prior_outcome_reconciliation": "resolved"
