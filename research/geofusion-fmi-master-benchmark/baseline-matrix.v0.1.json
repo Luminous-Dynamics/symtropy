@@ -113,7 +113,12 @@
     "predictor_error_against_observed_interval_integral",
     "envelope_limiter_activation_count_and_max_correction",
     "predictor_uncertainty_calibration_and_rejected_step_decisions",
-    "FMI_early_return_event_mode_clock_tick_and_derivative_semantics"
+    "FMI_early_return_event_mode_clock_tick_and_derivative_semantics",
+    "SSP_import_export_support_by_exact_pinned_product_build",
+    "SSP_connector_and_component_round_trip_completeness",
+    "SSP_parameter_and_variant_preservation",
+    "SSP_unit_definition_and_conversion_semantic_preservation",
+    "SSP_digital_signature_and_embedded_metadata_preservation"
   ],
   "hard_gates": {
     "false_conservation_closures": 0,
@@ -125,7 +130,9 @@
     "failures_timeouts_unsupported_in_denominator": true,
     "causal_lane_future_sample_reads": 0,
     "predictor_limiter_corrections_must_be_recorded": true,
-    "no_unqualified_error_bound_claim": true
+    "no_unqualified_error_bound_claim": true,
+    "ssp_round_trip_must_preserve_every_declared_component_connector_and_connection": true,
+    "ssp_parameter_variant_and_unit_semantics_must_be_compared_separately": true
   },
   "stretch_objectives": [
     "Pareto_improve_trajectory_error_balance_residual_and_latency",
@@ -414,20 +421,7 @@
         "1.0",
         "2.0"
       ],
-      "benchmark_lane": "ssp_2_0_1_independent_candidate",
-      "exact_product_build": "must_pin_before_run",
-      "evidence_url": "https://ssp-standard.org/tools/"
-    },
-    {
-      "tool": "Scilab/Xcos",
-      "vendor": "Dassault Systèmes",
-      "declared_import": [
-        "2.0"
-      ],
-      "declared_export": [
-        "2.0"
-      ],
-      "benchmark_lane": "ssp_2_0_1_independent_candidate",
+      "benchmark_lane": "ssp_2_0_1_additional_candidate",
       "exact_product_build": "must_pin_before_run",
       "evidence_url": "https://ssp-standard.org/tools/"
     },
@@ -495,6 +489,17 @@
       "evidence_url": "https://ssp-standard.org/tools/"
     },
     {
+      "tool": "CATIA Magic",
+      "vendor": "Dassault Systèmes",
+      "declared_import": [],
+      "declared_export": [
+        "1.0"
+      ],
+      "benchmark_lane": "ssp_1_0_export_only",
+      "exact_product_build": "must_pin_before_run",
+      "evidence_url": "https://ssp-standard.org/tools/"
+    },
+    {
       "tool": "OpenMCx",
       "vendor": "Eclipse Foundation",
       "declared_import": [
@@ -506,15 +511,13 @@
       "evidence_url": "https://ssp-standard.org/tools/"
     },
     {
-      "tool": "Ecos",
-      "vendor": "NTNU Ålesund",
+      "tool": "Simulator Suite",
+      "vendor": "TLK-Thermo",
       "declared_import": [
         "1.0"
       ],
-      "declared_export": [
-        "1.0"
-      ],
-      "benchmark_lane": "ssp_1_0_legacy_compatibility",
+      "declared_export": [],
+      "benchmark_lane": "ssp_1_0_import_only",
       "exact_product_build": "must_pin_before_run",
       "evidence_url": "https://ssp-standard.org/tools/"
     }
@@ -554,10 +557,12 @@
     "unsupported_or_inaccessible_disposition": "NOT_EVALUABLE",
     "no_round_trip_claim_without_both_import_and_export_runs": true,
     "additional_ssp_2_candidates": [
-      "Dymola",
-      "Scilab/Xcos"
+      "Dymola"
     ],
-    "no_one_way_support_counts_as_full_roundtrip": true
+    "no_one_way_support_counts_as_full_roundtrip": true,
+    "import_only_tools_must_not_be_scored_as_exporters": true,
+    "export_only_tools_must_not_be_scored_as_importers": true,
+    "vendor_matrix_is_declared_support_not_executed_qualification": true
   },
   "co_sim_predictor_tracks": [
     {
@@ -636,5 +641,7 @@
       }
     ],
     "policy": "Probe each exact FMU capability and importer support. Unsupported combinations are NOT_EVALUABLE. Do not silently emulate; do not compare tools across different capability subsets."
-  }
+  },
+  "ssp_tool_matrix_snapshot_date": "2026-11-20",
+  "ssp_tool_matrix_source": "https://ssp-standard.org/tools/"
 }
