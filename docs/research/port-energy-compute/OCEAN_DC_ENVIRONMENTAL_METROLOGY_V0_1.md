@@ -133,6 +133,21 @@ Biodiversity observations should be capable of interoperating with OBIS and its 
 
 The catalog provides candidate Darwin Core terms for event/date, sampling protocol, sample size, occurrence, basis of record, taxon, coordinates/datum and depth. This is a starting mapping, not a claim that this v0.1 file is a complete OBIS publication profile. Before publishing, confirm the current OBIS Manual, node requirements, sensitive-location restrictions and provider rights. Preserve quality flags rather than deleting or silently upgrading failed observations.
 
+## 4.3 Executable measurement pipeline
+
+The v0.1 paired measurement bundle and Rust verifier now extend this metric catalogue into an executable evidence path:
+- [OCEAN_ENVIRONMENT_MEASUREMENT_BUNDLE_V0_1.json](OCEAN_ENVIRONMENT_MEASUREMENT_BUNDLE_V0_1.json): explicitly synthetic interval records with five station roles, inlet/outlet residence-time windows, calibration validity, uncertainty/covariance declarations, sample preservation and chain-of-custody data.
+- [OCEAN_ENV_MEASUREMENT_PIPELINE_V0_1.md](OCEAN_ENV_MEASUREMENT_PIPELINE_V0_1.md): equations, boundary rules, standards mapping and qualification plan.
+- `tools/ocean-env-balance-verifier/`: strict Rust verifier for time/identity pairing, calibration validity, thermal transfer, pollutant mass flux, uncertainty propagation, deterministic Monte Carlo cross-check, SHA-256 input receipt and observation time coverage.
+
+The intake and outlet windows are deliberately shifted by the declared hydraulic residence time. The common transport-lag uncertainty is propagated as one shared variable through output flow, temperature and concentration; it is not treated as three independent clock errors.
+
+**Important boundary limitation:** the two-meter flow-closure screen is accepted only for the synthetic single-pass/no-side-stream/zero-storage fixture. It is not a full water mass balance. Purge, bleed, bypass, recirculation, cleaning, leakage, evaporation, holdup changes, multiple outlets or unmetered streams require a complete signed multi-stream mass balance. This verifier rejects the two-meter shortcut for those conditions.
+
+The synthetic fixture contains three intervals, 15 temperature observations, six flow samples, three intake/outfall analyte pairs and nine near/far/reference chemistry observations. An independent 50,000-draw-per-interval Monte Carlo cross-check is within the declared 5% comparison tolerance against first-order uncertainty for this fixture. The net pollutant signal remains unresolved: its 95% interval crosses zero in each interval. None of these values is measured environmental data.
+
+The CLI emits a SHA-256 over exact input bytes and explicitly leaves environmental compliance and ecological impact NOT ASSESSED and site clearance UNKNOWN/BLOCKED. A digest establishes byte identity only, not sensor authenticity or chain-of-custody truth.
+
 ## 4. Evidence record contract
 
 Every accepted observation needs:
@@ -220,6 +235,9 @@ This is not an abstract concern: Uptime Institute's May 2026 outage analysis say
 - ITU-T L.1312 (07/2026), approved 29 July 2026 and in force: https://www.itu.int/rec/T-REC-L.1312-202607-I/en
 - ITU-T L.1312 freely available English PDF: https://www.itu.int/rec/dologin_pub.asp?id=T-REC-L.1312-202607-I%21%21PDF-E&lang=e&type=items
 - ITU-T L.1312 table of contents: https://www.itu.int/dms_pubrec/itu-t/rec/l/T-REC-L.1312-202607-I%21%21TOC-HTM-E.htm
+- ISO 5667-10:2026, sampling of industrial and urban wastewater including cooling-water contexts (published 18 November 2026): https://www.iso.org/standard/86841.html
+- JCGM 100:2008/Amd.1:2026 and JCGM 101:2008 measurement uncertainty guidance: https://www.bipm.org/en/committees/jc/jcgm/publications
+- OGC SensorThings API 2.0 (published 4 November 2026): https://docs.ogc.org/is/23-019/23-019.html
 - ISO/IEC 30134-2:2026 PUE: https://www.iso.org/standard/30134-2
 - ISO/IEC 30134-6 ERF: https://www.iso.org/standard/30134-6
 - ISO/IEC 30134-8 CUE: https://www.iso.org/standard/30134-8
