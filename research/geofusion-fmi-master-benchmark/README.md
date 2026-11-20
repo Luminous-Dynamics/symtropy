@@ -199,6 +199,9 @@ Publish each metric separately; do not collapse them into an arbitrary weighted 
 - predictor family and data-access contract (zero-order hold, causal bounded predictor, exact interval-average oracle, derivative-assisted, iterative);
 - number of historical samples consumed and future-sample reads (must be zero for causal lanes);
 - predictor residual against the later observed interval integral and trajectory error against the analytic reference;
+- implicit coupling iteration count and full residual history per time window;
+- IQN history reuse, filter/preconditioner, relaxation, participant internal tolerance and checkpoint/rollback cost;
+- bound-violation policy and limiter activation/correction totals for every method;
 - cumulative counter endpoint ULP bound, allowed absolute-energy error and interval transfer energy error;
 - exactly-once consumption of each source interval-energy transfer, with explicit reset/restart epoch evidence;
 - envelope-limiter activation count and maximum correction, with the exact declared source bounds;
@@ -222,6 +225,7 @@ Hard gates:
 - **zero false closures** on the frozen deterministic/adversarial corpus;
 - 100% of injected wrong-unit, wrong-boundary, stale-revision, duplicate-allocation, clock and step-order faults are detected or explicitly marked not evaluable;
 - every accepted term binds to its exact carrier, physical boundary, source interval and model revision;
+- every implicit coupling window meets all configured convergence measures and reports all attempted iterations and rejected work;
 - no silent fallback, extrapolation, status downgrade or capability emulation;
 - deterministic receipts for deterministic fixed inputs/builds;
 - zero future-sample access in any lane labelled causal;
@@ -256,6 +260,17 @@ This yields five distinct predictor/coupling tracks:
 The next master-algorithm paradigm is an **event-fenced, energy-aware adaptive scheduler**. It should propose a communication horizon from a combined error budget (state prediction error, interface mismatch, conservation residual and model uncertainty), then shorten that horizon before the earliest known event/clock tick. Every decision should carry the input samples and capability flags it used. It must distinguish an observed bound from a heuristic estimate; it may not call a heuristic a proof. On an unavailable checkpoint or derivative feature it must choose a separately qualified fallback lane or return `NOT_EVALUABLE`—never silently emulate the feature.
 
 Sources: [FMI 3.0 Implementers' Guide — early return, events and clock activations](https://modelica.github.io/fmi-guides/main/fmi-guide/#co-simulation-specific-issues); [FMI 3.0 Implementers' Guide — partial derivatives](https://modelica.github.io/fmi-guides/main/fmi-guide/#advanced-features); [FMI 3.0.2 Co-Simulation specification](https://fmi-standard.org/docs/3.0.2/).
+
+
+### 8B. Implicit-coupling comparison discipline
+
+The preCICE lane must record the full implicit coupling policy rather than only reporting its converged trajectory. For every time window record minimum/maximum iterations, each residual and its norm/normalization, the exact convergence threshold, IQN-ILS or IQN-IMVJ configuration, reused time-window/iteration history, filter/preconditioner, initial relaxation, bounds-violation policy, checkpoint/rollback time and rejected work. A convergence result is accepted only when every mandatory convergence measure is satisfied; do not reduce the criterion to a single residual after the run.
+
+preCICE documents relative, absolute and combined absolute-or-relative convergence measures and exposes the iteration residuals. Its guidance notes that a properly converged participant solver should generally use a tolerance around two orders of magnitude tighter than the outer coupling criterion as a starting point; treat that as a reproducible configuration recommendation, not a universal theorem. Every benchmark must publish the chosen ratio and run a sensitivity sweep. If participant rollback/checkpoint is unavailable, implicit iterations are `NOT_EVALUABLE`, not silently emulated with a different model or cached state.
+
+For bounded couplings, publish whether a violating quasi-Newton update is ignored, clamped, discarded or scaled. Match the same physical bounds across comparators, count activations and include the altered interface data in the evidence receipt. Our causal predictor likewise exposes its envelope limiter; it must not be compared against an implicit lane with hidden clipping.
+
+Sources: [preCICE coupling schemes and convergence measures](https://precice.org/docs/configuration/basics/coupling/); [preCICE acceleration and IQN-ILS configuration](https://precice.org/configuration-acceleration); [preCICE bound-violation policy](https://precice.org/configuration-xml-reference/).
 
 ## 9. Existing work to compose
 
