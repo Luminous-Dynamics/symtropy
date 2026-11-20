@@ -1,0 +1,1050 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_single_spin_nheg_wald_density_and_regulator_sensitivity",
+  "status": "exact_local_wald_density_and_cutoff_integral",
+  "source": {
+    "paper": "Celik, Hajian & Kunz, An Exact Single-Rotating Near-Horizon Geometry in Einstein-Gauss-Bonnet Gravity",
+    "arxiv": "2605.15005v2",
+    "url": "https://arxiv.org/abs/2605.15005",
+    "equations": [
+      "(19)",
+      "(20)",
+      "(27)",
+      "(29)",
+      "(30)",
+      "(31)",
+      "(32)"
+    ]
+  },
+  "conventions": {
+    "source_action": "R+alpha_NH*L_GB",
+    "symtropy_action": "R+alpha_sym*L_GB/4",
+    "coupling_map": "alpha_sym=4*alpha_NH",
+    "beta": "2*a^2/alpha_sym",
+    "domain": "alpha_sym>0, 0<beta<1, 0<epsilon<1",
+    "epsilon": "cos(theta)"
+  },
+  "wald_jacobson_myers_density": {
+    "formula": "s_W=sqrt(h)/(4G)*(1+2*alpha_NH*R[h])",
+    "symtropy_multiplier": "1+alpha_sym*R[h]/2",
+    "exact_intrinsic_R": "4*(beta^2*epsilon^8+10*beta*epsilon^4-3)/(alpha_sym*(1-beta*epsilon^4)^3)",
+    "exact_multiplier": "(-5+17*beta*epsilon^4+5*beta^2*epsilon^8-beta^3*epsilon^12)/(1-beta*epsilon^4)^3",
+    "exact_4G_density": "a*alpha_sym/(2*epsilon^3)*(-5+17*beta*epsilon^4+5*beta^2*epsilon^8-beta^3*epsilon^12)/(1-beta*epsilon^4)^2",
+    "asymptotic_multiplier": "-5",
+    "density_series": "-5*a*alpha_sym/(2*epsilon^3)+7*a*alpha_sym*beta*epsilon/2+O(epsilon^5)",
+    "primitive_F": "(beta^2*epsilon^8+2*beta*epsilon^4+5)/(2*epsilon^2*(1-beta*epsilon^4))",
+    "entropy_cutoff": "Delta_phi*Delta_psi*a*alpha_sym/(8*G)*(F(1)-F(epsilon))",
+    "F_at_axis": "(beta^2+2*beta+5)/(2*(1-beta))",
+    "leading_integrated_entropy": "-5*Delta_phi*Delta_psi*a*alpha_sym/(16*G*epsilon^2)",
+    "statement": "local Wald/Jacobson-Myers density only; the standard integrated charge diverges and no finite physical entropy is claimed"
+  },
+  "regulator_sensitivity": {
+    "defining_function": "delta=epsilon+s*epsilon^3+O(epsilon^5)",
+    "inverse": "epsilon=delta-s*delta^3+3*s^2*delta^5+O(delta^7)",
+    "area_expansion": "A/C_A=delta^-2+2*s-1-beta+(beta-3*s^2)*delta^2+O(delta^4)",
+    "area_finite_part_shift": "2*s*C_A",
+    "area_entropy_finite_part_shift": "s*Delta_phi*Delta_psi*a*alpha_sym/(8*G)",
+    "wald_entropy_reexpanded": "F(1)-F(epsilon(delta))=F(1)-5/(2*delta^2)-5*s+(15*s^2/2-7*beta/2)*delta^2+O(delta^4)",
+    "wald_entropy_finite_part_shift": "-5*s*Delta_phi*Delta_psi*a*alpha_sym/(8*G)",
+    "comparison": "The Wald finite-part shift is -5 times the area-law entropy finite-part shift.",
+    "gauge_caveat": "This is a smooth non-geodesic defining-function change. It demonstrates regulator sensitivity in the wider cutoff class, not dependence within a fixed geodesic-defining-function gauge and fixed conformal representative."
+  },
+  "validation": {
+    "coupling_conversion_exact": true,
+    "wald_multiplier_exact": true,
+    "wald_density_exact": true,
+    "wald_density_primitive_exact": true,
+    "cutoff_entropy_derivative_exact": true,
+    "leading_density_coefficient_exact": true,
+    "leading_entropy_divergence_exact": true,
+    "area_regulator_shift_exact": true,
+    "wald_regulator_shift_exact": true,
+    "geodesic_gauge_scheme_dependence_not_tested": true,
+    "full_iyer_wald_angular_charge_variations_not_yet_derived": true,
+    "finite_physical_entropy_not_claimed": true
+  },
+  "reference_grid": {
+    "beta_values": [
+      "0.050000000000000003",
+      "0.10000000000000001",
+      "0.14999999999999999",
+      "0.20000000000000001",
+      "0.25000000000000000",
+      "0.29999999999999999",
+      "0.34999999999999998",
+      "0.40000000000000002",
+      "0.45000000000000001",
+      "0.50000000000000000",
+      "0.55000000000000004",
+      "0.59999999999999998",
+      "0.65000000000000002",
+      "0.69999999999999996",
+      "0.75000000000000000",
+      "0.80000000000000004",
+      "0.84999999999999998",
+      "0.90000000000000002",
+      "0.94999999999999996"
+    ],
+    "epsilon_values": [
+      "0.2",
+      "0.1",
+      "0.05",
+      "0.02",
+      "0.01"
+    ],
+    "point_count": 95,
+    "samples": [
+      {
+        "beta": "0.050000000000000003",
+        "epsilon": "0.20000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999679667132405",
+        "wald_multiplier": "-4.9998398335662024",
+        "fourG_wald_density_over_a_alpha_sym": "-312.46499039871975",
+        "wald_primitive_F": "62.507000640051196",
+        "integrated_entropy_prefactor_removed": "-59.821474324261722",
+        "area_cutoff_prefactor_removed": "23.951999999999995"
+      },
+      {
+        "beta": "0.050000000000000003",
+        "epsilon": "0.10000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999979998699985",
+        "wald_multiplier": "-4.9999899993499923",
+        "fourG_wald_density_over_a_alpha_sym": "-2499.9824996999969",
+        "wald_primitive_F": "250.00175000999999",
+        "integrated_entropy_prefactor_removed": "-247.31622369421052",
+        "area_cutoff_prefactor_removed": "98.950499999999991"
+      },
+      {
+        "beta": "0.050000000000000003",
+        "epsilon": "0.050000000000000003",
+        "alpha_sym_times_intrinsic_R": "-11.999998749994921",
+        "wald_multiplier": "-4.9999993749974605",
+        "fourG_wald_density_over_a_alpha_sym": "-19999.991249990620",
+        "wald_primitive_F": "1000.0004375001561",
+        "integrated_entropy_prefactor_removed": "-997.31491118436657",
+        "area_cutoff_prefactor_removed": "398.95012499999996"
+      },
+      {
+        "beta": "0.050000000000000003",
+        "epsilon": "0.020000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999967999997",
+        "wald_multiplier": "-4.9999999839999987",
+        "fourG_wald_density_over_a_alpha_sym": "-312499.99649999989",
+        "wald_primitive_F": "6250.0000700000010",
+        "integrated_entropy_prefactor_removed": "-6247.3145436842115",
+        "area_cutoff_prefactor_removed": "2498.9500199999998"
+      },
+      {
+        "beta": "0.050000000000000003",
+        "epsilon": "0.010000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999998000002",
+        "wald_multiplier": "-4.9999999990000008",
+        "fourG_wald_density_over_a_alpha_sym": "-2499999.9982499997",
+        "wald_primitive_F": "25000.000017499999",
+        "integrated_entropy_prefactor_removed": "-24997.314491184210",
+        "area_cutoff_prefactor_removed": "9998.9500050000006"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.20000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999358668259170",
+        "wald_multiplier": "-4.9996793341295849",
+        "fourG_wald_density_over_a_alpha_sym": "-312.42996158975762",
+        "wald_primitive_F": "62.514002560409658",
+        "integrated_entropy_prefactor_removed": "-59.619558115965212",
+        "area_cutoff_prefactor_removed": "23.903999999999996"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.10000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999959994799864",
+        "wald_multiplier": "-4.9999799973999322",
+        "fourG_wald_density_over_a_alpha_sym": "-2499.9649987999783",
+        "wald_primitive_F": "250.00350004000035",
+        "integrated_entropy_prefactor_removed": "-247.10905559555590",
+        "area_cutoff_prefactor_removed": "98.900999999999996"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.050000000000000003",
+        "alpha_sym_times_intrinsic_R": "-11.999997499979687",
+        "wald_multiplier": "-4.9999987499898433",
+        "fourG_wald_density_over_a_alpha_sym": "-19999.982499962494",
+        "wald_primitive_F": "1000.0008750006248",
+        "integrated_entropy_prefactor_removed": "-997.10643055618038",
+        "area_cutoff_prefactor_removed": "398.90024999999991"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.020000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999935999986",
+        "wald_multiplier": "-4.9999999679999929",
+        "fourG_wald_density_over_a_alpha_sym": "-312499.99299999955",
+        "wald_primitive_F": "6250.0001400000019",
+        "integrated_entropy_prefactor_removed": "-6247.1056955555578",
+        "area_cutoff_prefactor_removed": "2498.9000400000000"
+      },
+      {
+        "beta": "0.10000000000000001",
+        "epsilon": "0.010000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999996000000",
+        "wald_multiplier": "-4.9999999979999998",
+        "fourG_wald_density_over_a_alpha_sym": "-2499999.9964999999",
+        "wald_primitive_F": "25000.000034999997",
+        "integrated_entropy_prefactor_removed": "-24997.105590555551",
+        "area_cutoff_prefactor_removed": "9998.9000099999994"
+      },
+      {
+        "beta": "0.14999999999999999",
+        "epsilon": "0.20000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999037002974422",
+        "wald_multiplier": "-4.9995185014872110",
+        "fourG_wald_density_over_a_alpha_sym": "-312.39491356542828",
+        "wald_primitive_F": "62.521005761382717",
+        "integrated_entropy_prefactor_removed": "-59.390123408441539",
+        "area_cutoff_prefactor_removed": "23.855999999999998"
+      },
+      {
+        "beta": "0.14999999999999999",
+        "epsilon": "0.10000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999939988299554",
+        "wald_multiplier": "-4.9999699941497768",
+        "fourG_wald_density_over_a_alpha_sym": "-2499.9474972999319",
+        "wald_primitive_F": "250.00525009000128",
+        "integrated_entropy_prefactor_removed": "-246.87436773706011",
+        "area_cutoff_prefactor_removed": "98.851499999999973"
+      },
+      {
+        "beta": "0.14999999999999999",
+        "epsilon": "0.050000000000000003",
+        "alpha_sym_times_intrinsic_R": "-11.999996249954297",
+        "wald_multiplier": "-4.9999981249771484",
+        "fourG_wald_density_over_a_alpha_sym": "-19999.973749915622",
+        "wald_primitive_F": "1000.0013125014061",
+        "integrated_entropy_prefactor_removed": "-996.87043014846495",
+        "area_cutoff_prefactor_removed": "398.85037499999999"
+      },
+      {
+        "beta": "0.14999999999999999",
+        "epsilon": "0.020000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999903999969",
+        "wald_multiplier": "-4.9999999519999845",
+        "fourG_wald_density_over_a_alpha_sym": "-312499.98949999909",
+        "wald_primitive_F": "6250.0002100000056",
+        "integrated_entropy_prefactor_removed": "-6246.8693276470640",
+        "area_cutoff_prefactor_removed": "2498.8500599999998"
+      },
+      {
+        "beta": "0.14999999999999999",
+        "epsilon": "0.010000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999994000001",
+        "wald_multiplier": "-4.9999999970000006",
+        "fourG_wald_density_over_a_alpha_sym": "-2499999.9947500001",
+        "wald_primitive_F": "25000.000052500003",
+        "integrated_entropy_prefactor_removed": "-24996.869170147063",
+        "area_cutoff_prefactor_removed": "9998.8500150000000"
+      },
+      {
+        "beta": "0.20000000000000001",
+        "epsilon": "0.20000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.998714670872063",
+        "wald_multiplier": "-4.9993573354360317",
+        "fourG_wald_density_over_a_alpha_sym": "-312.35984631804320",
+        "wald_primitive_F": "62.528010243277841",
+        "integrated_entropy_prefactor_removed": "-59.128010243277842",
+        "area_cutoff_prefactor_removed": "23.807999999999996"
+      },
+      {
+        "beta": "0.20000000000000001",
+        "epsilon": "0.10000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999919979198944",
+        "wald_multiplier": "-4.9999599895994722",
+        "fourG_wald_density_over_a_alpha_sym": "-2499.9299951998396",
+        "wald_primitive_F": "250.00700016000317",
+        "integrated_entropy_prefactor_removed": "-246.60700016000317",
+        "area_cutoff_prefactor_removed": "98.801999999999978"
+      },
+      {
+        "beta": "0.20000000000000001",
+        "epsilon": "0.050000000000000003",
+        "alpha_sym_times_intrinsic_R": "-11.999994999918748",
+        "wald_multiplier": "-4.9999974999593739",
+        "fourG_wald_density_over_a_alpha_sym": "-19999.964999849992",
+        "wald_primitive_F": "1000.0017500024998",
+        "integrated_entropy_prefactor_removed": "-996.60175000249978",
+        "area_cutoff_prefactor_removed": "398.80049999999994"
+      },
+      {
+        "beta": "0.20000000000000001",
+        "epsilon": "0.020000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999871999945",
+        "wald_multiplier": "-4.9999999359999725",
+        "fourG_wald_density_over_a_alpha_sym": "-312499.98599999835",
+        "wald_primitive_F": "6250.0002800000093",
+        "integrated_entropy_prefactor_removed": "-6246.6002800000097",
+        "area_cutoff_prefactor_removed": "2498.8000800000000"
+      },
+      {
+        "beta": "0.20000000000000001",
+        "epsilon": "0.010000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999992000003",
+        "wald_multiplier": "-4.9999999960000014",
+        "fourG_wald_density_over_a_alpha_sym": "-2499999.9930000002",
+        "wald_primitive_F": "25000.000070000002",
+        "integrated_entropy_prefactor_removed": "-24996.600070000000",
+        "area_cutoff_prefactor_removed": "9998.8000199999988"
+      },
+      {
+        "beta": "0.25000000000000000",
+        "epsilon": "0.20000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.998391671545749",
+        "wald_multiplier": "-4.9991958357728743",
+        "fourG_wald_density_over_a_alpha_sym": "-312.32475983991026",
+        "wald_primitive_F": "62.535016006402536",
+        "integrated_entropy_prefactor_removed": "-58.826682673069200",
+        "area_cutoff_prefactor_removed": "23.759999999999998"
+      },
+      {
+        "beta": "0.25000000000000000",
+        "epsilon": "0.10000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999899967497939",
+        "wald_multiplier": "-4.9999499837489694",
+        "fourG_wald_density_over_a_alpha_sym": "-2499.9124924996872",
+        "wald_primitive_F": "250.00875025000622",
+        "integrated_entropy_prefactor_removed": "-246.30041691667287",
+        "area_cutoff_prefactor_removed": "98.752499999999984"
+      },
+      {
+        "beta": "0.25000000000000000",
+        "epsilon": "0.050000000000000003",
+        "alpha_sym_times_intrinsic_R": "-11.999993749873049",
+        "wald_multiplier": "-4.9999968749365244",
+        "fourG_wald_density_over_a_alpha_sym": "-19999.956249765622",
+        "wald_primitive_F": "1000.0021875039062",
+        "integrated_entropy_prefactor_removed": "-996.29385417057279",
+        "area_cutoff_prefactor_removed": "398.75062499999996"
+      },
+      {
+        "beta": "0.25000000000000000",
+        "epsilon": "0.020000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999839999916",
+        "wald_multiplier": "-4.9999999199999579",
+        "fourG_wald_density_over_a_alpha_sym": "-312499.98249999748",
+        "wald_primitive_F": "6250.0003500000148",
+        "integrated_entropy_prefactor_removed": "-6246.2920166666818",
+        "area_cutoff_prefactor_removed": "2498.7501000000002"
+      },
+      {
+        "beta": "0.25000000000000000",
+        "epsilon": "0.010000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999989999999",
+        "wald_multiplier": "-4.9999999949999996",
+        "fourG_wald_density_over_a_alpha_sym": "-2499999.9912499995",
+        "wald_primitive_F": "25000.000087500001",
+        "integrated_entropy_prefactor_removed": "-24996.291754166668",
+        "area_cutoff_prefactor_removed": "9998.7500249999994"
+      },
+      {
+        "beta": "0.29999999999999999",
+        "epsilon": "0.20000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.998068004588895",
+        "wald_multiplier": "-4.9990340022944473",
+        "fourG_wald_density_over_a_alpha_sym": "-312.28965412333400",
+        "wald_primitive_F": "62.542023051064497",
+        "integrated_entropy_prefactor_removed": "-58.477737336778780",
+        "area_cutoff_prefactor_removed": "23.711999999999996"
+      },
+      {
+        "beta": "0.29999999999999999",
+        "epsilon": "0.10000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999879953196436",
+        "wald_multiplier": "-4.9999399765982178",
+        "fourG_wald_density_over_a_alpha_sym": "-2499.8949891994594",
+        "wald_primitive_F": "250.01050036001072",
+        "integrated_entropy_prefactor_removed": "-245.94621464572501",
+        "area_cutoff_prefactor_removed": "98.702999999999989"
+      },
+      {
+        "beta": "0.29999999999999999",
+        "epsilon": "0.050000000000000003",
+        "alpha_sym_times_intrinsic_R": "-11.999992499817187",
+        "wald_multiplier": "-4.9999962499085937",
+        "fourG_wald_density_over_a_alpha_sym": "-19999.947499662496",
+        "wald_primitive_F": "1000.0026250056249",
+        "integrated_entropy_prefactor_removed": "-995.93833929133916",
+        "area_cutoff_prefactor_removed": "398.70074999999991"
+      },
+      {
+        "beta": "0.29999999999999999",
+        "epsilon": "0.020000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999807999879",
+        "wald_multiplier": "-4.9999999039999397",
+        "fourG_wald_density_over_a_alpha_sym": "-312499.97899999650",
+        "wald_primitive_F": "6250.0004200000230",
+        "integrated_entropy_prefactor_removed": "-6245.9361342857374",
+        "area_cutoff_prefactor_removed": "2498.7001200000000"
+      },
+      {
+        "beta": "0.29999999999999999",
+        "epsilon": "0.010000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999988000001",
+        "wald_multiplier": "-4.9999999940000004",
+        "fourG_wald_density_over_a_alpha_sym": "-2499999.9894999997",
+        "wald_primitive_F": "25000.000104999999",
+        "integrated_entropy_prefactor_removed": "-24995.935819285714",
+        "area_cutoff_prefactor_removed": "9998.7000300000000"
+      },
+      {
+        "beta": "0.34999999999999998",
+        "epsilon": "0.20000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.997743669594669",
+        "wald_multiplier": "-4.9988718347973347",
+        "fourG_wald_density_over_a_alpha_sym": "-312.25452916061545",
+        "wald_primitive_F": "62.549031377571431",
+        "integrated_entropy_prefactor_removed": "-58.070185223725275",
+        "area_cutoff_prefactor_removed": "23.663999999999994"
+      },
+      {
+        "beta": "0.34999999999999998",
+        "epsilon": "0.10000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999859936294341",
+        "wald_multiplier": "-4.9999299681471703",
+        "fourG_wald_density_over_a_alpha_sym": "-2499.8774852991419",
+        "wald_primitive_F": "250.01225049001707",
+        "integrated_entropy_prefactor_removed": "-245.53340433617092",
+        "area_cutoff_prefactor_removed": "98.653499999999994"
+      },
+      {
+        "beta": "0.34999999999999998",
+        "epsilon": "0.050000000000000003",
+        "alpha_sym_times_intrinsic_R": "-11.999991249751172",
+        "wald_multiplier": "-4.9999956248755861",
+        "fourG_wald_density_over_a_alpha_sym": "-19999.938749540619",
+        "wald_primitive_F": "1000.0030625076562",
+        "integrated_entropy_prefactor_removed": "-995.52421635381006",
+        "area_cutoff_prefactor_removed": "398.65087499999993"
+      },
+      {
+        "beta": "0.34999999999999998",
+        "epsilon": "0.020000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999775999836",
+        "wald_multiplier": "-4.9999998879999179",
+        "fourG_wald_density_over_a_alpha_sym": "-312499.97549999523",
+        "wald_primitive_F": "6250.0004900000304",
+        "integrated_entropy_prefactor_removed": "-6245.5216438461839",
+        "area_cutoff_prefactor_removed": "2498.6501400000002"
+      },
+      {
+        "beta": "0.34999999999999998",
+        "epsilon": "0.010000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999985999997",
+        "wald_multiplier": "-4.9999999929999985",
+        "fourG_wald_density_over_a_alpha_sym": "-2499999.9877499989",
+        "wald_primitive_F": "25000.000122499994",
+        "integrated_entropy_prefactor_removed": "-24995.521276346150",
+        "area_cutoff_prefactor_removed": "9998.6500349999988"
+      },
+      {
+        "beta": "0.40000000000000002",
+        "epsilon": "0.20000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.997418666156014",
+        "wald_multiplier": "-4.9987093330780068",
+        "fourG_wald_density_over_a_alpha_sym": "-312.21938494405225",
+        "wald_primitive_F": "62.556040986231174",
+        "integrated_entropy_prefactor_removed": "-57.589374319564506",
+        "area_cutoff_prefactor_removed": "23.615999999999996"
+      },
+      {
+        "beta": "0.40000000000000002",
+        "epsilon": "0.10000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999839916791553",
+        "wald_multiplier": "-4.9999199583957763",
+        "fourG_wald_density_over_a_alpha_sym": "-2499.8599807987198",
+        "wald_primitive_F": "250.01400064002556",
+        "integrated_entropy_prefactor_removed": "-245.04733397335889",
+        "area_cutoff_prefactor_removed": "98.603999999999985"
+      },
+      {
+        "beta": "0.40000000000000002",
+        "epsilon": "0.050000000000000003",
+        "alpha_sym_times_intrinsic_R": "-11.999989999674998",
+        "wald_multiplier": "-4.9999949998374991",
+        "fourG_wald_density_over_a_alpha_sym": "-19999.929999399996",
+        "wald_primitive_F": "1000.0035000099999",
+        "integrated_entropy_prefactor_removed": "-995.03683334333323",
+        "area_cutoff_prefactor_removed": "398.60099999999994"
+      },
+      {
+        "beta": "0.40000000000000002",
+        "epsilon": "0.020000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999743999785",
+        "wald_multiplier": "-4.9999998719998926",
+        "fourG_wald_density_over_a_alpha_sym": "-312499.97199999372",
+        "wald_primitive_F": "6250.0005600000404",
+        "integrated_entropy_prefactor_removed": "-6245.0338933333742",
+        "area_cutoff_prefactor_removed": "2498.6001600000000"
+      },
+      {
+        "beta": "0.40000000000000002",
+        "epsilon": "0.010000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999983999999",
+        "wald_multiplier": "-4.9999999919999993",
+        "fourG_wald_density_over_a_alpha_sym": "-2499999.9859999991",
+        "wald_primitive_F": "25000.000140000000",
+        "integrated_entropy_prefactor_removed": "-24995.033473333333",
+        "area_cutoff_prefactor_removed": "9998.6000400000012"
+      },
+      {
+        "beta": "0.45000000000000001",
+        "epsilon": "0.20000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.997092993865619",
+        "wald_multiplier": "-4.9985464969328097",
+        "fourG_wald_density_over_a_alpha_sym": "-312.18422146593855",
+        "wald_primitive_F": "62.563051877351683",
+        "integrated_entropy_prefactor_removed": "-57.015324604624411",
+        "area_cutoff_prefactor_removed": "23.567999999999998"
+      },
+      {
+        "beta": "0.45000000000000001",
+        "epsilon": "0.10000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999819894687969",
+        "wald_multiplier": "-4.9999099473439843",
+        "fourG_wald_density_over_a_alpha_sym": "-2499.8424756981763",
+        "wald_primitive_F": "250.01575081003637",
+        "integrated_entropy_prefactor_removed": "-244.46802353730908",
+        "area_cutoff_prefactor_removed": "98.554499999999976"
+      },
+      {
+        "beta": "0.45000000000000001",
+        "epsilon": "0.050000000000000003",
+        "alpha_sym_times_intrinsic_R": "-11.999988749588669",
+        "wald_multiplier": "-4.9999943747943343",
+        "fourG_wald_density_over_a_alpha_sym": "-19999.921249240615",
+        "wald_primitive_F": "1000.0039375126562",
+        "integrated_entropy_prefactor_removed": "-994.45621023992896",
+        "area_cutoff_prefactor_removed": "398.55112499999996"
+      },
+      {
+        "beta": "0.45000000000000001",
+        "epsilon": "0.020000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999711999727",
+        "wald_multiplier": "-4.9999998559998637",
+        "fourG_wald_density_over_a_alpha_sym": "-312499.96849999204",
+        "wald_primitive_F": "6250.0006300000505",
+        "integrated_entropy_prefactor_removed": "-6244.4529027273229",
+        "area_cutoff_prefactor_removed": "2498.5501800000002"
+      },
+      {
+        "beta": "0.45000000000000001",
+        "epsilon": "0.010000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999981999999",
+        "wald_multiplier": "-4.9999999909999993",
+        "fourG_wald_density_over_a_alpha_sym": "-2499999.9842499993",
+        "wald_primitive_F": "25000.000157500002",
+        "integrated_entropy_prefactor_removed": "-24994.452430227277",
+        "area_cutoff_prefactor_removed": "9998.5500450000000"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.20000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.996766652315930",
+        "wald_multiplier": "-4.9983833261579651",
+        "fourG_wald_density_over_a_alpha_sym": "-312.14903871856484",
+        "wald_primitive_F": "62.570064051240990",
+        "integrated_entropy_prefactor_removed": "-56.320064051240990",
+        "area_cutoff_prefactor_removed": "23.519999999999996"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.10000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999799869983498",
+        "wald_multiplier": "-4.9998999349917490",
+        "fourG_wald_density_over_a_alpha_sym": "-2499.8249699974995",
+        "wald_primitive_F": "250.01750100004998",
+        "integrated_entropy_prefactor_removed": "-243.76750100004998",
+        "area_cutoff_prefactor_removed": "98.504999999999981"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.050000000000000003",
+        "alpha_sym_times_intrinsic_R": "-11.999987499492182",
+        "wald_multiplier": "-4.9999937497460909",
+        "fourG_wald_density_over_a_alpha_sym": "-19999.912499062488",
+        "wald_primitive_F": "1000.0043750156248",
+        "integrated_entropy_prefactor_removed": "-993.75437501562476",
+        "area_cutoff_prefactor_removed": "398.50124999999997"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.020000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999679999666",
+        "wald_multiplier": "-4.9999998399998331",
+        "fourG_wald_density_over_a_alpha_sym": "-312499.96499999036",
+        "wald_primitive_F": "6250.0007000000633",
+        "integrated_entropy_prefactor_removed": "-6243.7507000000633",
+        "area_cutoff_prefactor_removed": "2498.5001999999999"
+      },
+      {
+        "beta": "0.50000000000000000",
+        "epsilon": "0.010000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999979999997",
+        "wald_multiplier": "-4.9999999899999983",
+        "fourG_wald_density_over_a_alpha_sym": "-2499999.9824999990",
+        "wald_primitive_F": "25000.000174999997",
+        "integrated_entropy_prefactor_removed": "-24993.750174999997",
+        "area_cutoff_prefactor_removed": "9998.5000500000006"
+      },
+      {
+        "beta": "0.55000000000000004",
+        "epsilon": "0.20000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.996439641099164",
+        "wald_multiplier": "-4.9982198205495818",
+        "fourG_wald_density_over_a_alpha_sym": "-312.11383669421861",
+        "wald_primitive_F": "62.577077508207211",
+        "integrated_entropy_prefactor_removed": "-55.463188619318323",
+        "area_cutoff_prefactor_removed": "23.471999999999994"
+      },
+      {
+        "beta": "0.55000000000000004",
+        "epsilon": "0.10000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999779842678038",
+        "wald_multiplier": "-4.9998899213390189",
+        "fourG_wald_density_over_a_alpha_sym": "-2499.8074636966721",
+        "wald_primitive_F": "250.01925121006653",
+        "integrated_entropy_prefactor_removed": "-242.90536232117765",
+        "area_cutoff_prefactor_removed": "98.455499999999986"
+      },
+      {
+        "beta": "0.55000000000000004",
+        "epsilon": "0.050000000000000003",
+        "alpha_sym_times_intrinsic_R": "-11.999986249385540",
+        "wald_multiplier": "-4.9999931246927698",
+        "fourG_wald_density_over_a_alpha_sym": "-19999.903748865610",
+        "wald_primitive_F": "1000.0048125189061",
+        "integrated_entropy_prefactor_removed": "-992.89092363001714",
+        "area_cutoff_prefactor_removed": "398.45137499999993"
+      },
+      {
+        "beta": "0.55000000000000004",
+        "epsilon": "0.020000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999647999596",
+        "wald_multiplier": "-4.9999998239997980",
+        "fourG_wald_density_over_a_alpha_sym": "-312499.96149998833",
+        "wald_primitive_F": "6250.0007700000760",
+        "integrated_entropy_prefactor_removed": "-6242.8868811111870",
+        "area_cutoff_prefactor_removed": "2498.4502199999997"
+      },
+      {
+        "beta": "0.55000000000000004",
+        "epsilon": "0.010000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999977999998",
+        "wald_multiplier": "-4.9999999889999991",
+        "fourG_wald_density_over_a_alpha_sym": "-2499999.9807499992",
+        "wald_primitive_F": "25000.000192500000",
+        "integrated_entropy_prefactor_removed": "-24992.886303611111",
+        "area_cutoff_prefactor_removed": "9998.4500550000012"
+      },
+      {
+        "beta": "0.59999999999999998",
+        "epsilon": "0.20000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.996111959807289",
+        "wald_multiplier": "-4.9980559799036444",
+        "fourG_wald_density_over_a_alpha_sym": "-312.07861538518347",
+        "wald_primitive_F": "62.584092248558605",
+        "integrated_entropy_prefactor_removed": "-54.384092248558602",
+        "area_cutoff_prefactor_removed": "23.423999999999996"
+      },
+      {
+        "beta": "0.59999999999999998",
+        "epsilon": "0.10000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999759812771485",
+        "wald_multiplier": "-4.9998799063857424",
+        "fourG_wald_density_over_a_alpha_sym": "-2499.7899567956792",
+        "wald_primitive_F": "250.02100144008637",
+        "integrated_entropy_prefactor_removed": "-241.82100144008638",
+        "area_cutoff_prefactor_removed": "98.405999999999992"
+      },
+      {
+        "beta": "0.59999999999999998",
+        "epsilon": "0.050000000000000003",
+        "alpha_sym_times_intrinsic_R": "-11.999984999268742",
+        "wald_multiplier": "-4.9999924996343710",
+        "fourG_wald_density_over_a_alpha_sym": "-19999.894998649983",
+        "wald_primitive_F": "1000.0052500224998",
+        "integrated_entropy_prefactor_removed": "-991.80525002249976",
+        "area_cutoff_prefactor_removed": "398.40149999999994"
+      },
+      {
+        "beta": "0.59999999999999998",
+        "epsilon": "0.020000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999615999519",
+        "wald_multiplier": "-4.9999998079997594",
+        "fourG_wald_density_over_a_alpha_sym": "-312499.95799998607",
+        "wald_primitive_F": "6250.0008400000906",
+        "integrated_entropy_prefactor_removed": "-6241.8008400000908",
+        "area_cutoff_prefactor_removed": "2498.4002399999999"
+      },
+      {
+        "beta": "0.59999999999999998",
+        "epsilon": "0.010000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999976000000",
+        "wald_multiplier": "-4.9999999879999999",
+        "fourG_wald_density_over_a_alpha_sym": "-2499999.9789999998",
+        "wald_primitive_F": "25000.000210000002",
+        "integrated_entropy_prefactor_removed": "-24991.800210000001",
+        "area_cutoff_prefactor_removed": "9998.4000599999999"
+      },
+      {
+        "beta": "0.65000000000000002",
+        "epsilon": "0.20000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.995783608032035",
+        "wald_multiplier": "-4.9978918040160174",
+        "fourG_wald_density_over_a_alpha_sym": "-312.04337478373998",
+        "wald_primitive_F": "62.591108272603499",
+        "integrated_entropy_prefactor_removed": "-52.987536844032071",
+        "area_cutoff_prefactor_removed": "23.375999999999998"
+      },
+      {
+        "beta": "0.65000000000000002",
+        "epsilon": "0.10000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999739780263743",
+        "wald_multiplier": "-4.9998698901318717",
+        "fourG_wald_density_over_a_alpha_sym": "-2499.7724492945058",
+        "wald_primitive_F": "250.02275169010983",
+        "integrated_entropy_prefactor_removed": "-240.41918026153840",
+        "area_cutoff_prefactor_removed": "98.356499999999983"
+      },
+      {
+        "beta": "0.65000000000000002",
+        "epsilon": "0.050000000000000003",
+        "alpha_sym_times_intrinsic_R": "-11.999983749141787",
+        "wald_multiplier": "-4.9999918745708936",
+        "fourG_wald_density_over_a_alpha_sym": "-19999.886248415609",
+        "wald_primitive_F": "1000.0056875264062",
+        "integrated_entropy_prefactor_removed": "-990.40211609783478",
+        "area_cutoff_prefactor_removed": "398.35162499999996"
+      },
+      {
+        "beta": "0.65000000000000002",
+        "epsilon": "0.020000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999583999434",
+        "wald_multiplier": "-4.9999997919997172",
+        "fourG_wald_density_over_a_alpha_sym": "-312499.95449998364",
+        "wald_primitive_F": "6250.0009100001080",
+        "integrated_entropy_prefactor_removed": "-6240.3973385715362",
+        "area_cutoff_prefactor_removed": "2498.3502599999997"
+      },
+      {
+        "beta": "0.65000000000000002",
+        "epsilon": "0.010000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999973999998",
+        "wald_multiplier": "-4.9999999869999989",
+        "fourG_wald_density_over_a_alpha_sym": "-2499999.9772499991",
+        "wald_primitive_F": "25000.000227500001",
+        "integrated_entropy_prefactor_removed": "-24990.396656071429",
+        "area_cutoff_prefactor_removed": "9998.3500650000005"
+      },
+      {
+        "beta": "0.69999999999999996",
+        "epsilon": "0.20000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.995454585364881",
+        "wald_multiplier": "-4.9977272926824403",
+        "fourG_wald_density_over_a_alpha_sym": "-312.00811488216465",
+        "wald_primitive_F": "62.598125580650319",
+        "integrated_entropy_prefactor_removed": "-51.114792247316984",
+        "area_cutoff_prefactor_removed": "23.327999999999996"
+      },
+      {
+        "beta": "0.69999999999999996",
+        "epsilon": "0.10000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999719745154717",
+        "wald_multiplier": "-4.9998598725773586",
+        "fourG_wald_density_over_a_alpha_sym": "-2499.7549411931386",
+        "wald_primitive_F": "250.02450196013717",
+        "integrated_entropy_prefactor_removed": "-238.54116862680385",
+        "area_cutoff_prefactor_removed": "98.306999999999988"
+      },
+      {
+        "beta": "0.69999999999999996",
+        "epsilon": "0.050000000000000003",
+        "alpha_sym_times_intrinsic_R": "-11.999982499004673",
+        "wald_multiplier": "-4.9999912495023366",
+        "fourG_wald_density_over_a_alpha_sym": "-19999.877498162474",
+        "wald_primitive_F": "1000.0061250306248",
+        "integrated_entropy_prefactor_removed": "-988.52279169729150",
+        "area_cutoff_prefactor_removed": "398.30174999999997"
+      },
+      {
+        "beta": "0.69999999999999996",
+        "epsilon": "0.020000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999551999348",
+        "wald_multiplier": "-4.9999997759996742",
+        "fourG_wald_density_over_a_alpha_sym": "-312499.95099998114",
+        "wald_primitive_F": "6250.0009800001253",
+        "integrated_entropy_prefactor_removed": "-6238.5176466667917",
+        "area_cutoff_prefactor_removed": "2498.3002800000004"
+      },
+      {
+        "beta": "0.69999999999999996",
+        "epsilon": "0.010000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999971999999",
+        "wald_multiplier": "-4.9999999859999997",
+        "fourG_wald_density_over_a_alpha_sym": "-2499999.9754999992",
+        "wald_primitive_F": "25000.000245000003",
+        "integrated_entropy_prefactor_removed": "-24988.516911666669",
+        "area_cutoff_prefactor_removed": "9998.3000699999993"
+      },
+      {
+        "beta": "0.75000000000000000",
+        "epsilon": "0.20000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.995124891397074",
+        "wald_multiplier": "-4.9975624456985370",
+        "fourG_wald_density_over_a_alpha_sym": "-311.97283567273115",
+        "wald_primitive_F": "62.605144173007595",
+        "integrated_entropy_prefactor_removed": "-48.480144173007595",
+        "area_cutoff_prefactor_removed": "23.279999999999998"
+      },
+      {
+        "beta": "0.75000000000000000",
+        "epsilon": "0.10000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999699707444305",
+        "wald_multiplier": "-4.9998498537221527",
+        "fourG_wald_density_over_a_alpha_sym": "-2499.7374324915613",
+        "wald_primitive_F": "250.02625225016871",
+        "integrated_entropy_prefactor_removed": "-235.90125225016871",
+        "area_cutoff_prefactor_removed": "98.257499999999979"
+      },
+      {
+        "beta": "0.75000000000000000",
+        "epsilon": "0.050000000000000003",
+        "alpha_sym_times_intrinsic_R": "-11.999981248857409",
+        "wald_multiplier": "-4.9999906244287047",
+        "fourG_wald_density_over_a_alpha_sym": "-19999.868747890603",
+        "wald_primitive_F": "1000.0065625351563",
+        "integrated_entropy_prefactor_removed": "-985.88156253515626",
+        "area_cutoff_prefactor_removed": "398.25187499999993"
+      },
+      {
+        "beta": "0.75000000000000000",
+        "epsilon": "0.020000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999519999253",
+        "wald_multiplier": "-4.9999997599996266",
+        "fourG_wald_density_over_a_alpha_sym": "-312499.94749997841",
+        "wald_primitive_F": "6250.0010500001445",
+        "integrated_entropy_prefactor_removed": "-6235.8760500001445",
+        "area_cutoff_prefactor_removed": "2498.2503000000002"
+      },
+      {
+        "beta": "0.75000000000000000",
+        "epsilon": "0.010000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999969999996",
+        "wald_multiplier": "-4.9999999849999979",
+        "fourG_wald_density_over_a_alpha_sym": "-2499999.9737499990",
+        "wald_primitive_F": "25000.000262500002",
+        "integrated_entropy_prefactor_removed": "-24985.875262500002",
+        "area_cutoff_prefactor_removed": "9998.2500749999999"
+      },
+      {
+        "beta": "0.80000000000000004",
+        "epsilon": "0.20000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.994794525719616",
+        "wald_multiplier": "-4.9973972628598080",
+        "fourG_wald_density_over_a_alpha_sym": "-311.93753714770912",
+        "wald_primitive_F": "62.612164049983967",
+        "integrated_entropy_prefactor_removed": "-44.512164049983966",
+        "area_cutoff_prefactor_removed": "23.231999999999996"
+      },
+      {
+        "beta": "0.80000000000000004",
+        "epsilon": "0.10000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999679667132405",
+        "wald_multiplier": "-4.9998398335662024",
+        "fourG_wald_density_over_a_alpha_sym": "-2499.7199231897580",
+        "wald_primitive_F": "250.02800256020478",
+        "integrated_entropy_prefactor_removed": "-231.92800256020479",
+        "area_cutoff_prefactor_removed": "98.207999999999984"
+      },
+      {
+        "beta": "0.80000000000000004",
+        "epsilon": "0.050000000000000003",
+        "alpha_sym_times_intrinsic_R": "-11.999979998699985",
+        "wald_multiplier": "-4.9999899993499923",
+        "fourG_wald_density_over_a_alpha_sym": "-19999.859997599975",
+        "wald_primitive_F": "1000.0070000400000",
+        "integrated_entropy_prefactor_removed": "-981.90700003999996",
+        "area_cutoff_prefactor_removed": "398.20199999999994"
+      },
+      {
+        "beta": "0.80000000000000004",
+        "epsilon": "0.020000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999487999149",
+        "wald_multiplier": "-4.9999997439995747",
+        "fourG_wald_density_over_a_alpha_sym": "-312499.94399997540",
+        "wald_primitive_F": "6250.0011200001645",
+        "integrated_entropy_prefactor_removed": "-6231.9011200001642",
+        "area_cutoff_prefactor_removed": "2498.2003199999999"
+      },
+      {
+        "beta": "0.80000000000000004",
+        "epsilon": "0.010000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999967999997",
+        "wald_multiplier": "-4.9999999839999987",
+        "fourG_wald_density_over_a_alpha_sym": "-2499999.9719999991",
+        "wald_primitive_F": "25000.000280000004",
+        "integrated_entropy_prefactor_removed": "-24981.900280000005",
+        "area_cutoff_prefactor_removed": "9998.2000800000005"
+      },
+      {
+        "beta": "0.84999999999999998",
+        "epsilon": "0.20000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.994463487923271",
+        "wald_multiplier": "-4.9972317439616356",
+        "fourG_wald_density_over_a_alpha_sym": "-311.90221929936536",
+        "wald_primitive_F": "62.619185211888166",
+        "integrated_entropy_prefactor_removed": "-37.877518545221506",
+        "area_cutoff_prefactor_removed": "23.183999999999994"
+      },
+      {
+        "beta": "0.84999999999999998",
+        "epsilon": "0.10000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999659624218923",
+        "wald_multiplier": "-4.9998298121094615",
+        "fourG_wald_density_over_a_alpha_sym": "-2499.7024132877154",
+        "wald_primitive_F": "250.02975289024562",
+        "integrated_entropy_prefactor_removed": "-225.28808622357894",
+        "area_cutoff_prefactor_removed": "98.158499999999989"
+      },
+      {
+        "beta": "0.84999999999999998",
+        "epsilon": "0.050000000000000003",
+        "alpha_sym_times_intrinsic_R": "-11.999978748532403",
+        "wald_multiplier": "-4.9999893742662014",
+        "fourG_wald_density_over_a_alpha_sym": "-19999.851247290600",
+        "wald_primitive_F": "1000.0074375451562",
+        "integrated_entropy_prefactor_removed": "-975.26577087848955",
+        "area_cutoff_prefactor_removed": "398.15212499999990"
+      },
+      {
+        "beta": "0.84999999999999998",
+        "epsilon": "0.020000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999455999040",
+        "wald_multiplier": "-4.9999997279995201",
+        "fourG_wald_density_over_a_alpha_sym": "-312499.94049997226",
+        "wald_primitive_F": "6250.0011900001846",
+        "integrated_entropy_prefactor_removed": "-6225.2595233335178",
+        "area_cutoff_prefactor_removed": "2498.1503400000001"
+      },
+      {
+        "beta": "0.84999999999999998",
+        "epsilon": "0.010000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999965999999",
+        "wald_multiplier": "-4.9999999829999995",
+        "fourG_wald_density_over_a_alpha_sym": "-2499999.9702499993",
+        "wald_primitive_F": "25000.000297499999",
+        "integrated_entropy_prefactor_removed": "-24975.258630833334",
+        "area_cutoff_prefactor_removed": "9998.1500849999993"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.20000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.994131777598550",
+        "wald_multiplier": "-4.9970658887992752",
+        "fourG_wald_density_over_a_alpha_sym": "-311.86688211996272",
+        "wald_primitive_F": "62.626207659028992",
+        "integrated_entropy_prefactor_removed": "-24.576207659028981",
+        "area_cutoff_prefactor_removed": "23.135999999999999"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.10000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999639578703757",
+        "wald_multiplier": "-4.9998197893518785",
+        "fourG_wald_density_over_a_alpha_sym": "-2499.6849027854178",
+        "wald_primitive_F": "250.03150324029158",
+        "integrated_entropy_prefactor_removed": "-211.98150324029157",
+        "area_cutoff_prefactor_removed": "98.108999999999980"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.050000000000000003",
+        "alpha_sym_times_intrinsic_R": "-11.999977498354664",
+        "wald_multiplier": "-4.9999887491773318",
+        "fourG_wald_density_over_a_alpha_sym": "-19999.842496962468",
+        "wald_primitive_F": "1000.0078750506251",
+        "integrated_entropy_prefactor_removed": "-961.95787505062503",
+        "area_cutoff_prefactor_removed": "398.10224999999997"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.020000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999423998924",
+        "wald_multiplier": "-4.9999997119994619",
+        "fourG_wald_density_over_a_alpha_sym": "-312499.93699996895",
+        "wald_primitive_F": "6250.0012600002083",
+        "integrated_entropy_prefactor_removed": "-6211.9512600002081",
+        "area_cutoff_prefactor_removed": "2498.1003599999999"
+      },
+      {
+        "beta": "0.90000000000000002",
+        "epsilon": "0.010000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999963999995",
+        "wald_multiplier": "-4.9999999819999976",
+        "fourG_wald_density_over_a_alpha_sym": "-2499999.9684999986",
+        "wald_primitive_F": "25000.000314999997",
+        "integrated_entropy_prefactor_removed": "-24961.950314999998",
+        "area_cutoff_prefactor_removed": "9998.1000899999999"
+      },
+      {
+        "beta": "0.94999999999999996",
+        "epsilon": "0.20000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.993799394335730",
+        "wald_multiplier": "-4.9968996971678648",
+        "fourG_wald_density_over_a_alpha_sym": "-311.83152560176052",
+        "wald_primitive_F": "62.633231391715391",
+        "integrated_entropy_prefactor_removed": "15.391768608284544",
+        "area_cutoff_prefactor_removed": "23.087999999999997"
+      },
+      {
+        "beta": "0.94999999999999996",
+        "epsilon": "0.10000000000000001",
+        "alpha_sym_times_intrinsic_R": "-11.999619530586806",
+        "wald_multiplier": "-4.9998097652934028",
+        "fourG_wald_density_over_a_alpha_sym": "-2499.6673916828495",
+        "wald_primitive_F": "250.03325361034294",
+        "integrated_entropy_prefactor_removed": "-172.00825361034299",
+        "area_cutoff_prefactor_removed": "98.059499999999986"
+      },
+      {
+        "beta": "0.94999999999999996",
+        "epsilon": "0.050000000000000003",
+        "alpha_sym_times_intrinsic_R": "-11.999976248166769",
+        "wald_multiplier": "-4.9999881240833846",
+        "fourG_wald_density_over_a_alpha_sym": "-19999.833746615586",
+        "wald_primitive_F": "1000.0083125564064",
+        "integrated_entropy_prefactor_removed": "-921.98331255640642",
+        "area_cutoff_prefactor_removed": "398.05237499999993"
+      },
+      {
+        "beta": "0.94999999999999996",
+        "epsilon": "0.020000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999391998800",
+        "wald_multiplier": "-4.9999996959994002",
+        "fourG_wald_density_over_a_alpha_sym": "-312499.93349996535",
+        "wald_primitive_F": "6250.0013300002311",
+        "integrated_entropy_prefactor_removed": "-6171.9763300002314",
+        "area_cutoff_prefactor_removed": "2498.0503800000001"
+      },
+      {
+        "beta": "0.94999999999999996",
+        "epsilon": "0.010000000000000000",
+        "alpha_sym_times_intrinsic_R": "-11.999999961999995",
+        "wald_multiplier": "-4.9999999809999975",
+        "fourG_wald_density_over_a_alpha_sym": "-2499999.9667499987",
+        "wald_primitive_F": "25000.000332500003",
+        "integrated_entropy_prefactor_removed": "-24921.975332500002",
+        "area_cutoff_prefactor_removed": "9998.0500949999987"
+      }
+    ]
+  },
+  "claim_ceiling": "Exact local Wald/Jacobson-Myers density and regulator transformation for the noncompact near-horizon section. No renormalized entropy, integrable Iyer-Wald phase space, or global black-hole thermodynamics is established."
+}
