@@ -67,7 +67,7 @@ jobs:
             and .result == "pass"
             and .report.evidence_class == "synthetic"
             and .report.claim_ceiling == "synthetic-service-reconfiguration-only"
-            and .report.summary.scenario_count == 26
+            and .report.summary.scenario_count == 27
             and .report.summary.expected_result_mismatches == 0
             and .report.summary.false_continuity_claims == 0
             and .report.summary.authority_grants == 0
