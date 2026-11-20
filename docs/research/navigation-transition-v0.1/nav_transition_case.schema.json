@@ -268,7 +268,10 @@
               "non_finite_measurement",
               "covariance_invalid",
               "replayed_observation",
-              "sensor_configuration_mismatch"
+              "sensor_configuration_mismatch",
+              "heavy_tailed_residuals",
+              "persistent_bias",
+              "protection_level_saturation"
             ]
           },
           "source_ids": {
