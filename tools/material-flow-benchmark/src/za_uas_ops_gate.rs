@@ -568,10 +568,19 @@ fn evaluate_case(case: &UasOperationCase) -> UasCaseReport {
             private_class_ok,
         ));
         if case.operation.payload_release_or_delivery {
-            findings.push(boolean_gate(
-                "private_payload_release_prohibited",
-                "Private-use profile does not permit payload release/delivery",
-                Some(false),
+            findings.push(evidence_gate(
+                "private_delivery_uasoc",
+                "Delivery remains subject to regulation 101.05.4: UASOC holder for payload release",
+                approvals.uas_operator_certificate.as_ref(),
+                operator_id,
+                scope,
+            ));
+            findings.push(evidence_gate(
+                "private_delivery_operations_manual",
+                "Delivery remains subject to regulation 101.05.4: exact UASOC Operations Manual scope",
+                approvals.operations_manual_scope.as_ref(),
+                operator_id,
+                scope,
             ));
         }
         if case.operation.dangerous_goods_payload {
@@ -1222,11 +1231,28 @@ mod tests {
     }
 
     #[test]
-    fn private_parcel_delivery_is_blocked_not_misclassified_as_commercial_exemption() {
+    fn private_parcel_delivery_requires_the_separate_uasoc_and_manual_release_chain() {
         let mut case = commercial_case();
         case.operator.activity_class = ActivityClass::Private;
+        case.approvals.uas_operator_certificate = None;
+        case.approvals.operations_manual_scope = None;
         let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid envelope");
-        assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::Blocked);
+        assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::Indeterminate);
+        assert!(report.cases[0].findings.iter().any(|gate| gate.gate_id == "private_delivery_uasoc"));
+        assert!(report.cases[0].findings.iter().any(|gate| gate.gate_id == "private_delivery_operations_manual"));
+    }
+
+    #[test]
+    fn private_delivery_with_uasoc_and_director_manual_scope_is_only_synthetic() {
+        let mut case = commercial_case();
+        case.operator.activity_class = ActivityClass::Private;
+        case.approvals.air_service_licence = None;
+        case.approvals.aircraft_letter_of_approval = None;
+        case.approvals.remote_pilot_licence = None;
+        case.approvals.aircraft_certificate_of_registration = None;
+        let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid synthetic envelope");
+        assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::PassesSyntheticGateOnly);
+        assert!(!report.cases[0].flight_authorized);
     }
 
     #[test]
