@@ -598,10 +598,10 @@ pub fn validate_evidence_batch(
                     if item.observed_step >= case.timebase.horizon_steps
                         || item.available_step >= case.timebase.horizon_steps
                         || item.observed_step > item.available_step
-                        || item.available_step < available_step
+                        || item.available_step > available_step
                         || item.available_step > batch.presentation_step
                         || item.observed_at_unix_ms > completed_at
-                        || item.available_at_unix_ms < available_at
+                        || item.available_at_unix_ms > available_at
                         || item.available_at_unix_ms < item.observed_at_unix_ms
                     {
                         errors.push(format!(
@@ -876,6 +876,9 @@ mod tests {
         let mut second_source = batch.sources[0].clone();
         second_source.source_id = "scada-gateway-b".to_string();
         second_source.producer_id = "scada-gateway-b".to_string();
+        second_source.producer_attestation_ref = "synthetic://attestation/scada-gateway-b/v1".to_string();
+        second_source.producer_attestation_sha256 = "d".repeat(64);
+        second_source.source_snapshot_sha256 = "e".repeat(64);
         batch.sources.push(second_source);
 
         batch.proposal_sha256 = canonical_proposal_sha256(&proposal).unwrap();
@@ -901,6 +904,9 @@ mod tests {
         let mut second_source = batch.sources[0].clone();
         second_source.source_id = "independent-looking-gateway".to_string();
         second_source.producer_id = "independent-looking-gateway".to_string();
+        second_source.producer_attestation_ref = "synthetic://attestation/independent-looking-gateway/v1".to_string();
+        second_source.producer_attestation_sha256 = "d".repeat(64);
+        second_source.source_snapshot_sha256 = "e".repeat(64);
         second_source.common_cause_group_ids = vec!["different-declared-group".to_string()];
         batch.sources.push(second_source);
 
@@ -924,8 +930,21 @@ mod tests {
     }
 
     #[test]
+    fn aggregate_result_cannot_be_available_before_its_evidence() {
+        let (mut batch, proposal, case) = fixtures();
+        batch.results[0].available_at_unix_ms = Some(2_050);
+        assert!(validate_evidence_batch(&batch, &proposal, &case).is_err());
+    }
+
+    #[test]
     fn unknown_fields_are_rejected() {
-        let json = r#"{"schemaVersion":"0.1.0","unknownField":true}"#;
-        assert!(serde_json::from_str::<EvidenceBatch>(json).is_err());
+        let (batch, _, _) = fixtures();
+        let mut value = serde_json::to_value(batch).unwrap();
+        value.as_object_mut().unwrap().insert(
+            "unknownField".to_string(),
+            serde_json::Value::Bool(true),
+        );
+        let json = serde_json::to_string(&value).unwrap();
+        assert!(serde_json::from_str::<EvidenceBatch>(&json).is_err());
     }
 }
