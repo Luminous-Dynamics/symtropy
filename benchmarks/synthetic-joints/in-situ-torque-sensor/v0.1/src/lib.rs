@@ -1504,7 +1504,9 @@ mod tests {
         assert_eq!(report.in_domain_test_installation_count, 3);
         assert_eq!(report.calibration_supported_test_installation_count, 2);
         assert_eq!(report.unseen_calibration_stratum_test_installation_count, 1);
-        assert_eq!(report.empirical_installation_coverage, Some(1.0));
+        // Only test-b remains calibration-supported and it is deliberately
+        // uncovered; test-a abstains and cannot inflate the coverage denominator.
+        assert_eq!(report.empirical_installation_coverage, Some(0.0));
     }
 
     #[test]
