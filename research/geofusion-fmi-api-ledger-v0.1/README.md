@@ -43,7 +43,7 @@ The fixture contains two federates and one normalized barrier. **All referenced 
 
 ## Run the fixture audit
 
-The Rust crate in `validator/` is the authoritative typed validator. It uses strict Serde decoding, root-confined SHA-256 artifact checks, FMI lifecycle and call-order validation, exact Float64 bit checking, transfer identity, trace/barrier cross-checks and independent energy residual recomputation. The small Python script is secondary fixture/schema tooling, not a production runtime or adapter. It validates the JSON Schema, root-confined artifact byte length/digests, ordered call shape, exact Float64 encodings, one-to-one trace links, barrier membership and synthetic energy cross-reference.
+The Rust crate in `validator/` is the authoritative typed validator. It uses strict Serde decoding, root-confined SHA-256 artifact checks, FMI lifecycle and call-order validation, exact Float64 bit checking, exact binary64-to-rational clock conversion (fractional nanoseconds are refused), transfer identity, trace/barrier cross-checks and independent energy residual recomputation. The small Python script is secondary fixture/schema tooling, not a production runtime or adapter. It validates the JSON Schema, root-confined artifact byte length/digests, ordered call shape, exact Float64 encodings, one-to-one trace links, barrier membership and synthetic energy cross-reference.
 
 ```sh
 python3 -m pip install --requirement research/geofusion-fmi-api-ledger-v0.1/tests/requirements.txt
