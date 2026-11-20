@@ -990,9 +990,17 @@ mod tests {
             (1.2, SVector::<f64, 3>::new(-0.3, 0.7, 1.4)),
             (0.4, SVector::<f64, 3>::new(0.8, -1.2, 0.4)),
         ];
+        let total_weight = samples.iter().map(|(weight, _)| *weight).sum::<f64>();
+        let center_of_mass = samples
+            .iter()
+            .fold(SVector::<f64, 3>::zeros(), |center, (weight, point)| {
+                center + *point * *weight
+            })
+            / total_weight;
         let mut second_moment = SMatrix::<f64, 3, 3>::zeros();
-        for (weight, point) in samples {
-            second_moment += (point * point.transpose()) * (2.0 * weight);
+        for (weight, point) in samples.iter() {
+            let centered = *point - center_of_mass;
+            second_moment += (centered * centered.transpose()) * (2.0 * *weight);
         }
         let mut row_major = Vec::with_capacity(9);
         for row in 0..3 {
@@ -1011,7 +1019,9 @@ mod tests {
         let angular_map = angular.to_matrix();
         let direct_energy = samples
             .iter()
-            .map(|(weight, point)| weight * (angular_map * point).norm_squared())
+            .map(|(weight, point)| {
+                weight * (angular_map * (*point - center_of_mass)).norm_squared()
+            })
             .sum::<f64>();
 
         assert!((operator_energy - direct_energy).abs() < 1.0e-11);
@@ -1028,9 +1038,17 @@ mod tests {
             (1.2, SVector::<f64, 3>::new(-0.3, 0.0, 0.7)),
             (0.4, SVector::<f64, 3>::new(0.8, 0.0, -1.2)),
         ];
+        let total_weight = samples.iter().map(|(weight, _)| *weight).sum::<f64>();
+        let center_of_mass = samples
+            .iter()
+            .fold(SVector::<f64, 3>::zeros(), |center, (weight, point)| {
+                center + *point * *weight
+            })
+            / total_weight;
         let mut second_moment = SMatrix::<f64, 3, 3>::zeros();
-        for (weight, point) in samples {
-            second_moment += (point * point.transpose()) * (2.0 * weight);
+        for (weight, point) in samples.iter() {
+            let centered = *point - center_of_mass;
+            second_moment += (centered * centered.transpose()) * (2.0 * *weight);
         }
         let mut row_major = Vec::with_capacity(9);
         for row in 0..3 {
@@ -1049,7 +1067,9 @@ mod tests {
         let angular_map = angular.to_matrix();
         let direct_energy = samples
             .iter()
-            .map(|(weight, point)| weight * (angular_map * point).norm_squared())
+            .map(|(weight, point)| {
+                weight * (angular_map * (*point - center_of_mass)).norm_squared()
+            })
             .sum::<f64>();
         assert!((operator_energy - direct_energy).abs() < 1.0e-11);
     }
