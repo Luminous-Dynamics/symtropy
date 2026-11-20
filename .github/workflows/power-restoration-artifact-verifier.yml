@@ -1,0 +1,75 @@
+name: Power restoration artifact verifier
+
+on:
+  pull_request:
+    paths:
+      - "tools/power-restoration-artifact-verifier/**"
+      - ".github/workflows/power-restoration-artifact-verifier.yml"
+  push:
+    paths:
+      - "tools/power-restoration-artifact-verifier/**"
+      - ".github/workflows/power-restoration-artifact-verifier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  artifact-verifier:
+    name: Verify bundle bytes and signed producer attestations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate schemas and synthetic fixture bindings
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+
+          root = Path("tools/power-restoration-artifact-verifier")
+          manifest = json.loads((root / "fixtures/synthetic-bundle-manifest-v0.1.json").read_text())
+          trust = json.loads((root / "fixtures/synthetic-trust-root-v0.1.json").read_text())
+          envelope = json.loads((root / "fixtures/synthetic-validator-attestation-v0.1.json").read_text())
+
+          def canonical(value):
+              return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+
+          fixtures = [
+              (manifest, "bundle-manifest-v0.1.schema.json"),
+              (trust, "trust-root-v0.1.schema.json"),
+              (envelope, "attestation-v0.1.schema.json"),
+          ]
+          for value, filename in fixtures:
+              schema = json.loads((root / "fixtures" / filename).read_text())
+              Draft202012Validator.check_schema(schema)
+              errors = list(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(value))
+              assert not errors, f"{filename}: " + "; ".join(error.message for error in errors)
+
+          artifact = manifest["artifacts"][0]
+          artifact_bytes = (root / "fixtures" / artifact["relativePath"]).read_bytes()
+          assert len(artifact_bytes) == artifact["byteLength"]
+          assert hashlib.sha256(artifact_bytes).hexdigest() == artifact["sha256"]
+          assert envelope["payload"]["subjectUri"] == artifact["artifactUri"]
+          assert envelope["payload"]["subjectSha256"] == artifact["sha256"]
+          assert hashlib.sha256(canonical(trust)).hexdigest() == "973efb60a07f0a0d49d50e0ee40ff42eaf0bc50a406c483fce39325f01c9cbd3"
+          print("PASS: schemas, synthetic artifact bytes, subject bindings and pinned trust-root digest")
+          PY
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/power-restoration-artifact-verifier/Cargo.toml --all -- --check
+      - name: Resolve dependency graph for this run
+        run: cargo generate-lockfile --manifest-path tools/power-restoration-artifact-verifier/Cargo.toml
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/power-restoration-artifact-verifier/Cargo.toml --all-targets -- -D warnings
+      - name: Run Rust tests
+        run: cargo test --locked --manifest-path tools/power-restoration-artifact-verifier/Cargo.toml --all-targets
