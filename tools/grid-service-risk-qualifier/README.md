@@ -55,7 +55,7 @@ All service-floor values are synthetic. The fixture deliberately uses five benef
 ## Hard-floor and uncertainty semantics
 
 - Every accepted lower service-fraction bound must meet its cohort's minimum floor on every in-scope branch.
-- Missing, pending, rejected or unknown service evidence produces INCONCLUSIVE; it is never treated as zero deficit or full availability.
+- Missing, pending, rejected or unknown service evidence produces INCONCLUSIVE; it is never treated as zero deficit or full availability. Unaccepted service values are excluded from floor-breach assertions and from robust expected-risk calculations.
 - The probability point estimates must lie inside the interval bounds.
 - Point probabilities must sum to 10,000; interval lower sums must be <=10,000 and interval upper sums >=10,000.
 - Every branch must carry the exact same set of service metrics.
