@@ -29,48 +29,42 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
+          import copy
           import json
           from pathlib import Path
           from jsonschema import Draft202012Validator
 
           root = Path("tools/grid-ac-step-certificate")
           schema = json.loads((root / "per-step-ac-certificate-v0.1.schema.json").read_text())
-          fixtures = {
-              "accepted-static-ac-only": json.loads((root / "fixtures/accepted-static-ac-only-v0.1.json").read_text()),
-              "dc-feasible-ac-infeasible": json.loads((root / "fixtures/dc-feasible-ac-infeasible-v0.1.json").read_text()),
-          }
+          accepted = json.loads((root / "fixtures/accepted-static-ac-only-v0.1.json").read_text())
+          dc_infeasible = json.loads((root / "fixtures/dc-feasible-ac-infeasible-v0.1.json").read_text())
           Draft202012Validator.check_schema(schema)
           validator = Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER)
-          for name, case in fixtures.items():
-              errors = sorted(validator.iter_errors(case), key=lambda error: list(error.path))
-              assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
 
+          def validate_semantics(case):
               steps = case["evaluationGrid"]["steps"]
               step_ids = [item["stepId"] for item in steps]
               assert len(step_ids) == len(set(step_ids))
               receipts = case["acStepReceipts"]
               receipt_ids = [item["stepId"] for item in receipts]
-              assert len(receipt_ids) == len(set(receipt_ids)), f"{name}: duplicate per-step receipt"
-              assert set(receipt_ids) == set(step_ids), f"{name}: every evaluation step requires exactly one AC receipt"
-
+              assert len(receipt_ids) == len(set(receipt_ids))
+              assert set(receipt_ids) == set(step_ids), "each evaluation step must have exactly one AC receipt"
               planner = {item["stepId"]: item for item in case["plannerSummary"]["stepResults"]}
+              assert set(planner) == set(step_ids)
               by_step = {item["stepId"]: item for item in receipts}
+              declared = set(case["networkModel"]["requiredConstraintTypes"])
               for step in steps:
                   receipt = by_step[step["stepId"]]
-                  assert receipt["topologyStateSha256"] == step["topologyStateSha256"]
-                  assert receipt["dispatchStateSha256"] == step["dispatchStateSha256"]
-                  assert receipt["topologyStateSha256"] == planner[step["stepId"]]["topologyStateSha256"]
-                  assert receipt["dispatchStateSha256"] == planner[step["stepId"]]["dispatchStateSha256"]
-
-                  declared = set(case["networkModel"]["requiredConstraintTypes"])
+                  assert receipt["topologyStateSha256"] == step["topologyStateSha256"] == planner[step["stepId"]]["topologyStateSha256"]
+                  assert receipt["dispatchStateSha256"] == step["dispatchStateSha256"] == planner[step["stepId"]]["dispatchStateSha256"]
                   assessed = [item for item in receipt["constraintAssessments"] if item["status"] != "not_applicable"]
                   assessed_types = {item["constraintType"] for item in assessed}
-                  assert declared <= assessed_types, f"{name}/{step['stepId']}: omitted required AC constraint category"
+                  assert declared <= assessed_types, "omitted required AC constraint category"
                   for item in assessed:
                       if item["status"] == "pass":
-                          assert item["margin"] >= 0, f"{name}/{step['stepId']}: pass with negative margin"
+                          assert item["margin"] >= 0, "constraint passes with a negative margin"
                       if item["status"] == "fail":
-                          assert item["margin"] < 0, f"{name}/{step['stepId']}: fail without negative margin"
+                          assert item["margin"] < 0, "constraint fails without a negative margin"
                   if receipt["solverStatus"] == "converged":
                       assert receipt["convergence"]["iterationCount"] > 0
                       assert receipt["convergence"]["powerBalanceResidual"] <= receipt["convergence"]["residualTolerance"]
@@ -81,14 +75,45 @@ jobs:
                   if receipt["solverStatus"] in ("not_converged", "error", "not_run"):
                       assert receipt["operatingPointStatus"] == "unknown"
 
-              if name == "accepted-static-ac-only":
-                  assert all(item["solverStatus"] == "converged" and item["operatingPointStatus"] == "feasible" for item in receipts)
-                  assert case["intertemporalReceipt"]["status"] == "accepted"
-                  assert case["dynamicProtectionReceipt"]["status"] == "not_assessed"
-              else:
-                  failed = [item for item in receipts if item["operatingPointStatus"] == "infeasible"]
-                  assert len(failed) == 1 and failed[0]["stepId"] == "s1"
-                  assert planner["s1"]["plannerStatus"] == "feasible"
-                  assert any(item["status"] == "fail" for item in failed[0]["constraintAssessments"])
-          print("PASS: exact per-step receipt coverage, topology/dispatch digest binding, DC-vs-AC hostile control and static/dynamic separation")
+          for case in (accepted, dc_infeasible):
+              errors = sorted(validator.iter_errors(case), key=lambda error: list(error.path))
+              assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
+              validate_semantics(case)
+
+          assert all(item["solverStatus"] == "converged" and item["operatingPointStatus"] == "feasible" for item in accepted["acStepReceipts"])
+          assert accepted["intertemporalReceipt"]["status"] == "accepted"
+          assert accepted["dynamicProtectionReceipt"]["status"] == "not_assessed"
+
+          failed = [item for item in dc_infeasible["acStepReceipts"] if item["operatingPointStatus"] == "infeasible"]
+          assert len(failed) == 1 and failed[0]["stepId"] == "s1"
+          assert {item["status"] for item in failed[0]["constraintAssessments"]} >= {"fail"}
+          planner = {item["stepId"]: item for item in dc_infeasible["plannerSummary"]["stepResults"]}
+          assert planner["s1"]["plannerStatus"] == "feasible"
+
+          # Hostile controls: stale topology receipt, omitted voltage category,
+          # pass-with-negative-margin, and non-converged solver marked feasible.
+          attacks = []
+          stale = copy.deepcopy(accepted)
+          stale["acStepReceipts"][1]["topologyStateSha256"] = "f" * 64
+          attacks.append(stale)
+          omitted = copy.deepcopy(accepted)
+          omitted["acStepReceipts"][0]["constraintAssessments"] = [
+              row for row in omitted["acStepReceipts"][0]["constraintAssessments"]
+              if row["constraintType"] != "bus_voltage"
+          ]
+          attacks.append(omitted)
+          margin = copy.deepcopy(accepted)
+          margin["acStepReceipts"][0]["constraintAssessments"][0]["margin"] = -0.01
+          attacks.append(margin)
+          nonconverged = copy.deepcopy(accepted)
+          nonconverged["acStepReceipts"][0]["solverStatus"] = "not_converged"
+          attacks.append(nonconverged)
+          for hostile in attacks:
+              try:
+                  validate_semantics(hostile)
+              except AssertionError:
+                  continue
+              raise AssertionError("hostile AC receipt was accepted")
+
+          print("PASS: per-step coverage, model/dispatch binding, all declared AC constraint categories, DC-vs-AC contradiction, and four hostile receipt controls")
           PY
