@@ -737,6 +737,17 @@ mod tests {
             )),
             Err(DomainBalanceError::InvalidInternalFaceReceipt(_))
         ));
+
+        let mut unqualified = internal_face("unqualified", "cell-0", "cell-1", vec![1.0, 1.0]);
+        unqualified.candidate_receipts[0].qualification = CandidateQualification::Unknown;
+        assert!(matches!(
+            assemble_domain_balance(&request(
+                vec!["cell-0", "cell-1"],
+                vec![unqualified],
+                vec![],
+            )),
+            Err(DomainBalanceError::InvalidCandidateReceipt(_))
+        ));
     }
 
     #[test]
@@ -748,6 +759,17 @@ mod tests {
                 vec!["cell-0"],
                 vec![],
                 vec![boundary],
+            )),
+            Err(DomainBalanceError::InvalidBoundaryReceipt(_))
+        ));
+
+        let mut unknown_authority = boundary_face("unknown-wall", "cell-0", vec![1.0, 1.0]);
+        unknown_authority.qualification = CandidateQualification::Unknown;
+        assert!(matches!(
+            assemble_domain_balance(&request(
+                vec!["cell-0"],
+                vec![],
+                vec![unknown_authority],
             )),
             Err(DomainBalanceError::InvalidBoundaryReceipt(_))
         ));
