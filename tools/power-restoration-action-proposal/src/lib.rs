@@ -220,9 +220,10 @@ pub fn validate_proposal(
     {
         errors.push("proposal case digest does not match the frozen case digest".to_string());
     }
+    let expected_case_ref = format!("power-restoration-case://{}", case.case_id);
     if proposal.schema_version != "0.1.0"
         || !valid_id(&proposal.proposal_id)
-        || !valid_id(&proposal.case_ref)
+        || proposal.case_ref != expected_case_ref
     {
         errors.push("proposal schema, proposal ID or case reference is invalid".to_string());
     }
@@ -238,7 +239,7 @@ pub fn validate_proposal(
     let observation = &proposal.observation;
     if !valid_id(&observation.observation_ref)
         || !is_lower_hex(&observation.observation_sha256, 64)
-        || observation.observed_step > proposal.decision_step
+        || observation.observed_step != proposal.decision_step
         || proposal.decision_step >= case.timebase.horizon_steps
     {
         errors.push("observation identity/digest or proposal decision step is invalid".to_string());
@@ -319,9 +320,9 @@ mod tests {
             action_kind: kind,
             target_id: target.map(str::to_string),
             desired_switch_state: None,
-            decision_step: proposal.decision_step,
-            observation_ref: proposal.observation.observation_ref.clone(),
-            precondition_evidence: vec![evidence(proposal.decision_step)],
+            decision_step: step,
+            observation_ref,
+            precondition_evidence: vec![evidence(step)],
             authority_requirement_ref: "synthetic://authority/requirement-1".to_string(),
         }];
         proposal
@@ -441,6 +442,24 @@ mod tests {
         let case = case();
         let mut proposal = proposal();
         proposal.actions[0].observation_ref = "other-snapshot".to_string();
+        let digest = canonical_case_sha256(&case).unwrap();
+        assert!(validate_proposal(&proposal, &case, &digest).is_err());
+    }
+
+    #[test]
+    fn case_reference_must_resolve_to_the_canonical_case_id() {
+        let case = case();
+        let mut proposal = proposal();
+        proposal.case_ref = "power-restoration-case://different-case".to_string();
+        let digest = canonical_case_sha256(&case).unwrap();
+        assert!(validate_proposal(&proposal, &case, &digest).is_err());
+    }
+
+    #[test]
+    fn observation_snapshot_must_be_current_for_the_decision_epoch() {
+        let case = case();
+        let mut proposal = proposal();
+        proposal.observation.observed_step = proposal.decision_step.saturating_sub(1);
         let digest = canonical_case_sha256(&case).unwrap();
         assert!(validate_proposal(&proposal, &case, &digest).is_err());
     }
