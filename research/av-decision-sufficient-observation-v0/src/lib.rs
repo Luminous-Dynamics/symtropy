@@ -632,6 +632,45 @@ pub fn audit_fixtures(agent: &Value, oracle: &Value, expected: &Value) -> Result
         );
     }
 
+    // Finite policy comparison: EIG maximizes information; EVSI selects only
+    // a positive net decision-value request and otherwise stops.
+    let mut eig_policy_choice = String::new();
+    let mut best_eig = f64::NEG_INFINITY;
+    let mut evsi_policy_choice = "STOP".to_owned();
+    let mut best_positive_net_evsi = 0.0_f64;
+    for request in &calculated_requests {
+        let request_id = string(required(request, "request_id")?, "request_id")?;
+        let eig = number(required(request, "eig_nats")?, "eig_nats")?;
+        let net = number(required(request, "net_evsi")?, "net_evsi")?;
+        if eig > best_eig {
+            best_eig = eig;
+            eig_policy_choice = request_id.clone();
+        }
+        if net > best_positive_net_evsi {
+            best_positive_net_evsi = net;
+            evsi_policy_choice = request_id;
+        }
+    }
+    let policy_tournament = json!({
+        "information_gain_policy": {
+            "selected_request": eig_policy_choice,
+            "selection_score_nats": best_eig
+        },
+        "decision_value_policy": {
+            "selected_request_or_stop": evsi_policy_choice,
+            "best_positive_net_evsi": best_positive_net_evsi
+        },
+        "policies_choose_different_actions": eig_policy_choice != evsi_policy_choice
+    });
+    if policy_tournament["information_gain_policy"]["selected_request"]
+        .as_str()
+        != Some("subtype_detail")
+        || policy_tournament["decision_value_policy"]["selected_request_or_stop"].as_str()
+            != Some("hazard_cue")
+    {
+        return Err("finite policy tournament did not separate EIG and EVSI selections".to_owned());
+    }
+
     // Robust stop: both hypotheses must independently prefer the same terminal action.
     let robust_stop = &agent_episodes[1];
     let (ids, priors, decisions, losses) = parse_decision_problem(robust_stop)?;
@@ -767,6 +806,7 @@ pub fn audit_fixtures(agent: &Value, oracle: &Value, expected: &Value) -> Result
         "status": "fixture_integrity_and_finite_known_answers_pass",
         "claim_ceiling": "synthetic fixture arithmetic and metadata only",
         "episode_count": agent_episodes.len(),
+        "policy_tournament": policy_tournament,
         "verified": {
             "episode_id_alignment": true,
             "complete_finite_decision_loss_matrix": true,
@@ -809,6 +849,24 @@ mod tests {
             Some("fixture_integrity_and_finite_known_answers_pass")
         );
         assert_eq!(report.get("episode_count").and_then(Value::as_u64), Some(7));
+    }
+
+    #[test]
+    fn finite_policy_tournament_separates_eig_from_decision_value() {
+        let (agent, oracle, expected) = fixtures();
+        let report = audit_fixtures(&agent, &oracle, &expected).unwrap();
+        assert_eq!(
+            report["policy_tournament"]["information_gain_policy"]["selected_request"],
+            "subtype_detail"
+        );
+        assert_eq!(
+            report["policy_tournament"]["decision_value_policy"]["selected_request_or_stop"],
+            "hazard_cue"
+        );
+        assert_eq!(
+            report["policy_tournament"]["policies_choose_different_actions"],
+            true
+        );
     }
 
     #[test]
