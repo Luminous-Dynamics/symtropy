@@ -15,8 +15,8 @@ use action_conditioned_offscreen_camera::{
     PolicyObservationReceipt, RenderError, RenderedObservation, verify_policy_receipt,
 };
 use av_observation_replay_v0::{
-    AgentObservationBundleV1, AgentObservationV1, ArtifactRefV1, AudioChunkObservationV1,
-    BoundedTimeV1, CaptureIntervalV1, ClockDomainV1, ColorRangeV1, ColorSpaceV1,
+    AgentObservationBundleV1, AgentObservationV1, ArtifactRefV1, BoundedTimeV1,
+    CaptureIntervalV1, ClockDomainV1, ColorRangeV1, ColorSpaceV1,
     ContractError, PixelFormatV1, SCHEMA_VERSION_V1, TransportDispositionV1,
     TransportEventV1, VideoFrameObservationV1, validate_bundle_v1,
 };
@@ -116,8 +116,8 @@ pub enum AdapterError {
     ClockDomainMismatch,
     /// Timestamp conversion from microseconds to nanoseconds overflowed.
     TimestampOverflow,
-    /// A dropped transport event cannot carry a frame artifact.
-    DroppedEventHasFrame,
+    /// Only first-seen Delivered or Reordered events create a producer frame.
+    NonInitialTransportDisposition,
     /// The generic AV replay validator rejected the projected bundle.
     ReplayContractRejected(ContractError),
     /// An adapted frame and its preserved producer receipt no longer agree.
@@ -182,8 +182,13 @@ pub fn adapt_camera_frame_v1(
     if context.clock_domain.domain_id != receipt.clock_id {
         return Err(AdapterError::ClockDomainMismatch);
     }
-    if context.arrival.disposition == TransportDispositionV1::Dropped {
-        return Err(AdapterError::DroppedEventHasFrame);
+    if !matches!(
+        context.arrival.disposition,
+        TransportDispositionV1::Delivered | TransportDispositionV1::Reordered
+    ) {
+        // Duplicates and stale replays refer to an already-adapted observation;
+        // Dropped has no payload. They belong in the transport log, not here.
+        return Err(AdapterError::NonInitialTransportDisposition);
     }
     if receipt.channels != 3
         || receipt.pixel_format
