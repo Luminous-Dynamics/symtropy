@@ -9111,6 +9111,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-geofusion-contracts"
+version = "0.1.0"
+
+[[package]]
 name = "symtropy-hdc-core"
 version = "0.1.0"
 dependencies = [

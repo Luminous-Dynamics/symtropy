@@ -1,0 +1,10 @@
+scenario_id|expected|expected_value|input_1|input_2|input_3|input_4
+stream_energy_mismatch|reject|EnergyPowerDurationMismatch|8|0.25|2.1|
+geothermal_primary_heat_to_dt_plasma|reject|PrimaryGeothermalHeatCannotFeedPlasma|180|150|20|
+thermal_approach_below_minimum|reject|InsufficientTemperatureApproach|165|150|20|
+first_law_thermal_to_electric|balanced|0|10|2|7|1
+first_law_overflow_adversarial|unbalanced|0.3333333333333333|MAX|MAX|MAX|
+source_allocation_overallocated|unbalanced|-1|10|6|5|0
+source_allocation_duplicate_edge|reject|DuplicateAllocationId|10|4|3|3
+wellhead_property_state_mismatch|reject|PropertyStateMismatch|9900000|10000000|
+wellhead_two_phase_no_model|reject|TwoPhaseRequiresQualifiedHydraulics|two_phase||
