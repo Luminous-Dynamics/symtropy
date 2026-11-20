@@ -482,12 +482,12 @@ mod tests {
     }
 
     #[test]
-    fn dropped_event_cannot_be_attached_to_a_frame_payload() {
+    fn replay_only_transport_events_cannot_create_new_source_frames() {
         let mut ctx = context();
         ctx.arrival.disposition = TransportDispositionV1::Dropped;
         assert_eq!(
             adapt_camera_frame_v1(&rendered_at(10_000), &ctx),
-            Err(AdapterError::DroppedEventHasFrame)
+            Err(AdapterError::NonInitialTransportDisposition)
         );
     }
 
