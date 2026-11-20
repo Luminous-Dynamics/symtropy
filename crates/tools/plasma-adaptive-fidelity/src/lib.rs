@@ -47,6 +47,15 @@ pub struct CalibratedErrorBound {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct EigenbasisConditionEvidence {
+    pub disposition: EvidenceDisposition,
+    pub upper_bound: f64,
+    pub admissible_limit: f64,
+    pub evidence_sha256: String,
+    pub evaluated_state_sha256: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct MomentOrderCandidate {
     pub profile_id: String,
     pub profile_sha256: String,
@@ -58,8 +67,7 @@ pub struct MomentOrderCandidate {
     pub hyperbolicity: GateEvidence,
     pub realizability: GateEvidence,
     pub conservation: GateEvidence,
-    pub eigenbasis_condition_upper_bound: f64,
-    pub eigenbasis_condition_limit: f64,
+    pub eigenbasis_condition: EigenbasisConditionEvidence,
     pub computational_cost: f64,
     pub cost_unit_id: String,
 }
@@ -115,6 +123,10 @@ pub enum IneligibilityReason {
     ConservationRejected,
     ConservationStateMismatch,
     InvalidConservationDigest,
+    EigenbasisConditionUnknown,
+    EigenbasisConditionRejected,
+    EigenbasisConditionStateMismatch,
+    InvalidEigenbasisConditionDigest,
     InvalidEigenbasisCondition,
     EigenbasisConditionExceeded,
     InvalidComputationalCost,
@@ -136,13 +148,14 @@ pub struct SelectedMomentOrder {
     pub perpendicular_order_q: u32,
     pub calibrated_error_upper_bound: f64,
     pub eigenbasis_condition_upper_bound: f64,
+    pub eigenbasis_condition_evidence_sha256: String,
     pub computational_cost: f64,
     pub cost_unit_id: String,
     pub hyperbolicity_evidence_sha256: String,
     pub realizability_evidence_sha256: String,
     pub conservation_evidence_sha256: String,
     pub calibration_receipt_sha256: String,
-    pub rejected_candidates: Vec<CandidateRejection>,
+    pub ineligible_candidates: Vec<CandidateRejection>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -153,7 +166,7 @@ pub struct KineticPatchRequest {
     pub computational_cost: f64,
     pub cost_unit_id: String,
     pub qualification_evidence_sha256: String,
-    pub rejected_candidates: Vec<CandidateRejection>,
+    pub ineligible_candidates: Vec<CandidateRejection>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -169,10 +182,10 @@ pub enum PolicyDecision {
     RequestKineticPatch(KineticPatchRequest),
     Unknown {
         reason: UnknownReason,
-        rejected_candidates: Vec<CandidateRejection>,
+        ineligible_candidates: Vec<CandidateRejection>,
     },
     Refused {
-        rejected_candidates: Vec<CandidateRejection>,
+        ineligible_candidates: Vec<CandidateRejection>,
         reason: String,
     },
 }
@@ -243,8 +256,8 @@ pub fn evaluate_adaptive_fidelity(
         a.computational_cost
             .total_cmp(&b.computational_cost)
             .then_with(|| {
-                (u64::from(a.parallel_order_p) + u64::from(a.perpendicular_order_q))
-                    .cmp(&(u64::from(b.parallel_order_p) + u64::from(b.perpendicular_order_q)))
+                ((u64::from(a.parallel_order_p) + 1) * (u64::from(a.perpendicular_order_q) + 1))
+                    .cmp(&((u64::from(b.parallel_order_p) + 1) * (u64::from(b.perpendicular_order_q) + 1)))
             })
             .then_with(|| a.parallel_order_p.cmp(&b.parallel_order_p))
             .then_with(|| a.perpendicular_order_q.cmp(&b.perpendicular_order_q))
@@ -259,14 +272,15 @@ pub fn evaluate_adaptive_fidelity(
             parallel_order_p: selected.parallel_order_p,
             perpendicular_order_q: selected.perpendicular_order_q,
             calibrated_error_upper_bound: selected.calibrated_error.upper_bound,
-            eigenbasis_condition_upper_bound: selected.eigenbasis_condition_upper_bound,
+            eigenbasis_condition_upper_bound: selected.eigenbasis_condition.upper_bound,
+            eigenbasis_condition_evidence_sha256: selected.eigenbasis_condition.evidence_sha256.clone(),
             computational_cost: selected.computational_cost,
             cost_unit_id: selected.cost_unit_id.clone(),
             hyperbolicity_evidence_sha256: selected.hyperbolicity.evidence_sha256.clone(),
             realizability_evidence_sha256: selected.realizability.evidence_sha256.clone(),
             conservation_evidence_sha256: selected.conservation.evidence_sha256.clone(),
             calibration_receipt_sha256: selected.calibrated_error.calibration_receipt_sha256.clone(),
-            rejected_candidates: rejected,
+            ineligible_candidates: rejected,
         }));
     }
 
@@ -281,18 +295,18 @@ pub fn evaluate_adaptive_fidelity(
                         computational_cost: patch.computational_cost,
                         cost_unit_id: patch.cost_unit_id.clone(),
                         qualification_evidence_sha256: patch.qualification.evidence_sha256.clone(),
-                        rejected_candidates: rejected,
+                        ineligible_candidates: rejected,
                     }));
                 }
                 CandidateAssessment::Unknown(_) => {
                     return Ok(PolicyDecision::Unknown {
                         reason: UnknownReason::KineticPatchQualificationUnknown,
-                        rejected_candidates: rejected,
+                        ineligible_candidates: rejected,
                     });
                 }
                 CandidateAssessment::Rejected(reason) => {
                     return Ok(PolicyDecision::Refused {
-                        rejected_candidates: rejected,
+                        ineligible_candidates: rejected,
                         reason: format!("kinetic patch is ineligible: {reason:?}"),
                     });
                 }
@@ -300,7 +314,7 @@ pub fn evaluate_adaptive_fidelity(
         }
         return Ok(PolicyDecision::Unknown {
             reason: UnknownReason::NoCandidateProfiles,
-            rejected_candidates: rejected,
+            ineligible_candidates: rejected,
         });
     }
 
@@ -314,13 +328,13 @@ pub fn evaluate_adaptive_fidelity(
                     computational_cost: patch.computational_cost,
                     cost_unit_id: patch.cost_unit_id.clone(),
                     qualification_evidence_sha256: patch.qualification.evidence_sha256.clone(),
-                    rejected_candidates: rejected,
+                    ineligible_candidates: rejected,
                 }));
             }
             CandidateAssessment::Unknown(_) => {
                 return Ok(PolicyDecision::Unknown {
                     reason: UnknownReason::KineticPatchQualificationUnknown,
-                    rejected_candidates: rejected,
+                    ineligible_candidates: rejected,
                 });
             }
             CandidateAssessment::Rejected(_) => {}
@@ -330,11 +344,11 @@ pub fn evaluate_adaptive_fidelity(
     if has_unknown_candidate {
         Ok(PolicyDecision::Unknown {
             reason: UnknownReason::NoAdmissibleMomentOrder,
-            rejected_candidates: rejected,
+            ineligible_candidates: rejected,
         })
     } else {
         Ok(PolicyDecision::Refused {
-            rejected_candidates: rejected,
+            ineligible_candidates: rejected,
             reason: "no moment order satisfies the local error and physical-admissibility gates, and no qualified kinetic patch is available".to_owned(),
         })
     }
@@ -473,14 +487,30 @@ fn assess_candidate(
         return reason;
     }
 
-    if !candidate.eigenbasis_condition_upper_bound.is_finite()
-        || candidate.eigenbasis_condition_upper_bound <= 0.0
-        || !candidate.eigenbasis_condition_limit.is_finite()
-        || candidate.eigenbasis_condition_limit <= 0.0
+    let eigenbasis = &candidate.eigenbasis_condition;
+    if eigenbasis.evaluated_state_sha256 != request.local_state_sha256 {
+        return CandidateAssessment::Rejected(IneligibilityReason::EigenbasisConditionStateMismatch);
+    }
+    if !is_sha256(&eigenbasis.evidence_sha256) {
+        return CandidateAssessment::Rejected(IneligibilityReason::InvalidEigenbasisConditionDigest);
+    }
+    match eigenbasis.disposition {
+        EvidenceDisposition::Pass => {}
+        EvidenceDisposition::Unknown => {
+            return CandidateAssessment::Unknown(IneligibilityReason::EigenbasisConditionUnknown);
+        }
+        EvidenceDisposition::Rejected => {
+            return CandidateAssessment::Rejected(IneligibilityReason::EigenbasisConditionRejected);
+        }
+    }
+    if !eigenbasis.upper_bound.is_finite()
+        || eigenbasis.upper_bound <= 0.0
+        || !eigenbasis.admissible_limit.is_finite()
+        || eigenbasis.admissible_limit <= 0.0
     {
         return CandidateAssessment::Rejected(IneligibilityReason::InvalidEigenbasisCondition);
     }
-    if candidate.eigenbasis_condition_upper_bound > candidate.eigenbasis_condition_limit {
+    if eigenbasis.upper_bound > eigenbasis.admissible_limit {
         return CandidateAssessment::Rejected(IneligibilityReason::EigenbasisConditionExceeded);
     }
 
@@ -609,8 +639,13 @@ mod tests {
             hyperbolicity: gate(EvidenceDisposition::Pass, '4'),
             realizability: gate(EvidenceDisposition::Pass, '5'),
             conservation: gate(EvidenceDisposition::Pass, '6'),
-            eigenbasis_condition_upper_bound: 4.0,
-            eigenbasis_condition_limit: 10.0,
+            eigenbasis_condition: EigenbasisConditionEvidence {
+                disposition: EvidenceDisposition::Pass,
+                upper_bound: 4.0,
+                admissible_limit: 10.0,
+                evidence_sha256: digest('a'),
+                evaluated_state_sha256: digest('f'),
+            },
             computational_cost: cost,
             cost_unit_id: "normalized-cost-unit".into(),
         }
@@ -697,7 +732,7 @@ mod tests {
             result,
             PolicyDecision::SelectedMomentOrder(ref selected)
                 if selected.profile_id == "qualified"
-                    && selected.rejected_candidates.len() == 1
+                    && selected.ineligible_candidates.len() == 1
         ));
     }
 
@@ -712,15 +747,15 @@ mod tests {
     #[test]
     fn ill_conditioned_eigenbasis_is_rejected_even_with_real_eigenvalue_certificate() {
         let mut invalid = candidate("ill-conditioned", 8, 8, 1.0, 0.01);
-        invalid.eigenbasis_condition_upper_bound = 1.0e8;
-        invalid.eigenbasis_condition_limit = 1.0e5;
+        invalid.eigenbasis_condition.upper_bound = 1.0e8;
+        invalid.eigenbasis_condition.admissible_limit = 1.0e5;
         let result = evaluate_adaptive_fidelity(&request(vec![invalid])).unwrap();
         assert!(matches!(
             result,
             PolicyDecision::Refused {
-                rejected_candidates,
+                ineligible_candidates,
                 ..
-            } if rejected_candidates.iter().any(|item|
+            } if ineligible_candidates.iter().any(|item|
                 item.reason == IneligibilityReason::EigenbasisConditionExceeded)
         ));
     }
@@ -733,9 +768,9 @@ mod tests {
         assert!(matches!(
             result,
             PolicyDecision::Refused {
-                rejected_candidates,
+                ineligible_candidates,
                 ..
-            } if rejected_candidates.iter().any(|item|
+            } if ineligible_candidates.iter().any(|item|
                 item.reason == IneligibilityReason::ErrorEstimatorStateMismatch)
         ));
     }
@@ -748,9 +783,9 @@ mod tests {
         assert!(matches!(
             result,
             PolicyDecision::Refused {
-                rejected_candidates,
+                ineligible_candidates,
                 ..
-            } if rejected_candidates[0].reason == IneligibilityReason::CompatibilityMismatch
+            } if ineligible_candidates[0].reason == IneligibilityReason::CompatibilityMismatch
         ));
     }
 
@@ -780,7 +815,7 @@ mod tests {
             evaluate_adaptive_fidelity(&req).unwrap(),
             PolicyDecision::Unknown {
                 reason: UnknownReason::KineticPatchQualificationUnknown,
-                rejected_candidates: vec![],
+                ineligible_candidates: vec![],
             }
         );
     }
@@ -814,9 +849,9 @@ mod tests {
         assert!(matches!(
             result,
             PolicyDecision::Refused {
-                rejected_candidates,
+                ineligible_candidates,
                 ..
-            } if rejected_candidates[0].reason == IneligibilityReason::CostUnitMismatch
+            } if ineligible_candidates[0].reason == IneligibilityReason::CostUnitMismatch
         ));
     }
 
@@ -842,9 +877,9 @@ mod tests {
         assert!(matches!(
             result,
             PolicyDecision::Refused {
-                rejected_candidates,
+                ineligible_candidates,
                 ..
-            } if rejected_candidates[0].reason == IneligibilityReason::InvalidErrorUpperBound
+            } if ineligible_candidates[0].reason == IneligibilityReason::InvalidErrorUpperBound
         ));
 
         let mut invalid_cost = candidate("infinite-cost", 8, 8, 1.0, 0.01);
@@ -853,9 +888,9 @@ mod tests {
         assert!(matches!(
             result,
             PolicyDecision::Refused {
-                rejected_candidates,
+                ineligible_candidates,
                 ..
-            } if rejected_candidates[0].reason == IneligibilityReason::InvalidComputationalCost
+            } if ineligible_candidates[0].reason == IneligibilityReason::InvalidComputationalCost
         ));
     }
 
@@ -865,7 +900,7 @@ mod tests {
             evaluate_adaptive_fidelity(&request(vec![])).unwrap(),
             PolicyDecision::Unknown {
                 reason: UnknownReason::NoCandidateProfiles,
-                rejected_candidates: vec![],
+                ineligible_candidates: vec![],
             }
         );
     }
