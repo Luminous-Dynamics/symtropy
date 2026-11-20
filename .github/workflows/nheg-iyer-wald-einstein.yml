@@ -1,0 +1,57 @@
+name: EGB NHEG Einstein-sector Iyer-Wald replay
+
+on:
+  push:
+    branches:
+      - research/egb-nheg-iyer-wald-2026-11-20
+    paths:
+      - crates/domains/symtropy-lovelock5d/benchmarks/derive_nheg_iyer_wald_einstein.py
+      - crates/domains/symtropy-lovelock5d/benchmarks/nheg_iyer_wald_einstein_v1.json
+      - .github/workflows/nheg-iyer-wald-einstein.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nheg-iyer-wald-einstein
+  cancel-in-progress: false
+
+jobs:
+  exact-einstein-charge:
+    name: Exact coordinate Einstein-sector charge density
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install pinned symbolic engine
+        run: python -m pip install --disable-pip-version-check sympy==1.14.0
+      - name: Derive metric, variation and Einstein k tensor
+        env:
+          PYTHONHASHSEED: "0"
+        run: |
+          OUT="$RUNNER_TEMP/nheg_iyer_wald_einstein_replay.json"
+          python crates/domains/symtropy-lovelock5d/benchmarks/derive_nheg_iyer_wald_einstein.py --output "$OUT"
+          python - "$OUT" <<'PY'
+          import json, sys
+          from pathlib import Path
+          data=json.loads(Path(sys.argv[1]).read_text())
+          v=data["validation"]
+          for key in ("coordinate_inverse_exact","coordinate_determinant_exact","fixed_alpha_variation_used","Einstein_k_E_tr_exact","Einstein_density_exact","source_full_density_GB_remainder_target_exact"):
+              assert v[key] is True, (key,v[key])
+          assert v["full_GB_k_tensor_independently_replayed"] is False
+          assert v["symplectic_flux_or_integrability_established"] is False
+          print("PASS: coordinate metric/inverse/determinant and fixed-alpha variation")
+          print("PASS: independent Einstein k_E^tr and surface-charge density")
+          print("PASS: Gauss-Bonnet remainder target recorded, not overclaimed")
+          PY
+      - name: Preserve exact replay receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: egb-nheg-iyer-wald-einstein-replay
+          path: ${{ runner.temp }}/nheg_iyer_wald_einstein_replay.json
+          if-no-files-found: error
+          retention-days: 30
