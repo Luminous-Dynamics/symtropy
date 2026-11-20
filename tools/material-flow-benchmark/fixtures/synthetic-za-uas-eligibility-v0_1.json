@@ -98,6 +98,19 @@
           "operations_manual_revision_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
           "valid_from_unix_ms": 1700000000000,
           "valid_until_unix_ms": 2000000000000
+        },
+        {
+          "requirement": "uas_operations_specification",
+          "state": "caller_verified_current",
+          "evidence_record_id": "synthetic-record-uas-operations-specification",
+          "source_reference": "synthetic://za-uas/approval/uas-operations-specification",
+          "source_version": "synthetic-car101-source-snapshot-2026-11-20",
+          "aircraft_serial_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operator_identity_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "operation_scope_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "operations_manual_revision_digest": null,
+          "valid_from_unix_ms": 1700000000000,
+          "valid_until_unix_ms": 2000000000000
         }
       ]
     },
@@ -116,7 +129,21 @@
       "operation_scope_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "operations_manual_revision_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "assessment_time_unix_ms": 1800000000000,
-      "approval_evidence": []
+      "approval_evidence": [
+        {
+          "requirement": "uas_operations_specification",
+          "state": "caller_verified_current",
+          "evidence_record_id": "synthetic-record-uas-operations-specification",
+          "source_reference": "synthetic://za-uas/approval/uas-operations-specification",
+          "source_version": "synthetic-car101-source-snapshot-2026-11-20",
+          "aircraft_serial_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operator_identity_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "operation_scope_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "operations_manual_revision_digest": null,
+          "valid_from_unix_ms": 1700000000000,
+          "valid_until_unix_ms": 2000000000000
+        }
+      ]
     },
     {
       "operation_id": "commercial-bvlos-missing-director-approval",
@@ -209,6 +236,19 @@
           "operator_identity_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "operation_scope_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "operations_manual_revision_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "valid_from_unix_ms": 1700000000000,
+          "valid_until_unix_ms": 2000000000000
+        },
+        {
+          "requirement": "uas_operations_specification",
+          "state": "caller_verified_current",
+          "evidence_record_id": "synthetic-record-uas-operations-specification",
+          "source_reference": "synthetic://za-uas/approval/uas-operations-specification",
+          "source_version": "synthetic-car101-source-snapshot-2026-11-20",
+          "aircraft_serial_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operator_identity_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "operation_scope_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "operations_manual_revision_digest": null,
           "valid_from_unix_ms": 1700000000000,
           "valid_until_unix_ms": 2000000000000
         }
@@ -311,6 +351,19 @@
           "operations_manual_revision_digest": null,
           "valid_from_unix_ms": 1700000000000,
           "valid_until_unix_ms": 2000000000000
+        },
+        {
+          "requirement": "uas_operations_specification",
+          "state": "caller_verified_current",
+          "evidence_record_id": "synthetic-record-uas-operations-specification",
+          "source_reference": "synthetic://za-uas/approval/uas-operations-specification",
+          "source_version": "synthetic-car101-source-snapshot-2026-11-20",
+          "aircraft_serial_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operator_identity_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "operation_scope_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "operations_manual_revision_digest": null,
+          "valid_from_unix_ms": 1700000000000,
+          "valid_until_unix_ms": 2000000000000
         }
       ]
     },
@@ -394,6 +447,19 @@
           "operations_manual_revision_digest": null,
           "valid_from_unix_ms": 1700000000000,
           "valid_until_unix_ms": 2000000000000
+        },
+        {
+          "requirement": "uas_operations_specification",
+          "state": "caller_verified_current",
+          "evidence_record_id": "synthetic-record-uas-operations-specification",
+          "source_reference": "synthetic://za-uas/approval/uas-operations-specification",
+          "source_version": "synthetic-car101-source-snapshot-2026-11-20",
+          "aircraft_serial_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operator_identity_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "operation_scope_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "operations_manual_revision_digest": null,
+          "valid_from_unix_ms": 1700000000000,
+          "valid_until_unix_ms": 2000000000000
         }
       ]
     },
@@ -457,6 +523,19 @@
           "state": "caller_verified_current",
           "evidence_record_id": "synthetic-record-certificate_of_registration",
           "source_reference": "synthetic://za-uas/approval/certificate_of_registration",
+          "source_version": "synthetic-car101-source-snapshot-2026-11-20",
+          "aircraft_serial_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operator_identity_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "operation_scope_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "operations_manual_revision_digest": null,
+          "valid_from_unix_ms": 1700000000000,
+          "valid_until_unix_ms": 2000000000000
+        },
+        {
+          "requirement": "uas_operations_specification",
+          "state": "caller_verified_current",
+          "evidence_record_id": "synthetic-record-uas-operations-specification",
+          "source_reference": "synthetic://za-uas/approval/uas-operations-specification",
           "source_version": "synthetic-car101-source-snapshot-2026-11-20",
           "aircraft_serial_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "operator_identity_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
@@ -540,6 +619,19 @@
           "state": "caller_verified_current",
           "evidence_record_id": "synthetic-record-certificate_of_registration",
           "source_reference": "synthetic://za-uas/approval/certificate_of_registration",
+          "source_version": "synthetic-car101-source-snapshot-2026-11-20",
+          "aircraft_serial_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operator_identity_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "operation_scope_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "operations_manual_revision_digest": null,
+          "valid_from_unix_ms": 1700000000000,
+          "valid_until_unix_ms": 2000000000000
+        },
+        {
+          "requirement": "uas_operations_specification",
+          "state": "caller_verified_current",
+          "evidence_record_id": "synthetic-record-uas-operations-specification",
+          "source_reference": "synthetic://za-uas/approval/uas-operations-specification",
           "source_version": "synthetic-car101-source-snapshot-2026-11-20",
           "aircraft_serial_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "operator_identity_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
