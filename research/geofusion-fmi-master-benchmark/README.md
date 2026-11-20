@@ -103,16 +103,21 @@ The official SSP tool-support matrix currently lists the following declared impo
 |---|---|---|---|
 | easySSP / orchideo | eXXcellent solutions | 1.0 / 2.0 | Primary SSP 2.0.1 round-trip candidate |
 | FMI Bench | PMSF | 1.0 / 2.0 | Primary independent SSP 2.0.1 round-trip candidate |
-| OMSimulator | OpenModelica | 1.0 | Legacy SSP 1.0 compatibility only unless a later exact build is independently shown to support SSP 2.0 |
+| Dymola | Dassault Systèmes | 1.0 / 2.0 | Independent SSP 2.0.1 import/export candidate |
+| Scilab/Xcos | Dassault Systèmes | 2.0 | Independent SSP 2.0.1 import/export candidate |
+| OMSimulator | OpenModelica | 1.0 | Legacy SSP 1.0 compatibility only unless an exact later build is independently shown to support SSP 2.0 |
 | SYNECT Model Management | dSPACE | 1.0 | Legacy SSP 1.0 compatibility |
 | Model.CONNECT | AVL | 1.0 | Legacy SSP 1.0 compatibility |
 | Simcenter System Architect | Siemens | 1.0 | Legacy SSP 1.0 compatibility |
+| Simcenter Studio | Siemens | export 1.0 only | Export-only; cannot qualify end-to-end round-trip |
+| OpenMCx | Eclipse Foundation | import 1.0 only | Import-only; useful for read/semantic-inspection lane |
+| Ecos | NTNU Ålesund | 1.0 | Legacy SSP 1.0 import/export candidate |
 
 The official SSP tool page gives standard-version coverage, but does not pin product build numbers or feature-by-feature round-trip behavior. Thus this is a *candidate matrix*, not proof that a specific installed release correctly preserves the GeoFusion package. Each campaign must record exact product/version/build, host OS, import warnings, export warnings, resulting package digests and a canonical diff of components, source URIs, connectors, connector kinds, types, unit exponents, parameter values and connections.
 
 SSP 2.0.1 is a maintenance patch to SSP 2.0. The SSD schema's version attribute encodes only major/minor (here `2.0`), not the patch version; the exact SSP release and XSD blob hashes therefore belong in the benchmark manifest. Do not infer SSP 2.0.1 support from a tool's SSP 1.0 listing, or infer correct round-trip behavior solely from a `2.0` label.
 
-The initial two-tool target is **FMI Bench ↔ easySSP**: import the exact same SSP package into each, export it, then cross-import the exported results. Compare canonicalized graph and FMU resource digests. Unsupported or inaccessible tools are `NOT_EVALUABLE`, not a fail and never a pass.
+The initial cross-tool target is **FMI Bench ↔ easySSP**, with Dymola and Scilab/Xcos as additional SSP 2.0 candidates. Import the exact same SSP package into each, export it, then cross-import the exported results. Compare canonicalized graph and FMU resource digests. Exact build numbers, licensing/access, host OS and supported subset still must be pinned per run. Export-only and import-only entries are never scored as full round-trip support. Unsupported or inaccessible tools are `NOT_EVALUABLE`, not a fail and never a pass.
 
 Source: [official SSP tool support matrix](https://ssp-standard.org/tools/); [SSP 2.0.1 specification and versioning](https://ssp-standard.org/docs/2.0.1/).
 
@@ -160,6 +165,10 @@ A result is not comparable when FMU features, sampling schedules, accuracy targe
 | Evidence corruption | Provenance and fail-closed behavior | Wrong model digest, stale boundary, bad unit |
 | System-structure round trip | SSP cross-tool exchange | Missing component, rewired connector, changed unit or parameter |
 | Unsupported feature | Honest capability handling | Silent fallback or unreported emulation |
+| Causal predictor versus oracle | Measure forecast error without future-sample leakage | Predictor reads a future sample, limiter is unreported, or bound is invented |
+| Derivative-assisted coupling | Test FMI directional/adjoint derivative paths where advertised | Derivative function called when unsupported or wrong seed/value reference |
+| Clock/event coincidence | Preserve clock tick cause, event time and superdense ordering | Dropped, reordered or causally inverted clock/event |
+| Predictor envelope stress | Exercise bounded linear prediction near extrema and discontinuities | Predicted flux exceeds declared envelope or projection is not recorded |
 
 Initial v0.1 trace tests are synthetic and bounded. Event Mode, Intermediate Update, Scheduled Execution and full FMU rollback remain explicit expansion tracks.
 
@@ -186,6 +195,14 @@ Publish each metric separately; do not collapse them into an arbitrary weighted 
 - retry, rollback and restart counts;
 - interpolation/extrapolation method and order.
 
+**Adaptive coupling and prediction**
+- predictor family and data-access contract (zero-order hold, causal bounded predictor, exact interval-average oracle, derivative-assisted, iterative);
+- number of historical samples consumed and future-sample reads (must be zero for causal lanes);
+- predictor residual against the later observed interval integral and trajectory error against the analytic reference;
+- envelope-limiter activation count and maximum correction, with the exact declared source bounds;
+- local error estimate calibration, rejected-step decisions and error reduction per communication call;
+- derivative API calls, seed vectors and derivative results when the FMU advertises directional/adjoint derivatives.
+
 **Performance**
 - wall time, CPU time, peak memory and real-time factor;
 - P50/P95/P99 step latency;
@@ -205,6 +222,8 @@ Hard gates:
 - every accepted term binds to its exact carrier, physical boundary, source interval and model revision;
 - no silent fallback, extrapolation, status downgrade or capability emulation;
 - deterministic receipts for deterministic fixed inputs/builds;
+- zero future-sample access in any lane labelled causal;
+- 100% of predictor limiter activations, declared bounds and interval corrections recorded;
 - SSP structural round-trip preserves 100% of declared components, connections, parameter values and unit semantics across the tested tools;
 - failures, timeouts and unsupported cases remain in the published denominator.
 
@@ -216,6 +235,22 @@ Stretch objectives (not achieved results):
 - minimize time-to-qualified-result rather than raw simulation speed.
 
 A faster result that is less accurate, less conservative, less repeatable or less auditable is not a win. A win must preserve all hard gates under the same scenario, FMUs, observation schedule, tolerances and compute budget.
+
+
+## 8A. Adaptive, event-aware and predictor-qualified coupling
+
+The FMI standard deliberately leaves the co-simulation algorithm to the importer. FMI 3's optional mechanisms create a feature space that a serious master benchmark must exercise separately: variable communication steps; state-based reject/repeat where the FMU advertises state support; intermediate updates; early return with the actual `lastSuccessfulTime`; external event mode; clock activations; and optional directional/adjoint derivatives. The current FMI Implementers' Guide explains that early return can preserve the exact internal event time, that event mode transfers event iteration responsibility to the importer, and that clock ticks have a cause which the importer must schedule. Partial derivatives can support iterative co-simulation and algebraic-loop solution.
+
+This yields four distinct predictor/coupling tracks:
+
+1. **Reference ZOH:** left-endpoint sample-and-hold; simple, causal baseline with first-order global error on smooth forcing.
+2. **Oracle interval average:** exact whole-interval source integral; non-causal upper bound / method reference, never reported as a causal master win.
+3. **Causal bounded linear prediction:** current and previous committed source samples only, explicit source envelope, limiter receipts and later correction against observed interval flux. The current analytic oracle records about 12.94× lower 15-step endpoint error than ZOH while remaining about 6.13× less accurate than the exact-average oracle.
+4. **Derivative-assisted / iterative coupling:** use FMI-reported output derivatives or directional/adjoint derivatives only when modelDescription capabilities permit; compare explicit/implicit convergence, iteration count, checkpoint/rollback cost and residual reduction against preCICE-style coupling references.
+
+The next master-algorithm paradigm is an **event-fenced, energy-aware adaptive scheduler**. It should propose a communication horizon from a combined error budget (state prediction error, interface mismatch, conservation residual and model uncertainty), then shorten that horizon before the earliest known event/clock tick. Every decision should carry the input samples and capability flags it used. It must distinguish an observed bound from a heuristic estimate; it may not call a heuristic a proof. On an unavailable checkpoint or derivative feature it must choose a separately qualified fallback lane or return `NOT_EVALUABLE`—never silently emulate the feature.
+
+Sources: [FMI 3.0 Implementers' Guide — early return, events and clock activations](https://modelica.github.io/fmi-guides/main/fmi-guide/#co-simulation-specific-issues); [FMI 3.0 Implementers' Guide — partial derivatives](https://modelica.github.io/fmi-guides/main/fmi-guide/#advanced-features); [FMI 3.0.2 Co-Simulation specification](https://fmi-standard.org/docs/3.0.2/).
 
 ## 9. Existing work to compose
 
