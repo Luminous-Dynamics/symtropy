@@ -1062,6 +1062,7 @@ mod tests {
         ]);
         let mut check = cross_check(interval(9.0, 11.0));
         check.evidence_class = EvidenceClass::VendorPhysical;
+        check.source_reference = "urn:vendor:joint-output-transducer:run-01".to_owned();
         input.joint_torque_cross_check = Some(check);
         assert!(evaluate_joint(&input).is_err());
     }
