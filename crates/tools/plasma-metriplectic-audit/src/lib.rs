@@ -784,7 +784,7 @@ mod tests {
     #[test]
     fn jacobi_eigensolver_recovers_off_diagonal_symmetric_eigenvalue() {
         let minimum = minimum_symmetric_eigenvalue(
-            &[1.0, 0.5, 0.0, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0],
+            &[1.0, 0.5, 0.0, 0.5, 1.0, 0.0, 0.0, 0.0, 0.75],
             3,
         )
         .expect("eigenvalue");
