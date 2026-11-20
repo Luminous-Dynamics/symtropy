@@ -472,6 +472,8 @@ fn simulate_scenario(
         let node_index = *indices.get(&key).ok_or_else(|| "shared-fleet policy node missing".to_string())?;
         let action = action_for_node(mask, node_index, input.regions.len() as u64 + 1);
         let mut aerial_this_period: Option<(String, u32)> = None;
+        let mut aircraft_period_used = false;
+        let mut idle_cost_recorded = false;
 
         if aircraft_enabled {
             if action == input.regions.len() {
@@ -485,6 +487,7 @@ fn simulate_scenario(
                 )?;
                 checked_add(&mut metrics.idle_periods, 1, "idle periods")?;
                 add_cost(&mut metrics, u128::from(input.aircraft_idle_cost_per_period))?;
+                idle_cost_recorded = true;
             } else {
                 let target = &input.regions[action].region_id;
                 if target == &aircraft_region {
@@ -505,6 +508,7 @@ fn simulate_scenario(
                             checked_add(&mut metrics.energy_blocked_actions, 1, "energy-blocked actions")?;
                         }
                         if delivered > 0 {
+                            aircraft_period_used = true;
                             aerial_this_period = Some((target.clone(), delivered));
                             checked_add(&mut metrics.aerial_deliveries, u128::from(delivered), "aerial deliveries")?;
                         }
@@ -536,12 +540,20 @@ fn simulate_scenario(
                         add_cost(&mut metrics, u128::from(link.cost_units))?;
                         checked_add(&mut metrics.repositioning_events, 1, "repositioning events")?;
                         checked_add(&mut metrics.repositioning_periods, 1, "repositioning periods")?;
+                        aircraft_period_used = true;
                         // v0.1 reserves the complete decision period for repositioning.
                         // The target region can only be served from the next period onward.
                         aircraft_region = target.clone();
                     }
                 }
             }
+        }
+
+        if aircraft_enabled && !aircraft_period_used && !idle_cost_recorded {
+            // A blocked service/reposition target is a safe standby period, not a free
+            // way to avoid the aircraft's declared idle/standby cost.
+            checked_add(&mut metrics.idle_periods, 1, "idle periods")?;
+            add_cost(&mut metrics, u128::from(input.aircraft_idle_cost_per_period))?;
         }
 
         for region in &input.regions {
@@ -1177,6 +1189,31 @@ mod tests {
         .expect("forced service policy");
         assert_eq!(metrics.aerial_deliveries, 0);
         assert!(metrics.hard_gate_blocked_actions > 0);
+    }
+
+    #[test]
+    fn blocked_reposition_is_charged_as_standby_not_a_free_period() {
+        let mut test = input();
+        test.period_count = 1;
+        test.aircraft_idle_cost_per_period = 17;
+        for scenario in &mut test.scenarios {
+            scenario.periods.truncate(1);
+        }
+        test.scenarios[0].periods[0].observations[1].permission = PermissionState::Unknown;
+        let canonical = canonicalize(&test);
+        let (_nodes, indices, mask) = forced_region_mask(&canonical, "rural");
+        let metrics = simulate_scenario(
+            &canonical,
+            &canonical.scenarios[0],
+            &indices,
+            mask,
+            true,
+        )
+        .expect("blocked reposition becomes standby");
+        assert_eq!(metrics.repositioning_events, 0);
+        assert_eq!(metrics.hard_gate_blocked_actions, 1);
+        assert_eq!(metrics.idle_periods, 1);
+        assert_eq!(metrics.total_cost, 17 + 2 * 5 + 1 * 10 + 1 * 120);
     }
 
     #[test]
