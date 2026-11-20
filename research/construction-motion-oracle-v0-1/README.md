@@ -266,3 +266,22 @@ These are software-level tests, not field capacity measurements. The caller must
 **Performance limitation:** this first commit path deliberately recomputes the robust sweep over all active reservations on every admission. That gives a transparent independent reference for correctness, but repeated commits are not yet a production high-throughput admission index. The next performance increment should build a per-resource incremental load index (for example a coordinate-compressed interval segment tree with checked wide sums and versioned capacity-window boundaries), while retaining this full-sweep oracle as the differential reference. Benchmark commit p50/p95/p99, update/release cost, memory, active claim count, number of distinct boundaries, number of resources and derating-window changes at 100/1K/10K/100K/1M claims. Require exact agreement of robust feasible/indeterminate/overloaded segments and contributing reservation IDs with the full sweep before reporting speedup.
 
 Do not merge weighted capacity semantics into the capacity-one predecessor/successor index, and do not silently treat all resources as interchangeable. Resource units and owner scope are part of the resource definition and must be consistently normalized before claims are combined.
+
+
+### Composite multi-resource admission (capacity-one + capacity-N)
+
+Exclusive spatial resources and weighted capacity resources previously had separate commit events. That creates a partial-admission hazard for a task that needs both a crane/workface reservation and a hoist/power/floor-load allocation: one claim could be committed while the other fails.
+
+The new \`CompositeResourceReservationCommitted\` event carries both reservation payloads in one append-only event. Its prepare phase:
+1. validates both reservation objects against the same current package and pre-append ledger head;
+2. binds package/revision, entity, robot, readiness receipt, occupancy receipt, engine build, clearance policy, site snapshot, ledger sequence/head, clock domain and validity/lease windows;
+3. requires weighted capacity claims to lie inside the exclusive work interval;
+4. checks all exclusive-resource predecessor/successor conflicts without mutation;
+5. evaluates the complete proposed capacity-N claim set with the existing robust lower/nominal/upper capacity sweep oracle;
+6. returns one prepared mutation only when both admission classes pass.
+
+The commit phase writes both reservation records and the exclusive interval index with the same event ID and ledger sequence. If either check fails, neither reservation record, index entry, sequence number nor event-history row is written.
+
+Tests cover successful one-event/two-class admission, capacity-N rejection with no exclusive partial hold, exclusive conflict with no weighted-capacity partial hold, and mismatched robot identity. The wire variant is added to schema/site-state-event-v0.1.schema.json; examples/composite-resource-admission-event-synthetic-v0.1.json is a synthetic shape fixture validated in CI.
+
+This is still a deterministic single-ledger reducer. Production deployment must put apply behind a serializable database transaction or compare-and-append against the authoritative ledger head; the in-memory &mut serialization is not a distributed lock service. Canonical event bytes, hashes, actor signatures and owner attestations must be verified before reducer ingestion. This is not a safety permit or actuation authorization.
