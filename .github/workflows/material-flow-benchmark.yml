@@ -115,7 +115,11 @@ jobs:
             and .log_loss_nats != null
             and .multiclass_brier_score >= 0
             and .climatology_brier_score >= 0
-            and .expected_calibration_error_bps <= 10000
+            and .multiclass_brier_score == 0.44261
+            and .climatology_brier_score == 0.6058
+            and .brier_skill_score_vs_training_climatology == 0.269379
+            and .log_loss_nats == 0.749339
+            and .expected_calibration_error_bps == 1628
             and ([.outcomes[].reliability_bins[].sample_count] | add) == 80
           ' mfb-l1-evidence/scenario-calibration-report.json
           cat mfb-l1-evidence/scenario-calibration-report.json
