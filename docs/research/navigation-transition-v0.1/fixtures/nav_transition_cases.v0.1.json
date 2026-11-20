@@ -1,0 +1,2775 @@
+{
+  "schema_version": "nav-transition-corpus/v0.1",
+  "benchmark_id": "nav-transition-001",
+  "revision": 1,
+  "status": "draft_not_run",
+  "claim_ceiling": "synthetic_transition_contract_only",
+  "schema_ref": "./nav_transition_case.schema.json",
+  "case_count": 6,
+  "controller_evaluator_separation": "Each case's controller_stream is the only scenario observation input. evaluator_only must be withheld from the subject process and may be mounted only by the independent scorer.",
+  "cases": [
+    {
+      "schema_version": "nav-transition-case/v0.1",
+      "case_id": "nav.land.open-urban-tunnel.v0.1",
+      "revision": 1,
+      "status": "draft_not_run",
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_transition_contract_only",
+      "domain_path": [
+        "land",
+        "urban",
+        "underground"
+      ],
+      "source_registry": [
+        {
+          "source_id": "src.gnss.primary",
+          "modality": "gnss",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": null,
+          "clock_domain_ref": "clock.shared.receiver",
+          "failure_domains": [
+            "fd.antenna.shared",
+            "fd.clock.shared",
+            "fd.power.vehicle",
+            "fd.correction.provider"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.imu.primary",
+          "modality": "imu",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.imu.1",
+          "clock_domain_ref": "clock.shared.receiver",
+          "failure_domains": [
+            "fd.mount.vehicle",
+            "fd.clock.shared",
+            "fd.power.vehicle"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.lidar.primary",
+          "modality": "lidar",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.lidar.1",
+          "clock_domain_ref": "clock.lidar.1",
+          "failure_domains": [
+            "fd.mount.vehicle",
+            "fd.power.vehicle"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.camera.primary",
+          "modality": "camera",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.camera.1",
+          "clock_domain_ref": "clock.camera.1",
+          "failure_domains": [
+            "fd.mount.vehicle",
+            "fd.power.vehicle"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.wheel.primary",
+          "modality": "wheel_odometry",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.odo.1",
+          "clock_domain_ref": "clock.odo.1",
+          "failure_domains": [
+            "fd.chassis.vehicle",
+            "fd.power.vehicle"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.map.landmark",
+          "modality": "map_landmark",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.map.1",
+          "clock_domain_ref": "clock.map.1",
+          "failure_domains": [
+            "fd.map.snapshot.1"
+          ],
+          "qualification_status": "synthetic_fixture"
+        }
+      ],
+      "phases": [
+        {
+          "phase_id": "phase.open",
+          "environment": "land",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "frame.earth.ecef",
+            "frame_kind": "earth_ecef",
+            "body_id": "earth",
+            "origin_ref": "origin.earth.centre",
+            "epoch_ref": "epoch.wgs84.2025",
+            "parent_frame_id": null
+          },
+          "time_basis": {
+            "time_basis_id": "time.utc",
+            "kind": "utc",
+            "clock_or_scale_id": "scale.utc",
+            "epoch_ref": "epoch.utc",
+            "uncertainty_s": 0.002
+          },
+          "measurement_classes": [
+            "gnss",
+            "imu"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "NORMAL"
+        },
+        {
+          "phase_id": "phase.urban",
+          "environment": "urban",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "frame.land.enu",
+            "frame_kind": "local_enu",
+            "body_id": "earth",
+            "origin_ref": "origin.synthetic.survey.001",
+            "epoch_ref": "epoch.wgs84.2025",
+            "parent_frame_id": "frame.earth.ecef"
+          },
+          "time_basis": {
+            "time_basis_id": "time.utc",
+            "kind": "utc",
+            "clock_or_scale_id": "scale.utc",
+            "epoch_ref": "epoch.utc",
+            "uncertainty_s": 0.002
+          },
+          "measurement_classes": [
+            "gnss",
+            "imu",
+            "camera",
+            "lidar",
+            "wheel_odometry"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "INTEGRITY_UNCERTAIN"
+        },
+        {
+          "phase_id": "phase.tunnel",
+          "environment": "underground",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "frame.land.enu",
+            "frame_kind": "local_enu",
+            "body_id": "earth",
+            "origin_ref": "origin.synthetic.survey.001",
+            "epoch_ref": "epoch.wgs84.2025",
+            "parent_frame_id": "frame.earth.ecef"
+          },
+          "time_basis": {
+            "time_basis_id": "time.device.mono.1",
+            "kind": "monotonic",
+            "clock_or_scale_id": "clock.device.boot.1",
+            "epoch_ref": "boot.epoch.1",
+            "uncertainty_s": 0.0001
+          },
+          "measurement_classes": [
+            "imu",
+            "lidar",
+            "wheel_odometry",
+            "map_landmark"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "DEGRADED"
+        }
+      ],
+      "transitions": [
+        {
+          "transition_id": "tr.open-urban",
+          "from_phase": "phase.open",
+          "to_phase": "phase.urban",
+          "offset_ms": 10000,
+          "kind": "environment_boundary",
+          "expected_state": "INTEGRITY_UNCERTAIN",
+          "notes": "Multipath/NLOS increases; the declared transform into local ENU must be explicit."
+        },
+        {
+          "transition_id": "tr.urban-tunnel",
+          "from_phase": "phase.urban",
+          "to_phase": "phase.tunnel",
+          "offset_ms": 25000,
+          "kind": "sensor_loss",
+          "expected_state": "DEGRADED",
+          "notes": "GNSS is no longer available; local dead reckoning and mapped geometry remain available."
+        }
+      ],
+      "controller_stream": [
+        {
+          "observation_id": "obs.gnss.0",
+          "offset_ms": 0,
+          "event_kind": "measurement",
+          "source_id": "src.gnss.primary",
+          "modality": "gnss",
+          "frame_id": "frame.earth.ecef",
+          "time_basis_id": "time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            0,
+            0,
+            0
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Synthetic position fix."
+        },
+        {
+          "observation_id": "obs.imu.0",
+          "offset_ms": 0,
+          "event_kind": "measurement",
+          "source_id": "src.imu.primary",
+          "modality": "imu",
+          "frame_id": "frame.earth.ecef",
+          "time_basis_id": "time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            0,
+            0,
+            9.80665
+          ],
+          "units": "m/s2",
+          "payload_digest": null,
+          "notes": "Synthetic initial IMU."
+        },
+        {
+          "observation_id": "obs.gnss.integrity",
+          "offset_ms": 12000,
+          "event_kind": "integrity_status",
+          "source_id": "src.gnss.primary",
+          "modality": "gnss",
+          "frame_id": "frame.land.enu",
+          "time_basis_id": "time.utc",
+          "observation_class": "integrity_assessment",
+          "components": null,
+          "units": null,
+          "payload_digest": null,
+          "notes": "Receiver continues producing a plausible fix but integrity is uncertain."
+        },
+        {
+          "observation_id": "obs.lidar.1",
+          "offset_ms": 16000,
+          "event_kind": "measurement",
+          "source_id": "src.lidar.primary",
+          "modality": "lidar",
+          "frame_id": "frame.land.enu",
+          "time_basis_id": "time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            1.2,
+            0.1,
+            0
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Synthetic local geometric constraint."
+        },
+        {
+          "observation_id": "obs.gnss.lost",
+          "offset_ms": 25000,
+          "event_kind": "source_status",
+          "source_id": "src.gnss.primary",
+          "modality": "gnss",
+          "frame_id": "frame.land.enu",
+          "time_basis_id": "time.utc",
+          "observation_class": "source_health",
+          "components": null,
+          "units": null,
+          "payload_digest": null,
+          "notes": "GNSS source is no longer available."
+        },
+        {
+          "observation_id": "obs.odo.1",
+          "offset_ms": 30000,
+          "event_kind": "measurement",
+          "source_id": "src.wheel.primary",
+          "modality": "wheel_odometry",
+          "frame_id": "frame.land.enu",
+          "time_basis_id": "time.device.mono.1",
+          "observation_class": "raw_observation",
+          "components": [
+            0.7,
+            0,
+            0
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Local displacement; timestamp is monotonic and cannot be compared to UTC without correlation."
+        },
+        {
+          "observation_id": "obs.map.1",
+          "offset_ms": 36000,
+          "event_kind": "map_match",
+          "source_id": "src.map.landmark",
+          "modality": "map_landmark",
+          "frame_id": "frame.land.enu",
+          "time_basis_id": "time.device.mono.1",
+          "observation_class": "map_constraint",
+          "components": [
+            0.2,
+            0,
+            0
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Synthetic map landmark constraint."
+        }
+      ],
+      "faults": [
+        {
+          "fault_id": "fault.gnss.nlos",
+          "fault_kind": "nlos_or_multipath",
+          "source_ids": [
+            "src.gnss.primary"
+          ],
+          "start_offset_ms": 10000,
+          "end_offset_ms": 25000,
+          "controller_visible_effect": "GNSS integrity assessment changes to uncertain.",
+          "notes": "Benign urban multipath is not attributed to hostile intent."
+        },
+        {
+          "fault_id": "fault.gnss.loss",
+          "fault_kind": "gnss_unavailable",
+          "source_ids": [
+            "src.gnss.primary"
+          ],
+          "start_offset_ms": 25000,
+          "end_offset_ms": 50000,
+          "controller_visible_effect": "GNSS source status becomes unavailable.",
+          "notes": "The controller must not continue calling the solution GNSS-observed."
+        }
+      ],
+      "evaluator_only": {
+        "reference_class": "synthetic_oracle",
+        "reference_sources": [
+          "oracle.land.truth.v0.1"
+        ],
+        "truth_states": [
+          {
+            "truth_id": "truth.0",
+            "offset_ms": 0,
+            "body_id": "earth",
+            "frame_id": "frame.earth.ecef",
+            "position_m": [
+              1000,
+              2000,
+              30
+            ],
+            "velocity_mps": [
+              1,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.1",
+            "offset_ms": 20000,
+            "body_id": "earth",
+            "frame_id": "frame.land.enu",
+            "position_m": [
+              20,
+              2,
+              0
+            ],
+            "velocity_mps": [
+              1,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.2",
+            "offset_ms": 40000,
+            "body_id": "earth",
+            "frame_id": "frame.land.enu",
+            "position_m": [
+              40,
+              2,
+              0
+            ],
+            "velocity_mps": [
+              1,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.3",
+            "offset_ms": 60000,
+            "body_id": "earth",
+            "frame_id": "frame.land.enu",
+            "position_m": [
+              60,
+              2,
+              0
+            ],
+            "velocity_mps": [
+              1,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        ],
+        "event_labels": [
+          {
+            "fault_id": "fault.gnss.nlos",
+            "true_fault_kind": "nlos_or_multipath",
+            "onset_offset_ms": 10000,
+            "cause_attribution": "not_adjudicated"
+          },
+          {
+            "fault_id": "fault.gnss.loss",
+            "true_fault_kind": "gnss_unavailable",
+            "onset_offset_ms": 25000,
+            "cause_attribution": "not_adjudicated"
+          }
+        ]
+      },
+      "expected_dispositions": [
+        {
+          "at_offset_ms": 0,
+          "expected_state": "NORMAL",
+          "minimum_evidence_condition": "Fresh GNSS and IMU in matching declared frame/time basis.",
+          "reason_code": "LAND_VALID_INITIAL"
+        },
+        {
+          "at_offset_ms": 12000,
+          "expected_state": "INTEGRITY_UNCERTAIN",
+          "minimum_evidence_condition": "Plausible GNSS output has an independent integrity warning; do not use it as normal.",
+          "reason_code": "LAND_GNSS_INTEGRITY_UNCERTAIN"
+        },
+        {
+          "at_offset_ms": 25000,
+          "expected_state": "DEGRADED",
+          "minimum_evidence_condition": "GNSS unavailable; propagate only with declared local sensors and their uncertainty.",
+          "reason_code": "LAND_GNSS_DENIED"
+        },
+        {
+          "at_offset_ms": 50000,
+          "expected_state": "RECOVERING",
+          "minimum_evidence_condition": "Fresh, configuration-matched external observations and transform evidence required before restoring NORMAL.",
+          "reason_code": "LAND_REQUALIFICATION"
+        }
+      ],
+      "assumptions": [
+        "All coordinates and sensor values are synthetic; the evaluator oracle is not a survey product.",
+        "The phase transition from ECEF to local ENU requires a declared, epoch-bound transform and uncertainty propagation.",
+        "The monotonic clock is a separate boot-epoch clock and is not directly comparable to UTC.",
+        "No vehicle dynamics or safety controller is modelled."
+      ]
+    },
+    {
+      "schema_version": "nav-transition-case/v0.1",
+      "case_id": "nav.surface-to-underwater-acoustic-loss.v0.1",
+      "revision": 1,
+      "status": "draft_not_run",
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_transition_contract_only",
+      "domain_path": [
+        "surface_water",
+        "underwater"
+      ],
+      "source_registry": [
+        {
+          "source_id": "src.surface.gnss",
+          "modality": "gnss",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": null,
+          "clock_domain_ref": "clock.vessel.1",
+          "failure_domains": [
+            "fd.antenna.vessel",
+            "fd.clock.vessel",
+            "fd.power.vessel",
+            "fd.correction.service"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.ins",
+          "modality": "imu",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.ins",
+          "clock_domain_ref": "clock.vessel.1",
+          "failure_domains": [
+            "fd.mount.vessel",
+            "fd.clock.vessel",
+            "fd.power.vessel"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.dvl",
+          "modality": "dvl",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.dvl",
+          "clock_domain_ref": "clock.dvl.1",
+          "failure_domains": [
+            "fd.dvl.transducer",
+            "fd.power.vessel"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.depth",
+          "modality": "pressure_depth",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.depth",
+          "clock_domain_ref": "clock.depth.1",
+          "failure_domains": [
+            "fd.pressure.sensor",
+            "fd.power.vessel"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.sonar",
+          "modality": "sonar",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.sonar",
+          "clock_domain_ref": "clock.sonar.1",
+          "failure_domains": [
+            "fd.sonar.sensor",
+            "fd.power.vessel"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.acoustic",
+          "modality": "acoustic_range",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.acoustic",
+          "clock_domain_ref": "clock.acoustic.1",
+          "failure_domains": [
+            "fd.acoustic.modem",
+            "fd.power.vessel"
+          ],
+          "qualification_status": "synthetic_fixture"
+        }
+      ],
+      "phases": [
+        {
+          "phase_id": "phase.surface",
+          "environment": "surface_water",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "frame.earth.ecef",
+            "frame_kind": "earth_ecef",
+            "body_id": "earth",
+            "origin_ref": "origin.earth.centre",
+            "epoch_ref": "epoch.wgs84.2025",
+            "parent_frame_id": null
+          },
+          "time_basis": {
+            "time_basis_id": "time.utc",
+            "kind": "utc",
+            "clock_or_scale_id": "scale.utc",
+            "epoch_ref": "epoch.utc",
+            "uncertainty_s": 0.002
+          },
+          "measurement_classes": [
+            "gnss",
+            "imu"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "NORMAL"
+        },
+        {
+          "phase_id": "phase.submerged",
+          "environment": "underwater",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "frame.underwater.ned",
+            "frame_kind": "local_ned",
+            "body_id": "earth",
+            "origin_ref": "origin.synthetic.surface.001",
+            "epoch_ref": "epoch.wgs84.2025",
+            "parent_frame_id": "frame.earth.ecef"
+          },
+          "time_basis": {
+            "time_basis_id": "time.device.mono.1",
+            "kind": "monotonic",
+            "clock_or_scale_id": "clock.device.boot.1",
+            "epoch_ref": "boot.epoch.1",
+            "uncertainty_s": 0.0001
+          },
+          "measurement_classes": [
+            "imu",
+            "dvl",
+            "pressure_depth",
+            "sonar",
+            "acoustic_range"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "DEGRADED"
+        },
+        {
+          "phase_id": "phase.acoustic-partition",
+          "environment": "underwater",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "frame.underwater.ned",
+            "frame_kind": "local_ned",
+            "body_id": "earth",
+            "origin_ref": "origin.synthetic.surface.001",
+            "epoch_ref": "epoch.wgs84.2025",
+            "parent_frame_id": "frame.earth.ecef"
+          },
+          "time_basis": {
+            "time_basis_id": "time.device.mono.1",
+            "kind": "monotonic",
+            "clock_or_scale_id": "clock.device.boot.1",
+            "epoch_ref": "boot.epoch.1",
+            "uncertainty_s": 0.0001
+          },
+          "measurement_classes": [
+            "imu",
+            "dvl",
+            "pressure_depth",
+            "sonar"
+          ],
+          "communications_state": "partitioned",
+          "expected_service_state": "DEGRADED"
+        }
+      ],
+      "transitions": [
+        {
+          "transition_id": "tr.dive",
+          "from_phase": "phase.surface",
+          "to_phase": "phase.submerged",
+          "offset_ms": 10000,
+          "kind": "environment_boundary",
+          "expected_state": "DEGRADED",
+          "notes": "GNSS disappears; underwater-local constraints become primary."
+        },
+        {
+          "transition_id": "tr.acoustic-loss",
+          "from_phase": "phase.submerged",
+          "to_phase": "phase.acoustic-partition",
+          "offset_ms": 30000,
+          "kind": "communications_partition",
+          "expected_state": "DEGRADED",
+          "notes": "Acoustic communications are lost; local navigation may remain healthy under its profile."
+        }
+      ],
+      "controller_stream": [
+        {
+          "observation_id": "obs.surface.fix",
+          "offset_ms": 0,
+          "event_kind": "measurement",
+          "source_id": "src.surface.gnss",
+          "modality": "gnss",
+          "frame_id": "frame.earth.ecef",
+          "time_basis_id": "time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            0,
+            0,
+            0
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Surface fix."
+        },
+        {
+          "observation_id": "obs.ins",
+          "offset_ms": 0,
+          "event_kind": "measurement",
+          "source_id": "src.ins",
+          "modality": "imu",
+          "frame_id": "frame.earth.ecef",
+          "time_basis_id": "time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            0,
+            0,
+            9.80665
+          ],
+          "units": "m/s2",
+          "payload_digest": null,
+          "notes": "Initial inertial observation."
+        },
+        {
+          "observation_id": "obs.gnss.lost",
+          "offset_ms": 10000,
+          "event_kind": "source_status",
+          "source_id": "src.surface.gnss",
+          "modality": "gnss",
+          "frame_id": "frame.underwater.ned",
+          "time_basis_id": "time.device.mono.1",
+          "observation_class": "source_health",
+          "components": null,
+          "units": null,
+          "payload_digest": null,
+          "notes": "GNSS unavailable after submergence."
+        },
+        {
+          "observation_id": "obs.dvl",
+          "offset_ms": 12000,
+          "event_kind": "measurement",
+          "source_id": "src.dvl",
+          "modality": "dvl",
+          "frame_id": "frame.underwater.ned",
+          "time_basis_id": "time.device.mono.1",
+          "observation_class": "raw_observation",
+          "components": [
+            0.3,
+            0,
+            0
+          ],
+          "units": "m/s",
+          "payload_digest": null,
+          "notes": "Synthetic DVL velocity."
+        },
+        {
+          "observation_id": "obs.depth",
+          "offset_ms": 12000,
+          "event_kind": "measurement",
+          "source_id": "src.depth",
+          "modality": "pressure_depth",
+          "frame_id": "frame.underwater.ned",
+          "time_basis_id": "time.device.mono.1",
+          "observation_class": "raw_observation",
+          "components": [
+            12
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Synthetic depth."
+        },
+        {
+          "observation_id": "obs.acoustic",
+          "offset_ms": 18000,
+          "event_kind": "measurement",
+          "source_id": "src.acoustic",
+          "modality": "acoustic_range",
+          "frame_id": "frame.underwater.ned",
+          "time_basis_id": "time.device.mono.1",
+          "observation_class": "raw_observation",
+          "components": [
+            24
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Peer acoustic ranging."
+        },
+        {
+          "observation_id": "obs.acoustic.lost",
+          "offset_ms": 30000,
+          "event_kind": "network_status",
+          "source_id": "src.acoustic",
+          "modality": "acoustic_range",
+          "frame_id": "frame.underwater.ned",
+          "time_basis_id": "time.device.mono.1",
+          "observation_class": "source_health",
+          "components": null,
+          "units": null,
+          "payload_digest": null,
+          "notes": "Acoustic network partition; local sensors remain available."
+        },
+        {
+          "observation_id": "obs.sonar",
+          "offset_ms": 40000,
+          "event_kind": "measurement",
+          "source_id": "src.sonar",
+          "modality": "sonar",
+          "frame_id": "frame.underwater.ned",
+          "time_basis_id": "time.device.mono.1",
+          "observation_class": "raw_observation",
+          "components": [
+            1,
+            0.1
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Synthetic relative geometry."
+        }
+      ],
+      "faults": [
+        {
+          "fault_id": "fault.dive.gnss",
+          "fault_kind": "gnss_unavailable",
+          "source_ids": [
+            "src.surface.gnss"
+          ],
+          "start_offset_ms": 10000,
+          "end_offset_ms": 60000,
+          "controller_visible_effect": "GNSS source becomes unavailable.",
+          "notes": ""
+        },
+        {
+          "fault_id": "fault.acoustic.partition",
+          "fault_kind": "communications_partition",
+          "source_ids": [
+            "src.acoustic"
+          ],
+          "start_offset_ms": 30000,
+          "end_offset_ms": 50000,
+          "controller_visible_effect": "Peer acoustic link becomes partitioned; local DVL/INS/depth remain available.",
+          "notes": ""
+        }
+      ],
+      "evaluator_only": {
+        "reference_class": "synthetic_oracle",
+        "reference_sources": [
+          "oracle.underwater.truth.v0.1"
+        ],
+        "truth_states": [
+          {
+            "truth_id": "truth.0",
+            "offset_ms": 0,
+            "body_id": "earth",
+            "frame_id": "frame.earth.ecef",
+            "position_m": [
+              0,
+              0,
+              0
+            ],
+            "velocity_mps": [
+              0,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.1",
+            "offset_ms": 20000,
+            "body_id": "earth",
+            "frame_id": "frame.underwater.ned",
+            "position_m": [
+              2,
+              0,
+              12
+            ],
+            "velocity_mps": [
+              0.1,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.2",
+            "offset_ms": 40000,
+            "body_id": "earth",
+            "frame_id": "frame.underwater.ned",
+            "position_m": [
+              4,
+              0,
+              12
+            ],
+            "velocity_mps": [
+              0.1,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.3",
+            "offset_ms": 60000,
+            "body_id": "earth",
+            "frame_id": "frame.underwater.ned",
+            "position_m": [
+              6,
+              0,
+              12
+            ],
+            "velocity_mps": [
+              0.1,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        ],
+        "event_labels": [
+          {
+            "fault_id": "fault.dive.gnss",
+            "true_fault_kind": "gnss_unavailable",
+            "onset_offset_ms": 10000,
+            "cause_attribution": "not_adjudicated"
+          },
+          {
+            "fault_id": "fault.acoustic.partition",
+            "true_fault_kind": "communications_partition",
+            "onset_offset_ms": 30000,
+            "cause_attribution": "not_adjudicated"
+          }
+        ]
+      },
+      "expected_dispositions": [
+        {
+          "at_offset_ms": 0,
+          "expected_state": "NORMAL",
+          "minimum_evidence_condition": "Surface GNSS/IMU evidence is current and frame-compatible.",
+          "reason_code": "WATER_SURFACE_VALID"
+        },
+        {
+          "at_offset_ms": 10000,
+          "expected_state": "DEGRADED",
+          "minimum_evidence_condition": "GNSS loss is expected; local INS/DVL/depth and their uncertainty must support the selected underwater profile.",
+          "reason_code": "WATER_SUBMERGED_LOCAL_NAV"
+        },
+        {
+          "at_offset_ms": 30000,
+          "expected_state": "DEGRADED",
+          "minimum_evidence_condition": "Loss of acoustic networking must not alone mark local navigation unavailable.",
+          "reason_code": "WATER_LOCAL_NAV_PARTITIONED"
+        }
+      ],
+      "assumptions": [
+        "The underwater truth and observations are synthetic and are not calibrated to a specific AUV.",
+        "The NED frame is local to the declared underwater origin; transforms from ECEF require an explicit transform and epoch.",
+        "Network reachability and local navigation health are separate state facets.",
+        "No hydrodynamics, acoustic propagation solver or AUV control behavior is modelled."
+      ]
+    },
+    {
+      "schema_version": "nav-transition-case/v0.1",
+      "case_id": "nav.air-gnss-integrity-degradation.v0.1",
+      "revision": 1,
+      "status": "draft_not_run",
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_transition_contract_only",
+      "domain_path": [
+        "air",
+        "air"
+      ],
+      "source_registry": [
+        {
+          "source_id": "src.air.gnss",
+          "modality": "gnss",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": null,
+          "clock_domain_ref": "clock.air.1",
+          "failure_domains": [
+            "fd.air.antenna",
+            "fd.clock.air",
+            "fd.power.air",
+            "fd.correction.provider"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.air.ins",
+          "modality": "imu",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.air-ins",
+          "clock_domain_ref": "clock.air.1",
+          "failure_domains": [
+            "fd.airframe.mount",
+            "fd.clock.air",
+            "fd.power.air"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.airdata",
+          "modality": "air_data",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.airdata",
+          "clock_domain_ref": "clock.airdata.1",
+          "failure_domains": [
+            "fd.airdata.probe",
+            "fd.power.air"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.baro",
+          "modality": "barometer",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.baro",
+          "clock_domain_ref": "clock.baro.1",
+          "failure_domains": [
+            "fd.baro.sensor",
+            "fd.power.air"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.radaralt",
+          "modality": "radar",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.radaralt",
+          "clock_domain_ref": "clock.radar.1",
+          "failure_domains": [
+            "fd.radar.altimeter",
+            "fd.power.air"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.vision",
+          "modality": "camera",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.vision",
+          "clock_domain_ref": "clock.vision.1",
+          "failure_domains": [
+            "fd.camera",
+            "fd.power.air"
+          ],
+          "qualification_status": "synthetic_fixture"
+        }
+      ],
+      "phases": [
+        {
+          "phase_id": "phase.air-normal",
+          "environment": "air",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "frame.earth.ecef",
+            "frame_kind": "earth_ecef",
+            "body_id": "earth",
+            "origin_ref": "origin.earth.centre",
+            "epoch_ref": "epoch.wgs84.2025",
+            "parent_frame_id": null
+          },
+          "time_basis": {
+            "time_basis_id": "time.utc",
+            "kind": "utc",
+            "clock_or_scale_id": "scale.utc",
+            "epoch_ref": "epoch.utc",
+            "uncertainty_s": 0.002
+          },
+          "measurement_classes": [
+            "gnss",
+            "imu",
+            "air_data",
+            "barometer"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "NORMAL"
+        },
+        {
+          "phase_id": "phase.air-uncertain",
+          "environment": "air",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "frame.land.enu",
+            "frame_kind": "local_enu",
+            "body_id": "earth",
+            "origin_ref": "origin.synthetic.survey.001",
+            "epoch_ref": "epoch.wgs84.2025",
+            "parent_frame_id": "frame.earth.ecef"
+          },
+          "time_basis": {
+            "time_basis_id": "time.utc",
+            "kind": "utc",
+            "clock_or_scale_id": "scale.utc",
+            "epoch_ref": "epoch.utc",
+            "uncertainty_s": 0.002
+          },
+          "measurement_classes": [
+            "gnss",
+            "imu",
+            "air_data",
+            "barometer",
+            "radar",
+            "camera"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "INTEGRITY_UNCERTAIN"
+        },
+        {
+          "phase_id": "phase.air-denied",
+          "environment": "air",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "frame.land.enu",
+            "frame_kind": "local_enu",
+            "body_id": "earth",
+            "origin_ref": "origin.synthetic.survey.001",
+            "epoch_ref": "epoch.wgs84.2025",
+            "parent_frame_id": "frame.earth.ecef"
+          },
+          "time_basis": {
+            "time_basis_id": "time.utc",
+            "kind": "utc",
+            "clock_or_scale_id": "scale.utc",
+            "epoch_ref": "epoch.utc",
+            "uncertainty_s": 0.002
+          },
+          "measurement_classes": [
+            "imu",
+            "air_data",
+            "barometer",
+            "radar",
+            "camera"
+          ],
+          "communications_state": "intermittent",
+          "expected_service_state": "DEGRADED"
+        }
+      ],
+      "transitions": [
+        {
+          "transition_id": "tr.air-integrity",
+          "from_phase": "phase.air-normal",
+          "to_phase": "phase.air-uncertain",
+          "offset_ms": 15000,
+          "kind": "observability_collapse",
+          "expected_state": "INTEGRITY_UNCERTAIN",
+          "notes": "GNSS integrity is uncertain; plausible output is not sufficient evidence."
+        },
+        {
+          "transition_id": "tr.air-loss",
+          "from_phase": "phase.air-uncertain",
+          "to_phase": "phase.air-denied",
+          "offset_ms": 30000,
+          "kind": "sensor_loss",
+          "expected_state": "DEGRADED",
+          "notes": "GNSS disappears; use only profile-qualified independent alternatives."
+        }
+      ],
+      "controller_stream": [
+        {
+          "observation_id": "obs.air.gnss",
+          "offset_ms": 0,
+          "event_kind": "measurement",
+          "source_id": "src.air.gnss",
+          "modality": "gnss",
+          "frame_id": "frame.earth.ecef",
+          "time_basis_id": "time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            100,
+            0,
+            1000
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Synthetic airborne position."
+        },
+        {
+          "observation_id": "obs.air.ins",
+          "offset_ms": 0,
+          "event_kind": "measurement",
+          "source_id": "src.air.ins",
+          "modality": "imu",
+          "frame_id": "frame.earth.ecef",
+          "time_basis_id": "time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            0,
+            0,
+            9.80665
+          ],
+          "units": "m/s2",
+          "payload_digest": null,
+          "notes": "Synthetic inertial observation."
+        },
+        {
+          "observation_id": "obs.air.alert",
+          "offset_ms": 15000,
+          "event_kind": "integrity_status",
+          "source_id": "src.air.gnss",
+          "modality": "gnss",
+          "frame_id": "frame.land.enu",
+          "time_basis_id": "time.utc",
+          "observation_class": "integrity_assessment",
+          "components": null,
+          "units": null,
+          "payload_digest": null,
+          "notes": "Integrity-uncertain status."
+        },
+        {
+          "observation_id": "obs.air.data",
+          "offset_ms": 17000,
+          "event_kind": "measurement",
+          "source_id": "src.airdata",
+          "modality": "air_data",
+          "frame_id": "frame.land.enu",
+          "time_basis_id": "time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            75,
+            0,
+            0
+          ],
+          "units": "m/s",
+          "payload_digest": null,
+          "notes": "Synthetic air-data vector."
+        },
+        {
+          "observation_id": "obs.air.radar",
+          "offset_ms": 22000,
+          "event_kind": "measurement",
+          "source_id": "src.radaralt",
+          "modality": "radar",
+          "frame_id": "frame.land.enu",
+          "time_basis_id": "time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            250
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Synthetic radar-altimeter range."
+        },
+        {
+          "observation_id": "obs.air.gnsslost",
+          "offset_ms": 30000,
+          "event_kind": "source_status",
+          "source_id": "src.air.gnss",
+          "modality": "gnss",
+          "frame_id": "frame.land.enu",
+          "time_basis_id": "time.utc",
+          "observation_class": "source_health",
+          "components": null,
+          "units": null,
+          "payload_digest": null,
+          "notes": "GNSS no longer available."
+        },
+        {
+          "observation_id": "obs.air.vision",
+          "offset_ms": 40000,
+          "event_kind": "measurement",
+          "source_id": "src.vision",
+          "modality": "camera",
+          "frame_id": "frame.land.enu",
+          "time_basis_id": "time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            0.2,
+            0.1
+          ],
+          "units": "normalized",
+          "payload_digest": null,
+          "notes": "Synthetic visual feature observation."
+        }
+      ],
+      "faults": [
+        {
+          "fault_id": "fault.air.integrity",
+          "fault_kind": "gnss_integrity_uncertain",
+          "source_ids": [
+            "src.air.gnss"
+          ],
+          "start_offset_ms": 15000,
+          "end_offset_ms": 30000,
+          "controller_visible_effect": "Integrity status changes to uncertain.",
+          "notes": ""
+        },
+        {
+          "fault_id": "fault.air.loss",
+          "fault_kind": "gnss_unavailable",
+          "source_ids": [
+            "src.air.gnss"
+          ],
+          "start_offset_ms": 30000,
+          "end_offset_ms": 50000,
+          "controller_visible_effect": "GNSS is unavailable.",
+          "notes": ""
+        }
+      ],
+      "evaluator_only": {
+        "reference_class": "synthetic_oracle",
+        "reference_sources": [
+          "oracle.air.truth.v0.1"
+        ],
+        "truth_states": [
+          {
+            "truth_id": "truth.air.0",
+            "offset_ms": 0,
+            "body_id": "earth",
+            "frame_id": "frame.earth.ecef",
+            "position_m": [
+              100,
+              0,
+              1000
+            ],
+            "velocity_mps": [
+              75,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.air.1",
+            "offset_ms": 20000,
+            "body_id": "earth",
+            "frame_id": "frame.land.enu",
+            "position_m": [
+              1500,
+              0,
+              1000
+            ],
+            "velocity_mps": [
+              75,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.air.2",
+            "offset_ms": 40000,
+            "body_id": "earth",
+            "frame_id": "frame.land.enu",
+            "position_m": [
+              3000,
+              0,
+              1000
+            ],
+            "velocity_mps": [
+              75,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.air.3",
+            "offset_ms": 60000,
+            "body_id": "earth",
+            "frame_id": "frame.land.enu",
+            "position_m": [
+              4500,
+              0,
+              1000
+            ],
+            "velocity_mps": [
+              75,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        ],
+        "event_labels": [
+          {
+            "fault_id": "fault.air.integrity",
+            "true_fault_kind": "gnss_integrity_uncertain",
+            "onset_offset_ms": 15000,
+            "cause_attribution": "not_adjudicated"
+          },
+          {
+            "fault_id": "fault.air.loss",
+            "true_fault_kind": "gnss_unavailable",
+            "onset_offset_ms": 30000,
+            "cause_attribution": "not_adjudicated"
+          }
+        ]
+      },
+      "expected_dispositions": [
+        {
+          "at_offset_ms": 0,
+          "expected_state": "NORMAL",
+          "minimum_evidence_condition": "GNSS/INS and required air-data evidence are current and admitted.",
+          "reason_code": "AIR_NORMAL"
+        },
+        {
+          "at_offset_ms": 15000,
+          "expected_state": "INTEGRITY_UNCERTAIN",
+          "minimum_evidence_condition": "GNSS integrity warning requires a declared alternate-source assessment.",
+          "reason_code": "AIR_GNSS_INTEGRITY"
+        },
+        {
+          "at_offset_ms": 30000,
+          "expected_state": "DEGRADED",
+          "minimum_evidence_condition": "GNSS unavailable; only the independently qualified air/inertial/terrain profile can continue.",
+          "reason_code": "AIR_GNSS_DENIED"
+        }
+      ],
+      "assumptions": [
+        "All states and measurements are synthetic and are not a flight-control test.",
+        "The test evaluates navigation evidence only; aircraft control, airworthiness and separation assurance are outside scope.",
+        "A GNSS anomaly is not evidence of hostile intent or emitter attribution."
+      ]
+    },
+    {
+      "schema_version": "nav-transition-case/v0.1",
+      "case_id": "nav.space-orbit-optical-relative-reacquisition.v0.1",
+      "revision": 1,
+      "status": "draft_not_run",
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_transition_contract_only",
+      "domain_path": [
+        "space",
+        "space"
+      ],
+      "source_registry": [
+        {
+          "source_id": "src.space.star",
+          "modality": "star_tracker",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.star",
+          "clock_domain_ref": "clock.sc.1",
+          "failure_domains": [
+            "fd.star.tracker",
+            "fd.power.spacecraft"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.space.imu",
+          "modality": "imu",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.space-imu",
+          "clock_domain_ref": "clock.sc.1",
+          "failure_domains": [
+            "fd.imu.spacecraft",
+            "fd.power.spacecraft"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.space.ephem",
+          "modality": "ephemeris",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.ephemeris",
+          "clock_domain_ref": "clock.kernel.1",
+          "failure_domains": [
+            "fd.kernel.snapshot.1"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.space.camera",
+          "modality": "optical_bearing",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.camera",
+          "clock_domain_ref": "clock.camera.space.1",
+          "failure_domains": [
+            "fd.camera.spacecraft",
+            "fd.power.spacecraft"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.space.targetmap",
+          "modality": "map_landmark",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.target",
+          "clock_domain_ref": "clock.kernel.1",
+          "failure_domains": [
+            "fd.target.catalog.1"
+          ],
+          "qualification_status": "synthetic_fixture"
+        }
+      ],
+      "phases": [
+        {
+          "phase_id": "phase.orbit-absolute",
+          "environment": "space",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "frame.earth.inertial",
+            "frame_kind": "inertial",
+            "body_id": "earth",
+            "origin_ref": "origin.earth.barycentre",
+            "epoch_ref": "epoch.j2000",
+            "parent_frame_id": null
+          },
+          "time_basis": {
+            "time_basis_id": "time.tdb",
+            "kind": "tdb",
+            "clock_or_scale_id": "scale.tdb",
+            "epoch_ref": "epoch.j2000",
+            "uncertainty_s": 0.000001
+          },
+          "measurement_classes": [
+            "ephemeris",
+            "imu",
+            "star_tracker"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "NORMAL"
+        },
+        {
+          "phase_id": "phase.relative-optical",
+          "environment": "space",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "frame.target.relative",
+            "frame_kind": "spacecraft_local",
+            "body_id": "earth",
+            "origin_ref": "origin.synthetic.spacecraft.1",
+            "epoch_ref": "epoch.j2000",
+            "parent_frame_id": "frame.earth.inertial"
+          },
+          "time_basis": {
+            "time_basis_id": "time.sclk",
+            "kind": "spacecraft_clock",
+            "clock_or_scale_id": "clock.spacecraft.partition.1",
+            "epoch_ref": "sclk.partition.1",
+            "uncertainty_s": 0.00001
+          },
+          "measurement_classes": [
+            "imu",
+            "star_tracker",
+            "optical_bearing"
+          ],
+          "communications_state": "intermittent",
+          "expected_service_state": "DEGRADED"
+        },
+        {
+          "phase_id": "phase.target-occulted",
+          "environment": "space",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "frame.target.relative",
+            "frame_kind": "spacecraft_local",
+            "body_id": "earth",
+            "origin_ref": "origin.synthetic.spacecraft.1",
+            "epoch_ref": "epoch.j2000",
+            "parent_frame_id": "frame.earth.inertial"
+          },
+          "time_basis": {
+            "time_basis_id": "time.sclk",
+            "kind": "spacecraft_clock",
+            "clock_or_scale_id": "clock.spacecraft.partition.1",
+            "epoch_ref": "sclk.partition.1",
+            "uncertainty_s": 0.00001
+          },
+          "measurement_classes": [
+            "imu"
+          ],
+          "communications_state": "intermittent",
+          "expected_service_state": "INDETERMINATE"
+        }
+      ],
+      "transitions": [
+        {
+          "transition_id": "tr.absolute-relative",
+          "from_phase": "phase.orbit-absolute",
+          "to_phase": "phase.relative-optical",
+          "offset_ms": 20000,
+          "kind": "reference_frame_change",
+          "expected_state": "DEGRADED",
+          "notes": "Absolute/ephemeris-assisted state hands off to optical relative-only state."
+        },
+        {
+          "transition_id": "tr.occultation",
+          "from_phase": "phase.relative-optical",
+          "to_phase": "phase.target-occulted",
+          "offset_ms": 45000,
+          "kind": "observability_collapse",
+          "expected_state": "INDETERMINATE",
+          "notes": "Target is occulted; coast only under the declared model and uncertainty envelope."
+        }
+      ],
+      "controller_stream": [
+        {
+          "observation_id": "obs.space.ephem",
+          "offset_ms": 0,
+          "event_kind": "measurement",
+          "source_id": "src.space.ephem",
+          "modality": "ephemeris",
+          "frame_id": "frame.earth.inertial",
+          "time_basis_id": "time.tdb",
+          "observation_class": "derived_observation",
+          "components": [
+            7000000,
+            0,
+            0
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Synthetic orbital reference state."
+        },
+        {
+          "observation_id": "obs.space.imu",
+          "offset_ms": 0,
+          "event_kind": "measurement",
+          "source_id": "src.space.imu",
+          "modality": "imu",
+          "frame_id": "frame.earth.inertial",
+          "time_basis_id": "time.tdb",
+          "observation_class": "raw_observation",
+          "components": [
+            0,
+            0,
+            0
+          ],
+          "units": "m/s2",
+          "payload_digest": null,
+          "notes": "Synthetic spacecraft IMU."
+        },
+        {
+          "observation_id": "obs.space.star",
+          "offset_ms": 5000,
+          "event_kind": "measurement",
+          "source_id": "src.space.star",
+          "modality": "star_tracker",
+          "frame_id": "frame.earth.inertial",
+          "time_basis_id": "time.tdb",
+          "observation_class": "raw_observation",
+          "components": [
+            0.1,
+            0.2,
+            0.3
+          ],
+          "units": "unit_vector",
+          "payload_digest": null,
+          "notes": "Synthetic inertial attitude observation."
+        },
+        {
+          "observation_id": "obs.space.clockcorr",
+          "offset_ms": 18000,
+          "event_kind": "clock_status",
+          "source_id": "src.space.ephem",
+          "modality": "ephemeris",
+          "frame_id": "frame.earth.inertial",
+          "time_basis_id": "time.tdb",
+          "observation_class": "clock_correlation",
+          "components": null,
+          "units": null,
+          "payload_digest": null,
+          "notes": "Declared synthetic TDB-to-SCLK correlation valid for this segment."
+        },
+        {
+          "observation_id": "obs.space.optical",
+          "offset_ms": 25000,
+          "event_kind": "measurement",
+          "source_id": "src.space.camera",
+          "modality": "optical_bearing",
+          "frame_id": "frame.target.relative",
+          "time_basis_id": "time.sclk",
+          "observation_class": "raw_observation",
+          "components": [
+            0.01,
+            0.02
+          ],
+          "units": "rad",
+          "payload_digest": null,
+          "notes": "Synthetic line-of-sight bearing."
+        },
+        {
+          "observation_id": "obs.space.occulted",
+          "offset_ms": 45000,
+          "event_kind": "source_status",
+          "source_id": "src.space.camera",
+          "modality": "optical_bearing",
+          "frame_id": "frame.target.relative",
+          "time_basis_id": "time.sclk",
+          "observation_class": "source_health",
+          "components": null,
+          "units": null,
+          "payload_digest": null,
+          "notes": "Target feature is occulted; optical bearing becomes unavailable."
+        }
+      ],
+      "faults": [
+        {
+          "fault_id": "fault.space.occultation",
+          "fault_kind": "reference_occultation",
+          "source_ids": [
+            "src.space.camera",
+            "src.space.targetmap"
+          ],
+          "start_offset_ms": 45000,
+          "end_offset_ms": 60000,
+          "controller_visible_effect": "Target line-of-sight is unavailable.",
+          "notes": ""
+        },
+        {
+          "fault_id": "fault.space.clock-correlation",
+          "fault_kind": "clock_correlation_expired",
+          "source_ids": [
+            "src.space.ephem"
+          ],
+          "start_offset_ms": 50000,
+          "end_offset_ms": 60000,
+          "controller_visible_effect": "Clock correlation validity expires; no UTC/TAI conversion may be inferred.",
+          "notes": ""
+        }
+      ],
+      "evaluator_only": {
+        "reference_class": "synthetic_oracle",
+        "reference_sources": [
+          "oracle.space.truth.v0.1"
+        ],
+        "truth_states": [
+          {
+            "truth_id": "truth.space.0",
+            "offset_ms": 0,
+            "body_id": "earth",
+            "frame_id": "frame.earth.inertial",
+            "position_m": [
+              7000000,
+              0,
+              0
+            ],
+            "velocity_mps": [
+              0,
+              7500,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.space.1",
+            "offset_ms": 30000,
+            "body_id": "earth",
+            "frame_id": "frame.target.relative",
+            "position_m": [
+              1000,
+              0,
+              0
+            ],
+            "velocity_mps": [
+              0,
+              0.1,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.space.2",
+            "offset_ms": 50000,
+            "body_id": "earth",
+            "frame_id": "frame.target.relative",
+            "position_m": [
+              1500,
+              0,
+              10
+            ],
+            "velocity_mps": [
+              0,
+              0.1,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.space.3",
+            "offset_ms": 60000,
+            "body_id": "earth",
+            "frame_id": "frame.target.relative",
+            "position_m": [
+              1600,
+              0,
+              15
+            ],
+            "velocity_mps": [
+              0,
+              0.1,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        ],
+        "event_labels": [
+          {
+            "fault_id": "fault.space.occultation",
+            "true_fault_kind": "reference_occultation",
+            "onset_offset_ms": 45000,
+            "cause_attribution": "not_adjudicated"
+          },
+          {
+            "fault_id": "fault.space.clock-correlation",
+            "true_fault_kind": "clock_correlation_expired",
+            "onset_offset_ms": 50000,
+            "cause_attribution": "not_adjudicated"
+          }
+        ]
+      },
+      "expected_dispositions": [
+        {
+          "at_offset_ms": 0,
+          "expected_state": "NORMAL",
+          "minimum_evidence_condition": "Orbit reference, inertial state and TDB epoch are qualified for this synthetic profile.",
+          "reason_code": "SPACE_ABSOLUTE"
+        },
+        {
+          "at_offset_ms": 20000,
+          "expected_state": "DEGRADED",
+          "minimum_evidence_condition": "Relative-only optical state must declare its frame, clock domain and uncertainty.",
+          "reason_code": "SPACE_RELATIVE_ONLY"
+        },
+        {
+          "at_offset_ms": 45000,
+          "expected_state": "INDETERMINATE",
+          "minimum_evidence_condition": "Target occultation and loss of current optical observations prevent an unsupported reacquisition claim.",
+          "reason_code": "SPACE_TARGET_OCCULTED"
+        }
+      ],
+      "assumptions": [
+        "This is a synthetic relative-navigation contract, not a spacecraft dynamics or rendezvous simulation.",
+        "SPICE-like ephemeris geometry is not treated as an orbit-determination algorithm.",
+        "TDB and spacecraft clock values are distinct; conversion requires the explicit, valid correlation record.",
+        "Pose estimation, relative navigation, rendezvous, approach, capture and docking are separate claims."
+      ]
+    },
+    {
+      "schema_version": "nav-transition-case/v0.1",
+      "case_id": "nav.common-mode-false-independence.negative.v0.1",
+      "revision": 1,
+      "status": "draft_not_run",
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_transition_contract_only",
+      "domain_path": [
+        "land",
+        "urban"
+      ],
+      "source_registry": [
+        {
+          "source_id": "src.receiver.a",
+          "modality": "gnss",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": null,
+          "clock_domain_ref": "clock.common.1",
+          "failure_domains": [
+            "fd.antenna.shared",
+            "fd.clock.shared",
+            "fd.power.shared",
+            "fd.correction.shared"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.receiver.b",
+          "modality": "gnss",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": null,
+          "clock_domain_ref": "clock.common.1",
+          "failure_domains": [
+            "fd.antenna.shared",
+            "fd.clock.shared",
+            "fd.power.shared",
+            "fd.correction.shared"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.receiver.c",
+          "modality": "gnss",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": null,
+          "clock_domain_ref": "clock.c.1",
+          "failure_domains": [
+            "fd.antenna.c",
+            "fd.clock.c",
+            "fd.power.shared",
+            "fd.correction.shared"
+          ],
+          "qualification_status": "synthetic_fixture"
+        }
+      ],
+      "phases": [
+        {
+          "phase_id": "phase.common.normal",
+          "environment": "land",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "frame.earth.ecef",
+            "frame_kind": "earth_ecef",
+            "body_id": "earth",
+            "origin_ref": "origin.earth.centre",
+            "epoch_ref": "epoch.wgs84.2025",
+            "parent_frame_id": null
+          },
+          "time_basis": {
+            "time_basis_id": "time.utc",
+            "kind": "utc",
+            "clock_or_scale_id": "scale.utc",
+            "epoch_ref": "epoch.utc",
+            "uncertainty_s": 0.002
+          },
+          "measurement_classes": [
+            "gnss"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "NORMAL"
+        },
+        {
+          "phase_id": "phase.common.conflict",
+          "environment": "urban",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "frame.land.enu",
+            "frame_kind": "local_enu",
+            "body_id": "earth",
+            "origin_ref": "origin.synthetic.survey.001",
+            "epoch_ref": "epoch.wgs84.2025",
+            "parent_frame_id": "frame.earth.ecef"
+          },
+          "time_basis": {
+            "time_basis_id": "time.utc",
+            "kind": "utc",
+            "clock_or_scale_id": "scale.utc",
+            "epoch_ref": "epoch.utc",
+            "uncertainty_s": 0.002
+          },
+          "measurement_classes": [
+            "gnss"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "INTEGRITY_UNCERTAIN"
+        }
+      ],
+      "transitions": [
+        {
+          "transition_id": "tr.common-domain",
+          "from_phase": "phase.common.normal",
+          "to_phase": "phase.common.conflict",
+          "offset_ms": 10000,
+          "kind": "observability_collapse",
+          "expected_state": "INTEGRITY_UNCERTAIN",
+          "notes": "Three receiver identifiers do not constitute three independent failure domains."
+        }
+      ],
+      "controller_stream": [
+        {
+          "observation_id": "obs.receiver.a",
+          "offset_ms": 0,
+          "event_kind": "measurement",
+          "source_id": "src.receiver.a",
+          "modality": "gnss",
+          "frame_id": "frame.earth.ecef",
+          "time_basis_id": "time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            10,
+            20,
+            30
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Receiver A."
+        },
+        {
+          "observation_id": "obs.receiver.b",
+          "offset_ms": 1000,
+          "event_kind": "measurement",
+          "source_id": "src.receiver.b",
+          "modality": "gnss",
+          "frame_id": "frame.earth.ecef",
+          "time_basis_id": "time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            10.1,
+            20,
+            30
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Receiver B shares antenna and clock with A."
+        },
+        {
+          "observation_id": "obs.receiver.c",
+          "offset_ms": 2000,
+          "event_kind": "measurement",
+          "source_id": "src.receiver.c",
+          "modality": "gnss",
+          "frame_id": "frame.earth.ecef",
+          "time_basis_id": "time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            10.2,
+            20,
+            30
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Receiver C has separate antenna/clock but shares power and corrections."
+        },
+        {
+          "observation_id": "obs.common.status",
+          "offset_ms": 10000,
+          "event_kind": "integrity_status",
+          "source_id": "src.receiver.a",
+          "modality": "gnss",
+          "frame_id": "frame.land.enu",
+          "time_basis_id": "time.utc",
+          "observation_class": "integrity_assessment",
+          "components": null,
+          "units": null,
+          "payload_digest": null,
+          "notes": "Dependency inventory is incomplete for one upstream provider."
+        }
+      ],
+      "faults": [
+        {
+          "fault_id": "fault.shared-clock",
+          "fault_kind": "shared_failure_domain",
+          "source_ids": [
+            "src.receiver.a",
+            "src.receiver.b"
+          ],
+          "start_offset_ms": 10000,
+          "end_offset_ms": 20000,
+          "controller_visible_effect": "Common clock/antenna dependency invalidates naive independent-source counting.",
+          "notes": ""
+        }
+      ],
+      "evaluator_only": {
+        "reference_class": "synthetic_oracle",
+        "reference_sources": [
+          "oracle.common-mode.truth.v0.1"
+        ],
+        "truth_states": [
+          {
+            "truth_id": "truth.common.0",
+            "offset_ms": 0,
+            "body_id": "earth",
+            "frame_id": "frame.earth.ecef",
+            "position_m": [
+              10,
+              20,
+              30
+            ],
+            "velocity_mps": [
+              0,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.common.1",
+            "offset_ms": 10000,
+            "body_id": "earth",
+            "frame_id": "frame.land.enu",
+            "position_m": [
+              0,
+              0,
+              0
+            ],
+            "velocity_mps": [
+              0,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.common.2",
+            "offset_ms": 20000,
+            "body_id": "earth",
+            "frame_id": "frame.land.enu",
+            "position_m": [
+              0,
+              0,
+              0
+            ],
+            "velocity_mps": [
+              0,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        ],
+        "event_labels": [
+          {
+            "fault_id": "fault.shared-clock",
+            "true_fault_kind": "shared_failure_domain",
+            "onset_offset_ms": 10000,
+            "cause_attribution": "not_adjudicated"
+          }
+        ]
+      },
+      "expected_dispositions": [
+        {
+          "at_offset_ms": 0,
+          "expected_state": "NORMAL",
+          "minimum_evidence_condition": "Initial input set is current; independence still depends on the complete dependency inventory.",
+          "reason_code": "COMMON_INITIAL"
+        },
+        {
+          "at_offset_ms": 10000,
+          "expected_state": "INTEGRITY_UNCERTAIN",
+          "minimum_evidence_condition": "Shared and incomplete upstream dependencies must not be counted as independent corroboration.",
+          "reason_code": "COMMON_MODE_NOT_INDEPENDENT"
+        }
+      ],
+      "assumptions": [
+        "This negative control tests evidence independence semantics, not GNSS signal processing.",
+        "Peer count, signature count and receiver count do not establish independent physical measurements.",
+        "At least one positive-control case with truly independent time, antenna, power and correction dependencies is required before qualification."
+      ]
+    },
+    {
+      "schema_version": "nav-transition-case/v0.1",
+      "case_id": "nav.frame-time-basis-mismatch.negative.v0.1",
+      "revision": 1,
+      "status": "draft_not_run",
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_transition_contract_only",
+      "domain_path": [
+        "land",
+        "underground"
+      ],
+      "source_registry": [
+        {
+          "source_id": "src.imu.clocked",
+          "modality": "imu",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.imu",
+          "clock_domain_ref": "clock.boot.1",
+          "failure_domains": [
+            "fd.imu.mount",
+            "fd.clock.boot.1",
+            "fd.power.robot"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.lidar.clocked",
+          "modality": "lidar",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.lidar",
+          "clock_domain_ref": "clock.lidar.1",
+          "failure_domains": [
+            "fd.lidar.sensor",
+            "fd.power.robot"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.transform.unqualified",
+          "modality": "map_landmark",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": null,
+          "clock_domain_ref": "clock.map.1",
+          "failure_domains": [
+            "fd.map.snapshot.unknown"
+          ],
+          "qualification_status": "synthetic_fixture"
+        }
+      ],
+      "phases": [
+        {
+          "phase_id": "phase.frame.normal",
+          "environment": "land",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "frame.earth.ecef",
+            "frame_kind": "earth_ecef",
+            "body_id": "earth",
+            "origin_ref": "origin.earth.centre",
+            "epoch_ref": "epoch.wgs84.2025",
+            "parent_frame_id": null
+          },
+          "time_basis": {
+            "time_basis_id": "time.utc",
+            "kind": "utc",
+            "clock_or_scale_id": "scale.utc",
+            "epoch_ref": "epoch.utc",
+            "uncertainty_s": 0.002
+          },
+          "measurement_classes": [
+            "imu",
+            "lidar"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "NORMAL"
+        },
+        {
+          "phase_id": "phase.frame.tunnel",
+          "environment": "underground",
+          "body_id": "earth",
+          "frame": {
+            "frame_id": "frame.land.enu",
+            "frame_kind": "local_enu",
+            "body_id": "earth",
+            "origin_ref": "origin.synthetic.survey.001",
+            "epoch_ref": "epoch.wgs84.2025",
+            "parent_frame_id": "frame.earth.ecef"
+          },
+          "time_basis": {
+            "time_basis_id": "time.device.mono.1",
+            "kind": "monotonic",
+            "clock_or_scale_id": "clock.device.boot.1",
+            "epoch_ref": "boot.epoch.1",
+            "uncertainty_s": 0.0001
+          },
+          "measurement_classes": [
+            "imu",
+            "lidar",
+            "map_landmark"
+          ],
+          "communications_state": "connected",
+          "expected_service_state": "INDETERMINATE"
+        }
+      ],
+      "transitions": [
+        {
+          "transition_id": "tr.frame-time-mismatch",
+          "from_phase": "phase.frame.normal",
+          "to_phase": "phase.frame.tunnel",
+          "offset_ms": 10000,
+          "kind": "reference_frame_change",
+          "expected_state": "INDETERMINATE",
+          "notes": "A measurement is tagged with a local frame ID while carrying a coordinate from the Earth-fixed frame; clock basis also changes."
+        }
+      ],
+      "controller_stream": [
+        {
+          "observation_id": "obs.frame.imu",
+          "offset_ms": 0,
+          "event_kind": "measurement",
+          "source_id": "src.imu.clocked",
+          "modality": "imu",
+          "frame_id": "frame.earth.ecef",
+          "time_basis_id": "time.utc",
+          "observation_class": "raw_observation",
+          "components": [
+            0,
+            0,
+            9.80665
+          ],
+          "units": "m/s2",
+          "payload_digest": null,
+          "notes": "Valid initial IMU observation."
+        },
+        {
+          "observation_id": "obs.frame.lidar",
+          "offset_ms": 1000,
+          "event_kind": "measurement",
+          "source_id": "src.lidar.clocked",
+          "modality": "lidar",
+          "frame_id": "frame.land.enu",
+          "time_basis_id": "time.device.mono.1",
+          "observation_class": "raw_observation",
+          "components": [
+            1,
+            2,
+            3
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Local lidar measurement."
+        },
+        {
+          "observation_id": "obs.frame.invalid-map",
+          "offset_ms": 10000,
+          "event_kind": "map_match",
+          "source_id": "src.transform.unqualified",
+          "modality": "map_landmark",
+          "frame_id": "frame.land.enu",
+          "time_basis_id": "time.utc",
+          "observation_class": "map_constraint",
+          "components": [
+            1000,
+            2000,
+            0
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Deliberately invalid transform and time-basis association; a conforming evaluator must reject it."
+        }
+      ],
+      "faults": [
+        {
+          "fault_id": "fault.bad-frame-time",
+          "fault_kind": "frame_mismatch",
+          "source_ids": [
+            "src.transform.unqualified"
+          ],
+          "start_offset_ms": 10000,
+          "end_offset_ms": 20000,
+          "controller_visible_effect": "Frame identity and source time basis are contradictory or unsupported.",
+          "notes": ""
+        }
+      ],
+      "evaluator_only": {
+        "reference_class": "synthetic_oracle",
+        "reference_sources": [
+          "oracle.frame-time.truth.v0.1"
+        ],
+        "truth_states": [
+          {
+            "truth_id": "truth.frame.0",
+            "offset_ms": 0,
+            "body_id": "earth",
+            "frame_id": "frame.earth.ecef",
+            "position_m": [
+              1000,
+              2000,
+              30
+            ],
+            "velocity_mps": [
+              1,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.frame.1",
+            "offset_ms": 10000,
+            "body_id": "earth",
+            "frame_id": "frame.land.enu",
+            "position_m": [
+              10,
+              0,
+              0
+            ],
+            "velocity_mps": [
+              1,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.frame.2",
+            "offset_ms": 20000,
+            "body_id": "earth",
+            "frame_id": "frame.land.enu",
+            "position_m": [
+              20,
+              0,
+              0
+            ],
+            "velocity_mps": [
+              1,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        ],
+        "event_labels": [
+          {
+            "fault_id": "fault.bad-frame-time",
+            "true_fault_kind": "frame_mismatch",
+            "onset_offset_ms": 10000,
+            "cause_attribution": "not_adjudicated"
+          }
+        ]
+      },
+      "expected_dispositions": [
+        {
+          "at_offset_ms": 0,
+          "expected_state": "NORMAL",
+          "minimum_evidence_condition": "Initial frame and UTC basis are declared and consistent.",
+          "reason_code": "FRAME_TIME_INITIAL"
+        },
+        {
+          "at_offset_ms": 10000,
+          "expected_state": "INDETERMINATE",
+          "minimum_evidence_condition": "A frame/time mismatch must not be silently transformed or accepted as a valid position.",
+          "reason_code": "FRAME_TIME_MISMATCH"
+        }
+      ],
+      "assumptions": [
+        "This is an intentional negative control with a deliberately invalid frame/time association.",
+        "Numeric timestamps and coordinate triples have no portable meaning without frame, body, epoch and time-basis identities.",
+        "The evaluator must distinguish transform unavailability from physical navigation loss."
+      ]
+    },
+    {
+      "schema_version": "nav-transition-case/v0.1",
+      "case_id": "nav.lunar-body-fixed-to-local-terrain.v0.1",
+      "revision": 1,
+      "status": "draft_not_run",
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_transition_contract_only",
+      "domain_path": [
+        "space",
+        "lunar_surface"
+      ],
+      "source_registry": [
+        {
+          "source_id": "src.lunar.star",
+          "modality": "star_tracker",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.lunar-star",
+          "clock_domain_ref": "clock.lunar.sc.1",
+          "failure_domains": [
+            "fd.lunar.startracker",
+            "fd.spacecraft.power"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.lunar.imu",
+          "modality": "imu",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.lunar-imu",
+          "clock_domain_ref": "clock.lunar.sc.1",
+          "failure_domains": [
+            "fd.lunar.imu",
+            "fd.spacecraft.power"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.lunar.lidar",
+          "modality": "lidar",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.lunar-lidar",
+          "clock_domain_ref": "clock.lidar.lunar.1",
+          "failure_domains": [
+            "fd.lunar.lidar",
+            "fd.spacecraft.power"
+          ],
+          "qualification_status": "synthetic_fixture"
+        },
+        {
+          "source_id": "src.lunar.terrain",
+          "modality": "map_landmark",
+          "configuration_ref": "cfg.synthetic.v0.1",
+          "calibration_ref": "cal.synthetic.lunar-map",
+          "clock_domain_ref": "clock.terrain.1",
+          "failure_domains": [
+            "fd.terrain.map.snapshot"
+          ],
+          "qualification_status": "synthetic_fixture"
+        }
+      ],
+      "phases": [
+        {
+          "phase_id": "phase.lunar-orbit",
+          "environment": "space",
+          "body_id": "moon",
+          "frame": {
+            "frame_id": "frame.moon.fixed",
+            "frame_kind": "body_fixed",
+            "body_id": "moon",
+            "origin_ref": "origin.moon.centre",
+            "epoch_ref": "epoch.iau.moon.2021",
+            "parent_frame_id": null
+          },
+          "time_basis": {
+            "time_basis_id": "time.tt",
+            "kind": "tt",
+            "clock_or_scale_id": "scale.tt",
+            "epoch_ref": "epoch.j2000",
+            "uncertainty_s": 0.000001
+          },
+          "measurement_classes": [
+            "star_tracker",
+            "imu"
+          ],
+          "communications_state": "intermittent",
+          "expected_service_state": "DEGRADED"
+        },
+        {
+          "phase_id": "phase.lunar-surface",
+          "environment": "lunar_surface",
+          "body_id": "moon",
+          "frame": {
+            "frame_id": "frame.moon.local",
+            "frame_kind": "surface_local",
+            "body_id": "moon",
+            "origin_ref": "origin.synthetic.lunar.site.1",
+            "epoch_ref": "epoch.iau.moon.2021",
+            "parent_frame_id": "frame.moon.fixed"
+          },
+          "time_basis": {
+            "time_basis_id": "time.tt",
+            "kind": "tt",
+            "clock_or_scale_id": "scale.tt",
+            "epoch_ref": "epoch.j2000",
+            "uncertainty_s": 0.000001
+          },
+          "measurement_classes": [
+            "star_tracker",
+            "imu",
+            "lidar",
+            "map_landmark"
+          ],
+          "communications_state": "partitioned",
+          "expected_service_state": "DEGRADED"
+        }
+      ],
+      "transitions": [
+        {
+          "transition_id": "tr.lunar-descent",
+          "from_phase": "phase.lunar-orbit",
+          "to_phase": "phase.lunar-surface",
+          "offset_ms": 20000,
+          "kind": "reference_frame_change",
+          "expected_state": "DEGRADED",
+          "notes": "Body-fixed lunar coordinates transition to a local surface frame with explicit origin and transform epoch."
+        }
+      ],
+      "controller_stream": [
+        {
+          "observation_id": "obs.lunar.star",
+          "offset_ms": 0,
+          "event_kind": "measurement",
+          "source_id": "src.lunar.star",
+          "modality": "star_tracker",
+          "frame_id": "frame.moon.fixed",
+          "time_basis_id": "time.tt",
+          "observation_class": "raw_observation",
+          "components": [
+            0,
+            0,
+            1
+          ],
+          "units": "unit_vector",
+          "payload_digest": null,
+          "notes": "Synthetic star reference."
+        },
+        {
+          "observation_id": "obs.lunar.imu",
+          "offset_ms": 0,
+          "event_kind": "measurement",
+          "source_id": "src.lunar.imu",
+          "modality": "imu",
+          "frame_id": "frame.moon.fixed",
+          "time_basis_id": "time.tt",
+          "observation_class": "raw_observation",
+          "components": [
+            0,
+            0,
+            1.62
+          ],
+          "units": "m/s2",
+          "payload_digest": null,
+          "notes": "Synthetic lunar gravity/IMU vector."
+        },
+        {
+          "observation_id": "obs.lunar.lidar",
+          "offset_ms": 22000,
+          "event_kind": "measurement",
+          "source_id": "src.lunar.lidar",
+          "modality": "lidar",
+          "frame_id": "frame.moon.local",
+          "time_basis_id": "time.tt",
+          "observation_class": "raw_observation",
+          "components": [
+            2,
+            0,
+            0
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Synthetic local terrain geometry."
+        },
+        {
+          "observation_id": "obs.lunar.terrain",
+          "offset_ms": 25000,
+          "event_kind": "map_match",
+          "source_id": "src.lunar.terrain",
+          "modality": "map_landmark",
+          "frame_id": "frame.moon.local",
+          "time_basis_id": "time.tt",
+          "observation_class": "map_constraint",
+          "components": [
+            0,
+            0,
+            0
+          ],
+          "units": "m",
+          "payload_digest": null,
+          "notes": "Synthetic terrain landmark."
+        }
+      ],
+      "faults": [],
+      "evaluator_only": {
+        "reference_class": "synthetic_oracle",
+        "reference_sources": [
+          "oracle.lunar.truth.v0.1"
+        ],
+        "truth_states": [
+          {
+            "truth_id": "truth.lunar.0",
+            "offset_ms": 0,
+            "body_id": "moon",
+            "frame_id": "frame.moon.fixed",
+            "position_m": [
+              1737400,
+              0,
+              0
+            ],
+            "velocity_mps": [
+              0,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.lunar.1",
+            "offset_ms": 30000,
+            "body_id": "moon",
+            "frame_id": "frame.moon.local",
+            "position_m": [
+              2,
+              0,
+              0
+            ],
+            "velocity_mps": [
+              0.1,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "truth_id": "truth.lunar.2",
+            "offset_ms": 60000,
+            "body_id": "moon",
+            "frame_id": "frame.moon.local",
+            "position_m": [
+              5,
+              0,
+              0
+            ],
+            "velocity_mps": [
+              0.1,
+              0,
+              0
+            ],
+            "attitude_quaternion_xyzw": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        ],
+        "event_labels": []
+      },
+      "expected_dispositions": [
+        {
+          "at_offset_ms": 0,
+          "expected_state": "DEGRADED",
+          "minimum_evidence_condition": "Orbit/local body-fixed solution is qualified only within the declared propagation profile.",
+          "reason_code": "LUNAR_ORBIT_COAST"
+        },
+        {
+          "at_offset_ms": 20000,
+          "expected_state": "DEGRADED",
+          "minimum_evidence_condition": "Local surface frame is usable only after origin, epoch and transform uncertainty are bound.",
+          "reason_code": "LUNAR_LOCAL_REACQUISITION"
+        }
+      ],
+      "assumptions": [
+        "Moon is a distinct reference body; Earth geodetic coordinates must not be reused as lunar coordinates.",
+        "All terrain geometry is synthetic; no lunar landing site, hazard map or operational route is represented.",
+        "A network partition does not by itself invalidate local navigation evidence."
+      ]
+    }
+  ]
+}
