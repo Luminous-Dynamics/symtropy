@@ -32,13 +32,22 @@ pub fn nan_zeroed_count() -> u64 {
 pub enum IntegratorError {
     /// The integration timestep must be finite and strictly positive.
     InvalidTimestep,
+    /// Gravity must contain only finite components.
+    NonFiniteGravity,
+    /// The initial world position contains a NaN or infinity.
+    NonFinitePosition,
+    /// The initial linear velocity contains a NaN or infinity.
+    NonFiniteLinearVelocity,
+    /// The initial angular velocity contains a NaN or infinity.
+    NonFiniteAngularVelocity,
 }
 
 /// Checked integration entry point.
 ///
-/// Rejects zero, negative, NaN, and infinite timesteps before mutating body
-/// state or clearing force/torque accumulators. The existing non-finite
-/// force/torque sanitization policy remains unchanged.
+/// Rejects zero, negative, NaN, and infinite timesteps; non-finite gravity;
+/// and non-finite dynamic-body position or velocity before mutating state or
+/// clearing force/torque accumulators. The existing non-finite force/torque
+/// accumulator sanitization policy remains unchanged.
 ///
 /// Semi-implicit (velocity-first) Euler updates velocity before position.
 /// For separable Hamiltonian systems, the undamped fixed-step map is
@@ -53,6 +62,30 @@ pub fn try_integrate<const D: usize>(
 ) -> Result<(), IntegratorError> {
     if !dt.is_finite() || dt <= 0.0 {
         return Err(IntegratorError::InvalidTimestep);
+    }
+    if !gravity.iter().all(|component| component.is_finite()) {
+        return Err(IntegratorError::NonFiniteGravity);
+    }
+    if body.is_dynamic() {
+        if !body
+            .transform
+            .translation
+            .0
+            .iter()
+            .all(|component| component.is_finite())
+        {
+            return Err(IntegratorError::NonFinitePosition);
+        }
+        if !body
+            .linear_velocity
+            .iter()
+            .all(|component| component.is_finite())
+        {
+            return Err(IntegratorError::NonFiniteLinearVelocity);
+        }
+        if !body.angular_velocity.is_finite() {
+            return Err(IntegratorError::NonFiniteAngularVelocity);
+        }
     }
     integrate_validated_timestep(body, gravity, dt);
     Ok(())
@@ -264,6 +297,59 @@ mod tests {
         assert_eq!(body.angular_velocity, angular_before);
         assert_eq!(body.force_accumulator, force_before);
         assert_eq!(body.torque_accumulator, torque_before);
+    }
+
+    #[test]
+    fn non_finite_gravity_is_rejected_without_state_mutation() {
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(68), Point::origin(), 0.2, 1.0);
+        body.linear_velocity = SVector::from([0.5, -0.25, 1.0]);
+        body.apply_force(SVector::from([1.0, 2.0, 3.0]));
+        let position_before = body.transform.translation.0;
+        let velocity_before = body.linear_velocity;
+        let force_before = body.force_accumulator;
+
+        assert_eq!(
+            try_integrate(
+                &mut body,
+                &SVector::from([0.0, f64::NAN, 0.0]),
+                0.01
+            ),
+            Err(IntegratorError::NonFiniteGravity)
+        );
+        assert_eq!(body.transform.translation.0, position_before);
+        assert_eq!(body.linear_velocity, velocity_before);
+        assert_eq!(body.force_accumulator, force_before);
+    }
+
+    #[test]
+    fn non_finite_dynamic_state_is_rejected_without_mutation() {
+        let mut position_body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(65), Point::origin(), 0.2, 1.0);
+        position_body.transform.translation.0[1] = f64::NAN;
+        assert_eq!(
+            try_integrate(&mut position_body, &SVector::zeros(), 0.01),
+            Err(IntegratorError::NonFinitePosition)
+        );
+        assert!(position_body.transform.translation.0[1].is_nan());
+
+        let mut linear_body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(66), Point::origin(), 0.2, 1.0);
+        linear_body.linear_velocity[2] = f64::INFINITY;
+        assert_eq!(
+            try_integrate(&mut linear_body, &SVector::zeros(), 0.01),
+            Err(IntegratorError::NonFiniteLinearVelocity)
+        );
+        assert_eq!(linear_body.linear_velocity[2], f64::INFINITY);
+
+        let mut angular_body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(67), Point::origin(), 0.2, 1.0);
+        angular_body.angular_velocity.set(0, 2, f64::NAN);
+        assert_eq!(
+            try_integrate(&mut angular_body, &SVector::zeros(), 0.01),
+            Err(IntegratorError::NonFiniteAngularVelocity)
+        );
+        assert!(angular_body.angular_velocity.get(0, 2).is_nan());
     }
 
     #[test]
