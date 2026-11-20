@@ -589,6 +589,8 @@ mod tests {
             required_clearance_policy_sha256: digest('f'),
             occupancy: OccupancyAssessmentReceipt {
                 assessed_envelope_sha256: digest('a'),
+                assessed_stop_tube_sha256: digest('7'),
+                stop_tube_coverage_complete: true,
                 primitive_manifest_sha256: digest('8'),
                 site_snapshot_sha256: digest('b'),
                 site_ledger_sequence: ledger.last_sequence(),
