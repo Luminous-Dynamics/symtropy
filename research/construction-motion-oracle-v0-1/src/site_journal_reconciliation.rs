@@ -198,6 +198,7 @@ pub enum SiteJournalReconciliationError {
     ConflictingEventId(String),
     ConflictingEventContentDigest(String),
     DuplicatePublishedPackageDigest(String),
+    PackageAlreadyCommitted(String),
     InvalidCommittedContext,
     CausalCycle,
 }
@@ -498,6 +499,11 @@ fn add_payload_dependencies(
     for event in events.values() {
         match &event.payload {
             SiteEventPayload::WorkPackagePublished { package } => {
+                if committed_context.package_sha256s.contains(&package.package_sha256) {
+                    return Err(SiteJournalReconciliationError::PackageAlreadyCommitted(
+                        package.package_sha256.clone(),
+                    ));
+                }
                 if package_publications
                     .insert(package.package_sha256.clone(), event.event_id.clone())
                     .is_some()
@@ -924,25 +930,27 @@ mod tests {
         }
     }
 
+    fn committed_context(attempt_ids: &[&str]) -> SiteJournalCommittedContext {
+        SiteJournalCommittedContext {
+            event_ids: BTreeSet::from(["station-1".to_owned()]),
+            package_sha256s: BTreeSet::from([digest('a')]),
+            attempt_ids: attempt_ids.iter().map(|id| (*id).to_owned()).collect(),
+            station_qualification_event_ids: BTreeSet::from(["station-1".to_owned()]),
+            ..SiteJournalCommittedContext::default()
+        }
+    }
+
+    fn reconcile_with_context(
+        journals: &[OfflineSiteJournal],
+        context: &SiteJournalCommittedContext,
+    ) -> Result<SiteJournalReconciliationPlan, SiteJournalReconciliationError> {
+        reconcile_site_journal_bundle(journals, "site-001", &checkpoint(), context, &registry())
+    }
+
     fn reconcile(
         journals: &[OfflineSiteJournal],
     ) -> Result<SiteJournalReconciliationPlan, SiteJournalReconciliationError> {
-        reconcile_site_journal_bundle(
-            journals,
-            "site-001",
-            &checkpoint(),
-            &SiteJournalCommittedContext {
-                event_ids: BTreeSet::from(["station-1".to_owned()]),
-                package_sha256s: BTreeSet::from([digest('a')]),
-                attempt_ids: BTreeSet::from([
-                    "attempt-a".to_owned(),
-                    "attempt-b".to_owned(),
-                ]),
-                station_qualification_event_ids: BTreeSet::from(["station-1".to_owned()]),
-                ..SiteJournalCommittedContext::default()
-            },
-            &registry(),
-        )
+        reconcile_with_context(journals, &committed_context(&[]))
     }
 
     #[test]
@@ -975,8 +983,10 @@ mod tests {
                 observation_payload_for("entity-b", "attempt-b"),
             )],
         );
-        let forward = reconcile(&[first.clone(), second.clone()]).unwrap();
-        let reverse = reconcile(&[second, first]).unwrap();
+        let context = committed_context(&["attempt-a", "attempt-b"]);
+        let forward =
+            reconcile_with_context(&[first.clone(), second.clone()], &context).unwrap();
+        let reverse = reconcile_with_context(&[second, first], &context).unwrap();
         assert!(forward.can_ingest());
         assert!(reverse.can_ingest());
         assert_eq!(
@@ -1083,7 +1093,8 @@ mod tests {
                 },
             )],
         );
-        let plan = reconcile(&[referee, robot]).unwrap();
+        let plan = reconcile_with_context(&[referee, robot], &committed_context(&["attempt-a"]))
+            .unwrap();
         assert!(plan.can_ingest());
         let ids: Vec<_> = plan
             .ordered_events
@@ -1123,7 +1134,9 @@ mod tests {
                 interruption_payload("attempt-a"),
             )],
         );
-        let plan = reconcile(&[robot, interruption]).unwrap();
+        let plan =
+            reconcile_with_context(&[robot, interruption], &committed_context(&["attempt-a"]))
+                .unwrap();
         assert!(!plan.can_ingest());
         assert!(plan.concurrent_mutations.iter().any(|conflict| {
             conflict.key
@@ -1156,10 +1169,13 @@ mod tests {
             &[],
             observation_payload("attempt-a"),
         );
-        let plan = reconcile(&[
-            journal("journal-a", "robot-a", vec![original]),
-            journal("journal-b", "robot-a", vec![replica]),
-        ])
+        let plan = reconcile_with_context(
+            &[
+                journal("journal-a", "robot-a", vec![original]),
+                journal("journal-b", "robot-a", vec![replica]),
+            ],
+            &committed_context(&["attempt-a"]),
+        )
         .unwrap();
         assert_eq!(plan.ordered_events.len(), 1);
         assert_eq!(plan.duplicate_replicas_collapsed, 1);
@@ -1224,7 +1240,7 @@ mod tests {
             )],
         );
         assert!(matches!(
-            reconcile(&[missing]),
+            reconcile_with_context(&[missing], &committed_context(&["attempt-a"])),
             Err(SiteJournalReconciliationError::MissingCausalParent { .. })
         ));
 
@@ -1257,7 +1273,7 @@ mod tests {
             )],
         );
         assert_eq!(
-            reconcile(&[first, second]),
+            reconcile_with_context(&[first, second], &committed_context(&["attempt-a", "attempt-b"])),
             Err(SiteJournalReconciliationError::CausalCycle)
         );
     }
@@ -1380,7 +1396,9 @@ mod tests {
                 },
             )],
         );
-        let plan = reconcile(&[robot_a, robot_b]).unwrap();
+        let plan =
+            reconcile_with_context(&[robot_a, robot_b], &committed_context(&["attempt-a"]))
+                .unwrap();
         assert!(!plan.can_ingest());
         assert!(plan.concurrent_mutations.iter().any(|conflict| {
             conflict.key
