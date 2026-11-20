@@ -1081,6 +1081,9 @@ use power_restoration_run_receipt::{
     TransitionOutcome, canonical_sha256 as receipt_canonical_sha256,
     qualify as qualify_run_receipt,
 };
+use power_restoration_service_trajectory_audit::{
+    ServiceTrajectoryAuditReport, ServiceTrajectoryRecord, audit_service_trajectory,
+};
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -1108,6 +1111,7 @@ pub struct RestorationClaimVerificationReport {
     pub stale_observation_count: usize,
     pub conflicting_observation_count: usize,
     pub unverified_observation_count: usize,
+    pub service_trajectory_audit: Option<ServiceTrajectoryAuditReport>,
     pub required_artifact_count: usize,
     pub verified_artifact_count: usize,
     pub required_attestation_count: usize,
@@ -1322,6 +1326,7 @@ pub fn verify_restoration_claim_evidence(
     max_artifact_bytes: u64,
 ) -> Result<RestorationClaimVerificationReport, Vec<String>> {
     let mut errors = Vec::new();
+    let mut service_trajectory_audit: Option<ServiceTrajectoryAuditReport> = None;
 
     // Producer profiles are supplied out-of-band by the caller, not accepted
     // from the evidence bundle. Only these non-component producer roles are configurable.
@@ -2032,6 +2037,65 @@ pub fn verify_restoration_claim_evidence(
         }
     }
 
+    // Verify bundle bytes before semantic service parsing. The service parser
+    // receives only bytes re-read and re-hashed through this verified-bundle
+    // boundary, never caller-provided JSON or a success-shaped metadata report.
+    let verified_bundle = verify_bundle_manifest(bundle_root, manifest, max_artifact_bytes)
+        .map_err(|bundle_errors| bundle_errors.into_iter().map(|error| format!("bundle: {error}")).collect::<Vec<_>>())?;
+
+    if let Some(final_trajectory_ref) = &receipt.final_service_trajectory {
+        let trajectory_bytes = verified_bundle
+            .read_verified_artifact_bytes(
+                bundle_root,
+                &final_trajectory_ref.artifact_ref,
+                max_artifact_bytes,
+            )
+            .map_err(|artifact_errors| artifact_errors.into_iter().map(|error| format!("final service trajectory: {error}")).collect::<Vec<_>>())?;
+        let trajectory: ServiceTrajectoryRecord = serde_json::from_slice(&trajectory_bytes)
+            .map_err(|error| vec![format!("final service trajectory JSON decode error: {error}")])?;
+        let service_report = audit_service_trajectory(&trajectory, receipt, case)
+            .map_err(|service_errors| service_errors.into_iter().map(|error| format!("service trajectory: {error}")).collect::<Vec<_>>())?;
+
+        if receipt.run_status == RunStatus::Completed
+            && !matches!(
+                service_report.result_status.as_str(),
+                "modelled_service_and_score_reconciled"
+                    | "measured_service_and_score_reconciled"
+            )
+        {
+            errors.push(format!(
+                "completed run final service trajectory is not reconciled delivered service: {}",
+                service_report.result_status
+            ));
+        }
+
+        // Every source artifact named inside the trajectory must itself be a
+        // byte-verified, closed-world bundle artifact with the exact digest.
+        for source in &trajectory.source_artifacts {
+            add_expected_artifact(
+                &mut expected_artifacts,
+                &source.artifact_ref,
+                &source.sha256,
+                &mut errors,
+            );
+            let source_bytes_verified = verified_bundle
+                .report()
+                .verified_artifacts
+                .iter()
+                .any(|artifact| {
+                    artifact.artifact_uri == source.artifact_ref
+                        && artifact.sha256 == source.sha256
+                });
+            if !source_bytes_verified {
+                errors.push(format!(
+                    "service source artifact {} is missing from the byte-verified bundle or its digest differs",
+                    source.artifact_ref
+                ));
+            }
+        }
+        service_trajectory_audit = Some(service_report);
+    }
+
     // A complete claim package is closed-world: no required artifact can be
     // omitted and no extra unsigned or unreferenced artifact can be smuggled in.
     let manifest_map: BTreeMap<&str, &str> = manifest
@@ -2067,9 +2131,6 @@ pub fn verify_restoration_claim_evidence(
     if !errors.is_empty() {
         return Err(errors);
     }
-
-    let verified_bundle = verify_bundle_manifest(bundle_root, manifest, max_artifact_bytes)
-        .map_err(|bundle_errors| bundle_errors.into_iter().map(|error| format!("bundle: {error}")).collect::<Vec<_>>())?;
 
     // Every producer envelope must use the deterministic artifact URI above.
     for envelope in attestations {
@@ -2117,12 +2178,13 @@ pub fn verify_restoration_claim_evidence(
         stale_observation_count,
         conflicting_observation_count,
         unverified_observation_count,
+        service_trajectory_audit,
         required_artifact_count: expected_artifacts.len(),
         verified_artifact_count: verified_bundle.report().artifact_count,
         required_attestation_count: requirements.len(),
         verified_attestation_count: verified_attestations.len(),
         claim_status: claim_status.to_string(),
-        claim_boundary: "Complete content-addressed and role-separated attestation chain for the declared case/run scope only. Cryptographic authenticity does not prove signed statements are scientifically true, that power flow or protection is physically correct, that switching is authorized or safe, or that customers actually received the claimed service.".to_string(),
+        claim_boundary: "Complete content-addressed and role-separated attestation chain plus byte-verified service trajectory reconciliation for the declared case/run scope only. Cryptographic authenticity and service arithmetic do not prove signed statements are scientifically true, metering is physically accurate, power flow or protection is correct, switching is authorized or safe, or customers actually received the claimed service.".to_string(),
     })
 }
 
