@@ -66,8 +66,8 @@ def main() -> None:
     K_trace=sp.factor(K_phi+K_psi)
     K_phi_expected=sp.sqrt(p)/(L*q*sp.sqrt(1-eps**2))
     K_psi_expected=sp.sqrt(1-eps**2)/(L*sp.sqrt(p))
-    exact_zero("phi principal extrinsic curvature",K_phi-K_phi_expected)
-    exact_zero("psi principal extrinsic curvature",K_psi-K_psi_expected)
+    exact_zero("phi principal extrinsic curvature",K_phi/K_phi_expected-1)
+    exact_zero("psi principal extrinsic curvature",K_psi/K_psi_expected-1)
     exact_zero("mean extrinsic curvature",K_trace-K_phi_expected-K_psi_expected)
 
     # Exact induced volume density and cutoff area.
