@@ -48,6 +48,7 @@ Background:
 
 - Caller-supplied Qualified status is not authenticated here.
 - A well-formed digest does not prove that the referenced bytes are available or correct.
+- The authored test suite contains 29 Rust tests, including the independent periodic-grid stencil oracle and a 36-case sampled entropy-convexity sweep. These are not reported as executed until Rust tooling or hosted CI actually runs them.
 - Matching declared compatibility keys do not prove the solver adapter is semantically correct.
 - This primitive does not choose experts, compute weights, implement hysteresis, normalize units, validate pressure-tensor PSD, prove hyperbolicity or entropy consistency, or execute a plasma solver.
 - Synthetic unit tests do not reproduce ECsim, the Landau-damping papers, the magnetosheath paper or an industrial solver.
