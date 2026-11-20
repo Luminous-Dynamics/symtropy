@@ -14,7 +14,7 @@
     "case_schema": "./nav_transition_case.schema.json",
     "synthetic_cases": "./fixtures/nav_transition_cases.v0.1.json"
   },
-  "case_count": 12,
+  "case_count": 14,
   "case_ids": [
     "nav.land.open-urban-tunnel.v0.1",
     "nav.surface-to-underwater-acoustic-loss.v0.1",
@@ -27,7 +27,9 @@
     "nav.land.valid-reacquisition-positive.v0.1",
     "nav.air.benign-vision-degradation-control.v0.1",
     "nav.space.occultation-reacquisition.v0.1",
-    "nav.indoor.observability-recovery.v0.1"
+    "nav.indoor.observability-recovery.v0.1",
+    "nav.integrity.protection-level-cap-saturation.negative.v0.1",
+    "nav.land.heavy-tail-residual-integrity.v0.1"
   ],
   "controller_evaluator_separation": {
     "controller_input": "Each case controller_stream only",
@@ -106,6 +108,51 @@
       "role": "published_method_comparator_candidate",
       "rights_status": "paper_reference_only_artifacts_and_dataset_review_pending",
       "claim_limit": "Abstract describes innovation-based saturation with covariance intersection and bounded covariance analysis; results apply only to the paper's threat model and evaluated setup."
+    },
+    {
+      "reference_id": "ADAPTIVE-PL-CONTROL-2026",
+      "name": "Integrity as a Control Problem: Smooth and Adaptive Protection Levels for Multi-Modal Localization",
+      "domain": "integrity_protection_level",
+      "url": "https://doi.org/10.3390/s26165140",
+      "role": "published_method_comparator_candidate",
+      "rights_status": "paper_reference_only_artifacts_and_dataset_review_pending",
+      "claim_limit": "Paper reports empirical PL results on selected UrbanNav sequences and does not evaluate availability/continuity; protection-level saturation ceiling is a required negative-control hypothesis, not an accepted integrity theorem."
+    },
+    {
+      "reference_id": "UNDERSUBT-VIO-STRESS-2026",
+      "name": "Stress testing visual-inertial odometry under sensor perturbations on CERBERUS subterranean datasets",
+      "domain": "underground_visual_inertial",
+      "url": "https://arxiv.org/abs/2609.18628",
+      "role": "benchmark_method_comparator_candidate",
+      "rights_status": "preprint_reference_code_and_dataset_rights_review_pending",
+      "claim_limit": "Published preprint tests four VIO systems under nine perturbations on CERBERUS data; one-factor perturbation design and exact artifact availability must be reviewed before reproduction."
+    },
+    {
+      "reference_id": "ODOTEST-FSE-2026",
+      "name": "OdoTest: An Automated Testing Approach for Odometry Systems",
+      "domain": "odometry_testing",
+      "url": "https://doi.org/10.1145/3808128",
+      "role": "benchmark_method_comparator_candidate",
+      "rights_status": "paper_reference_only_artifacts_and_dataset_review_pending",
+      "claim_limit": "Automated testing protocol reference only; exact perturbation generators, version, ground truth and replication artifacts must be audited."
+    },
+    {
+      "reference_id": "CAMERA-IMU-TEMPORAL-CALIBRATION-2026",
+      "name": "Lightweight standalone temporal calibration for visual-inertial odometry on resource-constrained embedded systems",
+      "domain": "visual_inertial_calibration",
+      "url": "https://doi.org/10.1016/j.measurement.2026.122778",
+      "role": "calibration_method_comparator_candidate",
+      "rights_status": "paper_reference_only_artifacts_and_dataset_review_pending",
+      "claim_limit": "Abstract reports camera-IMU temporal calibration results on EuRoC sequences; reported timing/accuracy are paper-specific and require matched hardware, reference and protocol reproduction."
+    },
+    {
+      "reference_id": "UWB-NLOS-BACKEND-2026",
+      "name": "A decoupled backend optimizer for UWB localization in NLOS environments",
+      "domain": "uwb_nlos",
+      "url": "https://doi.org/10.1016/j.measurement.2026.121494",
+      "role": "published_method_comparator_candidate",
+      "rights_status": "paper_reference_only_artifacts_and_dataset_review_pending",
+      "claim_limit": "Abstract describes joint refinement of initial positions and residual ranging errors; code/data, exact NLOS model, licensing and matched measurement protocol remain to be reviewed."
     }
   ],
   "metric_families": [
@@ -129,7 +176,19 @@
     "conflict_detection_and_separation_from_uncertainty",
     "false_accepted_position_exposure",
     "active_observation_information_gain_per_cost",
-    "observability_rank_and_conditioning"
+    "observability_rank_and_conditioning",
+    "protection_level_overbound_coverage",
+    "empirical_integrity_risk",
+    "cluster_aware_integrity_risk_confidence_bound",
+    "availability_and_continuity",
+    "time_to_alert",
+    "false_safe_exposure_duration",
+    "protection_level_saturation_and_cap_exhaustion",
+    "premature_protection_level_contraction",
+    "heavy_tail_residual_calibration",
+    "temporal_calibration_error",
+    "stress_test_completion_and_collapse_threshold",
+    "predicted_vs_realized_active_observation_value"
   ],
   "benchmark_targets": {
     "status": "unverified_hypotheses",
@@ -158,6 +217,9 @@
     "Review the exact Symtropy model-capability path; unsupported physics stays abstract or unknown.",
     "Reproduce or document non-reproducibility of the 2026 DECLARE and innovation-saturation-plus-CI method comparators under exact protocol and rights constraints.",
     "Add positive-control/negative-control ablations for conflict detection, source credibility, covariance discounting and common-mode provenance.",
-    "Compare passive fixed-rate measurement with observability-aware active sensing using matched travel/energy/time costs."
+    "Compare passive fixed-rate measurement with observability-aware active sensing using matched travel/energy/time costs.",
+    "Add and preregister integrity/protection-level saturation and heavy-tail episodes, including cap-exhaustion negative controls and qualified recovery.",
+    "Reproduce or document non-reproducibility of the 2026 adaptive protection-level and Student-t comparators with availability/continuity reported separately.",
+    "Audit OdoTest, UnderSubT VIO stress-test and camera–IMU temporal-calibration artifacts/rights before admitting external results."
   ]
 }
