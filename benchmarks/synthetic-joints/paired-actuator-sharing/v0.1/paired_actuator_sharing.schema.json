@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/synthetic-joints/paired-actuator-sharing/v0.1/paired_actuator_sharing.schema.json",
   "title": "Paired Actuator Load-Sharing Qualification Input v0.1",
-  "description": "Per-unit output-equivalent torque, current, thermal and capability evidence at a common output reference plane. Current share is not torque share.",
+  "description": "Per-unit output-equivalent torque, current, thermal and capability evidence at a common output reference plane. Current share is not torque share. Synthetic inputs are arithmetic fixtures only and must use urn:synthetic: references; a Synthetic result is not physical qualification.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -102,7 +102,8 @@
         "vendor_physical",
         "model_derived",
         "unknown"
-      ]
+      ],
+      "description": "Evidence class for the specific observation or model input. Synthetic is non-physical and cannot satisfy a physical evidence requirement."
     },
     "actuator_unit": {
       "type": "object",
@@ -335,7 +336,169 @@
             "null"
           ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "current_evidence_class": {
+                "const": "synthetic"
+              }
+            },
+            "required": [
+              "current_evidence_class"
+            ]
+          },
+          "then": {
+            "properties": {
+              "current_source_reference": {
+                "type": "string",
+                "pattern": "^urn:synthetic:"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "current_source_reference": {
+                "type": "string",
+                "pattern": "^urn:synthetic:"
+              }
+            },
+            "required": [
+              "current_source_reference"
+            ]
+          },
+          "then": {
+            "properties": {
+              "current_evidence_class": {
+                "const": "synthetic"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "torque_evidence_class": {
+                "const": "synthetic"
+              }
+            },
+            "required": [
+              "torque_evidence_class"
+            ]
+          },
+          "then": {
+            "properties": {
+              "torque_source_reference": {
+                "type": "string",
+                "pattern": "^urn:synthetic:"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "torque_source_reference": {
+                "type": "string",
+                "pattern": "^urn:synthetic:"
+              }
+            },
+            "required": [
+              "torque_source_reference"
+            ]
+          },
+          "then": {
+            "properties": {
+              "torque_evidence_class": {
+                "const": "synthetic"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "capability_evidence_class": {
+                "const": "synthetic"
+              }
+            },
+            "required": [
+              "capability_evidence_class"
+            ]
+          },
+          "then": {
+            "properties": {
+              "capability_source_reference": {
+                "type": "string",
+                "pattern": "^urn:synthetic:"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "capability_source_reference": {
+                "type": "string",
+                "pattern": "^urn:synthetic:"
+              }
+            },
+            "required": [
+              "capability_source_reference"
+            ]
+          },
+          "then": {
+            "properties": {
+              "capability_evidence_class": {
+                "const": "synthetic"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "thermal_evidence_class": {
+                "const": "synthetic"
+              }
+            },
+            "required": [
+              "thermal_evidence_class"
+            ]
+          },
+          "then": {
+            "properties": {
+              "thermal_source_reference": {
+                "type": "string",
+                "pattern": "^urn:synthetic:"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "thermal_source_reference": {
+                "type": "string",
+                "pattern": "^urn:synthetic:"
+              }
+            },
+            "required": [
+              "thermal_source_reference"
+            ]
+          },
+          "then": {
+            "properties": {
+              "thermal_evidence_class": {
+                "const": "synthetic"
+              }
+            }
+          }
+        }
+      ]
     },
     "joint_cross_check": {
       "type": "object",
@@ -398,7 +561,49 @@
           "type": "string",
           "minLength": 1
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "evidence_class": {
+                "const": "synthetic"
+              }
+            },
+            "required": [
+              "evidence_class"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_reference": {
+                "type": "string",
+                "pattern": "^urn:synthetic:"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "source_reference": {
+                "type": "string",
+                "pattern": "^urn:synthetic:"
+              }
+            },
+            "required": [
+              "source_reference"
+            ]
+          },
+          "then": {
+            "properties": {
+              "evidence_class": {
+                "const": "synthetic"
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }
