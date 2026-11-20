@@ -554,6 +554,20 @@ mod tests {
     }
 
     #[test]
+    fn scenario_state_changes_do_not_change_static_topology_fingerprint() {
+        let base = base_case();
+        let base_fingerprint = topology_fingerprint(&base).unwrap();
+        let mut scenario = base.clone();
+        scenario.network.loads[0].active_power_kw += 500.0;
+        scenario.network.loads[0].node_id = "N4".to_string();
+        scenario.faults[0].position_fraction = 0.8;
+        scenario.road_network.edges[0].closed_at_start = true;
+        scenario.repair_crews[0].starting_road_node_id = "R6".to_string();
+        scenario.mobile_power_sources[0].starting_road_node_id = "R1".to_string();
+        assert_eq!(base_fingerprint, topology_fingerprint(&scenario).unwrap());
+    }
+
+    #[test]
     fn renaming_nodes_does_not_change_structural_fingerprint() {
         let original = base_case();
         let first = topology_fingerprint(&original).unwrap();
