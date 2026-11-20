@@ -1,0 +1,41 @@
+name: Paired Actuator Load-Sharing Reference
+
+on:
+  push:
+    paths:
+      - "benchmarks/synthetic-joints/paired-actuator-sharing/v0.1/**"
+      - ".github/workflows/paired-actuator-load-sharing.yml"
+  pull_request:
+    paths:
+      - "benchmarks/synthetic-joints/paired-actuator-sharing/v0.1/**"
+      - ".github/workflows/paired-actuator-load-sharing.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paired-actuator-load-sharing-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.96.0
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/synthetic-joints/paired-actuator-sharing/v0.1/Cargo.toml -- --check
+
+      - name: Run paired actuator sharing tests
+        run: cargo test --manifest-path benchmarks/synthetic-joints/paired-actuator-sharing/v0.1/Cargo.toml --locked
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path benchmarks/synthetic-joints/paired-actuator-sharing/v0.1/Cargo.toml --all-targets --locked -- -D warnings
