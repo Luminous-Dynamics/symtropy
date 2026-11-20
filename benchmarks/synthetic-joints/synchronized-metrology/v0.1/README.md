@@ -158,7 +158,7 @@ cargo clippy --manifest-path benchmarks/synthetic-joints/synchronized-metrology/
 
 Dedicated workflow: .github/workflows/actuator-synchronized-metrology.yml. The local authoring environment has no Cargo/rustc/rustfmt; exact-head CI is the compilation/format/Clippy gate.
 
-Twenty-four Rust tests cover rectangular interval multiplication, negative and zero-crossing power, clock/slew expansion, filter-delay compensation, expired calibration, serial mismatch, incomplete traceability, different clocks/instants, uncertainty-vs-bound semantics, boundary/condition mismatch, missing slew provenance, calibration range limits, preserved vendor evidence, wrong channel kinds, invalid intervals, traceability/clock-map abstention, raw-trace receipt preservation, signed filter group delay and timing overflow.
+Twenty-six Rust tests cover rectangular interval multiplication, negative, zero-crossing and reverse-quadrant power, clock/slew expansion, filter-delay compensation, expired calibration, serial mismatch, incomplete traceability, different clocks/instants, uncertainty-vs-bound semantics, boundary/condition mismatch, missing slew provenance, calibration range limits, preserved vendor evidence, wrong channel kinds, invalid intervals, traceability/clock-map abstention, raw-trace receipt preservation, signed filter group delay and timing overflow.
 
 ## 8. M0–M5 promotion
 
