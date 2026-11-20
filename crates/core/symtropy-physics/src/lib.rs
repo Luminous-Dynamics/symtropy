@@ -34,7 +34,9 @@ pub mod support_map;
 pub mod world;
 
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
-pub use body::{BodyHandle, BodyType, NetId, RigidBody, RotationalInertiaModel};
+pub use body::{
+    BodyHandle, BodyType, MassPropertiesBodyError, NetId, RigidBody, RotationalInertiaModel,
+};
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
