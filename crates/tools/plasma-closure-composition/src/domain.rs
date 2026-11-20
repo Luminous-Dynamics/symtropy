@@ -775,6 +775,34 @@ mod tests {
         ));
     }
 
+
+    #[test]
+    fn individually_tolerated_face_residuals_cannot_accumulate_past_global_gate() {
+        let mut face_a = internal_face("face-a", "cell-0", "cell-1", vec![1.0, 0.0]);
+        let mut face_b = internal_face("face-b", "cell-0", "cell-1", vec![1.0, 0.0]);
+
+        for face in [&mut face_a, &mut face_b] {
+            face.left_integrated_update[0] += 0.75e-12;
+            face.internal_balance_residual[0] =
+                face.left_integrated_update[0] + face.right_integrated_update[0];
+        }
+
+        assert!(face_a.internal_balance_residual[0].abs() <= 1.0e-12);
+        assert!(face_b.internal_balance_residual[0].abs() <= 1.0e-12);
+
+        assert!(matches!(
+            assemble_domain_balance(&request(
+                vec!["cell-0", "cell-1"],
+                vec![face_a, face_b],
+                vec![],
+            )),
+            Err(DomainBalanceError::GlobalBalanceExceeded {
+                component: 0,
+                ..
+            })
+        ));
+    }
+
     #[test]
     fn internal_face_cancellation_is_preserved_in_domain_assembly() {
         let report = assemble_domain_balance(&request(
