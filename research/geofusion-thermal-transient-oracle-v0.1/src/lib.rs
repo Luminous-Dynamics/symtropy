@@ -18,6 +18,7 @@ pub enum ModelError {
     NegativeSourcePowerEnvelope,
     NegativeCumulativeEnergy,
     CumulativeEnergyRegressed,
+    CumulativeEnergyPrecisionInsufficient,
     NonPositiveSampleCount,
     NumericalOverflow,
 }
@@ -212,6 +213,57 @@ pub fn propose_adaptive_step(
     })
 }
 
+/// Interval delta and a conservative Float64 endpoint-quantization bound.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CumulativeEnergyDelta {
+    pub energy_j: f64,
+    /// Sum of one-ULP endpoint bounds; conservative for two rounded observations.
+    pub resolution_bound_j: f64,
+}
+
+fn positive_float_ulp(value: f64) -> f64 {
+    debug_assert!(value.is_finite() && value >= 0.0);
+    let next = f64::from_bits(value.to_bits() + 1);
+    next - value
+}
+
+/// Derive a cumulative-energy delta only when its Float64 endpoint resolution
+/// meets the caller's explicit absolute-error budget.
+pub fn cumulative_energy_delta_with_precision_j(
+    previous_cumulative_j: f64,
+    current_cumulative_j: f64,
+    maximum_resolution_error_j: f64,
+) -> Result<CumulativeEnergyDelta, ModelError> {
+    if !previous_cumulative_j.is_finite()
+        || !current_cumulative_j.is_finite()
+        || !maximum_resolution_error_j.is_finite()
+    {
+        return Err(ModelError::NonFiniteParameter);
+    }
+    if previous_cumulative_j < 0.0 || current_cumulative_j < 0.0 {
+        return Err(ModelError::NegativeCumulativeEnergy);
+    }
+    if maximum_resolution_error_j < 0.0 {
+        return Err(ModelError::NonPositiveInterval);
+    }
+    if current_cumulative_j < previous_cumulative_j {
+        return Err(ModelError::CumulativeEnergyRegressed);
+    }
+    let energy_j = current_cumulative_j - previous_cumulative_j;
+    let resolution_bound_j =
+        positive_float_ulp(previous_cumulative_j) + positive_float_ulp(current_cumulative_j);
+    if !energy_j.is_finite() || !resolution_bound_j.is_finite() {
+        return Err(ModelError::NumericalOverflow);
+    }
+    if resolution_bound_j > maximum_resolution_error_j {
+        return Err(ModelError::CumulativeEnergyPrecisionInsufficient);
+    }
+    Ok(CumulativeEnergyDelta {
+        energy_j,
+        resolution_bound_j,
+    })
+}
+
 /// Derive a non-negative interval-energy increment from two committed cumulative readings.
 ///
 /// This function performs no interpolation or prediction. A decrease is
@@ -221,20 +273,11 @@ pub fn cumulative_energy_delta_j(
     previous_cumulative_j: f64,
     current_cumulative_j: f64,
 ) -> Result<f64, ModelError> {
-    if !previous_cumulative_j.is_finite() || !current_cumulative_j.is_finite() {
-        return Err(ModelError::NonFiniteParameter);
-    }
-    if previous_cumulative_j < 0.0 || current_cumulative_j < 0.0 {
-        return Err(ModelError::NegativeCumulativeEnergy);
-    }
-    if current_cumulative_j < previous_cumulative_j {
-        return Err(ModelError::CumulativeEnergyRegressed);
-    }
-    let delta = current_cumulative_j - previous_cumulative_j;
-    if !delta.is_finite() {
-        return Err(ModelError::NumericalOverflow);
-    }
-    Ok(delta)
+    Ok(cumulative_energy_delta_with_precision_j(
+        previous_cumulative_j,
+        current_cumulative_j,
+        f64::MAX,
+    )?.energy_j)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -1083,6 +1126,32 @@ mod tests {
         );
         assert_eq!(
             cumulative_energy_delta_j(0.0, f64::INFINITY),
+            Err(ModelError::NonFiniteParameter)
+        );
+    }
+
+    #[test]
+    fn cumulative_energy_counter_fails_closed_when_float64_resolution_exceeds_budget() {
+        let previous = 1.0e18;
+        let current = previous + 256.0;
+        assert_eq!(
+            cumulative_energy_delta_with_precision_j(previous, current, 1.0),
+            Err(ModelError::CumulativeEnergyPrecisionInsufficient)
+        );
+        let accepted =
+            cumulative_energy_delta_with_precision_j(previous, current, 1_024.0).unwrap();
+        assert_eq!(accepted.energy_j, 256.0);
+        assert!(accepted.resolution_bound_j > 1.0);
+    }
+
+    #[test]
+    fn cumulative_energy_precision_contract_rejects_invalid_budget() {
+        assert_eq!(
+            cumulative_energy_delta_with_precision_j(0.0, 1.0, -1.0),
+            Err(ModelError::NonPositiveInterval)
+        );
+        assert_eq!(
+            cumulative_energy_delta_with_precision_j(0.0, 1.0, f64::NAN),
             Err(ModelError::NonFiniteParameter)
         );
     }
