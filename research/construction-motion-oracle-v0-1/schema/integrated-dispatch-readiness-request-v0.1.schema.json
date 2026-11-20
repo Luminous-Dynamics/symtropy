@@ -1,0 +1,895 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-integrated-dispatch-readiness-request-v0.1.json",
+  "title": "Construction Integrated Dispatch Readiness Request v0.1",
+  "description": "Non-actuating readiness request joining a current evidence dependency snapshot, site-ledger station qualification, space-time occupancy assessment and qualified sensor/braking distance budget. The receiver must verify canonical hashes and signatures before use.",
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "nodeVersion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "kind",
+        "version_sha256"
+      ],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "source_model",
+            "source_entity",
+            "ids_specification",
+            "ids_engine_build",
+            "ids_evaluation",
+            "coordinate_context",
+            "coordinate_frame",
+            "survey_transform",
+            "survey_calibration",
+            "station_qualification",
+            "robot_configuration",
+            "tool_configuration",
+            "payload_configuration",
+            "sensor_configuration",
+            "stopping_dynamics_qualification",
+            "hazard_detection_qualification",
+            "operating_condition",
+            "occupancy_engine_build",
+            "clearance_policy",
+            "material_batch",
+            "work_package",
+            "task_plan",
+            "motion_envelope",
+            "execution_evidence",
+            "inspection_evidence",
+            "accepted_output",
+            "dispatch_readiness",
+            "other"
+          ]
+        },
+        "version_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "dependencyEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dependent_node_id",
+        "prerequisite_node_id"
+      ],
+      "properties": {
+        "dependent_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prerequisite_node_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "evidenceSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject_node_id",
+        "subject_version_sha256",
+        "transitive_dependency_versions",
+        "dependency_edges"
+      ],
+      "properties": {
+        "subject_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_version_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "transitive_dependency_versions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "node_id",
+              "kind",
+              "version_sha256"
+            ],
+            "properties": {
+              "node_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kind": {
+                "enum": [
+                  "source_model",
+                  "source_entity",
+                  "ids_specification",
+                  "ids_engine_build",
+                  "ids_evaluation",
+                  "coordinate_context",
+                  "coordinate_frame",
+                  "survey_transform",
+                  "survey_calibration",
+                  "station_qualification",
+                  "robot_configuration",
+                  "tool_configuration",
+                  "payload_configuration",
+                  "sensor_configuration",
+                  "stopping_dynamics_qualification",
+                  "hazard_detection_qualification",
+                  "operating_condition",
+                  "occupancy_engine_build",
+                  "clearance_policy",
+                  "material_batch",
+                  "work_package",
+                  "task_plan",
+                  "motion_envelope",
+                  "execution_evidence",
+                  "inspection_evidence",
+                  "accepted_output",
+                  "dispatch_readiness",
+                  "other"
+                ]
+              },
+              "version_sha256": {
+                "$ref": "#/$defs/sha256"
+              }
+            }
+          }
+        },
+        "dependency_edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "dependent_node_id",
+              "prerequisite_node_id"
+            ],
+            "properties": {
+              "dependent_node_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "prerequisite_node_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "dispatchEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "package_sha256",
+        "design_revision_sha256",
+        "entity_id",
+        "frame_sha256",
+        "transform_sha256",
+        "robot_id",
+        "robot_configuration_sha256",
+        "tool_configuration_sha256",
+        "payload_configuration_sha256",
+        "primitive_manifest_sha256",
+        "trajectory_sha256",
+        "envelope_sha256",
+        "site_clock_domain_id",
+        "generated_at_tick",
+        "valid_until_tick"
+      ],
+      "properties": {
+        "package_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "design_revision_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "entity_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frame_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "transform_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "robot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "robot_configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "tool_configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "payload_configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "primitive_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "trajectory_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "envelope_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generated_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_tick": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "occupancyAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assessed_envelope_sha256",
+        "primitive_manifest_sha256",
+        "site_snapshot_sha256",
+        "site_ledger_sequence",
+        "site_ledger_event_sha256",
+        "dynamic_occupancy_manifest_sha256",
+        "actor_manifest_sha256",
+        "occupancy_engine_build_sha256",
+        "clearance_policy_sha256",
+        "site_clock_domain_id",
+        "checked_at_tick",
+        "valid_until_tick",
+        "primitive_coverage_complete",
+        "dynamic_actor_coverage_complete",
+        "broadphase_pair_coverage_complete",
+        "narrowphase_coverage_complete",
+        "candidate_pair_count",
+        "narrowphase_evaluated_pair_count",
+        "conflict_count",
+        "unresolved_pair_count",
+        "invalid_bound_count",
+        "unqualified_bound_count",
+        "stale_actor_count",
+        "unmodelled_occupant_count",
+        "assessment_receipt_sha256"
+      ],
+      "properties": {
+        "assessed_envelope_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "primitive_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_ledger_sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "site_ledger_event_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "dynamic_occupancy_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "actor_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "occupancy_engine_build_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "clearance_policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checked_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "primitive_coverage_complete": {
+          "type": "boolean"
+        },
+        "dynamic_actor_coverage_complete": {
+          "type": "boolean"
+        },
+        "broadphase_pair_coverage_complete": {
+          "type": "boolean"
+        },
+        "narrowphase_coverage_complete": {
+          "type": "boolean"
+        },
+        "candidate_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "narrowphase_evaluated_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "conflict_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unresolved_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "invalid_bound_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unqualified_bound_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stale_actor_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unmodelled_occupant_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "assessment_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "dispatchRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "envelope",
+        "trusted_occupancy_engine_build_sha256",
+        "required_clearance_policy_sha256",
+        "occupancy",
+        "now_tick"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "construction-dispatch-readiness-request/0.1"
+        },
+        "envelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "package_sha256",
+            "design_revision_sha256",
+            "entity_id",
+            "frame_sha256",
+            "transform_sha256",
+            "robot_id",
+            "robot_configuration_sha256",
+            "tool_configuration_sha256",
+            "payload_configuration_sha256",
+            "primitive_manifest_sha256",
+            "trajectory_sha256",
+            "envelope_sha256",
+            "site_clock_domain_id",
+            "generated_at_tick",
+            "valid_until_tick"
+          ],
+          "properties": {
+            "package_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "design_revision_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "entity_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "frame_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "transform_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "robot_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "robot_configuration_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "tool_configuration_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "payload_configuration_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "primitive_manifest_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "trajectory_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "envelope_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "site_clock_domain_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "generated_at_tick": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "valid_until_tick": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "trusted_occupancy_engine_build_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "required_clearance_policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "occupancy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "assessed_envelope_sha256",
+            "primitive_manifest_sha256",
+            "site_snapshot_sha256",
+            "site_ledger_sequence",
+            "site_ledger_event_sha256",
+            "dynamic_occupancy_manifest_sha256",
+            "actor_manifest_sha256",
+            "occupancy_engine_build_sha256",
+            "clearance_policy_sha256",
+            "site_clock_domain_id",
+            "checked_at_tick",
+            "valid_until_tick",
+            "primitive_coverage_complete",
+            "dynamic_actor_coverage_complete",
+            "broadphase_pair_coverage_complete",
+            "narrowphase_coverage_complete",
+            "candidate_pair_count",
+            "narrowphase_evaluated_pair_count",
+            "conflict_count",
+            "unresolved_pair_count",
+            "invalid_bound_count",
+            "unqualified_bound_count",
+            "stale_actor_count",
+            "unmodelled_occupant_count",
+            "assessment_receipt_sha256"
+          ],
+          "properties": {
+            "assessed_envelope_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "primitive_manifest_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "site_snapshot_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "site_ledger_sequence": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "site_ledger_event_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "dynamic_occupancy_manifest_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "actor_manifest_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "occupancy_engine_build_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "clearance_policy_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "site_clock_domain_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "checked_at_tick": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "valid_until_tick": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "primitive_coverage_complete": {
+              "type": "boolean"
+            },
+            "dynamic_actor_coverage_complete": {
+              "type": "boolean"
+            },
+            "broadphase_pair_coverage_complete": {
+              "type": "boolean"
+            },
+            "narrowphase_coverage_complete": {
+              "type": "boolean"
+            },
+            "candidate_pair_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "narrowphase_evaluated_pair_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "conflict_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unresolved_pair_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "invalid_bound_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unqualified_bound_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "stale_actor_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unmodelled_occupant_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "assessment_receipt_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        "now_tick": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "stoppingDynamics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_sha256",
+        "qualification_receipt_sha256",
+        "robot_brake_configuration_sha256",
+        "operating_condition_sha256",
+        "scenario_context_sha256",
+        "maximum_qualified_speed_mm_s",
+        "maximum_detection_to_brake_latency_ms",
+        "maximum_positive_acceleration_mm_s2",
+        "minimum_net_deceleration_mm_s2",
+        "minimum_braking_jerk_mm_s3",
+        "additional_distance_guard_mm"
+      ],
+      "properties": {
+        "profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "qualification_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "robot_brake_configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "operating_condition_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "scenario_context_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "maximum_qualified_speed_mm_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximum_detection_to_brake_latency_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximum_positive_acceleration_mm_s2": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimum_net_deceleration_mm_s2": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "minimum_braking_jerk_mm_s3": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "additional_distance_guard_mm": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "hazardDetection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sensor_profile_sha256",
+        "detection_qualification_receipt_sha256",
+        "target_condition_sha256",
+        "scenario_context_sha256",
+        "maximum_qualified_approach_speed_mm_s",
+        "minimum_qualified_detection_distance_mm"
+      ],
+      "properties": {
+        "sensor_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "detection_qualification_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "target_condition_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "scenario_context_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "maximum_qualified_approach_speed_mm_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "minimum_qualified_detection_distance_mm": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "stoppingMargins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "localization_uncertainty_mm",
+        "frame_registration_uncertainty_mm",
+        "body_geometry_uncertainty_mm",
+        "site_policy_clearance_mm"
+      ],
+      "properties": {
+        "localization_uncertainty_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "frame_registration_uncertainty_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "body_geometry_uncertainty_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "site_policy_clearance_mm": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "evidenceNodeIds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dispatch_readiness",
+        "work_package",
+        "source_model",
+        "ids_specification",
+        "ids_engine_build",
+        "ids_evaluation_manifest",
+        "coordinate_context",
+        "coordinate_frame",
+        "survey_transform",
+        "station_qualification",
+        "task_plan",
+        "robot_configuration",
+        "tool_configuration",
+        "payload_configuration",
+        "motion_envelope",
+        "sensor_configuration",
+        "stopping_dynamics",
+        "hazard_detection",
+        "operating_condition",
+        "occupancy_engine_build",
+        "clearance_policy"
+      ],
+      "properties": {
+        "dispatch_readiness": {
+          "type": "string",
+          "minLength": 1
+        },
+        "work_package": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ids_specification": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ids_engine_build": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ids_evaluation_manifest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coordinate_context": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coordinate_frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "survey_transform": {
+          "type": "string",
+          "minLength": 1
+        },
+        "station_qualification": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_plan": {
+          "type": "string",
+          "minLength": 1
+        },
+        "robot_configuration": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool_configuration": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payload_configuration": {
+          "type": "string",
+          "minLength": 1
+        },
+        "motion_envelope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sensor_configuration": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stopping_dynamics": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hazard_detection": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operating_condition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "occupancy_engine_build": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clearance_policy": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dispatch",
+    "evidence_snapshot",
+    "evidence_snapshot_sha256",
+    "dispatch_context_sha256",
+    "evidence_nodes",
+    "task_plan_sha256",
+    "station_id",
+    "station_qualification_event_id",
+    "station_qualification_valid_until_tick",
+    "speed_upper_mm_s",
+    "stopping_dynamics",
+    "stopping_evidence_valid_until_tick",
+    "hazard_detection",
+    "detection_evidence_valid_until_tick",
+    "stopping_margins"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-integrated-dispatch-readiness-request/0.1"
+    },
+    "dispatch": {
+      "$ref": "#/$defs/dispatchRequest"
+    },
+    "evidence_snapshot": {
+      "$ref": "#/$defs/evidenceSnapshot"
+    },
+    "evidence_snapshot_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "dispatch_context_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "evidence_nodes": {
+      "$ref": "#/$defs/evidenceNodeIds"
+    },
+    "task_plan_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "station_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "station_qualification_event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "station_qualification_valid_until_tick": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "speed_upper_mm_s": {
+      "type": "number",
+      "minimum": 0
+    },
+    "stopping_dynamics": {
+      "$ref": "#/$defs/stoppingDynamics"
+    },
+    "stopping_evidence_valid_until_tick": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "hazard_detection": {
+      "$ref": "#/$defs/hazardDetection"
+    },
+    "detection_evidence_valid_until_tick": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "stopping_margins": {
+      "$ref": "#/$defs/stoppingMargins"
+    }
+  }
+}
