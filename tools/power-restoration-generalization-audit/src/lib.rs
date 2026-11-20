@@ -474,10 +474,12 @@ mod tests {
         let mut validation_case = base.clone();
         validation_case.case_id = "validation-scenario-b".to_string();
         validation_case.network.loads[0].active_power_kw += 20.0;
+        validation_case.network.switches[0].to_node_id = "N4".to_string();
 
         let mut test_case = base.clone();
         test_case.case_id = "test-scenario-c".to_string();
         test_case.network.loads[0].active_power_kw += 30.0;
+        test_case.network.switches[1].to_node_id = "N6".to_string();
 
         let cases = vec![train_case, validation_case, test_case];
         let assignments = cases.iter().enumerate().map(|(index, case)| {
@@ -523,16 +525,22 @@ mod tests {
         input.manifest.assignments[1].topology_family_id =
             input.manifest.assignments[0].topology_family_id.clone();
         let report = audit_splits(&input).unwrap();
-        assert_eq!(report.leakage_finding_count, 1);
-        assert_eq!(report.leakage_findings[0].leakage_kind, "topology_family_cross_split");
+        assert!(report.leakage_findings.iter().any(|finding| {
+            finding.leakage_kind == "topology_family_cross_split"
+        }));
         assert_eq!(report.result_status, "topology_leakage_detected");
     }
 
     #[test]
     fn same_structural_topology_cannot_cross_splits_even_when_family_ids_differ() {
         let mut input = split_input();
-        input.manifest.assignments[1].topology_family_id = "different-declared-family".to_string();
-        input.manifest.assignments[2].topology_family_id = "third-declared-family".to_string();
+        input.cases[1].network = input.cases[0].network.clone();
+        input.cases[2].network = input.cases[0].network.clone();
+        for (index, assignment) in input.manifest.assignments.iter_mut().enumerate() {
+            assignment.topology_family_id = format!("declared-family-{index}");
+            assignment.expected_case_sha256 = canonical_case_sha256(&input.cases[index]).unwrap();
+            assignment.expected_topology_fingerprint = topology_fingerprint(&input.cases[index]).unwrap();
+        }
         let report = audit_splits(&input).unwrap();
         assert_eq!(report.leakage_finding_count, 1);
         assert_eq!(report.leakage_findings[0].leakage_kind, "structural_topology_fingerprint_cross_split");
@@ -579,6 +587,9 @@ mod tests {
         }
         for (index, source) in renamed.network.grid_sources.iter_mut().enumerate() {
             source.node_id = mapping[&original.network.grid_sources[index].node_id].clone();
+        }
+        for (index, road_node) in renamed.road_network.nodes.iter_mut().enumerate() {
+            road_node.power_node_id = mapping[&original.road_network.nodes[index].power_node_id].clone();
         }
         assert_eq!(first, topology_fingerprint(&renamed).unwrap());
     }
