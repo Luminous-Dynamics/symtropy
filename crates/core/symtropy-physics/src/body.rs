@@ -2039,14 +2039,13 @@ mod nd_ball_mass_property_tests {
         assert!(!sphere.rotational_inertia_approximate);
         assert!(!four_ball.rotational_inertia_approximate);
 
-        let mut disk_impulse = Bivector::<2>::unit_plane(0, 1);
+        let disk_impulse = Bivector::<2>::unit_plane(0, 1);
         let disk_response = disk.apply_inverse_angular_inertia(&disk_impulse);
         assert!((disk_response.get(0, 1) - 1.0 / 6.0).abs() < 1.0e-12);
 
         let four_ball_impulse = Bivector::<4>::unit_plane(1, 3);
         let four_ball_response = four_ball.apply_inverse_angular_inertia(&four_ball_impulse);
         assert!((four_ball_response.get(1, 3) - 0.25).abs() < 1.0e-12);
-
     }
 
     #[test]
