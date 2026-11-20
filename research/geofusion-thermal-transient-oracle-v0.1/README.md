@@ -48,9 +48,9 @@ The machine-readable inputs and decimal reference values are in `fixtures/known-
 ## Run
 
 ```sh
-cargo fmt --manifest-path research/geofusion-thermal-transient-oracle/Cargo.toml -- --check
-cargo test --manifest-path research/geofusion-thermal-transient-oracle/Cargo.toml --all-targets
-cargo clippy --manifest-path research/geofusion-thermal-transient-oracle/Cargo.toml --all-targets -- -D warnings
+cargo fmt --manifest-path research/geofusion-thermal-transient-oracle-v0.1/Cargo.toml -- --check
+cargo test --manifest-path research/geofusion-thermal-transient-oracle-v0.1/Cargo.toml --all-targets
+cargo clippy --manifest-path research/geofusion-thermal-transient-oracle-v0.1/Cargo.toml --all-targets -- -D warnings
 ```
 
 ## Benchmark composition
