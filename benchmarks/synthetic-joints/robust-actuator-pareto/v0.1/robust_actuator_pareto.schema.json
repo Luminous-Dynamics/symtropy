@@ -126,7 +126,9 @@
         "system_boundary_digest",
         "mission_set_digest",
         "stress_set_digest",
-        "calibration_receipt"
+        "calibration_receipt",
+        "lower_bound",
+        "upper_bound"
       ],
       "properties": {
         "name": {
@@ -186,6 +188,18 @@
             {
               "type": "null"
             }
+          ]
+        },
+        "lower_bound": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "upper_bound": {
+          "type": [
+            "number",
+            "null"
           ]
         }
       },
