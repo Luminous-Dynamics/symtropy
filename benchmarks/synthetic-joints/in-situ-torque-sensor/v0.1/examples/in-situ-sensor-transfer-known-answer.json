@@ -60,7 +60,8 @@
         6,
         10
       ]
-    }
+    },
+    "mission_set_digest": "frozen-angle-temperature-speed-quadrant-trajectory-set-v1"
   },
   "calibration": {
     "split_digest": "calibration-installations-v1",
@@ -239,7 +240,8 @@
         ],
         "synchronized_metrology_receipt_digest": "synced-metrology-receipt-cal-c"
       }
-    ]
+    ],
+    "mission_set_digest": "frozen-angle-temperature-speed-quadrant-trajectory-set-v1"
   },
   "test": {
     "split_digest": "heldout-installations-v1",
@@ -418,7 +420,8 @@
         ],
         "synchronized_metrology_receipt_digest": "synced-metrology-receipt-test-ood"
       }
-    ]
+    ],
+    "mission_set_digest": "frozen-angle-temperature-speed-quadrant-trajectory-set-v1"
   },
   "claim_ceiling": "Synthetic known-answer fixture only. All models, IDs, torque intervals, external references, certificates, raw traces and sensor installations are fabricated placeholders; no physical sensor calibration or transfer result is represented."
 }
