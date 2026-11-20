@@ -821,11 +821,6 @@ pub fn evaluate_fault_benchmark(
                 }
             }
 
-            if episode.true_faults.len() > 1 && complete_compound_detection_ns.is_some() {
-                // The complete compound count is recorded at the first
-                // prediction window where the full true set was present.
-            }
-
             episode_assessments.push(EpisodeAssessment {
                 episode_id: episode.episode_id.clone(),
                 specimen_id: episode.specimen_id.clone(),
@@ -1239,7 +1234,27 @@ mod tests {
     }
 
     #[test]
-    fn fault_009_unmapped_or_excessively_skewed_timebase_is_unsupported() {
+    fn fault_009_unsupported_abstentions_do_not_change_scored_window_abstention_rate() {
+        let healthy = episode(
+            "scored-healthy", "test-specimen-scored", "robot-heldout",
+            &[], None, 10.0,
+            vec![prediction("w1", 1_000_000_000, [0.1, 0.1, 0.1], false)],
+        );
+        let mut unsupported = episode(
+            "unsupported", "test-specimen-unsupported", "robot-heldout",
+            &[], None, 10.0,
+            vec![prediction("w2", 1_000_000_000, [0.1, 0.1, 0.1], true)],
+        );
+        unsupported.in_domain = false;
+        let report = evaluate_fault_benchmark(&plan(), &dataset(vec![healthy, unsupported])).unwrap();
+        assert_eq!(report.abstained_window_count, 1);
+        assert_eq!(report.scored_episode_abstained_window_count, 0);
+        assert_eq!(report.scored_window_count, 1);
+        assert_eq!(report.window_abstention_rate, Some(0.0));
+    }
+
+    #[test]
+    fn fault_026_unmapped_or_excessively_skewed_timebase_is_unsupported() {
         let mut episode = episode(
             "async", "test-specimen-7", "robot-heldout",
             &["bearing_wear"], Some(2_000_000_000), 2.0,
@@ -1252,7 +1267,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_010_unknown_sensor_state_makes_episode_unsupported() {
+    fn fault_026_unknown_sensor_state_makes_episode_unsupported() {
         let mut episode = episode(
             "unknown-channel", "test-specimen-8", "robot-heldout",
             &["bearing_wear"], Some(2_000_000_000), 2.0,
@@ -1265,7 +1280,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_011_unknown_fault_label_requires_abstention() {
+    fn fault_026_unknown_fault_label_requires_abstention() {
         let mut episode = episode(
             "unknown-fault", "test-specimen-9", "robot-heldout",
             &[], Some(2_000_000_000), 2.0,
@@ -1278,7 +1293,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_012_channel_dropout_strata_are_reported_separately() {
+    fn fault_026_channel_dropout_strata_are_reported_separately() {
         let mut episode = episode(
             "missing-vibration", "test-specimen-10", "robot-heldout",
             &["bearing_wear"], Some(2_000_000_000), 2.0,
@@ -1292,7 +1307,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_013_cross_machine_metrics_identify_heldout_machines() {
+    fn fault_026_cross_machine_metrics_identify_heldout_machines() {
         let episodes = vec![
             episode(
                 "seen", "test-specimen-11", "robot-train",
@@ -1312,7 +1327,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_014_probability_scores_contribute_brier_score() {
+    fn fault_026_probability_scores_contribute_brier_score() {
         let episode = episode(
             "brier", "test-specimen-13", "robot-heldout",
             &["bearing_wear"], Some(0), 0.0,
@@ -1324,7 +1339,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_015_training_and_calibration_specimen_leakage_rejects() {
+    fn fault_026_training_and_calibration_specimen_leakage_rejects() {
         let episode = episode(
             "leak", "train-specimen-1", "robot-heldout",
             &["bearing_wear"], Some(2_000_000_000), 2.0,
@@ -1342,7 +1357,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_016_duplicate_episode_and_window_ids_reject() {
+    fn fault_026_duplicate_episode_and_window_ids_reject() {
         let a = episode(
             "same", "specimen-a", "robot-heldout",
             &[], None, 10.0,
@@ -1366,7 +1381,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_017_prediction_timestamps_must_be_ordered_and_within_episode() {
+    fn fault_026_prediction_timestamps_must_be_ordered_and_within_episode() {
         let episode = episode(
             "bad-time", "test-specimen-16", "robot-heldout",
             &[], None, 10.0,
@@ -1379,7 +1394,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_018_fault_truth_and_onset_must_be_consistent() {
+    fn fault_026_fault_truth_and_onset_must_be_consistent() {
         let missing_onset = episode(
             "no-onset", "test-specimen-17", "robot-heldout",
             &["bearing_wear"], None, 0.0,
@@ -1396,7 +1411,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_019_healthy_exposure_cannot_exceed_verified_interval() {
+    fn fault_026_healthy_exposure_cannot_exceed_verified_interval() {
         let episode = episode(
             "overcount", "test-specimen-19", "robot-heldout",
             &[], None, 11.0,
@@ -1406,7 +1421,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_020_native_sample_rates_are_not_assumed_equal() {
+    fn fault_026_native_sample_rates_are_not_assumed_equal() {
         let mut episode = episode(
             "rates", "test-specimen-20", "robot-heldout",
             &["bearing_wear"], Some(2_000_000_000), 2.0,
@@ -1419,7 +1434,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_021_unsupported_predictions_are_not_scored_as_healthy() {
+    fn fault_026_unsupported_predictions_are_not_scored_as_healthy() {
         let mut episode = episode(
             "bad-clock", "test-specimen-21", "robot-heldout",
             &[], None, 10.0,
@@ -1434,7 +1449,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_022_prediction_probability_schema_must_be_complete() {
+    fn fault_026_prediction_probability_schema_must_be_complete() {
         let mut episode = episode(
             "missing-score", "test-specimen-22", "robot-heldout",
             &[], None, 10.0,
@@ -1445,7 +1460,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_023_unknown_prediction_label_and_nonfinite_probability_reject() {
+    fn fault_026_unknown_prediction_label_and_nonfinite_probability_reject() {
         let mut episode = episode(
             "unknown-score", "test-specimen-23", "robot-heldout",
             &[], None, 10.0,
@@ -1464,7 +1479,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_024_dataset_and_model_digests_must_match() {
+    fn fault_026_dataset_and_model_digests_must_match() {
         let mut dataset = dataset(vec![episode(
             "valid", "test-specimen-25", "robot-heldout",
             &[], None, 10.0,
@@ -1475,7 +1490,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_025_unknown_fault_episode_does_not_get_healthy_credit() {
+    fn fault_026_unknown_fault_episode_does_not_get_healthy_credit() {
         let mut episode = episode(
             "unknown-class", "test-specimen-26", "robot-heldout",
             &[], Some(2_000_000_000), 0.0,
