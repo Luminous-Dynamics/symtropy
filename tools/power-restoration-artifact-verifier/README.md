@@ -28,6 +28,8 @@ The crate does not fetch remote URLs. A caller supplies the trust-root digest th
 - Trust roots are digest-pinned out of band. Key IDs, producer identities, allowed roles, validity intervals and revocation are checked.
 - Attestation payloads bind predicate type, subject URI/digest, run ID, case digest, decision step, proposal digest, tool source commit/configuration, expiry and parent artifact digests.
 - Role separation compares public-key fingerprints rather than key-ID strings, so aliases for the same key do not bypass the separation check.
+- The bundle resolver returns an opaque `VerifiedBundle` type with a private constructor. The high-level attestation-set verifier accepts only that type, so downstream code cannot manufacture a success-shaped manifest report without first resolving and hashing artifact bytes.
+- The attestation-set verifier requires an exact caller-declared set of subject/role obligations, rejects missing, duplicate and unexpected envelopes, verifies all bindings and enforces role separation.
 
 ## Operational requirements and limitations
 
@@ -37,7 +39,7 @@ The resolver verifies every declared artifact. It does not yet enforce a closed-
 
 A trusted signature authenticates that a trusted key signed the bound claim. It **does not prove that the claim is true**. An electrical-validator signature is not a load-flow calculation, protection study, switching safety approval or operator authorization. A service-provider signature is not itself proof that customers received service. Each producer must still execute its independently qualified domain method, and the run receipt must bind the resulting artifacts.
 
-This crate does not yet consume the full #6352 run receipt or #6397 information-result report end-to-end. It establishes the offline manifest, bytes, signature and role-separation primitive for that integration.
+This crate does not yet parse the full #6352 run receipt or #6397 information-result report end-to-end. A caller must derive and supply the required attestation obligations from those records. The verified-bundle type and exact attestation-set API establish the offline manifest, bytes, signature and role-separation primitive for that integration.
 
 ## Synthetic fixture
 
