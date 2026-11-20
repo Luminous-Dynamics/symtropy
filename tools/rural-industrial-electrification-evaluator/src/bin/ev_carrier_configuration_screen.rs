@@ -733,7 +733,8 @@ mod tests {
         assert_eq!(result.loaded_mass_with_module_kg, Some(20_200.0));
         assert_eq!(result.gross_mass_margin_after_module_kg, Some(5_800.0));
         assert!(
-            (result.vehicle_battery_energy_margin_after_module_kwh
+            (result
+                .vehicle_battery_energy_margin_after_module_kwh
                 .expect("known base battery energy margin")
                 - 64.462)
                 .abs()
