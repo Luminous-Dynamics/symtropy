@@ -46,12 +46,12 @@ A StopTubeEnvelopeReceipt is tied to:
 - site frame and transform hashes;
 - stopping profile and qualification receipt;
 - operating-condition and shared scenario-context hashes;
-- site-clock domain, trigger-domain start/end ticks and stop coverage duration;
+- site-clock domain, trigger-domain start/end ticks, normalized trigger-window duration and stop coverage duration;
 - conservative stop distance and time, primitive count, coverage flags, builder build and receipt digest.
 
 The occupancy assessment must name the exact stop-tube digest, the same composite envelope digest and primitive manifest, and explicitly attest that it evaluated every stop-tube primitive throughout the stop-time domain. Both broad-phase pair coverage and narrow-phase evaluation must be complete, with no unresolved, invalid, unqualified or stale occupants.
 
-The integrated dependency snapshot includes a dedicated StoppingTubeEnvelope node. A changed stop-tube builder, receipt, geometry, robot/tool/payload configuration, trajectory, frame, transform, brake profile, site clock, occupancy engine or clearance policy invalidates the readiness snapshot.
+The integrated dependency snapshot includes separate StoppingTubeEnvelope and StoppingTubeBuilderBuild nodes. A builder implementation change therefore invalidates a prior tube receipt even if its previously emitted geometry digest is unchanged. A changed stop-tube receipt, geometry, robot/tool/payload configuration, trajectory, frame, transform, brake profile, site clock, occupancy engine or clearance policy also invalidates the readiness snapshot.
 
 ## 4. Adversarial challenge corpus
 

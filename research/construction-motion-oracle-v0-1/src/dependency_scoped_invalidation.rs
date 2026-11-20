@@ -37,6 +37,8 @@ pub enum EvidenceNodeKind {
     TaskPlan,
     MotionEnvelope,
     StoppingTubeEnvelope,
+    StoppingTubeBuilderBuild,
+    TriggerDomain,
     ExecutionEvidence,
     InspectionEvidence,
     AcceptedOutput,

@@ -2,9 +2,9 @@ name: Construction Motion Oracle v0.1
 
 on:
   push:
-    branches: [research/construction-verified-stop-aware-dispatch-v0-1]
+    branches: [research/construction-verified-stop-aware-dispatch-v0-1, research/construction-stop-tube-geometry-builder-v0-1]
   pull_request:
-    branches: [research/construction-motion-envelope-v0-1, research/construction-motion-oracle-bench-v0-1, research/construction-field-independent-acceptance-scorer-v0-1, research/construction-site-state-ledger-v0-1, research/construction-space-time-dispatch-gate-v0-1, research/construction-dependency-scoped-invalidation-v0-1, research/construction-verified-stop-aware-dispatch-v0-1]
+    branches: [research/construction-motion-envelope-v0-1, research/construction-motion-oracle-bench-v0-1, research/construction-field-independent-acceptance-scorer-v0-1, research/construction-site-state-ledger-v0-1, research/construction-space-time-dispatch-gate-v0-1, research/construction-dependency-scoped-invalidation-v0-1, research/construction-verified-stop-aware-dispatch-v0-1, research/construction-stop-tube-occupancy-binding-v0-1]
     paths:
       - "research/construction-motion-oracle-v0-1/**"
       - ".github/workflows/construction-motion-oracle-v0-1.yml"
@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install pinned JSON Schema validator
         run: python3 -m pip install --disable-pip-version-check "jsonschema==4.26.0"
-      - name: Validate event and IFC/IDS schemas and known-answer fixtures
+      - name: Validate event, IFC/IDS and stop-tube schemas and known-answer fixtures
         run: |
           python3 - <<'PY'
           import json
@@ -35,18 +35,44 @@ jobs:
           ifc_fixture = json.loads((root / "examples/ifc-ids-preflight-input-synthetic-v0.1.json").read_text())
           stop_tube_schema = json.loads((root / "schema/stop-tube-envelope-v0.1.schema.json").read_text())
           stop_tube_fixture = json.loads((root / "examples/stop-tube-envelope-synthetic-v0.1.json").read_text())
+          stop_tube_build_schema = json.loads((root / "schema/stop-tube-build-report-v0.1.schema.json").read_text())
+          stop_tube_build_fixture = json.loads((root / "examples/stop-tube-build-report-synthetic-v0.1.json").read_text())
 
           Draft202012Validator.check_schema(event_schema)
           Draft202012Validator.check_schema(ifc_schema)
           Draft202012Validator.check_schema(stop_tube_schema)
+          Draft202012Validator.check_schema(stop_tube_build_schema)
           event_validator = Draft202012Validator(event_schema)
           ifc_validator = Draft202012Validator(ifc_schema)
           stop_tube_validator = Draft202012Validator(stop_tube_schema)
+          stop_tube_build_validator = Draft202012Validator(stop_tube_build_schema)
 
           for event in event_fixture:
               event_validator.validate(event)
           ifc_validator.validate(ifc_fixture)
           stop_tube_validator.validate(stop_tube_fixture)
+          stop_tube_build_validator.validate(stop_tube_build_fixture)
+
+          assert stop_tube_build_fixture["slice_count"] == len(stop_tube_build_fixture["slices"])
+          assert stop_tube_build_fixture["slice_count"] == (
+              stop_tube_build_fixture["primitive_count"]
+              * stop_tube_build_fixture["trigger_window_count"]
+          )
+          assert (
+              stop_tube_build_fixture["trigger_domain_end_ms"]
+              - stop_tube_build_fixture["trigger_domain_start_ms"]
+              == stop_tube_build_fixture["trigger_domain_duration_ms"]
+          )
+          assert stop_tube_build_fixture["stop_coverage_duration_ms"] >= (
+              stop_tube_build_fixture["trigger_domain_duration_ms"]
+              + stop_tube_build_fixture["conservative_stop_time_bound_ms"]
+          )
+          for item in stop_tube_build_fixture["slices"]:
+              assert item["occupancy_start_ms"] == item["trigger_start_ms"]
+              assert item["occupancy_end_ms"] == (
+                  item["trigger_end_ms"]
+                  + stop_tube_build_fixture["conservative_stop_time_bound_ms"]
+              )
 
           ids = [event["event_id"] for event in event_fixture]
           sequences = [event["sequence"] for event in event_fixture]
@@ -58,7 +84,7 @@ jobs:
           assert any(event["payload"]["kind"] == "execution_interrupted" for event in event_fixture)
           assert all(isinstance(item, dict) for item in event_schema["properties"]["payload"]["oneOf"])
 
-          print(f"PASS: three Draft 2020-12 schemas, {len(event_fixture)} site-state events, IFC/IDS fixture and stop-tube fixture")
+          print(f"PASS: four Draft 2020-12 schemas, {len(event_fixture)} site-state events, IFC/IDS fixture, stop-tube receipt and geometry-builder report fixture")
           print("LIMIT: fixture hashes are synthetic and this does not verify real signatures or event digests")
           PY
   rust:
@@ -83,3 +109,6 @@ jobs:
       - name: Differential benchmark
         if: runner.os == 'Linux'
         run: cargo run --release --manifest-path research/construction-motion-oracle-v0-1/Cargo.toml --bin differential-bench
+      - name: Stop-tube geometry builder benchmark
+        if: runner.os == 'Linux'
+        run: cargo run --release --manifest-path research/construction-motion-oracle-v0-1/Cargo.toml --bin stop-tube-builder-bench

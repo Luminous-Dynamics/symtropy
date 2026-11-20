@@ -55,6 +55,8 @@ pub struct IntegratedEvidenceNodeIds {
     pub payload_configuration: String,
     pub motion_envelope: String,
     pub stopping_tube_envelope: String,
+    pub stopping_tube_builder_build: String,
+    pub trigger_domain: String,
     pub sensor_configuration: String,
     pub stopping_dynamics: String,
     pub hazard_detection: String,
@@ -92,6 +94,9 @@ pub struct StopTubeEnvelopeReceipt {
     /// trajectory could detect a hazard and initiate a stop.
     pub trigger_domain_start_tick: u64,
     pub trigger_domain_end_tick: u64,
+    /// Qualified elapsed duration of the complete possible trigger interval,
+    /// normalized to milliseconds through the bound site-clock mapping.
+    pub trigger_domain_duration_ms: u64,
     /// Builder-declared time coverage in milliseconds for the union of all
     /// stop trajectories after each possible trigger point.
     pub stop_coverage_duration_ms: u64,
@@ -465,7 +470,7 @@ fn validate_stopping_envelope_binding(
     let expected = [
         (tube.composite_envelope_sha256.as_str(), envelope.envelope_sha256.as_str(), "composite envelope"),
         (tube.nominal_trajectory_sha256.as_str(), envelope.trajectory_sha256.as_str(), "nominal trajectory"),
-        (tube.trigger_domain_sha256.as_str(), envelope.trajectory_sha256.as_str(), "trigger domain"),
+        (tube.trigger_domain_sha256.as_str(), envelope.trigger_domain_sha256.as_str(), "trigger domain"),
         (tube.primitive_manifest_sha256.as_str(), envelope.primitive_manifest_sha256.as_str(), "primitive manifest"),
         (tube.robot_configuration_sha256.as_str(), envelope.robot_configuration_sha256.as_str(), "robot configuration"),
         (tube.tool_configuration_sha256.as_str(), envelope.tool_configuration_sha256.as_str(), "tool configuration"),
@@ -498,10 +503,15 @@ fn validate_stopping_envelope_binding(
     {
         return Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeCoverageIncomplete);
     }
+    let minimum_stop_tube_coverage_ms = tube
+        .trigger_domain_duration_ms
+        .checked_add(stopping.conservative_stop_time_bound_ms)
+        .ok_or(IntegratedDispatchReadinessFailure::StoppingEnvelopeBoundTooSmall)?;
     if tube.conservative_stop_distance_bound_mm == 0
+        || tube.trigger_domain_duration_ms == 0
         || tube.stop_coverage_duration_ms == 0
         || tube.conservative_stop_distance_bound_mm < stopping.conservative_distance_bound_mm
-        || tube.stop_coverage_duration_ms < stopping.conservative_stop_time_bound_ms
+        || tube.stop_coverage_duration_ms < minimum_stop_tube_coverage_ms
     {
         return Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeBoundTooSmall);
     }
@@ -572,7 +582,7 @@ fn validate_dependency_snapshot(
         return Err(IntegratedDispatchReadinessFailure::EvidenceSnapshotNotCurrent);
     }
 
-    let expected: [(&str, EvidenceNodeKind, &str); 21] = [
+    let expected: [(&str, EvidenceNodeKind, &str); 23] = [
         (
             &bindings.work_package,
             EvidenceNodeKind::WorkPackage,
@@ -647,6 +657,16 @@ fn validate_dependency_snapshot(
             &bindings.stopping_tube_envelope,
             EvidenceNodeKind::StoppingTubeEnvelope,
             request.stopping_envelope.stop_tube_sha256.as_str(),
+        ),
+        (
+            &bindings.stopping_tube_builder_build,
+            EvidenceNodeKind::StoppingTubeBuilderBuild,
+            request.stopping_envelope.stop_tube_builder_build_sha256.as_str(),
+        ),
+        (
+            &bindings.trigger_domain,
+            EvidenceNodeKind::TriggerDomain,
+            request.dispatch.envelope.trigger_domain_sha256.as_str(),
         ),
         (
             &bindings.sensor_configuration,
@@ -845,6 +865,7 @@ mod tests {
                 payload_configuration_sha256: digest('a'),
                 primitive_manifest_sha256: digest('b'),
                 trajectory_sha256: digest('c'),
+                trigger_domain_sha256: digest('0'),
                 envelope_sha256: digest('d'),
                 site_clock_domain_id: "site-clock-01".into(),
                 generated_at_tick: 100,
@@ -906,7 +927,7 @@ mod tests {
             stop_tube_builder_build_sha256: digest('a'),
             composite_envelope_sha256: digest('d'),
             nominal_trajectory_sha256: digest('c'),
-            trigger_domain_sha256: digest('c'),
+            trigger_domain_sha256: digest('0'),
             primitive_manifest_sha256: digest('b'),
             robot_configuration_sha256: digest('8'),
             tool_configuration_sha256: digest('9'),
@@ -920,6 +941,7 @@ mod tests {
             site_clock_domain_id: "site-clock-01".into(),
             trigger_domain_start_tick: 100,
             trigger_domain_end_tick: 1_000,
+            trigger_domain_duration_ms: 900,
             stop_coverage_duration_ms: 6_000,
             conservative_stop_distance_bound_mm: 10_000,
             primitive_count: 4,
@@ -958,6 +980,8 @@ mod tests {
             payload_configuration: "payload-config".into(),
             motion_envelope: "motion-envelope".into(),
             stopping_tube_envelope: "stopping-tube-envelope".into(),
+            stopping_tube_builder_build: "stopping-tube-builder-build".into(),
+            trigger_domain: "trigger-domain".into(),
             sensor_configuration: "sensor-config".into(),
             stopping_dynamics: "stopping-dynamics".into(),
             hazard_detection: "hazard-detection".into(),
@@ -982,6 +1006,8 @@ mod tests {
             evidence_node("payload-config", EvidenceNodeKind::PayloadConfiguration, &dispatch.envelope.payload_configuration_sha256),
             evidence_node("motion-envelope", EvidenceNodeKind::MotionEnvelope, &dispatch.envelope.envelope_sha256),
             evidence_node("stopping-tube-envelope", EvidenceNodeKind::StoppingTubeEnvelope, &stopping_envelope.stop_tube_sha256),
+            evidence_node("stopping-tube-builder-build", EvidenceNodeKind::StoppingTubeBuilderBuild, &stopping_envelope.stop_tube_builder_build_sha256),
+            evidence_node("trigger-domain", EvidenceNodeKind::TriggerDomain, &dispatch.envelope.trigger_domain_sha256),
             evidence_node("sensor-config", EvidenceNodeKind::SensorConfiguration, &hazard_detection.sensor_profile_sha256),
             evidence_node("stopping-dynamics", EvidenceNodeKind::StoppingDynamicsQualification, &stopping_dynamics.profile_sha256),
             evidence_node("hazard-detection", EvidenceNodeKind::HazardDetectionQualification, &hazard_detection.detection_qualification_receipt_sha256),
@@ -997,6 +1023,8 @@ mod tests {
             dependency("dispatch-readiness", "payload-config"),
             dependency("dispatch-readiness", "motion-envelope"),
             dependency("dispatch-readiness", "stopping-tube-envelope"),
+            dependency("dispatch-readiness", "stopping-tube-builder-build"),
+            dependency("dispatch-readiness", "trigger-domain"),
             dependency("dispatch-readiness", "station-qualification"),
             dependency("dispatch-readiness", "sensor-config"),
             dependency("dispatch-readiness", "stopping-dynamics"),
@@ -1076,6 +1104,8 @@ mod tests {
             (&ids.payload_configuration, EvidenceNodeKind::PayloadConfiguration, &request.dispatch.envelope.payload_configuration_sha256),
             (&ids.motion_envelope, EvidenceNodeKind::MotionEnvelope, &request.dispatch.envelope.envelope_sha256),
             (&ids.stopping_tube_envelope, EvidenceNodeKind::StoppingTubeEnvelope, &request.stopping_envelope.stop_tube_sha256),
+            (&ids.stopping_tube_builder_build, EvidenceNodeKind::StoppingTubeBuilderBuild, &request.stopping_envelope.stop_tube_builder_build_sha256),
+            (&ids.trigger_domain, EvidenceNodeKind::TriggerDomain, &request.dispatch.envelope.trigger_domain_sha256),
             (&ids.sensor_configuration, EvidenceNodeKind::SensorConfiguration, &request.hazard_detection.sensor_profile_sha256),
             (&ids.stopping_dynamics, EvidenceNodeKind::StoppingDynamicsQualification, &request.stopping_dynamics.profile_sha256),
             (&ids.hazard_detection, EvidenceNodeKind::HazardDetectionQualification, &request.hazard_detection.detection_qualification_receipt_sha256),
@@ -1094,6 +1124,8 @@ mod tests {
             &ids.payload_configuration,
             &ids.motion_envelope,
             &ids.stopping_tube_envelope,
+            &ids.stopping_tube_builder_build,
+            &ids.trigger_domain,
             &ids.station_qualification,
             &ids.sensor_configuration,
             &ids.stopping_dynamics,
@@ -1393,6 +1425,19 @@ mod tests {
 
 
     #[test]
+    fn stop_tube_time_coverage_must_include_trigger_window_plus_braking_time() {
+        let (ledger, _, station_event_id) = setup_ledger();
+        let mut request = make_request(&ledger, station_event_id);
+        request.stopping_envelope.stop_coverage_duration_ms =
+            request.stopping_envelope.trigger_domain_duration_ms;
+        let graph = make_graph(&request, &ledger);
+        assert_eq!(
+            check_integrated_dispatch_readiness(&ledger, &graph, &request),
+            Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeBoundTooSmall)
+        );
+    }
+
+    #[test]
     fn empty_trigger_domain_and_zero_stop_coverage_are_rejected() {
         let (ledger, _, station_event_id) = setup_ledger();
         let mut request = make_request(&ledger, station_event_id);
@@ -1411,6 +1456,58 @@ mod tests {
         assert_eq!(
             check_integrated_dispatch_readiness(&ledger, &graph, &request),
             Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeBoundTooSmall)
+        );
+    }
+
+
+    #[test]
+    fn changing_the_stop_tube_builder_build_invalidates_the_integrated_readiness_snapshot() {
+        let (ledger, _, station_event_id) = setup_ledger();
+        let request = make_request(&ledger, station_event_id);
+        let mut graph = make_graph(&request, &ledger);
+        graph
+            .apply_revision(&[EvidenceRevisionChange {
+                node_id: request.evidence_nodes.stopping_tube_builder_build.clone(),
+                new_version_sha256: digest('0'),
+                reason: "stop-tube builder implementation changed".into(),
+            }])
+            .unwrap();
+        assert_eq!(
+            check_integrated_dispatch_readiness(&ledger, &graph, &request),
+            Err(IntegratedDispatchReadinessFailure::EvidenceSnapshotNotCurrent)
+        );
+    }
+
+
+    #[test]
+    fn stop_tube_trigger_domain_must_match_the_dispatch_envelope_trigger_domain() {
+        let (ledger, _, station_event_id) = setup_ledger();
+        let mut request = make_request(&ledger, station_event_id);
+        request.stopping_envelope.trigger_domain_sha256 = digest('1');
+        let graph = make_graph(&request, &ledger);
+        assert_eq!(
+            check_integrated_dispatch_readiness(&ledger, &graph, &request),
+            Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeContextMismatch(
+                "trigger domain"
+            ))
+        );
+    }
+
+    #[test]
+    fn changing_trigger_domain_dependency_invalidates_integrated_readiness() {
+        let (ledger, _, station_event_id) = setup_ledger();
+        let request = make_request(&ledger, station_event_id);
+        let mut graph = make_graph(&request, &ledger);
+        graph
+            .apply_revision(&[EvidenceRevisionChange {
+                node_id: request.evidence_nodes.trigger_domain.clone(),
+                new_version_sha256: digest('1'),
+                reason: "hazard trigger window changed".into(),
+            }])
+            .unwrap();
+        assert_eq!(
+            check_integrated_dispatch_readiness(&ledger, &graph, &request),
+            Err(IntegratedDispatchReadinessFailure::EvidenceSnapshotNotCurrent)
         );
     }
 
