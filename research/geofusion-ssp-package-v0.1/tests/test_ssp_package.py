@@ -243,5 +243,67 @@ class SSPPackageTests(unittest.TestCase):
             ssp.build_package(symlink, self.hx, self.output)
 
 
+    def test_non_finite_fmu_unit_exponent_is_rejected(self):
+        original = fake_fmu(
+            "Bad", "GeothermalSource", "thermalPowerOut", 11, "output"
+        )
+        with zipfile.ZipFile(io.BytesIO(original), "r") as archive:
+            md = archive.read("modelDescription.xml")
+        md = md.replace(b'm="2"', b'm="NaN"')
+        bad = rewrite_zip(original, {"modelDescription.xml": md})
+        with self.assertRaisesRegex(ssp.QualificationError, "must be finite"):
+            ssp.inspect_fmu_bytes(bad, ssp.PROFILES[0])
+
+    def test_component_mime_type_must_remain_fmu(self):
+        package = self.build()
+        with zipfile.ZipFile(io.BytesIO(package), "r") as archive:
+            descriptor = archive.read("SystemStructure.ssd")
+        root = etree.fromstring(descriptor)
+        component = root.find(".//ssd:Component[@name='GeothermalSource']", namespaces=ssp.NS)
+        component.set("type", "application/zip")
+        mutated = rewrite_zip(package, {
+            "SystemStructure.ssd": etree.tostring(root, xml_declaration=True, encoding="UTF-8")
+        })
+        with self.assertRaisesRegex(ssp.QualificationError, "FMU shared-library"):
+            ssp.verify_package_bytes(mutated)
+
+    def test_embedded_manifest_duplicate_json_keys_are_rejected(self):
+        package = self.build()
+        with zipfile.ZipFile(io.BytesIO(package), "r") as archive:
+            manifest = archive.read("resources/geofusion-ssp-evidence.json")
+        manifest = manifest.replace(
+            b'"schema_version": "0.1.0"',
+            b'"schema_version": "0.1.0", "schema_version": "0.1.0"',
+            1,
+        )
+        mutated = rewrite_zip(package, {
+            "resources/geofusion-ssp-evidence.json": manifest
+        })
+        with self.assertRaisesRegex(ssp.QualificationError, "duplicate JSON key"):
+            ssp.verify_package_bytes(mutated)
+
+    def test_embedded_manifest_connection_must_match_ssd(self):
+        package = self.build()
+        with zipfile.ZipFile(io.BytesIO(package), "r") as archive:
+            manifest = json.loads(archive.read("resources/geofusion-ssp-evidence.json"))
+        manifest["connections"][0]["unit"] = "J"
+        mutated = rewrite_zip(package, {
+            "resources/geofusion-ssp-evidence.json": json.dumps(manifest).encode("utf-8")
+        })
+        with self.assertRaisesRegex(ssp.QualificationError, "connection declaration mismatch"):
+            ssp.verify_package_bytes(mutated)
+
+    def test_outer_ssp_archive_path_traversal_is_rejected(self):
+        package = self.build()
+        mutated = rewrite_zip(package, {"../escape.txt": b"outside"})
+        with self.assertRaisesRegex(ssp.QualificationError, "unsafe ZIP member path"):
+            ssp.verify_package_bytes(mutated)
+
+    def test_output_cannot_overwrite_an_input_fmu(self):
+        with self.assertRaisesRegex(ssp.QualificationError, "must not overwrite"):
+            ssp.build_package(self.geo, self.hx, self.geo)
+
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
