@@ -187,15 +187,20 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
                 && motor.max_force >= 0.0;
 
             if motor_inputs_valid {
-                // Evaluate the PD force once per step and store its implied
-                // relative-velocity target. Iterations then solve only the
-                // residual against this frozen target, not a repeated force*dt.
-                let desired_step_impulse = motor.calculate_impulse(displacement, rel_vel, dt);
-                let target_velocity = motor_state.initialize_velocity_target(
-                    rel_vel,
-                    desired_step_impulse,
-                    total_inv,
-                );
+                let target_velocity = if let Some(target) =
+                    motor_state.target_relative_velocity()
+                {
+                    Some(target)
+                } else {
+                    // Evaluate and integrate the PD force once per world step.
+                    // Later iterations solve only the residual against this target.
+                    let desired_step_impulse = motor.calculate_impulse(displacement, rel_vel, dt);
+                    motor_state.initialize_velocity_target(
+                        rel_vel,
+                        desired_step_impulse,
+                        total_inv,
+                    )
+                };
                 if let Some(target_velocity) = target_velocity {
                     let desired_impulse_increment = (target_velocity - rel_vel) / total_inv;
                     if let Some((delta_impulse, _velocity_after)) =
