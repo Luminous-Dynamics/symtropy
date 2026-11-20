@@ -1010,6 +1010,36 @@ pub fn verify_restoration_claim_evidence(
 ) -> Result<RestorationClaimVerificationReport, Vec<String>> {
     let mut errors = Vec::new();
 
+    // Producer profiles are supplied out-of-band by the caller, not accepted
+    // from the evidence bundle. Only these non-component producer roles are configurable.
+    let mut producer_profile_keys = BTreeSet::new();
+    for profile in producer_profiles {
+        if !matches!(
+            profile.signer_role,
+            SignerRole::RunRecorder | SignerRole::ServiceProvider | SignerRole::EvidenceProvider
+        ) {
+            errors.push(format!(
+                "producer profile role {:?} must be derived from the typed run record or source provenance",
+                profile.signer_role
+            ));
+        }
+        if !valid_id(&profile.issuer_id)
+            || !is_lower_hex(&profile.tool_source_commit, 40)
+            || !is_lower_hex(&profile.tool_configuration_sha256, 64)
+        {
+            errors.push(format!(
+                "producer profile for {:?}/{} has invalid identity or digest",
+                profile.signer_role, profile.issuer_id
+            ));
+        }
+        if !producer_profile_keys.insert((profile.signer_role, profile.issuer_id.as_str())) {
+            errors.push(format!(
+                "duplicate producer profile for {:?}/{}",
+                profile.signer_role, profile.issuer_id
+            ));
+        }
+    }
+
     let case_sha256 = canonical_case_sha256(case)
         .map_err(|error| vec![format!("case canonicalization failed: {error}")])?;
     let receipt_report = qualify_run_receipt(receipt, case)
