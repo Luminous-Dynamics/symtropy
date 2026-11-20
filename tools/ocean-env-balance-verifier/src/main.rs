@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::{env, fs, path::Path};
 
@@ -270,7 +271,11 @@ struct IntervalResult {
 #[derive(Debug, Serialize)]
 struct Report {
     schema_version: String,
+    tool_version: String,
     fixture_id: String,
+    input_sha256: String,
+    input_byte_length: u64,
+    input_hash_scope: String,
     as_of: String,
     synthetic_only: bool,
     status: String,
@@ -872,7 +877,11 @@ fn validate(bundle: &Bundle) -> Result<Report, String> {
 
     Ok(Report {
         schema_version:bundle.schema_version.clone(),
+        tool_version:env!("CARGO_PKG_VERSION").to_string(),
         fixture_id:bundle.fixture_id.clone(),
+        input_sha256:String::new(),
+        input_byte_length:0,
+        input_hash_scope:"unset_until_cli_reads_exact_input_bytes".into(),
         as_of:bundle.as_of.clone(),
         synthetic_only:true,
         status:"SYNTHETIC_MEASUREMENT_BUNDLE_VALID_NO_SITE_OR_COMPLIANCE_CLAIM".into(),
@@ -886,14 +895,19 @@ fn validate(bundle: &Bundle) -> Result<Report, String> {
     })
 }
 
-fn load(path: &Path) -> Result<Bundle, String> {
-    let input = fs::read_to_string(path)
-        .map_err(|e| format!("cannot read {}: {e}", path.display()))?;
-    serde_json::from_str(&input).map_err(|e| format!("invalid measurement bundle JSON: {e}"))
-}
 fn run(path: &Path) -> Result<Report, String> {
-    let bundle = load(path)?;
-    validate(&bundle)
+    let input = fs::read(path)
+        .map_err(|e| format!("cannot read {}: {e}", path.display()))?;
+    let digest = Sha256::digest(&input);
+    let input_sha256 = format!("{digest:x}");
+    let bundle: Bundle = serde_json::from_slice(&input)
+        .map_err(|e| format!("invalid measurement bundle JSON: {e}"))?;
+    let mut report = validate(&bundle)?;
+    report.input_sha256 = input_sha256;
+    report.input_byte_length = input.len() as u64;
+    report.input_hash_scope =
+        "SHA-256 over exact input file bytes; proves input-byte identity only, not sensor authenticity or acquisition integrity".into();
+    Ok(report)
 }
 fn main() {
     let path = env::args().nth(1).unwrap_or_else(|| DEFAULT_PATH.into());
@@ -914,6 +928,12 @@ mod tests {
         serde_json::from_str(include_str!(
             "../../../docs/research/port-energy-compute/OCEAN_ENVIRONMENT_MEASUREMENT_BUNDLE_V0_1.json"
         )).expect("measurement bundle parses")
+    }
+    #[test]
+    fn sha256_receipt_uses_standard_known_vector() {
+        let digest = Sha256::digest(b"abc");
+        assert_eq!(format!("{digest:x}"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
     }
     #[test]
     fn valid_synthetic_bundle_calculates_but_never_grants_clearance() {
