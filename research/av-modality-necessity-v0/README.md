@@ -226,3 +226,19 @@ The proposed SOTA route is to establish strong matched baselines on each officia
 - non-inferior task quality and response-window correctness at materially lower measured resource cost.
 
 A broad industry-leadership claim requires multiple independent datasets, source-held-out and environment-held-out tests, repeated seeds, confidence intervals, and independent evaluation. The synthetic scorecard and 13-case tournament are engineering scaffolding for that research, not evidence that the target has been achieved.
+
+
+## DIVE-specific gap analysis (20 November 2026)
+
+The DIVE paper provides a particularly useful design target because it explicitly separates interaction decisions, temporal alignment and response quality. Its 525 evaluation instances span six task types and 413 base scenarios. GPT-Realtime-2.1 reports a 53.77% mean window response rate and 0.831 s mean latency; however, its speech-proactive-intervention (SPI) window response rate is only 20.0%. MiniCPM-o 4.5 reaches 24.8% on SPI. The benchmark also reports 100% VTI for GPT-Realtime-2.1 and Qwen3.5-Omni-Plus-Realtime, showing how an overall average can hide weak task-specific performance.
+
+DIVE's authors explicitly list several unmeasured areas: agentic tool use, longer-duration interaction with persistent multimodal memory, long-range dependencies and controlled within-model ablations isolating visual input. Those are unusually direct opportunities for this programme. The AV modality tournament addresses controlled A/V ablation; a separate long-horizon extension should address persistent evidence retention, correction and retrieval. We must not claim to outperform DIVE without running its official tasks and evaluation code.
+
+For exact DIVE reproduction, preserve the three distinct outputs:
+- **Interaction decision:** respond when required and remain silent when the task expects silence.
+- **Temporal alignment:** classify every required event as missed, early, on-time or late; on-time uses the benchmark's half-open response window.
+- **Response quality:** content correctness of assigned responses, separately from timing and decision behavior.
+
+Do not reduce DIVE to "mean response latency". Its window-response denominator is the number of response-required events, and content correctness is reported separately. Our own future interaction scorecard should similarly publish (a) expected-silence false-positive rate, (b) missed-required-event rate, (c) early/on-time/late response fractions, (d) content accuracy, (e) interruption/revision correctness, and (f) p50/p95/p99 time-to-first-safe-response. Silence and cancellation are first-class outcomes, not missing data.
+
+The DIVE cohort's open-model latency/quality gap also suggests a focused path: use existing low-latency native acoustic/visual state for trigger detection and evidence updates, while deferring expensive specialists to bounded background work; compare that hybrid against native omni models and best-practical modular systems at the same input and hardware budget. This is a hypothesis to test, not a result.
