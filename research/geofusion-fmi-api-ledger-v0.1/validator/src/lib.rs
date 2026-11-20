@@ -583,6 +583,12 @@ fn audit(ledger: Ledger, artifact_root: &Path) -> Result<AuditReport, String> {
                 || !["coupling_source", "coupling_sink", "terminal_sink", "state_observation"].contains(&v.port_role.as_str()) {
                 return Err(format!("{} variable {} outside the declared Float64 physical-port profile", f.federate_id, v.name));
             }
+            if v.port_role == "state_observation" && (v.causality != "output" || v.unit != "J") {
+                return Err(format!(
+                    "{} state observation {} must be a Joule-valued FMI output",
+                    f.federate_id, v.name
+                ));
+            }
             for (value, label) in [
                 (&v.name, "variable.name"), (&v.unit, "variable.unit"),
                 (&v.port_id, "variable.port_id"), (&v.carrier, "variable.carrier"),
@@ -613,6 +619,7 @@ fn audit(ledger: Ledger, artifact_root: &Path) -> Result<AuditReport, String> {
     let mut steps: HashMap<String, StepRecord> = HashMap::new();
     let mut successful = BTreeSet::new();
     let mut last_successful_interval: HashMap<String, (i64, i64)> = HashMap::new();
+    let mut state_observation_samples: BTreeSet<(String, u64, i64)> = BTreeSet::new();
     let mut value_records = Vec::new();
     for (index, event) in ledger.events.iter().enumerate() {
         if event.sequence != index || !event_ids.insert(event.event_id.as_str()) {
@@ -721,6 +728,18 @@ fn audit(ledger: Ledger, artifact_root: &Path) -> Result<AuditReport, String> {
                         sampling_semantics,
                         value.transfer_id.is_some(),
                     ).map_err(|error| format!("{error} at {}", event.event_id))?;
+                    if variable.port_role == "state_observation"
+                        && !state_observation_samples.insert((
+                            event.federate_id.clone(),
+                            value.value_reference,
+                            interval.end_master_ns,
+                        ))
+                    {
+                        return Err(format!(
+                            "duplicate state observation for one federate/variable/lastSuccessfulTime at {}",
+                            event.event_id
+                        ));
+                    }
                     let decoded = parse_bits(&value.raw_f64_bits, "raw_f64_bits")?;
                     if decoded.to_bits() != value.value.to_bits() {
                         return Err(format!("Float64 bit-pattern mismatch at {}", event.event_id));
@@ -1035,6 +1054,25 @@ mod tests {
         let mut d=value(); d["unexpected"]="must fail".into();
         let result:Result<Ledger,_>=serde_json::from_value(d);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn rejects_duplicate_state_observation_for_the_same_committed_boundary() {
+        let mut d = value();
+        d["events"][10]["payload"]["value_references"].as_array_mut().unwrap().push(34.into());
+        d["events"][10]["payload"]["n_value_references"] = 5.into();
+        let duplicate = d["events"][10]["payload"]["values"][3].clone();
+        d["events"][10]["payload"]["values"].as_array_mut().unwrap().push(duplicate);
+        assert!(run(d).unwrap_err().contains(
+            "duplicate state observation for one federate/variable/lastSuccessfulTime"
+        ));
+    }
+
+    #[test]
+    fn rejects_state_observation_variable_that_is_not_joule_output() {
+        let mut d = value();
+        d["federates"][1]["variables"][4]["unit"] = "W".into();
+        assert!(run(d).unwrap_err().contains("state observation storedEnergy must be a Joule-valued FMI output"));
     }
 
     #[test]
