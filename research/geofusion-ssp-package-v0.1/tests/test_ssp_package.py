@@ -24,22 +24,47 @@ def model_description(
     value_reference: int,
     causality: str,
     unit: str = "W",
+    omit_variables: set[str] | None = None,
 ) -> bytes:
+    variables = [(variable_name, value_reference, causality, unit)]
+    if model_identifier == "HeatExchangerBuffer":
+        variables.extend([
+            ("thermalService", 31, "output", "W"),
+            ("heatLoss", 32, "output", "W"),
+            ("storageCharge", 33, "output", "W"),
+            ("storedEnergy", 34, "output", "J"),
+        ])
+    omitted = omit_variables or set()
+    variables = [record for record in variables if record[0] not in omitted]
+    variables_xml = "\n".join(
+        f'    <Float64 name="{name}" valueReference="{reference}" causality="{direction}" '
+        f'variability="continuous" unit="{unit_name}" start="0"/>'
+        for name, reference, direction, unit_name in variables
+    )
+    output_unknowns = [
+        f'<Unknown index="{index}"/>'
+        for index, record in enumerate(variables, start=1)
+        if record[2] == "output"
+    ]
+    output_structure = (
+        "<Output>" + "".join(output_unknowns) + "</Output>"
+        if output_unknowns else ""
+    )
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <fmiModelDescription fmiVersion="3.0" modelName="{model_name}" instantiationToken="test-only-token" variableNamingConvention="flat">
   <UnitDefinitions>
     <Unit name="W"><BaseUnit kg="1" m="2" s="-3"/></Unit>
+    <Unit name="J"><BaseUnit kg="1" m="2" s="-2"/></Unit>
   </UnitDefinitions>
   <CoSimulation modelIdentifier="{model_identifier}" canHandleVariableCommunicationStepSize="true" canGetAndSetFMUState="false" canSerializeFMUState="false"/>
   <ModelVariables>
-    <Float64 name="{variable_name}" valueReference="{value_reference}" causality="{causality}" variability="continuous" unit="{unit}" start="0"/>
+{variables_xml}
   </ModelVariables>
   <ModelStructure>
-    <Output><Unknown index="1"/></Output>
+    {output_structure}
   </ModelStructure>
 </fmiModelDescription>
 """.encode("utf-8")
-
 
 def fake_fmu(
     model_name: str,
@@ -51,13 +76,17 @@ def fake_fmu(
     unit: str = "W",
     include_binary: bool = True,
     extra_members: dict[str, bytes] | None = None,
+    omit_variables: set[str] | None = None,
 ) -> bytes:
     """Create a non-executable FMU ZIP double for package tests only."""
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_STORED) as archive:
         archive.writestr(
             "modelDescription.xml",
-            model_description(model_name, model_identifier, variable_name, value_reference, causality, unit),
+            model_description(
+                model_name, model_identifier, variable_name, value_reference, causality, unit,
+                omit_variables=omit_variables,
+            ),
         )
         if include_binary:
             archive.writestr(
@@ -133,6 +162,56 @@ class SSPPackageTests(unittest.TestCase):
         second = second_output.read_bytes()
         self.assertEqual(first, second)
         self.assertEqual(ssp.sha256(first), ssp.sha256(second))
+
+    def test_ssd_exports_every_fmi_variable_with_exact_unit_and_port_boundary(self):
+        semantics = ssp.validate_ssd(ssp.make_ssd())
+        self.assertEqual(
+            set(semantics["components"]["HeatExchangerBuffer"]["connectors"]),
+            {"thermalPowerIn", "thermalService", "heatLoss", "storageCharge", "storedEnergy"},
+        )
+        self.assertEqual(
+            semantics["components"]["HeatExchangerBuffer"]["connectors"]["storedEnergy"],
+            {"kind": "output", "type": "Float64", "unit": "J"},
+        )
+        self.assertEqual(semantics["unit_J"]["kg"], 1.0)
+        self.assertEqual(semantics["unit_J"]["m"], 2.0)
+        self.assertEqual(semantics["unit_J"]["s"], -2.0)
+
+    def test_ssd_rejects_missing_runtime_observed_stored_energy_connector(self):
+        root = etree.fromstring(ssp.make_ssd())
+        connectors = root.xpath(
+            ".//ssd:Component[@name='HeatExchangerBuffer']/ssd:Connectors/ssd:Connector[@name='storedEnergy']",
+            namespaces=ssp.NS,
+        )
+        self.assertEqual(len(connectors), 1)
+        connectors[0].getparent().remove(connectors[0])
+        with self.assertRaisesRegex(ssp.QualificationError, "connector/type/kind/unit map mismatch"):
+            ssp.validate_ssd(etree.tostring(root, xml_declaration=True, encoding="UTF-8"))
+
+    def test_fmu_profile_requires_all_heat_exchanger_outputs_and_preserves_port_semantics(self):
+        inspection = ssp.inspect_fmu_bytes(
+            self.hx.read_bytes(), ssp.PROFILES[1]
+        )
+        variables = {record["name"]: record for record in inspection["variables"]}
+        self.assertEqual(set(variables), {
+            "thermalPowerIn", "thermalService", "heatLoss", "storageCharge", "storedEnergy"
+        })
+        self.assertEqual(variables["storedEnergy"]["unit"], "J")
+        self.assertEqual(variables["storedEnergy"]["port_id"], "hx.stored_energy")
+        self.assertEqual(variables["storedEnergy"]["port_role"], "state_observation")
+        self.assertEqual(variables["thermalService"]["boundary_id"], "hx-terminal-services")
+
+    def test_fmu_missing_required_storage_state_is_rejected(self):
+        incomplete = fake_fmu(
+            "TEST_ONLY_HeatExchangerBuffer",
+            "HeatExchangerBuffer",
+            "thermalPowerIn",
+            21,
+            "input",
+            omit_variables={"storedEnergy"},
+        )
+        with self.assertRaisesRegex(ssp.QualificationError, "storedEnergy"):
+            ssp.inspect_fmu_bytes(incomplete, ssp.PROFILES[1])
 
     def test_fmu_output_variable_must_have_declared_name_type_causality_and_unit(self):
         bad = self.root / "bad-output.fmu"
