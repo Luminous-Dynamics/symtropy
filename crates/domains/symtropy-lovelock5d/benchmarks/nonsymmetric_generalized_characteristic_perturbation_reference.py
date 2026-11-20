@@ -89,7 +89,7 @@ def main(out=Path(".")):
       "claim_ceiling":"Generalized non-symmetric eigenvalue method control only; no EGB principal symbol, physical polarization quotient, symmetrizer, or rotating-background result."
     }
     out.mkdir(parents=True,exist_ok=True)
-    (out/"nonsymmetric_generalized_characteristic_perturbation_fixture_v1.json").write_text(json.dumps(fixture,indent=2,sort_keys=True)+"\\n")
+    (out/"nonsymmetric_generalized_characteristic_perturbation_fixture_v1.json").write_text(json.dumps(fixture,indent=2,sort_keys=True)+"\n")
     print(json.dumps(fixture["summary"],indent=2))
 if __name__=="__main__":
     main(Path(sys.argv[1]) if len(sys.argv)>1 else Path("."))
