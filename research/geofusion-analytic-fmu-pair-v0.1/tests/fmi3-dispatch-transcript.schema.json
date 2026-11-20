@@ -46,7 +46,8 @@
       "additionalProperties": false,
       "required": [
         "python",
-        "platform"
+        "platform",
+        "dependencies"
       ],
       "properties": {
         "python": {
@@ -56,6 +57,24 @@
         "platform": {
           "type": "string",
           "minLength": 1
+        },
+        "dependencies": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          },
+          "required": [
+            "FMPy",
+            "attrs",
+            "cmake",
+            "jinja2",
+            "lark",
+            "lxml",
+            "msgpack",
+            "nbformat",
+            "numpy"
+          ]
         }
       }
     },
