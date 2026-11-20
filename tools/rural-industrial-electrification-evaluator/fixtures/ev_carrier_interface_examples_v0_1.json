@@ -27,7 +27,8 @@
         "source_reference": "synthetic://evidence/vehicle-mechanical-mount",
         "scoped_configuration_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
         "report_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "valid_until": null
+        "valid_until": null,
+        "profile_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       }
     },
     {
@@ -43,7 +44,8 @@
         "source_reference": "synthetic://evidence/pod-mechanical-mount",
         "scoped_configuration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
         "report_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "valid_until": null
+        "valid_until": null,
+        "profile_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       }
     },
     {
@@ -59,7 +61,8 @@
         "source_reference": "synthetic://evidence/vehicle-hv-interface",
         "scoped_configuration_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
         "report_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-        "valid_until": null
+        "valid_until": null,
+        "profile_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
       }
     },
     {
@@ -75,7 +78,8 @@
         "source_reference": "unknown://pod-hv-test-not-performed",
         "scoped_configuration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
         "report_digest": null,
-        "valid_until": null
+        "valid_until": null,
+        "profile_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       }
     },
     {
@@ -91,7 +95,8 @@
         "source_reference": "measurement://vehicle-data-interface/preliminary",
         "scoped_configuration_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
         "report_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-        "valid_until": null
+        "valid_until": null,
+        "profile_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       }
     },
     {
@@ -107,7 +112,8 @@
         "source_reference": "unknown://pod-data-protocol-selection-pending",
         "scoped_configuration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
         "report_digest": null,
-        "valid_until": null
+        "valid_until": null,
+        "profile_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }
     }
   ],
@@ -125,7 +131,10 @@
         "vehicle_configuration_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
         "module_configuration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
         "report_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
-        "valid_until": null
+        "valid_until": null,
+        "vehicle_profile_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "module_profile_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "compatibility_profile_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888"
       }
     },
     {
@@ -141,7 +150,10 @@
         "vehicle_configuration_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
         "module_configuration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
         "report_digest": null,
-        "valid_until": null
+        "valid_until": null,
+        "vehicle_profile_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "module_profile_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "compatibility_profile_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
       }
     },
     {
@@ -157,7 +169,10 @@
         "vehicle_configuration_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
         "module_configuration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
         "report_digest": null,
-        "valid_until": null
+        "valid_until": null,
+        "vehicle_profile_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "module_profile_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "compatibility_profile_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       }
     }
   ]
