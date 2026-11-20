@@ -425,7 +425,7 @@
         {
           "event_id": "unscheduled-failure-process-not-studied",
           "event_class": "unscheduled",
-          "remedy": "repair",
+          "remedy": null,
           "annual_occurrences_per_module": null,
           "observed_event_count": null,
           "exposure_module_years": null,
