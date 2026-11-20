@@ -336,8 +336,9 @@ fn compare_mechanical(
 
     let provider_alignment = validate_scalar(&provider.max_alignment_error, "m")?;
     let client_alignment = validate_scalar(&client.max_alignment_error, "m")?;
-    if provider_alignment < client_alignment {
-        return Err(Decision::rejected("alignment_envelope_not_contained"));
+    // Alignment error is an upper-bounded error: smaller provider error is better.
+    if provider_alignment > client_alignment {
+        return Err(Decision::rejected("alignment_error_exceeds_client_tolerance"));
     }
 
     let provider_speed = validate_scalar(&provider.max_approach_speed, "m/s")?;
@@ -627,6 +628,30 @@ mod tests {
             .unwrap();
         assert_eq!(mapped.actual_status, DecisionStatus::CompatibleSyntheticProfile);
         assert_eq!(unmapped.actual_status, DecisionStatus::Indeterminate);
+    }
+
+
+    #[test]
+    fn smaller_provider_alignment_error_is_compatible() {
+        let mut data = fixture();
+        let mechanical = data.cases[0].provider.mechanical.as_mut().unwrap();
+        mechanical.max_alignment_error.as_mut().unwrap().value = Some(0.003);
+        let client = data.cases[0].client.mechanical.as_mut().unwrap();
+        client.max_alignment_error.as_mut().unwrap().value = Some(0.005);
+        let decision = evaluate_case(&data.cases[0]);
+        assert_eq!(decision.status, DecisionStatus::CompatibleSyntheticProfile);
+    }
+
+    #[test]
+    fn larger_provider_alignment_error_exceeds_client_tolerance() {
+        let mut data = fixture();
+        let mechanical = data.cases[0].provider.mechanical.as_mut().unwrap();
+        mechanical.max_alignment_error.as_mut().unwrap().value = Some(0.006);
+        let client = data.cases[0].client.mechanical.as_mut().unwrap();
+        client.max_alignment_error.as_mut().unwrap().value = Some(0.005);
+        let decision = evaluate_case(&data.cases[0]);
+        assert_eq!(decision.status, DecisionStatus::Rejected);
+        assert_eq!(decision.reason, "alignment_error_exceeds_client_tolerance");
     }
 
     #[test]
