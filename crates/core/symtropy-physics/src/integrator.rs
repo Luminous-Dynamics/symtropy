@@ -546,6 +546,99 @@ mod tests {
     }
 
     #[test]
+    fn harmonic_oscillator_stability_sweep_respects_the_analytic_amplitude_envelope() {
+        let omega = 10.0;
+        let steps = 2_000;
+        let initial_amplitude = 1.0e-3;
+
+        // For 0 < z = h*omega < 2, the kick-drift map preserves a positive
+        // quadratic form whose Euclidean norm envelope is bounded by
+        // sqrt((1+z/2)/(1-z/2)) times the initial scaled amplitude.
+        for z in [0.1_f64, 0.5, 1.0, 1.5, 1.9, 1.99] {
+            assert!(z > 0.0 && z < 2.0);
+            let dt = z / omega;
+            let mut body = RigidBody::<3>::dynamic_sphere(
+                BodyHandle(75),
+                Point::origin(),
+                0.2,
+                1.0,
+            );
+            body.transform.translation.0[0] = initial_amplitude;
+            body.linear_damping = 0.0;
+            body.angular_damping = 0.0;
+
+            let mut max_scaled_amplitude = initial_amplitude;
+            for _ in 0..steps {
+                let gravity = SVector::from([
+                    -(omega * omega) * body.transform.translation.0[0],
+                    0.0,
+                    0.0,
+                ]);
+                integrate(&mut body, &gravity, dt);
+                let scaled_amplitude = body.transform.translation.0[0]
+                    .hypot(body.linear_velocity[0] / omega);
+                max_scaled_amplitude = max_scaled_amplitude.max(scaled_amplitude);
+            }
+
+            let analytic_envelope =
+                ((1.0 + z / 2.0) / (1.0 - z / 2.0)).sqrt() * initial_amplitude;
+            assert!(
+                max_scaled_amplitude <= analytic_envelope * (1.0 + 1.0e-9),
+                "stable oscillator exceeded analytic amplitude envelope at h*omega={z}: max={max_scaled_amplitude}, bound={analytic_envelope}"
+            );
+            assert!(
+                body.linear_velocity[0].abs() < 1000.0,
+                "velocity clamp activated inside the declared stability interval at h*omega={z}"
+            );
+        }
+    }
+
+    #[test]
+    fn harmonic_oscillator_global_error_has_first_order_convergence() {
+        let omega = 10.0;
+        let amplitude = 1.0e-3;
+        let duration = 1.0;
+        let exact_position = amplitude * (omega * duration).cos();
+        let exact_velocity = -amplitude * omega * (omega * duration).sin();
+
+        let run = |dt: f64, handle: usize| {
+            let steps = (duration / dt).round() as usize;
+            assert!((steps as f64 * dt - duration).abs() < 1.0e-12);
+            let mut body = RigidBody::<3>::dynamic_sphere(
+                BodyHandle(handle),
+                Point::origin(),
+                0.2,
+                1.0,
+            );
+            body.transform.translation.0[0] = amplitude;
+            body.linear_damping = 0.0;
+            body.angular_damping = 0.0;
+
+            for _ in 0..steps {
+                let gravity = SVector::from([
+                    -(omega * omega) * body.transform.translation.0[0],
+                    0.0,
+                    0.0,
+                ]);
+                integrate(&mut body, &gravity, dt);
+            }
+
+            let position_error = body.transform.translation.0[0] - exact_position;
+            let scaled_velocity_error =
+                (body.linear_velocity[0] - exact_velocity) / omega;
+            position_error.hypot(scaled_velocity_error)
+        };
+
+        let coarse_error = run(0.01, 76);
+        let fine_error = run(0.005, 77);
+        let observed_order = (coarse_error / fine_error).log2();
+        assert!(
+            (0.9..=1.2).contains(&observed_order),
+            "expected first-order global oscillator convergence; coarse={coarse_error}, fine={fine_error}, order={observed_order}"
+        );
+    }
+
+    #[test]
     fn harmonic_oscillator_negative_control_exceeds_velocity_first_stability_limit() {
         let dt = 0.1;
         let omega = 21.0;
