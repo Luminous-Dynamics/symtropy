@@ -60,6 +60,8 @@ pub struct ServiceProducer {
     pub configuration_sha256: String,
     /// Required for modelled service; identifies the qualified domain model.
     pub model_id: Option<String>,
+    /// Distinct evidence-origin identity whose source artifacts are independently attested.
+    pub evidence_provider_id: Option<String>,
     /// Required for measured service; identifies the metering system.
     pub instrument_id: Option<String>,
     /// Required for measured service; calibration evidence is not inferred.
@@ -250,7 +252,9 @@ fn validate_producer(
 
     match trajectory.stream_kind {
         ServiceStreamKind::ModelledService => {
-            if producer.model_id.as_deref().is_none_or(|id| !valid_id(id)) {
+            if producer.model_id.as_deref().is_none_or(|id| !valid_id(id))
+                || producer.evidence_provider_id.as_deref().is_none_or(|id| !valid_id(id))
+            {
                 errors.push("modelled service requires an explicit model ID".to_string());
             }
             if producer.instrument_id.is_some()
@@ -261,7 +265,8 @@ fn validate_producer(
             }
         }
         ServiceStreamKind::MeasuredService => {
-            if producer.instrument_id.as_deref().is_none_or(|id| !valid_id(id))
+            if producer.evidence_provider_id.as_deref().is_none_or(|id| !valid_id(id))
+                || producer.instrument_id.as_deref().is_none_or(|id| !valid_id(id))
                 || producer.calibration_artifact_ref.as_deref().is_none_or(|id| !valid_id(id))
                 || producer.calibration_artifact_sha256.as_deref().is_none_or(|hash| !is_lower_hex(hash, 64))
             {
@@ -1462,6 +1467,7 @@ mod tests {
         let mut trajectory = fully_served_trajectory(&case, &receipt);
         trajectory.stream_kind = ServiceStreamKind::ModelledService;
         trajectory.producer.model_id = Some("opendss-ac-service-model-v1".to_string());
+        trajectory.producer.evidence_provider_id = Some("synthetic-model-input-source".to_string());
         trajectory.producer.instrument_id = None;
         trajectory.producer.calibration_artifact_ref = None;
         trajectory.producer.calibration_artifact_sha256 = None;
@@ -1491,6 +1497,7 @@ mod tests {
         let mut trajectory = fully_served_trajectory(&case, &receipt);
         trajectory.stream_kind = ServiceStreamKind::ModelledService;
         trajectory.producer.model_id = None;
+        trajectory.producer.evidence_provider_id = None;
         trajectory.producer.instrument_id = None;
         trajectory.producer.calibration_artifact_ref = None;
         trajectory.producer.calibration_artifact_sha256 = None;
@@ -1652,6 +1659,7 @@ mod tests {
         trajectory.parent_service_artifacts.clear();
         trajectory.producer.producer_id = "field-crew-reporter".to_string();
         trajectory.producer.model_id = None;
+        trajectory.producer.evidence_provider_id = None;
         trajectory.producer.instrument_id = None;
         trajectory.producer.calibration_artifact_ref = None;
         trajectory.producer.calibration_artifact_sha256 = None;
