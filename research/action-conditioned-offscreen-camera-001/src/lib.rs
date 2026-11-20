@@ -437,6 +437,95 @@ struct ProjectedPoint {
     z_mm: i64,
 }
 
+/// Verify that policy pixels and their receipt are internally consistent.
+///
+/// This checks unkeyed digests and declared shape/timing invariants. It does
+/// not authenticate the producer or prove that an upstream action receipt is
+/// genuine; those claims require a separately trusted authority.
+pub fn verify_policy_receipt(
+    receipt: &PolicyObservationReceipt,
+    pixels_rgb: &[u8],
+) -> Result<(), RenderError> {
+    if receipt.schema_version != RENDERER_SCHEMA_VERSION
+        || receipt.pixel_format != PixelFormat::Rgb8Srgb
+        || receipt.channels != 3
+        || receipt.sequence == 0
+    {
+        return Err(RenderError::ParentReceiptCommitmentMismatch);
+    }
+
+    for identity in [
+        receipt.observation_id.as_str(),
+        receipt.episode_id.as_str(),
+        receipt.agent_id.as_str(),
+        receipt.clock_id.as_str(),
+        receipt.camera_id.as_str(),
+        receipt.renderer_revision.as_str(),
+    ] {
+        validate_id(identity)?;
+    }
+
+    let expected_len = (receipt.frame_width as usize)
+        .checked_mul(receipt.frame_height as usize)
+        .and_then(|pixels| pixels.checked_mul(3))
+        .ok_or(RenderError::FrameAllocationExceeded)?;
+    if receipt.frame_width == 0
+        || receipt.frame_height == 0
+        || receipt.frame_width > MAX_FRAME_WIDTH
+        || receipt.frame_height > MAX_FRAME_HEIGHT
+        || expected_len > MAX_FRAME_BYTES
+        || receipt.frame_byte_len != expected_len
+        || pixels_rgb.len() != expected_len
+    {
+        return Err(RenderError::DerivedFrameGeometryMismatch);
+    }
+
+    if receipt.capture_timestamp_us > receipt.render_completed_timestamp_us {
+        return Err(RenderError::RenderBeforeCapture);
+    }
+    if receipt.render_completed_timestamp_us > receipt.delivered_timestamp_us {
+        return Err(RenderError::DeliveryBeforeRender);
+    }
+
+    let action_fields_present = receipt.applied_action_receipt_id.is_some()
+        && receipt.applied_action_receipt_sha256.is_some()
+        && receipt.applied_action_command_id.is_some()
+        && receipt.applied_action_tick.is_some();
+    let action_fields_absent = receipt.applied_action_receipt_id.is_none()
+        && receipt.applied_action_receipt_sha256.is_none()
+        && receipt.applied_action_command_id.is_none()
+        && receipt.applied_action_tick.is_none();
+    if (receipt.tick == 0 && !action_fields_absent)
+        || (receipt.tick > 0
+            && (!action_fields_present || receipt.applied_action_tick != Some(receipt.tick)))
+    {
+        return Err(RenderError::AppliedActionTickMismatch);
+    }
+
+    if let Some(action_digest) = receipt.applied_action_receipt_sha256.as_deref() {
+        if !is_sha256_hex(action_digest) {
+            return Err(RenderError::InvalidActionReceiptDigest);
+        }
+    }
+    if !is_sha256_hex(&receipt.camera_calibration_sha256)
+        || !is_sha256_hex(&receipt.frame_sha256)
+        || !is_sha256_hex(&receipt.receipt_sha256)
+    {
+        return Err(RenderError::ParentReceiptCommitmentMismatch);
+    }
+
+    if sha256_hex(pixels_rgb) != receipt.frame_sha256 {
+        return Err(RenderError::ParentFrameMismatch);
+    }
+    if observation_identity_digest(receipt) != receipt.observation_id
+        || policy_receipt_digest(receipt) != receipt.receipt_sha256
+    {
+        return Err(RenderError::ParentReceiptCommitmentMismatch);
+    }
+
+    Ok(())
+}
+
 pub struct SoftwareCameraRenderer;
 
 impl SoftwareCameraRenderer {
@@ -1430,6 +1519,29 @@ pub fn sha256_hex(input: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn public_policy_receipt_verifier_checks_frame_and_commitments() {
+        let rendered =
+            SoftwareCameraRenderer::render(&snapshot(), 1, clocks()).unwrap();
+        assert!(
+            verify_policy_receipt(&rendered.policy_receipt, &rendered.pixels_rgb).is_ok()
+        );
+
+        let mut changed_pixels = rendered.pixels_rgb.clone();
+        changed_pixels[0] ^= 1;
+        assert_eq!(
+            verify_policy_receipt(&rendered.policy_receipt, &changed_pixels),
+            Err(RenderError::ParentFrameMismatch)
+        );
+
+        let mut changed_receipt = rendered.policy_receipt.clone();
+        changed_receipt.camera_id.push_str("-tampered");
+        assert_eq!(
+            verify_policy_receipt(&changed_receipt, &rendered.pixels_rgb),
+            Err(RenderError::ParentReceiptCommitmentMismatch)
+        );
+    }
 
     #[test]
     fn derived_policy_receipt_binds_changed_pixels_and_preserves_parent() {
