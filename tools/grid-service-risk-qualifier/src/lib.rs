@@ -481,6 +481,7 @@ pub fn qualify(case: &Case) -> Result<QualificationReport, Vec<String>> {
                     || assessment.cohort_id != first.cohort_id
                     || assessment.denominator_ref != first.denominator_ref
                     || assessment.target_horizon_ref != first.target_horizon_ref
+                    || assessment.service_model_ref != first.service_model_ref
                     || !approximately_equal(assessment.minimum_service_floor, first.minimum_service_floor)
                 {
                     return Err(vec![format!("metric {} changes unit, cohort, denominator, horizon or floor across branches", metric_id)]);
@@ -709,6 +710,15 @@ mod tests {
             .find(|limit| limit.metric_id == "community-water-m3").unwrap()
             .unit = "MWh".to_string();
         case.risk_limit_manifest_sha256 = canonical_risk_limit_manifest_sha256(&case.risk_limit_manifest).unwrap();
+        assert!(qualify(&case).is_err());
+    }
+
+    #[test]
+    fn service_model_revision_cannot_change_between_policy_branches() {
+        let mut case = fixture();
+        case.service_outcome_manifest.branches[1].service_assessments[0].service_model_ref =
+            "symtropy://6235/model/electricity/unreviewed-v2".to_string();
+        refresh_service_digest(&mut case);
         assert!(qualify(&case).is_err());
     }
 
