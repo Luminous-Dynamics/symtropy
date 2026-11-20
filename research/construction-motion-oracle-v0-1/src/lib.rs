@@ -6,6 +6,12 @@
 
 pub mod field_layout_acceptance;
 pub mod ifc_ids_preflight;
+pub mod human_actor_reachability;
+pub use human_actor_reachability::{
+    HumanActorObservation, HumanActorReachabilityProfile, HumanReachabilityError,
+    HumanReachabilityRequest, HumanReachabilitySlice, HumanReachabilityTube,
+    HumanTrackingCoverageReceipt, build_human_reachability_tube,
+};
 pub use ifc_ids_preflight::{
     GeometryPreflightEvaluation, IfcCoordinateContext, IfcIdsPreflightError, IfcIdsPreflightReport,
     IfcLengthUnit,
