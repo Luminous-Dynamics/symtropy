@@ -232,7 +232,9 @@
       "energy_residual": 0.1,
       "energy_tolerance": 1,
       "method_order": 2,
-      "next_event_time_s": 17
+      "next_event_time_s": 17,
+      "model_uncertainty": 0.01,
+      "model_uncertainty_tolerance": 0.1
     },
     "expected_default": {
       "action": "Accept",
@@ -240,7 +242,8 @@
       "next_step_s": 16,
       "event_fence_applied": true,
       "event_time_s": 17,
-      "event_step_below_minimum": false
+      "event_step_below_minimum": false,
+      "normalized_model_uncertainty": 0.1
     },
     "negative_and_boundary_cases": [
       {
@@ -283,6 +286,24 @@
         "energy_tolerance": 0,
         "disposition": "REJECT",
         "error": "NonPositiveInterval"
+      },
+      {
+        "id": "model_uncertainty_exceeds_budget",
+        "model_uncertainty": 0.2,
+        "model_uncertainty_tolerance": 0.1,
+        "normalized_error": 0.1,
+        "action": "ModelUncertaintyBudgetExceeded",
+        "next_step_s": 0,
+        "reason": "smaller communication steps cannot reduce epistemic/parameter uncertainty"
+      },
+      {
+        "id": "model_uncertainty_high_event_due_now",
+        "model_uncertainty": 10,
+        "model_uncertainty_tolerance": 0.1,
+        "next_event_at_current_time": true,
+        "action": "ProcessEventNow",
+        "next_step_s": 0,
+        "reason": "process known event ordering before requesting further continuous advancement"
       }
     ],
     "claim_ceiling": "Policy primitive only. Input error estimates and event times are supplied by other owners; this function does not estimate local error, execute FMI calls, or infer events."
