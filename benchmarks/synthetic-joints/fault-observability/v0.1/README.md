@@ -162,11 +162,11 @@ The unit tests synthesize 16 independent specimen trials per amplitude level to 
 
 Dependency-free Rust crate, Rust 1.96:
 
-`\`\`bash
+```bash
 cargo fmt --manifest-path benchmarks/synthetic-joints/fault-observability/v0.1/Cargo.toml -- --check
 cargo test --manifest-path benchmarks/synthetic-joints/fault-observability/v0.1/Cargo.toml --locked
 cargo clippy --manifest-path benchmarks/synthetic-joints/fault-observability/v0.1/Cargo.toml --all-targets --locked -- -D warnings
-`\`\`
+```
 
 Dedicated workflow: `.github/workflows/actuator-fault-observability.yml`. The authoring environment has no local Cargo/rustc/rustfmt; exact-head CI is the compile/format/Clippy gate.
 
