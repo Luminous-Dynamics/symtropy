@@ -146,3 +146,38 @@ For external SOTA claims, first reproduce the selected benchmark's official base
 ### Safe abstention semantics
 
 The offline evaluator treats an explicit abstention as a correct safe decision in the conflict and temporal-misalignment strata, as well as in the missing-audio stratum. Answer accuracy remains false for an abstention, coverage decreases, and answered-only calibration is reported separately. This avoids forcing a model to invent an association merely to maximize answer accuracy. An abstention does not excuse a declared false association or other evidence-contract violation.
+
+
+## Published benchmark anchors (checked 20 November 2026)
+
+These are external protocol-specific reference points, not directly comparable scores and not results from this project.
+
+| Benchmark | Published scale / standout result | Implication for this programme |
+|---|---|---|
+| OmniPro (May 2026) | 2,700 samples, 1,262 videos, 9,051 triggers, nine tasks; 84% require or benefit from audio (65.5% required, 18.5% helpful) | Preserve required/helpful/none strata, non-speech cases and Probe vs Online protocol |
+| VSAS-Bench (CVPR 2026) | 18,000+ annotations; Qwen3-VL-4B adapted for streaming exceeds Dispider by 3 percentage points on the asynchronous protocol | Include strong adapted offline VLM baselines; streaming adaptation itself is a serious comparator |
+| OmniInteract (EMNLP 2026) | 250 videos / 1,430 response slots; best overall IA-QTF1 0.368 and best continuous 1QnA IA-QTF1 0.052 | Score continuous monitoring, nested work and response timing independently from one-shot accuracy |
+| DIVE (October 2026) | 525 AV samples across six interaction tasks; GPT-Realtime-2.1 leads average window response rate at 53.77%, while average latency is 0.831 s | Optimize *in-window correctness*, not merely mean latency; speech-driven proactive intervention is a hard stratum |
+| StreamArena (leaderboard update 17 September 2026) | StreamMind v2 Mixed scores 55.9 / 49.1 / 70.2 / 23.3 on RTP / HR / Tool / Pro; offline Gemini 3.5 Flash scores 51.3 / 51.4 / 70.8 on RTP / HR / Tool | Evaluate long-horizon memory, retrieval, proactive behavior and tools; compare online-vs-offline under identical task splits |
+
+Primary benchmark links:
+- OmniPro paper: https://arxiv.org/abs/2605.18577 ; dataset card: https://huggingface.co/datasets/omniproact-bench/OmniPro
+- VSAS-Bench CVPR paper: https://openaccess.thecvf.com/content/CVPR2026F/html/Vasu_VSAS-Bench_Real-Time_Evaluation_of_Visual_Streaming_Assistant_Models_CVPRF_2026_paper.html
+- OmniInteract EMNLP paper: https://aclanthology.org/2026.emnlp-main.490/
+- DIVE paper: https://arxiv.org/abs/2610.28405
+- StreamArena leaderboard and evaluation toolkit: https://github.com/JIA-Lab-research/StreamArena
+
+### Practical competitive strategy
+
+Do not chase a single model-wide score first. Build a Pareto frontier with (1) task correctness, (2) valid response-window rate, (3) evidence integrity and modality necessity, (4) long-horizon recall, (5) calibration/abstention, (6) p50/p95/p99 latency, (7) compute/energy and (8) per-task failure rates.
+
+The most promising opportunities suggested by the external results are:
+1. **Timing-aware cognition:** preserve a low-latency foreground path and move compression/retrieval/model improvement to isolated background workers; optimize response-window hit rate rather than average latency alone.
+2. **Causal modality routing:** use counterfactual evidence necessity and expected decision value to select audio/video processing, instead of always paying for full fusion.
+3. **Persistent evidence memory:** retain source-linked multimodal events and replayable evidence anchors; measure long-horizon retrieval under compression rather than text-summary recall alone.
+4. **No-response competence:** score correct silence, abstention, interruption handling and cancellation. A model that responds to every trigger can look active while being less useful.
+5. **Composed specialists:** compare native omni models with audio specialists, vision specialists, a scheduler/router, persistent memory and independent evidence audit under the same end-to-end budget.
+
+StreamArena's posted leaderboard illustrates why composition is worth testing: its Mixed online system uses different backbones for frontend/router/search/recall/reviewer, memory writing and monitoring. This is an external example of a composed system, not a result reproduced here.
+
+All scores above retain their source-specific definitions, splits and hardware/API assumptions. Reproduce each official evaluation independently before claiming a win. The 13 synthetic episodes and offline scorecard in this PR are a contract/evaluator development set, not a comparable benchmark submission.
