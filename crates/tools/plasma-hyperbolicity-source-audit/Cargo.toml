@@ -1,0 +1,9 @@
+[package]
+name = "plasma-hyperbolicity-source-audit"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Fail-closed dimensional and trace-coefficient audit for printed characteristic-polynomial source pairs"
+
+[workspace]
