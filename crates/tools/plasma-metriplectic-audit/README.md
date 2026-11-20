@@ -23,7 +23,7 @@ The audit checks:
 - grad(E) · du/dt = 0;
 - grad(S) · du/dt >= 0.
 
-The minimum eigenvalue of the scale-normalized symmetric part of M is computed using a symmetric Jacobi iteration. Material asymmetry is reported and rejected; it is not silently repaired. A rank-deficient positive-semidefinite M is allowed.
+The minimum eigenvalue of the scale-normalized symmetric part of M is computed using a symmetric Jacobi iteration **only when the symmetry residual passes its declared tolerance**; otherwise the PSD eigenvalue is null/unscoreable and the operator is rejected. Material asymmetry is never silently repaired. A rank-deficient positive-semidefinite M is allowed.
 
 ## Important claim boundary
 
