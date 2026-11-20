@@ -149,7 +149,9 @@ def audit_fixture(d, arts):
     if residual!=energy["residual_w"] or residual!=0.0: fail("synthetic energy residual does not recompute")
     st=d["state_checkpointing"]
     if st["status"]!="unavailable" or st["snapshot_artifact_ids"]: fail("fixture incorrectly implies state snapshot evidence")
-    if any(f["capabilities"]["can_get_and_set_fmu_state"] or f["capabilities"]["can_serialize_fmu_state"] for f in feds.values()): fail("state capability flags contradict fixture status")
+    if any(f["capabilities"]["can_serialize_fmu_state"] and not f["capabilities"]["can_get_and_set_fmu_state"] for f in feds.values()): fail("canSerializeFMUState requires canGetAndSetFMUState")
+    if any(f["capabilities"]["can_get_and_set_fmu_state"] and f["capabilities"]["can_serialize_fmu_state"] for f in feds.values()): fail("serialized state snapshot is unavailable despite both required capabilities")
+    if st["reason_code"] != "SERIALIZATION_CAPABILITY_NOT_ADVERTISED": fail("incorrect state serialization unavailability reason")
 
 def audit_cases():
     lines=(ROOT/"fixtures/frozen-cases.tsv").read_text().splitlines()
