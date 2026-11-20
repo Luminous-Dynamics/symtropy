@@ -293,13 +293,13 @@ impl<const D: usize> RigidBody<D> {
         )
     }
 
-    /// Construct a dynamic, uniform-density solid D-ball.
+    /// Construct a dynamic, uniform-density solid D-ball in any supported dimension.
     ///
     /// The central second moment is C = m r^2/(D+2) * I. Therefore each
     /// independent rotation plane has inertia 2 m r^2/(D+2). This reduces to
     /// the familiar 2/5 m r^2 solid-sphere moment in 3D, 1/2 m r^2 for a
     /// 2D disk, and 1/3 m r^2 for a 4D ball.
-    pub fn dynamic_sphere(handle: BodyHandle, position: Point<D>, radius: f64, mass: f64) -> Self {
+    pub fn dynamic_ball(handle: BodyHandle, position: Point<D>, radius: f64, mass: f64) -> Self {
         use symtropy_math::Sphere;
         let inertia = 2.0 * mass * radius * radius / (D as f64 + 2.0);
         let mut body = Self::new(
@@ -327,6 +327,16 @@ impl<const D: usize> RigidBody<D> {
         }
         body
     }
+
+
+    /// Backwards-compatible alias for dynamic_ball.
+    ///
+    /// In dimensions other than 3 this constructs the corresponding solid
+    /// D-ball (a disk in 2D and a hypersphere/ball in higher dimensions).
+    pub fn dynamic_sphere(handle: BodyHandle, position: Point<D>, radius: f64, mass: f64) -> Self {
+        Self::dynamic_ball(handle, position, radius, mass)
+    }
+
 
     pub fn is_dynamic(&self) -> bool {
         matches!(self.body_type, BodyType::Dynamic)
@@ -1996,19 +2006,19 @@ mod nd_ball_mass_property_tests {
         let mass = 3.0;
         let radius = 2.0;
 
-        let disk = RigidBody::<2>::dynamic_sphere(
+        let disk = RigidBody::<2>::dynamic_ball(
             BodyHandle(200),
             Point::origin(),
             radius,
             mass,
         );
-        let sphere = RigidBody::<3>::dynamic_sphere(
+        let sphere = RigidBody::<3>::dynamic_ball(
             BodyHandle(201),
             Point::origin(),
             radius,
             mass,
         );
-        let four_ball = RigidBody::<4>::dynamic_sphere(
+        let four_ball = RigidBody::<4>::dynamic_ball(
             BodyHandle(202),
             Point::origin(),
             radius,
@@ -2063,7 +2073,7 @@ mod nd_ball_mass_property_tests {
 
     #[test]
     fn three_dimensional_solid_sphere_formula_remains_unchanged() {
-        let body = RigidBody::<3>::dynamic_sphere(
+        let body = RigidBody::<3>::dynamic_ball(
             BodyHandle(203),
             Point::origin(),
             0.5,
@@ -2075,5 +2085,25 @@ mod nd_ball_mass_property_tests {
                 && (body.inertia[1] - expected).abs() < 1.0e-12
                 && (body.inertia[2] - expected).abs() < 1.0e-12
         );
+    }    #[test]
+    fn legacy_dynamic_sphere_alias_retains_three_dimensional_result() {
+        let legacy = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(204),
+            Point::origin(),
+            0.5,
+            2.0,
+        );
+        let canonical = RigidBody::<3>::dynamic_ball(
+            BodyHandle(205),
+            Point::origin(),
+            0.5,
+            2.0,
+        );
+        assert_eq!(legacy.inertia, canonical.inertia);
+        assert_eq!(
+            legacy.rotational_inertia_model(),
+            canonical.rotational_inertia_model()
+        );
     }
+
 }
