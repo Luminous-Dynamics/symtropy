@@ -259,6 +259,102 @@ def main():
     assert sp.factor(K_compact-K_source) == 0
     assert sp.simplify(K_source.subs(u,0)-160/alpha**2) == 0
 
+    # Independent Gauss-Bonnet/Lanczos tensor in the orthonormal frame.
+    # Lower the first Riemann index using eta and impose the exact x_2=-x*y identity.
+    Riemann_reduced = {
+        key:sp.factor(value.subs(xx2,-xx*yy))
+        for key,value in Riemann.items()
+        if sp.simplify(value.subs(xx2,-xx*yy)) != 0
+    }
+
+    def R_lower(aa,bb,cc,dd):
+        return ETA[aa]*Riemann_reduced.get((aa,bb,cc,dd),sp.S.Zero)
+
+    ricci_square = sp.factor(sum(
+        ETA[aa]*ETA[bb]*value**2
+        for (aa,bb),value in Ricci_reduced.items()
+    ))
+    gauss_bonnet_scalar = sp.factor(
+        scalar**2 - 4*ricci_square + K_structure
+    )
+
+    lanczos = {}
+    einstein = {}
+    egb_residuals = {}
+    for aa in range(5):
+        for bb in range(5):
+            ric_ab = Ricci_reduced.get((aa,bb),sp.S.Zero)
+            ricci_mixed = sum(
+                Ricci_reduced.get((aa,cc),sp.S.Zero)
+                * ETA[cc]
+                * Ricci_reduced.get((cc,bb),sp.S.Zero)
+                for cc in range(5)
+            )
+            # R^{cd} raises both Ricci indices. Since Ricci is diagonal,
+            # R^{cc}=eta_c^2*R_cc=R_cc: no lone eta_c belongs here.
+            ricci_riemann = sum(
+                Ricci_reduced.get((cc,cc),sp.S.Zero)
+                * R_lower(aa,cc,bb,cc)
+                for cc in range(5)
+            )
+            riemann_square = sum(
+                ETA[cc]*ETA[dd]*ETA[ee]
+                * R_lower(aa,cc,dd,ee)
+                * R_lower(bb,cc,dd,ee)
+                for cc in range(5) for dd in range(5) for ee in range(5)
+            )
+            H_ab = sp.factor(
+                2*(
+                    scalar*ric_ab
+                    - 2*ricci_mixed
+                    - 2*ricci_riemann
+                    + riemann_square
+                )
+                - sp.Rational(1,2)*ETA[aa]*int(aa==bb)*gauss_bonnet_scalar
+            )
+            G_ab = sp.factor(
+                ric_ab
+                - sp.Rational(1,2)*ETA[aa]*int(aa==bb)*scalar
+            )
+            lanczos[(aa,bb)] = H_ab
+            einstein[(aa,bb)] = G_ab
+            egb_residuals[(aa,bb)] = sp.factor(G_ab + alpha*H_ab/4)
+
+    # All frame components are rationalized using exact coframe-function identities.
+    # In particular y*z=2/(alpha_sym*(1-beta*c^2)).
+    def rationalize_frame_polynomial(expression):
+        polynomial = sp.Poly(
+            sp.expand(expression), xx, yy, zz, yy2, zz2
+        )
+        total = sp.S.Zero
+        for powers, coefficient in polynomial.terms():
+            ix, iy, iz, iy2, iz2 = powers
+            if ix % 2 or (iy % 2) != (iz % 2):
+                raise AssertionError(f"unpaired frame powers {powers}: {coefficient}")
+            term = (
+                coefficient*x_sq**(ix//2)*y_sq**(iy//2)
+                *z_sq**(iz//2)*y2_c**iy2*z2_c**iz2
+            )
+            if iy % 2:
+                term *= 2/(alpha*qc)
+            total += term
+        return sp.factor(total)
+
+    egb_residuals_rational = {
+        key:rationalize_frame_polynomial(value)
+        for key,value in egb_residuals.items()
+    }
+    assert all(value == 0 for value in egb_residuals_rational.values())
+
+    lanczos_text = {
+        f"{aa},{bb}":sp.sstr(sp.factor(value))
+        for (aa,bb),value in sorted(lanczos.items()) if value != 0
+    }
+    egb_residual_text = {
+        f"{aa},{bb}":sp.sstr(value)
+        for (aa,bb),value in sorted(egb_residuals_rational.items())
+    }
+
     # Metric reconstruction from the coframe.
     H = alpha*p/(2*sp.cos(theta)**2)
     metric_checks = {
@@ -286,11 +382,11 @@ def main():
     fixture = {
         "schema_version":1,
         "artifact_kind":"5d_egb_single_spin_nheg_cartan_geometry",
-        "status":"cartan_frame_connection_curvature_and_kretschmann_replayed_field_equations_not_yet_evaluated",
+        "status":"independent_cartan_lanczos_and_all_local_egb_field_equations_verified",
         "source":{
             "paper":"Celik, Hajian and Kunz, An Exact Single-Rotating Near-Horizon Geometry in Einstein-Gauss-Bonnet Gravity",
             "arxiv":"2605.15005","url":"https://arxiv.org/abs/2605.15005",
-            "metric_equations":["(4)","(5)","(6)"],"curvature_comparison":"Eq. (10)"
+            "metric_equations":["(2)","(3)","(4)","(5)","(6)"],"curvature_comparison":"Eq. (10)"
         },
         "conventions":{
             "dimension":5,"signature":"(-++++)",
@@ -323,6 +419,12 @@ def main():
         "kretschmann_in_structure_functions":sp.sstr(K_structure),
         "kretschmann_compact":sp.sstr(K_compact),
         "reference_kretschmann":sp.sstr(K_source),
+        "gauss_bonnet":{
+            "lagrangian_scalar":sp.sstr(gauss_bonnet_scalar),
+            "lanczos_tensor_nonzero_frame_components":lanczos_text,
+            "field_equation":"G_ab + alpha_sym/4 * H_ab = 0",
+            "all_25_frame_residuals_after_exact_rationalization":egb_residual_text
+        },
         "validation":{
             "coframe_metric_reconstruction_exact":True,
             "koszul_connection_coefficients":len(Gamma),
@@ -338,9 +440,11 @@ def main():
             "ricci_off_diagonal_zero_after_x2_relation":True,
             "cartan_kretschmann_matches_source_exactly":True,
             "pole_limit_K_160_over_alpha_sym_squared":True,
-            "full_EGB_field_equations_independently_replayed":False
+            "Lanczos_tensor_formula_from_source_Eq3":True,
+            "all_25_EGB_frame_equations_exactly_zero":True,
+            "full_EGB_field_equations_independently_replayed":True
         },
-        "claim_ceiling":"Independent Cartan coframe, Levi-Civita connection, Riemann/Ricci contractions and Kretschmann replay for the source-reported local near-horizon geometry. No Lanczos tensor, complete EGB field-equation replay, global completion, finite charges, or hyperbolicity result is claimed."
+        "claim_ceiling":"Independent Cartan coframe, Levi-Civita connection, Riemann/Ricci contractions, Lanczos tensor and exact local EGB field-equation replay for the source-reported near-horizon geometry. No global completion, finite horizon charges, hyperbolicity, or stability result is claimed."
     }
     rendered=json.dumps(fixture,indent=2,sort_keys=True)+"\n"
     if args.output:
