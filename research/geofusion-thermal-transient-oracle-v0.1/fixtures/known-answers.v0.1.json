@@ -217,5 +217,74 @@
     "observed_global_convergence_order": "approximately 2; refinement ratios approach 4 after first-interval bootstrap",
     "declared_exchange_energy_residual_abs_error_j_max": 2e-7,
     "claim_ceiling": "The predictor is causal only with respect to the discrete source samples supplied to it; the analytic oracle generates those samples from a known sinusoid for testing. It does not guarantee error bounds for arbitrary unknown inputs. Limiter activation is observable and must be included in benchmark reporting. The receiver balance closes against the declared predicted interval input, not against unobserved future physical energy."
+  },
+  "adaptive_step_policy_v0_1": {
+    "policy": "max of independently normalized trajectory, interface and energy residuals; conservative order-based step factor; fence at earliest known event time",
+    "default_case": {
+      "current_time_s": 1,
+      "attempted_step_s": 10,
+      "minimum_step_s": 0.5,
+      "maximum_step_s": 20,
+      "trajectory_error": 0.01,
+      "trajectory_tolerance": 0.1,
+      "interface_residual": 0.002,
+      "interface_tolerance": 0.01,
+      "energy_residual": 0.1,
+      "energy_tolerance": 1,
+      "method_order": 2,
+      "next_event_time_s": 17
+    },
+    "expected_default": {
+      "action": "Accept",
+      "normalized_error": 0.1,
+      "next_step_s": 16,
+      "event_fence_applied": true,
+      "event_time_s": 17,
+      "event_step_below_minimum": false
+    },
+    "negative_and_boundary_cases": [
+      {
+        "id": "energy_error_dominates",
+        "normalized_error": 2,
+        "action": "RejectAndRetry",
+        "next_step_s": 7.14142842854285
+      },
+      {
+        "id": "event_due_now",
+        "next_event_time_s": 1,
+        "action": "ProcessEventNow",
+        "next_step_s": 0
+      },
+      {
+        "id": "known_event_below_minimum",
+        "next_event_time_s": 1.2,
+        "minimum_step_s": 0.5,
+        "action": "Accept",
+        "next_step_s": 0.2,
+        "event_step_below_minimum": true
+      },
+      {
+        "id": "minimum_step_exhaustion",
+        "minimum_step_s": 2,
+        "attempted_step_s": 10,
+        "normalized_error": 1000,
+        "action": "FailClosedAtMinimumStep",
+        "next_step_s": 1
+      },
+      {
+        "id": "event_in_past",
+        "next_event_time_s": 0.5,
+        "current_time_s": 1,
+        "disposition": "REJECT",
+        "error": "EventInPast"
+      },
+      {
+        "id": "invalid_energy_tolerance",
+        "energy_tolerance": 0,
+        "disposition": "REJECT",
+        "error": "NonPositiveInterval"
+      }
+    ],
+    "claim_ceiling": "Policy primitive only. Input error estimates and event times are supplied by other owners; this function does not estimate local error, execute FMI calls, or infer events."
   }
 }
