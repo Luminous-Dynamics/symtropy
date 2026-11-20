@@ -1347,6 +1347,32 @@ mod compound_com_tests {
     }
 
     #[test]
+    fn merging_toolhead_invalidates_previously_attached_full_inertia_operator() {
+        let operator = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
+            0.003, 0.0002, -0.0001,
+            0.0002, 0.002, 0.0003,
+            -0.0001, 0.0003, 0.0015,
+        ])
+        .unwrap();
+        let mut body = rotated_body().with_rotational_inertia_operator(operator);
+        assert!(body.rotational_inertia_operator.is_some());
+        assert!(!body.rotational_inertia_operator_invalidated);
+
+        body.try_merge_toolhead(
+            Transform::from_translation(Point::new([0.6, -0.2, 0.4])),
+            Box::new(HyperBox::<3>::new([0.12, 0.08, 0.06])),
+            0.4,
+        )
+        .expect("finite positive approximate toolhead merge");
+
+        assert!(body.rotational_inertia_operator.is_none());
+        assert!(body.rotational_inertia_operator_invalidated);
+        assert!(body.rotational_inertia_operator_mass_bits.is_none());
+        assert!(body.rotational_inertia_approximate);
+        assert_eq!(body.mass_properties_mass_bits, Some(body.mass.to_bits()));
+    }
+
+    #[test]
     fn invalid_toolhead_mass_is_rejected_without_mutation() {
         let mut body = rotated_body();
         let mass_before = body.mass;
