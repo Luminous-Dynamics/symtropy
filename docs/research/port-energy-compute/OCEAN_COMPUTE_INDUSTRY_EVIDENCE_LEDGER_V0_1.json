@@ -215,6 +215,82 @@
         }
       ],
       "comparability_warning": "Potential flexibility is not necessarily deployed flexibility; assess technical, economic and operational barriers locally."
+    },
+    {
+      "reference_id": "ITU-T-L1312-2026",
+      "project": "ITU-T L.1312 (07/2026) — multi-dimensional environmental metrics and management for data centres",
+      "geography": "International standard",
+      "status": "approved 2026-07-29; in force",
+      "metrics": [
+        {
+          "metric": "lifecycle_environmental_metric_catalogue",
+          "value": 14,
+          "unit": "metrics",
+          "evidence_class": "normative_recommendation_framework",
+          "source_url": "https://www.itu.int/rec/T-REC-L.1312-202607-I/en"
+        },
+        {
+          "metric": "environmental_dimensions",
+          "value": "energy efficiency; resource efficiency; greenhouse-gas emission efficiency; environmental impact",
+          "unit": "four dimensions",
+          "evidence_class": "normative_recommendation_framework",
+          "source_url": "https://www.itu.int/rec/T-REC-L.1312-202607-I/en"
+        },
+        {
+          "metric": "underwater_compute_ecology",
+          "value": "The recommendation explicitly discusses aquatic-organism impacts from underwater data-centre construction, operation and maintenance and describes MSA relative to an undisturbed baseline.",
+          "unit": "guidance",
+          "evidence_class": "normative_guidance",
+          "source_url": "https://www.itu.int/rec/dologin_pub.asp?id=T-REC-L.1312-202607-I%21%21PDF-E&lang=e&type=items"
+        }
+      ],
+      "comparability_warning": "A composite multi-dimensional metric is supplementary. Report raw per-metric values and lifecycle stages. The project adds separate seawater intake/return and marine-effects accounting; do not infer these from freshwater WUE."
+    },
+    {
+      "reference_id": "UPTIME-OUTAGE-ANALYSIS-2026",
+      "project": "Uptime Institute Annual Outage Analysis 2026",
+      "geography": "Global data-centre/operator outage analysis",
+      "status": "published 11 May 2026",
+      "metrics": [
+        {
+          "metric": "serious_or_severe_share_of_last_impactful_outage",
+          "value": 10,
+          "unit": "percent approximately",
+          "evidence_class": "survey_reported",
+          "source_url": "https://intelligence.uptimeinstitute.com/resource/annual-outage-analysis-2026"
+        },
+        {
+          "metric": "fibre_connectivity_outage_trend",
+          "value": "Publicly reported outages linked to fibre/connectivity issues are rising and more likely to cause extended disruptions.",
+          "unit": "qualitative reported trend",
+          "evidence_class": "survey_and_public_outage_analysis",
+          "source_url": "https://intelligence.uptimeinstitute.com/resource/annual-outage-analysis-2026"
+        },
+        {
+          "metric": "external_infrastructure_failure_trend",
+          "value": "External infrastructure failures are becoming more prominent in publicly reported outages.",
+          "unit": "qualitative reported trend",
+          "evidence_class": "survey_and_public_outage_analysis",
+          "source_url": "https://intelligence.uptimeinstitute.com/resource/annual-outage-analysis-2026"
+        }
+      ],
+      "comparability_warning": "Reported incident trends do not provide a site-specific failure probability. They strengthen the case for externally verified fibre/utility common-cause analysis, but do not certify any recovery graph."
+    },
+    {
+      "reference_id": "IEA-ELECTRICITY-GRIDS-2026",
+      "project": "IEA Electricity 2026 — Grids",
+      "geography": "International power-system analysis",
+      "status": "published 2026",
+      "metrics": [
+        {
+          "metric": "grid_connection_constraints",
+          "value": "Grid capacity, congestion and connection queues are emerging as bottlenecks for supply, demand and storage.",
+          "unit": "qualitative system assessment",
+          "evidence_class": "international_system_report",
+          "source_url": "https://www.iea.org/reports/electricity-2026/grids"
+        }
+      ],
+      "comparability_warning": "Global observations cannot be substituted for South African point-of-connection studies, utility letters or site-specific power-flow analysis."
     }
   ],
   "project_target_ladder": {
