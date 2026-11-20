@@ -57,6 +57,8 @@ Each observation source snapshot has a deterministic subject URI `power-fabric:/
 
 Initial precondition evidence that is not represented in an observation-result batch is deliberately rejected in v0.1. A deployment must bootstrap through a recorded information acquisition or add a separately specified, signed initial-state evidence package. This avoids silently treating fixture annotations or preloaded hidden truth as knowledge available to the planner.
 
+The result report includes counts for pending/unsuccessful requests and stale, conflicting and unverified evidence. This lets benchmark episodes retain deliberately degraded observation regimes while separately measuring evidence actually used for decisions.
+
 - each planner proposal (or raw malformed planner output);
 - every observation batch, evidence artifact and source snapshot;
 - every transition and independent-validator receipt;
@@ -64,7 +66,7 @@ Initial precondition evidence that is not represented in an observation-result b
 - the aggregate scorer receipt;
 - every serialized attestation envelope itself.
 
-It verifies the exact artifact inventory (no missing or extra entries), exact byte digests, signature subjects and parents, signer roles, issuer identities and time/revocation policy. Every action precondition must resolve to previously acquired evidence whose digest matches and whose availability, freshness and quality are admissible at that decision epoch. Source-provenance references must identify the exact serialized provider attestation.
+It verifies the exact artifact inventory (no missing or extra entries), exact byte digests, signature subjects and parents, signer roles, issuer identities and time/revocation policy. Degraded, stale, conflicting and unverified observations remain in the package and are counted in the report. They are rejected only when a planner uses them as action preconditions; each precondition must resolve to previously acquired and presented evidence with an exact digest, current quality and an unexpired age window at the decision epoch. Source-provenance references must identify the exact serialized provider attestation.
 
 Role policy separates planner, run recorder, evidence provider, transition engine, independent/electrical validator, service provider and scorer keys by public-key fingerprint. A single key cannot impersonate two producer identities, even through key-ID aliases.
 
