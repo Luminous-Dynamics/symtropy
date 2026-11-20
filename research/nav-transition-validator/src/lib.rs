@@ -1036,11 +1036,11 @@ mod tests {
     #[test]
     fn committed_corpus_passes_semantic_cross_reference_checks() {
         let summary = validate_corpus(&parse_fixture(), &parse_manifest()).unwrap();
-        assert_eq!(summary.case_count, 12);
+        assert_eq!(summary.case_count, 14);
         assert!(summary.source_count > 0);
         assert!(summary.observation_count > 0);
         assert_eq!(summary.positive_control_count, 2);
-        assert_eq!(summary.negative_control_count, 2);
+        assert_eq!(summary.negative_control_count, 3);
     }
 
     #[test]
