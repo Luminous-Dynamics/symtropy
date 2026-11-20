@@ -93,7 +93,7 @@ It does not claim the tools can execute the contained FMUs. Tool versions, impor
 
 `tests/test_ssp_package.py` creates tiny **NON-EXECUTABLE, test-only FMU doubles** in temporary directories. They contain placeholder binary bytes; they are used solely to test packaging and the negative-control suite and are not committed as FMUs or accepted as real model evidence.
 
-The test suite covers deterministic assembly, correct graph/unit semantics, wrong variable identity/type/causality/unit, missing binaries, model identifier mismatch, path traversal, duplicate archive entries, reversed/wrong connections, stale FMU bytes, symlink inputs, DTD/external-entity rejection, canonical graph comparison, layout-insensitive round-trip equivalence, FMU ZIP recompression, and platform-binary tampering.
+The 27-case test suite covers deterministic assembly, correct graph/unit semantics, wrong variable identity/type/causality/unit, missing binaries, model identifier mismatch, path traversal, duplicate archive entries, reversed/wrong connections, stale FMU bytes, symlink inputs, DTD/external-entity rejection, canonical graph comparison, layout-insensitive round-trip equivalence, FMU ZIP recompression, and platform-binary tampering.
 
 Run:
 
