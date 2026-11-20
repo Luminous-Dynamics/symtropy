@@ -77,6 +77,23 @@ def main() -> None:
     exact_zero("static BD lapse convention map",
                (F_source-F_sym).subs(alpha_sym, 4*alpha_nh))
 
+    # The same source gives the static horizon thermodynamics (Eq. 10).
+    mass_source = 3*sp.pi/8*(r_h**2+2*alpha_nh)
+    temperature_source = r_h/(2*sp.pi*(r_h**2+4*alpha_nh))
+    area_source = 2*sp.pi**2*r_h**3
+    entropy_source = sp.pi**2*r_h**3/2*(1+12*alpha_nh/r_h**2)
+    mass_sym = 3*sp.pi/16*(2*r_h**2+alpha_sym)
+    temperature_sym = r_h/(2*sp.pi*(r_h**2+alpha_sym))
+    area_sym = 2*sp.pi**2*r_h**3
+    entropy_sym = sp.pi**2*r_h**3/2*(1+3*alpha_sym/r_h**2)
+    exact_zero("static mass convention map",
+               (mass_source-mass_sym).subs(alpha_sym,4*alpha_nh))
+    exact_zero("static temperature convention map",
+               (temperature_source-temperature_sym).subs(alpha_sym,4*alpha_nh))
+    exact_zero("static area convention map", area_source-area_sym)
+    exact_zero("static Wald entropy convention map",
+               (entropy_source-entropy_sym).subs(alpha_sym,4*alpha_nh))
+
     # Exact algebraic positivity controls on 0 < v3 < 2.
     bern_01 = bernstein_coefficients(radicand, v, sp.Rational(0), sp.Rational(1), 4)
     bern_12 = bernstein_coefficients(radicand, v, sp.Rational(1), sp.Rational(2), 4)
