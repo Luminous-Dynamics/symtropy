@@ -52,7 +52,7 @@ The current fixture contains twelve authored synthetic episodes:
 | Space occultation and reacquisition | Optical target loss → relative reacquisition → absolute reference requalification | Separate relative recovery from absolute-state restoration |
 | Indoor observability recovery | Geometry collapse → new viewpoint → repeated independent constraints | Condition-aware recovery rather than sensor-count heuristics |
 
-These are synthetic contract fixtures, not measured sensor traces or physical-world claims. The corpus now reaches the 12-episode lower bound of the proposed 12–20 preregistration range; exact seeds, oracle qualification and held-out execution remain open. It must gain positive controls for genuinely independent sources, valid reacquisition, benign faults and recoverable map/frame transitions before any benchmark run is preregistered.
+These are synthetic contract fixtures, not measured sensor traces or physical-world claims. The corpus now reaches the 12-episode lower bound of the proposed 12–20 preregistration range and includes positive controls for independent sources, valid reacquisition, benign faults and observability recovery. Exact seeds, a full JSON Schema run, semantic-validator execution, independent oracle qualification, rights-admitted datasets and held-out execution remain open.
 
 ## External comparison anchors
 
