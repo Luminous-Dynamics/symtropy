@@ -402,8 +402,8 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             boot_epoch_id: string_at(observation,"boot_epoch_id").unwrap_or("").to_owned(),
             boot_epoch_ordinal: u64_at(observation,"boot_epoch_ordinal").unwrap_or(0),
             source_sequence: u64_at(observation,"source_sequence").unwrap_or(0),
-            observed_at,
-            received_at,
+            observed_at: observed_at.clone(),
+            received_at: received_at.clone(),
         };
         if cursor.boot_epoch_id.is_empty() || cursor.source_sequence == 0 {
             errors.push(format!("sample '{sample_id}' has missing boot epoch or source sequence"));
@@ -441,13 +441,13 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         }
         cursors.insert(source_id.clone(),cursor);
 
-        let source_future_skew = seconds_between(observed_at,received_at);
+        let source_future_skew = seconds_between(observed_at.clone(),received_at.clone());
         if source_future_skew > contract.max_future_clock_skew_seconds {
             observation_issues.push(json!({"sample_id":sample_id,"signal_id":signal_id,"disposition":"UNTRUSTED","reason":"source timestamp exceeds permitted future clock skew"}));
             signal_issue_reasons.entry(signal_id).or_default().push("future clock skew exceeded".to_owned());
             continue;
         }
-        let age_seconds = seconds_between(decision_cutoff,observed_at).max(0.0);
+        let age_seconds = seconds_between(decision_cutoff.clone(),observed_at.clone()).max(0.0);
         if age_seconds > contract.max_observation_age_seconds as f64 {
             observation_issues.push(json!({"sample_id":sample_id,"signal_id":signal_id,"disposition":"STALE","age_seconds":age_seconds,"reason":"observation exceeds signal freshness contract"}));
             signal_issue_reasons.entry(signal_id).or_default().push("stale observation".to_owned());
@@ -689,6 +689,9 @@ mod tests {
         value["observations"][1]["decoder_id"]=value["source_registry"][0]["decoder_id"].clone();
         value["observations"][1]["decoder_version"]=value["source_registry"][0]["decoder_version"].clone();
         value["observations"][1]["decoder_sha256"]=value["source_registry"][0]["decoder_sha256"].clone();
+        value["observations"][1]["device_identity_ref"]=value["source_registry"][0]["device_identity_ref"].clone();
+        value["observations"][1]["identity_evidence_sha256"]=value["source_registry"][0]["identity_evidence_sha256"].clone();
+        value["observations"][1]["calibration_chain_id"]=value["source_registry"][0]["calibration_chain_id"].clone();
         reseal(&mut value);
         assert_eq!(audit(&value)["disposition"],"INVALID");
     }
@@ -795,6 +798,9 @@ mod tests {
         value["observations"][1]["decoder_id"]=value["source_registry"][0]["decoder_id"].clone();
         value["observations"][1]["decoder_version"]=value["source_registry"][0]["decoder_version"].clone();
         value["observations"][1]["decoder_sha256"]=value["source_registry"][0]["decoder_sha256"].clone();
+        value["observations"][1]["device_identity_ref"]=value["source_registry"][0]["device_identity_ref"].clone();
+        value["observations"][1]["identity_evidence_sha256"]=value["source_registry"][0]["identity_evidence_sha256"].clone();
+        value["observations"][1]["calibration_chain_id"]=value["source_registry"][0]["calibration_chain_id"].clone();
         value["observations"][1]["boot_epoch_transition_ref"]=json!("");
         reseal(&mut value);
         assert_eq!(audit(&value)["disposition"],"INVALID");
