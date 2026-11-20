@@ -1,0 +1,28 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://luminousdynamics.io/schemas/power-restoration-split-manifest-v0.1.schema.json",
+  "title":"Power restoration generalization split manifest v0.1",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["schemaVersion","manifestId","policyVersion","splitSeed","assignments"],
+  "properties":{
+    "schemaVersion":{"const":"0.1.0"},
+    "manifestId":{"type":"string","minLength":1},
+    "policyVersion":{"const":"topology-family-holdout-v0.1"},
+    "splitSeed":{"type":"integer","minimum":0},
+    "assignments":{
+      "type":"array","minItems":3,
+      "items":{
+        "type":"object","additionalProperties":false,
+        "required":["caseId","split","topologyFamilyId","expectedCaseSha256","expectedTopologyFingerprint"],
+        "properties":{
+          "caseId":{"type":"string","minLength":1},
+          "split":{"enum":["train","validation","test"]},
+          "topologyFamilyId":{"type":"string","minLength":1},
+          "expectedCaseSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+          "expectedTopologyFingerprint":{"type":"string","pattern":"^[0-9a-f]{64}$"}
+        }
+      }
+    }
+  }
+}
