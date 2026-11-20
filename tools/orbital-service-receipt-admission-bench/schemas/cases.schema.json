@@ -7,6 +7,8 @@
     "schema",
     "evidence_class",
     "claim_ceiling",
+    "mission_id",
+    "service_window_id",
     "planned_capacity_source_commit",
     "composition_source_commit",
     "source_commits",
@@ -66,6 +68,14 @@
       "items": {
         "$ref": "#/$defs/scenario"
       }
+    },
+    "mission_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "service_window_id": {
+      "type": "string",
+      "minLength": 1
     }
   },
   "$defs": {
@@ -96,6 +106,8 @@
       "type": "object",
       "required": [
         "client_id",
+        "target_orbit_id",
+        "destination_node_id",
         "interface_id",
         "interface_revision",
         "fluid_id",
@@ -121,6 +133,14 @@
         "minimum_receiver_accepted_mass_g": {
           "type": "integer",
           "minimum": 1
+        },
+        "target_orbit_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "destination_node_id": {
+          "type": "string",
+          "minLength": 1
         }
       },
       "additionalProperties": false
@@ -167,6 +187,7 @@
       "type": "object",
       "required": [
         "event_id",
+        "operation_id",
         "idempotency_key",
         "provider_id",
         "provider_profile_id",
@@ -223,6 +244,10 @@
         "composition_receipt_sha256": {
           "type": "string",
           "pattern": "^[0-9a-f]{64}$"
+        },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1
         }
       },
       "additionalProperties": false
