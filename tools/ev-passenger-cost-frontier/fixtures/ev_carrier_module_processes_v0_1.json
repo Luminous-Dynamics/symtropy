@@ -154,6 +154,64 @@
         "No production-intent process engineering or time study has been completed.",
         "Unknown cycle time, yield, equipment, staffing, floor area and utility use must remain unknown."
       ]
+    },
+    {
+      "config_id": "mobile-drone-station-trailer-production-intent-unknown",
+      "architecture": "mobile_drone_station_trailer",
+      "evidence_class": "unknown",
+      "evidence_reference": "unknown://trailer-process-study-not-performed",
+      "modules_per_good_vehicle": 1,
+      "good_module_yield_fraction": null,
+      "station_processes": [
+        {
+          "process_id": "trailer-frame-axle-coupling",
+          "process_label": "Trailer frame, axle, coupling, brakes and road-load inspection",
+          "cycle_minutes_per_attempt": null,
+          "equipment_capex_usd_per_cell": null,
+          "footprint_sqm_per_cell": null,
+          "operators_per_cell_per_shift": null,
+          "maximum_parallel_cells_available": null,
+          "energy_kwh_per_attempt": null,
+          "thermal_energy_kwh_per_attempt": null
+        },
+        {
+          "process_id": "mobile-hub-energy-and-dock",
+          "process_label": "Power conversion, storage, charging dock and thermal/fire integration",
+          "cycle_minutes_per_attempt": null,
+          "equipment_capex_usd_per_cell": null,
+          "footprint_sqm_per_cell": null,
+          "operators_per_cell_per_shift": null,
+          "maximum_parallel_cells_available": null,
+          "energy_kwh_per_attempt": null,
+          "thermal_energy_kwh_per_attempt": null
+        },
+        {
+          "process_id": "aircraft-cargo-restraint",
+          "process_label": "Aircraft and cargo restraint, access and maintenance fixtures",
+          "cycle_minutes_per_attempt": null,
+          "equipment_capex_usd_per_cell": null,
+          "footprint_sqm_per_cell": null,
+          "operators_per_cell_per_shift": null,
+          "maximum_parallel_cells_available": null,
+          "energy_kwh_per_attempt": null,
+          "thermal_energy_kwh_per_attempt": null
+        },
+        {
+          "process_id": "trailer-eol-road-electrical",
+          "process_label": "Road trailer, electrical isolation, charging and EOL tests",
+          "cycle_minutes_per_attempt": null,
+          "equipment_capex_usd_per_cell": null,
+          "footprint_sqm_per_cell": null,
+          "operators_per_cell_per_shift": null,
+          "maximum_parallel_cells_available": null,
+          "energy_kwh_per_attempt": null,
+          "thermal_energy_kwh_per_attempt": null
+        }
+      ],
+      "notes": [
+        "No production-intent manufacturing process study, trailer type approval, structural design, axle/brake evidence or equipment quotation has been completed.",
+        "All station, yield, staffing, equipment, footprint and utility inputs remain unknown."
+      ]
     }
   ]
 }
