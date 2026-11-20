@@ -14,21 +14,21 @@ cargo run --manifest-path tools/marine-telemetry-evidence/Cargo.toml -- audit-te
 
 ## Evidence contract
 
-A signal only qualifies when its observation:
-- matches the source's registered identity, gateway, transport, firmware and decoder version/digest;
+A source observation becomes a validated input only when it:
+- matches the source's registered device identity/evidence, gateway, transport, firmware, decoder version/digest and calibration-chain identity;
 - carries a digest that matches captured raw frame bytes and a canonical digest over the observation;
-- is fresh at the decision cutoff and within source clock-skew/uncertainty bounds;
+- is fresh at the decision cutoff, is not future-dated at that cutoff, and is within source clock-skew/uncertainty bounds;
 - has a calibration record valid at both observation time and decision cutoff;
 - matches the declared physical unit/range and stays within the uncertainty contract;
 - has good source quality and a monotonically increasing sequence within the registered boot epoch.
 
-A source reboot needs a higher boot-epoch ordinal and explicit transition receipt. Gateway ingest order and per-source sequence are replay-checked.
+A source reboot needs a higher boot-epoch ordinal and explicit transition receipt. Gateway ingest order, per-source sequence and source/receive timestamp monotonicity are replay-checked. The event timestamp must not be after the decision cutoff even when its clock skew falls inside the allowed tolerance.
 
 ## Independence and disagreement
 
-Source count is not the same as independent source count. The evaluator computes the maximum set of pairwise disjoint failure-domain memberships across gateway, network, power and calibration domains. Two sensors sharing any declared failure domain cannot be counted as independent corroboration. If the independent quorum is not met, the signal is `DEGRADED` and unusable.
+Source count is not the same as independent source count. The evaluator computes the maximum set of pairwise disjoint failure-domain memberships across gateway, network, power and calibration domains. Two sensors sharing any declared failure domain cannot be counted as independent corroboration. If the independent quorum is not met, the signal is `DEGRADED` and unusable. The implementation computes the maximum pairwise-disjoint source set exactly for up to 16 contributing sources; above that bound it fails closed to no independent quorum.
 
-If individually qualified sources disagree beyond the signal-specific tolerance, the signal is `CONFLICT` and unusable. The tool does not average conflicting values or choose a majority vote. It reports a conservative envelope across accepted measurement intervals.
+If independently valid source observations disagree beyond the signal-specific tolerance, the signal is `CONFLICT` and unusable. No fused point estimate is emitted. The output envelope is the hull of source measurement intervals, not a statistical confidence interval. The tool does not average conflicting values or choose a majority vote. It reports a conservative envelope across accepted measurement intervals.
 
 ## Standards boundary
 
@@ -39,5 +39,16 @@ NMEA 2000 and IEC 61162-450 are transport/interface standards, not evidence of c
 - The output is read-only and never authorizes actuation.
 - SHA-256 establishes identity of captured bytes/canonical records, not authenticity of a device, issuer or calibration laboratory.
 - Registry identity status and calibration evidence must be provisioned and independently authenticated by the trust/assurance system.
-- A `SYNTHETIC_ONLY` pass is a software known-answer test, not a real sensor or vessel result.
+- A `SYNTHETIC_ONLY` pass is a software known-answer test, not a real sensor or vessel result. The current synthetic suite has 18 authored Rust semantic/negative-control tests.
 - A stale, conflicting, untrusted, uncalibrated or unknown critical signal is not a valid mission-state update. A separately reviewed degraded-mode policy would need its own explicit age/fallback contract.
+
+
+## Status semantics
+
+- `QUALIFIED`: every signal contract is met, including freshness, calibration, quality, uncertainty, source quorum and disagreement.
+- `DEGRADED/ABSTAIN`: a required quorum is missing or an observation is stale, untrusted, uncalibrated, low quality, or time-uncertain. The affected signal is unusable.
+- `CONFLICT/ABSTAIN`: two or more otherwise accepted sources disagree beyond the signal contract. No mean or majority vote is calculated.
+- `INVALID`: canonical digest, raw-frame digest, units/range, event ordering, sequence/epoch receipt, timestamp ordering or schema-independent structural validation fails.
+- `SYNTHETIC_ONLY`: all required signal contracts pass using synthetic inputs; this is not an operational qualification.
+
+The tool is read-only in every status. Only a separately integrated and qualified state estimator may decide how a `QUALIFIED` receipt is consumed. No fallback/last-known-value policy is implicit.
