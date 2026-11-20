@@ -45,7 +45,7 @@ struct PairingContract {
     maximum_clock_offset_ms: u64,
     pair_rule: String,
     flow_closure_boundary: FlowClosureBoundary,
-    flow_closure_screen: WaterBalanceScreen,
+    flow_closure_screen: FlowClosureScreen,
 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -59,7 +59,7 @@ struct FlowClosureBoundary {
 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct WaterBalanceScreen {
+struct FlowClosureScreen {
     method: String,
     maximum_absolute_z_score: f64,
     purpose: String,
@@ -590,6 +590,7 @@ fn measure_time_coverage(intervals: &[IntervalRecord]) -> Result<TimeCoverage, S
     let mut gaps = Vec::new();
     let mut previous_start: Option<i64> = None;
     let mut previous_end: Option<i64> = None;
+    let mut previous_end_utc: Option<String> = None;
     for interval in intervals {
         let start = parse_utc_timestamp(&interval.interval_start_utc)
             .ok_or_else(|| format!("interval {} start timestamp invalid", interval.interval_id))?;
@@ -611,12 +612,10 @@ fn measure_time_coverage(intervals: &[IntervalRecord]) -> Result<TimeCoverage, S
                 let gap_seconds = (start - last_end) as u64;
                 unobserved_gap_seconds = unobserved_gap_seconds.checked_add(gap_seconds)
                     .ok_or("unobserved gap duration overflow")?;
+                let gap_start_utc = previous_end_utc.clone()
+                    .ok_or("missing predecessor interval end timestamp for reported gap")?;
                 gaps.push(TimeGap {
-                    start_utc:intervals
-                        .iter()
-                        .find(|candidate| parse_utc_timestamp(&candidate.interval_end_utc) == Some(last_end))
-                        .map(|candidate| candidate.interval_end_utc.clone())
-                        .unwrap_or_default(),
+                    start_utc:gap_start_utc,
                     end_utc:interval.interval_start_utc.clone(),
                     duration_seconds:gap_seconds,
                 });
@@ -627,6 +626,7 @@ fn measure_time_coverage(intervals: &[IntervalRecord]) -> Result<TimeCoverage, S
             .ok_or("observed interval duration overflow")?;
         previous_start = Some(start);
         previous_end = Some(end);
+        previous_end_utc = Some(interval.interval_end_utc.clone());
     }
     Ok(TimeCoverage {
         observed_interval_seconds,
@@ -1411,6 +1411,8 @@ mod tests {
         assert_eq!(coverage.unobserved_gap_seconds, 300);
         assert_eq!(coverage.gaps.len(), 1);
         assert_eq!(coverage.gaps[0].duration_seconds, 300);
+        assert_eq!(coverage.gaps[0].start_utc, "2026-10-12T10:05:00Z");
+        assert_eq!(coverage.gaps[0].end_utc, "2026-10-12T10:10:00Z");
     }
     #[test]
     fn overlapping_or_out_of_order_windows_are_rejected() {
