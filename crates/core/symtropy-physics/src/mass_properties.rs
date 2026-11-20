@@ -1000,7 +1000,7 @@ mod tests {
         let mut second_moment = SMatrix::<f64, 3, 3>::zeros();
         for (weight, point) in samples.iter() {
             let centered = *point - center_of_mass;
-            second_moment += (centered * centered.transpose()) * (2.0 * *weight);
+            second_moment += (centered * centered.transpose()) * *weight;
         }
         let mut row_major = Vec::with_capacity(9);
         for row in 0..3 {
@@ -1020,7 +1020,7 @@ mod tests {
         let direct_energy = samples
             .iter()
             .map(|(weight, point)| {
-                *weight * (angular_map * (*point - center_of_mass)).norm_squared()
+                0.5 * *weight * (angular_map * (*point - center_of_mass)).norm_squared()
             })
             .sum::<f64>();
 
@@ -1048,7 +1048,7 @@ mod tests {
         let mut second_moment = SMatrix::<f64, 3, 3>::zeros();
         for (weight, point) in samples.iter() {
             let centered = *point - center_of_mass;
-            second_moment += (centered * centered.transpose()) * (2.0 * *weight);
+            second_moment += (centered * centered.transpose()) * *weight;
         }
         let mut row_major = Vec::with_capacity(9);
         for row in 0..3 {
@@ -1068,7 +1068,7 @@ mod tests {
         let direct_energy = samples
             .iter()
             .map(|(weight, point)| {
-                *weight * (angular_map * (*point - center_of_mass)).norm_squared()
+                0.5 * *weight * (angular_map * (*point - center_of_mass)).norm_squared()
             })
             .sum::<f64>();
         assert!((operator_energy - direct_energy).abs() < 1.0e-11);
