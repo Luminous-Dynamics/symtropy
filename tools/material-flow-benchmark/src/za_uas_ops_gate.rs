@@ -208,7 +208,7 @@ pub struct GateFinding {
     pub evidence_source_reference: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct UasCaseReport {
     pub case_id: String,
     pub eligibility_status: EligibilityStatus,
@@ -225,7 +225,7 @@ pub struct UasCaseReport {
     pub claim_ceiling: &'static str,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct UasEligibilityReport {
     pub schema_version: u16,
     pub source_snapshot_id: String,
@@ -481,10 +481,15 @@ fn evaluate_case(case: &UasOperationCase) -> UasCaseReport {
                 Some(true),
             ));
         }
+        let private_class_ok = match case.aircraft.uas_class {
+            UasClass::Class1A | UasClass::Class1B => Some(true),
+            UasClass::Unknown => None,
+            UasClass::Class2 | UasClass::Class3OrHigher => Some(false),
+        };
         findings.push(boolean_gate(
             "private_class_1a_or_1b",
             "Private operation restricted to Class 1A or Class 1B",
-            Some(matches!(case.aircraft.uas_class, UasClass::Class1A | UasClass::Class1B)),
+            private_class_ok,
         ));
         if case.operation.payload_release_or_delivery {
             findings.push(boolean_gate(
@@ -578,6 +583,19 @@ fn evaluate_case(case: &UasOperationCase) -> UasCaseReport {
             operator_id,
             scope,
         ));
+    }
+
+    if let Some(manual_scope) = approvals.operations_manual_scope.as_ref()
+        && manual_scope.record_id != case.operation.operations_manual_revision
+    {
+        findings.push(GateFinding {
+            gate_id: "operations_manual_revision_match".into(),
+            state: GateState::Blocked,
+            requirement: "Exact Operations Manual revision declared by the operation".into(),
+            reason: "operations-manual evidence record does not match the declared revision".into(),
+            evidence_record_id: Some(manual_scope.record_id.clone()),
+            evidence_source_reference: Some(manual_scope.source_reference.clone()),
+        });
     }
 
     if case.operation.payload_release_or_delivery {
