@@ -1,0 +1,26 @@
+case_id	expected_disposition	description
+artifact.package_digest_mismatch	REJECT	FMU package bytes differ from declared SHA-256
+artifact.model_description_digest_mismatch	REJECT	modelDescription bytes differ from declared SHA-256
+artifact.platform_binary_mismatch	REJECT	selected platform binary identity or bytes are wrong
+variable.undeclared_value_reference	REJECT	API call references an undeclared value reference
+variable.wrong_unit_or_port	REJECT	variable maps to the wrong unit or physical boundary
+exchange.stale_source_interval	REJECT	source interval identity differs across a transfer
+exchange.get_before_successful_step	REJECT	output read precedes a successful doStep
+exchange.duplicate_input_write	REJECT	same transfer is applied more than once
+exchange.missing_output_read	REJECT	required output observation is absent
+exchange.float64_bits_mismatch	REJECT	value differs from exact IEEE-754 bit pattern
+step.discard_fabricated_last_successful_time	REJECT	fmi3Discard outputs are misused as committed time
+step.status_value_mismatch	REJECT	status and committed time semantics conflict
+ledger.sequence_gap_or_reorder	REJECT	global FMI call sequence is missing or reordered
+ledger.duplicate_attempt_binding	REJECT	one normalized attempt is bound more than once
+ledger.unmatched_normalized_trace_call	REJECT	trace contains a doStep without a matching API call
+state.serialized_bytes_digest_mismatch	REJECT	serialized FMU state bytes fail digest verification
+state.api_used_without_capability	REJECT	state API used without advertised capability flags
+state.restore_wrong_checkpoint	REJECT	restore references the wrong checkpoint
+barrier.missing_participant	REJECT	commit barrier omits a required federate
+barrier.master_time_mismatch	REJECT	federates reach different master times
+value.non_finite	REJECT	NaN or infinity is supplied as a physical value
+feature.pending_async	NOT_EVALUABLE	asynchronous fmi3Pending is outside v0.1
+feature.event_mode	NOT_EVALUABLE	Event Mode and same-time event rounds are outside v0.1
+feature.intermediate_update	NOT_EVALUABLE	Intermediate Update callbacks are outside v0.1
+collector.not_instrumented	NOT_EVALUABLE	runtime ledger was not collected at the FMI C-API boundary
