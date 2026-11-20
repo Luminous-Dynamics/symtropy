@@ -756,6 +756,39 @@ mod tests {
     }
 
     #[test]
+    fn frozen_mixed_structure_fixture_matches_known_answer() {
+        let input = include_str!("../../../../benchmarks/plasma/metriplectic-audit-v0.json");
+        let request: AuditRequest = serde_json::from_str(input).expect("fixture parses");
+        let report = audit_metriplectic_structure(&request).expect("audit");
+        assert_eq!(report.body.disposition, AuditDisposition::Admissible);
+        assert_eq!(report.body.time_derivative, vec![0.0, 1.0, 1.0]);
+        assert!(report.body.energy_rate.abs() < 1.0e-12);
+        assert!((report.body.entropy_rate - 1.0).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn frozen_indefinite_fixture_is_rejected() {
+        let input =
+            include_str!("../../../../benchmarks/plasma/metriplectic-audit-indefinite-v0.json");
+        let request: AuditRequest = serde_json::from_str(input).expect("fixture parses");
+        let report = audit_metriplectic_structure(&request).expect("audit report");
+        assert_eq!(report.body.disposition, AuditDisposition::Rejected);
+        assert!(report.body.findings.iter().any(|finding| {
+            finding.code == "dissipative_operator_not_positive_semidefinite"
+        }));
+    }
+
+    #[test]
+    fn jacobi_eigensolver_recovers_off_diagonal_symmetric_eigenvalue() {
+        let minimum = minimum_symmetric_eigenvalue(
+            &[1.0, 0.5, 0.0, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0],
+            3,
+        )
+        .expect("eigenvalue");
+        assert!((minimum - 0.5).abs() < 1.0e-12);
+    }
+
+    #[test]
     fn verifier_rejects_rehashed_report_tampering() {
         let request = base_request();
         let mut report = audit_metriplectic_structure(&request).expect("audit");
