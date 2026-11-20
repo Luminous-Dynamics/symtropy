@@ -188,6 +188,10 @@ fn validate(catalog: &Value) -> Result<String, String> {
         "location_coordinates_and_datum", "depth_or_elevation", "sensor_or_method_id",
         "calibration_reference", "uncertainty", "quality_state", "source_rights",
         "raw_data_digest", "processing_version", "custody_receipt",
+        "clock_offset_ms", "calibration_independence_domain", "calibration_valid_from_utc",
+        "calibration_valid_until_utc", "sample_preservation_state", "sample_collection_method",
+        "chain_of_custody_id", "laboratory_batch_id", "laboratory_batch_independence_domain",
+        "laboratory_batch_common_standard_uncertainty_mg_l",
     ].into_iter().collect();
     let got_record: HashSet<&str> = record_fields.iter().filter_map(Value::as_str).collect();
     if !required_record.is_subset(&got_record) {
@@ -379,6 +383,14 @@ mod tests {
         let mut v = fixture();
         v["non_compensatory_gates"][0]["disposition"] = Value::String("allow_if_pue_is_good".into());
         assert!(validate(&v).unwrap_err().contains("disposition was weakened or changed"));
+    }
+    #[test]
+    fn missing_laboratory_batch_covariance_metadata_is_rejected() {
+        let mut v = fixture();
+        v["site_evidence_record_contract"]["required_fields"].as_array_mut().unwrap()
+            .retain(|x| x != "laboratory_batch_independence_domain"
+                && x != "laboratory_batch_common_standard_uncertainty_mg_l");
+        assert!(validate(&v).unwrap_err().contains("provenance/calibration/time/uncertainty/rights"));
     }
     #[test]
     fn missing_calibration_and_custody_fields_are_rejected() {
