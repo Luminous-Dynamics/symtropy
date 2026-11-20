@@ -867,10 +867,10 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index:
         }
         validate_evidence(&pair.intake.evidence, interval,
             &interval.interval_start_utc, &interval.interval_end_utc,
-            &mut sample_ids, &mut calibration_domains)?;
+            &mut sample_ids, &mut calibration_domains, limit)?;
         validate_evidence(&pair.outfall.evidence, interval,
             &interval.outfall_window_start_utc, &interval.outfall_window_end_utc,
-            &mut sample_ids, &mut calibration_domains)?;
+            &mut sample_ids, &mut calibration_domains, limit)?;
         for (sample, role) in [(&pair.intake, "intake"), (&pair.outfall, "outfall")] {
             if sample.sample_collection_method != "synthetic_flow_proportional_composite"
                 || sample.sample_preservation_state != "synthetic_documented"
