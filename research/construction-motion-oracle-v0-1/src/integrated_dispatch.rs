@@ -919,13 +919,13 @@ mod tests {
             trigger_domain_start_tick: 100,
             trigger_domain_end_tick: 1_000,
             stop_coverage_duration_ms: 6_000,
-            conservative_stop_distance_bound_mm: 500,
+            conservative_stop_distance_bound_mm: 10_000,
             primitive_count: 4,
             trigger_domain_coverage_complete: true,
             primitive_coverage_complete: true,
             continuous_time_coverage_complete: true,
             conservative_outer_bound: true,
-            valid_until_tick: 5_500,
+            valid_until_tick: 8_000,
         };
         let hazard_detection = HazardDetectionQualification {
             sensor_profile_sha256: digest('5'),
@@ -1305,6 +1305,87 @@ mod tests {
             Err(IntegratedDispatchReadinessFailure::StoppingQualification(
                 StoppingReachabilityError::InvalidQualificationReceiptDigest
             ))
+        ));
+    }
+
+
+    #[test]
+    fn stop_tube_is_mandatory_for_integrated_occupancy_readiness() {
+        let (ledger, _, station_event_id) = setup_ledger();
+        let mut request = make_request(&ledger, station_event_id);
+        request.dispatch.occupancy.assessed_stop_tube_sha256 = digest('0');
+        let graph = make_graph(&request, &ledger);
+        assert_eq!(
+            check_integrated_dispatch_readiness(&ledger, &graph, &request),
+            Err(IntegratedDispatchReadinessFailure::OccupancyDidNotAssessStoppingEnvelope)
+        );
+    }
+
+    #[test]
+    fn incomplete_stop_tube_primitive_or_continuous_time_coverage_fails_closed() {
+        let (ledger, _, station_event_id) = setup_ledger();
+        let mut request = make_request(&ledger, station_event_id);
+        request.stopping_envelope.continuous_time_coverage_complete = false;
+        let graph = make_graph(&request, &ledger);
+        assert_eq!(
+            check_integrated_dispatch_readiness(&ledger, &graph, &request),
+            Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeCoverageIncomplete)
+        );
+
+        let (ledger, _, station_event_id) = setup_ledger();
+        let mut request = make_request(&ledger, station_event_id);
+        request.stopping_envelope.primitive_coverage_complete = false;
+        let graph = make_graph(&request, &ledger);
+        assert_eq!(
+            check_integrated_dispatch_readiness(&ledger, &graph, &request),
+            Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeCoverageIncomplete)
+        );
+    }
+
+    #[test]
+    fn stopping_envelope_distance_and_time_must_dominate_qualified_dynamics() {
+        let (ledger, _, station_event_id) = setup_ledger();
+        let mut request = make_request(&ledger, station_event_id);
+        request.stopping_envelope.conservative_stop_distance_bound_mm = 1;
+        let graph = make_graph(&request, &ledger);
+        assert_eq!(
+            check_integrated_dispatch_readiness(&ledger, &graph, &request),
+            Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeBoundTooSmall)
+        );
+
+        let (ledger, _, station_event_id) = setup_ledger();
+        let mut request = make_request(&ledger, station_event_id);
+        request.stopping_envelope.stop_coverage_duration_ms = 1;
+        let graph = make_graph(&request, &ledger);
+        assert_eq!(
+            check_integrated_dispatch_readiness(&ledger, &graph, &request),
+            Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeBoundTooSmall)
+        );
+    }
+
+    #[test]
+    fn stop_tube_must_match_tool_payload_frame_and_composite_envelope() {
+        let (ledger, _, station_event_id) = setup_ledger();
+        let mut request = make_request(&ledger, station_event_id);
+        request.stopping_envelope.payload_configuration_sha256 = digest('0');
+        let graph = make_graph(&request, &ledger);
+        assert_eq!(
+            check_integrated_dispatch_readiness(&ledger, &graph, &request),
+            Err(IntegratedDispatchReadinessFailure::StoppingEnvelopeContextMismatch(
+                "payload configuration"
+            ))
+        );
+    }
+
+    #[test]
+    fn stopping_envelope_is_a_required_dependency_in_the_dispatch_snapshot() {
+        let (ledger, _, station_event_id) = setup_ledger();
+        let mut request = make_request(&ledger, station_event_id);
+        let graph = make_graph(&request, &ledger);
+        request.evidence_nodes.stopping_tube_envelope = "missing-stop-tube-node".into();
+        assert!(matches!(
+            check_integrated_dispatch_readiness(&ledger, &graph, &request),
+            Err(IntegratedDispatchReadinessFailure::MissingEvidenceNode(_))
         ));
     }
 
