@@ -56,9 +56,28 @@ This is a conservative *oracle/method reference*, not a universally causal maste
 
 The crate also samples the same sinusoidal source at each communication interval's left endpoint and holds that input constant over the interval. It solves each held interval exactly, then compares the final temperature against the continuous sinusoidal reference. A frozen 15-to-960-step ladder in the JSON fixture shows the expected approximately first-order global convergence of left-endpoint zero-order hold. This is a mathematical discretization study, not an OMSimulator or commercial-master performance result.
 
+
+### E. Causal bounded linear predictor (no future source samples)
+
+Real Co-Simulation participants often expose only the current output at a communication point. The causal method uses the current and previous committed source samples:
+
+`Qbar_n = clamp(Q_n + 0.5 * (Q_n - Q_(n-1)), Q_min, Q_max)`
+
+The first interval bootstraps from the current sample. The source envelope is explicit and each projection is counted; the receipt includes maximum correction. No future FMI sample is read. On the same 120-second sinusoidal oracle, 15-step endpoint error falls from 0.0101885 K (left-endpoint ZOH) to 0.000787129 K, about **12.94× lower**. It remains about 6.13× less accurate than the non-causal exact interval-average oracle at 15 steps, as expected. The frozen ladder exhibits approximately second-order global convergence on this smooth input.
+
+The causal label refers to data access, not a universal error guarantee. The analytic test generates the discrete samples from a known sinusoid; on an unknown real FMU, predictor residual must be measured against subsequently observed source behavior. The receiver energy balance closes against the declared predicted input—not against an unobserved future source integral. Limiter activity and corrections must remain visible.
+
+### F. Event-fenced adaptive step proposal
+
+A deterministic policy primitive now accepts three independent normalized error signals: trajectory error, interface mismatch and physical energy residual. It uses the maximum of the three, a documented order-based step factor, and clips the proposed horizon at the earliest supplied event/clock time.
+
+The policy distinguishes four outcomes: `Accept`, `RejectAndRetry`, `ProcessEventNow`, and `FailClosedAtMinimumStep`. It never emits a zero-length FMI doStep: an event due at the current time is an instruction to process the event. A known event may require an accepted step shorter than the configured minimum; that exception is explicit. If an unaccepted attempt would require a retry below the minimum, the policy fails closed. A past event timestamp is rejected.
+
+This is a scheduler decision primitive, not yet an FMI master. It does not generate its own error estimates, infer future events, execute doStep, handle rollback or commit physical transfers. Those remain with the numerical estimator, FMI adapter, #6198 trace owner and #6154 physical ledger. The frozen policy cases are in the JSON fixture; six Rust tests cover the decision boundaries. The importer-integrated work is tracked separately in [#6393 — adaptive master scheduler](https://github.com/Luminous-Dynamics/symtropy/issues/6393).
+
 ## Frozen known answers
 
-The machine-readable inputs, decimal reference values and both communication-grid ladders are in `fixtures/known-answers.v0.1.json`. Rust tests verify the frozen cases, partition invariance for constant inputs, zero-amplitude reduction, exact interval-average source energy, monotonic grid refinement, first- versus second-order convergence, and the causal bounded predictor's limiter/convergence diagnostics.
+The machine-readable inputs, decimal reference values, ZOH/interval-average/causal-predictor convergence ladders and adaptive step-policy cases are in `fixtures/known-answers.v0.1.json`. Rust tests verify frozen answers, partition invariance, exact interval-average source energy, limiter diagnostics, first- and second-order convergence, event fences and minimum-step refusal.
 
 ## Run
 
