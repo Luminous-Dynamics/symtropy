@@ -132,7 +132,8 @@
           "decoder_version",
           "decoder_sha256",
           "active_boot_epoch_id",
-          "active_boot_epoch_ordinal"
+          "active_boot_epoch_ordinal",
+          "active_boot_epoch_sequence_floor"
         ],
         "properties": {
           "source_id": {
@@ -214,6 +215,10 @@
             "minLength": 1
           },
           "active_boot_epoch_ordinal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "active_boot_epoch_sequence_floor": {
             "type": "integer",
             "minimum": 0
           }
