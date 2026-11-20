@@ -2717,6 +2717,46 @@ mod tests {
         )
     }
 
+    fn composite_reservations_for(
+        ledger: &SiteStateLedger,
+        suffix: &str,
+        demand_units: u64,
+    ) -> (SpaceTimeReservation, CapacityReservationCommit) {
+        let capacity_event =
+            capacity_reservation_event(ledger, &format!("weighted-{suffix}"), demand_units, 20, 50);
+        let mut capacity_commit = match capacity_event.payload {
+            SiteEventPayload::CapacityReservationCommitted { commit } => commit,
+            _ => unreachable!("capacity helper emits capacity reservation event"),
+        };
+        // Both claims are committed in one ledger event under one bounded lease.
+        capacity_commit.valid_until_tick = 500;
+        capacity_commit.lease_valid_until_tick = 450;
+
+        let mut exclusive = reservation_for(
+            ledger,
+            &format!("exclusive-{suffix}"),
+            20,
+            50,
+            capacity_commit.committed_at_tick,
+            capacity_commit.checked_at_tick,
+            capacity_commit.lease_valid_until_tick,
+        );
+        exclusive.valid_until_tick = capacity_commit.valid_until_tick;
+        exclusive.entity_id = capacity_commit.entity_id.clone();
+        exclusive.robot_id = capacity_commit.robot_id.clone();
+        exclusive.readiness_receipt_sha256 = capacity_commit.readiness_receipt_sha256.clone();
+        exclusive.occupancy_assessment_receipt_sha256 =
+            capacity_commit.occupancy_assessment_receipt_sha256.clone();
+        exclusive.occupancy_engine_build_sha256 =
+            capacity_commit.occupancy_engine_build_sha256.clone();
+        exclusive.clearance_policy_sha256 = capacity_commit.clearance_policy_sha256.clone();
+        exclusive.site_snapshot_sha256 = capacity_commit.site_snapshot_sha256.clone();
+        exclusive.site_ledger_sequence = capacity_commit.site_ledger_sequence;
+        exclusive.site_ledger_event_sha256 = capacity_commit.site_ledger_event_sha256.clone();
+        exclusive.site_clock_domain_id = capacity_commit.reservation.site_clock_domain_id.clone();
+        (exclusive, capacity_commit)
+    }
+
     fn capacity_release_event(
         ledger: &SiteStateLedger,
         reservation_id: &str,
@@ -2751,6 +2791,174 @@ mod tests {
         publish_capacity_resource_catalog(&mut ledger);
         publish_capacity_snapshot(&mut ledger, '3', '4', 2, 2, 3);
         ledger
+    }
+
+    #[test]
+    fn composite_admission_commits_exclusive_and_weighted_claims_in_one_event() {
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
+        publish_package(&mut ledger, package('a', &["panel-1"]));
+        publish_exclusive_resource_catalog(&mut ledger);
+        publish_capacity_resource_catalog(&mut ledger);
+        publish_capacity_snapshot(&mut ledger, '3', '4', 2, 2, 3);
+
+        let (exclusive_reservation, capacity_commit) =
+            composite_reservations_for(&ledger, "success", 1);
+        let before_sequence = ledger.last_sequence();
+        let before_event_count = ledger.event_count();
+        let event_id = "composite-resource-admission";
+        let composite = event(
+            event_id,
+            before_sequence + 1,
+            ledger.last_event_sha256().map(str::to_owned),
+            '9',
+            "dispatch-coordinator",
+            SiteActorRole::DispatchCoordinator,
+            SiteEventPayload::CompositeResourceReservationCommitted {
+                exclusive_reservation,
+                capacity_commit,
+            },
+        );
+        assert_eq!(ledger.apply(composite), Ok(SiteApplyOutcome::Applied));
+
+        assert_eq!(ledger.last_sequence(), before_sequence + 1);
+        assert_eq!(ledger.event_count(), before_event_count + 1);
+        let exclusive = ledger.space_time_reservation("exclusive-success").unwrap();
+        let weighted = ledger.capacity_reservation("weighted-success").unwrap();
+        assert!(exclusive.is_active());
+        assert!(weighted.is_active());
+        assert_eq!(exclusive.committed_event_id, event_id);
+        assert_eq!(weighted.committed_event_id, event_id);
+        assert_eq!(exclusive.committed_sequence, weighted.committed_sequence);
+        assert_eq!(exclusive.committed_sequence, before_sequence + 1);
+        assert_eq!(ledger.active_resource_claim_count(), 1);
+        assert_eq!(ledger.active_capacity_reservation_count(), 1);
+        assert!(ledger.assess_current_capacity().unwrap().is_robustly_feasible);
+    }
+
+    #[test]
+    fn composite_capacity_failure_leaves_no_exclusive_or_weighted_partial_commit() {
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
+        publish_package(&mut ledger, package('a', &["panel-1"]));
+        publish_exclusive_resource_catalog(&mut ledger);
+        publish_capacity_resource_catalog(&mut ledger);
+        publish_capacity_snapshot(&mut ledger, '3', '4', 2, 2, 3);
+
+        ledger
+            .apply(capacity_reservation_event(&ledger, "weighted-existing-1", 1, 20, 50))
+            .unwrap();
+        ledger
+            .apply(capacity_reservation_event(&ledger, "weighted-existing-2", 1, 20, 50))
+            .unwrap();
+
+        let (exclusive_reservation, capacity_commit) =
+            composite_reservations_for(&ledger, "must-fail", 1);
+        let before_sequence = ledger.last_sequence();
+        let before_event_count = ledger.event_count();
+        let composite = event(
+            "composite-capacity-failure",
+            before_sequence + 1,
+            ledger.last_event_sha256().map(str::to_owned),
+            'a',
+            "dispatch-coordinator",
+            SiteActorRole::DispatchCoordinator,
+            SiteEventPayload::CompositeResourceReservationCommitted {
+                exclusive_reservation,
+                capacity_commit,
+            },
+        );
+        assert!(matches!(
+            ledger.apply(composite),
+            Err(SiteLedgerError::CapacityAdmissionNotRobust { .. })
+        ));
+        assert_eq!(ledger.last_sequence(), before_sequence);
+        assert_eq!(ledger.event_count(), before_event_count);
+        assert!(ledger.space_time_reservation("exclusive-must-fail").is_none());
+        assert!(ledger.capacity_reservation("weighted-must-fail").is_none());
+        assert_eq!(ledger.active_resource_claim_count(), 0);
+        assert_eq!(ledger.active_capacity_reservation_count(), 2);
+    }
+
+    #[test]
+    fn composite_exclusive_conflict_leaves_no_weighted_partial_commit() {
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
+        publish_package(&mut ledger, package('a', &["panel-1"]));
+        publish_exclusive_resource_catalog(&mut ledger);
+        publish_capacity_resource_catalog(&mut ledger);
+        publish_capacity_snapshot(&mut ledger, '3', '4', 2, 2, 3);
+
+        let existing = reservation_for(&ledger, "exclusive-existing", 20, 50, 15, 14, 450);
+        commit_reservation_event(&mut ledger, existing, "exclusive-existing-event", '8')
+            .unwrap();
+
+        let (exclusive_reservation, capacity_commit) =
+            composite_reservations_for(&ledger, "exclusive-conflict", 1);
+        let before_sequence = ledger.last_sequence();
+        let before_event_count = ledger.event_count();
+        let composite = event(
+            "composite-exclusive-failure",
+            before_sequence + 1,
+            ledger.last_event_sha256().map(str::to_owned),
+            '9',
+            "dispatch-coordinator",
+            SiteActorRole::DispatchCoordinator,
+            SiteEventPayload::CompositeResourceReservationCommitted {
+                exclusive_reservation,
+                capacity_commit,
+            },
+        );
+        assert!(matches!(
+            ledger.apply(composite),
+            Err(SiteLedgerError::SpaceTimeReservationConflict { .. })
+        ));
+        assert_eq!(ledger.last_sequence(), before_sequence);
+        assert_eq!(ledger.event_count(), before_event_count);
+        assert!(
+            ledger
+                .space_time_reservation("exclusive-exclusive-conflict")
+                .is_none()
+        );
+        assert!(
+            ledger
+                .capacity_reservation("weighted-exclusive-conflict")
+                .is_none()
+        );
+        assert_eq!(ledger.active_resource_claim_count(), 1);
+        assert_eq!(ledger.active_capacity_reservation_count(), 0);
+    }
+
+    #[test]
+    fn composite_reservation_identity_mismatch_fails_before_either_claim_is_committed() {
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
+        publish_package(&mut ledger, package('a', &["panel-1"]));
+        publish_exclusive_resource_catalog(&mut ledger);
+        publish_capacity_resource_catalog(&mut ledger);
+        publish_capacity_snapshot(&mut ledger, '3', '4', 2, 2, 3);
+
+        let (exclusive_reservation, mut capacity_commit) =
+            composite_reservations_for(&ledger, "identity-mismatch", 1);
+        capacity_commit.robot_id = "robot-2".into();
+        let before_sequence = ledger.last_sequence();
+        let before_event_count = ledger.event_count();
+        let composite = event(
+            "composite-binding-failure",
+            before_sequence + 1,
+            ledger.last_event_sha256().map(str::to_owned),
+            '9',
+            "dispatch-coordinator",
+            SiteActorRole::DispatchCoordinator,
+            SiteEventPayload::CompositeResourceReservationCommitted {
+                exclusive_reservation,
+                capacity_commit,
+            },
+        );
+        assert_eq!(
+            ledger.apply(composite),
+            Err(SiteLedgerError::CompositeReservationBindingMismatch)
+        );
+        assert_eq!(ledger.last_sequence(), before_sequence);
+        assert_eq!(ledger.event_count(), before_event_count);
+        assert_eq!(ledger.active_resource_claim_count(), 0);
+        assert_eq!(ledger.active_capacity_reservation_count(), 0);
     }
 
     #[test]
