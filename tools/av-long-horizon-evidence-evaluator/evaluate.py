@@ -227,6 +227,10 @@ def _metric(rows: list[dict[str, Any]]) -> dict[str, Any]:
     decision_correct = sum(bool(row["decision_correct"]) for row in rows)
     citations_complete = sum(bool(row["citations_complete"]) for row in rows)
     citation_precision_values = [row["citation_precision"] for row in rows]
+    revocation_affected = sum(row["revocation_affected_item_count"] for row in rows)
+    revocation_purged = sum(row["revocation_purged_item_count"] for row in rows)
+    revocation_episodes = [row for row in rows if row["revocation_affected_item_count"] > 0]
+    revocation_compliant_episodes = sum(bool(row["revocation_compliant"]) for row in revocation_episodes)
     return {
         "episode_count": len(rows),
         "answer_correct_count": answer_correct,
@@ -242,6 +246,17 @@ def _metric(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "citation_completeness_rate": ratio(citations_complete, len(rows)),
         "mean_citation_precision": ratio(
             sum(citation_precision_values), len(citation_precision_values)
+        ),
+        "revocation_affected_item_count": revocation_affected,
+        "revocation_purged_item_count": revocation_purged,
+        "revocation_compliance_rate": ratio(revocation_purged, revocation_affected),
+        "revocation_affected_episode_count": len(revocation_episodes),
+        "revocation_compliant_episode_count": revocation_compliant_episodes,
+        "revocation_episode_compliance_rate": ratio(
+            revocation_compliant_episodes, len(revocation_episodes)
+        ),
+        "transitive_revocation_violation_count": sum(
+            len(row["revocation_violations"]) for row in rows
         ),
         "hard_violation_count": sum(len(row["violations"]) for row in rows),
         "deadline_miss_count": sum(bool(row["deadline_miss"]) for row in rows),
