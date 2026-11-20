@@ -44,7 +44,8 @@
       "filter_delay_uncertainty_s": 0,
       "absolute_slew_bound_per_s": 0,
       "slew_bound_provenance_digest": "slew-torque-sensor-001-source-bound-v1",
-      "slew_bound_source_reference": "https://example.invalid/slew-bound/method-v1"
+      "slew_bound_source_reference": "https://example.invalid/slew-bound/method-v1",
+      "unit": "N m"
     },
     "angular_velocity": {
       "kind": "angular_velocity",
@@ -86,7 +87,8 @@
       "filter_delay_uncertainty_s": 0,
       "absolute_slew_bound_per_s": 0,
       "slew_bound_provenance_digest": "slew-encoder-001-source-bound-v1",
-      "slew_bound_source_reference": "https://example.invalid/slew-bound/method-v1"
+      "slew_bound_source_reference": "https://example.invalid/slew-bound/method-v1",
+      "unit": "rad/s"
     },
     "claim_ceiling": "Synthetic fixture only. It validates deterministic interval arithmetic and provenance gates; it is not traceable physical measurement data or an actuator performance claim.",
     "notes": [
@@ -138,7 +140,8 @@
       "filter_delay_uncertainty_s": 0,
       "absolute_slew_bound_per_s": 2,
       "slew_bound_provenance_digest": "slew-torque-sensor-001-source-bound-v1",
-      "slew_bound_source_reference": "https://example.invalid/slew-bound/method-v1"
+      "slew_bound_source_reference": "https://example.invalid/slew-bound/method-v1",
+      "unit": "N m"
     },
     "angular_velocity": {
       "kind": "angular_velocity",
@@ -180,7 +183,8 @@
       "filter_delay_uncertainty_s": 0,
       "absolute_slew_bound_per_s": 3,
       "slew_bound_provenance_digest": "slew-encoder-001-source-bound-v1",
-      "slew_bound_source_reference": "https://example.invalid/slew-bound/method-v1"
+      "slew_bound_source_reference": "https://example.invalid/slew-bound/method-v1",
+      "unit": "rad/s"
     },
     "claim_ceiling": "Synthetic fixture only. It validates deterministic interval arithmetic and provenance gates; it is not traceable physical measurement data or an actuator performance claim.",
     "notes": [
@@ -232,7 +236,8 @@
       "filter_delay_uncertainty_s": 0,
       "absolute_slew_bound_per_s": 0,
       "slew_bound_provenance_digest": "slew-torque-sensor-001-source-bound-v1",
-      "slew_bound_source_reference": "https://example.invalid/slew-bound/method-v1"
+      "slew_bound_source_reference": "https://example.invalid/slew-bound/method-v1",
+      "unit": "N m"
     },
     "angular_velocity": {
       "kind": "angular_velocity",
@@ -274,7 +279,8 @@
       "filter_delay_uncertainty_s": 0,
       "absolute_slew_bound_per_s": 0,
       "slew_bound_provenance_digest": "slew-encoder-001-source-bound-v1",
-      "slew_bound_source_reference": "https://example.invalid/slew-bound/method-v1"
+      "slew_bound_source_reference": "https://example.invalid/slew-bound/method-v1",
+      "unit": "rad/s"
     },
     "claim_ceiling": "Synthetic fixture only. It validates deterministic interval arithmetic and provenance gates; it is not traceable physical measurement data or an actuator performance claim.",
     "notes": [
