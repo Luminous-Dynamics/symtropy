@@ -1,0 +1,273 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/geofusion-analytic-fmu-pair-v0.1/tests/fmi3-dispatch-transcript.schema.json",
+  "title": "FMPy FMI 3.0.2 importer dispatch transcript v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "observation_boundary",
+    "claim_ceiling",
+    "importer",
+    "runtime",
+    "fmus",
+    "summary",
+    "events"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "fmi3-dispatch-transcript-0.1.0"
+    },
+    "observation_boundary": {
+      "const": "fmpy-0.3.32 _call wrapper immediately around ctypes function-pointer invocation"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "importer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "const": "FMPy"
+        },
+        "version": {
+          "const": "0.3.32"
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "python",
+        "platform"
+      ],
+      "properties": {
+        "python": {
+          "type": "string",
+          "minLength": 1
+        },
+        "platform": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "fmus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "geothermal-source",
+        "heat-exchanger-buffer"
+      ],
+      "properties": {
+        "geothermal-source": {
+          "$ref": "#/$defs/fmu"
+        },
+        "heat-exchanger-buffer": {
+          "$ref": "#/$defs/fmu"
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "api_events",
+        "do_step_calls",
+        "set_float64_calls",
+        "get_float64_calls",
+        "successful_get_float64_calls",
+        "failed_get_float64_calls",
+        "input_j",
+        "service_j",
+        "loss_j",
+        "storage_delta_j",
+        "residual_j",
+        "final_stored_energy_j"
+      ],
+      "properties": {
+        "api_events": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "do_step_calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "set_float64_calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "get_float64_calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "successful_get_float64_calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_get_float64_calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "input_j": {
+          "type": "number"
+        },
+        "service_j": {
+          "type": "number"
+        },
+        "loss_j": {
+          "type": "number"
+        },
+        "storage_delta_j": {
+          "type": "number"
+        },
+        "residual_j": {
+          "type": "number"
+        },
+        "final_stored_energy_j": {
+          "type": "number"
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/event"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "fmu": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "package_sha256",
+        "model_description_sha256",
+        "binary_sha256",
+        "model_name",
+        "model_identifier"
+      ],
+      "properties": {
+        "package_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "model_description_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "binary_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "model_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_identifier": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "federate_id",
+        "function",
+        "argument_count",
+        "argument_types",
+        "status_code",
+        "status",
+        "exception_type",
+        "exception_message",
+        "payload"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "federate_id": {
+          "enum": [
+            "geothermal-source",
+            "heat-exchanger-buffer"
+          ]
+        },
+        "function": {
+          "enum": [
+            "fmi3InstantiateCoSimulation",
+            "fmi3EnterInitializationMode",
+            "fmi3ExitInitializationMode",
+            "fmi3GetFloat64",
+            "fmi3SetFloat64",
+            "fmi3DoStep",
+            "fmi3Terminate",
+            "fmi3FreeInstance"
+          ]
+        },
+        "argument_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "argument_types": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status_code": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "discard",
+            "error",
+            "fatal",
+            "pending",
+            "returned",
+            "void_return",
+            "exception",
+            "unknown"
+          ]
+        },
+        "exception_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "exception_message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "result_type": {
+          "type": "string"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}
