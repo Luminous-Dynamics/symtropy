@@ -379,16 +379,16 @@ pub fn audit_transition(
 
     for action in &proposal.actions {
         let execution = executions.get(action.action_id.as_str()).expect("execution set was checked");
-        if execution.outcome == ActionExecutionOutcome::Failed {
-            // Failure may have partially mutated equipment or work progress.
-            // The current state model cannot represent that uncertainty.
-            unsupported_action_ids.push(action.action_id.clone());
-            continue;
-        }
         match execution.outcome {
             ActionExecutionOutcome::Applied => applied_action_count += 1,
             ActionExecutionOutcome::Rejected => rejected_action_count += 1,
-            ActionExecutionOutcome::Failed => failed_action_count += 1,
+            ActionExecutionOutcome::Failed => {
+                failed_action_count += 1;
+                // Failure may have partially mutated equipment or work progress.
+                // The current state model cannot represent that uncertainty.
+                unsupported_action_ids.push(action.action_id.clone());
+                continue;
+            }
             ActionExecutionOutcome::NotAttempted => not_attempted_action_count += 1,
         }
         match apply_supported_action(action, execution, case, &mut expected_successor) {
