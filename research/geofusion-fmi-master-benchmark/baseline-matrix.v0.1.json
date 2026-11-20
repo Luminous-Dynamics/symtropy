@@ -118,7 +118,11 @@
     "SSP_connector_and_component_round_trip_completeness",
     "SSP_parameter_and_variant_preservation",
     "SSP_unit_definition_and_conversion_semantic_preservation",
-    "SSP_digital_signature_and_embedded_metadata_preservation"
+    "SSP_digital_signature_and_embedded_metadata_preservation",
+    "cumulative_energy_endpoint_resolution_bound_and_declared_tolerance",
+    "interval_integrated_energy_error_per_source_interval",
+    "exactly_once_interval_energy_consumption_count",
+    "receiver_trajectory_error_given_integrated_macro_step_energy"
   ],
   "hard_gates": {
     "false_conservation_closures": 0,
@@ -132,7 +136,11 @@
     "predictor_limiter_corrections_must_be_recorded": true,
     "no_unqualified_error_bound_claim": true,
     "ssp_round_trip_must_preserve_every_declared_component_connector_and_connection": true,
-    "ssp_parameter_variant_and_unit_semantics_must_be_compared_separately": true
+    "ssp_parameter_variant_and_unit_semantics_must_be_compared_separately": true,
+    "cumulative_energy_counter_resolution_bound_within_declared_budget": true,
+    "interval_energy_transfers_exactly_once": true,
+    "power_and_energy_units_never_interchanged": true,
+    "cumulative_counter_reset_epoch_explicit": true
   },
   "stretch_objectives": [
     "Pareto_improve_trajectory_error_balance_residual_and_latency",
@@ -598,6 +606,16 @@
       "data_access": "multiple_coupling_iterations_and_checkpointing",
       "causality": "capability_conditional",
       "reference_role": "adjacent_preCICE_IQN_ILS_method_reference"
+    },
+    {
+      "id": "cumulative_energy_interval_handshake",
+      "data_access": "two successful producer cumulative-energy observations or a direct completed-interval integrated-energy output",
+      "causality": "causal_after_producer_interval_completion",
+      "exchange_quantity": "interval energy J, never confused with power W or a serialized FMU checkpoint",
+      "receiver_method": "consume exact declared interval energy once; use average power only for receiver trajectory evolution when no within-window waveform is exposed",
+      "precision_policy": "record Float64 endpoint ULP bound and reject when it exceeds the declared absolute-energy error budget; prefer direct interval-energy J outputs for long-running counters",
+      "reference_role": "causal conservation reference; trajectory accuracy scored separately from interval-energy exactness",
+      "evidence": "PR #6344 cumulative source and integrated-flux analytic oracle; issue #6407 interface track"
     }
   ],
   "advanced_fmi3_feature_campaign": {
