@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-observation-eligibility-v0",
+  "warning": "Evaluator-only actual outcomes; never mount in the agent process.",
+  "episodes": [
+    {
+      "episode_id": "elig-001-reordered-fresh",
+      "transport": "Reordered",
+      "freshness": "Fresh",
+      "current_window_eligible": true,
+      "historical_eligible": true,
+      "reason": "sequence 1 arrived after sequence 2; source age 200us <= 500us"
+    },
+    {
+      "episode_id": "elig-002-in-order-stale",
+      "transport": "Delivered",
+      "freshness": "Stale",
+      "current_window_eligible": false,
+      "historical_eligible": true,
+      "reason": "source age 800us > 300us; no earlier sequence inversion"
+    },
+    {
+      "episode_id": "elig-003-duplicate-no-refresh",
+      "transport": "Duplicate",
+      "freshness": "Stale",
+      "current_window_eligible": false,
+      "historical_eligible": true,
+      "reason": "same observation already delivered at tick 150; duplicate arrival does not refresh capture age"
+    },
+    {
+      "episode_id": "elig-004-stale-replay",
+      "transport": "StaleReplay",
+      "freshness": "Stale",
+      "current_window_eligible": false,
+      "historical_eligible": true,
+      "reason": "same bytes and source sample range previously admitted; replay cannot refresh current evidence"
+    },
+    {
+      "episode_id": "elig-005-late-live-historical-valid",
+      "transport": "Delivered",
+      "freshness": "Fresh",
+      "current_window_eligible": false,
+      "historical_eligible": true,
+      "reason": "arrival at tick 300 exceeds immediate response deadline 200 but precedes query cutoff 400"
+    },
+    {
+      "episode_id": "elig-006-clock-reset-incomparable",
+      "transport": "Delivered",
+      "freshness": "Incomparable",
+      "current_window_eligible": false,
+      "historical_eligible": false,
+      "reason": "clock generation changed and no qualified transform exists"
+    },
+    {
+      "episode_id": "elig-007-dropped-audio-gap",
+      "transport": "Dropped",
+      "freshness": "NotAssessed",
+      "current_window_eligible": false,
+      "historical_eligible": false,
+      "reason": "no payload exists for source samples [1100,1200); previous chunk must not be substituted"
+    },
+    {
+      "episode_id": "elig-008-superseded-request",
+      "transport": "Delivered",
+      "freshness": "Fresh",
+      "current_window_eligible": false,
+      "historical_eligible": true,
+      "reason": "evidence is valid as an observation but request revision 1 was cancelled and cannot satisfy revision 2"
+    }
+  ]
+}

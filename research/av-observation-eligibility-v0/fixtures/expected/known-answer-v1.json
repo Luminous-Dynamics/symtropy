@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-observation-eligibility-v0",
+  "status": "authored known-answer classification; executable policy integration pending",
+  "episodes": [
+    {
+      "episode_id": "elig-001-reordered-fresh",
+      "transport": "Reordered",
+      "freshness": "Fresh",
+      "current_window_eligible": true,
+      "historical_eligible": true
+    },
+    {
+      "episode_id": "elig-002-in-order-stale",
+      "transport": "Delivered",
+      "freshness": "Stale",
+      "current_window_eligible": false,
+      "historical_eligible": true
+    },
+    {
+      "episode_id": "elig-003-duplicate-no-refresh",
+      "transport": "Duplicate",
+      "freshness": "Stale",
+      "current_window_eligible": false,
+      "historical_eligible": true
+    },
+    {
+      "episode_id": "elig-004-stale-replay",
+      "transport": "StaleReplay",
+      "freshness": "Stale",
+      "current_window_eligible": false,
+      "historical_eligible": true
+    },
+    {
+      "episode_id": "elig-005-late-live-historical-valid",
+      "transport": "Delivered",
+      "freshness": "Fresh",
+      "current_window_eligible": false,
+      "historical_eligible": true
+    },
+    {
+      "episode_id": "elig-006-clock-reset-incomparable",
+      "transport": "Delivered",
+      "freshness": "Incomparable",
+      "current_window_eligible": false,
+      "historical_eligible": false
+    },
+    {
+      "episode_id": "elig-007-dropped-audio-gap",
+      "transport": "Dropped",
+      "freshness": "NotAssessed",
+      "current_window_eligible": false,
+      "historical_eligible": false
+    },
+    {
+      "episode_id": "elig-008-superseded-request",
+      "transport": "Delivered",
+      "freshness": "Fresh",
+      "current_window_eligible": false,
+      "historical_eligible": true
+    }
+  ]
+}
