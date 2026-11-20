@@ -1,0 +1,183 @@
+# Synchronized Actuator Port-Power Metrology v0.1
+
+**Status:** M1 deterministic bounded arithmetic and provenance gate. This reference does not calibrate sensors, establish traceability or qualify a physical bench.
+
+**Research owner:** [ACTUATOR-METROLOGY-SYNCHRONIZATION-001 #6266](https://github.com/Luminous-Dynamics/symtropy/issues/6266)  
+**Mission-conditioned capability:** [#6230](https://github.com/Luminous-Dynamics/symtropy/issues/6230) / [PR #6231](https://github.com/Luminous-Dynamics/symtropy/pull/6231)  
+**Grouped actuator model calibration:** [#6262](https://github.com/Luminous-Dynamics/symtropy/issues/6262) / [PR #6263](https://github.com/Luminous-Dynamics/symtropy/pull/6263)  
+**Robust evidence-lane Pareto:** [#6234](https://github.com/Luminous-Dynamics/symtropy/issues/6234) / [PR #6260](https://github.com/Luminous-Dynamics/symtropy/pull/6260)
+
+## 1. The measurement chain is part of the actuator result
+
+An actuator torque-speed map is only as trustworthy as its measurement channels. Torque and encoder speed can be logged in the same file yet refer to different physical instants because of:
+- independent sensor clocks and clock mapping error;
+- acquisition timestamp jitter;
+- digital filtering and group delay;
+- unknown or uncompensated filter phase delay;
+- dynamics between the sample instants;
+- calibration range, validity and drift;
+- inconsistent mechanical system boundaries.
+
+Because mechanical power is \(P(t)=\tau(t)\omega(t)\), time misalignment can distort its sign and magnitude, especially during rapid transients. The error then propagates into energy, efficiency, regeneration, impact and passivity claims.
+
+## 2. Research and metrology anchors
+
+### BIPM/JCGM: uncertainty models and nonlinearity
+
+The BIPM/JCGM current Guides in Metrology catalogue lists:
+- JCGM 100:2008, *Guide to the Expression of Uncertainty in Measurement* (GUM);
+- JCGM 100:2008/Amd.1:2026, *Nonlinearity in measurement models*;
+- JCGM 101:2008, propagation of distributions using Monte Carlo;
+- JCGM 102:2011, extension to multiple output quantities;
+- JCGM 106:2012, measurement uncertainty in conformity assessment;
+- JCGM GUM-5:2026 and GUM-6:2020.
+
+Source: https://www.bipm.org/en/web/guest/publications/guides
+
+This reference intentionally begins with deterministic intervals. It does not turn a standard uncertainty into a hard error bound and does not report a probability or confidence level. Nonlinear/correlated statistical uncertainty propagation belongs in the later GUM/Monte Carlo track with documented distributions, covariance and model adequacy.
+
+### NIST: traceability belongs to measurement results
+
+NIST's *Metrological Traceability: Frequently Asked Questions and NIST Policy* says only measurement results—not a laboratory or organisation—are traceable. A traceability claim needs a defined measurand, described measurement system, stated result with evaluated uncertainty, specified calibration reference and measurement-assurance evidence. NIST also notes that it does not directly offer a torque calibration service, but torque can be derived from traceable component quantities such as force and length when the measurement model and uncertainty are properly evaluated.
+
+Source: https://www.nist.gov/metrology/metrological-traceability
+
+This crate checks that those fields are present and internally consistent. It does not independently verify a certificate, reference standard or traceability chain.
+
+### Dynamic timing and synchronization
+
+Gorman et al., *Quantifying the Performance of Distributed Large-Volume Metrology Systems for Dynamic Measurements: Methodology Development*, Metrology 6(1), 7 (30 January 2026), DOI https://doi.org/10.3390/metrology6010007, discusses synchronization strategies and treats latency, jitter, drift, temporal sampling and traceable timing as factors that must be quantified in dynamic measurement. The authors identify temporal sampling and traceable timing as limitations for deconvolving latency from measurement error.
+
+### 2026 actuator characterization framework
+
+Torres Rodríguez et al., *Toward Reproducible Actuator Characterization: A Comprehensive Framework for Robotics Applications*, Actuators 15(6), 301 (30 May 2026), DOI https://doi.org/10.3390/act15060301, describes eleven no-load, locked-rotor and dynamic-load protocols. It uses an output torque transducer and records DC-bus voltage/current to compute power and energy. Its idealized position-bandwidth estimate assumes instantaneous acceleration and explicitly notes omitted physical nonlinearities such as magnetic saturation, Stribeck friction and inverter limits. Its data availability statement says no new data were created or analyzed. This programme complements its test protocol with stricter timing and metrology evidence; it does not replace it.
+
+## 3. M1 channel contract
+
+A channel record must include:
+- typed quantity and canonical machine-checked unit: output torque `N m` or angular velocity `rad/s`;
+- conservative bounded measurement interval;
+- physical sensor range and calibration-covered range;
+- bound representation (ValidatedBound, not standard/expanded uncertainty);
+- calibration status, sensor serial, certificate, reference standard and chain digest;
+- traceability status and evidence class;
+- measurement source, method, raw-trace digest, system-boundary and operating-condition digests;
+- common reference-clock identity and clock-mapping digest;
+- reference instant, estimated sample time offset and clock-offset uncertainty;
+- timestamp-jitter bound;
+- measured signed filter group delay, applied compensation and residual delay uncertainty;
+- validated absolute signal-slew bound, with source and provenance digest.
+
+Calibration must cover the actual operating interval and the full interval after timing expansion. The calibration certificate need not cover unused portions of the sensor's entire hardware range.
+
+## 4. Timing-aware bounded propagation
+
+For channel c, the M1 implementation forms a conservative maximum time skew:
+
+\`\`\`text
+max_skew_c =
+    abs(sample_time_offset_c)
+  + clock_offset_uncertainty_c
+  + timestamp_jitter_bound_c
+  + abs(filter_group_delay_c - filter_delay_compensation_c)
+  + filter_delay_uncertainty_c
+\`\`\`
+
+Given a validated absolute signal-slew bound \(L_c\) over that interval, expand its input interval:
+
+\`\`\`text
+aligned_lower_c = measured_lower_c - L_c * max_skew_c
+aligned_upper_c = measured_upper_c + L_c * max_skew_c
+\`\`\`
+
+Both torque and angular velocity must:
+- declare units consistent with their channel kind (`N m` for torque, `rad/s` for angular velocity);
+- map to the same declared reference clock;
+- target the same reference instant;
+- use matching system-boundary and operating-condition digests;
+- remain inside both the physical sensor range and calibration-covered operating range after expansion.
+
+The calibration-covered range may be narrower than the sensor's full hardware range. Only the actual measurement interval and its time-expanded interval must lie inside the calibration-covered portion.
+
+The power interval is the exact rectangular interval product. All four combinations are evaluated:
+
+\`\`\`text
+tau_lower * omega_lower
+tau_lower * omega_upper
+tau_upper * omega_lower
+tau_upper * omega_upper
+\`\`\`
+
+The minimum and maximum of those four values give the conservative product interval over the Cartesian product of the two declared component intervals. This is deterministic interval arithmetic, not a probabilistic independence assumption. Known dependence could support a tighter joint set, but the rectangular interval remains an enclosure when only marginal hard bounds are available. It handles negative values and sign crossings without relying on nominal centres.
+
+The aligned per-channel receipt retains the original and expanded intervals, sensor/calibration ranges, calibration/traceability status, timing offset, clock/jitter/filter-delay inputs, slew bound, and calibration/source/raw-trace provenance.
+
+The result reports:
+- pre-time-alignment power interval;
+- time-aligned power interval;
+- maximum additional outward power bound contributed by timing;
+- per-channel time-skew and value expansion;
+- calibration certificate/reference standard/chain, clock mapping, raw-trace, source/method, slew-bound, system-boundary and evidence provenance.
+
+This is a deterministic bounded calculation. It does not claim a Gaussian distribution, a 95% confidence interval, or a GUM Monte Carlo result. Unknown dependence/common-mode timing error is not automatically handled; it must be represented in the supplied bounds or a later covariance model.
+
+## 5. Fail-closed semantics
+
+The result is Unknown (no numerical power claim) when:
+- calibration is expired, out of tolerance, missing or unknown;
+- traceability is partial/not established;
+- calibration certificate serial does not match the sensor;
+- the observed or time-expanded interval is outside the calibration-covered range;
+- standard or expanded uncertainty is supplied where a validated deterministic bound is required;
+- evidence, source, method, clock mapping, slew provenance or required digests are missing;
+- channels use different reference clocks or physical reference instants;
+- system boundaries or operating conditions do not match.
+
+Malformed/non-finite/inverted numerical intervals, invalid negative timing bounds, wrong channel kinds/units and interval-product overflow are rejected as invalid inputs.
+
+**Negative mechanical power is not electrical regeneration.** A negative \(\tau\omega\) result only establishes mechanical-port power direction under the declared sign convention. The DC-bus, converter, storage sink and accepted returned energy require separately measured electrical evidence.
+
+No energy integral is emitted by this M1 crate. A future energy result must include a separate, validated sampling/interpolation/quadrature error bound and preserve time-varying power intervals.
+
+## 6. Machine-readable evidence contract
+
+The authoritative JSON Schema is `synchronized_port_metrology.schema.json`. It validates the three-record batch structure and the complete torque/velocity channel fields, including canonical units, interval objects, calibration and traceability metadata, timing inputs, slew-bound provenance, system boundary and operating conditions. The schema checks shape and declared enums only; it cannot establish that an external certificate, raw-trace digest, clock mapping or slew bound is genuine or fit for purpose.
+
+The companion known-answer file is `examples/synchronized-port-known-answer.json`. All scenario IDs and measurement provenance are explicitly synthetic.
+
+## 7. Synthetic known-answer fixtures
+
+`examples/synchronized-port-known-answer.json` contains three synthetic records:
+
+1. **Nominal:** torque [9, 11] N·m and speed [4, 6] rad/s produce [36, 66] W.
+2. **Time skew:** torque slew 2 N·m/s × 0.05 s expands to [8.9, 11.1] N·m; speed slew 3 (rad/s)/s × 0.1 s expands to [3.7, 6.3] rad/s; the product interval becomes [32.93, 69.93] W.
+3. **Negative control:** expired torque-channel calibration yields Unknown and no numerical power claim.
+
+The measurement IDs, sensor serials, certificate/reference URIs, raw-trace digests, calibration entries and source records are synthetic placeholders. No traceable physical or actuator performance measurement is represented.
+
+## 8. Run
+
+Dependency-free crate, Rust 1.96:
+
+\`\`\`bash
+cargo fmt --manifest-path benchmarks/synthetic-joints/synchronized-metrology/v0.1/Cargo.toml -- --check
+cargo test --manifest-path benchmarks/synthetic-joints/synchronized-metrology/v0.1/Cargo.toml --locked
+cargo clippy --manifest-path benchmarks/synthetic-joints/synchronized-metrology/v0.1/Cargo.toml --all-targets --locked -- -D warnings
+\`\`\`
+
+Dedicated workflow: .github/workflows/actuator-synchronized-metrology.yml. The local authoring environment has no Cargo/rustc/rustfmt; exact-head CI is the compilation/format/Clippy gate.
+
+Twenty-nine Rust tests cover rectangular interval multiplication, negative, zero-crossing and reverse-quadrant power, clock/slew expansion, filter-delay compensation, expired calibration, serial mismatch, incomplete traceability, different clocks/instants, uncertainty-vs-bound semantics, boundary/condition mismatch, missing slew provenance, calibration range limits, preserved vendor evidence, wrong channel kinds, invalid intervals, traceability/clock-map abstention, raw-trace receipt preservation, signed filter group delay, timing overflow, time-expanded sensor-range violation, unit mismatch rejection, and valid use of a calibrated subrange narrower than the sensor hardware range.
+
+## 9. M0–M5 promotion
+
+- **M0:** inventory measurands, sensor chains, clocks, system boundaries, calibration and uncertainty sources.
+- **M1:** bounded synchronized-port arithmetic and fail-closed provenance semantics.
+- **M2:** nonlinear/correlated uncertainty propagation, Monte Carlo references and timing-skew adversarial replay.
+- **M3:** common-clock instrumented bench with independent torque/encoder/DC-bus/temperature channels, calibration before/after and intermediate checks.
+- **M4:** synchronized versus deliberately skewed dynamic task/impact traces with independently measured timing error.
+- **M5:** calibration drift, transducer overload, remounting and post-service requalification.
+
+## 10. Claim ceiling
+
+M1 computes a bounded instantaneous mechanical-port power interval from externally supplied bounds. It does not calibrate sensors, establish traceability, validate slew or clock bounds, infer electrical regeneration, integrate energy, qualify a dynamometer or establish human-robot safety. Physical evaluation needs a separate metrology/test plan, competent operators, rated guarded fixtures, traceable calibrations and predeclared stop limits.
