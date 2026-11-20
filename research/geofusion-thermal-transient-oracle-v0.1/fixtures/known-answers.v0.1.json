@@ -90,5 +90,57 @@
     ],
     "observed_global_convergence_order": "approximately 1 for smooth forcing and left-endpoint hold",
     "claim_ceiling": "Reference discretization study only; not a measured OMSimulator, FMPy or commercial-master result."
+  },
+  "interval_average_exchange_convergence": {
+    "source_policy": "exact_interval_average_power_from_known_sinusoidal_waveform",
+    "reference": "continuous_sinusoidal_solution",
+    "time_interval_s": [
+      0,
+      120
+    ],
+    "input": {
+      "mean_power_w": 500000,
+      "amplitude_w": 100000,
+      "period_s": 400,
+      "initial_theta_k": 2
+    },
+    "step_count_error_k": [
+      {
+        "steps": 15,
+        "theta_end_abs_error_k": 0.00012831264619173055
+      },
+      {
+        "steps": 30,
+        "theta_end_abs_error_k": 0.00003203961106557074
+      },
+      {
+        "steps": 60,
+        "theta_end_abs_error_k": 0.000008007493556227985
+      },
+      {
+        "steps": 120,
+        "theta_end_abs_error_k": 0.000002001722820832441
+      },
+      {
+        "steps": 240,
+        "theta_end_abs_error_k": 5.004212946246867e-7
+      },
+      {
+        "steps": 480,
+        "theta_end_abs_error_k": 1.251047296868535e-7
+      },
+      {
+        "steps": 960,
+        "theta_end_abs_error_k": 3.127617054232701e-8
+      }
+    ],
+    "source_energy_closure_abs_error_j_max": 0.0001,
+    "observed_global_convergence_order": "approximately 2 for smooth forcing and exact interval-average source power",
+    "15_step_comparison": {
+      "left_endpoint_zero_order_hold_endpoint_error_k": 0.010188510122550287,
+      "interval_average_exchange_endpoint_error_k": 0.00012831264619173055,
+      "endpoint_error_reduction_factor": 79.40378773987838
+    },
+    "causality_and_applicability": "This is an oracle/method reference for a known or forecast waveform, or a producer that can publish integrated interval flux. It requires knowledge of the whole communication interval; it is not a universally causal substitute for a point-sampled FMI input."
   }
 }
