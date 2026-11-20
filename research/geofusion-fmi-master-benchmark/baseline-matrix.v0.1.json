@@ -217,15 +217,15 @@
   "tool_release_snapshot": {
     "as_of": "2026-11-20",
     "omsimulator": {
-      "stable_line": "2.1",
+      "stable_line": "maintenance/v2.1",
       "latest_stable_release": "2.1.3",
-      "development_release": "3.0.0",
-      "development_release_status": "development-only; intended for testing and iterative improvements",
-      "first_production_v3_release_planned": "3.1",
-      "baseline_policy": "Use 2.1.3 as the production-stability comparator; run 3.0.0 only in a separately labelled exploratory lane.",
+      "stable_branch_evidence": "official repository identifies maintenance/v2.1 as stable",
+      "development_branch": "master",
+      "development_branch_status": "active unstable development branch",
+      "baseline_policy": "Use a pinned 2.1.3 build for the stable production-comparator lane. Treat master builds as separately labelled exploratory evidence. No production v3 release plan is asserted.",
       "sources": [
-        "https://github.com/OpenModelica/OMSimulator/releases",
-        "https://github.com/OpenModelica/OMSimulator"
+        "https://github.com/OpenModelica/OMSimulator",
+        "https://openmodelica.org/doc/OpenModelicaUsersGuide/latest/omsimulator.html"
       ]
     },
     "fmpy": {
