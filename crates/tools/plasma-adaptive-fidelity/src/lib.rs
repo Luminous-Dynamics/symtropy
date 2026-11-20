@@ -406,20 +406,19 @@ fn validate_request(request: &AdaptiveFidelityRequest) -> Result<(), PolicyError
 }
 
 fn validate_compatibility(value: &ModelCompatibility) -> Result<(), PolicyError> {
-    for (name, identity) in [
-        ("physics_model_id", value.physics_model_id.as_str()),
-        ("species_scope_id", value.species_scope_id.as_str()),
-        ("moment_family_id", value.moment_family_id.as_str()),
-        ("basis_id", value.basis_id.as_str()),
-        ("basis_normalization_id", value.basis_normalization_id.as_str()),
-        ("geometry_id", value.geometry_id.as_str()),
-        ("boundary_semantics_id", value.boundary_semantics_id.as_str()),
-        ("time_unit_id", value.time_unit_id.as_str()),
+    for identity in [
+        value.physics_model_id.as_str(),
+        value.species_scope_id.as_str(),
+        value.moment_family_id.as_str(),
+        value.basis_id.as_str(),
+        value.basis_normalization_id.as_str(),
+        value.geometry_id.as_str(),
+        value.boundary_semantics_id.as_str(),
+        value.time_unit_id.as_str(),
     ] {
         if identity.trim().is_empty() {
             return Err(PolicyError::InvalidRequestCompatibility);
         }
-        let _ = name;
     }
     if !is_sha256(&value.mesh_sha256) {
         return Err(PolicyError::InvalidCompatibilityDigest("mesh_sha256"));
