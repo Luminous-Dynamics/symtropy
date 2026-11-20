@@ -85,3 +85,59 @@ All external reproduction must pin dataset and evaluator revisions, record right
 ## Claim ceiling
 
 Passing qualifies only synthetic paired-modality semantics and metadata-level split checks. It does not validate acoustic propagation, physical sensors, real-world AV model accuracy, privacy, or superiority over published benchmarks.
+
+
+## Candidate submission and deterministic evaluator (added after the initial fixture tranche)
+
+The initial implementation now has a distinct candidate-submission contract, scorecard contract and offline reference evaluator:
+
+- \`schemas/policy-submission-v1.schema.json\`: candidate prediction, abstention, confidence, modality declaration, exact observation citations and evidence/response ticks.
+- \`schemas/scorecard-v1.schema.json\`: machine-readable unweighted quality, coverage, calibration, evidence-compliance and paired-counterfactual report.
+- \`tools/av-modality-necessity-evaluator/evaluate.py\`: standard-library-only deterministic scoring.
+- \`tools/av-modality-necessity-evaluator/test_evaluate.py\`: adversarial evaluator tests.
+- \`fixtures/agent/reference-submission-v1.json\`: finite synthetic rule-policy example.
+- \`fixtures/expected/reference-scorecard-v1.json\`: expected output for that reference example.
+- \`.github/workflows/av-modality-necessity-scoring.yml\`: schema, unit, adversarial and exact-scorecard checks.
+
+Run it with:
+
+    python3 tools/av-modality-necessity-evaluator/evaluate.py \
+      --workload research/av-modality-necessity-v0/fixtures/agent/workload-v1.json \
+      --truth research/av-modality-necessity-v0/fixtures/evaluator-only/modality-truth-v1.json \
+      --submission research/av-modality-necessity-v0/fixtures/agent/reference-submission-v1.json \
+      --output /tmp/av-modality-scorecard.json
+
+The candidate process receives the public workload and emits a submission. The evaluator consumes the submission and truth separately. **Because this repository is public, the current truth fixture is not a security boundary or a blind test set.** It demonstrates data-plane separation and deterministic scoring only. A blind benchmark must place held-out truth and media in evaluator-controlled storage or a separate restricted service, outside candidate filesystem, credentials, logs and build artifacts.
+
+The evaluator checks episode-scoped citations, whether each cited observation was available by the declared evidence cutoff, query/response ordering, modality-to-citation consistency, transcript unavailability, required modality declarations, missing-audio abstention, common-cause non-independence and conflict/misalignment association claims.
+
+The reference rule policy yields 13/13 correct decisions, 12/13 coverage, 1.0 selective accuracy, answered-only Brier 0.0025, 13/13 evidence-compliant decisions and zero hard violations on the **authored finite known-answer fixture**. This validates evaluator semantics; it is not a learned model score, external benchmark result, baseline or SOTA claim.
+
+The candidate-declared modalities and citations are auditable declarations, not proof of internal model attention or causal use. Actual causal claims require real admitted PCM/RGB evidence, counterfactual modality ablations, frozen content digests, exact model/runtime/hardware revisions, repeated seeds and independent evaluator control. The current fixture contains no PCM or RGB bytes.
+
+## Competitive evaluation ladder
+
+External comparisons must preserve each benchmark's official protocol and use this synthetic scorecard only as a complementary diagnostic:
+
+- **OmniPro:** run official Probe and Online modes separately, stratifying required/helpful/no-audio tasks and reporting non-speech audio separately. Do not treat “audio accepted by the API” as evidence of audio use.
+- **VSAS-Bench:** reproduce the synchronous and asynchronous streaming setup; preserve response-window and temporal association metrics.
+- **StreamArena:** use long-horizon perception, retrospection, proactive interaction and tool-use tasks. Report memory retention and evidence provenance alongside answer scores.
+- **OmniInteract:** add sustained proactive interaction and multi-step follow-through, not just one-shot question answering.
+- **DIVE:** add response-window correctness and useful intervention timing, not just mean response latency.
+
+Matched arms should include video-only, audio-only, transcript-mediated AV, modular late fusion, a strong general AV model, Symthaea native, and Symthaea hybrid. Pin checkpoint/API revision, prompt, decoding, sample rate, channel layout, frame selection, input bytes, context limits, tools, hardware, quantization, seeds and evaluator commit. Run repeated seeds and publish confidence intervals. Keep offline and real-time results separate.
+
+### Target ladder (research targets, not achieved results)
+
+| Level | Qualification objective | Proposed acceptance |
+|---|---|---|
+| M0: evaluator integrity | Reproducible scoring and negative controls | 100% known-answer reproduction; zero truth leakage into candidate input; all adversarial tests pass |
+| M1: modality contribution | Demonstrate that a necessary channel changes the decision | At least +10 percentage points paired accuracy from admitting the necessary modality, on preregistered matched held-out episodes |
+| M2: temporal grounding | Correctly associate evidence only when admissible | Zero forced associations in explicit conflict/misalignment controls; no future/stale evidence use |
+| M3: calibrated uncertainty | Degrade or abstain when support disappears | Report coverage-risk curves and Brier/ECE by stratum; missing necessary evidence never retains unsupported confidence |
+| M4: continuous interaction | Useful response-window timing, sustained monitoring and interruption handling | Match official benchmark metrics first; then improve response-window correctness at matched p95 latency and compute budget |
+| M5: robust deployment | Maintain behavior under domain and sensor shift | Report source-held-out, environment-held-out, sensor dropout/drift and common-cause stress results with confidence intervals |
+
+Do not collapse these levels into one weighted leaderboard score. Hard evidence and temporal violations must remain visible gates. The evaluator currently computes task, coverage, selective accuracy, Brier, paired discrimination, evidence compliance and deadline misses. Submission fields reserve latency, bytes, frames, tokens and energy; their aggregation and measured-run comparison remain future work rather than inferred from simulation ticks.
+
+For external SOTA claims, first reproduce the selected benchmark's official baseline and evaluation environment. A reasonable next claim is a non-inferiority result at materially lower measured resource cost, or a statistically significant improvement on a preregistered failure stratum at matched resources—not a broad claim based on the 13 synthetic episodes.
