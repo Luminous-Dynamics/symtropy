@@ -160,6 +160,8 @@ pub struct AttemptRecord {
     pub proposal_sha256: Option<String>,
     pub validator_receipt_id: Option<String>,
     pub transition_receipt_id: Option<String>,
+    pub started_at_ms: u64,
+    pub ended_at_ms: u64,
     pub latency_ms: u64,
     pub input_tokens: u64,
     pub output_tokens: u64,
@@ -188,6 +190,7 @@ pub enum AttemptOutcome {
     ExecutionFailed,
     HumanOverride,
     Abstained,
+    Failed,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -490,22 +493,42 @@ fn validate_receipt(receipt: &RunReceipt, errors: &mut Vec<String>) {
             continue;
         }
         let epoch = epochs[&attempt.decision_step];
-        if attempt.latency_ms > receipt.budget.decision_limit_ms
+        if attempt.started_at_ms > attempt.ended_at_ms
+            || attempt.ended_at_ms.saturating_sub(attempt.started_at_ms) != attempt.latency_ms
+            || attempt.ended_at_ms > receipt.measured_usage.wall_clock_ms
+            || attempt.latency_ms > receipt.budget.decision_limit_ms
         {
-            errors.push(format!("attempt {} exceeds per-decision latency budget", attempt.attempt_id));
+            errors.push(format!("attempt {} has invalid timing or exceeds per-decision latency budget", attempt.attempt_id));
+        }
+        if index > 0 && attempt.started_at_ms < receipt.attempts[index - 1].ended_at_ms {
+            errors.push(format!("attempt {} overlaps or precedes the prior attempt in the event log", attempt.attempt_id));
+        }
+        if matches!(attempt.outcome, AttemptOutcome::Malformed | AttemptOutcome::TimedOut | AttemptOutcome::Rejected | AttemptOutcome::ExecutionFailed | AttemptOutcome::Failed)
+            && attempt.failure_ref.as_deref().is_none_or(|value| !valid_id(value))
+        {
+            errors.push(format!("failed attempt {} requires a failure reference", attempt.attempt_id));
+        }
+        if (attempt.outcome == AttemptOutcome::HumanOverride) != (attempt.attempt_kind == AttemptKind::HumanOverride) {
+            errors.push(format!("attempt {} has an inconsistent human-override kind/outcome", attempt.attempt_id));
         }
         if attempt.proposal_sha256.as_ref().is_some_and(|digest| !valid_sha(digest, HEX_SHA256)) {
             errors.push(format!("attempt {} has an invalid proposal digest", attempt.attempt_id));
         }
         if attempt.attempt_kind == AttemptKind::ActionSubmission {
-            if !valid_id(attempt.action_id.as_deref().unwrap_or(""))
-                || attempt.proposal_sha256.as_deref() != epoch.proposal_sha256.as_deref()
+            if attempt.proposal_sha256.as_deref() != epoch.proposal_sha256.as_deref()
                 || epoch.proposal_sha256.is_none()
             {
                 errors.push(format!("action attempt {} is not bound to the epoch's exact proposal", attempt.attempt_id));
             }
-        } else if attempt.action_id.is_some() {
-            errors.push(format!("non-action attempt {} cannot declare an action ID", attempt.attempt_id));
+            let needs_action_id = matches!(attempt.outcome, AttemptOutcome::Applied | AttemptOutcome::Rejected | AttemptOutcome::ExecutionFailed);
+            if needs_action_id && !valid_id(attempt.action_id.as_deref().unwrap_or("")) {
+                errors.push(format!("action attempt {} requires an action ID for its outcome", attempt.attempt_id));
+            }
+            if !needs_action_id && attempt.action_id.is_some() {
+                errors.push(format!("action attempt {} must not invent an action ID for a non-action outcome", attempt.attempt_id));
+            }
+        } else if attempt.action_id.is_some() || attempt.validator_receipt_id.is_some() || attempt.transition_receipt_id.is_some() {
+            errors.push(format!("non-action attempt {} cannot declare action/validator/transition IDs", attempt.attempt_id));
         }
         if attempt.cost.as_ref().is_some_and(|value| !valid_cost(value)) {
             errors.push(format!("attempt {} has invalid cost", attempt.attempt_id));
@@ -545,8 +568,12 @@ fn validate_receipt(receipt: &RunReceipt, errors: &mut Vec<String>) {
                 let validator = attempt.validator_receipt_id.as_deref().and_then(|id| validators.get(id));
                 let transition = attempt.transition_receipt_id.as_deref().and_then(|id| transitions.get(id));
                 if attempt.attempt_kind != AttemptKind::ActionSubmission
-                    || validator.is_none_or(|item| item.status != ValidatorStatus::Accepted)
+                    || validator.is_none_or(|item| item.status != ValidatorStatus::Accepted
+                        || item.decision_step != attempt.decision_step
+                        || Some(item.proposal_sha256.as_str()) != attempt.proposal_sha256.as_deref())
                     || transition.is_none_or(|item| item.status != TransitionStatus::Failed
+                        || item.decision_step != attempt.decision_step
+                        || Some(item.proposal_sha256.as_str()) != attempt.proposal_sha256.as_deref()
                         || !item.failed_action_ids.iter().any(|id| id == action_id))
                 {
                     errors.push(format!("failed execution attempt {} lacks accepted validation and failed transition receipts", attempt.attempt_id));
@@ -656,7 +683,7 @@ pub fn qualify(envelope: &ReceiptEnvelope) -> Result<ReceiptReport, Vec<String>>
     let attempts = &receipt.attempts;
     let failed_attempt_count = attempts.iter().filter(|attempt| matches!(
         attempt.outcome,
-        AttemptOutcome::Malformed | AttemptOutcome::TimedOut | AttemptOutcome::Rejected | AttemptOutcome::ExecutionFailed
+        AttemptOutcome::Malformed | AttemptOutcome::TimedOut | AttemptOutcome::Rejected | AttemptOutcome::ExecutionFailed | AttemptOutcome::Failed
     )).count();
     let applied_action_count = attempts.iter().filter(|attempt| attempt.outcome == AttemptOutcome::Applied).count();
     let rejected_action_count = attempts.iter().filter(|attempt| attempt.outcome == AttemptOutcome::Rejected).count();
