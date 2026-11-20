@@ -235,6 +235,30 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
         with self.assertRaises(evaluator.EvaluationError):
             self.score(submission=candidate)
 
+    def test_renderer_qualified_mode_requires_digest_clock_relation(self):
+        candidate = copy.deepcopy(self.submission)
+        candidate["timing_evidence_mode"] = "renderer_qualified"
+        candidate["clock_relation_ref"] = "unqualified-clock-map"
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(submission=candidate)
+
+    def test_output_stop_request_ref_cannot_be_reused(self):
+        candidate = copy.deepcopy(self.submission)
+        first = candidate["responses"][0]
+        first["playback_end_kind"] = "output_stopped"
+        first["output_stop_request_event_ref"] = "stop-req-shared"
+        second = candidate["responses"][1]
+        second["playback_end_kind"] = "output_stopped"
+        second["output_stop_request_event_ref"] = "stop-req-shared"
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(submission=candidate)
+
+    def test_output_end_event_ref_must_not_equal_start_event_ref(self):
+        candidate = copy.deepcopy(self.submission)
+        candidate["responses"][0]["playback_end_event_ref"] = candidate["responses"][0]["playback_start_event_ref"]
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(submission=candidate)
+
     def test_response_interval_must_have_nonnegative_duration(self):
         candidate = copy.deepcopy(self.submission)
         candidate["responses"][0]["response_end_tick"] = candidate["responses"][0]["response_start_tick"] - 1
