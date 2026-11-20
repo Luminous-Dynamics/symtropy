@@ -5,9 +5,9 @@
   "synthetic_only": true,
   "claim_ceiling": "Synthetic paired sensor/laboratory measurements for software verification only. Not a field observation, permit result, ecological threshold, site clearance or environmental compliance finding.",
   "standards_context": {
-    "uncertainty_method": "JCGM GUM first-order linearized uncertainty propagation",
+    "uncertainty_method": "JCGM GUM first-order linearized uncertainty propagation cross-checked against JCGM 101 deterministic distribution propagation",
     "uncertainty_method_reference": "https://www.bipm.org/en/committees/jc/jcgm/publications",
-    "nonlinear_model_policy": "Use a validated nonlinear measurement model and distribution propagation (e.g. JCGM 101 Monte Carlo) where first-order linearization is not adequate; this v0.1 fixture only exercises an explicitly declared locally-linear model.",
+    "nonlinear_model_policy": "Apply JCGM 100:2008/Amd.1:2026 nonlinearity guidance. The fixture uses a deterministic Monte Carlo cross-check; real measurements require justified input distributions, covariance and model adequacy assessment.",
     "water_sampling_reference": "ISO 5667-10:2026, representative sampling of urban/industrial wastewater including cooling water",
     "water_sampling_url": "https://www.iso.org/standard/86841.html",
     "observation_interoperability": "OGC SensorThings API 2.0 (published 2026-11-04)",
@@ -1107,5 +1107,21 @@
       "outfall_window_end_utc": "2026-10-12T10:20:00Z",
       "transport_lag_basis": "synthetic_tracer_characterization_assumption_not_measured"
     }
-  ]
+  ],
+  "uncertainty_simulation": {
+    "framework": "JCGM 101:2008 distribution propagation with JCGM 100:2008/Amd.1:2026 nonlinearity guidance",
+    "framework_references": [
+      "https://www.bipm.org/en/committees/jc/jcgm/publications",
+      "https://doi.org/10.59161/JCGM101-2008",
+      "https://doi.org/10.59161/PPDI3267"
+    ],
+    "algorithm": "deterministic_xorshift32_box_muller_v0_1",
+    "seed": 20261120,
+    "draws_per_interval": 50000,
+    "lower_95_percentile": 0.025,
+    "upper_95_percentile": 0.975,
+    "maximum_relative_standard_uncertainty_difference_from_first_order": 0.05,
+    "distribution_assumption": "Independent normal instrument/property inputs plus one common normal hydraulic-residence-time perturbation shared by output-side flow, temperature and concentration. Assumptions are synthetic test conditions, not site-measured distributions.",
+    "acceptance_rule": "If Monte Carlo and first-order standard uncertainties differ by more than the declared tolerance, or any simulated physical input becomes nonphysical, return no qualified measurement receipt and require model review. This is an engineering cross-check, not a complete JCGM conformity assessment."
+  }
 }
