@@ -453,23 +453,9 @@ def _flatten_graph(value, prefix=""):
     else:
         yield prefix, value
 
-def compare_ssd_bytes(source_ssd: bytes, candidate_ssd: bytes) -> dict:
-    """Compare semantic graphs, ignoring whitespace, attribute order and layout."""
-    source = canonicalize_ssd(source_ssd)
-    try:
-        candidate = canonicalize_ssd(candidate_ssd)
-    except QualificationError as error:
-        return {
-            "disposition": "REJECT",
-            "qualified": False,
-            "source_graph_sha256": source["graph_sha256"],
-            "candidate_graph_sha256": None,
-            "reason": str(error),
-            "differences": [],
-        }
-
-    source_leaves = dict(_flatten_graph(source["graph"]))
-    candidate_leaves = dict(_flatten_graph(candidate["graph"]))
+def _compare_canonical_graphs(source_graph: dict, candidate_graph: dict) -> dict:
+    source_leaves = dict(_flatten_graph(source_graph))
+    candidate_leaves = dict(_flatten_graph(candidate_graph))
     paths = sorted(set(source_leaves) | set(candidate_leaves))
     differences = []
     for path in paths:
@@ -485,11 +471,27 @@ def compare_ssd_bytes(source_ssd: bytes, candidate_ssd: bytes) -> dict:
     return {
         "disposition": "PASS" if equivalent else "DIFFERENT",
         "qualified": equivalent,
-        "source_graph_sha256": source["graph_sha256"],
-        "candidate_graph_sha256": candidate["graph_sha256"],
+        "source_graph_sha256": sha256(_json_bytes(source_graph)),
+        "candidate_graph_sha256": sha256(_json_bytes(candidate_graph)),
         "reason": None if equivalent else "canonical SSP system graphs differ",
         "differences": differences,
     }
+
+def compare_ssd_bytes(source_ssd: bytes, candidate_ssd: bytes) -> dict:
+    """Compare semantic graphs, ignoring whitespace, attribute order and layout."""
+    source = canonicalize_ssd(source_ssd)
+    try:
+        candidate = canonicalize_ssd(candidate_ssd)
+    except QualificationError as error:
+        return {
+            "disposition": "REJECT",
+            "qualified": False,
+            "source_graph_sha256": source["graph_sha256"],
+            "candidate_graph_sha256": None,
+            "reason": str(error),
+            "differences": [],
+        }
+    return _compare_canonical_graphs(source["graph"], candidate["graph"])
 
 def inspect_ssp_for_roundtrip(package_bytes: bytes, label: str) -> dict:
     """Inspect SSP structure and FMU member bytes without trusting its manifest."""
@@ -549,10 +551,7 @@ def compare_ssp_package_bytes(source_package: bytes, candidate_package: bytes) -
             "differences": [],
         }
 
-    graph_diff = compare_ssd_bytes(
-        _graph_to_ssd_bytes(source["graph"]),
-        _graph_to_ssd_bytes(candidate["graph"]),
-    )
+    graph_diff = _compare_canonical_graphs(source["graph"], candidate["graph"])
     component_results = {}
     package_content_equal = True
     for component_name in sorted(source["components"]):
@@ -609,54 +608,6 @@ def compare_ssp_package_bytes(source_package: bytes, candidate_package: bytes) -
         "components": component_results,
         "differences": differences,
     }
-
-def _graph_to_ssd_bytes(graph: dict) -> bytes:
-    """Rebuild the current GeoFusion profile SSD from a canonical graph."""
-    if graph == _canonical_graph_from_semantics(validate_ssd(make_ssd())):
-        return make_ssd()
-    # Create a semantic mutation for comparison diagnostics. It is intentionally
-    # not XSD-validated here: compare_ssd_bytes reports differences at graph level.
-    q = lambda ns, local: f"{{{ns}}}{local}"
-    root = etree.Element(
-        q(SSD_NS, "SystemStructureDescription"),
-        nsmap={"ssd": SSD_NS, "ssc": SSC_NS},
-        version=graph.get("ssd_format_version", SSD_VERSION),
-        name="GeoFusion-RoundTrip-Candidate",
-    )
-    system = etree.SubElement(root, q(SSD_NS, "System"), name=graph.get("system_name", "GeoFusion"))
-    elements = etree.SubElement(system, q(SSD_NS, "Elements"))
-    for component_name, component in sorted(graph["components"].items()):
-        element = etree.SubElement(
-            elements, q(SSD_NS, "Component"), name=component_name,
-            source=component["source_uri"], implementation="CoSimulation",
-            type="application/x-fmu-sharedlibrary",
-        )
-        connectors = etree.SubElement(element, q(SSD_NS, "Connectors"))
-        for connector_name, connector in sorted(component["connectors"].items()):
-            node = etree.SubElement(
-                connectors, q(SSD_NS, "Connector"),
-                name=connector_name, kind=connector["kind"],
-            )
-            etree.SubElement(node, q(SSC_NS, connector["type"]), unit=connector["unit"])
-    connections = etree.SubElement(system, q(SSD_NS, "Connections"))
-    for connection in graph["connections"]:
-        etree.SubElement(
-            connections, q(SSD_NS, "Connection"),
-            startElement=connection["start_element"],
-            startConnector=connection["start_connector"],
-            endElement=connection["end_element"],
-            endConnector=connection["end_connector"],
-        )
-    units = etree.SubElement(root, q(SSD_NS, "Units"))
-    for unit_name, unit_values in sorted(graph["unit_definitions"].items()):
-        unit = etree.SubElement(units, q(SSC_NS, "Unit"), name=unit_name)
-        attrs = {
-            key: str(value) for key, value in unit_values.items()
-            if key not in ("factor", "offset") or value != (1.0 if key == "factor" else 0.0)
-        }
-        etree.SubElement(unit, q(SSC_NS, "BaseUnit"), **attrs)
-    etree.SubElement(root, q(SSD_NS, "DefaultExperiment"), startTime="0", stopTime="2")
-    return etree.tostring(root, xml_declaration=True, encoding="UTF-8", pretty_print=True)
 
 def compare_ssp_packages(source_path: Path, candidate_path: Path) -> dict:
     source_path = Path(source_path)
@@ -867,13 +818,30 @@ def main(argv=None) -> int:
     build.add_argument("--output", type=Path, required=True)
     verify = sub.add_parser("verify", help="verify an existing SSP package")
     verify.add_argument("package", type=Path)
+    compare_ssd = sub.add_parser("compare-ssd", help="compare two SSP SystemStructure.ssd files")
+    compare_ssd.add_argument("source", type=Path)
+    compare_ssd.add_argument("candidate", type=Path)
+    compare_ssp = sub.add_parser("compare-ssp", help="compare two SSP packages for round-trip preservation")
+    compare_ssp.add_argument("source", type=Path)
+    compare_ssp.add_argument("candidate", type=Path)
     args = parser.parse_args(argv)
 
     try:
         if args.command == "build":
             receipt = build_package(args.geothermal_fmu, args.heat_exchanger_fmu, args.output)
-        else:
+        elif args.command == "verify":
             receipt = verify_package(args.package)
+        elif args.command == "compare-ssd":
+            for input_path in (args.source, args.candidate):
+                if not input_path.is_file() or input_path.is_symlink():
+                    raise QualificationError(f"SSD comparison input must be a regular non-symlink file: {input_path}")
+            result = compare_ssd_bytes(args.source.read_bytes(), args.candidate.read_bytes())
+            print(json.dumps(result, indent=2, sort_keys=True))
+            return 0 if result["qualified"] else 3
+        else:
+            result = compare_ssp_packages(args.source, args.candidate)
+            print(json.dumps(result, indent=2, sort_keys=True))
+            return 0 if result["qualified"] else 3
         print(json.dumps(receipt, indent=2, sort_keys=True))
         return 0
     except (QualificationError, OSError, json.JSONDecodeError) as error:
