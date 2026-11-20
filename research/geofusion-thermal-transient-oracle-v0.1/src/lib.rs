@@ -19,6 +19,47 @@ pub enum ModelError {
     NumericalOverflow,
 }
 
+/// Inputs to a multi-signal adaptive communication-step proposal.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AdaptiveStepInput {
+    pub current_time_s: f64,
+    pub attempted_step_s: f64,
+    pub minimum_step_s: f64,
+    pub maximum_step_s: f64,
+    pub trajectory_error: f64,
+    pub trajectory_tolerance: f64,
+    pub interface_residual: f64,
+    pub interface_tolerance: f64,
+    pub energy_residual: f64,
+    pub energy_tolerance: f64,
+    /// Formal order used by the local error controller (p >= 1).
+    pub method_order: u32,
+    /// Earliest known event/clock time. None means no currently known fence.
+    pub next_event_time_s: Option<f64>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AdaptiveStepAction {
+    Accept,
+    RejectAndRetry,
+    ProcessEventNow,
+    FailClosedAtMinimumStep,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AdaptiveStepDecision {
+    pub action: AdaptiveStepAction,
+    pub attempted_step_s: f64,
+    /// Proposed next duration. Zero only when an event is due at current time.
+    pub next_step_s: f64,
+    /// max(|trajectory_error|/tol, |interface_residual|/tol, |energy_residual|/tol).
+    pub normalized_error: f64,
+    pub event_fence_applied: bool,
+    pub event_time_s: Option<f64>,
+    /// An exact known event may require a step smaller than the configured minimum.
+    pub event_step_below_minimum: bool,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ThermalModel {
     pub heat_capacity_j_per_k: f64,
@@ -48,6 +89,124 @@ pub struct CausalPredictorResult {
     pub limiter_activations: usize,
     /// Largest absolute difference between the unbounded and exchanged predictor (W).
     pub max_unbounded_overshoot_w: f64,
+}
+
+/// Propose a communication interval from numerical, interface and physical error.
+////
+//// The controller uses the maximum normalized error across three independent
+//// gates. It does not trade an energy violation against a smaller trajectory
+//// error. A rejected attempt shrinks the next interval; an accepted attempt
+//// may grow it by at most 2x. The final proposal is fenced at the earliest
+//// known event/clock tick. If the event is due now, the caller must process
+//// that event rather than take a zero-length doStep.
+////
+//// This function is a deterministic policy primitive, not an FMI master:
+//// it does not execute an FMU, manufacture an error estimate, or infer an
+//// unknown future event.
+pub fn propose_adaptive_step(
+    input: AdaptiveStepInput,
+) -> Result<AdaptiveStepDecision, ModelError> {
+    let finite_values = [
+        input.current_time_s,
+        input.attempted_step_s,
+        input.minimum_step_s,
+        input.maximum_step_s,
+        input.trajectory_error,
+        input.trajectory_tolerance,
+        input.interface_residual,
+        input.interface_tolerance,
+        input.energy_residual,
+        input.energy_tolerance,
+    ];
+    if !finite_values.iter().all(|value| value.is_finite()) {
+        return Err(ModelError::NonFiniteParameter);
+    }
+    if input.current_time_s < 0.0
+        || input.attempted_step_s <= 0.0
+        || input.minimum_step_s <= 0.0
+        || input.maximum_step_s < input.minimum_step_s
+        || input.attempted_step_s < input.minimum_step_s
+        || input.attempted_step_s > input.maximum_step_s
+        || input.trajectory_tolerance <= 0.0
+        || input.interface_tolerance <= 0.0
+        || input.energy_tolerance <= 0.0
+        || input.method_order == 0
+    {
+        return Err(ModelError::NonPositiveInterval);
+    }
+
+    let normalized_error = (input.trajectory_error.abs() / input.trajectory_tolerance)
+        .max(input.interface_residual.abs() / input.interface_tolerance)
+        .max(input.energy_residual.abs() / input.energy_tolerance);
+    if !normalized_error.is_finite() {
+        return Err(ModelError::NumericalOverflow);
+    }
+
+    if let Some(event_time) = input.next_event_time_s {
+        if !event_time.is_finite() {
+            return Err(ModelError::NonFiniteParameter);
+        }
+        if event_time < input.current_time_s {
+            return Err(ModelError::NegativeStartTime);
+        }
+        if event_time == input.current_time_s {
+            return Ok(AdaptiveStepDecision {
+                action: AdaptiveStepAction::ProcessEventNow,
+                attempted_step_s: input.attempted_step_s,
+                next_step_s: 0.0,
+                normalized_error,
+                event_fence_applied: true,
+                event_time_s: Some(event_time),
+                event_step_below_minimum: false,
+            });
+        }
+    }
+
+    let (action, factor) = if normalized_error > 1.0 {
+        let factor = (0.9 * (1.0 / normalized_error).powf(1.0 / (input.method_order as f64 + 1.0)))
+            .clamp(0.1, 0.9);
+        (AdaptiveStepAction::RejectAndRetry, factor)
+    } else {
+        let factor = if normalized_error == 0.0 {
+            2.0
+        } else {
+            (0.9 * (1.0 / normalized_error).powf(1.0 / (input.method_order as f64 + 1.0)))
+                .clamp(1.0, 2.0)
+        };
+        (AdaptiveStepAction::Accept, factor)
+    };
+
+    let candidate = (input.attempted_step_s * factor).min(input.maximum_step_s);
+    let mut next_step_s = candidate;
+    let mut event_fence_applied = false;
+    let mut event_time_s = None;
+    if let Some(event_time) = input.next_event_time_s {
+        let time_to_event = event_time - input.current_time_s;
+        if time_to_event <= next_step_s {
+            next_step_s = time_to_event;
+            event_fence_applied = true;
+            event_time_s = Some(event_time);
+        }
+    }
+
+    let event_step_below_minimum = event_fence_applied && next_step_s < input.minimum_step_s;
+    let final_action = if next_step_s < input.minimum_step_s
+        && action == AdaptiveStepAction::RejectAndRetry
+    {
+        AdaptiveStepAction::FailClosedAtMinimumStep
+    } else {
+        action
+    };
+
+    Ok(AdaptiveStepDecision {
+        action: final_action,
+        attempted_step_s: input.attempted_step_s,
+        next_step_s,
+        normalized_error,
+        event_fence_applied,
+        event_time_s,
+        event_step_below_minimum,
+    })
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -673,6 +832,107 @@ mod tests {
 
     fn model() -> ThermalModel {
         ThermalModel::new(10_000_000.0, 100_000.0, 0.4).unwrap()
+    }
+
+    fn adaptive_input() -> AdaptiveStepInput {
+        AdaptiveStepInput {
+            current_time_s: 1.0,
+            attempted_step_s: 10.0,
+            minimum_step_s: 0.5,
+            maximum_step_s: 20.0,
+            trajectory_error: 0.01,
+            trajectory_tolerance: 0.1,
+            interface_residual: 0.002,
+            interface_tolerance: 0.01,
+            energy_residual: 0.1,
+            energy_tolerance: 1.0,
+            method_order: 2,
+            next_event_time_s: None,
+        }
+    }
+
+    #[test]
+    fn adaptive_controller_uses_the_worst_of_three_independent_error_gates() {
+        let mut input = adaptive_input();
+        input.trajectory_error = 0.001;
+        input.interface_residual = 0.002;
+        input.energy_residual = 2.0;
+        let decision = propose_adaptive_step(input).unwrap();
+
+        assert_eq!(decision.action, AdaptiveStepAction::RejectAndRetry);
+        close(decision.normalized_error, 2.0, 1.0e-15);
+        assert!(decision.next_step_s < input.attempted_step_s);
+        assert!(!decision.event_fence_applied);
+    }
+
+    #[test]
+    fn adaptive_controller_fences_an_accepted_step_at_the_next_event() {
+        let mut input = adaptive_input();
+        input.trajectory_error = 0.005;
+        input.interface_residual = 0.001;
+        input.energy_residual = 0.1;
+        input.next_event_time_s = Some(17.0);
+        let decision = propose_adaptive_step(input).unwrap();
+
+        assert_eq!(decision.action, AdaptiveStepAction::Accept);
+        assert!(decision.event_fence_applied);
+        assert_eq!(decision.event_time_s, Some(17.0));
+        close(decision.next_step_s, 16.0, 1.0e-15);
+    }
+
+    #[test]
+    fn adaptive_controller_processes_an_event_due_at_current_time_without_zero_dostep() {
+        let mut input = adaptive_input();
+        input.next_event_time_s = Some(input.current_time_s);
+        let decision = propose_adaptive_step(input).unwrap();
+
+        assert_eq!(decision.action, AdaptiveStepAction::ProcessEventNow);
+        assert_eq!(decision.next_step_s, 0.0);
+        assert!(decision.event_fence_applied);
+    }
+
+    #[test]
+    fn adaptive_controller_allows_exact_event_fence_below_minimum_step() {
+        let mut input = adaptive_input();
+        input.next_event_time_s = Some(input.current_time_s + 0.2);
+        input.trajectory_error = 0.01;
+        input.interface_residual = 0.001;
+        input.energy_residual = 0.1;
+        let decision = propose_adaptive_step(input).unwrap();
+
+        assert_eq!(decision.action, AdaptiveStepAction::Accept);
+        assert!(decision.event_fence_applied);
+        assert!(decision.event_step_below_minimum);
+        close(decision.next_step_s, 0.2, 1.0e-15);
+    }
+
+    #[test]
+    fn adaptive_controller_fails_closed_when_error_requires_a_subminimum_retry() {
+        let mut input = adaptive_input();
+        input.trajectory_error = 100.0;
+        input.trajectory_tolerance = 0.1;
+        input.next_event_time_s = None;
+        let decision = propose_adaptive_step(input).unwrap();
+
+        assert_eq!(decision.action, AdaptiveStepAction::FailClosedAtMinimumStep);
+        assert!(decision.next_step_s < input.minimum_step_s);
+    }
+
+    #[test]
+    fn adaptive_controller_rejects_past_events_and_invalid_tolerances() {
+        let mut input = adaptive_input();
+        input.next_event_time_s = Some(0.5);
+        assert_eq!(
+            propose_adaptive_step(input),
+            Err(ModelError::NegativeStartTime)
+        );
+
+        input = adaptive_input();
+        input.energy_tolerance = 0.0;
+        assert_eq!(
+            propose_adaptive_step(input),
+            Err(ModelError::NonPositiveInterval)
+        );
     }
 
     #[test]
