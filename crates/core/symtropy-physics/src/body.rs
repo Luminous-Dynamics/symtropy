@@ -291,14 +291,23 @@ impl<const D: usize> RigidBody<D> {
     pub fn dynamic_sphere(handle: BodyHandle, position: Point<D>, radius: f64, mass: f64) -> Self {
         use symtropy_math::Sphere;
         let inertia = 2.0 * mass * radius * radius / (D as f64 + 2.0);
-        Self::new(
+        let mut body = Self::new(
             handle,
             BodyType::Dynamic,
             Transform::from_translation(position),
             Box::new(Sphere::new(Point::origin(), radius)),
             mass,
             SVector::from_element(inertia),
-        )
+        );
+
+        // A uniform D-ball is exactly isotropic in every rotational plane.
+        // Use the validated full bivector operator when the supplied physical
+        // parameters are finite and positive; retain the compatibility
+        // constructor behaviour for invalid legacy inputs.
+        if let Ok(operator) = RotationalInertiaOperator::<D>::isotropic(inertia) {
+            body.set_rotational_inertia_operator(operator);
+        }
+        body
     }
 
     pub fn is_dynamic(&self) -> bool {
@@ -2003,6 +2012,24 @@ mod nd_ball_mass_property_tests {
                 "solid D-ball plane inertia mismatch: actual={actual}, expected={expected}"
             );
         }
+
+        for body in [&disk, &sphere, &four_ball] {
+            assert_eq!(
+                body.rotational_inertia_model(),
+                RotationalInertiaModel::ValidatedSpatialBivectorOperator
+            );
+            assert!(body.rotational_inertia_operator.is_some());
+            assert!(!body.rotational_inertia_approximate);
+        }
+
+        let mut disk_impulse = Bivector::<2>::unit_plane(0, 1);
+        let disk_response = disk.apply_inverse_angular_inertia(&disk_impulse);
+        assert!((disk_response.get(0, 1) - 1.0 / 6.0).abs() < 1.0e-12);
+
+        let four_ball_impulse = Bivector::<4>::unit_plane(1, 3);
+        let four_ball_response = four_ball.apply_inverse_angular_inertia(&four_ball_impulse);
+        assert!((four_ball_response.get(1, 3) - 0.25).abs() < 1.0e-12);
+
     }
 
     #[test]
