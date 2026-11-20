@@ -129,7 +129,7 @@ The independent cross-check found these eligible candidate counts:
 
 Adversarial controls rejected: missing local fallback, a synthetic PCC-cap violation, source-rights and data-egress denial, failed quality, unapproved placement strata, unavailable candidate and a deadline miss.
 
-**Verification limitation:** the independent JSON/logic cross-check was run, but the Rust crate has not been compiled or tested in this environment because `rustc` and `cargo` are unavailable. The crate includes focused unit tests; no CI result or executable Rust pass is claimed.
+**Verification limitation:** the independent JSON/logic cross-check was run, but the Rust crate has not been compiled or tested in this environment because `rustc` and `cargo` are unavailable. Four focused Rust unit tests cover integer/fractional energy closure, rights/egress/PCC/fallback hard gates and Pareto dominance. No CI result or executable Rust pass is claimed. Intended local commands from the repository root are `cargo test --manifest-path tools/ocean-compute-placement-verifier/Cargo.toml` and `cargo run --manifest-path tools/ocean-compute-placement-verifier/Cargo.toml`.
 
 ## 11. Current external metrology and flexibility references
 
