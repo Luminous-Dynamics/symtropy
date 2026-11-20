@@ -1,0 +1,311 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EV carrier interface-control contract v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "programme_id",
+    "evaluated_at_utc",
+    "claim_ceiling",
+    "vehicle_configuration",
+    "module_configuration",
+    "ports",
+    "interface_pairs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "programme_id": {
+      "const": "EV-CARRIER-ICD-001"
+    },
+    "evaluated_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "vehicle_configuration": {
+      "$ref": "#/$defs/configuration"
+    },
+    "module_configuration": {
+      "$ref": "#/$defs/configuration"
+    },
+    "ports": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/port"
+      }
+    },
+    "interface_pairs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/interfacePair"
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "configuration_id",
+        "revision",
+        "configuration_digest"
+      ],
+      "properties": {
+        "configuration_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "configuration_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "evidenceClass": {
+      "enum": [
+        "independently_qualified",
+        "measured_unreviewed",
+        "synthetic",
+        "unknown",
+        "stale",
+        "conflicted",
+        "revoked"
+      ]
+    },
+    "portEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "source_reference",
+        "scoped_configuration_digest",
+        "profile_digest",
+        "report_digest",
+        "valid_until"
+      ],
+      "properties": {
+        "classification": {
+          "$ref": "#/$defs/evidenceClass"
+        },
+        "source_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "scoped_configuration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "report_digest": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "valid_until": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "profile_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "port": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "port_id",
+        "side",
+        "family",
+        "revision",
+        "mating_profile_id",
+        "controlled_profile_reference",
+        "profile_digest",
+        "evidence"
+      ],
+      "properties": {
+        "port_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "side": {
+          "enum": [
+            "vehicle",
+            "module"
+          ]
+        },
+        "family": {
+          "enum": [
+            "mechanical_mount",
+            "high_voltage_dc",
+            "low_voltage_power",
+            "thermal_fluid",
+            "data_control",
+            "cargo_retention",
+            "environmental",
+            "service_access"
+          ]
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "mating_profile_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "controlled_profile_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "profile_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence": {
+          "$ref": "#/$defs/portEvidence"
+        }
+      }
+    },
+    "pairEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "source_reference",
+        "vehicle_configuration_digest",
+        "module_configuration_digest",
+        "vehicle_profile_digest",
+        "module_profile_digest",
+        "compatibility_profile_digest",
+        "report_digest",
+        "valid_until"
+      ],
+      "properties": {
+        "classification": {
+          "$ref": "#/$defs/evidenceClass"
+        },
+        "source_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "vehicle_configuration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "module_configuration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "report_digest": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "valid_until": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "vehicle_profile_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "module_profile_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "compatibility_profile_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "interfacePair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pair_id",
+        "vehicle_port_id",
+        "module_port_id",
+        "compatibility_profile_id",
+        "compatibility_profile_reference",
+        "compatibility_profile_digest",
+        "qualification_evidence"
+      ],
+      "properties": {
+        "pair_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "vehicle_port_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "module_port_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "compatibility_profile_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "compatibility_profile_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "compatibility_profile_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "qualification_evidence": {
+          "$ref": "#/$defs/pairEvidence"
+        }
+      }
+    }
+  }
+}
