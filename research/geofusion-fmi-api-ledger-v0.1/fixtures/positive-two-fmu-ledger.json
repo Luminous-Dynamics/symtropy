@@ -199,7 +199,7 @@
         },
         {
           "value_reference": 32,
-          "name": "thermalLoss",
+          "name": "heatLoss",
           "fmi_type": "Float64",
           "causality": "output",
           "variability": "continuous",
