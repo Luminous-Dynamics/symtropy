@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-response-window-submission-v1.schema.json",
+  "title": "AV Response Window Candidate Submission v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "policy_id",
+    "run_id",
+    "model_revision",
+    "runtime_revision",
+    "responses"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "av-response-window-v0"
+    },
+    "policy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_revision": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "runtime_revision": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "responses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "response_id",
+          "episode_id",
+          "assigned_opportunity_id",
+          "response_start_tick",
+          "content"
+        ],
+        "properties": {
+          "response_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "episode_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "assigned_opportunity_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "response_start_tick": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_refs": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}
