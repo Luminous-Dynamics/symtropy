@@ -503,6 +503,27 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn entropy_residual_uses_full_vector_component_layout() {
+        let mut req = request();
+        req.face.compatibility.component_count = 2;
+        req.face.compatibility.component_layout_id = "two-component-test-flux-v1".into();
+        req.context.entropy_variable_jump = vec![1.0, 2.0];
+        req.context.entropy_potential_jump = 1.0;
+        req.face.candidates[0].compatibility = req.face.compatibility.clone();
+        req.face.candidates[0].flux = vec![0.5, 0.25];
+        req.face.candidates[1].compatibility = req.face.compatibility.clone();
+        req.face.candidates[1].flux = vec![0.25, 0.25];
+
+        let report = audit_entropy_stable_blend(&req).expect("two-component entropy audit");
+        assert_eq!(report.candidate_residuals.len(), 2);
+        assert_eq!(report.candidate_residuals[0].residual, 0.0);
+        assert!((report.candidate_residuals[1].residual + 0.25).abs() < 1.0e-12);
+        assert!((report.blended_flux_residual + 0.1875).abs() < 1.0e-12);
+        assert!(report.convexity_identity_residual < 1.0e-12);
+    }
+
     #[test]
     fn non_finite_entropy_context_is_rejected() {
         let mut req = request();
