@@ -539,6 +539,19 @@ mod tests {
     }
 
     #[test]
+    fn deserialized_envelope_rechecks_producer_receipt_commitment() {
+        let rendered = rendered_at(10_000);
+        let mut envelope = adapt_camera_frame_v1(&rendered, &context()).unwrap();
+        envelope.producer_receipt.camera_id.push_str("-tampered");
+        assert_eq!(
+            validate_camera_frame_envelope_v1(&envelope),
+            Err(AdapterError::ProducerReceiptRejected(
+                RenderError::ParentReceiptCommitmentMismatch
+            ))
+        );
+    }
+
+    #[test]
     fn adapted_frame_rejects_mutated_sidecar_or_transport_projection() {
         let rendered = rendered_at(10_000);
         let mut envelope = adapt_camera_frame_v1(&rendered, &context()).unwrap();
