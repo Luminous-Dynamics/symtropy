@@ -102,6 +102,7 @@ struct SourceRecord {
     decoder_sha256: String,
     active_boot_epoch_id: String,
     active_boot_epoch_ordinal: u64,
+    active_boot_epoch_sequence_floor: u64,
     failure_domains: Vec<String>,
 }
 
@@ -195,6 +196,7 @@ fn build_source_registry(
             decoder_sha256: string_at(item, "decoder_sha256").unwrap_or("").to_owned(),
             active_boot_epoch_id: string_at(item, "active_boot_epoch_id").unwrap_or("").to_owned(),
             active_boot_epoch_ordinal: u64_at(item, "active_boot_epoch_ordinal").unwrap_or(0),
+            active_boot_epoch_sequence_floor: u64_at(item, "active_boot_epoch_sequence_floor").unwrap_or(0),
             failure_domains,
         };
         sources.insert(source_id, record);
@@ -413,16 +415,19 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                 errors.push(format!("sample '{sample_id}' boot epoch changed without increasing ordinal and transition receipt"));
                 continue;
             }
-        } else if cursor.boot_epoch_id != source.active_boot_epoch_id
-            || cursor.boot_epoch_ordinal != source.active_boot_epoch_ordinal
+        } else if cursor.boot_epoch_id == source.active_boot_epoch_id
+            && cursor.boot_epoch_ordinal == source.active_boot_epoch_ordinal
         {
-            if cursor.boot_epoch_ordinal <= source.active_boot_epoch_ordinal
-                || string_at(observation,"boot_epoch_transition_ref").is_none_or(str::is_empty)
-                || !valid_digest(string_at(observation,"boot_epoch_transition_sha256"))
-            {
-                errors.push(format!("sample '{sample_id}' is outside the registered boot epoch without a transition receipt"));
+            if cursor.source_sequence <= source.active_boot_epoch_sequence_floor {
+                errors.push(format!("sample '{sample_id}' sequence is not above the persisted cross-batch replay watermark"));
                 continue;
             }
+        } else if cursor.boot_epoch_ordinal <= source.active_boot_epoch_ordinal
+            || string_at(observation,"boot_epoch_transition_ref").is_none_or(str::is_empty)
+            || !valid_digest(string_at(observation,"boot_epoch_transition_sha256"))
+        {
+            errors.push(format!("sample '{sample_id}' is outside the registered boot epoch without a higher ordinal and transition receipt"));
+            continue;
         }
         cursors.insert(source_id.clone(),cursor);
 
@@ -578,6 +583,15 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         }));
     }
 
+    let replay_checkpoints = cursors.iter().map(|(source_id,cursor)| json!({
+        "source_id":source_id,
+        "boot_epoch_id":cursor.boot_epoch_id,
+        "boot_epoch_ordinal":cursor.boot_epoch_ordinal,
+        "last_accepted_sequence":cursor.source_sequence,
+        "last_observed_at":cursor.observed_at.to_rfc3339(),
+        "last_received_at":cursor.received_at.to_rfc3339(),
+        "persistence_required_before_next_batch":true
+    })).collect::<Vec<_>>();
     let fatal = !errors.is_empty();
     let disposition = if fatal {
         "INVALID"
@@ -601,6 +615,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         "qualified_signal_count":qualified_signal_count,
         "signals":signal_reports,
         "observation_dispositions":observation_issues,
+        "source_replay_checkpoints":replay_checkpoints,
         "findings":{"errors":errors},
         "claim_ceiling":"evidence_qualification_and_freshness_audit_only_not_sensor_authenticity_not_maritime_standard_conformance_not_navigation_authority",
         "note":"A digest binds bytes but does not authenticate a device or publisher. Identity status, calibration authority and decoder qualification must be independently provisioned. Conflicting or insufficiently independent observations are not averaged or used as mission state."
@@ -692,6 +707,27 @@ mod tests {
         value["decision_cutoff"]=json!("2026-11-20T06:00:00Z");
         reseal(&mut value);
         assert_eq!(audit(&value)["disposition"],"DEGRADED/ABSTAIN");
+    }
+
+    #[test]
+    fn first_observation_must_advance_persisted_cross_batch_watermark() {
+        let mut value=fixture();
+        value["observations"][0]["source_sequence"]=json!(1000);
+        reseal(&mut value);
+        assert_eq!(audit(&value)["disposition"],"INVALID");
+    }
+
+    #[test]
+    fn accepted_batch_emits_persistable_source_replay_checkpoints() {
+        let report=audit(&fixture());
+        assert_eq!(report["disposition"],"SYNTHETIC_ONLY");
+        let checkpoints=report["source_replay_checkpoints"].as_array().unwrap();
+        assert_eq!(checkpoints.len(),3);
+        assert!(checkpoints.iter().any(|checkpoint|
+            checkpoint["source_id"]=="tank-level-a" &&
+            checkpoint["last_accepted_sequence"]==1001 &&
+            checkpoint["persistence_required_before_next_batch"]==true
+        ));
     }
 
     #[test]
