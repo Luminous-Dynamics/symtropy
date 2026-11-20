@@ -24,7 +24,7 @@ For a selected subset S:
 
     J(S) = sum_(i in S) J_i.
 
-The resulting 2x2 symmetric matrix is analysed using its eigenvalues, numerical rank, determinant, D-optimal log-determinant, and condition number. A rank-one matrix has no finite 2D log-determinant or condition number and is reported as unobservable in one direction. The code does not add a fictitious prior to hide singular geometry.
+The resulting 2x2 symmetric matrix is analysed using its eigenvalues, numerical rank, determinant, D-optimal log-determinant, A-optimal trace of the inverse, and condition number. The minimum eigenvalue is also reported as the E-optimal worst-observed direction diagnostic. A rank-one matrix has no finite 2D log-determinant or condition number and is reported as unobservable in one direction. The code does not add a fictitious prior to hide singular geometry.
 
 ## Small exact instance
 
@@ -35,7 +35,7 @@ The example contains six candidate range observations with different bearings, n
 - The objective is lexicographic: maximize observable rank; then maximize log(det(J)) for full-rank geometry (or trace(J) if rank-deficient); then minimize abstract cost; then use canonical action IDs as a deterministic tie-break.
 - A deliberately costly north-facing observation cannot be selected with the two-unit budget, even though it could make an east-facing observation orthogonal.
 
-The included tests assert that orthogonal observations produce isotropic full-rank information, collinear observations remain rank deficient, the exhaustive oracle finds the budget-feasible orthogonal diagonal pair, the greedy baseline can be strictly suboptimal, the result is invariant to input ordering, and invalid input is rejected.
+The eleven included tests assert that orthogonal observations produce isotropic full-rank information, collinear and near-collinear observations remain rank deficient, the exhaustive oracle finds the budget-feasible orthogonal diagonal pair, the greedy baseline is strictly suboptimal on the frozen instance, common rotation and uniform noise scaling obey the expected information invariants, the result is invariant to input ordering, and invalid/overflowing input is rejected.
 
 ## Scope and limitations
 
