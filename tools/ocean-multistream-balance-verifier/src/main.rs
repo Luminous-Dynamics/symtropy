@@ -276,8 +276,6 @@ fn validate_storage(
     nonnegative(storage.common_mode_standard_uncertainty_kg, "storage common-mode uncertainty")?;
     finite(storage.signed_delta_storage_mass_kg, "signed storage mass change")?;
     let storage_rate = storage.signed_delta_storage_mass_kg / bundle.interval_duration_seconds as f64;
-    let storage_uncertainty_rate =
-        storage.independent_standard_uncertainty_kg / bundle.interval_duration_seconds as f64;
     if storage.common_mode_standard_uncertainty_kg > 0.0
         && storage.correlation_group_id.as_deref().unwrap_or("").trim().is_empty() {
         return Err("nonzero storage common-mode uncertainty requires correlation group".into());
@@ -286,7 +284,7 @@ fn validate_storage(
         && storage.correlation_group_id.is_some() {
         return Err("storage correlation group is present with zero common-mode uncertainty".into());
     }
-    Ok(storage_rate + 0.0 * storage_uncertainty_rate)
+    Ok(storage_rate)
 }
 fn validate_stream_evidence(stream: &Stream, bundle: &Bundle) -> Result<(), String> {
     let context = format!("stream {}", stream.stream_id);
@@ -406,7 +404,7 @@ fn validate(bundle: &Bundle) -> Result<Receipt, String> {
     let mut global_independent_var = 0.0;
     let mut global_common: HashMap<String, f64> = HashMap::new();
     let mut internal_transfer_count = 0usize;
-    let mut external_port_keys = HashSet::new();
+    let mut record_ids = HashSet::new();
 
     for stream in &bundle.streams {
         if stream.stream_id.trim().is_empty() || !stream_ids.insert(stream.stream_id.clone()) {
@@ -414,6 +412,10 @@ fn validate(bundle: &Bundle) -> Result<Receipt, String> {
         }
         if stream.stream_type.trim().is_empty() {
             return Err(format!("stream {} type is empty", stream.stream_id));
+        }
+        if stream.evidence.record_id.trim().is_empty()
+            || !record_ids.insert(stream.evidence.record_id.clone()) {
+            return Err(format!("stream {} has empty or duplicate evidence record ID", stream.stream_id));
         }
         positive(stream.mass_flow_kg_s, "stream mass flow")?;
         nonnegative(stream.independent_standard_uncertainty_kg_s, "stream independent uncertainty")?;
@@ -444,7 +446,6 @@ fn validate(bundle: &Bundle) -> Result<Receipt, String> {
                     }
                     if label == "source" { source_external = true; }
                     else { destination_external = true; }
-                    external_port_keys.insert(endpoint.node_id.clone());
                 }
                 "control_volume" => {
                     if !cv_ids.contains(&endpoint.node_id) {
@@ -489,7 +490,8 @@ fn validate(bundle: &Bundle) -> Result<Receipt, String> {
             }
             // Internal transfer contributes equal and opposite terms to the global system boundary.
         } else if source_external {
-            let cv = destination_cv.as_ref().unwrap();
+            let cv = destination_cv.as_ref()
+                .ok_or_else(|| format!("stream {} external source has no control-volume destination", stream.stream_id))?;
             global_external_in += stream.mass_flow_kg_s;
             per_cv_in.entry(cv.clone()).and_modify(|v| *v += stream.mass_flow_kg_s).or_insert(stream.mass_flow_kg_s);
             global_independent_var += stream.independent_standard_uncertainty_kg_s.powi(2);
@@ -499,7 +501,8 @@ fn validate(bundle: &Bundle) -> Result<Receipt, String> {
                 *per_cv_common.entry(cv.clone()).or_default().entry(group.clone()).or_insert(0.0) += stream.common_mode_standard_uncertainty_kg_s;
             }
         } else if destination_external {
-            let cv = source_cv.as_ref().unwrap();
+            let cv = source_cv.as_ref()
+                .ok_or_else(|| format!("stream {} external destination has no control-volume source", stream.stream_id))?;
             global_external_out += stream.mass_flow_kg_s;
             per_cv_out.entry(cv.clone()).and_modify(|v| *v -= stream.mass_flow_kg_s).or_insert(-stream.mass_flow_kg_s);
             global_independent_var += stream.independent_standard_uncertainty_kg_s.powi(2);
@@ -523,7 +526,7 @@ fn validate(bundle: &Bundle) -> Result<Receipt, String> {
     let mut per_cv_results = Vec::new();
     let mut total_storage_rate = 0.0;
     let mut total_storage_independent_var = 0.0;
-    let mut total_storage_common: HashMap<String, f64> = HashMap::new();
+
     for cv in &bundle.control_volumes {
         let (storage_rate, storage) = storage_by_cv.get(&cv.control_volume_id)
             .ok_or_else(|| format!("control volume {} lacks explicit storage inventory", cv.control_volume_id))?;
@@ -532,9 +535,13 @@ fn validate(bundle: &Bundle) -> Result<Receipt, String> {
         total_storage_independent_var += storage_u.powi(2);
         *per_cv_independent_var.entry(cv.control_volume_id.clone()).or_insert(0.0) += storage_u.powi(2);
         if storage.common_mode_standard_uncertainty_kg > 0.0 {
-            let group = storage.correlation_group_id.as_ref().unwrap();
+            let group = storage.correlation_group_id.as_ref()
+                .ok_or_else(|| format!("control volume {} storage correlation group missing", cv.control_volume_id))?;
+            if !declared_groups.contains(group.as_str()) {
+                return Err(format!("control volume {} storage uses undeclared correlation group", cv.control_volume_id));
+            }
             let common_rate = storage.common_mode_standard_uncertainty_kg / bundle.interval_duration_seconds as f64;
-            *total_storage_common.entry(group.clone()).or_insert(0.0) -= common_rate;
+            *global_common.entry(group.clone()).or_insert(0.0) -= common_rate;
             *per_cv_common.entry(cv.control_volume_id.clone()).or_default().entry(group.clone()).or_insert(0.0) -= common_rate;
         }
         let incoming = per_cv_in.get(&cv.control_volume_id).copied().unwrap_or(0.0);
@@ -568,9 +575,7 @@ fn validate(bundle: &Bundle) -> Result<Receipt, String> {
     let global_residual = global_external_in - global_external_out - total_storage_rate;
     finite(global_residual, "global boundary residual")?;
     let global_independent_var = global_independent_var + total_storage_independent_var;
-    let global_common_component = global_common.values().map(|v| v.powi(2)).sum::<f64>().sqrt();
-    let storage_common_component = total_storage_common.values().map(|v| v.powi(2)).sum::<f64>().sqrt();
-    let global_common_combined = (global_common_component.powi(2) + storage_common_component.powi(2)).sqrt();
+    let global_common_combined = global_common.values().map(|v| v.powi(2)).sum::<f64>().sqrt();
     let global_independent = global_independent_var.sqrt();
     let global_combined = (global_independent.powi(2) + global_common_combined.powi(2)).sqrt();
     positive(global_combined, "global boundary combined uncertainty")?;
