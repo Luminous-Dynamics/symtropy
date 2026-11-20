@@ -149,7 +149,7 @@ fn graph_fingerprint(
         colors = next;
     }
 
-    let mut node_colors = colors;
+    let mut node_colors = colors.clone();
     node_colors.sort();
     let mut edge_colors = Vec::new();
     for edge in edges {
