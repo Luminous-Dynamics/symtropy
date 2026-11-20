@@ -27,7 +27,7 @@ The central design rule is **no evidence laundering**: parsing, interpolation, a
 
 ### 2.1 ISO 5667-10:2026 — representative wastewater/cooling-water sampling
 
-ISO 5667-10:2026 (edition 3, published 18 November 2026) addresses sampling of industrial and urban wastewater and includes cooling-water contexts. The pipeline carries sampling method, collection window, preservation, laboratory batch, detection limit and custody metadata rather than treating a lab concentration as a context-free scalar.
+ISO 5667-10:2026 (edition 3, published 18 November 2026) addresses sampling of industrial and urban wastewater and includes cooling-water contexts. The pipeline carries sampling method, collection window, preservation, laboratory batch, detection limit and custody metadata rather than treating a lab concentration as a context-free scalar. The companion [OCEAN_ENVIRONMENT_SAMPLING_CAMPAIGN_V0_1.json](OCEAN_ENVIRONMENT_SAMPLING_CAMPAIGN_V0_1.json) pre-registers seasonal, hydrodynamic, load, water-operation, abnormal-event and lifecycle strata.
 
 This project does not claim that the synthetic flow-proportional-composite records are an ISO-compliant sampling campaign. A field sampling plan must be specified for the actual water matrix, discharge regime, temporal variability, analyte stability, access and applicable regulator conditions, and independently reviewed by qualified sampling personnel.
 
@@ -116,7 +116,7 @@ Each sample carries:
 - method, preservation, chain-of-custody and laboratory batch for lab observations;
 - value, unit, standard uncertainty, detection limit and temporal sensitivity where applicable.
 
-The verifier checks the absolute signed clock offset for each sample independently against the declared bound. A valid interval-level clock flag cannot mask one skewed sensor. It computes SHA-256 over the exact source-file bytes and emits byte length and hash scope. This proves input-byte identity only; it does not authenticate a sensor, logger, calibration certificate, laboratory or acquisition chain.
+The verifier checks the absolute signed clock offset for each sample independently against the declared bound. The synthetic fixture carries 36 sample records; the 250 ms threshold is a proposed fixture acceptance parameter, not a universal metrology standard. A valid interval-level clock flag cannot mask one skewed sensor. It computes SHA-256 over the exact source-file bytes and emits byte length and hash scope. This proves input-byte identity only; it does not authenticate a sensor, logger, calibration certificate, laboratory or acquisition chain.
 
 Observation coverage is reported independently:
 - exact observed input-side durations;
@@ -155,7 +155,13 @@ An independent numerical cross-check of 50,000 draws per interval found:
 
 Interpretation: the synthetic net-load change is unresolved under the fixture's uncertainty model. It is neither a claim of increased pollution nor a claim of no pollution. These values are not measured ocean data and must never enter a real-site performance claim.
 
-## 7. Reproduction
+## 7. Adaptive campaign design
+
+The companion campaign contract defines four pre-registered decision questions, six temporal/operational strata, six sampling channels, five event triggers, six stop rules, an explicit imperfect-detection model and sensor allocation by expected information gain/decision value. It requires independent controls, power analysis and an effect size selected before confirmatory collection. A non-detection is not absence. Adaptive sampling may add observations or redistribute effort only inside the reviewed design envelope; it may not discard inconvenient strata, stations or endpoints.
+
+A strict Rust design verifier is available at `tools/ocean-env-campaign-verifier/`. It checks registered observables, station roles, required strata/channels/triggers, statistical design, evidence fields, stop rules and owner-native research links. The campaign file remains a synthetic design contract, not a site plan.
+
+## 8. Reproduction
 
 From the repository root, with a Rust 2024 toolchain and Cargo available:
 
@@ -170,9 +176,9 @@ The expected status explicitly remains:
 - ecological impact `NOT_ASSESSED`; and
 - site clearance `UNKNOWN_BLOCKED`.
 
-The verifier has authored regression/negative-control tests, but Rust compilation and execution have not yet been performed in this environment because `rustc` and `cargo` are unavailable. The numerical cross-check is independent JavaScript analysis, not a Rust test pass or CI result.
+The metrology verifier has 27 authored tests and the campaign verifier has seven. These regression/negative-control tests have not yet been compiled or executed in this environment because `rustc` and `cargo` are unavailable. The numerical cross-check is independent JavaScript analysis, not a Rust test pass or CI result.
 
-## 8. Next physical qualification increments
+## 9. Next physical qualification increments
 
 1. Define the actual cooling-loop/control volume and meter every inlet, outlet, bypass, purge, cleaning stream and storage change.
 2. Perform tracer-based residence-time and mixing-response experiments across load and pump regimes.
