@@ -2285,11 +2285,17 @@ mod solid_capsule_body_tests {
         )
         .expect("valid centered capsule");
 
-        let capsule = body
+        let compound = body
             .collider
             .as_any()
+            .downcast_ref::<CompoundShape<3>>()
+            .expect("COM-bound capsule uses a compound collider");
+        assert_eq!(compound.children().len(), 1);
+        let capsule = compound.children()[0]
+            .1
+            .as_any()
             .downcast_ref::<Capsule<3>>()
-            .expect("capsule collider");
+            .expect("capsule child");
         assert_eq!(capsule.half_height, 2.0);
         assert_eq!(capsule.radius, 0.5);
         assert_eq!(capsule.axis, 1);
@@ -2332,7 +2338,11 @@ mod solid_capsule_body_tests {
                 < 1.0e-11
         );
 
-        body.rotational_kinetic_energy();
+        let mut body = body;
+        body.angular_velocity = body.transform.rotation.rotate_bivector(&rotate_about_y);
+        assert!(
+            (body.rotational_kinetic_energy() - 0.5 * expected_axial).abs() < 1.0e-11
+        );
     }
 
     #[test]
@@ -2364,34 +2374,30 @@ mod solid_capsule_body_tests {
 
     #[test]
     fn invalid_capsule_inputs_fail_closed() {
-        assert_eq!(
+        assert!(matches!(
             RigidBody::<3>::try_dynamic_solid_capsule_3d(
                 BodyHandle(303), Point::origin(), -1.0, 0.5, 2, 1.0
-            )
-            .unwrap_err(),
-            CapsuleBodyConstructionError::InvalidHalfHeight
-        );
-        assert_eq!(
+            ),
+            Err(CapsuleBodyConstructionError::InvalidHalfHeight)
+        ));
+        assert!(matches!(
             RigidBody::<3>::try_dynamic_solid_capsule_3d(
                 BodyHandle(304), Point::origin(), 1.0, 0.0, 2, 1.0
-            )
-            .unwrap_err(),
-            CapsuleBodyConstructionError::InvalidRadius
-        );
-        assert_eq!(
+            ),
+            Err(CapsuleBodyConstructionError::InvalidRadius)
+        ));
+        assert!(matches!(
             RigidBody::<3>::try_dynamic_solid_capsule_3d(
                 BodyHandle(305), Point::origin(), 1.0, 0.5, 3, 1.0
-            )
-            .unwrap_err(),
-            CapsuleBodyConstructionError::InvalidAxis
-        );
-        assert_eq!(
+            ),
+            Err(CapsuleBodyConstructionError::InvalidAxis)
+        ));
+        assert!(matches!(
             RigidBody::<3>::try_dynamic_solid_capsule_3d(
                 BodyHandle(306), Point::origin(), 1.0, 0.5, 2, f64::NAN
-            )
-            .unwrap_err(),
-            CapsuleBodyConstructionError::InvalidMass
-        );
+            ),
+            Err(CapsuleBodyConstructionError::InvalidMass)
+        ));
     }
 }
 
