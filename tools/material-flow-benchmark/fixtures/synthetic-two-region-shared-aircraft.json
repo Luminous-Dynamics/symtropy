@@ -60,7 +60,11 @@
               "weather": "clear_fresh",
               "permission": "approved_fresh",
               "weather_evidence_reference": "synthetic://weather/shared-initial/period-0/urban",
-              "permission_evidence_reference": "synthetic://permission/shared-initial/period-0/urban"
+              "permission_evidence_reference": "synthetic://permission/shared-initial/period-0/urban",
+              "prequalified_aerial_service_capacity_units": 3,
+              "coavailability_evidence_status": "fresh_in_domain",
+              "coavailability_evidence_reference": "synthetic://coavailability/normal/period-0/urban",
+              "aerial_energy_units_per_delivery_upper_bound": 2
             },
             {
               "region_id": "rural",
@@ -68,7 +72,11 @@
               "weather": "clear_fresh",
               "permission": "approved_fresh",
               "weather_evidence_reference": "synthetic://weather/shared-initial/period-0/rural",
-              "permission_evidence_reference": "synthetic://permission/shared-initial/period-0/rural"
+              "permission_evidence_reference": "synthetic://permission/shared-initial/period-0/rural",
+              "prequalified_aerial_service_capacity_units": 4,
+              "coavailability_evidence_status": "fresh_in_domain",
+              "coavailability_evidence_reference": "synthetic://coavailability/normal/period-0/rural",
+              "aerial_energy_units_per_delivery_upper_bound": 2
             }
           ]
         },
@@ -80,7 +88,11 @@
               "weather": "clear_fresh",
               "permission": "approved_fresh",
               "weather_evidence_reference": "synthetic://weather/normal/period-1/urban",
-              "permission_evidence_reference": "synthetic://permission/normal/period-1/urban"
+              "permission_evidence_reference": "synthetic://permission/normal/period-1/urban",
+              "prequalified_aerial_service_capacity_units": 3,
+              "coavailability_evidence_status": "fresh_in_domain",
+              "coavailability_evidence_reference": "synthetic://coavailability/normal/period-1/urban",
+              "aerial_energy_units_per_delivery_upper_bound": 2
             },
             {
               "region_id": "rural",
@@ -88,7 +100,11 @@
               "weather": "clear_fresh",
               "permission": "approved_fresh",
               "weather_evidence_reference": "synthetic://weather/normal/period-1/rural",
-              "permission_evidence_reference": "synthetic://permission/normal/period-1/rural"
+              "permission_evidence_reference": "synthetic://permission/normal/period-1/rural",
+              "prequalified_aerial_service_capacity_units": 4,
+              "coavailability_evidence_status": "fresh_in_domain",
+              "coavailability_evidence_reference": "synthetic://coavailability/normal/period-1/rural",
+              "aerial_energy_units_per_delivery_upper_bound": 2
             }
           ]
         },
@@ -100,7 +116,11 @@
               "weather": "clear_fresh",
               "permission": "approved_fresh",
               "weather_evidence_reference": "synthetic://weather/normal/period-2/urban",
-              "permission_evidence_reference": "synthetic://permission/normal/period-2/urban"
+              "permission_evidence_reference": "synthetic://permission/normal/period-2/urban",
+              "prequalified_aerial_service_capacity_units": 3,
+              "coavailability_evidence_status": "fresh_in_domain",
+              "coavailability_evidence_reference": "synthetic://coavailability/normal/period-2/urban",
+              "aerial_energy_units_per_delivery_upper_bound": 2
             },
             {
               "region_id": "rural",
@@ -108,7 +128,11 @@
               "weather": "clear_fresh",
               "permission": "approved_fresh",
               "weather_evidence_reference": "synthetic://weather/normal/period-2/rural",
-              "permission_evidence_reference": "synthetic://permission/normal/period-2/rural"
+              "permission_evidence_reference": "synthetic://permission/normal/period-2/rural",
+              "prequalified_aerial_service_capacity_units": 4,
+              "coavailability_evidence_status": "fresh_in_domain",
+              "coavailability_evidence_reference": "synthetic://coavailability/normal/period-2/rural",
+              "aerial_energy_units_per_delivery_upper_bound": 2
             }
           ]
         }
@@ -126,7 +150,11 @@
               "weather": "clear_fresh",
               "permission": "approved_fresh",
               "weather_evidence_reference": "synthetic://weather/shared-initial/period-0/urban",
-              "permission_evidence_reference": "synthetic://permission/shared-initial/period-0/urban"
+              "permission_evidence_reference": "synthetic://permission/shared-initial/period-0/urban",
+              "prequalified_aerial_service_capacity_units": 3,
+              "coavailability_evidence_status": "fresh_in_domain",
+              "coavailability_evidence_reference": "synthetic://coavailability/rural-weather-block/period-0/urban",
+              "aerial_energy_units_per_delivery_upper_bound": 2
             },
             {
               "region_id": "rural",
@@ -134,7 +162,11 @@
               "weather": "clear_fresh",
               "permission": "approved_fresh",
               "weather_evidence_reference": "synthetic://weather/shared-initial/period-0/rural",
-              "permission_evidence_reference": "synthetic://permission/shared-initial/period-0/rural"
+              "permission_evidence_reference": "synthetic://permission/shared-initial/period-0/rural",
+              "prequalified_aerial_service_capacity_units": 4,
+              "coavailability_evidence_status": "fresh_in_domain",
+              "coavailability_evidence_reference": "synthetic://coavailability/rural-weather-block/period-0/rural",
+              "aerial_energy_units_per_delivery_upper_bound": 2
             }
           ]
         },
@@ -146,7 +178,11 @@
               "weather": "clear_fresh",
               "permission": "approved_fresh",
               "weather_evidence_reference": "synthetic://weather/rural-weather-block/period-1/urban",
-              "permission_evidence_reference": "synthetic://permission/rural-weather-block/period-1/urban"
+              "permission_evidence_reference": "synthetic://permission/rural-weather-block/period-1/urban",
+              "prequalified_aerial_service_capacity_units": 3,
+              "coavailability_evidence_status": "fresh_in_domain",
+              "coavailability_evidence_reference": "synthetic://coavailability/rural-weather-block/period-1/urban",
+              "aerial_energy_units_per_delivery_upper_bound": 2
             },
             {
               "region_id": "rural",
@@ -154,7 +190,11 @@
               "weather": "blocked_fresh",
               "permission": "approved_fresh",
               "weather_evidence_reference": "synthetic://weather/rural-weather-block/period-1/rural",
-              "permission_evidence_reference": "synthetic://permission/rural-weather-block/period-1/rural"
+              "permission_evidence_reference": "synthetic://permission/rural-weather-block/period-1/rural",
+              "prequalified_aerial_service_capacity_units": 4,
+              "coavailability_evidence_status": "fresh_in_domain",
+              "coavailability_evidence_reference": "synthetic://coavailability/rural-weather-block/period-1/rural",
+              "aerial_energy_units_per_delivery_upper_bound": 2
             }
           ]
         },
@@ -166,7 +206,11 @@
               "weather": "clear_fresh",
               "permission": "approved_fresh",
               "weather_evidence_reference": "synthetic://weather/rural-weather-block/period-2/urban",
-              "permission_evidence_reference": "synthetic://permission/rural-weather-block/period-2/urban"
+              "permission_evidence_reference": "synthetic://permission/rural-weather-block/period-2/urban",
+              "prequalified_aerial_service_capacity_units": 3,
+              "coavailability_evidence_status": "fresh_in_domain",
+              "coavailability_evidence_reference": "synthetic://coavailability/rural-weather-block/period-2/urban",
+              "aerial_energy_units_per_delivery_upper_bound": 2
             },
             {
               "region_id": "rural",
@@ -174,7 +218,11 @@
               "weather": "clear_fresh",
               "permission": "approved_fresh",
               "weather_evidence_reference": "synthetic://weather/rural-weather-block/period-2/rural",
-              "permission_evidence_reference": "synthetic://permission/rural-weather-block/period-2/rural"
+              "permission_evidence_reference": "synthetic://permission/rural-weather-block/period-2/rural",
+              "prequalified_aerial_service_capacity_units": 4,
+              "coavailability_evidence_status": "fresh_in_domain",
+              "coavailability_evidence_reference": "synthetic://coavailability/rural-weather-block/period-2/rural",
+              "aerial_energy_units_per_delivery_upper_bound": 2
             }
           ]
         }
