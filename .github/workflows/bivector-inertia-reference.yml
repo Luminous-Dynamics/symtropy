@@ -1,0 +1,36 @@
+name: Bivector Inertia Reference
+
+on:
+  pull_request:
+    paths:
+      - 'benchmarks/bivector-inertia-reference/v0.1/**'
+      - '.github/workflows/bivector-inertia-reference.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'benchmarks/bivector-inertia-reference/v0.1/**'
+      - '.github/workflows/bivector-inertia-reference.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bivector-inertia-reference-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/bivector-inertia-reference/v0.1/Cargo.toml -- --check
+      - name: Run inertia reference tests
+        run: cargo test --manifest-path benchmarks/bivector-inertia-reference/v0.1/Cargo.toml --locked
+      - name: Run Clippy
+        run: cargo clippy --manifest-path benchmarks/bivector-inertia-reference/v0.1/Cargo.toml --all-targets --locked -- -D warnings
