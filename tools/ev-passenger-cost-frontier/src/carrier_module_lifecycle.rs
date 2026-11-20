@@ -33,6 +33,15 @@ pub enum EventClass {
     Unscheduled,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MaintenanceRemedy {
+    Repair,
+    Replace,
+    Remanufacture,
+    Repurpose,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ServicePhase {
@@ -91,6 +100,7 @@ pub struct ModuleLifecycleProfile {
 pub struct LifecycleEvent {
     pub event_id: String,
     pub event_class: EventClass,
+    pub remedy: Option<MaintenanceRemedy>,
     /// Planned event frequency per module-year. Must not be used for failures.
     pub annual_occurrences_per_module: Option<f64>,
     /// For unscheduled events, use an observed count divided by explicit module-year exposure.
@@ -142,6 +152,7 @@ struct FactoryModuleScenario {
 pub struct LifecycleEventResult {
     pub event_id: String,
     pub event_class: EventClass,
+    pub remedy: Option<MaintenanceRemedy>,
     pub annual_event_rate_per_module: Option<f64>,
     pub observed_event_count: Option<u64>,
     pub exposure_module_years: Option<f64>,
@@ -269,10 +280,15 @@ fn validate_catalog(
         || catalog
             .annual_operating_hours_per_module
             .is_some_and(|hours| hours > 8_760.0)
+        || (catalog.annual_operating_hours_per_module.is_some()
+            && catalog.annual_operating_hours_evidence_class == EvidenceClass::Unknown)
     {
         errors.push("annual_operating_hours_per_module: outside valid annual range".into());
     }
-    if !valid_nonnegative(catalog.labour_rate_per_technician_hour) {
+    if !valid_nonnegative(catalog.labour_rate_per_technician_hour)
+        || (catalog.labour_rate_per_technician_hour.is_some()
+            && catalog.labour_rate_evidence_class == EvidenceClass::Unknown)
+    {
         errors.push("labour_rate_per_technician_hour: must be finite and nonnegative".into());
     }
     if catalog.annual_operating_hours_evidence_reference.trim().is_empty()
@@ -359,6 +375,9 @@ fn validate_catalog(
             }
             match event.event_class {
                 EventClass::Planned => {
+                    if event.remedy.is_some() {
+                        errors.push(format!("profiles[{profile_index}].events[{event_index}]: planned event must not declare an unplanned remedy"));
+                    }
                     if event.observed_event_count.is_some() || event.exposure_module_years.is_some() {
                         errors.push(format!("profiles[{profile_index}].events[{event_index}]: planned event uses annual_occurrences_per_module, not failure exposure"));
                     }
@@ -369,6 +388,9 @@ fn validate_catalog(
                     }
                 }
                 EventClass::Unscheduled => {
+                    if event.remedy.is_none() {
+                        errors.push(format!("profiles[{profile_index}].events[{event_index}]: unscheduled event must declare repair, replace, remanufacture or repurpose remedy"));
+                    }
                     if event.annual_occurrences_per_module.is_some() {
                         errors.push(format!("profiles[{profile_index}].events[{event_index}]: unscheduled rates require observed count and exposure"));
                     }
@@ -389,6 +411,22 @@ fn validate_catalog(
                 errors.push(format!("profiles[{profile_index}].events[{event_index}].tasks: expected 1..={MAX_TASKS_PER_EVENT}"));
             }
             let mut phases = BTreeSet::new();
+            if event.event_class == EventClass::Unscheduled {
+                let required = [
+                    ServicePhase::SafeIsolation,
+                    ServicePhase::AccessAndDisassembly,
+                    ServicePhase::DiagnoseAndInspect,
+                    ServicePhase::Remove,
+                    ServicePhase::RepairOrReplace,
+                    ServicePhase::ReinstallReconnectConfigure,
+                    ServicePhase::PostMaintenanceTest,
+                    ServicePhase::ReturnToServiceDisposition,
+                ];
+                let actual: BTreeSet<ServicePhase> = event.tasks.iter().map(|task| task.phase).collect();
+                if required.iter().any(|phase| !actual.contains(phase)) {
+                    errors.push(format!("profiles[{profile_index}].events[{event_index}]: unscheduled repair/replace record must include all eight service phases"));
+                }
+            }
             for (task_index, task) in event.tasks.iter().enumerate() {
                 if !phases.insert(task.phase) {
                     errors.push(format!("profiles[{profile_index}].events[{event_index}]: duplicate task phase"));
@@ -407,6 +445,13 @@ fn validate_catalog(
                 }
                 if task.evidence_reference.trim().is_empty() {
                     errors.push(format!("profiles[{profile_index}].events[{event_index}].tasks[{task_index}]: evidence reference required, including explicit unknown"));
+                }
+                let has_measurement = task.elapsed_downtime_minutes_per_event.is_some()
+                    || task.technician_minutes_per_event.is_some()
+                    || task.parts_cost_per_event.is_some()
+                    || task.crew_size.is_some();
+                if has_measurement && task.evidence_class == EvidenceClass::Unknown {
+                    errors.push(format!("profiles[{profile_index}].events[{event_index}].tasks[{task_index}]: unknown evidence cannot carry measured task values"));
                 }
             }
         }
@@ -456,6 +501,7 @@ fn event_result(event: &LifecycleEvent) -> LifecycleEventResult {
     LifecycleEventResult {
         event_id: event.event_id.clone(),
         event_class: event.event_class,
+        remedy: event.remedy,
         annual_event_rate_per_module: rate,
         observed_event_count: event.observed_event_count,
         exposure_module_years: event.exposure_module_years,
@@ -731,6 +777,7 @@ mod tests {
                 LifecycleEvent {
                     event_id: "annual-inspection".into(),
                     event_class: EventClass::Planned,
+                    remedy: None,
                     annual_occurrences_per_module: Some(2.0),
                     observed_event_count: None,
                     exposure_module_years: None,
@@ -741,6 +788,7 @@ mod tests {
                 LifecycleEvent {
                     event_id: "unplanned-failure".into(),
                     event_class: EventClass::Unscheduled,
+                    remedy: Some(MaintenanceRemedy::Repair),
                     annual_occurrences_per_module: None,
                     observed_event_count: None,
                     exposure_module_years: None,
@@ -748,6 +796,7 @@ mod tests {
                     frequency_evidence_reference: "unknown://failure-rate-not-measured".into(),
                     tasks: vec![
                         task(ServicePhase::SafeIsolation),
+                        task(ServicePhase::AccessAndDisassembly),
                         task(ServicePhase::DiagnoseAndInspect),
                         task(ServicePhase::Remove),
                         task(ServicePhase::RepairOrReplace),
@@ -928,6 +977,18 @@ mod tests {
         first_catalog.profiles[0].events[0].tasks.reverse();
         let second = validate_and_evaluate(&base, &first_catalog).expect("permuted result");
         assert_eq!(first, second);
+    }
+
+    #[test]
+    fn repair_and_replace_are_distinct_lifecycle_remedies() {
+        let mut catalog = catalog();
+        let unscheduled = catalog.profiles[0].events.iter_mut()
+            .find(|event| event.event_class == EventClass::Unscheduled).unwrap();
+        unscheduled.remedy = Some(MaintenanceRemedy::Replace);
+        let report = validate_and_evaluate(&factory(), &catalog).expect("replacement profile");
+        let event = report.results[0].events.iter()
+            .find(|event| event.event_class == EventClass::Unscheduled).unwrap();
+        assert_eq!(event.remedy, Some(MaintenanceRemedy::Replace));
     }
 
     #[test]
