@@ -198,6 +198,8 @@ fn run_site_ledger_append_scaling_benchmarks() {
                     frame_sha256: "e".repeat(64),
                     transform_sha256: "f".repeat(64),
                     calibration_sha256: "4".repeat(64),
+                    site_clock_domain_id: "site-clock-benchmark".into(),
+                    valid_until_tick: 20_000,
                 },
             });
         }
