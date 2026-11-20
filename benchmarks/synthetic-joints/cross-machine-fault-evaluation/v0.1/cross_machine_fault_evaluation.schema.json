@@ -1,0 +1,429 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/synthetic-joints/cross-machine-fault-evaluation/v0.1/cross_machine_fault_evaluation.schema.json",
+  "title": "Cross-Machine Compound-Fault Evaluation Profile v0.1",
+  "description": "Episode-level held-out evaluation records for multi-label robotic transmission fault diagnosis under operating shift and sensor/channel failure. The schema does not verify source labels, clock mappings, or physical fault truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "plan",
+    "dataset",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plan": {
+      "$ref": "#/$defs/plan"
+    },
+    "dataset": {
+      "$ref": "#/$defs/dataset"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "fault_threshold": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fault_label",
+        "probability_threshold"
+      ],
+      "properties": {
+        "fault_label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "probability_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_digest",
+        "feature_schema_digest",
+        "training_split_digest",
+        "calibration_split_digest",
+        "test_split_digest",
+        "domain_digest",
+        "fault_taxonomy",
+        "thresholds",
+        "training_specimen_ids",
+        "calibration_specimen_ids",
+        "training_machine_ids",
+        "maximum_time_mapping_skew_ns"
+      ],
+      "properties": {
+        "model_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feature_schema_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "training_split_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_split_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "test_split_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "domain_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_taxonomy": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "thresholds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/fault_threshold"
+          }
+        },
+        "training_specimen_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "calibration_specimen_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "training_machine_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "maximum_time_mapping_skew_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "channel_state": {
+      "enum": [
+        "healthy",
+        "missing",
+        "partial_corruption",
+        "stuck",
+        "drifting",
+        "saturated",
+        "intermittent_loss",
+        "delayed",
+        "invalid",
+        "unknown"
+      ]
+    },
+    "timebase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "reference_clock_id",
+        "mapping_digest",
+        "maximum_residual_skew_ns",
+        "synchronization_method"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "synchronized",
+            "unmapped",
+            "unknown",
+            "invalid"
+          ]
+        },
+        "reference_clock_id": {
+          "type": "string"
+        },
+        "mapping_digest": {
+          "type": "string"
+        },
+        "maximum_residual_skew_ns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "synchronization_method": {
+          "type": "string"
+        }
+      }
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id",
+        "native_sample_rate_hz",
+        "state"
+      ],
+      "properties": {
+        "channel_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "native_sample_rate_hz": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "state": {
+          "$ref": "#/$defs/channel_state"
+        }
+      }
+    },
+    "fault_probability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fault_label",
+        "probability"
+      ],
+      "properties": {
+        "fault_label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "window_id",
+        "timestamp_ns",
+        "abstained",
+        "probabilities"
+      ],
+      "properties": {
+        "window_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timestamp_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "abstained": {
+          "type": "boolean"
+        },
+        "probabilities": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/fault_probability"
+          }
+        }
+      }
+    },
+    "episode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "specimen_id",
+        "machine_id",
+        "axis_id",
+        "session_id",
+        "operating_condition_digest",
+        "source_record_digest",
+        "start_time_ns",
+        "end_time_ns",
+        "true_faults",
+        "unknown_fault_class",
+        "fault_onset_time_ns",
+        "verified_healthy_exposure_seconds",
+        "in_domain",
+        "timebase",
+        "channels",
+        "predictions"
+      ],
+      "properties": {
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "specimen_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "machine_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "axis_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "session_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operating_condition_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_record_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_time_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_time_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "true_faults": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "unknown_fault_class": {
+          "type": "boolean"
+        },
+        "fault_onset_time_ns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "verified_healthy_exposure_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "in_domain": {
+          "type": "boolean"
+        },
+        "timebase": {
+          "$ref": "#/$defs/timebase"
+        },
+        "channels": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/channel"
+          }
+        },
+        "predictions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/prediction"
+          }
+        }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "split_digest",
+        "model_digest",
+        "feature_schema_digest",
+        "domain_digest",
+        "source_dataset_id",
+        "source_dataset_license",
+        "attribution_reference",
+        "episodes"
+      ],
+      "properties": {
+        "split_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feature_schema_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "domain_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_dataset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_dataset_license": {
+          "type": "string",
+          "minLength": 1
+        },
+        "attribution_reference": {
+          "type": "string",
+          "minLength": 1,
+          "format": "uri"
+        },
+        "episodes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/episode"
+          }
+        }
+      }
+    }
+  }
+}
