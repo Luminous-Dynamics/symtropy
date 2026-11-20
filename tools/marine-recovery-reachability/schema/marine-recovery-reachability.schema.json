@@ -11,6 +11,7 @@
     "claim_ceiling",
     "mission_snapshot",
     "service_contract",
+    "capability_roster",
     "trigger_roster",
     "hard_gate_roster",
     "graph_limits",
@@ -49,7 +50,8 @@
         "scenario_set_sha256",
         "mission_window_start",
         "mission_window_end",
-        "mission_snapshot_sha256"
+        "mission_snapshot_sha256",
+        "capability_roster_sha256"
       ],
       "properties": {
         "mission_id": {
@@ -93,6 +95,10 @@
           "format": "date-time"
         },
         "mission_snapshot_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "capability_roster_sha256": {
           "type": "string",
           "pattern": "^[a-fA-F0-9]{64}$"
         }
@@ -185,7 +191,9 @@
       "additionalProperties": false,
       "required": [
         "max_paths_per_scenario",
-        "max_action_depth"
+        "max_action_depth",
+        "max_action_count_per_scenario",
+        "max_expanded_edges_per_scenario"
       ],
       "properties": {
         "max_paths_per_scenario": {
@@ -197,6 +205,16 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 32
+        },
+        "max_action_count_per_scenario": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 512
+        },
+        "max_expanded_edges_per_scenario": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16384
         }
       }
     },
@@ -359,8 +377,17 @@
                   "minLength": 1
                 },
                 "action_class": {
-                  "type": "string",
-                  "minLength": 1
+                  "enum": [
+                    "load_shed",
+                    "divert_to_safe_haven",
+                    "shore_resupply",
+                    "repair",
+                    "controlled_hold",
+                    "human_handover",
+                    "change_sail_configuration",
+                    "switch_power_mode",
+                    "continue_route"
+                  ]
                 },
                 "trigger_classes": {
                   "type": "array",
@@ -468,6 +495,14 @@
                 "action_sha256": {
                   "type": "string",
                   "pattern": "^[a-fA-F0-9]{64}$"
+                },
+                "authority_receipt_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "authority_receipt_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-fA-F0-9]{64}$"
                 }
               }
             }
@@ -493,7 +528,11 @@
                 "authority_receipt_ref",
                 "authority_receipt_sha256",
                 "terminal_evidence_sha256",
-                "receipt_sha256"
+                "receipt_sha256",
+                "human_acknowledged",
+                "human_authority_role",
+                "communications_evidence_sha256",
+                "human_response_upper_hours"
               ],
               "properties": {
                 "terminal_id": {
@@ -509,7 +548,8 @@
                     "safe_haven",
                     "shore_resupply",
                     "repair_restoration",
-                    "controlled_safe_hold"
+                    "controlled_safe_hold",
+                    "human_handover"
                   ]
                 },
                 "available": {
@@ -564,6 +604,20 @@
                 "receipt_sha256": {
                   "type": "string",
                   "pattern": "^[a-fA-F0-9]{64}$"
+                },
+                "human_acknowledged": {
+                  "type": "boolean"
+                },
+                "human_authority_role": {
+                  "type": "string"
+                },
+                "communications_evidence_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-fA-F0-9]{64}$"
+                },
+                "human_response_upper_hours": {
+                  "type": "number",
+                  "minimum": 0
                 }
               }
             }
@@ -577,6 +631,46 @@
           "scenario_sha256": {
             "type": "string",
             "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        }
+      }
+    },
+    "capability_roster": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "capability_id",
+          "qualification_status",
+          "qualification_scope_sha256",
+          "qualification_evidence_sha256",
+          "valid_until"
+        ],
+        "properties": {
+          "capability_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "qualification_status": {
+            "enum": [
+              "qualified",
+              "expired",
+              "suspended"
+            ]
+          },
+          "qualification_scope_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "qualification_evidence_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "valid_until": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }
