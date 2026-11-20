@@ -67,6 +67,7 @@ pub struct Provider {
 #[serde(deny_unknown_fields)]
 pub struct Scenario {
     pub case_id: String,
+    pub service_kind: String,
     pub minimum_accepted_service: u64,
     pub demand: Vec<Demand>,
     pub faults: Vec<Fault>,
@@ -252,6 +253,9 @@ fn preflight(
     if !present(&scenario.case_id) {
         return Err(Decision::rejected("empty_scenario_id"));
     }
+    if !present(&scenario.service_kind) {
+        return Err(Decision::indeterminate("missing_service_kind"));
+    }
     if scenario.plan.is_empty() {
         return Err(Decision::rejected("empty_reconfiguration_plan"));
     }
@@ -304,6 +308,9 @@ fn preflight(
         }
         let provider = providers.get(step.provider_id.as_str())
             .ok_or(Decision::rejected("unknown_plan_provider"))?;
+        if provider.service_kind != scenario.service_kind {
+            return Err(Decision::rejected("provider_service_kind_mismatch"));
+        }
         if provider.failure_domains.is_empty() {
             return Err(Decision::indeterminate("provider_failure_domain_graph_missing"));
         }
@@ -634,7 +641,7 @@ mod tests {
     #[test]
     fn frozen_service_corpus_matches_expected_results() {
         let report = evaluate(&fixture()).expect("service fixture evaluates");
-        assert_eq!(report.summary.scenario_count, 26);
+        assert_eq!(report.summary.scenario_count, 27);
         assert_eq!(report.summary.expected_result_mismatches, 0);
         assert_eq!(report.summary.false_continuity_claims, 0);
         assert_eq!(report.summary.authority_grants, 0);
@@ -682,6 +689,17 @@ mod tests {
         assert_eq!(row.actual_status, ServiceStatus::ServiceFloorMetSynthetic);
         assert_eq!(row.accepted_units, 15);
         assert_eq!(row.first_restored_tick, Some(3));
+    }
+
+
+    #[test]
+    fn partial_capability_provider_cannot_substitute_for_full_service() {
+        let report = evaluate(&fixture()).expect("service fixture evaluates");
+        let row = report.scenarios.iter()
+            .find(|row| row.case_id == "ALTERNATE_ONLY_SUPPORTS_MECHANICAL_CAPTURE")
+            .expect("partial capability case exists");
+        assert_eq!(row.actual_status, ServiceStatus::Rejected);
+        assert_eq!(row.actual_reason, "provider_service_kind_mismatch");
     }
 
     #[test]
