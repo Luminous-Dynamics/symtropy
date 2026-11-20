@@ -28,6 +28,10 @@ impl MotorStepState {
         desired_step_impulse: f64,
         effective_inverse_mass: f64,
     ) -> Option<f64> {
+        if let Some(target) = self.target_relative_velocity {
+            return Some(target);
+        }
+
         if !current_relative_velocity.is_finite()
             || !desired_step_impulse.is_finite()
             || !effective_inverse_mass.is_finite()
@@ -36,16 +40,17 @@ impl MotorStepState {
             return None;
         }
 
-        if let Some(target) = self.target_relative_velocity {
-            return Some(target);
-        }
-
         let target = current_relative_velocity + effective_inverse_mass * desired_step_impulse;
         if !target.is_finite() {
             return None;
         }
         self.target_relative_velocity = Some(target);
         Some(target)
+    }
+
+    /// Return the latched target relative velocity for this step, if set.
+    pub fn target_relative_velocity(&self) -> Option<f64> {
+        self.target_relative_velocity
     }
 
     /// Add one desired impulse increment to the accumulated per-step impulse,
