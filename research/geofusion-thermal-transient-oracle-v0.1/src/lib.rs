@@ -13,6 +13,7 @@ pub enum ModelError {
     ServiceFractionOutOfRange,
     NonPositiveInterval,
     NegativeStartTime,
+    EventInPast,
     NonPositiveFrequency,
     NegativeSourcePowerEnvelope,
     NonPositiveSampleCount,
@@ -92,17 +93,17 @@ pub struct CausalPredictorResult {
 }
 
 /// Propose a communication interval from numerical, interface and physical error.
-////
-//// The controller uses the maximum normalized error across three independent
-//// gates. It does not trade an energy violation against a smaller trajectory
-//// error. A rejected attempt shrinks the next interval; an accepted attempt
-//// may grow it by at most 2x. The final proposal is fenced at the earliest
-//// known event/clock tick. If the event is due now, the caller must process
-//// that event rather than take a zero-length doStep.
-////
-//// This function is a deterministic policy primitive, not an FMI master:
-//// it does not execute an FMU, manufacture an error estimate, or infer an
-//// unknown future event.
+///
+/// The controller uses the maximum normalized error across three independent
+/// gates. It does not trade an energy violation against a smaller trajectory
+/// error. A rejected attempt shrinks the next interval; an accepted attempt
+/// may grow it by at most 2x. The final proposal is fenced at the earliest
+/// known event/clock tick. If the event is due now, the caller must process
+/// that event rather than take a zero-length doStep.
+///
+/// This function is a deterministic policy primitive, not an FMI master:
+/// it does not execute an FMU, manufacture an error estimate, or infer an
+/// unknown future event.
 pub fn propose_adaptive_step(
     input: AdaptiveStepInput,
 ) -> Result<AdaptiveStepDecision, ModelError> {
@@ -147,7 +148,7 @@ pub fn propose_adaptive_step(
             return Err(ModelError::NonFiniteParameter);
         }
         if event_time < input.current_time_s {
-            return Err(ModelError::NegativeStartTime);
+            return Err(ModelError::EventInPast);
         }
         if event_time == input.current_time_s {
             return Ok(AdaptiveStepDecision {
@@ -909,6 +910,7 @@ mod tests {
     #[test]
     fn adaptive_controller_fails_closed_when_error_requires_a_subminimum_retry() {
         let mut input = adaptive_input();
+        input.minimum_step_s = 2.0;
         input.trajectory_error = 100.0;
         input.trajectory_tolerance = 0.1;
         input.next_event_time_s = None;
@@ -924,7 +926,7 @@ mod tests {
         input.next_event_time_s = Some(0.5);
         assert_eq!(
             propose_adaptive_step(input),
-            Err(ModelError::NegativeStartTime)
+            Err(ModelError::EventInPast)
         );
 
         input = adaptive_input();
