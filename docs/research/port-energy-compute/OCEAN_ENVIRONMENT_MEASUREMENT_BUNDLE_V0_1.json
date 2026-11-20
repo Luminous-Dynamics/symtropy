@@ -50,7 +50,7 @@
     "pollutant_mass_flux_kg_day": "pollutant_mass_flux_g_s * 86.4",
     "net_pollutant_mass_flux_g_s": "outfall_concentration_mg_l * outfall_flow_m3_s - intake_concentration_mg_l * intake_flow_m3_s",
     "net_pollutant_mass_flux_standard_uncertainty_g_s": "root-sum-square of independently propagated intake and outfall concentration/flow uncertainties",
-    "covariance_assumption": "Inputs are treated as independent for this synthetic fixture. Any shared calibration, common reference or correlated errors require covariance terms or Monte Carlo propagation; independence must not be assumed silently."
+    "covariance_assumption": "Instrument measurement errors are independent only across distinct declared calibration domains. A common hydraulic residence-time perturbation and a shared laboratory-batch concentration bias are explicit common inputs; real campaigns must also model any common calibration, reference, operator, or sample-preparation effects."
   },
   "ogc_sensorthings_mapping": {
     "standard": "OGC SensorThings API 2.0",
@@ -301,7 +301,9 @@
             "sample_preservation_state": "synthetic_documented",
             "chain_of_custody_id": "SYNTH-COC-ENV-INT-001-SYNTH-TRACE-ANALYTE-001-intake",
             "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001",
-            "temporal_rate_mg_l_per_s": 0.000012
+            "temporal_rate_mg_l_per_s": 0.000012,
+            "laboratory_batch_common_standard_uncertainty_mg_l": 0.0005,
+            "laboratory_batch_independence_domain": "SYNTH-LAB-BATCH-DOMAIN-ENV-INT-001"
           },
           "outfall": {
             "station_id": "station-outfall",
@@ -329,11 +331,13 @@
             "sample_preservation_state": "synthetic_documented",
             "chain_of_custody_id": "SYNTH-COC-ENV-INT-001-SYNTH-TRACE-ANALYTE-001-outfall",
             "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001",
-            "temporal_rate_mg_l_per_s": 0.000035
+            "temporal_rate_mg_l_per_s": 0.000035,
+            "laboratory_batch_common_standard_uncertainty_mg_l": 0.0005,
+            "laboratory_batch_independence_domain": "SYNTH-LAB-BATCH-DOMAIN-ENV-INT-001"
           }
         }
       ],
-      "uncertainty_covariance_state": "independent_instrument_domains_with_common_hydraulic_lag_covariance_propagated_via_temporal_sensitivities",
+      "uncertainty_covariance_state": "independent_instrument_domains_with_common_hydraulic_lag_and_common_lab_batch_effects_propagated_as_shared_inputs",
       "plume_concentration_observations": [
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -364,7 +368,9 @@
           "sample_preservation_state": "synthetic_documented",
           "chain_of_custody_id": "SYNTH-COC-ENV-INT-001-SYNTH-TRACE-ANALYTE-001-near_field_plume",
           "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001",
-          "temporal_rate_mg_l_per_s": 0.000028
+          "temporal_rate_mg_l_per_s": 0.000028,
+          "laboratory_batch_common_standard_uncertainty_mg_l": 0.0005,
+          "laboratory_batch_independence_domain": "SYNTH-LAB-BATCH-DOMAIN-ENV-INT-001"
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -395,7 +401,9 @@
           "sample_preservation_state": "synthetic_documented",
           "chain_of_custody_id": "SYNTH-COC-ENV-INT-001-SYNTH-TRACE-ANALYTE-001-far_field_impact",
           "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001",
-          "temporal_rate_mg_l_per_s": 0.000008
+          "temporal_rate_mg_l_per_s": 0.000008,
+          "laboratory_batch_common_standard_uncertainty_mg_l": 0.0005,
+          "laboratory_batch_independence_domain": "SYNTH-LAB-BATCH-DOMAIN-ENV-INT-001"
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -426,7 +434,9 @@
           "sample_preservation_state": "synthetic_documented",
           "chain_of_custody_id": "SYNTH-COC-ENV-INT-001-SYNTH-TRACE-ANALYTE-001-independent_reference_control",
           "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-001",
-          "temporal_rate_mg_l_per_s": 0.000003
+          "temporal_rate_mg_l_per_s": 0.000003,
+          "laboratory_batch_common_standard_uncertainty_mg_l": 0.0005,
+          "laboratory_batch_independence_domain": "SYNTH-LAB-BATCH-DOMAIN-ENV-INT-001"
         }
       ],
       "hydraulic_pairing_state": "residence_time_aligned_synthetic",
@@ -660,7 +670,9 @@
             "sample_preservation_state": "synthetic_documented",
             "chain_of_custody_id": "SYNTH-COC-ENV-INT-002-SYNTH-TRACE-ANALYTE-001-intake",
             "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002",
-            "temporal_rate_mg_l_per_s": 0.000012
+            "temporal_rate_mg_l_per_s": 0.000012,
+            "laboratory_batch_common_standard_uncertainty_mg_l": 0.0005,
+            "laboratory_batch_independence_domain": "SYNTH-LAB-BATCH-DOMAIN-ENV-INT-002"
           },
           "outfall": {
             "station_id": "station-outfall",
@@ -688,11 +700,13 @@
             "sample_preservation_state": "synthetic_documented",
             "chain_of_custody_id": "SYNTH-COC-ENV-INT-002-SYNTH-TRACE-ANALYTE-001-outfall",
             "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002",
-            "temporal_rate_mg_l_per_s": 0.000035
+            "temporal_rate_mg_l_per_s": 0.000035,
+            "laboratory_batch_common_standard_uncertainty_mg_l": 0.0005,
+            "laboratory_batch_independence_domain": "SYNTH-LAB-BATCH-DOMAIN-ENV-INT-002"
           }
         }
       ],
-      "uncertainty_covariance_state": "independent_instrument_domains_with_common_hydraulic_lag_covariance_propagated_via_temporal_sensitivities",
+      "uncertainty_covariance_state": "independent_instrument_domains_with_common_hydraulic_lag_and_common_lab_batch_effects_propagated_as_shared_inputs",
       "plume_concentration_observations": [
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -723,7 +737,9 @@
           "sample_preservation_state": "synthetic_documented",
           "chain_of_custody_id": "SYNTH-COC-ENV-INT-002-SYNTH-TRACE-ANALYTE-001-near_field_plume",
           "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002",
-          "temporal_rate_mg_l_per_s": 0.000028
+          "temporal_rate_mg_l_per_s": 0.000028,
+          "laboratory_batch_common_standard_uncertainty_mg_l": 0.0005,
+          "laboratory_batch_independence_domain": "SYNTH-LAB-BATCH-DOMAIN-ENV-INT-002"
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -754,7 +770,9 @@
           "sample_preservation_state": "synthetic_documented",
           "chain_of_custody_id": "SYNTH-COC-ENV-INT-002-SYNTH-TRACE-ANALYTE-001-far_field_impact",
           "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002",
-          "temporal_rate_mg_l_per_s": 0.000008
+          "temporal_rate_mg_l_per_s": 0.000008,
+          "laboratory_batch_common_standard_uncertainty_mg_l": 0.0005,
+          "laboratory_batch_independence_domain": "SYNTH-LAB-BATCH-DOMAIN-ENV-INT-002"
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -785,7 +803,9 @@
           "sample_preservation_state": "synthetic_documented",
           "chain_of_custody_id": "SYNTH-COC-ENV-INT-002-SYNTH-TRACE-ANALYTE-001-independent_reference_control",
           "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-002",
-          "temporal_rate_mg_l_per_s": 0.000003
+          "temporal_rate_mg_l_per_s": 0.000003,
+          "laboratory_batch_common_standard_uncertainty_mg_l": 0.0005,
+          "laboratory_batch_independence_domain": "SYNTH-LAB-BATCH-DOMAIN-ENV-INT-002"
         }
       ],
       "hydraulic_pairing_state": "residence_time_aligned_synthetic",
@@ -1019,7 +1039,9 @@
             "sample_preservation_state": "synthetic_documented",
             "chain_of_custody_id": "SYNTH-COC-ENV-INT-003-SYNTH-TRACE-ANALYTE-001-intake",
             "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003",
-            "temporal_rate_mg_l_per_s": 0.000012
+            "temporal_rate_mg_l_per_s": 0.000012,
+            "laboratory_batch_common_standard_uncertainty_mg_l": 0.0005,
+            "laboratory_batch_independence_domain": "SYNTH-LAB-BATCH-DOMAIN-ENV-INT-003"
           },
           "outfall": {
             "station_id": "station-outfall",
@@ -1047,11 +1069,13 @@
             "sample_preservation_state": "synthetic_documented",
             "chain_of_custody_id": "SYNTH-COC-ENV-INT-003-SYNTH-TRACE-ANALYTE-001-outfall",
             "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003",
-            "temporal_rate_mg_l_per_s": 0.000035
+            "temporal_rate_mg_l_per_s": 0.000035,
+            "laboratory_batch_common_standard_uncertainty_mg_l": 0.0005,
+            "laboratory_batch_independence_domain": "SYNTH-LAB-BATCH-DOMAIN-ENV-INT-003"
           }
         }
       ],
-      "uncertainty_covariance_state": "independent_instrument_domains_with_common_hydraulic_lag_covariance_propagated_via_temporal_sensitivities",
+      "uncertainty_covariance_state": "independent_instrument_domains_with_common_hydraulic_lag_and_common_lab_batch_effects_propagated_as_shared_inputs",
       "plume_concentration_observations": [
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -1082,7 +1106,9 @@
           "sample_preservation_state": "synthetic_documented",
           "chain_of_custody_id": "SYNTH-COC-ENV-INT-003-SYNTH-TRACE-ANALYTE-001-near_field_plume",
           "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003",
-          "temporal_rate_mg_l_per_s": 0.000028
+          "temporal_rate_mg_l_per_s": 0.000028,
+          "laboratory_batch_common_standard_uncertainty_mg_l": 0.0005,
+          "laboratory_batch_independence_domain": "SYNTH-LAB-BATCH-DOMAIN-ENV-INT-003"
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -1113,7 +1139,9 @@
           "sample_preservation_state": "synthetic_documented",
           "chain_of_custody_id": "SYNTH-COC-ENV-INT-003-SYNTH-TRACE-ANALYTE-001-far_field_impact",
           "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003",
-          "temporal_rate_mg_l_per_s": 0.000008
+          "temporal_rate_mg_l_per_s": 0.000008,
+          "laboratory_batch_common_standard_uncertainty_mg_l": 0.0005,
+          "laboratory_batch_independence_domain": "SYNTH-LAB-BATCH-DOMAIN-ENV-INT-003"
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -1144,7 +1172,9 @@
           "sample_preservation_state": "synthetic_documented",
           "chain_of_custody_id": "SYNTH-COC-ENV-INT-003-SYNTH-TRACE-ANALYTE-001-independent_reference_control",
           "laboratory_batch_id": "SYNTH-LAB-BATCH-ENV-INT-003",
-          "temporal_rate_mg_l_per_s": 0.000003
+          "temporal_rate_mg_l_per_s": 0.000003,
+          "laboratory_batch_common_standard_uncertainty_mg_l": 0.0005,
+          "laboratory_batch_independence_domain": "SYNTH-LAB-BATCH-DOMAIN-ENV-INT-003"
         }
       ],
       "hydraulic_pairing_state": "residence_time_aligned_synthetic",
@@ -1168,7 +1198,7 @@
     "lower_95_percentile": 0.025,
     "upper_95_percentile": 0.975,
     "maximum_relative_standard_uncertainty_difference_from_first_order": 0.05,
-    "distribution_assumption": "Independent normal instrument/property inputs plus one common normal hydraulic-residence-time perturbation shared by output-side flow, temperature and concentration. Assumptions are synthetic test conditions, not site-measured distributions.",
+    "distribution_assumption": "Independent normal instrument/property inputs plus one common normal hydraulic-residence-time perturbation shared by output-side flow, temperature and concentration, and one common additive normal laboratory-batch effect shared by all samples in the same declared batch. Assumptions are synthetic test conditions, not site-measured distributions.",
     "acceptance_rule": "If Monte Carlo and first-order standard uncertainties differ by more than the declared tolerance, or any simulated physical input becomes nonphysical, return no qualified measurement receipt and require model review. This is an engineering cross-check, not a complete JCGM conformity assessment."
   }
 }
