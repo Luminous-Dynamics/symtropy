@@ -287,20 +287,20 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
                                 effective_inv_inertia,
                             )
                         {
-                        if body_a.is_dynamic() {
-                            body_a.angular_velocity.set(
-                                pa,
-                                pb,
-                                body_a.angular_velocity.get(pa, pb) - delta_impulse * inv_i_a,
-                            );
-                        }
-                        if body_b.is_dynamic() {
-                            body_b.angular_velocity.set(
-                                pa,
-                                pb,
-                                body_b.angular_velocity.get(pa, pb) + delta_impulse * inv_i_b,
-                            );
-                        }
+                            if body_a.is_dynamic() {
+                                body_a.angular_velocity.set(
+                                    pa,
+                                    pb,
+                                    body_a.angular_velocity.get(pa, pb) - delta_impulse * inv_i_a,
+                                );
+                            }
+                            if body_b.is_dynamic() {
+                                body_b.angular_velocity.set(
+                                    pa,
+                                    pb,
+                                    body_b.angular_velocity.get(pa, pb) + delta_impulse * inv_i_b,
+                                );
+                            }
                         }
                     }
                 }
