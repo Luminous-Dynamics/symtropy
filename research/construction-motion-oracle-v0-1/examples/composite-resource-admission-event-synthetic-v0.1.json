@@ -1,0 +1,76 @@
+{
+  "event_id": "composite-resource-admission-event-01",
+  "sequence": 42,
+  "previous_event_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "event_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "actor_id": "dispatch-coordinator",
+  "actor_role": "dispatch_coordinator",
+  "payload": {
+    "kind": "composite_resource_reservation_committed",
+    "exclusive_reservation": {
+      "reservation_id": "exclusive-panel-workface-01",
+      "resource_catalog_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "resource_claim_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "claims": [
+        {
+          "resource_id": "crane-zone-01",
+          "definition_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "start_tick": 20,
+          "end_tick": 50
+        }
+      ],
+      "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "design_revision_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "entity_id": "ifc:2XQ$n5SLP5MBCLz4P3d4W",
+      "robot_id": "robot-01",
+      "envelope_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "readiness_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "occupancy_assessment_receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "occupancy_engine_build_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "clearance_policy_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "site_snapshot_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "site_ledger_sequence": 41,
+      "site_ledger_event_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "site_clock_domain_id": "site-clock-level-02",
+      "checked_at_tick": 14,
+      "valid_until_tick": 500,
+      "committed_at_tick": 15,
+      "start_tick": 20,
+      "end_tick": 50,
+      "lease_valid_until_tick": 450
+    },
+    "capacity_commit": {
+      "reservation": {
+        "reservation_id": "capacity-hoist-pallets-01",
+        "reservation_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "site_clock_domain_id": "site-clock-level-02",
+        "claims": [
+          {
+            "resource_id": "shared-hoist",
+            "resource_definition_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "start_tick": 20,
+            "end_tick": 50,
+            "demand_units": 1
+          }
+        ]
+      },
+      "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "design_revision_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "entity_id": "ifc:2XQ$n5SLP5MBCLz4P3d4W",
+      "robot_id": "robot-01",
+      "readiness_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "occupancy_assessment_receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "occupancy_engine_build_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "clearance_policy_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "resource_catalog_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "availability_snapshot_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "site_snapshot_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "site_ledger_sequence": 41,
+      "site_ledger_event_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "checked_at_tick": 14,
+      "valid_until_tick": 500,
+      "committed_at_tick": 15,
+      "lease_valid_until_tick": 450
+    }
+  }
+}
