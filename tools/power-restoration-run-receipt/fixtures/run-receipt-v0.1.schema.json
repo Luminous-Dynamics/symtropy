@@ -482,6 +482,8 @@
               "proposalSha256",
               "validatorReceiptId",
               "transitionReceiptId",
+              "startedAtMs",
+              "endedAtMs",
               "latencyMs",
               "inputTokens",
               "outputTokens",
@@ -518,7 +520,8 @@
                   "applied",
                   "execution_failed",
                   "human_override",
-                  "abstained"
+                  "abstained",
+                  "failed"
                 ]
               },
               "actionId": {
@@ -573,6 +576,14 @@
                   "string",
                   "null"
                 ]
+              },
+              "startedAtMs": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "endedAtMs": {
+                "type": "integer",
+                "minimum": 0
               }
             }
           }
