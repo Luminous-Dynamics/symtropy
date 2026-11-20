@@ -43,7 +43,7 @@ python3 tests/fmpy_coupled_smoke.py
 
 The Makefile compiles against the vendored official FMI headers with warnings-as-errors, packages the correct `binaries/x86_64-linux/` paths, includes model descriptions, source and upstream licenses, fixes archive timestamps using `SOURCE_DATE_EPOCH`, runs a direct FMI C-API harness and recomputes an independent arithmetic oracle.
 
-FMPy 0.3.32 is pinned as an independent importer (`CATIA-Systems/FMPy` tag `v0.3.32`, `src/fmpy/fmi3.py` blob `ffc0506867078583494b3993ccedee2ba0f886bc`). Its model-description validator checks schema validity, variable declarations, units and model structure. The importer test loads both FMUs, instantiates them, performs typed Float64 exchanges and calls `fmi3DoStep`, then independently recomputes the energy balance.
+FMPy 0.3.32 is pinned as an independent importer (`CATIA-Systems/FMPy` tag `v0.3.32`, `src/fmpy/fmi3.py` blob `ffc0506867078583494b3993ccedee2ba0f886bc`). Its model-description validator checks schema validity, variable declarations, units and model structure. The smoke test instruments the pinned FMPy `_call` dispatch immediately around the actual `ctypes` function-pointer invocation and writes `build/stage/fmi3-api-transcript.json`; it records ordered function symbols, exact Float64 bits, doStep times/status/output flags, and failed value-reference calls. This is importer-dispatch evidence, not a direct C-level interposer; see #6358 for promotion into the canonical API ledger. The importer test loads both FMUs, instantiates them, performs typed Float64 exchanges and calls `fmi3DoStep`, then independently recomputes the energy balance.
 
 ## Ownership composition
 
