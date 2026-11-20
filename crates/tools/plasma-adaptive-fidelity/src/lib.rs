@@ -704,10 +704,9 @@ pub fn evaluate_adaptive_policy(
     }
 
     selectable.sort_by(|left, right| {
-        left.candidate
-            left.cost
-                .estimated_cost
-                .total_cmp(&right.cost.estimated_cost)
+        left.cost
+            .estimated_cost
+            .total_cmp(&right.cost.estimated_cost)
             .then_with(|| {
                 left.candidate
                     .profile_sha256
