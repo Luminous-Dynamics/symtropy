@@ -47,6 +47,14 @@ pub struct SharedFleetRegion {
 pub struct SharedFleetObservation {
     pub region_id: String,
     pub demand_units: u32,
+    /// Capacity supplied by a fresh upstream carrier/UAV co-availability result.
+    /// This is an input envelope, not a route or flight calculation in this module.
+    pub prequalified_aerial_service_capacity_units: u32,
+    pub coavailability_evidence_status: SharedEvidenceStatus,
+    pub coavailability_evidence_reference: String,
+    /// Conservative mission energy upper bound per delivery unit from the upstream
+    /// qualified envelope. The evaluator uses the maximum of this and its v0.1 floor.
+    pub aerial_energy_units_per_delivery_upper_bound: u64,
     pub weather: WeatherState,
     pub weather_evidence_reference: String,
     pub permission: PermissionState,
@@ -353,6 +361,15 @@ fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
                         "scenarios[{scenario_index}].periods[{period_index}]: weather and permission evidence references are required"
                     ));
                 }
+                if observation.coavailability_evidence_reference.trim().is_empty()
+                    || observation.aerial_energy_units_per_delivery_upper_bound == 0
+                    || observation.aerial_energy_units_per_delivery_upper_bound > 1_000_000_000
+                    || observation.prequalified_aerial_service_capacity_units > 1_000_000
+                {
+                    errors.push(format!(
+                        "scenarios[{scenario_index}].periods[{period_index}]: prequalified aerial capacity, mission energy upper bound and co-availability evidence reference are invalid"
+                    ));
+                }
                 if observation.demand_units > 1_000_000 {
                     errors.push(format!("scenarios[{scenario_index}].periods[{period_index}]: demand exceeds v1 limit"));
                 }
@@ -492,14 +509,23 @@ fn simulate_scenario(
                 let target = &input.regions[action].region_id;
                 if target == &aircraft_region {
                     let observation = observation_for_region(period, target)?;
-                    if flight_domain_is_current(observation.weather, observation.permission) {
+                    if flight_domain_is_current(observation.weather, observation.permission)
+                        && observation.coavailability_evidence_status == SharedEvidenceStatus::FreshInDomain
+                        && observation.prequalified_aerial_service_capacity_units > 0
+                    {
                         let region = region_by_id(input, target)?;
+                        let energy_units_per_delivery = input
+                            .energy_units_per_aerial_delivery
+                            .max(observation.aerial_energy_units_per_delivery_upper_bound);
                         let available_energy = energy.saturating_sub(input.protected_energy_reserve_units);
-                        let energy_limited_units = available_energy / input.energy_units_per_aerial_delivery;
-                        let maximum_service = observation.demand_units.min(region.aerial_service_capacity_units);
+                        let energy_limited_units = available_energy / energy_units_per_delivery;
+                        let maximum_service = observation
+                            .demand_units
+                            .min(region.aerial_service_capacity_units)
+                            .min(observation.prequalified_aerial_service_capacity_units);
                         let delivered = maximum_service.min(u32::try_from(energy_limited_units).unwrap_or(u32::MAX));
                         let energy_used = u64::from(delivered)
-                            .checked_mul(input.energy_units_per_aerial_delivery)
+                            .checked_mul(energy_units_per_delivery)
                             .ok_or_else(|| "aerial service energy overflow".to_string())?;
                         energy = energy.saturating_sub(energy_used);
                         checked_add(&mut metrics.aerial_energy_units, u128::from(energy_used), "aerial energy")?;
@@ -513,6 +539,8 @@ fn simulate_scenario(
                             checked_add(&mut metrics.aerial_deliveries, u128::from(delivered), "aerial deliveries")?;
                         }
                     } else {
+                        // Weather, permission, a stale co-availability result or zero
+                        // prequalified capacity prevents service outside the objective.
                         checked_add(&mut metrics.hard_gate_blocked_actions, 1, "hard-gate blocked actions")?;
                     }
                 } else {
@@ -852,6 +880,10 @@ mod tests {
                 SharedFleetObservation {
                     region_id: "urban".into(),
                     demand_units: urban_demand,
+                    prequalified_aerial_service_capacity_units: 3,
+                    coavailability_evidence_status: SharedEvidenceStatus::FreshInDomain,
+                    coavailability_evidence_reference: "synthetic://coavailability/urban".into(),
+                    aerial_energy_units_per_delivery_upper_bound: 2,
                     weather: urban_weather,
                     weather_evidence_reference: "synthetic://weather/urban".into(),
                     permission: PermissionState::ApprovedFresh,
@@ -860,6 +892,10 @@ mod tests {
                 SharedFleetObservation {
                     region_id: "rural".into(),
                     demand_units: rural_demand,
+                    prequalified_aerial_service_capacity_units: 4,
+                    coavailability_evidence_status: SharedEvidenceStatus::FreshInDomain,
+                    coavailability_evidence_reference: "synthetic://coavailability/rural".into(),
+                    aerial_energy_units_per_delivery_upper_bound: 2,
                     weather: rural_weather,
                     weather_evidence_reference: "synthetic://weather/rural".into(),
                     permission: PermissionState::ApprovedFresh,
@@ -1170,6 +1206,68 @@ mod tests {
     }
 
     #[test]
+    fn stale_coavailability_evidence_blocks_service_despite_clear_weather_and_permission() {
+        let mut test = input();
+        test.period_count = 1;
+        for scenario in &mut test.scenarios {
+            scenario.periods.truncate(1);
+        }
+        test.scenarios[0].periods[0].observations[0].coavailability_evidence_status =
+            SharedEvidenceStatus::Stale;
+        let canonical = canonicalize(&test);
+        let (_nodes, indices, mask) = forced_region_mask(&canonical, "urban");
+        let metrics = simulate_scenario(
+            &canonical,
+            &canonical.scenarios[0],
+            &indices,
+            mask,
+            true,
+        )
+        .expect("stale mission envelope must block service");
+        assert_eq!(metrics.aerial_deliveries, 0);
+        assert_eq!(metrics.hard_gate_blocked_actions, 1);
+    }
+
+    #[test]
+    fn prequalified_capacity_caps_service_and_energy_uses_upper_bound() {
+        let mut test = input();
+        test.period_count = 1;
+        for scenario in &mut test.scenarios {
+            scenario.periods.truncate(1);
+        }
+        test.initial_aircraft_energy_units = 16;
+        test.protected_energy_reserve_units = 4;
+        test.scenarios[0].periods[0].observations[0]
+            .prequalified_aerial_service_capacity_units = 3;
+        test.scenarios[0].periods[0].observations[0]
+            .aerial_energy_units_per_delivery_upper_bound = 5;
+        let canonical = canonicalize(&test);
+        let (_nodes, indices, mask) = forced_region_mask(&canonical, "urban");
+        let metrics = simulate_scenario(
+            &canonical,
+            &canonical.scenarios[0],
+            &indices,
+            mask,
+            true,
+        )
+        .expect("qualified mission envelope");
+        assert_eq!(metrics.aerial_deliveries, 2);
+        assert_eq!(metrics.aerial_energy_units, 10);
+        assert_eq!(metrics.end_energy_units, 6);
+        assert_eq!(metrics.energy_blocked_actions, 1);
+    }
+
+    #[test]
+    fn missing_coavailability_reference_rejects_the_input() {
+        let mut test = input();
+        test.scenarios[0].periods[0].observations[0]
+            .coavailability_evidence_reference
+            .clear();
+        let errors = validate_input(&test).expect_err("co-availability provenance is required");
+        assert!(errors.iter().any(|error| error.contains("co-availability evidence reference")));
+    }
+
+    #[test]
     fn stale_permission_blocks_a_forced_aerial_service() {
         let mut test = input();
         test.period_count = 1;
@@ -1314,6 +1412,10 @@ mod tests {
                         SharedFleetObservation {
                             region_id: "urban".into(),
                             demand_units: 1 + scenario_index * 10 + period_index,
+                            prequalified_aerial_service_capacity_units: 3,
+                            coavailability_evidence_status: SharedEvidenceStatus::FreshInDomain,
+                            coavailability_evidence_reference: "synthetic://coavailability/policy-tree/urban".into(),
+                            aerial_energy_units_per_delivery_upper_bound: 2,
                             weather: WeatherState::ClearFresh,
                             weather_evidence_reference: "synthetic://weather/policy-tree/urban".into(),
                             permission: PermissionState::ApprovedFresh,
@@ -1322,6 +1424,10 @@ mod tests {
                         SharedFleetObservation {
                             region_id: "rural".into(),
                             demand_units: 2 + scenario_index * 10 + period_index,
+                            prequalified_aerial_service_capacity_units: 4,
+                            coavailability_evidence_status: SharedEvidenceStatus::FreshInDomain,
+                            coavailability_evidence_reference: "synthetic://coavailability/policy-tree/rural".into(),
+                            aerial_energy_units_per_delivery_upper_bound: 2,
                             weather: WeatherState::ClearFresh,
                             weather_evidence_reference: "synthetic://weather/policy-tree/rural".into(),
                             permission: PermissionState::ApprovedFresh,
