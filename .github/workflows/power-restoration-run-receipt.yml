@@ -1,0 +1,90 @@
+name: Power restoration benchmark run receipt
+
+on:
+  pull_request:
+    paths:
+      - "tools/power-restoration-run-receipt/**"
+      - ".github/workflows/power-restoration-run-receipt.yml"
+      - "tools/power-restoration-benchmark-case/**"
+      - "tools/power-restoration-action-proposal/**"
+  push:
+    paths:
+      - "tools/power-restoration-run-receipt/**"
+      - ".github/workflows/power-restoration-run-receipt.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  receipt:
+    name: Verify complete planner-to-service run receipt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate schema, case digest and decision coverage
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+
+          root = Path("tools/power-restoration-run-receipt")
+          schema = json.loads((root / "fixtures/run-receipt-v0.1.schema.json").read_text())
+          receipt = json.loads((root / "fixtures/synthetic-restoration-run-receipt-v0.1.json").read_text())
+          action_schema = json.loads(Path("tools/power-restoration-action-proposal/fixtures/action-proposal-v0.1.schema.json").read_text())
+          case = json.loads(Path("tools/power-restoration-benchmark-case/fixtures/synthetic-restoration-case-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          Draft202012Validator.check_schema(action_schema)
+          errors = sorted(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(receipt), key=lambda error: list(error.path))
+          assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
+          canonical_case = json.dumps(case, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+          case_sha256 = hashlib.sha256(canonical_case).hexdigest()
+          assert receipt["case"]["caseSha256"] == case_sha256
+          assert receipt["decisionSteps"] and [step["decisionStep"] for step in receipt["decisionSteps"]] == list(range(case["timebase"]["horizonSteps"]))
+          assert sum(step["disposition"] == "executed" for step in receipt["decisionSteps"]) == 1
+          assert sum(step["disposition"] == "not_run_after_termination" for step in receipt["decisionSteps"]) == 23
+          proposal = receipt["decisionSteps"][0]["proposal"]
+          proposal_errors = sorted(Draft202012Validator(action_schema, format_checker=FormatChecker()).iter_errors(proposal), key=lambda error: list(error.path))
+          assert not proposal_errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in proposal_errors)
+          assert proposal["caseSha256"] == case_sha256 and proposal["decisionStep"] == 0
+          assert proposal["observation"]["observationRef"] == receipt["decisionSteps"][0]["observation"]["artifactRef"]
+          assert receipt["decisionSteps"][0]["plannerOutcome"] == "proposal_emitted"
+          assert receipt["decisionSteps"][0]["validatorOutcome"] == "accepted"
+          assert receipt["decisionSteps"][0]["transitionOutcome"] == "applied"
+          assert receipt["aggregateScore"]["metricId"] == receipt["objective"]["metric"]
+          observed = receipt["observedUsage"]
+          steps = [step for step in receipt["decisionSteps"] if step["disposition"] == "executed"]
+          assert observed["totalInputTokens"] == sum(step["inputTokens"] or 0 for step in steps)
+          assert observed["totalOutputTokens"] == sum(step["outputTokens"] or 0 for step in steps)
+          assert observed["totalApiCostMicrousd"] == sum(step["apiCostMicrousd"] or 0 for step in steps)
+          assert observed["solverTimeMs"] == sum(step["solverTimeMs"] or 0 for step in steps)
+          gaps = [step["solverGapBasisPoints"] for step in steps if step["solverGapBasisPoints"] is not None]
+          assert observed["maximumSolverGapBasisPoints"] == (max(gaps) if gaps else None)
+          assert observed["elapsedWallClockMs"] <= receipt["budget"]["wallClockLimitMs"]
+          assert all(step["notRunReason"] == receipt["terminalReason"] for step in receipt["decisionSteps"] if step["disposition"] == "not_run_after_termination")
+          print("PASS: run receipt schema, action schema, usage reconciliation, budget and terminal consistency")
+          PY
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/power-restoration-run-receipt/Cargo.toml --all -- --check
+      - name: Resolve dependency graph for this run
+        run: cargo generate-lockfile --manifest-path tools/power-restoration-run-receipt/Cargo.toml
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/power-restoration-run-receipt/Cargo.toml --all-targets -- -D warnings
+      - name: Run Rust tests
+        run: cargo test --locked --manifest-path tools/power-restoration-run-receipt/Cargo.toml --all-targets
+      - name: Validate receipt through Rust CLI
+        run: |
+          set -euo pipefail
+          cargo run --locked --manifest-path tools/power-restoration-run-receipt/Cargo.toml --bin power-restoration-run-receipt-validate -- tools/power-restoration-run-receipt/fixtures/synthetic-restoration-run-receipt-v0.1.json tools/power-restoration-benchmark-case/fixtures/synthetic-restoration-case-v0.1.json > /tmp/run-receipt-report.json
+          jq -e '.resultStatus == "run_receipt_consistent" and .plannedDecisionSteps == 24 and .executedDecisionSteps == 1 and .notRunAfterTermination == 23 and .proposalsEmitted == 1 and .transitionsApplied == 1 and .scorerSteps == 1 and (.receiptSha256 | length == 64)' /tmp/run-receipt-report.json
