@@ -219,6 +219,8 @@ struct ConcentrationSample {
     sample_preservation_state: String,
     chain_of_custody_id: String,
     laboratory_batch_id: String,
+    laboratory_batch_common_standard_uncertainty_mg_l: f64,
+    laboratory_batch_independence_domain: String,
     temporal_rate_mg_l_per_s: f64,
 }
 #[derive(Debug, Deserialize)]
@@ -237,6 +239,8 @@ struct PlumeConcentrationObservation {
     sample_preservation_state: String,
     chain_of_custody_id: String,
     laboratory_batch_id: String,
+    laboratory_batch_common_standard_uncertainty_mg_l: f64,
+    laboratory_batch_independence_domain: String,
     temporal_rate_mg_l_per_s: f64,
 }
 
@@ -262,11 +266,16 @@ struct PollutantResult {
     analyte_id: String,
     intake_g_s: f64,
     intake_standard_uncertainty_g_s: f64,
+    intake_independent_standard_uncertainty_g_s: f64,
+    intake_lab_batch_common_standard_uncertainty_g_s: f64,
     outfall_g_s: f64,
     outfall_standard_uncertainty_g_s: f64,
+    outfall_independent_standard_uncertainty_g_s: f64,
+    outfall_lab_batch_common_standard_uncertainty_g_s: f64,
     outfall_hydraulic_alignment_standard_uncertainty_g_s: f64,
     net_added_g_s: f64,
     net_added_standard_uncertainty_g_s: f64,
+    net_lab_batch_residual_standard_uncertainty_g_s: f64,
     net_added_kg_day: f64,
     net_added_standard_uncertainty_kg_day: f64,
     net_added_to_standard_uncertainty_ratio: f64,
@@ -691,7 +700,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index:
     }
 
     if interval.uncertainty_covariance_state
-        != "independent_instrument_domains_with_common_hydraulic_lag_covariance_propagated_via_temporal_sensitivities" {
+        != "independent_instrument_domains_with_common_hydraulic_lag_and_common_lab_batch_effects_propagated_as_shared_inputs" {
         return Err(format!("interval {} lacks an explicit paired-input covariance assessment", interval.interval_id));
     }
     let mut sample_ids = HashSet::new();
@@ -871,6 +880,19 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index:
         validate_evidence(&pair.outfall.evidence, interval,
             &interval.outfall_window_start_utc, &interval.outfall_window_end_utc,
             &mut sample_ids, &mut calibration_domains, limit)?;
+        if pair.intake.laboratory_batch_id != pair.outfall.laboratory_batch_id
+            || pair.intake.laboratory_batch_independence_domain != pair.outfall.laboratory_batch_independence_domain
+            || pair.intake.laboratory_batch_common_standard_uncertainty_mg_l
+                != pair.outfall.laboratory_batch_common_standard_uncertainty_mg_l {
+            return Err(format!("analyte {} intake/outfall results lack a common declared laboratory-batch covariance model", pair.analyte_id));
+        }
+        nonnegative(
+            pair.intake.laboratory_batch_common_standard_uncertainty_mg_l,
+            "laboratory_batch_common_standard_uncertainty_mg_l",
+        )?;
+        if pair.intake.laboratory_batch_independence_domain.trim().is_empty() {
+            return Err(format!("analyte {} lacks laboratory-batch independence domain", pair.analyte_id));
+        }
         for (sample, role) in [(&pair.intake, "intake"), (&pair.outfall, "outfall")] {
             if sample.sample_collection_method != "synthetic_flow_proportional_composite"
                 || sample.sample_preservation_state != "synthetic_documented"
@@ -895,16 +917,25 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index:
         }
         let fin = pair.intake.concentration_mg_l * q_in;
         let fout = pair.outfall.concentration_mg_l * q_out;
-        let u_fin = ((q_in * pair.intake.standard_uncertainty_mg_l).powi(2)
+        let u_fin_independent = ((q_in * pair.intake.standard_uncertainty_mg_l).powi(2)
             + (pair.intake.concentration_mg_l * u_q_in).powi(2)).sqrt();
         let u_fout_instrument = ((q_out * pair.outfall.standard_uncertainty_mg_l).powi(2)
             + (pair.outfall.concentration_mg_l * u_q_out_instrument).powi(2)).sqrt();
         let outfall_flux_lag_sensitivity = q_out * pair.outfall.temporal_rate_mg_l_per_s
             + pair.outfall.concentration_mg_l * outfall_flow.temporal_rate_m3_s_per_s;
         let u_fout_lag = outfall_flux_lag_sensitivity.abs() * u_lag;
-        let u_fout = (u_fout_instrument.powi(2) + u_fout_lag.powi(2)).sqrt();
+        let u_batch = pair.intake.laboratory_batch_common_standard_uncertainty_mg_l;
+        let u_fin_batch = q_in * u_batch;
+        let u_fout_batch = q_out * u_batch;
+        let u_fout_independent = (u_fout_instrument.powi(2) + u_fout_lag.powi(2)).sqrt();
+        let u_fin = (u_fin_independent.powi(2) + u_fin_batch.powi(2)).sqrt();
+        let u_fout = (u_fout_independent.powi(2) + u_fout_batch.powi(2)).sqrt();
         let net = fout - fin;
-        let u_net = (u_fin.powi(2) + u_fout.powi(2)).sqrt();
+        let u_net_batch_residual = (q_out - q_in).abs() * u_batch;
+        let u_net = (u_fin_independent.powi(2)
+            + u_fout_instrument.powi(2)
+            + u_fout_lag.powi(2)
+            + u_net_batch_residual.powi(2)).sqrt();
         positive(u_net, "net pollutant flux standard uncertainty")?;
         let mut mc_rng = DeterministicNormalRng::new(simulation_seed);
         let mut net_flux_draws = Vec::with_capacity(bundle.uncertainty_simulation.draws_per_interval);
@@ -913,9 +944,14 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index:
             let qout_instr_draw = q_out + u_q_out_instrument * mc_rng.standard_normal();
             let lag_draw = u_lag * mc_rng.standard_normal();
             let qout_draw = qout_instr_draw + outfall_flow.temporal_rate_m3_s_per_s * lag_draw;
-            let cin_draw = pair.intake.concentration_mg_l + pair.intake.standard_uncertainty_mg_l * mc_rng.standard_normal();
+            let lab_batch_draw = pair.intake.laboratory_batch_common_standard_uncertainty_mg_l
+                * mc_rng.standard_normal();
+            let cin_draw = pair.intake.concentration_mg_l
+                + pair.intake.standard_uncertainty_mg_l * mc_rng.standard_normal()
+                + lab_batch_draw;
             let cout_draw = pair.outfall.concentration_mg_l
                 + pair.outfall.standard_uncertainty_mg_l * mc_rng.standard_normal()
+                + lab_batch_draw
                 + pair.outfall.temporal_rate_mg_l_per_s * lag_draw;
             positive(qin_draw, "Monte Carlo intake flow")?;
             positive(qout_draw, "Monte Carlo outfall flow")?;
@@ -952,11 +988,18 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index:
             analyte_id:pair.analyte_id.clone(),
             intake_g_s:fin,
             intake_standard_uncertainty_g_s:u_fin,
+            intake_g_s:fin,
+            intake_standard_uncertainty_g_s:u_fin,
+            intake_independent_standard_uncertainty_g_s:u_fin_independent,
+            intake_lab_batch_common_standard_uncertainty_g_s:u_fin_batch,
             outfall_g_s:fout,
             outfall_standard_uncertainty_g_s:u_fout,
+            outfall_independent_standard_uncertainty_g_s:u_fout_independent,
+            outfall_lab_batch_common_standard_uncertainty_g_s:u_fout_batch,
             outfall_hydraulic_alignment_standard_uncertainty_g_s:u_fout_lag,
             net_added_g_s:net,
             net_added_standard_uncertainty_g_s:u_net,
+            net_lab_batch_residual_standard_uncertainty_g_s:u_net_batch_residual,
             net_added_kg_day:net * 86.4,
             net_added_standard_uncertainty_kg_day:u_net * 86.4,
             net_added_to_standard_uncertainty_ratio:resolution_ratio,
@@ -978,6 +1021,10 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index:
                 &interval.outfall_window_start_utc, &interval.outfall_window_end_utc,
                 &mut sample_ids, &mut calibration_domains, limit)?;
             if sample.method_id != pair.method_id || sample.method_quality_state != "valid"
+                || sample.laboratory_batch_id != pair.intake.laboratory_batch_id
+                || sample.laboratory_batch_independence_domain != pair.intake.laboratory_batch_independence_domain
+                || sample.laboratory_batch_common_standard_uncertainty_mg_l
+                    != pair.intake.laboratory_batch_common_standard_uncertainty_mg_l
                 || sample.sample_collection_method != "synthetic_flow_proportional_composite"
                 || sample.sample_preservation_state != "synthetic_documented"
                 || sample.chain_of_custody_id.trim().is_empty()
@@ -993,6 +1040,8 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index:
             }
             nonnegative(sample.concentration_mg_l, "plume concentration_mg_l")?;
             nonnegative(sample.standard_uncertainty_mg_l, "plume concentration uncertainty")?;
+            nonnegative(sample.laboratory_batch_common_standard_uncertainty_mg_l,
+                "plume laboratory_batch_common_standard_uncertainty_mg_l")?;
             finite(sample.temporal_rate_mg_l_per_s, "plume concentration temporal sensitivity")?;
             positive(sample.detection_limit_mg_l, "plume detection limit")?;
             if sample.concentration_mg_l < sample.detection_limit_mg_l {
@@ -1113,7 +1162,7 @@ fn validate(bundle: &Bundle) -> Result<Report, String> {
         || !bundle.equation_contract.pollutant_mass_flux_g_s.contains("flow_m3_s")
         || !bundle.equation_contract.net_pollutant_mass_flux_g_s.contains("outfall")
         || !bundle.equation_contract.net_pollutant_mass_flux_g_s.contains("intake")
-        || !bundle.equation_contract.covariance_assumption.contains("independent") {
+        || !bundle.equation_contract.covariance_assumption.contains("shared laboratory-batch") {
         return Err("equation and covariance contract incomplete".into());
     }
     for rule in [
@@ -1153,6 +1202,7 @@ fn validate(bundle: &Bundle) -> Result<Report, String> {
         || !(0.0 < simulation.maximum_relative_standard_uncertainty_difference_from_first_order
             && simulation.maximum_relative_standard_uncertainty_difference_from_first_order <= 0.20)
         || !simulation.distribution_assumption.contains("common normal hydraulic-residence-time")
+        || !simulation.distribution_assumption.contains("common additive normal laboratory-batch effect")
         || !simulation.acceptance_rule.contains("no qualified measurement receipt") {
         return Err("Monte Carlo uncertainty simulation contract incomplete or out of bounds".into());
     }
@@ -1379,6 +1429,30 @@ mod tests {
         let mut b = fixture();
         b.interval_records[0].uncertainty_model_state = "material_nonlinearity_unresolved".into();
         assert!(validate(&b).unwrap_err().contains("nonlinear/Monte Carlo"));
+    }
+    #[test]
+    fn laboratory_batch_identity_must_match_across_intake_and_outfall() {
+        let mut b = fixture();
+        b.interval_records[0].concentration_pairs[0].outfall.laboratory_batch_id =
+            "DIFFERENT-BATCH".into();
+        assert!(validate(&b).unwrap_err().contains("common declared laboratory-batch covariance model"));
+    }
+    #[test]
+    fn laboratory_batch_domain_must_match_all_plume_samples() {
+        let mut b = fixture();
+        b.interval_records[0].plume_concentration_observations[0].laboratory_batch_independence_domain =
+            "UNDECLARED-BATCH-DOMAIN".into();
+        assert!(validate(&b).unwrap_err().contains("invalid or duplicate plume sample"));
+    }
+    #[test]
+    fn net_batch_uncertainty_is_scaled_by_flow_difference() {
+        let q_in = 0.0200;
+        let q_out = 0.0199;
+        let u_batch = 0.0005;
+        let net_batch_component = (q_out - q_in).abs() * u_batch;
+        let outfall_component = q_out * u_batch;
+        assert!(net_batch_component < outfall_component);
+        assert!((net_batch_component - 0.00000005).abs() < 1e-12);
     }
     #[test]
     fn shared_calibration_domain_requires_covariance_model() {
