@@ -26,5 +26,6 @@
   "primitive_coverage_complete": true,
   "continuous_time_coverage_complete": true,
   "conservative_outer_bound": true,
-  "valid_until_tick": 8000
+  "valid_until_tick": 8000,
+  "trigger_domain_duration_ms": 900
 }
