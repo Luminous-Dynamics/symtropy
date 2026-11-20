@@ -158,7 +158,7 @@ The schema verifies structure only. A later semantic validator must enforce cros
 
 1. Preserve the independent-source, valid-recovery and benign-loss controls; add known-answer frame/time transformations and additional domain-held-out episodes.
 2. Add a semantic validator and mutation tests; a JSON Schema pass alone cannot establish cross-field correctness.
-3. Freeze the current 12-case corpus, exact seed list, profiles and primary outcomes before held-out evaluation.
+3. Freeze the current 14-case corpus, exact seed list, profiles and primary outcomes before held-out evaluation.
 4. Bind the independent oracle manifest and source rights state using the existing EMSR receipt/ground-truth owners.
 5. Audit each scenario against the exact Symtropy physics/model-capability census. Unsupported physical effects remain abstract or UNKNOWN; no convenient coefficients are invented.
 6. Reproduce matched baselines on the exact data release and metric definitions before claiming any SOTA comparison.
