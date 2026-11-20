@@ -187,11 +187,11 @@ fn validate_second_moment(c:Mat3)->Result<(),ContactError> {
     for i in 0..3 { for j in 0..3 {
         if (c[i][j]-c[j][i]).abs()>tol {return Err(ContactError::NonSymmetricTensor);}
     }}
-    for i in 0..3 { if c[i][i]<-tol {return Err(ContactError::NonPositiveSemidefiniteTensor);} }
+    for i in 0..3 { if c[i][i]< -tol {return Err(ContactError::NonPositiveSemidefiniteTensor);} }
     for (i,j) in [(0,1),(0,2),(1,2)] {
         if c[i][i]*c[j][j]-c[i][j]*c[i][j] < -tol*scale {return Err(ContactError::NonPositiveSemidefiniteTensor);}
     }
-    if determinant(c)<-tol*scale*scale {return Err(ContactError::NonPositiveSemidefiniteTensor);}
+    if determinant(c)< -tol*scale*scale {return Err(ContactError::NonPositiveSemidefiniteTensor);}
     Ok(())
 }
 fn validate_rotation(r:Mat3)->Result<(),ContactError> {
