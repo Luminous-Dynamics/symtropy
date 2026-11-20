@@ -61,7 +61,7 @@ torque_share_i = tau_i / sum(tau_j)
 
 Each share is an interval, not a scalar point estimate. If the aggregate denominator includes zero or an actuator contribution is missing, its share is unknown.
 
-The code contains no conversion from current to torque. Such a model would need, at minimum, a calibrated torque constant/back-EMF/current model, winding-temperature correction, drive/inverter limits, direction-specific reducer efficiency/friction and matching calibration/configuration digests. Even then it would be labelled ModelDerived/Estimated rather than independent torque measurement.
+The code contains no conversion from current to torque. Such a model would need, at minimum, a calibrated torque constant/back-EMF/current model, winding-temperature correction, drive/inverter limits, direction-specific reducer efficiency/friction and matching calibration/configuration digests. Even then it would be labelled ModelDerived/Estimated rather than independent torque measurement. Synthetic values are carried as `Synthetic` and validate arithmetic only; they cannot satisfy an independent-physical evidence requirement.
 
 ## 4. Per-unit capability and thermal gates
 
@@ -99,16 +99,16 @@ Each actuator unit preserves separate evidence for:
 - temperature/thermal limit and its calibration/method/source;
 - optional current magnitude, its calibration/method/source.
 
-Evidence classes remain IndependentPhysical, SourceAuthorPhysical, VendorPhysical, ModelDerived or Unknown. A vendor current measurement cannot be promoted to independent torque; a model-derived torque envelope cannot be silently treated as independent physical capability.
+Evidence classes remain Synthetic, IndependentPhysical, SourceAuthorPhysical, VendorPhysical, ModelDerived or Unknown. Synthetic is a first-class non-physical class: synthetic known-answer inputs and their synthetic joint-output cross-checks must never be labelled IndependentPhysical. Only an IndependentPhysical joint-output cross-check is an independent physical measurement; the evaluator preserves the class in every report. A vendor current measurement cannot be promoted to independent torque; a model-derived torque envelope cannot be silently treated as independent physical capability.
 
 ## 7. Synthetic known-answer fixtures
 
 `paired-actuator-sharing-known-answer.json` contains two fully synthetic cases:
 
-1. **Asymmetric pair:** unit A torque [2, 3] N·m, unit B [7, 8] N·m; current intervals [4, 5] A and [8, 9] A. The torque-share interval for unit A differs from its electrical current-share interval. The independent joint torque reference overlaps the unit sum.
+1. **Asymmetric pair:** unit A torque [2, 3] N·m, unit B [7, 8] N·m; current intervals [4, 5] A and [8, 9] A. The torque-share interval for unit A differs from its electrical current-share interval. A synthetic joint-output reference overlaps the unit sum; it tests arithmetic consistency, not independent measurement.
 2. **Hot-unit negative control:** unit D temperature interval [68, 71] °C against a 70 °C thermal-limit lower bound. The other unit is cooler. The joint is Infeasible because the hottest unit's upper temperature exceeds the limit, regardless of the pair's average.
 
-All values, source references and calibration IDs are placeholders. They are not actuator measurements or physical performance claims.
+All values, URN references and calibration IDs are synthetic placeholders. Their evidence class is `Synthetic`, not `IndependentPhysical`; they are not actuator measurements or physical performance claims.
 
 ## 8. Run
 
