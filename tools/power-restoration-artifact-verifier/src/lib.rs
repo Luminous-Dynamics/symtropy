@@ -795,6 +795,9 @@ pub struct RestorationClaimVerificationReport {
     pub observation_request_count: usize,
     pub unsuccessful_observation_request_count: usize,
     pub evidence_item_count: usize,
+    pub stale_observation_count: usize,
+    pub conflicting_observation_count: usize,
+    pub unverified_observation_count: usize,
     pub required_artifact_count: usize,
     pub verified_artifact_count: usize,
     pub required_attestation_count: usize,
@@ -1124,6 +1127,9 @@ pub fn verify_restoration_claim_evidence(
     let mut observation_request_count = 0;
     let mut unsuccessful_observation_request_count = 0;
     let mut evidence_item_count = 0;
+    let mut stale_observation_count = 0;
+    let mut conflicting_observation_count = 0;
+    let mut unverified_observation_count = 0;
     let mut all_sources = BTreeMap::<String, &SourceProvenance>::new();
     let mut evidence_by_ref = BTreeMap::<String, EvidenceArtifact>::new();
     let mut evidence_presentation_step = BTreeMap::<String, u32>::new();
@@ -1146,6 +1152,9 @@ pub fn verify_restoration_claim_evidence(
                 unsuccessful_observation_request_count += report.unsuccessful_request_count
                     + report.pending_request_count;
                 evidence_item_count += report.evidence_count;
+                stale_observation_count += report.stale_at_presentation_count;
+                conflicting_observation_count += report.conflicting_evidence_count;
+                unverified_observation_count += report.unverified_evidence_count;
                 // Degraded observations remain part of the episode and denominator.
                 // Admissibility is enforced at point-of-use below: only evidence actually
                 // cited as an action precondition must be current, fresh and presented.
@@ -1757,6 +1766,9 @@ pub fn verify_restoration_claim_evidence(
         observation_request_count,
         unsuccessful_observation_request_count,
         evidence_item_count,
+        stale_observation_count,
+        conflicting_observation_count,
+        unverified_observation_count,
         required_artifact_count: expected_artifacts.len(),
         verified_artifact_count: verified_bundle.report().artifact_count,
         required_attestation_count: requirements.len(),
