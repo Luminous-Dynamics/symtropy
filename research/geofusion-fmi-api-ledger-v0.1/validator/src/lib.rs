@@ -711,7 +711,14 @@ fn audit(ledger: Ledger, artifact_root: &Path) -> Result<AuditReport, String> {
                     || refs.iter().zip(values).any(|(r,v)| *r != v.value_reference) || values.is_empty() {
                     return Err(format!("value reference/count mismatch at {}", event.event_id));
                 }
+                let mut call_value_references = BTreeSet::new();
                 for value in values {
+                    if !call_value_references.insert(value.value_reference) {
+                        return Err(format!(
+                            "duplicate value reference in one FMI API call at {}",
+                            event.event_id
+                        ));
+                    }
                     let variable = variable_maps.get(event.federate_id.as_str()).and_then(|m| m.get(&value.value_reference))
                         .ok_or_else(|| format!("undeclared value reference at {}", event.event_id))?;
                     let expected_causality = if event.kind == "set_float64" { "input" } else { "output" };
@@ -1054,6 +1061,16 @@ mod tests {
         let mut d=value(); d["unexpected"]="must fail".into();
         let result:Result<Ledger,_>=serde_json::from_value(d);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn rejects_duplicate_value_reference_inside_one_fmi_get_call() {
+        let mut d = value();
+        d["events"][10]["payload"]["value_references"].as_array_mut().unwrap().push(31.into());
+        d["events"][10]["payload"]["n_value_references"] = 5.into();
+        let duplicate = d["events"][10]["payload"]["values"][0].clone();
+        d["events"][10]["payload"]["values"].as_array_mut().unwrap().push(duplicate);
+        assert!(run(d).unwrap_err().contains("duplicate value reference in one FMI API call"));
     }
 
     #[test]
