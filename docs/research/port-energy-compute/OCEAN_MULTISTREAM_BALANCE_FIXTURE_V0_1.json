@@ -69,7 +69,7 @@
         "clock_offset_ms": 18,
         "quality_state": "valid",
         "source_rights_state": "synthetic_test_data_only",
-        "raw_data_digest": "sha256:synthetic-inventory-a"
+        "synthetic_record_reference": "synthetic-ref:synthetic-inventory-a"
       }
     },
     {
@@ -125,7 +125,7 @@
         "clock_offset_ms": -22,
         "quality_state": "valid",
         "source_rights_state": "synthetic_test_data_only",
-        "raw_data_digest": "sha256:synthetic-inventory-b"
+        "synthetic_record_reference": "synthetic-ref:synthetic-inventory-b"
       }
     }
   ],
@@ -160,7 +160,7 @@
         "calibration_id": "SYNTH-CAL-FLOW-INTAKE",
         "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
         "calibration_valid_until_utc": "2026-12-01T00:00:00Z",
-        "raw_data_digest": "sha256:synthetic-intake"
+        "synthetic_record_reference": "synthetic-ref:synthetic-intake"
       },
       "model": null
     },
@@ -194,7 +194,7 @@
         "calibration_id": "SYNTH-CAL-FLOW-TRANSFER",
         "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
         "calibration_valid_until_utc": "2026-12-01T00:00:00Z",
-        "raw_data_digest": "sha256:synthetic-transfer"
+        "synthetic_record_reference": "synthetic-ref:synthetic-transfer"
       },
       "model": null
     },
@@ -228,7 +228,7 @@
         "calibration_id": null,
         "calibration_valid_from_utc": null,
         "calibration_valid_until_utc": null,
-        "raw_data_digest": "sha256:synthetic-evap"
+        "synthetic_record_reference": "synthetic-ref:synthetic-evap"
       },
       "model": {
         "method_id": "SYNTH-PSYCHROMETRIC-EVAP-001",
@@ -270,7 +270,7 @@
         "calibration_id": "SYNTH-CAL-FLOW-LEAK",
         "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
         "calibration_valid_until_utc": "2026-12-01T00:00:00Z",
-        "raw_data_digest": "sha256:synthetic-leak"
+        "synthetic_record_reference": "synthetic-ref:synthetic-leak"
       },
       "model": null
     },
@@ -304,7 +304,7 @@
         "calibration_id": "SYNTH-CAL-FLOW-RETURN",
         "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
         "calibration_valid_until_utc": "2026-12-01T00:00:00Z",
-        "raw_data_digest": "sha256:synthetic-return"
+        "synthetic_record_reference": "synthetic-ref:synthetic-return"
       },
       "model": null
     },
@@ -338,7 +338,7 @@
         "calibration_id": "SYNTH-CAL-FLOW-PURGE",
         "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
         "calibration_valid_until_utc": "2026-12-01T00:00:00Z",
-        "raw_data_digest": "sha256:synthetic-purge"
+        "synthetic_record_reference": "synthetic-ref:synthetic-purge"
       },
       "model": null
     },
@@ -372,7 +372,7 @@
         "calibration_id": "SYNTH-CAL-FLOW-BACKWASH",
         "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
         "calibration_valid_until_utc": "2026-12-01T00:00:00Z",
-        "raw_data_digest": "sha256:synthetic-backwash"
+        "synthetic_record_reference": "synthetic-ref:synthetic-backwash"
       },
       "model": null
     }
