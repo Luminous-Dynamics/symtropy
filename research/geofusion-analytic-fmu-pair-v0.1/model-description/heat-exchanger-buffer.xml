@@ -8,10 +8,10 @@
   <DefaultExperiment startTime="0" stopTime="10" tolerance="1e-8"/>
   <ModelVariables>
     <Float64 name="thermalPowerIn" valueReference="21" causality="input" variability="continuous" unit="W" start="0" description="Thermal power received from the geothermal source [W]"/>
-    <Float64 name="thermalService" valueReference="31" causality="output" variability="continuous" unit="W" start="0" description="Thermal service delivered [W]"/>
-    <Float64 name="heatLoss" valueReference="32" causality="output" variability="continuous" unit="W" start="0" description="Declared thermal losses [W]"/>
-    <Float64 name="storageCharge" valueReference="33" causality="output" variability="continuous" unit="W" start="0" description="Power stored as thermal energy [W]"/>
-    <Float64 name="storedEnergy" valueReference="34" causality="output" variability="continuous" unit="J" start="0" description="Cumulative thermal energy stored [J]"/>
+    <Float64 name="thermalService" valueReference="31" causality="output" variability="continuous" unit="W" description="Thermal service delivered [W]"/>
+    <Float64 name="heatLoss" valueReference="32" causality="output" variability="continuous" unit="W" description="Declared thermal losses [W]"/>
+    <Float64 name="storageCharge" valueReference="33" causality="output" variability="continuous" unit="W" description="Power stored as thermal energy [W]"/>
+    <Float64 name="storedEnergy" valueReference="34" causality="output" variability="continuous" unit="J" description="Cumulative thermal energy stored [J]"/>
   </ModelVariables>
   <ModelStructure>
     <Output><Unknown index="2"/><Unknown index="3"/><Unknown index="4"/><Unknown index="5"/></Output>
