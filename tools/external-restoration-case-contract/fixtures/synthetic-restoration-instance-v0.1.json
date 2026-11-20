@@ -1,0 +1,211 @@
+{
+  "schemaVersion": "0.1.0",
+  "caseId": "external-restoration-data-contract-synthetic-example-001",
+  "caseMaturity": "synthetic_fixture",
+  "sourceProfileRef": "synthetic://external-restoration-profile/not-lara-derived/v1",
+  "sourceArtifacts": [
+    "synthetic://scenario-fixture/ieee13-shaped-example/v1"
+  ],
+  "timebase": {
+    "stepDurationSeconds": 300,
+    "horizonSteps": 12,
+    "timeOriginRef": "synthetic://time-origin/t0",
+    "timebaseEvidenceRef": "synthetic://assumption/5min-step",
+    "status": "synthetic_assumption"
+  },
+  "units": {
+    "activePower": {
+      "unit": "kW",
+      "status": "synthetic_assumption",
+      "evidenceRef": "synthetic://units/active-power"
+    },
+    "reactivePower": {
+      "unit": "kVAr",
+      "status": "synthetic_assumption",
+      "evidenceRef": "synthetic://units/reactive-power"
+    },
+    "apparentPower": {
+      "unit": "kVA",
+      "status": "synthetic_assumption",
+      "evidenceRef": "synthetic://units/apparent-power"
+    },
+    "distance": {
+      "unit": "km",
+      "status": "synthetic_assumption",
+      "evidenceRef": "synthetic://units/distance"
+    },
+    "repairEffort": {
+      "unit": "work_units",
+      "status": "synthetic_assumption",
+      "evidenceRef": "synthetic://units/work"
+    },
+    "mobileEnergy": {
+      "unit": "kWh",
+      "status": "synthetic_assumption",
+      "evidenceRef": "synthetic://units/mobile-energy"
+    }
+  },
+  "network": {
+    "gridSourceNodeRef": "N0",
+    "nodes": [
+      {
+        "nodeRef": "N0",
+        "nodeType": "source"
+      },
+      {
+        "nodeRef": "N1",
+        "nodeType": "junction"
+      },
+      {
+        "nodeRef": "N2",
+        "nodeType": "load"
+      },
+      {
+        "nodeRef": "N3",
+        "nodeType": "load"
+      }
+    ],
+    "powerEdges": [
+      {
+        "edgeRef": "L01",
+        "fromNodeRef": "N0",
+        "toNodeRef": "N1",
+        "distance": 0.4,
+        "distanceUnitRef": "synthetic://units/distance",
+        "electricalParameterSetRef": null
+      },
+      {
+        "edgeRef": "L12",
+        "fromNodeRef": "N1",
+        "toNodeRef": "N2",
+        "distance": 0.3,
+        "distanceUnitRef": "synthetic://units/distance",
+        "electricalParameterSetRef": null
+      },
+      {
+        "edgeRef": "L13",
+        "fromNodeRef": "N1",
+        "toNodeRef": "N3",
+        "distance": 0.5,
+        "distanceUnitRef": "synthetic://units/distance",
+        "electricalParameterSetRef": null
+      }
+    ],
+    "travelEdges": [
+      {
+        "edgeRef": "R01",
+        "fromNodeRef": "N0",
+        "toNodeRef": "N1",
+        "distance": 0.4,
+        "distanceUnitRef": "synthetic://units/distance",
+        "travelAllowed": true,
+        "sharedWithPowerEdgeRef": "L01"
+      },
+      {
+        "edgeRef": "R12",
+        "fromNodeRef": "N1",
+        "toNodeRef": "N2",
+        "distance": 0.3,
+        "distanceUnitRef": "synthetic://units/distance",
+        "travelAllowed": true,
+        "sharedWithPowerEdgeRef": "L12"
+      },
+      {
+        "edgeRef": "R13",
+        "fromNodeRef": "N1",
+        "toNodeRef": "N3",
+        "distance": 0.5,
+        "distanceUnitRef": "synthetic://units/distance",
+        "travelAllowed": true,
+        "sharedWithPowerEdgeRef": "L13"
+      }
+    ]
+  },
+  "loads": [
+    {
+      "loadRef": "load-hospital",
+      "nodeRef": "N2",
+      "activePower": 0.4,
+      "reactivePower": 0.15,
+      "priorityWeight": 10,
+      "powerUnitBindingRef": "synthetic://units/power/v1"
+    },
+    {
+      "loadRef": "load-neighbourhood",
+      "nodeRef": "N3",
+      "activePower": 0.7,
+      "reactivePower": 0.25,
+      "priorityWeight": 3,
+      "powerUnitBindingRef": "synthetic://units/power/v1"
+    }
+  ],
+  "switches": [
+    {
+      "switchRef": "SW13",
+      "edgeRef": "L13",
+      "initiallyClosed": false,
+      "switchingDurationSteps": 1
+    }
+  ],
+  "damagePoints": [
+    {
+      "damageRef": "DP12",
+      "edgeRef": "L12",
+      "positionAlongEdge": 0.25,
+      "positionUnitRef": "synthetic://units/distance",
+      "repairDemand": 3,
+      "repairEffortUnitRef": "synthetic://units/work",
+      "concurrentCrewCapacity": 1,
+      "sourceLocationRef": "synthetic://synthetic-scenario/damage-points/DP12"
+    }
+  ],
+  "repairCrews": [
+    {
+      "crewRef": "RC1",
+      "startNodeRef": "N0",
+      "travelSpeed": 0.2,
+      "travelSpeedUnitRef": "synthetic://units/distance-per-step",
+      "resourceCapacity": 10,
+      "repairEfficiency": 1,
+      "repairEfficiencyUnitRef": "synthetic://units/work-per-step"
+    }
+  ],
+  "mobilePowerSources": [
+    {
+      "mobileSourceRef": "MPS1",
+      "startNodeRef": "N0",
+      "travelSpeed": 0.25,
+      "travelSpeedUnitRef": "synthetic://units/distance-per-step",
+      "maximumActivePower": 0.8,
+      "maximumApparentPower": 1,
+      "mobileEnergyCapacity": 6,
+      "mobileEnergyUnitRef": "synthetic://units/mobile-energy",
+      "energyConsumptionModelRef": "synthetic://model/mobile-energy-consumption/v1"
+    }
+  ],
+  "objective": {
+    "objectiveRef": "synthetic://objective/cumulative-weighted-load/v1",
+    "metricId": "cumulative_weighted_energized_active_power",
+    "formula": "sum_over_time_steps(sum_over_energized_loads(active_power * priority_weight))",
+    "priorityWeightRef": "synthetic://priority-weights/v1",
+    "timeAggregation": "sum_per_step",
+    "scoreUnitRef": "synthetic://unit/weighted-kW-step",
+    "sourceClaimRef": "synthetic://objective-description/illustrative-only"
+  },
+  "modelFidelity": {
+    "topologyModel": "graph_connectivity",
+    "radialityCheck": "graph_cycle_check",
+    "mobilePowerLimitModel": "aggregate_p_q_s",
+    "acLoadFlowEvidence": "not_found_in_audited_source",
+    "voltageConstraintEvidence": "not_found_in_audited_source",
+    "branchThermalConstraintEvidence": "not_found_in_audited_source",
+    "frequencyConstraintEvidence": "not_found_in_audited_source",
+    "fidelityAuditRef": "synthetic://model-fidelity/example"
+  },
+  "authorityBoundary": {
+    "plannerOutputIsProposalOnly": true,
+    "physicalOperationsAuthorized": false,
+    "independentValidatorRef": "synthetic://independent-validator/not-implemented",
+    "claimCeiling": "Synthetic contract-shape example only; not an LARA case and not a physically qualified grid model"
+  }
+}

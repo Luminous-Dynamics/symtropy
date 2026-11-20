@@ -1,0 +1,651 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:external-restoration-instance:0.1.0",
+  "title": "Data-only Power Distribution Restoration Benchmark Instance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "caseId",
+    "caseMaturity",
+    "sourceProfileRef",
+    "timebase",
+    "units",
+    "network",
+    "loads",
+    "switches",
+    "damagePoints",
+    "repairCrews",
+    "mobilePowerSources",
+    "objective",
+    "modelFidelity",
+    "authorityBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "caseId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "caseMaturity": {
+      "enum": [
+        "synthetic_fixture",
+        "source_transcribed",
+        "historical_replay"
+      ]
+    },
+    "sourceProfileRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceArtifacts": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "timebase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stepDurationSeconds",
+        "horizonSteps",
+        "timeOriginRef",
+        "timebaseEvidenceRef",
+        "status"
+      ],
+      "properties": {
+        "stepDurationSeconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "horizonSteps": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "timeOriginRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timebaseEvidenceRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "source_reported",
+            "verified_from_source",
+            "synthetic_assumption",
+            "unresolved"
+          ]
+        }
+      }
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "activePower",
+        "reactivePower",
+        "apparentPower",
+        "distance",
+        "repairEffort",
+        "mobileEnergy"
+      ],
+      "properties": {
+        "activePower": {
+          "$ref": "#/$defs/unitBinding"
+        },
+        "reactivePower": {
+          "$ref": "#/$defs/unitBinding"
+        },
+        "apparentPower": {
+          "$ref": "#/$defs/unitBinding"
+        },
+        "distance": {
+          "$ref": "#/$defs/unitBinding"
+        },
+        "repairEffort": {
+          "$ref": "#/$defs/unitBinding"
+        },
+        "mobileEnergy": {
+          "$ref": "#/$defs/unitBinding"
+        }
+      }
+    },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gridSourceNodeRef",
+        "nodes",
+        "powerEdges",
+        "travelEdges"
+      ],
+      "properties": {
+        "gridSourceNodeRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nodes": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "nodeRef",
+              "nodeType"
+            ],
+            "properties": {
+              "nodeRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "nodeType": {
+                "enum": [
+                  "source",
+                  "load",
+                  "junction",
+                  "switch_terminal",
+                  "other"
+                ]
+              }
+            }
+          }
+        },
+        "powerEdges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "edgeRef",
+              "fromNodeRef",
+              "toNodeRef",
+              "distance",
+              "distanceUnitRef"
+            ],
+            "properties": {
+              "edgeRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "fromNodeRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "toNodeRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "distance": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "distanceUnitRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "electricalParameterSetRef": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "travelEdges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "edgeRef",
+              "fromNodeRef",
+              "toNodeRef",
+              "distance",
+              "distanceUnitRef",
+              "travelAllowed"
+            ],
+            "properties": {
+              "edgeRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "fromNodeRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "toNodeRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "distance": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "distanceUnitRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "travelAllowed": {
+                "type": "boolean"
+              },
+              "sharedWithPowerEdgeRef": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "loads": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "loadRef",
+          "nodeRef",
+          "activePower",
+          "reactivePower",
+          "priorityWeight",
+          "powerUnitBindingRef"
+        ],
+        "properties": {
+          "loadRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "nodeRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "activePower": {
+            "type": "number",
+            "minimum": 0
+          },
+          "reactivePower": {
+            "type": "number"
+          },
+          "priorityWeight": {
+            "type": "number",
+            "minimum": 0
+          },
+          "powerUnitBindingRef": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "switches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "switchRef",
+          "edgeRef",
+          "initiallyClosed",
+          "switchingDurationSteps"
+        ],
+        "properties": {
+          "switchRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "edgeRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "initiallyClosed": {
+            "type": "boolean"
+          },
+          "switchingDurationSteps": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "damagePoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "damageRef",
+          "edgeRef",
+          "positionAlongEdge",
+          "positionUnitRef",
+          "repairDemand",
+          "repairEffortUnitRef",
+          "concurrentCrewCapacity"
+        ],
+        "properties": {
+          "damageRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "edgeRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "positionAlongEdge": {
+            "type": "number",
+            "minimum": 0
+          },
+          "positionUnitRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "repairDemand": {
+            "type": "number",
+            "minimum": 0
+          },
+          "repairEffortUnitRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "concurrentCrewCapacity": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sourceLocationRef": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "repairCrews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "crewRef",
+          "startNodeRef",
+          "travelSpeed",
+          "travelSpeedUnitRef",
+          "resourceCapacity",
+          "repairEfficiency",
+          "repairEfficiencyUnitRef"
+        ],
+        "properties": {
+          "crewRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "startNodeRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "travelSpeed": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "travelSpeedUnitRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "resourceCapacity": {
+            "type": "number",
+            "minimum": 0
+          },
+          "repairEfficiency": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "repairEfficiencyUnitRef": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "mobilePowerSources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "mobileSourceRef",
+          "startNodeRef",
+          "travelSpeed",
+          "travelSpeedUnitRef",
+          "maximumActivePower",
+          "maximumApparentPower",
+          "mobileEnergyCapacity",
+          "mobileEnergyUnitRef",
+          "energyConsumptionModelRef"
+        ],
+        "properties": {
+          "mobileSourceRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "startNodeRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "travelSpeed": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "travelSpeedUnitRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "maximumActivePower": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "maximumApparentPower": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "mobileEnergyCapacity": {
+            "type": "number",
+            "minimum": 0
+          },
+          "mobileEnergyUnitRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "energyConsumptionModelRef": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "objective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "objectiveRef",
+        "metricId",
+        "formula",
+        "priorityWeightRef",
+        "timeAggregation",
+        "scoreUnitRef",
+        "sourceClaimRef"
+      ],
+      "properties": {
+        "objectiveRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "metricId": {
+          "const": "cumulative_weighted_energized_active_power"
+        },
+        "formula": {
+          "const": "sum_over_time_steps(sum_over_energized_loads(active_power * priority_weight))"
+        },
+        "priorityWeightRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timeAggregation": {
+          "enum": [
+            "sum_per_step",
+            "integral_over_seconds",
+            "undocumented"
+          ]
+        },
+        "scoreUnitRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceClaimRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "modelFidelity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "topologyModel",
+        "radialityCheck",
+        "mobilePowerLimitModel",
+        "acLoadFlowEvidence",
+        "voltageConstraintEvidence",
+        "branchThermalConstraintEvidence",
+        "frequencyConstraintEvidence",
+        "fidelityAuditRef"
+      ],
+      "properties": {
+        "topologyModel": {
+          "enum": [
+            "graph_connectivity",
+            "linear_network_model",
+            "full_network_model",
+            "unknown"
+          ]
+        },
+        "radialityCheck": {
+          "enum": [
+            "graph_cycle_check",
+            "electrical_tree_constraints",
+            "none_observed",
+            "unknown"
+          ]
+        },
+        "mobilePowerLimitModel": {
+          "enum": [
+            "aggregate_p_q_s",
+            "per_phase_power_flow",
+            "full_converter_model",
+            "unknown"
+          ]
+        },
+        "acLoadFlowEvidence": {
+          "enum": [
+            "independently_verified",
+            "source_model_claim_only",
+            "not_found_in_audited_source",
+            "unknown"
+          ]
+        },
+        "voltageConstraintEvidence": {
+          "enum": [
+            "independently_verified",
+            "source_model_claim_only",
+            "not_found_in_audited_source",
+            "unknown"
+          ]
+        },
+        "branchThermalConstraintEvidence": {
+          "enum": [
+            "independently_verified",
+            "source_model_claim_only",
+            "not_found_in_audited_source",
+            "unknown"
+          ]
+        },
+        "frequencyConstraintEvidence": {
+          "enum": [
+            "independently_verified",
+            "source_model_claim_only",
+            "not_found_in_audited_source",
+            "unknown"
+          ]
+        },
+        "fidelityAuditRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "authorityBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plannerOutputIsProposalOnly",
+        "physicalOperationsAuthorized",
+        "independentValidatorRef",
+        "claimCeiling"
+      ],
+      "properties": {
+        "plannerOutputIsProposalOnly": {
+          "const": true
+        },
+        "physicalOperationsAuthorized": {
+          "const": false
+        },
+        "independentValidatorRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claimCeiling": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "$defs": {
+    "unitBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "status",
+        "evidenceRef"
+      ],
+      "properties": {
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "source_reported",
+            "verified_from_source",
+            "synthetic_assumption",
+            "ambiguous",
+            "unresolved"
+          ]
+        },
+        "evidenceRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

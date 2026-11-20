@@ -1,0 +1,82 @@
+name: External restoration case contract
+
+on:
+  pull_request:
+    paths:
+      - "tools/external-restoration-case-contract/**"
+      - ".github/workflows/external-restoration-case-contract.yml"
+  push:
+    paths:
+      - "tools/external-restoration-case-contract/**"
+      - ".github/workflows/external-restoration-case-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Validate data-only restoration interchange and source audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate interchange schema, synthetic fixture and source inventory
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("tools/external-restoration-case-contract")
+          schema = json.loads((root / "restoration-instance-v0.1.schema.json").read_text())
+          instance = json.loads((root / "fixtures/synthetic-restoration-instance-v0.1.json").read_text())
+          profile = json.loads((root / "source-profiles/lara-eacl-2026-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER).iter_errors(instance), key=lambda error: list(error.path))
+          assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
+
+          assert instance["caseMaturity"] == "synthetic_fixture"
+          assert instance["sourceProfileRef"].startswith("synthetic://")
+          assert instance["units"]["activePower"]["status"] == "synthetic_assumption"
+          assert instance["authorityBoundary"]["plannerOutputIsProposalOnly"] is True
+          assert instance["authorityBoundary"]["physicalOperationsAuthorized"] is False
+
+          source = profile["source"]
+          assert source["commitSha"] == "0e7d2d79241ce20b2c39a5b0d7fd0f5f60fc2016"
+          assert source["commitSignatureVerified"] is False
+          assert source["licenseFilePresent"] is False
+          assert source["licenseStatus"] == "not_found_in_commit_inventory"
+          assert source["rightsReviewStatus"] == "pending"
+          assert len(profile["sourceInventory"]) == 16
+          pickles = [item for item in profile["sourceInventory"] if item["kind"] == "binary_pickle_scenario"]
+          assert len(pickles) == 5
+          assert [item["byteLength"] for item in pickles] == [1092, 1128, 1120, 1124, 1124]
+          assert all(item["contentState"] == "binary_metadata_only" and item.get("sha256") is None for item in pickles)
+          assert profile["executionSafety"]["untrustedPickleDisposition"] == "do_not_unpickle"
+          assert profile["executionSafety"]["unsafeParserDisposition"] == "do_not_execute_on_untrusted_archive_text"
+          assert profile["modelAudit"]["acLoadFlowEvidence"] == "not_found_in_audited_source"
+          assert profile["modelAudit"]["voltageConstraintEvidence"] == "not_found_in_audited_source"
+          assert profile["objectiveAudit"]["unitResolutionStatus"] == "ambiguous"
+          assert profile["benchmarkReadiness"]["status"] == "source_audited_not_reproduced"
+          comparators = profile["additionalComparators"]
+          assert len(comparators) == 4
+          agentic = next(item for item in comparators if item["arxivId"] == "2611.22016")
+          assert agentic["evidenceClass"] == "arxiv_preprint"
+          assert agentic["scenarioProtocol"] == {"perTopology": 250, "training": 200, "validation": 25, "heldOut": 25}
+          assert agentic["reproductionStatus"] == "paper_audited_not_reproduced"
+          assert any(item["networkClass"] == "unbalanced_three_phase_distribution" for item in comparators)
+          assert any(item["networkClass"] == "207_node_hybrid_ac_dc_distribution" for item in comparators)
+
+          nodes = {item["nodeRef"] for item in instance["network"]["nodes"]}
+          assert instance["network"]["gridSourceNodeRef"] in nodes
+          assert all(edge["fromNodeRef"] in nodes and edge["toNodeRef"] in nodes for edge in instance["network"]["powerEdges"])
+          assert all(edge["fromNodeRef"] in nodes and edge["toNodeRef"] in nodes for edge in instance["network"]["travelEdges"])
+          assert all(load["nodeRef"] in nodes for load in instance["loads"])
+          print("PASS: schema, data-only synthetic instance, pinned LARA inventory and non-execution boundaries")
+          PY
