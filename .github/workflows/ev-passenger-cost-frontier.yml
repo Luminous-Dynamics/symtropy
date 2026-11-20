@@ -35,6 +35,8 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_design_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/schemas/ev_carrier_module_processes_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_processes_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/schemas/ev_carrier_module_lifecycle_v0_1.schema.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_lifecycle_v0_1.json
           jq -e '
             .benchmark_id == "EV-PUBLIC-COMPONENT-BENCHMARKS-001"
             and .observed_as_of == "2026-10-20"
@@ -120,6 +122,24 @@ jobs:
             and all(.results[] | select(.config_id == "integrated-drone-bay-production-intent-unknown"); .status == "indeterminate" and .equivalent_good_vehicle_capacity_per_year == null)
             and all(.results[]; .base_factory_production_release_ready == false)
           ' ev-carrier-module-factory-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_carrier_module_lifecycle_screen -- \
+            ev-carrier-module-factory-report.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_lifecycle_v0_1.json \
+            > ev-carrier-module-lifecycle-report.json
+          jq -e '
+            .benchmark_id == "EV-CARRIER-LIFECYCLE-001"
+            and .factory_benchmark_id == "EV-CARRIER-MODULE-MFG-001"
+            and .scenario_count == 108
+            and .lifecycle_profile_count == 3
+            and .result_count == 108
+            and .full_lifecycle_ranking_available == false
+            and all(.results[]; .full_lifecycle_ranking_eligible == false)
+            and all(.results[]; .return_to_service_authorized == false)
+            and all(.results[]; .module_production_release_ready == false)
+            and all(.results[] | select(.config_id == "detachable-uav-pod-synthetic-demo"); .scheduled_downtime_hours_per_module_year == 2.5 and .total_downtime_hours_per_module_year == null)
+            and all(.results[] | select(.config_id == "amr-handoff-synthetic-demo"); ((.scheduled_downtime_hours_per_module_year - 0.8333333333 | fabs) < 0.000001) and .total_downtime_hours_per_module_year == null)
+            and all(.results[] | select(.config_id == "integrated-drone-bay-production-intent-unknown"); .scheduled_downtime_hours_per_module_year == null and .status == "indeterminate")
+          ' ev-carrier-module-lifecycle-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
@@ -134,6 +154,11 @@ jobs:
             tools/ev-passenger-cost-frontier/src/carrier_module_factory.rs \
             tools/ev-passenger-cost-frontier/src/lib.rs \
             tools/ev-passenger-cost-frontier/src/bin/ev_carrier_module_factory_screen.rs \
+            tools/ev-passenger-cost-frontier/src/carrier_module_lifecycle.rs \
+            tools/ev-passenger-cost-frontier/src/bin/ev_carrier_module_lifecycle_screen.rs \
+            tools/ev-passenger-cost-frontier/schemas/ev_carrier_module_lifecycle_v0_1.schema.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_lifecycle_v0_1.json \
+            ev-carrier-module-lifecycle-report.json \
             ev-passenger-cost-report.json ev-localization-cost-report.json ev-factory-design-report.json ev-carrier-module-factory-report.json > ev-passenger-cost-report.sha256
       - uses: actions/upload-artifact@v4
         with:
@@ -143,7 +168,10 @@ jobs:
             ev-localization-cost-report.json
             ev-factory-design-report.json
             ev-carrier-module-factory-report.json
+            ev-carrier-module-lifecycle-report.json
             tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_processes_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/ev_carrier_module_processes_v0_1.schema.json
+            tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_lifecycle_v0_1.json
+            tools/ev-passenger-cost-frontier/schemas/ev_carrier_module_lifecycle_v0_1.schema.json
             ev-passenger-cost-report.sha256
           if-no-files-found: error
