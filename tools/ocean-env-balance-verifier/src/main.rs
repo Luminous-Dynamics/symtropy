@@ -565,9 +565,15 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
     for role in REQUIRED_ROLES {
         let station = temperatures[role];
         let anomaly = station.temperature_deg_c - reference.temperature_deg_c;
-        let u_anomaly_instrument = (station.standard_uncertainty_deg_c.powi(2)
-            + reference.standard_uncertainty_deg_c.powi(2)).sqrt();
-        let lag_sensitivity = if role == "intake" {
+        let u_anomaly_instrument = if role == "independent_reference_control" {
+            0.0
+        } else {
+            (station.standard_uncertainty_deg_c.powi(2)
+                + reference.standard_uncertainty_deg_c.powi(2)).sqrt()
+        };
+        let lag_sensitivity = if role == "independent_reference_control" {
+            0.0
+        } else if role == "intake" {
             -reference.temporal_rate_deg_c_per_s
         } else {
             station.temporal_rate_deg_c_per_s - reference.temporal_rate_deg_c_per_s
@@ -721,14 +727,20 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
                     .map(|sample| sample.temporal_rate_mg_l_per_s)
                     .unwrap_or(0.0),
             };
-            let lag_sensitivity = if role == "intake" {
+            let lag_sensitivity = if role == "independent_reference_control" {
+                0.0
+            } else if role == "intake" {
                 -reference_sample.temporal_rate_mg_l_per_s
             } else {
                 station_rate - reference_sample.temporal_rate_mg_l_per_s
             };
             let alignment_uncertainty = lag_sensitivity.abs() * u_lag;
-            let delta_uncertainty_instrument = (uncertainty.powi(2)
-                + reference_sample.standard_uncertainty_mg_l.powi(2)).sqrt();
+            let delta_uncertainty_instrument = if role == "independent_reference_control" {
+                0.0
+            } else {
+                (uncertainty.powi(2)
+                    + reference_sample.standard_uncertainty_mg_l.powi(2)).sqrt()
+            };
             let delta_uncertainty = (delta_uncertainty_instrument.powi(2)
                 + alignment_uncertainty.powi(2)).sqrt();
             finite(delta, "station concentration anomaly")?;
@@ -993,7 +1005,7 @@ mod tests {
         b.interval_records[0].plume_concentration_observations.retain(|sample|
             sample.station_role != "far_field_impact"
         );
-        assert!(validate(&b).unwrap_err().contains("three plume/reference samples"))
+        assert!(validate(&b).unwrap_err().contains("exactly three plume/reference samples"));
     }
     #[test]
     fn missing_calibration_independence_domain_is_rejected() {
@@ -1024,5 +1036,19 @@ mod tests {
                 p.outfall_hydraulic_alignment_standard_uncertainty_g_s > 0.0
             )
         ));
+    }
+    #[test]
+    fn reference_station_anomalies_have_zero_self_difference_uncertainty() {
+        let report = validate(&fixture()).expect("fixture validates");
+        assert!(report.interval_results.iter().all(|interval| {
+            let temp = interval.station_anomalies.iter()
+                .find(|x| x.station_role == "independent_reference_control").unwrap();
+            let chemistry = interval.pollutant_station_anomalies.iter()
+                .find(|x| x.station_role == "independent_reference_control").unwrap();
+            temp.standard_uncertainty_deg_c == 0.0
+                && temp.hydraulic_alignment_standard_uncertainty_deg_c == 0.0
+                && chemistry.standard_uncertainty_mg_l == 0.0
+                && chemistry.hydraulic_alignment_standard_uncertainty_mg_l == 0.0
+        }));
     }
 }
