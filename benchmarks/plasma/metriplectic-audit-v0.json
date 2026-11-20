@@ -1,0 +1,56 @@
+{
+  "schema_version": "luminous.plasma-metriplectic-audit.v0.1",
+  "request_id": "synthetic-mixed-generic-known-answer",
+  "source_id": "synthetic-generic-structure-fixture",
+  "state_id": "state-3d-1",
+  "coordinate_frame_id": "state-space-basis-xyz",
+  "state_units_id": "normalized_state",
+  "energy_units_id": "normalized_energy",
+  "entropy_units_id": "normalized_entropy",
+  "state": [
+    1,
+    0,
+    0
+  ],
+  "energy_gradient": [
+    1,
+    0,
+    0
+  ],
+  "entropy_gradient": [
+    0,
+    0,
+    1
+  ],
+  "reversible_operator": [
+    0,
+    -1,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "dissipative_operator": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1
+  ],
+  "tolerances": {
+    "reversible_skew_relative": 1e-12,
+    "dissipative_symmetry_relative": 1e-12,
+    "dissipative_psd_relative": 1e-12,
+    "entropy_degeneracy_relative": 1e-12,
+    "energy_degeneracy_relative": 1e-12,
+    "energy_rate_relative": 1e-12,
+    "entropy_rate_relative": 1e-12
+  }
+}
