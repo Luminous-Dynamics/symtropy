@@ -87,6 +87,38 @@ def evaluate(
         if len(relation_digest) != 64 or any(ch not in "0123456789abcdef" for ch in relation_digest):
             raise EvaluationError("renderer_qualified timing requires a SHA-256 clock relation reference")
 
+    renderer_rows = submission.get("renderer_lifecycle_events")
+    if not isinstance(renderer_rows, list):
+        raise EvaluationError("renderer_lifecycle_events must be an array")
+    renderer_events = index_unique(renderer_rows, "event_ref")
+    allowed_renderer_kinds = {
+        "assistant_speech_permitted", "playback_started", "playback_ended",
+        "output_stop_requested", "output_stopped",
+    }
+    for event_ref, event in renderer_events.items():
+        if event.get("event_kind") not in allowed_renderer_kinds:
+            raise EvaluationError(f"unknown renderer lifecycle event kind for {event_ref}")
+        epoch = event.get("session_epoch")
+        tick = event.get("tick")
+        turn_id = event.get("turn_id")
+        if not isinstance(epoch, int) or isinstance(epoch, bool) or epoch < 1:
+            raise EvaluationError(f"invalid renderer session epoch: {event_ref}")
+        if not isinstance(turn_id, str) or not turn_id.strip():
+            raise EvaluationError(f"invalid renderer turn identity: {event_ref}")
+        if not isinstance(tick, int) or isinstance(tick, bool) or tick < 0:
+            raise EvaluationError(f"invalid renderer event tick: {event_ref}")
+        if event["event_kind"] == "output_stopped":
+            cause_ref = event.get("cause_event_ref")
+            cause = renderer_events.get(cause_ref)
+            if (
+                cause is None
+                or cause.get("event_kind") != "output_stop_requested"
+                or cause.get("session_epoch") != epoch
+                or cause.get("turn_id") != turn_id
+                or cause.get("tick") > tick
+            ):
+                raise EvaluationError(f"OutputStopped lacks a matching prior OutputStopRequested: {event_ref}")
+
     response_ids: set[str] = set()
     lifecycle_event_refs: set[str] = set()
     responses_by_episode: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -109,13 +141,52 @@ def evaluate(
             raise EvaluationError("playback start and end must reference distinct renderer events")
         if end_kind not in {"playback_ended", "output_stopped"}:
             raise EvaluationError("response requires playback_ended or output_stopped evidence")
+        start_event = renderer_events.get(start_ref)
+        end_event = renderer_events.get(end_ref)
+        if start_event is None or start_event.get("event_kind") != "playback_started":
+            raise EvaluationError("response start must resolve to a renderer PlaybackStarted event")
+        expected_end_kind = end_kind
+        if end_event is None or end_event.get("event_kind") != expected_end_kind:
+            raise EvaluationError("response end must resolve to the declared PlaybackEnded or OutputStopped event")
+        session_epoch = response.get("session_epoch")
+        turn_id = response.get("turn_id")
+        for label, event in (("start", start_event), ("end", end_event)):
+            if event.get("session_epoch") != session_epoch or event.get("turn_id") != turn_id:
+                raise EvaluationError(f"renderer {label} event crosses response session/turn identity")
+        if start_event["tick"] != response.get("response_start_tick"):
+            raise EvaluationError("response_start_tick must equal the referenced PlaybackStarted tick")
+        if end_event["tick"] != response.get("response_end_tick"):
+            raise EvaluationError("response_end_tick must equal the referenced renderer end-event tick")
+        permission_ref = response.get("controller_permission_event_ref")
+        if permission_ref is not None:
+            permission = renderer_events.get(permission_ref)
+            if (
+                permission is None
+                or permission.get("event_kind") != "assistant_speech_permitted"
+                or permission.get("session_epoch") != session_epoch
+                or permission.get("turn_id") != turn_id
+                or permission.get("tick") > start_event["tick"]
+            ):
+                raise EvaluationError("controller permission receipt is not valid for this renderer turn")
+        event_refs = [start_ref, end_ref]
+        if permission_ref is not None:
+            event_refs.append(permission_ref)
         if end_kind == "output_stopped":
             stop_request_ref = response.get("output_stop_request_event_ref")
-            if not isinstance(stop_request_ref, str) or not stop_request_ref.strip():
-                raise EvaluationError("output_stopped requires its linked stop/yield request reference")
-        event_refs = [start_ref, end_ref]
-        if end_kind == "output_stopped":
-            event_refs.append(response["output_stop_request_event_ref"])
+            stop_request = renderer_events.get(stop_request_ref)
+            if (
+                not isinstance(stop_request_ref, str) or not stop_request_ref.strip()
+                or stop_request is None
+                or stop_request.get("event_kind") != "output_stop_requested"
+                or stop_request.get("session_epoch") != session_epoch
+                or stop_request.get("turn_id") != turn_id
+                or not start_event["tick"] <= stop_request["tick"] <= end_event["tick"]
+                or end_event.get("cause_event_ref") != stop_request_ref
+            ):
+                raise EvaluationError("OutputStopped requires its linked same-turn stop/yield request")
+            event_refs.append(stop_request_ref)
+        elif response.get("output_stop_request_event_ref") is not None:
+            raise EvaluationError("natural PlaybackEnded must not carry an output-stop request reference")
         for event_ref in event_refs:
             if event_ref in lifecycle_event_refs:
                 raise EvaluationError(f"duplicate renderer/controller lifecycle event reference: {event_ref}")
