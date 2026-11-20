@@ -255,6 +255,8 @@ fn validate_campaign(campaign: &FaultCampaign) -> Result<(), String> {
 
     let mut episode_ids = BTreeSet::new();
     let mut amplitude_trials: BTreeSet<(String, String, u64)> = BTreeSet::new();
+    let mut amplitude_units: BTreeMap<String, String> = BTreeMap::new();
+    let mut specimen_configurations: BTreeMap<String, String> = BTreeMap::new();
     let mut specimen_ids = BTreeSet::new();
 
     for episode in &campaign.fault_episodes {
@@ -293,6 +295,30 @@ fn validate_campaign(campaign: &FaultCampaign) -> Result<(), String> {
         }
         if !nonempty(&episode.configuration_digest) {
             return Err(format!("fault episode {} is missing configuration digest", episode.episode_id));
+        }
+        match amplitude_units.get(&episode.fault_class) {
+            Some(unit) if unit != &episode.amplitude_unit => {
+                return Err(format!(
+                    "fault class {} uses inconsistent amplitude units",
+                    episode.fault_class
+                ));
+            }
+            None => {
+                amplitude_units.insert(episode.fault_class.clone(), episode.amplitude_unit.clone());
+            }
+            _ => {}
+        }
+        match specimen_configurations.get(&episode.specimen_id) {
+            Some(configuration) if configuration != &episode.configuration_digest => {
+                return Err(format!(
+                    "specimen {} has inconsistent configuration digests across records",
+                    episode.specimen_id
+                ));
+            }
+            None => {
+                specimen_configurations.insert(episode.specimen_id.clone(), episode.configuration_digest.clone());
+            }
+            _ => {}
         }
         let key = (
             episode.specimen_id.clone(),
@@ -353,6 +379,18 @@ fn validate_campaign(campaign: &FaultCampaign) -> Result<(), String> {
             return Err(format!("no-fault exposure {} has mismatched boundary/condition/mission identity", exposure.exposure_id));
         }
         specimen_ids.insert(exposure.specimen_id.as_str());
+        match specimen_configurations.get(&exposure.specimen_id) {
+            Some(configuration) if configuration != &exposure.configuration_digest => {
+                return Err(format!(
+                    "specimen {} has inconsistent configuration digests across records",
+                    exposure.specimen_id
+                ));
+            }
+            None => {
+                specimen_configurations.insert(exposure.specimen_id.clone(), exposure.configuration_digest.clone());
+            }
+            _ => {}
+        }
 
         for episode in campaign.fault_episodes.iter().filter(|episode| episode.specimen_id == exposure.specimen_id) {
             if overlaps(exposure.start_s, exposure.end_s, episode.onset_s, episode.clear_s) {
@@ -403,6 +441,18 @@ fn validate_campaign(campaign: &FaultCampaign) -> Result<(), String> {
         {
             return Err(format!("alarm {} has mismatched detector/boundary/condition/mission identity", alarm.alarm_id));
         }
+        match specimen_configurations.get(&alarm.specimen_id) {
+            Some(configuration) if configuration != &alarm.configuration_digest => {
+                return Err(format!(
+                    "specimen {} has inconsistent configuration digests across records",
+                    alarm.specimen_id
+                ));
+            }
+            None => {
+                specimen_configurations.insert(alarm.specimen_id.clone(), alarm.configuration_digest.clone());
+            }
+            _ => {}
+        }
         if alarm.hypothesized_fault_classes.is_empty() {
             return Err(format!("alarm {} has no hypothesized fault class", alarm.alarm_id));
         }
@@ -434,7 +484,7 @@ fn active_fault_classes<'a>(
         .filter(|episode| {
             episode.specimen_id == specimen_id
                 && time_s >= episode.onset_s
-                && time_s <= episode.clear_s
+                && time_s < episode.clear_s
         })
         .map(|episode| episode.fault_class.as_str())
         .collect();
@@ -483,7 +533,7 @@ pub fn evaluate_fault_campaign(campaign: &FaultCampaign) -> Result<FaultObservab
             .filter(|alarm| {
                 alarm.specimen_id == episode.specimen_id
                     && alarm.alarm_time_s >= episode.onset_s
-                    && alarm.alarm_time_s <= episode.clear_s
+                    && alarm.alarm_time_s < episode.clear_s
                     && alarm.hypothesized_fault_classes.iter().any(|class| class == &episode.fault_class)
             })
             .min_by(|left, right| left.alarm_time_s.total_cmp(&right.alarm_time_s));
@@ -1013,7 +1063,31 @@ mod tests {
     }
 
     #[test]
-    fn fault_018_insufficient_amplitude_grid_does_not_claim_mdfa() {
+    fn fault_018_configuration_digest_must_match_across_specimen_records() {
+        let mut campaign = known_campaign();
+        campaign.alarm_episodes[0].configuration_digest = "stale-config".to_owned();
+        assert!(evaluate_fault_campaign(&campaign).is_err());
+
+        let mut campaign = known_campaign();
+        campaign.no_fault_exposure[0].configuration_digest = "stale-config".to_owned();
+        assert!(evaluate_fault_campaign(&campaign).is_err());
+    }
+
+    #[test]
+    fn fault_019_fault_clear_time_is_exclusive_for_detection() {
+        let mut campaign = known_campaign();
+        campaign.alarm_episodes.retain(|alarm| alarm.specimen_id != "spec-0.2-00");
+        campaign.alarm_episodes.push(alarm("spec-0.2-00", 5.0, &[GEARBOX], "alarm-at-clear"));
+        let report = evaluate_fault_campaign(&campaign).unwrap();
+        let event = report.fault_assessments.iter()
+            .find(|event| event.specimen_id == "spec-0.2-00")
+            .unwrap();
+        assert_eq!(event.disposition, FaultEventDisposition::Missed);
+        assert_eq!(report.unscored_alarm_count, 1);
+    }
+
+    #[test]
+    fn fault_026_insufficient_amplitude_grid_does_not_claim_mdfa() {
         let mut campaign = known_campaign();
         campaign.fault_episodes.retain(|episode| episode.fault_class != GEARBOX || episode.amplitude == 0.3);
         let report = evaluate_fault_campaign(&campaign).unwrap();
@@ -1035,7 +1109,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_020_no_fault_exposure_windows_may_not_overlap_each_other() {
+    fn fault_026_no_fault_exposure_windows_may_not_overlap_each_other() {
         let mut campaign = known_campaign();
         let mut duplicate_window = campaign.no_fault_exposure[0].clone();
         duplicate_window.exposure_id = "overlapping-window".to_owned();
@@ -1046,21 +1120,21 @@ mod tests {
     }
 
     #[test]
-    fn fault_021_unknown_alarm_hypotheses_reject() {
+    fn fault_025_unknown_alarm_hypotheses_reject() {
         let mut campaign = known_campaign();
         campaign.alarm_episodes[0].hypothesized_fault_classes = vec!["mystery-fault".to_owned()];
         assert!(evaluate_fault_campaign(&campaign).is_err());
     }
 
     #[test]
-    fn fault_022_expected_fault_classes_must_be_unique_and_nonempty() {
+    fn fault_026_expected_fault_classes_must_be_unique_and_nonempty() {
         let mut campaign = known_campaign();
         campaign.plan.expected_fault_classes.push(GEARBOX.to_owned());
         assert!(evaluate_fault_campaign(&campaign).is_err());
     }
 
     #[test]
-    fn fault_023_zero_alarm_is_not_a_correct_diagnosis() {
+    fn fault_025_zero_alarm_is_not_a_correct_diagnosis() {
         let mut campaign = known_campaign();
         campaign.alarm_episodes.clear();
         let report = evaluate_fault_campaign(&campaign).unwrap();
@@ -1070,7 +1144,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_024_specimen_amplitude_group_reports_wilson_interval() {
+    fn fault_026_specimen_amplitude_group_reports_wilson_interval() {
         let report = evaluate_fault_campaign(&known_campaign()).unwrap();
         let perfect = report.amplitude_sensitivity.iter()
             .find(|level| level.fault_class == GEARBOX && level.amplitude == 0.3)
