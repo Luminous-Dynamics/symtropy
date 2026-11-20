@@ -13,6 +13,7 @@ power-restoration-benchmark-case = { path = "../power-restoration-benchmark-case
 power-restoration-action-proposal = { path = "../power-restoration-action-proposal" }
 power-restoration-run-receipt = { path = "../power-restoration-run-receipt" }
 power-restoration-observation-evidence = { path = "../power-restoration-observation-evidence" }
+power-restoration-service-trajectory-audit = { path = "../power-restoration-service-trajectory-audit" }
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.154"
 sha2 = "=0.10.9"
