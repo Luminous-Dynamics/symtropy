@@ -122,7 +122,7 @@ class EvaluatorTests(unittest.TestCase):
         row = next(x for x in candidate["predictions"] if x["episode_id"] == "conflict")
         row.update(answer=None, confidence=0.0, abstained=True)
         score = evaluator.evaluate(self.workload, self.truth, candidate)
-        result = next(x for x in score["per_episode"] if x["episode_id"] == "misaligned")
+        result = next(x for x in score["per_episode"] if x["episode_id"] == "conflict")
         self.assertTrue(result["decision_correct"])
         self.assertFalse(result["answer_correct"])
         self.assertTrue(result["evidence_compliant"])
