@@ -103,7 +103,7 @@ pub enum IneligibilityReason {
     InvalidProfileDigest,
     InvalidModelDigest,
     CompatibilityMismatch,
-    ZeroMomentOrder,
+    ZeroParallelMomentOrder,
     ErrorEstimatorUnknown,
     ErrorEstimatorRejected,
     ErrorEstimatorStateMismatch,
@@ -253,6 +253,7 @@ pub fn evaluate_adaptive_fidelity(
             }),
         }
     }
+    rejected.sort_by(|left, right| left.profile_id.cmp(&right.profile_id));
 
     eligible.sort_by(|left, right| {
         let a = left.candidate;
@@ -260,8 +261,8 @@ pub fn evaluate_adaptive_fidelity(
         a.computational_cost
             .total_cmp(&b.computational_cost)
             .then_with(|| {
-                ((u64::from(a.parallel_order_p) + 1) * (u64::from(a.perpendicular_order_q) + 1))
-                    .cmp(&((u64::from(b.parallel_order_p) + 1) * (u64::from(b.perpendicular_order_q) + 1)))
+                ((u128::from(a.parallel_order_p) + 1) * (u128::from(a.perpendicular_order_q) + 1))
+                    .cmp(&((u128::from(b.parallel_order_p) + 1) * (u128::from(b.perpendicular_order_q) + 1)))
             })
             .then_with(|| a.parallel_order_p.cmp(&b.parallel_order_p))
             .then_with(|| a.perpendicular_order_q.cmp(&b.perpendicular_order_q))
@@ -307,6 +308,7 @@ pub fn evaluate_adaptive_fidelity(
                         profile_id: patch.patch_profile_id.clone(),
                         reason,
                     });
+                    rejected.sort_by(|left, right| left.profile_id.cmp(&right.profile_id));
                     return Ok(PolicyDecision::Unknown {
                         reason: UnknownReason::KineticPatchQualificationUnknown,
                         ineligible_candidates: rejected,
@@ -317,6 +319,7 @@ pub fn evaluate_adaptive_fidelity(
                         profile_id: patch.patch_profile_id.clone(),
                         reason,
                     });
+                    rejected.sort_by(|left, right| left.profile_id.cmp(&right.profile_id));
                     return Ok(PolicyDecision::Refused {
                         ineligible_candidates: rejected,
                         reason: "kinetic patch is ineligible".to_owned(),
@@ -348,6 +351,7 @@ pub fn evaluate_adaptive_fidelity(
                     profile_id: patch.patch_profile_id.clone(),
                     reason,
                 });
+                rejected.sort_by(|left, right| left.profile_id.cmp(&right.profile_id));
                 return Ok(PolicyDecision::Unknown {
                     reason: UnknownReason::KineticPatchQualificationUnknown,
                     ineligible_candidates: rejected,
@@ -358,6 +362,7 @@ pub fn evaluate_adaptive_fidelity(
                     profile_id: patch.patch_profile_id.clone(),
                     reason,
                 });
+                rejected.sort_by(|left, right| left.profile_id.cmp(&right.profile_id));
             }
         }
     }
@@ -444,8 +449,8 @@ fn assess_candidate(
     if candidate.compatibility != request.compatibility {
         return CandidateAssessment::Rejected(IneligibilityReason::CompatibilityMismatch);
     }
-    if candidate.parallel_order_p == 0 || candidate.perpendicular_order_q == 0 {
-        return CandidateAssessment::Rejected(IneligibilityReason::ZeroMomentOrder);
+    if candidate.parallel_order_p == 0 {
+        return CandidateAssessment::Rejected(IneligibilityReason::ZeroParallelMomentOrder);
     }
     if candidate.cost_unit_id != request.cost_unit_id {
         return CandidateAssessment::Rejected(IneligibilityReason::CostUnitMismatch);
@@ -906,6 +911,31 @@ mod tests {
                 ineligible_candidates,
                 ..
             } if ineligible_candidates[0].reason == IneligibilityReason::CostUnitMismatch
+        ));
+    }
+
+
+    #[test]
+    fn zero_perpendicular_order_is_supported_for_reduced_model_families() {
+        let mut reduced = candidate("parallel-only", 4, 4, 1.0, 0.01);
+        reduced.perpendicular_order_q = 0;
+        let result = evaluate_adaptive_fidelity(&request(vec![reduced])).unwrap();
+        assert!(matches!(
+            result,
+            PolicyDecision::SelectedMomentOrder(ref selected)
+                if selected.profile_id == "parallel-only"
+                    && selected.perpendicular_order_q == 0
+        ));
+    }
+
+    #[test]
+    fn qualified_kinetic_patch_can_be_requested_without_moment_candidates() {
+        let mut req = request(vec![]);
+        req.kinetic_patch = Some(kinetic_patch());
+        assert!(matches!(
+            evaluate_adaptive_fidelity(&req).unwrap(),
+            PolicyDecision::RequestKineticPatch(ref patch)
+                if patch.patch_profile_id == "synthetic-kinetic-patch"
         ));
     }
 
