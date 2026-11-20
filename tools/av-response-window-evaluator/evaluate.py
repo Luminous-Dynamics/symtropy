@@ -136,6 +136,7 @@ def evaluate(
             raise EvaluationError(f"{episode_id}: stream_events must be an array")
         seen_event_ids: set[str] = set()
         visible_trigger_refs: set[str] = set()
+        trigger_ticks: dict[str, int] = {}
         cancellation_ticks: dict[str, int] = {}
         previous_event_tick = -1
         for event in stream_events:
@@ -150,6 +151,8 @@ def evaluate(
             trigger_ref = event.get("trigger_ref")
             if isinstance(trigger_ref, str) and trigger_ref:
                 visible_trigger_refs.add(trigger_ref)
+                if event.get("kind") in {"trigger", "duplicate_trigger"}:
+                    trigger_ticks.setdefault(trigger_ref, tick)
                 if event.get("kind") == "cancel":
                     cancellation_ticks[trigger_ref] = min(
                         cancellation_ticks.get(trigger_ref, tick), tick
@@ -158,8 +161,26 @@ def evaluate(
             if trigger_ref not in visible_trigger_refs:
                 raise EvaluationError(f"{episode_id}: truth trigger_ref is not in candidate-visible workload")
 
+        for opportunity in opportunity_rows:
+            if opportunity.get("expected_participation") == "respond":
+                trigger_tick = trigger_ticks.get(opportunity["trigger_ref"])
+                window_start = opportunity.get("window_start_tick")
+                window_end = opportunity.get("window_end_tick")
+                if trigger_tick is None:
+                    raise EvaluationError(f"{episode_id}: response opportunity has no first-delivery trigger")
+                if (
+                    not isinstance(window_start, int) or isinstance(window_start, bool)
+                    or not isinstance(window_end, int) or isinstance(window_end, bool)
+                    or window_start < trigger_tick
+                    or window_end <= window_start
+                    or window_start < query_tick
+                    or window_end > deadline
+                ):
+                    raise EvaluationError(f"{episode_id}/{opportunity['opportunity_id']}: response window is not causally admissible")
+
         by_opportunity: dict[str, list[dict[str, Any]]] = defaultdict(list)
         episode_violations: list[str] = []
+        validated_intervals: list[tuple[int, int, str]] = []
         for response in responses_by_episode[episode_id]:
             trigger_ref = response.get("assigned_trigger_ref")
             if trigger_ref not in opportunities_by_trigger:
@@ -177,6 +198,7 @@ def evaluate(
                 episode_violations.append("response_precedes_query")
             if end_tick > deadline:
                 episode_violations.append("response_overhang_past_episode_deadline")
+            validated_intervals.append((start_tick, end_tick, response["response_id"]))
             cancel_tick = cancellation_ticks.get(trigger_ref)
             if cancel_tick is not None:
                 if start_tick >= cancel_tick:
@@ -186,6 +208,11 @@ def evaluate(
             opportunity = opportunities_by_trigger[trigger_ref]
             opportunity_id = opportunity["opportunity_id"]
             by_opportunity[opportunity_id].append(response)
+
+        validated_intervals.sort()
+        for previous, current in zip(validated_intervals, validated_intervals[1:]):
+            if current[0] < previous[1]:
+                episode_violations.append("assistant_response_intervals_overlap")
 
         episode_total = {
             "opportunity_count": len(opportunities),
