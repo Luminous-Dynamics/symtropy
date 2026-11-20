@@ -1020,7 +1020,7 @@ mod tests {
         let direct_energy = samples
             .iter()
             .map(|(weight, point)| {
-                weight * (angular_map * (*point - center_of_mass)).norm_squared()
+                *weight * (angular_map * (*point - center_of_mass)).norm_squared()
             })
             .sum::<f64>();
 
