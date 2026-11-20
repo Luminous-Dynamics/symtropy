@@ -4,6 +4,7 @@
 //! compatibility declarations for one internal face and derives both cell
 //! transfers from one shared, canonical face flux.
 
+pub mod boundary;
 pub mod entropy;
 
 pub const SCHEMA_VERSION: &str = "luminous.plasma-closure-composition.v0.1";
