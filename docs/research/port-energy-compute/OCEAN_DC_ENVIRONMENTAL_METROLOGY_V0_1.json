@@ -620,7 +620,15 @@
       "source_rights",
       "raw_data_digest",
       "processing_version",
-      "custody_receipt"
+      "custody_receipt",
+      "clock_offset_ms",
+      "calibration_independence_domain",
+      "calibration_valid_from_utc",
+      "calibration_valid_until_utc",
+      "sample_preservation_state",
+      "sample_collection_method",
+      "chain_of_custody_id",
+      "laboratory_batch_id"
     ],
     "quality_states": [
       "valid",
@@ -635,9 +643,9 @@
       "synthetic",
       "unavailable"
     ],
-    "rule": "unknown, provisional, unavailable, synthetic, stale, uncalibrated or conflicting evidence cannot be presented as measured zero or used to satisfy an environmental gate.",
-    "time_rule": "Store UTC timestamps and retain source clock/time synchronisation evidence; do not silently interpolate gaps across environmental events.",
-    "uncertainty_rule": "Report the uncertainty budget and detection limit with every numeric result; an outfall below detection limit is not proof that no pollutant exists."
+    "rule": "unknown, provisional, unavailable, synthetic, stale, uncalibrated, clock-skewed or conflicting evidence cannot be presented as measured zero or used to satisfy an environmental gate; every sample's signed clock offset and calibration-validity window must be checked against its own observation window.",
+    "time_rule": "Store UTC timestamps and signed per-sample logger/sensor clock offset plus synchronization evidence; the maximum offset is a project acceptance parameter, not a universal standard limit; do not silently interpolate gaps across environmental events.",
+    "uncertainty_rule": "Report the uncertainty budget, detection limit, calibration independence domain and any covariance treatment with every numeric result; a common hydraulic residence-time error must be propagated as a shared input; an outfall below detection limit is not proof that no pollutant exists."
   },
   "spatial_sampling_design": {
     "required_station_roles": [
@@ -817,5 +825,24 @@
     ],
     "project_rule": "Candidate terms are a mapping starting point, not a complete Darwin Core profile. Confirm current OBIS Manual guidance and provider/node requirements before publication. Preserve source-specific fields and quality flags; failed checks are flagged/quarantined rather than silently deleted or upgraded.",
     "rights_rule": "Use rights-reviewed and purpose-compatible records. Retain attribution, ownership, licence, sensitive-species location restrictions and applicable CARE/FAIR obligations."
+  },
+  "measurement_pipeline": {
+    "bundle": "OCEAN_ENVIRONMENT_MEASUREMENT_BUNDLE_V0_1.json",
+    "pipeline_document": "OCEAN_ENV_MEASUREMENT_PIPELINE_V0_1.md",
+    "verifier": "tools/ocean-env-balance-verifier/",
+    "data_quality_state": "synthetic_only",
+    "implemented_contracts": [
+      "signed_per_sample_clock_offset",
+      "calibration_validity_over_exact_sample_window",
+      "residence_time_aligned_intake_outfall_pairing",
+      "sample_preservation_and_chain_of_custody",
+      "thermal_energy_and_pollutant_mass_flux",
+      "common_lag_covariance_propagation",
+      "GUM_first_order_vs_deterministic_Monte_Carlo_crosscheck",
+      "SHA256_exact_input_bytes",
+      "explicit_time_gap_reporting",
+      "restricted_single_pass_flow_closure"
+    ],
+    "claim_ceiling": "The measurement bundle and verifier are a software/metrology fixture. No field observation, compliance, ecological result or site clearance is asserted."
   }
 }
