@@ -472,16 +472,23 @@ fn explore_paths(
     feasible_paths: &mut Vec<Value>,
     rejected_edges: &mut Vec<Value>,
     errors: &mut Vec<String>,
+    search_truncated: &mut bool,
 ) {
-    if path.len() >= depth_limit || feasible_paths.len() >= max_paths {
-        return;
-    }
     let mut outgoing = actions.iter()
         .filter(|action| string_at(action, "from_node") == Some(node))
         .collect::<Vec<_>>();
     outgoing.sort_by_key(|action| string_at(action, "action_id").unwrap_or(""));
+    if path.len() >= depth_limit && !outgoing.is_empty() {
+        *search_truncated = true;
+        return;
+    }
+    if feasible_paths.len() >= max_paths && !outgoing.is_empty() {
+        *search_truncated = true;
+        return;
+    }
     for action in outgoing {
         if feasible_paths.len() >= max_paths {
+            *search_truncated = true;
             break;
         }
         let action_id = string_at(action, "action_id").unwrap_or("unknown").to_owned();
@@ -533,7 +540,7 @@ fn explore_paths(
             .collect::<Vec<_>>();
         for terminal in node_terminals {
             let terminal_id = string_at(terminal, "terminal_id").unwrap_or("unknown").to_owned();
-            match terminal_status(terminal, parse_time(string_at(scenario, "decision_time")).unwrap(), total_upper) {
+            match terminal_status(terminal, parse_time(string_at(scenario, "decision_time")), total_upper) {
                 Ok(()) => feasible_paths.push(json!({
                     "action_path":path,
                     "terminal_id":terminal_id,
@@ -554,7 +561,7 @@ fn explore_paths(
         explore_paths(
             scenario, contract, actions, terminals, next_node, next_state,
             total_lower, total_upper, path, visited_nodes, accumulated_margins,
-            depth_limit, deadline_hours, max_paths, feasible_paths, rejected_edges, errors
+            depth_limit, deadline_hours, max_paths, feasible_paths, rejected_edges, errors, search_truncated
         );
         visited_nodes.remove(next_node);
         *accumulated_margins = previous_margins;
@@ -722,6 +729,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
 
             let mut feasible_paths = Vec::<Value>::new();
             let mut rejected_edges = Vec::<Value>::new();
+            let mut search_truncated = false;
             let mut path = Vec::<String>::new();
             let mut visited_nodes = BTreeSet::<String>::new();
             visited_nodes.insert("start".to_owned());
@@ -730,18 +738,26 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                 scenario, &contract_map, &actions, &terminals, "start", state,
                 0.0, 0.0, &mut path, &mut visited_nodes, &mut margins,
                 depth_limit.min(max_depth), deadline, max_paths,
-                &mut feasible_paths, &mut rejected_edges, &mut errors
+                &mut feasible_paths, &mut rejected_edges, &mut errors, &mut search_truncated
             );
 
             let actual_recoverable = !feasible_paths.is_empty();
+            let outcome = if actual_recoverable {
+                "RECOVERABLE"
+            } else if search_truncated {
+                "SEARCH_INCOMPLETE/ABSTAIN"
+            } else {
+                "INFEASIBLE/ABSTAIN"
+            };
             let expected = string_at(scenario, "expected_outcome").unwrap_or("");
-            if (expected == "recoverable") != actual_recoverable {
+            if (expected == "recoverable") != actual_recoverable && !search_truncated {
                 errors.push(format!("scenario '{scenario_id}' expected_outcome '{expected}' does not match enumerated recovery graph"));
             }
             scenario_reports.push(json!({
                 "scenario_id":scenario_id,
                 "trigger_class":trigger,
-                "outcome":if actual_recoverable {"RECOVERABLE"} else {"INFEASIBLE/ABSTAIN"},
+                "outcome":outcome,
+                "enumeration_complete":!search_truncated,
                 "feasible_path_count":feasible_paths.len(),
                 "feasible_paths":feasible_paths,
                 "rejected_edges":rejected_edges,
@@ -769,7 +785,8 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         "input_sha256":sha256_hex(raw),
         "scenario_count":scenario_reports.len(),
         "recoverable_scenario_count":scenario_reports.iter().filter(|report| report["outcome"]=="RECOVERABLE").count(),
-        "abstaining_scenario_count":scenario_reports.iter().filter(|report| report["outcome"]=="INFEASIBLE/ABSTAIN").count(),
+        "abstaining_scenario_count":scenario_reports.iter().filter(|report| report["outcome"]!="RECOVERABLE").count(),
+        "incomplete_scenario_count":scenario_reports.iter().filter(|report| report["enumeration_complete"]==false).count(),
         "scenario_reports":scenario_reports,
         "findings":{"errors":errors},
         "aggregate_scalar_score":"NOT_COMPUTED",
@@ -911,9 +928,11 @@ mod tests {
         let action = &mut value["scenarios"][0]["actions"][1];
         action["action_sha256"] = json!(canonical_digest(action, Some("action_sha256")).unwrap());
         value["scenarios"][0]["scenario_sha256"] = json!(canonical_digest(&value["scenarios"][0], Some("scenario_sha256")).unwrap());
-        let scenario_rows = value["scenarios"].as_array().unwrap().iter()
+        let mut scenario_rows = value["scenarios"].as_array().unwrap().iter()
             .map(|s| format!("{}|{}\n",string_at(s,"scenario_id").unwrap(),string_at(s,"scenario_sha256").unwrap()))
-            .collect::<Vec<_>>().join("");
+            .collect::<Vec<_>>();
+        scenario_rows.sort();
+        let scenario_rows = scenario_rows.join("");
         let digest = sha256_hex(scenario_rows.as_bytes());
         value["mission_snapshot"]["scenario_set_sha256"] = json!(digest);
         value["mission_snapshot"]["mission_snapshot_sha256"] = json!(canonical_digest(&value["mission_snapshot"],Some("mission_snapshot_sha256")).unwrap());
@@ -927,6 +946,28 @@ mod tests {
         value["scenarios"][0]["actions"][0]["metric_deltas"][0]["lower_delta"] = json!(-20);
         value["scenarios"][0]["actions"][0]["metric_deltas"][0]["upper_delta"] = json!(-20);
         assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn path_enumeration_cap_is_reported_as_incomplete_not_exhaustive() {
+        let mut value = fixture();
+        value["graph_limits"]["max_paths_per_scenario"] = json!(1);
+        let report = audit(&value);
+        let scenario = report["scenario_reports"].as_array().unwrap().iter()
+            .find(|item| item["scenario_id"] == "generator-trip").unwrap();
+        assert_eq!(scenario["outcome"], "RECOVERABLE");
+        assert_eq!(scenario["enumeration_complete"], false);
+        assert_eq!(report["incomplete_scenario_count"], 1);
+    }
+
+    #[test]
+    fn malformed_decision_timestamp_is_invalid_without_panicking() {
+        let mut value = fixture();
+        value["scenarios"][0]["decision_time"] = json!("not-a-time");
+        let report = audit(&value);
+        assert_eq!(report["disposition"], "INVALID");
+        assert_ne!(report["scenario_reports"].as_array().unwrap().iter()
+            .find(|item| item["scenario_id"] == "generator-trip").unwrap()["outcome"], "RECOVERABLE");
     }
 
     #[test]
