@@ -449,7 +449,7 @@ fn add_payload_dependencies(
 ) -> Result<(), SiteJournalReconciliationError> {
     let mut station_events = BTreeSet::new();
     let mut attempt_starts = BTreeMap::<String, String>::new();
-    let mut attempt_observations = BTreeMap::<String, String>::new();
+    let mut attempt_observations = BTreeMap::<String, BTreeSet<String>>::new();
     let mut package_publications = BTreeMap::<String, String>::new();
 
     for event in events.values() {
@@ -481,7 +481,10 @@ fn add_payload_dependencies(
             }
             SiteEventPayload::RobotObservationRecorded { attempt_id, .. }
             | SiteEventPayload::ExecutionInterrupted { attempt_id, .. } => {
-                attempt_observations.insert(attempt_id.clone(), event.event_id.clone());
+                attempt_observations
+                    .entry(attempt_id.clone())
+                    .or_default()
+                    .insert(event.event_id.clone());
             }
             SiteEventPayload::RefereeAssessmentRecorded { .. }
             | SiteEventPayload::HumanWaiverIssued { .. } => {}
