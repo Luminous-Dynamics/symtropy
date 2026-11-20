@@ -187,18 +187,31 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
                 && motor.max_force >= 0.0;
 
             if motor_inputs_valid {
-                let desired_impulse_increment = motor.calculate_impulse(displacement, rel_vel, dt);
-                if let Some((delta_impulse, _velocity_after)) = motor_state.apply_impulse_increment(
-                    desired_impulse_increment,
-                    motor.max_force * dt,
+                // Evaluate the PD force once per step and store its implied
+                // relative-velocity target. Iterations then solve only the
+                // residual against this frozen target, not a repeated force*dt.
+                let desired_step_impulse = motor.calculate_impulse(displacement, rel_vel, dt);
+                let target_velocity = motor_state.initialize_velocity_target(
                     rel_vel,
+                    desired_step_impulse,
                     total_inv,
-                ) {
+                );
+                if let Some(target_velocity) = target_velocity {
+                    let desired_impulse_increment = (target_velocity - rel_vel) / total_inv;
+                    if let Some((delta_impulse, _velocity_after)) =
+                        motor_state.apply_impulse_increment(
+                            desired_impulse_increment,
+                            motor.max_force * dt,
+                            rel_vel,
+                            total_inv,
+                        )
+                    {
                     if body_a.is_dynamic() {
                         body_a.linear_velocity[self.axis] -= delta_impulse * inv_mass_a;
                     }
-                    if body_b.is_dynamic() {
-                        body_b.linear_velocity[self.axis] += delta_impulse * inv_mass_b;
+                        if body_b.is_dynamic() {
+                            body_b.linear_velocity[self.axis] += delta_impulse * inv_mass_b;
+                        }
                     }
                 }
             }
@@ -454,15 +467,17 @@ mod motor_step_tests {
         let joint = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0).with_motor(motor);
         let mut state = MotorStepState::default();
 
-        for _ in 0..8 {
+        // First iteration establishes the fixed per-step target velocity.
+        joint.solve_velocity_with_state(&mut a, &mut b, 0.1, None, &mut state);
+        // Model an intervening passive-constraint impulse which slows the
+        // slider by 0.05 m/s. Iteration then applies only the residual.
+        b.linear_velocity[0] -= 0.05;
+        for _ in 0..7 {
             joint.solve_velocity_with_state(&mut a, &mut b, 0.1, None, &mut state);
         }
 
-        // PD output changes as the slider accelerates; each output is an
-        // incremental impulse added to one total step budget.
-        assert!(state.accumulated_impulse() > 0.1);
-        assert!(state.accumulated_impulse() <= 1.0 + 1.0e-12);
-        assert!(b.linear_velocity[0] > 0.0);
+        assert!((state.accumulated_impulse() - 0.15).abs() < 1.0e-12);
+        assert!((b.linear_velocity[0] - 0.1).abs() < 1.0e-12);
         assert!(state.take_work_receipt().is_some());
     }
 
