@@ -37,6 +37,22 @@ F(r)=1-\frac{2r_H^2+\alpha_{sym}}
 \]
 The replay script asserts this identity symbolically.
 
+The same conversion is checked independently against the source's static thermodynamics (its Eq. (10)):
+[
+M=rac{3pi}{16}(2r_H^2+alpha_{sym}),quad
+T_H=rac{r_H}{2pi(r_H^2+alpha_{sym})},
+]
+[
+A_H=2pi^2r_H^3,quad
+S=rac{pi^2r_H^3}{2}left(1+rac{3alpha_{sym}}{r_H^2}ight).
+]
+The source's dimensionless static coupling (x=(3pi/4)alpha_{NH}/M) then becomes
+[
+oxed{x=rac{alpha_{sym}}{2r_H^2+alpha_{sym}}
+=rac{lambda}{2+lambda}},qquad lambda=alpha_{sym}/r_H^2.
+]
+This creates an exact bridge between the static BD boundary of the existence atlas and the Symtropy coupling parameter.
+
 ## Exact local attractor data
 
 The near-horizon metric is parameterized by
