@@ -415,6 +415,13 @@ pub fn audit_transition(
     for action in &proposal.actions {
         let execution = executions.get(action.action_id.as_str()).expect("execution set was checked");
         let physical = is_physical_action(action.action_kind);
+        if physical {
+            match execution.outcome {
+                ActionExecutionOutcome::Rejected => rejected_action_count += 1,
+                ActionExecutionOutcome::Failed => failed_action_count += 1,
+                ActionExecutionOutcome::Applied | ActionExecutionOutcome::NotAttempted => {}
+            }
+        }
         if !physical {
             if execution.actuation_disposition != ActuationDisposition::NotApplicable
                 || execution.rejection_boundary.is_some()
@@ -475,7 +482,6 @@ pub fn audit_transition(
                     continue;
                 }
                 (ActionExecutionOutcome::Failed, _) => {
-                    failed_action_count += 1;
                     unsupported_action_ids.push(action.action_id.clone());
                     continue;
                 }
@@ -499,8 +505,8 @@ pub fn audit_transition(
 
         match execution.outcome {
             ActionExecutionOutcome::Applied => applied_action_count += 1,
-            ActionExecutionOutcome::Rejected => rejected_action_count += 1,
-            ActionExecutionOutcome::Failed => failed_action_count += 1,
+            ActionExecutionOutcome::Rejected if !physical => rejected_action_count += 1,
+            ActionExecutionOutcome::Failed if !physical => failed_action_count += 1,
             ActionExecutionOutcome::NotAttempted => not_attempted_action_count += 1,
         }
         match apply_supported_action(action, execution, case, &mut expected_successor) {
@@ -805,6 +811,19 @@ mod tests {
         let mut envelope = envelope(&case, &proposal, &before, &after, ActionExecutionOutcome::Rejected);
         envelope.executions.push(envelope.executions[0].clone());
         assert!(audit_transition(&case, &proposal, &before, &after, &envelope).is_err());
+    }
+
+    #[test]
+    fn rejected_physical_action_remains_in_attempt_denominator() {
+        let case = case();
+        let proposal = proposal(ActionKind::SetSwitchState);
+        let before = state(&case);
+        let mut after = before.clone();
+        after.step = 1;
+        let envelope = envelope(&case, &proposal, &before, &after, ActionExecutionOutcome::Rejected);
+        let report = audit_transition(&case, &proposal, &before, &after, &envelope).unwrap();
+        assert_eq!(report.rejected_action_count, 1);
+        assert_eq!(report.unverified_rejected_physical_action_count, 1);
     }
 
     #[test]
