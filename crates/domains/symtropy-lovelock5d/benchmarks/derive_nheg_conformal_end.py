@@ -57,8 +57,12 @@ def main() -> None:
     exact_zero("intrinsic horizon scalar curvature",R_h-expected_r)
 
     # Extrinsic curvature of epsilon=constant tori, normal directed toward eps=0.
-    K_phi=sp.factor(-sp.diff(sp.log(f),eps)/lapse)
-    K_psi=sp.factor(-sp.diff(sp.log(g),eps)/lapse)
+    exact_zero("phi warp logarithmic derivative",
+               sp.diff(sp.log(f),eps)+1/(eps*(1-eps**2)))
+    exact_zero("psi warp logarithmic derivative",
+               sp.diff(sp.log(g),eps)+q/(p*eps))
+    K_phi=sp.factor(1/(eps*(1-eps**2)*lapse))
+    K_psi=sp.factor(q/(p*eps*lapse))
     K_trace=sp.factor(K_phi+K_psi)
     K_phi_expected=sp.sqrt(p)/(L*q*sp.sqrt(1-eps**2))
     K_psi_expected=sp.sqrt(1-eps**2)/(L*sp.sqrt(p))
