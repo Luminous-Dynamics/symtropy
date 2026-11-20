@@ -144,3 +144,16 @@ The submission also declares:
 The digest reference is an identifier, not cryptographic proof, renderer authentication or evidence that a physical speaker emitted sound. The adapter in Symthaea [#13014](https://github.com/Luminous-Dynamics/symthaea/issues/13014) must provide the actual lifecycle trace and the evaluator service must independently validate the clock relation. A missing PlaybackStarted or PlaybackEnded/OutputStopped event is incomplete / NOT_MEASURED, never a zero-latency response.
 
 This preserves the boundary in the existing Symthaea #5169 controller: AssistantSpeechPermitted is not playback start; OutputStopRequested is not output stopped; natural completion is not a stop/yield acknowledgement. No timestamp conversion from controller nanoseconds to replay ticks is allowed without an explicit, independently qualified clock relation and uncertainty bounds.
+
+### Typed renderer lifecycle ledger
+
+The candidate submission now includes a separate renderer_lifecycle_events array. Each event has an immutable event_ref, session_epoch, turn_id, event_kind and logical tick. Scored response start/end references must resolve to:
+- playback_started for the response start;
+- playback_ended for natural completion; or
+- output_stopped for interruption/stop completion, with a cause_event_ref pointing to a same-session, same-turn output_stop_requested event.
+
+If controller_permission_event_ref is supplied, it must resolve to assistant_speech_permitted for the same turn and occur no later than playback start. It remains an intent record only. The evaluator never uses its tick to create a response interval.
+
+All referenced lifecycle event IDs must be unique. Response timestamps must equal the ticks of the referenced renderer events. Output stop request, playback start and output stop acknowledgement must have a causal ordering, and the output-stop acknowledgement must identify its request. A response that only contains a permission event, a stop request without acknowledgement, or a natural end mislabeled as a stop is rejected.
+
+The finite fixture uses timing_evidence_mode=synthetic_reference and a synthetic logical-tick relation. It validates the data contract only. Future measured submissions must use timing_evidence_mode=renderer_qualified and a SHA-256 identifier for the independently qualified clock relation. The evaluator's digest check validates identifier shape only; it does not prove the mapping or authenticate hardware. Symthaea #13014 owns the real controller/renderer trace bridge and independent clock-qualification evidence.
