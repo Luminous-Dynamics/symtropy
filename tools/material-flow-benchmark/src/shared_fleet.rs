@@ -567,13 +567,9 @@ fn simulate_scenario(
         let mut idle_cost_recorded = false;
 
         if aircraft_enabled {
-            if input.jurisdictional_operating_envelope.review_status
-                != JurisdictionReviewStatus::EligibleForExternalOperatorReview
-            {
-                // A typed applicability result is necessary to model aerial capacity,
-                // but it never becomes flight/dispatch authorization.
-                checked_add(&mut metrics.hard_gate_blocked_actions, 1, "jurisdictional hard-gate blocks")?;
-            } else if action == input.regions.len() {
+            if action == input.regions.len() {
+                // Ground-side idle charging remains available even when the current
+                // aviation operating envelope is not eligible for flight.
                 let before = energy;
                 energy = energy.saturating_add(input.recharge_energy_units_per_idle_period)
                     .min(input.maximum_aircraft_energy_units);
@@ -585,6 +581,12 @@ fn simulate_scenario(
                 checked_add(&mut metrics.idle_periods, 1, "idle periods")?;
                 add_cost(&mut metrics, u128::from(input.aircraft_idle_cost_per_period))?;
                 idle_cost_recorded = true;
+            } else if input.jurisdictional_operating_envelope.review_status
+                != JurisdictionReviewStatus::EligibleForExternalOperatorReview
+            {
+                // A typed applicability result is necessary to model aerial capacity,
+                // but it never becomes flight/dispatch authorization.
+                checked_add(&mut metrics.hard_gate_blocked_actions, 1, "jurisdictional hard-gate blocks")?;
             } else {
                 let target = &input.regions[action].region_id;
                 if target == &aircraft_region {
@@ -1525,6 +1527,33 @@ mod tests {
             assert_eq!(report.optimized_policy.expected_aerial_deliveries, 0);
             assert!(!report.physical_dispatch_authorized);
         }
+    }
+
+    #[test]
+    fn noneligible_aviation_profile_does_not_block_ground_side_idle_charging() {
+        let mut test = input();
+        test.period_count = 1;
+        for scenario in &mut test.scenarios {
+            scenario.periods.truncate(1);
+        }
+        test.jurisdictional_operating_envelope.review_status =
+            JurisdictionReviewStatus::ApprovalRequired;
+        let canonical = canonicalize(&test);
+        let (nodes, indices) = build_decision_nodes(&canonical).expect("valid tree");
+        // In a two-region policy radix of three, action index two is idle.
+        let all_idle_mask = 2_u64.pow(nodes.len() as u32) - 1;
+        let metrics = simulate_scenario(
+            &canonical,
+            &canonical.scenarios[0],
+            &indices,
+            all_idle_mask,
+            true,
+        )
+        .expect("ground-side charging is allowed");
+        assert_eq!(metrics.aerial_deliveries, 0);
+        assert_eq!(metrics.idle_periods, 1);
+        assert_eq!(metrics.idle_recharge_energy_units, 4);
+        assert_eq!(metrics.hard_gate_blocked_actions, 0);
     }
 
     #[test]
