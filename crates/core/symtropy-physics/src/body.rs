@@ -59,6 +59,41 @@ pub enum ToolheadMergeError {
     UnrepresentableResult,
 }
 
+/// Errors from constructing a centered, uniform-density 3D capsule body.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CapsuleBodyConstructionError {
+    /// Capsule mass must be finite and strictly positive.
+    InvalidMass,
+    /// Capsule half-height must be finite and non-negative.
+    InvalidHalfHeight,
+    /// Capsule radius must be finite and strictly positive.
+    InvalidRadius,
+    /// Capsule axis must be one of X, Y, or Z.
+    InvalidAxis,
+    /// Initial world position contains a NaN or infinity.
+    NonFinitePosition,
+    /// Positive cylinder or cap mass became unrepresentable.
+    UnrepresentableMassPartition,
+    /// One or more derived physical moments are not finite and positive.
+    UnrepresentableInertia,
+    /// The central-moment tensor could not produce a valid full inertia operator.
+    InvalidMassProperties(MassPropertiesError),
+    /// The mass properties could not be bound to the requested body frame.
+    BodyConstruction(MassPropertiesBodyError),
+}
+
+impl From<MassPropertiesError> for CapsuleBodyConstructionError {
+    fn from(value: MassPropertiesError) -> Self {
+        Self::InvalidMassProperties(value)
+    }
+}
+
+impl From<MassPropertiesBodyError> for CapsuleBodyConstructionError {
+    fn from(value: MassPropertiesBodyError) -> Self {
+        Self::BodyConstruction(value)
+    }
+}
+
 /// Errors returned when binding validated mass properties to a rigid body.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MassPropertiesBodyError {
@@ -120,6 +155,129 @@ pub struct RigidBody<const D: usize> {
     pub is_sensor: bool,
     pub collision_group: u32,
     pub collision_mask: u32,
+}
+
+impl RigidBody<3> {
+    /// Construct a centered, uniform-density solid capsule with exact 3D mass
+    /// properties and a full spatial bivector inertia operator.
+    ///
+    /// `half_height` is the distance from the COM to either hemispherical
+    /// center; the full axial length is `2 * (half_height + radius)`.
+    /// The mass is partitioned by the exact cylinder/sphere volume ratio.
+    /// Unlike the legacy scalar primitive path, the resulting operator is the
+    /// authoritative body-frame rotational model.
+    pub fn try_dynamic_solid_capsule_3d(
+        handle: BodyHandle,
+        position: Point<3>,
+        half_height: f64,
+        radius: f64,
+        axis: usize,
+        mass: f64,
+    ) -> Result<Self, CapsuleBodyConstructionError> {
+        use symtropy_math::Capsule;
+
+        if !mass.is_finite() || mass <= 0.0 {
+            return Err(CapsuleBodyConstructionError::InvalidMass);
+        }
+        if !half_height.is_finite() || half_height < 0.0 {
+            return Err(CapsuleBodyConstructionError::InvalidHalfHeight);
+        }
+        if !radius.is_finite() || radius <= 0.0 {
+            return Err(CapsuleBodyConstructionError::InvalidRadius);
+        }
+        if axis >= 3 {
+            return Err(CapsuleBodyConstructionError::InvalidAxis);
+        }
+        if !position.0.iter().all(|value| value.is_finite()) {
+            return Err(CapsuleBodyConstructionError::NonFinitePosition);
+        }
+
+        // Capsule volume is proportional to 2h + 4r/3. Scale h and r before
+        // forming the ratio so the partition itself does not overflow merely
+        // because the geometric lengths are large.
+        let length_scale = half_height.max(radius);
+        let scaled_half_height = half_height / length_scale;
+        let scaled_radius = radius / length_scale;
+        let partition_denominator = 3.0 * scaled_half_height + 2.0 * scaled_radius;
+        if !partition_denominator.is_finite() || partition_denominator <= 0.0 {
+            return Err(CapsuleBodyConstructionError::UnrepresentableMassPartition);
+        }
+        let cylinder_fraction = (3.0 * scaled_half_height) / partition_denominator;
+        let cylinder_mass = mass * cylinder_fraction;
+        let cap_mass = mass - cylinder_mass;
+        if !cylinder_fraction.is_finite()
+            || !(0.0..=1.0).contains(&cylinder_fraction)
+            || !cylinder_mass.is_finite()
+            || !cap_mass.is_finite()
+            || cap_mass <= 0.0
+            || (half_height > 0.0 && cylinder_mass <= 0.0)
+        {
+            return Err(CapsuleBodyConstructionError::UnrepresentableMassPartition);
+        }
+
+        // Exact composite inertia about the common COM:
+        // - a cylinder of length 2h and mass m_c;
+        // - two solid hemispheres whose combined mass is m_s.
+        // The hemisphere COM offset from the capsule origin is h + 3r/8.
+        let radius_squared = radius * radius;
+        let half_height_squared = half_height * half_height;
+        let cap_centroid_offset = half_height + 3.0 * radius / 8.0;
+        let cap_centroid_offset_squared = cap_centroid_offset * cap_centroid_offset;
+        let axial_moment = 0.5 * cylinder_mass * radius_squared
+            + 0.4 * cap_mass * radius_squared;
+        let transverse_cylinder = (cylinder_mass / 12.0)
+            * (3.0 * radius_squared + 4.0 * half_height_squared);
+        let transverse_caps = cap_mass
+            * (83.0 / 320.0 * radius_squared + cap_centroid_offset_squared);
+        let transverse_moment = transverse_cylinder + transverse_caps;
+        if !radius_squared.is_finite()
+            || !half_height_squared.is_finite()
+            || !cap_centroid_offset.is_finite()
+            || !cap_centroid_offset_squared.is_finite()
+            || !axial_moment.is_finite()
+            || axial_moment <= 0.0
+            || !transverse_cylinder.is_finite()
+            || !transverse_caps.is_finite()
+            || !transverse_moment.is_finite()
+            || transverse_moment <= 0.0
+        {
+            return Err(CapsuleBodyConstructionError::UnrepresentableInertia);
+        }
+
+        // In 3D, I = tr(C) Identity - C, hence
+        // C = 0.5 tr(I) Identity - I. For an axisymmetric capsule:
+        // C_axis = I_perp - I_axis/2; C_perp = I_axis/2.
+        // RotationalInertiaOperator derives the coupled plane operator from C.
+        let central_second_moment_axis = transverse_moment - 0.5 * axial_moment;
+        let central_second_moment_perpendicular = 0.5 * axial_moment;
+        if !central_second_moment_axis.is_finite()
+            || central_second_moment_axis <= 0.0
+            || !central_second_moment_perpendicular.is_finite()
+            || central_second_moment_perpendicular <= 0.0
+        {
+            return Err(CapsuleBodyConstructionError::UnrepresentableInertia);
+        }
+        let mut second_moment = [0.0_f64; 9];
+        for coordinate in 0..3 {
+            second_moment[coordinate * 3 + coordinate] =
+                if coordinate == axis {
+                    central_second_moment_axis
+                } else {
+                    central_second_moment_perpendicular
+                };
+        }
+        let operator =
+            RotationalInertiaOperator::<3>::from_body_second_moment_matrix(second_moment.to_vec())?;
+        let mass_properties =
+            MassProperties::<3>::try_new(mass, SVector::zeros(), operator)?;
+        Self::try_new_with_mass_properties(
+            handle,
+            Transform::from_translation(position),
+            Box::new(Capsule::<3>::new(half_height, radius, axis)),
+            mass_properties,
+        )
+        .map_err(CapsuleBodyConstructionError::from)
+    }
 }
 
 impl<const D: usize> RigidBody<D> {
