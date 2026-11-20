@@ -1214,6 +1214,19 @@ mod tests {
         trajectory.stream_kind = ServiceStreamKind::PlannedForecast;
         trajectory.artifact_uri = "synthetic://forecast".to_string();
         trajectory.parent_service_artifacts.clear();
+        trajectory.producer.producer_id = "planner-forecast-v1".to_string();
+        trajectory.producer.model_id = Some("load-forecast-model-v1".to_string());
+        trajectory.producer.instrument_id = None;
+        trajectory.producer.calibration_artifact_ref = None;
+        trajectory.producer.calibration_artifact_sha256 = None;
+        trajectory.source_artifacts = vec![ServiceSourceArtifact {
+            artifact_ref: "forecast-model://load-profile/v1".to_string(),
+            sha256: "9".repeat(64),
+        }];
+        for sample in &mut trajectory.samples {
+            sample.evidence_ref = None;
+            sample.evidence_sha256 = None;
+        }
         let report = audit_service_trajectory(&trajectory, &receipt, &case).unwrap();
         assert_eq!(report.result_status, "forecast_only_not_realized_service");
         assert!(report.weighted_delivered_kwh.is_none());
@@ -1228,6 +1241,15 @@ mod tests {
         trajectory.stream_kind = ServiceStreamKind::ObservedWork;
         trajectory.samples.clear();
         trajectory.parent_service_artifacts.clear();
+        trajectory.producer.producer_id = "field-crew-reporter".to_string();
+        trajectory.producer.model_id = None;
+        trajectory.producer.instrument_id = None;
+        trajectory.producer.calibration_artifact_ref = None;
+        trajectory.producer.calibration_artifact_sha256 = None;
+        trajectory.source_artifacts = vec![ServiceSourceArtifact {
+            artifact_ref: "field://repair-ticket/0001".to_string(),
+            sha256: "6".repeat(64),
+        }];
         trajectory.work_milestones = vec![WorkMilestone {
             milestone_id: "repair-0001".to_string(),
             kind: WorkMilestoneKind::RepairCompleted,
@@ -1278,6 +1300,8 @@ mod tests {
         let mut trajectory = fully_served_trajectory(&case, &receipt);
         trajectory.samples[0].status = ServiceSampleStatus::Conflicting;
         trajectory.samples[0].delivered_kwh = None;
+        trajectory.samples[0].evidence_ref = None;
+        trajectory.samples[0].evidence_sha256 = None;
         trajectory.samples[0].unknown_reason = None;
         trajectory.samples[0].conflict_reason = Some("two meters disagree".to_string());
         let conflict_a = ServiceSourceArtifact {
@@ -1353,6 +1377,18 @@ mod tests {
         let mut trajectory = fully_served_trajectory(&case, &receipt);
         trajectory.samples[0].evidence_ref = None;
         trajectory.samples[0].evidence_sha256 = None;
+        assert!(audit_service_trajectory(&trajectory, &receipt, &case).is_err());
+    }
+
+    #[test]
+    fn measured_calibration_artifact_must_match_exact_source_inventory_digest() {
+        let case = case();
+        let receipt = receipt(&case);
+        let mut trajectory = fully_served_trajectory(&case, &receipt);
+        let calibration = trajectory.source_artifacts.iter_mut()
+            .find(|source| source.artifact_ref == "calibration://meter-set-001")
+            .unwrap();
+        calibration.sha256 = "9".repeat(64);
         assert!(audit_service_trajectory(&trajectory, &receipt, &case).is_err());
     }
 
