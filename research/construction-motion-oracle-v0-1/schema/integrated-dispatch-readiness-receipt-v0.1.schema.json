@@ -1,0 +1,251 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-integrated-dispatch-readiness-receipt-v0.1.json",
+  "title": "Construction Integrated Dispatch Readiness Receipt v0.1",
+  "description": "Full non-actuating readiness assessment receipt. The receipt is not a safety permit or actuator authorization; canonical signature verification and consume-time revalidation are required.",
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "dispatchReadinessReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "package_sha256",
+        "design_revision_sha256",
+        "entity_id",
+        "frame_sha256",
+        "transform_sha256",
+        "robot_id",
+        "robot_configuration_sha256",
+        "tool_configuration_sha256",
+        "payload_configuration_sha256",
+        "primitive_manifest_sha256",
+        "trajectory_sha256",
+        "envelope_sha256",
+        "site_snapshot_sha256",
+        "dynamic_occupancy_manifest_sha256",
+        "actor_manifest_sha256",
+        "occupancy_assessment_receipt_sha256",
+        "occupancy_engine_build_sha256",
+        "clearance_policy_sha256",
+        "candidate_pair_count",
+        "narrowphase_evaluated_pair_count",
+        "site_ledger_sequence",
+        "site_ledger_event_sha256",
+        "site_clock_domain_id",
+        "checked_at_tick",
+        "valid_until_tick"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "construction-dispatch-readiness-receipt/0.1"
+        },
+        "package_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "design_revision_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "entity_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frame_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "transform_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "robot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "robot_configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "tool_configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "payload_configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "primitive_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "trajectory_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "envelope_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "dynamic_occupancy_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "actor_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "occupancy_assessment_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "occupancy_engine_build_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "clearance_policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "candidate_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "narrowphase_evaluated_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "site_ledger_sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "site_ledger_event_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checked_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_tick": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dispatch_readiness",
+    "evidence_snapshot_sha256",
+    "dispatch_context_sha256",
+    "work_package_sha256",
+    "station_id",
+    "station_qualification_event_id",
+    "station_qualification_event_sha256",
+    "task_plan_sha256",
+    "stopping_profile_sha256",
+    "stopping_qualification_receipt_sha256",
+    "robot_brake_configuration_sha256",
+    "operating_condition_sha256",
+    "sensor_profile_sha256",
+    "detection_qualification_receipt_sha256",
+    "target_condition_sha256",
+    "scenario_context_sha256",
+    "speed_upper_mm_s",
+    "conservative_stop_distance_mm",
+    "conservative_stop_time_ms",
+    "minimum_detection_distance_mm",
+    "required_stopping_distance_mm",
+    "remaining_stopping_distance_mm",
+    "stopping_distance_budget_satisfied",
+    "checked_at_tick",
+    "valid_until_tick"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-integrated-dispatch-readiness-receipt/0.1"
+    },
+    "dispatch_readiness": {
+      "$ref": "#/$defs/dispatchReadinessReceipt"
+    },
+    "evidence_snapshot_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "dispatch_context_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "work_package_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "station_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "station_qualification_event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "station_qualification_event_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "task_plan_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "stopping_profile_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "stopping_qualification_receipt_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "robot_brake_configuration_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "operating_condition_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "sensor_profile_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "detection_qualification_receipt_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "target_condition_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "scenario_context_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "speed_upper_mm_s": {
+      "type": "number",
+      "minimum": 0
+    },
+    "conservative_stop_distance_mm": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "conservative_stop_time_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "minimum_detection_distance_mm": {
+      "type": "number",
+      "minimum": 0
+    },
+    "required_stopping_distance_mm": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "remaining_stopping_distance_mm": {
+      "type": "number"
+    },
+    "stopping_distance_budget_satisfied": {
+      "type": "boolean"
+    },
+    "checked_at_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "valid_until_tick": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}
