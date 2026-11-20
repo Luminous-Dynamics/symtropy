@@ -291,6 +291,52 @@
         }
       ],
       "comparability_warning": "Global observations cannot be substituted for South African point-of-connection studies, utility letters or site-specific power-flow analysis."
+    },
+    {
+      "reference_id": "GOOS-EOV-2026",
+      "project": "UNESCO IOC / GOOS Essential Ocean Variables",
+      "geography": "Global ocean observing framework",
+      "status": "current GOOS framework; specification sheets under revision",
+      "metrics": [
+        {
+          "metric": "recognized_EOVs",
+          "value": 36,
+          "unit": "variables",
+          "evidence_class": "IOC_reported_2026_count",
+          "source_url": "https://www.ioc.unesco.org/en/articles/essential-ocean-variables"
+        },
+        {
+          "metric": "selected_EOV_mappings",
+          "value": "Subsurface temperature, subsurface salinity, subsurface currents, sea state, oxygen, nutrients, benthic invertebrate abundance/distribution (pilot), ocean sound",
+          "unit": "project mapping set",
+          "evidence_class": "project_crosswalk_to_GOOS_framework",
+          "source_url": "https://goosocean.org/what-we-do/framework/essential-ocean-variables/"
+        }
+      ],
+      "comparability_warning": "GOOS says EOV specification sheets are under revision. Pin the specification version used in each observation campaign. Project-specific outfall, pollutant-flux and thermal-plume measures are not declared GOOS EOVs."
+    },
+    {
+      "reference_id": "OBIS-MANUAL-2026",
+      "project": "Ocean Biodiversity Information System — Manual v2.0 and Quality Control",
+      "geography": "International biodiversity observation network",
+      "status": "OBIS Manual v2.0 updated 23 September 2026",
+      "metrics": [
+        {
+          "metric": "biodiversity_record_interoperability",
+          "value": "Darwin Core; occurrence, event, extended measurement/fact and DNA-derived data profiles",
+          "unit": "data standards and product types",
+          "evidence_class": "OBIS_manual_guidance",
+          "source_url": "https://manual.obis.org/"
+        },
+        {
+          "metric": "quality_control_pipeline",
+          "value": "Initial Darwin Core compliance; automated geolocation/date/depth/precision checks; manual node curation; taxonomic validation with WoRMS; geospatial enrichment; publication with flags",
+          "unit": "six-stage process summary",
+          "evidence_class": "OBIS_quality_control_guidance",
+          "source_url": "https://www.obis.org/data/quality/"
+        }
+      ],
+      "comparability_warning": "Candidate Darwin Core terms are not a complete OBIS profile. Confirm current Manual/node requirements, taxonomy, data rights, attribution and sensitive-species location restrictions before publication."
     }
   ],
   "project_target_ladder": {
