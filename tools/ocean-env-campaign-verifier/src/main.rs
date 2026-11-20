@@ -239,6 +239,8 @@ fn validate(campaign: &Value, catalog: &Value) -> Result<String, String> {
         .iter().filter_map(Value::as_str).collect();
     for required in ["station_id", "sample_window_start_utc", "sample_window_end_utc",
         "signed_sensor_clock_offset_ms", "calibration_validity_window", "measurement_uncertainty",
+        "laboratory_batch_id", "laboratory_batch_independence_domain",
+        "laboratory_batch_common_standard_uncertainty_mg_l",
         "source_rights", "raw_data_digest"] {
         if !fields.contains(required) {
             return Err(format!("campaign evidence record missing {required}"));
@@ -363,6 +365,14 @@ mod tests {
         c["adaptive_sampling_policy"]["must_preserve"].as_array_mut().unwrap()
             .retain(|x| x != "independent_reference_control");
         assert!(validate(&c, &catalog()).unwrap_err().contains("can weaken protected condition"));
+    }
+    #[test]
+    fn missing_laboratory_batch_covariance_fields_are_rejected() {
+        let mut c = campaign();
+        c["quality_and_rights"]["required_record_fields"].as_array_mut().unwrap()
+            .retain(|x| x != "laboratory_batch_independence_domain"
+                && x != "laboratory_batch_common_standard_uncertainty_mg_l");
+        assert!(validate(&c, &catalog()).unwrap_err().contains("campaign evidence record missing laboratory_batch_independence_domain"));
     }
     #[test]
     fn incomplete_owner_native_alignment_is_rejected() {
