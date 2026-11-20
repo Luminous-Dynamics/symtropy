@@ -79,9 +79,9 @@ This M1 implementation rejects:
 - flexspline or reducer serial reuse across calibration and test;
 - installation-digest and sensor-assembly-digest reuse;
 - duplicate sample IDs;
-- mismatched model, feature, system-boundary, sensor-family, reference-method or domain digest.
+- mismatched model, feature, system-boundary, sensor-family, reference-method, mission-set or domain digest.
 
-Calibration and test installations must use the same frozen trajectory sample count. Their sample indices are implicit in ordered observation arrays; the domain/mission digest binds the sampling schedule. Variable-length task definitions should be separate frozen cohorts or use a future explicitly designed event/trajectory scoring contract.
+Calibration and test installations must use the same frozen trajectory sample count. Their sample indices are implicit in ordered observation arrays; the frozen mission-set digest binds the sampling schedule and population. Variable-length task definitions should be separate frozen cohorts or use a future explicitly designed event/trajectory scoring contract.
 
 ## 5. Domain and stratum handling
 
@@ -93,7 +93,7 @@ The plan freezes:
 
 Every calibration observation must be in-domain and its declared direction must agree with the sign of its reference torque and speed. An out-of-domain calibration sample invalidates that calibration record.
 
-For test data, any out-of-domain sample causes the **entire installation group** to abstain. The evaluator does not drop only the difficult angle/temperature point and report optimistic installation coverage.
+For test data, any sample outside the declared numeric domain causes the **entire installation group** to abstain as OutOfDomain. In addition, an installation whose sample belongs to an angle-sector × temperature-band × speed-band × direction cell never represented in calibration is marked UnseenCalibrationStratum and also abstains as a whole group. This is distinct from being outside the global min/max domain.
 
 In-domain observations are also stratified by:
 - angle sector;
@@ -101,7 +101,7 @@ In-domain observations are also stratified by:
 - speed band;
 - torque direction/quadrant.
 
-Stratum metrics are descriptive sample-level views. They do not create conditional statistical coverage guarantees for an individual angle, temperature or direction.
+Stratum metrics are descriptive sample-level views. They do not create conditional statistical coverage guarantees for an individual angle, temperature or direction. The transfer evaluator does not issue a coverage score for an unobserved calibration cell; only installations whose complete set of strata appeared in calibration enter the held-out installation-coverage denominator. The report exposes declared-domain count, calibration-supported count, unseen-stratum abstention count and physical OOD count separately.
 
 ## 6. Grouped interval calibration
 
@@ -119,7 +119,7 @@ Otherwise q is the kth sorted installation score. Each compensated interval is e
 
 [Lcal, Ucal] = [Lhat - q, Uhat + q].
 
-A held-out test installation is Covered only when **every** independent reference interval across that frozen installation trajectory is fully contained by the expanded compensated intervals. This is a marginal group-level split-conformal construction under exchangeability of physical installation groups, a fixed compensation model and frozen condition domain.
+A held-out test installation is Covered only when **every** independent reference interval across that frozen installation trajectory is fully contained by the expanded compensated intervals. This is a marginal group-level split-conformal construction under exchangeability of physical installation groups, a fixed compensation model, a frozen mission-set identity and frozen condition domain. Calibration support filtering is an explicit abstention rule, not a proof of conditional coverage within a stratum.
 
 This does not establish:
 - conditional coverage for each angle/temperature/direction stratum;
@@ -169,12 +169,12 @@ cargo clippy --manifest-path benchmarks/synthetic-joints/in-situ-torque-sensor/v
 
 Dedicated workflow: .github/workflows/in-situ-torque-sensor-transfer.yml. The authoring environment has no local Cargo/rustc/rustfmt; exact-head CI is the compilation and formatting gate.
 
-Twenty-eight Rust test definitions cover grouped installation ranks, whole-installation held-out coverage, OOD abstention, raw-versus-compensated error, insufficient calibration count, split/specimen/sensor/flexspline/reducer/assembly leakage, training-lineage inventory, synchronized metrology receipt presence/propagation, duplicate sample IDs, calibration-domain rejection, direction/sign consistency, independent-reference evidence, all model/boundary/feature/sensor/reference/domain digests, invalid intervals/edges/alpha, frozen trajectory length, stratified reporting, zero in-domain coverage, Wilson bounds, evidence receipts and static/reverse-quadrant handling.
+Thirty Rust test definitions cover grouped installation ranks, whole-installation held-out coverage, OOD abstention, raw-versus-compensated error, insufficient calibration count, split/specimen/sensor/flexspline/reducer/assembly leakage, training-lineage inventory, synchronized metrology receipt presence/propagation, duplicate sample IDs, calibration-domain rejection, direction/sign consistency, independent-reference evidence, all model/boundary/feature/sensor/reference/domain digests, invalid intervals/edges/alpha, frozen trajectory length, stratified reporting, zero in-domain coverage, Wilson bounds, evidence receipts, static/reverse-quadrant handling, unseen calibration-stratum abstention and mission-set identity mismatch.
 
 ## 10. M0–M5 promotion
 
 - **M0:** reproduce the paper's sensor geometry, calibration pipeline, data, model features and two-prototype result.
-- **M1:** schema, grouped split, interval-calibration arithmetic, condition-domain and leakage controls.
+- **M1:** schema, grouped split, interval-calibration arithmetic, mission-set identity, calibration-stratum support, condition-domain and leakage controls.
 - **M2:** compare constant gain/offset, periodic/harmonic angle map, angle+temperature surface, direction-aware map, multi-grid fusion and learned compensation on identical held-out splits.
 - **M3:** independently instrumented physical installations with in-situ MEMS sensor plus traceable external torque transducer and common clock.
 - **M4:** dynamic robot missions with held-out installations, payloads, temperature profiles, directions and speeds.
