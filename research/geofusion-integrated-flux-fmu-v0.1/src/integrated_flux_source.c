@@ -11,8 +11,11 @@ typedef struct {
     fmi3Float64 time;
     fmi3Float64 cumulativeEnergyJ;
     fmi3Float64 intervalEnergyJ;
+    fmi3Boolean initializationEntered;
     fmi3Boolean initialized;
     fmi3Boolean terminated;
+    fmi3Boolean stopTimeDefined;
+    fmi3Float64 stopTime;
 } IntegratedFluxSource;
 
 static fmi3Float64 stable_sinc(fmi3Float64 x) {
@@ -59,7 +62,8 @@ FMI3_Export fmi3Instance fmi3InstantiateCoSimulation(
     (void)instanceEnvironment;
     (void)logMessage;
     (void)intermediateUpdate;
-    if (instanceName == NULL || instantiationToken == NULL || visible) return NULL;
+    if (instanceName == NULL || instantiationToken == NULL || visible
+        || eventModeUsed || nRequiredIntermediateVariables != 0) return NULL;
     if (strcmp(instantiationToken, "integrated-flux-source-token-v0.1") != 0) return NULL;
     return calloc(1, sizeof(IntegratedFluxSource));
 }
@@ -76,18 +80,21 @@ FMI3_Export fmi3Status fmi3EnterInitializationMode(
     fmi3Boolean stopTimeDefined,
     fmi3Float64 stopTime) {
     IntegratedFluxSource *source = instance;
-    if (source == NULL || source->initialized || source->terminated || !isfinite(startTime)
+    if (source == NULL || source->initializationEntered || source->initialized || source->terminated || !isfinite(startTime)
         || (toleranceDefined && (!isfinite(tolerance) || tolerance <= 0.0))
         || (stopTimeDefined && (!isfinite(stopTime) || stopTime <= startTime))) return fmi3Error;
     source->time = startTime;
+    source->stopTimeDefined = stopTimeDefined;
+    source->stopTime = stopTime;
     source->cumulativeEnergyJ = 0.0;
     source->intervalEnergyJ = 0.0;
+    source->initializationEntered = fmi3True;
     return fmi3OK;
 }
 
 FMI3_Export fmi3Status fmi3ExitInitializationMode(fmi3Instance instance) {
     IntegratedFluxSource *source = instance;
-    if (source == NULL || source->initialized || source->terminated) return fmi3Error;
+    if (source == NULL || !source->initializationEntered || source->initialized || source->terminated) return fmi3Error;
     source->initialized = fmi3True;
     return fmi3OK;
 }
@@ -144,7 +151,8 @@ FMI3_Export fmi3Status fmi3DoStep(
         || earlyReturn == NULL || lastSuccessfulTime == NULL) return fmi3Error;
 
     const fmi3Float64 nextTime = currentCommunicationPoint + communicationStepSize;
-    if (!isfinite(nextTime)) return fmi3Error;
+    if (!isfinite(nextTime) || nextTime <= currentCommunicationPoint
+        || (source->stopTimeDefined && nextTime > source->stopTime)) return fmi3Error;
     const fmi3Float64 intervalEnergy = integrate_source_energy(currentCommunicationPoint, nextTime);
     const fmi3Float64 nextCumulativeEnergy = source->cumulativeEnergyJ + intervalEnergy;
     if (!isfinite(intervalEnergy) || intervalEnergy < 0.0
