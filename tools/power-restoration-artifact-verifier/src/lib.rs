@@ -13,6 +13,8 @@ pub enum SignerRole {
     ElectricalValidator,
     ServiceProvider,
     FieldObserver,
+    EvidenceProvider,
+    RunRecorder,
     Scorer,
 }
 
@@ -88,6 +90,7 @@ pub struct TrustedKey {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ExpectedAttestationBinding {
     pub predicate_type: String,
+    pub issuer_id: String,
     pub artifact_uri: String,
     pub artifact_sha256: String,
     pub run_id: String,
@@ -306,6 +309,7 @@ pub fn verify_attestation(
 
     let payload = &envelope.payload;
     if payload.predicate_type != expected.predicate_type
+        || payload.issuer_id != expected.issuer_id
         || payload.subject_uri != expected.artifact_uri
         || payload.subject_sha256 != expected.artifact_sha256
         || payload.run_id != expected.run_id
@@ -466,18 +470,15 @@ pub fn validate_role_separation(
             .insert(fingerprint);
     }
 
-    // Separation is checked against the public-key fingerprint, not key IDs:
-    // registering one public key under two aliases must not defeat this gate.
-    let forbidden_pairs = [
-        (SignerRole::Planner, SignerRole::ElectricalValidator),
-        (SignerRole::Planner, SignerRole::Scorer),
-        (SignerRole::TransitionEngine, SignerRole::ElectricalValidator),
-        (SignerRole::ServiceProvider, SignerRole::Scorer),
-    ];
-    for (left, right) in forbidden_pairs {
-        let left_keys = role_key_fingerprints.get(&left);
-        let right_keys = role_key_fingerprints.get(&right);
-        if let (Some(left_keys), Some(right_keys)) = (left_keys, right_keys) {
+    // Every distinct assurance role requires a distinct cryptographic key identity.
+    // Aliased key IDs cannot bypass this because fingerprints, not labels, are compared.
+    let roles: Vec<SignerRole> = role_key_fingerprints.keys().copied().collect();
+    for left_index in 0..roles.len() {
+        for right_index in (left_index + 1)..roles.len() {
+            let left = roles[left_index];
+            let right = roles[right_index];
+            let left_keys = role_key_fingerprints.get(&left).expect("role key set exists");
+            let right_keys = role_key_fingerprints.get(&right).expect("role key set exists");
             for fingerprint in left_keys.intersection(right_keys) {
                 errors.push(format!(
                     "public key fingerprint {fingerprint} cannot satisfy both {left:?} and {right:?} roles"
@@ -766,6 +767,7 @@ mod tests {
         .expect("bundle manifest fixture must parse");
         let expected = ExpectedAttestationBinding {
             predicate_type: "power-restoration/electrical-validation/v1".to_string(),
+            issuer_id: "synthetic-independent-validator".to_string(),
             artifact_uri: "bundle://validator/decision-0.json".to_string(),
             artifact_sha256: "4ac0258529aca07bcc9c5c45cf0c23f05eb8176212b6af732f80c9bd8ad5f987".to_string(),
             run_id: "synthetic-run-0001".to_string(),
