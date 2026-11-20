@@ -134,7 +134,9 @@ fn earliest_slot_for_resource(
         ));
     }
 
-    let mut period_index = (ready_hour / profile.calendar_period_hours).floor().max(0.0);
+    let mut period_index = (ready_hour / profile.calendar_period_hours)
+        .floor()
+        .max(0.0);
     for _ in 0..100_000 {
         let period_start = period_index * profile.calendar_period_hours;
         for window in &profile.availability_windows {
@@ -154,7 +156,9 @@ fn earliest_slot_for_resource(
                 boundaries.extend(
                     allocations
                         .iter()
-                        .filter(|item| item.start > candidate && item.start < candidate + duration_hours)
+                        .filter(|item| {
+                            item.start > candidate && item.start < candidate + duration_hours
+                        })
                         .map(|item| item.start),
                 );
                 boundaries.sort_by(f64::total_cmp);
@@ -270,7 +274,9 @@ fn remaining_critical_path_hours(
         .get(task_key)
         .map(|next| {
             next.iter()
-                .map(|next_key| remaining_critical_path_hours(next_key, task_by_key, successors, cache))
+                .map(|next_key| {
+                    remaining_critical_path_hours(next_key, task_by_key, successors, cache)
+                })
                 .fold(0.0, f64::max)
         })
         .unwrap_or(0.0);
@@ -291,7 +297,9 @@ pub fn schedule_with_policy(
             || profile.calendar_period_hours <= 0.0
             || profile.availability_windows.is_empty()
         {
-            errors.push(format!("resource {resource_id} has invalid capacity or calendar"));
+            errors.push(format!(
+                "resource {resource_id} has invalid capacity or calendar"
+            ));
             continue;
         }
         let mut exception_ids = BTreeSet::new();
@@ -312,7 +320,9 @@ pub fn schedule_with_policy(
                 )
                 || exception.reason.trim().is_empty()
             {
-                errors.push(format!("resource {resource_id} has invalid calendar exception"));
+                errors.push(format!(
+                    "resource {resource_id} has invalid calendar exception"
+                ));
             }
         }
         let mut previous_end = 0.0;
@@ -323,7 +333,9 @@ pub fn schedule_with_policy(
                 || window.end_hour <= window.start_hour
                 || window.end_hour > profile.calendar_period_hours
             {
-                errors.push(format!("resource {resource_id} has invalid or overlapping calendar windows"));
+                errors.push(format!(
+                    "resource {resource_id} has invalid or overlapping calendar windows"
+                ));
             }
             previous_end = window.end_hour;
         }
@@ -406,11 +418,16 @@ pub fn schedule_with_policy(
                     "{} task {} references unknown resource {}",
                     task.event_id, task.task_id, requirement.resource_id
                 )),
-                Some(profile) if requirement.units == 0 || requirement.units > profile.available_units => {
+                Some(profile)
+                    if requirement.units == 0 || requirement.units > profile.available_units =>
+                {
                     errors.push(format!(
                         "{} task {} requires {} units of {}, capacity is {}",
-                        task.event_id, task.task_id, requirement.units,
-                        requirement.resource_id, profile.available_units
+                        task.event_id,
+                        task.task_id,
+                        requirement.units,
+                        requirement.resource_id,
+                        profile.available_units
                     ));
                 }
                 Some(_) => {}
@@ -448,8 +465,10 @@ pub fn schedule_with_policy(
     }
 
     let mut successors: BTreeMap<String, Vec<String>> = BTreeMap::new();
-    let mut indegree: BTreeMap<String, usize> =
-        task_by_key.keys().map(|task_key| (task_key.clone(), 0)).collect();
+    let mut indegree: BTreeMap<String, usize> = task_by_key
+        .keys()
+        .map(|task_key| (task_key.clone(), 0))
+        .collect();
     for (task_key, task) in &task_by_key {
         for dependency in &task.depends_on {
             let dependency_key = key(&task.event_id, dependency);
@@ -731,10 +750,7 @@ pub fn exact_small_schedule(
     }
 
     let greedy = schedule(tasks, profiles)?;
-    let greedy_makespan = greedy
-        .iter()
-        .map(|task| task.end_hour)
-        .fold(0.0, f64::max);
+    let greedy_makespan = greedy.iter().map(|task| task.end_hour).fold(0.0, f64::max);
     let task_by_key: BTreeMap<String, &TaskSpec> = tasks
         .iter()
         .map(|task| (key(&task.event_id, &task.task_id), task))
@@ -816,7 +832,10 @@ pub fn weighted_unserved_energy_mwh(
             || !scheduled_task.start_hour.is_finite()
             || scheduled_task.end_hour < scheduled_task.start_hour
         {
-            return Err(vec![format!("schedule task {} has invalid interval", task_key)]);
+            return Err(vec![format!(
+                "schedule task {} has invalid interval",
+                task_key
+            )]);
         }
         if scheduled_task.end_hour > *end {
             *end = scheduled_task.end_hour;
@@ -852,11 +871,13 @@ fn exact_service_search(
             .iter()
             .map(|task| task.end_hour)
             .fold(0.0, f64::max);
-        let replace = best.as_ref().is_none_or(|(best_objective, best_makespan, _)| {
-            objective < *best_objective - 1e-9
-                || ((objective - *best_objective).abs() <= 1e-9
-                    && makespan < *best_makespan - 1e-9)
-        });
+        let replace = best
+            .as_ref()
+            .is_none_or(|(best_objective, best_makespan, _)| {
+                objective < *best_objective - 1e-9
+                    || ((objective - *best_objective).abs() <= 1e-9
+                        && makespan < *best_makespan - 1e-9)
+            });
         if replace {
             let mut ordered = scheduled_tasks;
             ordered.sort_by(|left, right| {
@@ -970,16 +991,10 @@ pub fn exact_small_service_schedule(
         )]);
     }
 
-    let greedy = schedule_with_policy(
-        tasks,
-        profiles,
-        SchedulePolicy::ServiceWeightedCriticalPath,
-    )?;
+    let greedy =
+        schedule_with_policy(tasks, profiles, SchedulePolicy::ServiceWeightedCriticalPath)?;
     let greedy_objective = weighted_unserved_energy_mwh(tasks, &greedy)?;
-    let greedy_makespan = greedy
-        .iter()
-        .map(|task| task.end_hour)
-        .fold(0.0, f64::max);
+    let greedy_makespan = greedy.iter().map(|task| task.end_hour).fold(0.0, f64::max);
     let task_by_key: BTreeMap<String, &TaskSpec> = tasks
         .iter()
         .map(|task| (key(&task.event_id, &task.task_id), task))
@@ -1048,7 +1063,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn exact_small_oracle_improves_over_greedy_task_order() {
         let tasks = vec![
@@ -1077,10 +1091,7 @@ mod tests {
         let mut critical = spec("Z-critical", "repair", &[], 0.0, 10.0, Some("crew"), 1);
         critical.service_weight_mw = 100.0;
         let tasks = vec![low, critical];
-        let profiles = BTreeMap::from([(
-            "crew".to_string(),
-            profile(1, 24.0, &[(0.0, 24.0)]),
-        )]);
+        let profiles = BTreeMap::from([("crew".to_string(), profile(1, 24.0, &[(0.0, 24.0)]))]);
         let greedy = schedule(&tasks, &profiles).expect("greedy schedule");
         let service_policy = schedule_with_policy(
             &tasks,
@@ -1088,17 +1099,22 @@ mod tests {
             SchedulePolicy::ServiceWeightedCriticalPath,
         )
         .expect("service-weighted heuristic");
-        let exact = exact_small_service_schedule(&tasks, &profiles).expect("exact service schedule");
+        let exact =
+            exact_small_service_schedule(&tasks, &profiles).expect("exact service schedule");
         let greedy_mwh = weighted_unserved_energy_mwh(&tasks, &greedy).expect("greedy objective");
-        let service_policy_mwh =
-            weighted_unserved_energy_mwh(&tasks, &service_policy).expect("service policy objective");
+        let service_policy_mwh = weighted_unserved_energy_mwh(&tasks, &service_policy)
+            .expect("service policy objective");
         let exact_mwh = weighted_unserved_energy_mwh(&tasks, &exact).expect("exact objective");
         assert_eq!(greedy_mwh, 1550.0);
         assert_eq!(service_policy_mwh, 1150.0);
         assert_eq!(exact_mwh, 1150.0);
         assert!(exact_mwh < greedy_mwh);
         assert_eq!(
-            exact.iter().find(|task| task.event_id == "Z-critical").unwrap().start_hour,
+            exact
+                .iter()
+                .find(|task| task.event_id == "Z-critical")
+                .unwrap()
+                .start_hour,
             0.0
         );
     }
@@ -1108,13 +1124,27 @@ mod tests {
         let first = spec("E1", "a", &[], 0.0, 1.0, None, 0);
         let mut second = spec("E1", "b", &[], 0.0, 1.0, None, 0);
         second.service_weight_mw = 2.0;
-        assert!(weighted_unserved_energy_mwh(
-            &[first, second],
-            &[
-                ScheduledTask { event_id: "E1".to_string(), task_id: "a".to_string(), start_hour: 0.0, end_hour: 1.0 },
-                ScheduledTask { event_id: "E1".to_string(), task_id: "b".to_string(), start_hour: 1.0, end_hour: 2.0 },
-            ]
-        ).unwrap_err()[0].contains("inconsistent release or service weight"));
+        assert!(
+            weighted_unserved_energy_mwh(
+                &[first, second],
+                &[
+                    ScheduledTask {
+                        event_id: "E1".to_string(),
+                        task_id: "a".to_string(),
+                        start_hour: 0.0,
+                        end_hour: 1.0
+                    },
+                    ScheduledTask {
+                        event_id: "E1".to_string(),
+                        task_id: "b".to_string(),
+                        start_hour: 1.0,
+                        end_hour: 2.0
+                    },
+                ]
+            )
+            .unwrap_err()[0]
+                .contains("inconsistent release or service weight")
+        );
     }
 
     #[test]
@@ -1125,9 +1155,10 @@ mod tests {
                 spec("E", &id, &[], 0.0, 1.0, None, 0)
             })
             .collect::<Vec<_>>();
-        assert!(exact_small_schedule(&tasks, &BTreeMap::new())
-            .unwrap_err()[0]
-            .contains("requires 1..=10 tasks"));
+        assert!(
+            exact_small_schedule(&tasks, &BTreeMap::new()).unwrap_err()[0]
+                .contains("requires 1..=10 tasks")
+        );
     }
 
     #[test]
@@ -1137,7 +1168,15 @@ mod tests {
             spec("E1", "crew", &["detect"], 0.0, 4.0, None, 0),
             spec("E1", "source", &["detect"], 0.0, 1.0, None, 0),
             spec("E1", "transport", &["source"], 0.0, 12.0, None, 0),
-            spec("E1", "repair", &["crew", "transport"], 0.0, 10.0, Some("crew"), 1),
+            spec(
+                "E1",
+                "repair",
+                &["crew", "transport"],
+                0.0,
+                10.0,
+                Some("crew"),
+                1,
+            ),
         ];
         let capacities = BTreeMap::from([("crew".to_string(), profile(1, 24.0, &[(0.0, 24.0)]))]);
         let result = schedule(&tasks, &capacities).expect("schedule should be feasible");
@@ -1220,7 +1259,8 @@ mod tests {
             units_unavailable: 1,
         });
         let profiles = BTreeMap::from([("crew".to_string(), crew)]);
-        let result = exact_small_schedule(&[task], &profiles).expect("exact schedule should respect outage");
+        let result =
+            exact_small_schedule(&[task], &profiles).expect("exact schedule should respect outage");
         assert_eq!(result[0].start_hour, 14.0);
         assert_eq!(result[0].end_hour, 16.0);
     }
@@ -1235,7 +1275,8 @@ mod tests {
             units_unavailable: 1,
         });
         let profiles = BTreeMap::from([("crew".to_string(), crew)]);
-        let result = exact_small_service_schedule(&[task], &profiles).expect("exact service schedule should respect outage");
+        let result = exact_small_service_schedule(&[task], &profiles)
+            .expect("exact service schedule should respect outage");
         assert_eq!(result[0].start_hour, 14.0);
         assert_eq!(result[0].end_hour, 16.0);
     }
@@ -1260,22 +1301,28 @@ mod tests {
         let task = spec("E1", "repair", &[], 8.0, 4.0, Some("crew"), 1);
         let mut crew = profile(1, 24.0, &[(0.0, 24.0)]);
         crew.outage_windows = vec![
-            ResourceOutageWindow { start_hour: 8.0, end_hour: 12.0, units_unavailable: 1 },
-            ResourceOutageWindow { start_hour: 10.0, end_hour: 14.0, units_unavailable: 1 },
+            ResourceOutageWindow {
+                start_hour: 8.0,
+                end_hour: 12.0,
+                units_unavailable: 1,
+            },
+            ResourceOutageWindow {
+                start_hour: 10.0,
+                end_hour: 14.0,
+                units_unavailable: 1,
+            },
         ];
         let profiles = BTreeMap::from([("crew".to_string(), crew)]);
-        assert!(schedule(&[task], &profiles)
-            .unwrap_err()[0]
-            .contains("overlapping outages exceeding available capacity"));
+        assert!(
+            schedule(&[task], &profiles).unwrap_err()[0]
+                .contains("overlapping outages exceeding available capacity")
+        );
     }
 
     #[test]
     fn waits_for_next_calendar_window_when_task_cannot_fit() {
         let task = spec("E1", "repair", &[], 14.0, 5.0, Some("crew"), 1);
-        let profiles = BTreeMap::from([(
-            "crew".to_string(),
-            profile(1, 24.0, &[(8.0, 18.0)]),
-        )]);
+        let profiles = BTreeMap::from([("crew".to_string(), profile(1, 24.0, &[(8.0, 18.0)]))]);
         let result = schedule(&[task], &profiles).expect("calendar should have next shift");
         assert_eq!(result[0].start_hour, 32.0);
         assert_eq!(result[0].end_hour, 37.0);
@@ -1288,11 +1335,16 @@ mod tests {
             1,
             168.0,
             &[
-                (8.0, 12.0), (13.0, 17.0),
-                (32.0, 36.0), (37.0, 41.0),
-                (56.0, 60.0), (61.0, 65.0),
-                (80.0, 84.0), (85.0, 89.0),
-                (104.0, 108.0), (109.0, 113.0),
+                (8.0, 12.0),
+                (13.0, 17.0),
+                (32.0, 36.0),
+                (37.0, 41.0),
+                (56.0, 60.0),
+                (61.0, 65.0),
+                (80.0, 84.0),
+                (85.0, 89.0),
+                (104.0, 108.0),
+                (109.0, 113.0),
             ],
         );
         crew.calendar_exceptions.push(ResourceCalendarException {
@@ -1320,9 +1372,9 @@ mod tests {
             reason: "test".to_string(),
         });
         let profiles = BTreeMap::from([("crew".to_string(), crew)]);
-        assert!(schedule(&[task], &profiles)
-            .unwrap_err()[0]
-            .contains("invalid calendar exception"));
+        assert!(
+            schedule(&[task], &profiles).unwrap_err()[0].contains("invalid calendar exception")
+        );
     }
 
     #[test]
@@ -1346,18 +1398,27 @@ mod tests {
             },
         ];
         let profiles = BTreeMap::from([("crew".to_string(), crew)]);
-        assert!(schedule(&[task], &profiles)
-            .unwrap_err()[0]
-            .contains("invalid calendar exception"));
+        assert!(
+            schedule(&[task], &profiles).unwrap_err()[0].contains("invalid calendar exception")
+        );
     }
 
     #[test]
     fn intersects_calendars_across_all_simultaneous_resources() {
         let mut task = spec("E1", "repair", &[], 0.0, 2.0, None, 0);
         task.resource_requirements = vec![
-            ResourceRequirement { resource_id: "crew".to_string(), units: 1 },
-            ResourceRequirement { resource_id: "crane".to_string(), units: 1 },
-            ResourceRequirement { resource_id: "test_rig".to_string(), units: 1 },
+            ResourceRequirement {
+                resource_id: "crew".to_string(),
+                units: 1,
+            },
+            ResourceRequirement {
+                resource_id: "crane".to_string(),
+                units: 1,
+            },
+            ResourceRequirement {
+                resource_id: "test_rig".to_string(),
+                units: 1,
+            },
         ];
         let profiles = BTreeMap::from([
             ("crew".to_string(), profile(1, 24.0, &[(0.0, 24.0)])),
@@ -1372,25 +1433,20 @@ mod tests {
     #[test]
     fn rejects_task_longer_than_every_shift_window() {
         let task = spec("E1", "haul", &[], 0.0, 12.0, Some("hauler"), 1);
-        let profiles = BTreeMap::from([(
-            "hauler".to_string(),
-            profile(1, 24.0, &[(8.0, 18.0)]),
-        )]);
-        assert!(schedule(&[task], &profiles)
-            .unwrap_err()[0]
-            .contains("exceeds every availability window"));
+        let profiles = BTreeMap::from([("hauler".to_string(), profile(1, 24.0, &[(8.0, 18.0)]))]);
+        assert!(
+            schedule(&[task], &profiles).unwrap_err()[0]
+                .contains("exceeds every availability window")
+        );
     }
 
     #[test]
     fn rejects_empty_resource_calendar() {
         let task = spec("E1", "repair", &[], 0.0, 2.0, Some("crew"), 1);
-        let profiles = BTreeMap::from([(
-            "crew".to_string(),
-            profile(1, 24.0, &[]),
-        )]);
-        assert!(schedule(&[task], &profiles)
-            .unwrap_err()[0]
-            .contains("invalid capacity or calendar"));
+        let profiles = BTreeMap::from([("crew".to_string(), profile(1, 24.0, &[]))]);
+        assert!(
+            schedule(&[task], &profiles).unwrap_err()[0].contains("invalid capacity or calendar")
+        );
     }
 
     #[test]
@@ -1428,25 +1484,30 @@ mod tests {
     fn rejects_duplicate_resource_requirements() {
         let mut task = spec("E1", "repair", &[], 0.0, 2.0, None, 0);
         task.resource_requirements = vec![
-            ResourceRequirement { resource_id: "crew".to_string(), units: 1 },
-            ResourceRequirement { resource_id: "crew".to_string(), units: 1 },
+            ResourceRequirement {
+                resource_id: "crew".to_string(),
+                units: 1,
+            },
+            ResourceRequirement {
+                resource_id: "crew".to_string(),
+                units: 1,
+            },
         ];
         let capacities = BTreeMap::from([("crew".to_string(), profile(1, 24.0, &[(0.0, 24.0)]))]);
-        assert!(schedule(&[task], &capacities)
-            .unwrap_err()[0]
-            .contains("repeats resource requirement"));
+        assert!(
+            schedule(&[task], &capacities).unwrap_err()[0].contains("repeats resource requirement")
+        );
     }
 
     #[test]
     fn rejects_requirement_above_resource_capacity() {
         let mut task = spec("E1", "repair", &[], 0.0, 2.0, None, 0);
-        task.resource_requirements = vec![
-            ResourceRequirement { resource_id: "crew".to_string(), units: 2 },
-        ];
+        task.resource_requirements = vec![ResourceRequirement {
+            resource_id: "crew".to_string(),
+            units: 2,
+        }];
         let capacities = BTreeMap::from([("crew".to_string(), profile(1, 24.0, &[(0.0, 24.0)]))]);
-        assert!(schedule(&[task], &capacities)
-            .unwrap_err()[0]
-            .contains("requires 2 units"));
+        assert!(schedule(&[task], &capacities).unwrap_err()[0].contains("requires 2 units"));
     }
 
     #[test]

@@ -1,7 +1,11 @@
 // Rust formatting for this validator is enforced by its exact-head CI workflow.
 mod scheduler;
 
-use scheduler::{AvailabilityWindow, ResourceCalendarException, ResourceOutageWindow, ResourceProfile, ResourceRequirement, SchedulePolicy, ScheduledTask, TaskSpec, exact_small_schedule, exact_small_service_schedule, schedule_with_policy, weighted_unserved_energy_mwh};
+use scheduler::{
+    AvailabilityWindow, ResourceCalendarException, ResourceOutageWindow, ResourceProfile,
+    ResourceRequirement, SchedulePolicy, ScheduledTask, TaskSpec, exact_small_schedule,
+    exact_small_service_schedule, schedule_with_policy, weighted_unserved_energy_mwh,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -154,7 +158,6 @@ struct Task {
     resource_requirements: Vec<ResourceRequirement>,
 }
 
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RecoveryScenarioSet {
@@ -233,7 +236,12 @@ fn dependency_reaches_stage(
             }
             if let Some(predecessor) = tasks_by_id.get(dependency) {
                 if predecessor.stage == required_stage
-                    || visit(&predecessor.depends_on, required_stage, tasks_by_id, visited)
+                    || visit(
+                        &predecessor.depends_on,
+                        required_stage,
+                        tasks_by_id,
+                        visited,
+                    )
                 {
                     return true;
                 }
@@ -272,24 +280,70 @@ fn validate(case: &Case, policy: SchedulePolicy) -> Vec<String> {
         errors.push("unsupported caseMaturity".to_string());
     }
 
-    unique_ids(case.assets.iter().map(|x| x.asset_id.as_str()), "asset", &mut errors);
-    unique_ids(case.parts.iter().map(|x| x.part_id.as_str()), "part", &mut errors);
-    unique_ids(case.depots.iter().map(|x| x.depot_id.as_str()), "depot", &mut errors);
-    unique_ids(case.resources.iter().map(|x| x.resource_id.as_str()), "resource", &mut errors);
-    unique_ids(case.logistics_routes.iter().map(|x| x.route_id.as_str()), "route", &mut errors);
     unique_ids(
-        case.evidence_records.iter().map(|x| x.evidence_record_id.as_str()),
+        case.assets.iter().map(|x| x.asset_id.as_str()),
+        "asset",
+        &mut errors,
+    );
+    unique_ids(
+        case.parts.iter().map(|x| x.part_id.as_str()),
+        "part",
+        &mut errors,
+    );
+    unique_ids(
+        case.depots.iter().map(|x| x.depot_id.as_str()),
+        "depot",
+        &mut errors,
+    );
+    unique_ids(
+        case.resources.iter().map(|x| x.resource_id.as_str()),
+        "resource",
+        &mut errors,
+    );
+    unique_ids(
+        case.logistics_routes.iter().map(|x| x.route_id.as_str()),
+        "route",
+        &mut errors,
+    );
+    unique_ids(
+        case.evidence_records
+            .iter()
+            .map(|x| x.evidence_record_id.as_str()),
         "evidence",
         &mut errors,
     );
-    unique_ids(case.events.iter().map(|x| x.event_id.as_str()), "event", &mut errors);
+    unique_ids(
+        case.events.iter().map(|x| x.event_id.as_str()),
+        "event",
+        &mut errors,
+    );
 
-    let assets: BTreeMap<_, _> = case.assets.iter().map(|x| (x.asset_id.as_str(), x)).collect();
+    let assets: BTreeMap<_, _> = case
+        .assets
+        .iter()
+        .map(|x| (x.asset_id.as_str(), x))
+        .collect();
     let parts: BTreeMap<_, _> = case.parts.iter().map(|x| (x.part_id.as_str(), x)).collect();
-    let depots: BTreeMap<_, _> = case.depots.iter().map(|x| (x.depot_id.as_str(), x)).collect();
-    let resources: BTreeMap<_, _> = case.resources.iter().map(|x| (x.resource_id.as_str(), x)).collect();
-    let routes: BTreeMap<_, _> = case.logistics_routes.iter().map(|x| (x.route_id.as_str(), x)).collect();
-    let evidence: BTreeMap<_, _> = case.evidence_records.iter().map(|x| (x.evidence_record_id.as_str(), x)).collect();
+    let depots: BTreeMap<_, _> = case
+        .depots
+        .iter()
+        .map(|x| (x.depot_id.as_str(), x))
+        .collect();
+    let resources: BTreeMap<_, _> = case
+        .resources
+        .iter()
+        .map(|x| (x.resource_id.as_str(), x))
+        .collect();
+    let routes: BTreeMap<_, _> = case
+        .logistics_routes
+        .iter()
+        .map(|x| (x.route_id.as_str(), x))
+        .collect();
+    let evidence: BTreeMap<_, _> = case
+        .evidence_records
+        .iter()
+        .map(|x| (x.evidence_record_id.as_str(), x))
+        .collect();
 
     for depot in &case.depots {
         let mut inventory_part_ids = BTreeSet::new();
@@ -331,14 +385,14 @@ fn validate(case: &Case, policy: SchedulePolicy) -> Vec<String> {
         "repair_or_replace",
         "test_and_commission",
     ];
-    let allowed_stages: BTreeSet<&str> = required_stages
-        .into_iter()
-        .chain(["transport"])
-        .collect();
+    let allowed_stages: BTreeSet<&str> = required_stages.into_iter().chain(["transport"]).collect();
 
     for event in &case.events {
         let Some(asset) = assets.get(event.asset_id.as_str()) else {
-            errors.push(format!("{} references unknown asset {}", event.event_id, event.asset_id));
+            errors.push(format!(
+                "{} references unknown asset {}",
+                event.event_id, event.asset_id
+            ));
             continue;
         };
 
@@ -360,7 +414,10 @@ fn validate(case: &Case, policy: SchedulePolicy) -> Vec<String> {
             || !plan.alternative_firm_capacity_mw.is_finite()
             || plan.alternative_firm_capacity_mw > event.firm_capacity_lost_mw
         {
-            errors.push(format!("{} has invalid alternative firm capacity", event.event_id));
+            errors.push(format!(
+                "{} has invalid alternative firm capacity",
+                event.event_id
+            ));
         }
 
         let mut stages = BTreeSet::new();
@@ -368,13 +425,19 @@ fn validate(case: &Case, policy: SchedulePolicy) -> Vec<String> {
         for task in &plan.tasks {
             stages.insert(task.stage.as_str());
             if !allowed_stages.contains(task.stage.as_str()) {
-                errors.push(format!("{} has unsupported task stage {}", event.event_id, task.stage));
+                errors.push(format!(
+                    "{} has unsupported task stage {}",
+                    event.event_id, task.stage
+                ));
             }
             if task.task_id.trim().is_empty() {
                 errors.push(format!("{} has empty taskId", event.event_id));
             }
             if !task_ids.insert(task.task_id.clone()) {
-                errors.push(format!("{} has duplicate taskId {}", event.event_id, task.task_id));
+                errors.push(format!(
+                    "{} has duplicate taskId {}",
+                    event.event_id, task.task_id
+                ));
             }
             let mut resource_ids = BTreeSet::new();
             for requirement in &task.resource_requirements {
@@ -404,7 +467,10 @@ fn validate(case: &Case, policy: SchedulePolicy) -> Vec<String> {
 
         for stage in required_stages {
             if !stages.contains(stage) {
-                errors.push(format!("{} missing required stage {}", event.event_id, stage));
+                errors.push(format!(
+                    "{} missing required stage {}",
+                    event.event_id, stage
+                ));
             }
         }
 
@@ -415,9 +481,8 @@ fn validate(case: &Case, policy: SchedulePolicy) -> Vec<String> {
             .map(|task| (task.task_id.clone(), task))
             .collect();
         for task in &plan.tasks {
-            let dependency_has_stage = |required_stage: &str| {
-                dependency_reaches_stage(task, required_stage, &tasks_by_id)
-            };
+            let dependency_has_stage =
+                |required_stage: &str| dependency_reaches_stage(task, required_stage, &tasks_by_id);
             let required_predecessors: &[&str] = match task.stage.as_str() {
                 "diagnose" => &["detect_and_isolate"],
                 "source_part" | "crew_mobilise" => &["diagnose"],
@@ -446,19 +511,30 @@ fn validate(case: &Case, policy: SchedulePolicy) -> Vec<String> {
                 quantity,
             } => {
                 let Some(depot) = depots.get(depot_id.as_str()) else {
-                    errors.push(format!("{} references unknown depot {}", event.event_id, depot_id));
+                    errors.push(format!(
+                        "{} references unknown depot {}",
+                        event.event_id, depot_id
+                    ));
                     continue;
                 };
                 let Some(inventory) = depot.inventory.iter().find(|x| x.part_id == *part_id) else {
-                    errors.push(format!("{} part {} is absent from depot {}", event.event_id, part_id, depot_id));
+                    errors.push(format!(
+                        "{} part {} is absent from depot {}",
+                        event.event_id, part_id, depot_id
+                    ));
                     continue;
                 };
                 if inventory.quantity_reserved > inventory.quantity_serviceable
                     || inventory.quantity_serviceable > inventory.quantity_on_hand
                 {
-                    errors.push(format!("{} depot {} has inconsistent inventory counts", event.event_id, depot_id));
+                    errors.push(format!(
+                        "{} depot {} has inconsistent inventory counts",
+                        event.event_id, depot_id
+                    ));
                 }
-                let available = inventory.quantity_serviceable.saturating_sub(inventory.quantity_reserved);
+                let available = inventory
+                    .quantity_serviceable
+                    .saturating_sub(inventory.quantity_reserved);
                 if *quantity == 0 || *quantity > available {
                     errors.push(format!(
                         "{} requests {} of {}, but only {} serviceable unreserved unit(s) exist",
@@ -477,7 +553,10 @@ fn validate(case: &Case, policy: SchedulePolicy) -> Vec<String> {
                             if route.from_location_id != depot.location_id
                                 || route.to_location_id != asset.location_id
                             {
-                                errors.push(format!("{} logistics route does not connect depot to asset", event.event_id));
+                                errors.push(format!(
+                                    "{} logistics route does not connect depot to asset",
+                                    event.event_id
+                                ));
                             }
                             if !mass.is_finite() || mass <= 0.0 || mass > route.max_cargo_kg {
                                 errors.push(format!(
@@ -488,30 +567,57 @@ fn validate(case: &Case, policy: SchedulePolicy) -> Vec<String> {
                             let transport_task = plan.tasks.iter().find(|x| x.stage == "transport");
                             if let Some(task) = transport_task {
                                 if task.duration_hours + 1e-6 < route.transit_hours {
-                                    errors.push(format!("{} transport task is shorter than route transit time", event.event_id));
+                                    errors.push(format!(
+                                        "{} transport task is shorter than route transit time",
+                                        event.event_id
+                                    ));
                                 }
                             } else {
-                                errors.push(format!("{} depot-stock recovery is missing transport stage", event.event_id));
+                                errors.push(format!(
+                                    "{} depot-stock recovery is missing transport stage",
+                                    event.event_id
+                                ));
                             }
                         } else {
-                            errors.push(format!("{} references unknown logistics route {}", event.event_id, route_id));
+                            errors.push(format!(
+                                "{} references unknown logistics route {}",
+                                event.event_id, route_id
+                            ));
                         }
                     }
-                    _ => errors.push(format!("{} depot-stock recovery requires route and cargo mass", event.event_id)),
+                    _ => errors.push(format!(
+                        "{} depot-stock recovery requires route and cargo mass",
+                        event.event_id
+                    )),
                 }
             }
-            PartSource::OemProcurement { supplier_id, part_id } => {
+            PartSource::OemProcurement {
+                supplier_id,
+                part_id,
+            } => {
                 if supplier_id.trim().is_empty() {
-                    errors.push(format!("{} OEM procurement requires a supplierId", event.event_id));
+                    errors.push(format!(
+                        "{} OEM procurement requires a supplierId",
+                        event.event_id
+                    ));
                 }
                 if plan.logistics_route_id.is_some() || plan.transport_mass_kg.is_some() {
-                    errors.push(format!("{} OEM procurement cannot silently reuse a depot route allocation", event.event_id));
+                    errors.push(format!(
+                        "{} OEM procurement cannot silently reuse a depot route allocation",
+                        event.event_id
+                    ));
                 }
                 if !stages.contains("source_part") {
-                    errors.push(format!("{} OEM procurement is missing source_part duration", event.event_id));
+                    errors.push(format!(
+                        "{} OEM procurement is missing source_part duration",
+                        event.event_id
+                    ));
                 }
                 if !parts.contains_key(part_id.as_str()) {
-                    errors.push(format!("{} references unknown procured part {}", event.event_id, part_id));
+                    errors.push(format!(
+                        "{} references unknown procured part {}",
+                        event.event_id, part_id
+                    ));
                 }
             }
         }
@@ -527,7 +633,11 @@ fn validate(case: &Case, policy: SchedulePolicy) -> Vec<String> {
                     event.event_id, part.part_id, part.part_class, asset.asset_class
                 ));
             }
-            if !part.approved_interface_profiles.iter().any(|x| x == &asset.interface_profile_id) {
+            if !part
+                .approved_interface_profiles
+                .iter()
+                .any(|x| x == &asset.interface_profile_id)
+            {
                 errors.push(format!(
                     "{} part {} is not approved for interface profile {}",
                     event.event_id, part.part_id, asset.interface_profile_id
@@ -541,7 +651,10 @@ fn validate(case: &Case, policy: SchedulePolicy) -> Vec<String> {
                             event.event_id, record.evidence_class
                         ));
                     }
-                } else if !matches!(record.evidence_class.as_str(), "site_qualified" | "independent_field_verified") {
+                } else if !matches!(
+                    record.evidence_class.as_str(),
+                    "site_qualified" | "independent_field_verified"
+                ) {
                     errors.push(format!(
                         "{} operational case lacks site-qualified or independently field-verified part evidence",
                         event.event_id
@@ -552,13 +665,19 @@ fn validate(case: &Case, policy: SchedulePolicy) -> Vec<String> {
                 }
                 if let Some(uri) = &record.source_uri {
                     if !(uri.starts_with("https://") || uri.starts_with("http://")) {
-                        errors.push(format!("{} evidence sourceUri is not an HTTP(S) URI", event.event_id));
+                        errors.push(format!(
+                            "{} evidence sourceUri is not an HTTP(S) URI",
+                            event.event_id
+                        ));
                     }
                 }
                 if case.case_maturity != "synthetic_fixture"
                     && record.source_uri.as_deref().is_none_or(str::is_empty)
                 {
-                    errors.push(format!("{} non-synthetic evidence requires sourceUri", event.event_id));
+                    errors.push(format!(
+                        "{} non-synthetic evidence requires sourceUri",
+                        event.event_id
+                    ));
                 }
             } else {
                 errors.push(format!(
@@ -572,7 +691,9 @@ fn validate(case: &Case, policy: SchedulePolicy) -> Vec<String> {
     for ((depot_id, part_id), demand) in stock_demand {
         if let Some(depot) = depots.get(depot_id.as_str()) {
             if let Some(item) = depot.inventory.iter().find(|x| x.part_id == part_id) {
-                let available = item.quantity_serviceable.saturating_sub(item.quantity_reserved);
+                let available = item
+                    .quantity_serviceable
+                    .saturating_sub(item.quantity_reserved);
                 if demand > available {
                     errors.push(format!(
                         "spare double-allocation: {demand} units of {part_id} demanded from {depot_id}, only {available} available"
@@ -617,15 +738,24 @@ fn validate(case: &Case, policy: SchedulePolicy) -> Vec<String> {
             || asset.variant_id.trim().is_empty()
             || asset.interface_profile_id.trim().is_empty()
         {
-            errors.push(format!("{} has incomplete class, variant or interface identity", asset.asset_id));
+            errors.push(format!(
+                "{} has incomplete class, variant or interface identity",
+                asset.asset_id
+            ));
         }
     }
     for part in &case.parts {
         if part.part_class.trim().is_empty() || part.variant_id.trim().is_empty() {
-            errors.push(format!("{} has incomplete class/variant identity", part.part_id));
+            errors.push(format!(
+                "{} has incomplete class/variant identity",
+                part.part_id
+            ));
         }
         if part.approved_interface_profiles.is_empty() {
-            errors.push(format!("{} has no approved interface profiles", part.part_id));
+            errors.push(format!(
+                "{} has no approved interface profiles",
+                part.part_id
+            ));
         }
     }
     for resource in &case.resources {
@@ -635,7 +765,10 @@ fn validate(case: &Case, policy: SchedulePolicy) -> Vec<String> {
             || resource.calendar_period_hours <= 0.0
             || resource.availability_windows.is_empty()
         {
-            errors.push(format!("{} has invalid resource type, capacity or calendar", resource.resource_id));
+            errors.push(format!(
+                "{} has invalid resource type, capacity or calendar",
+                resource.resource_id
+            ));
         }
         let mut exception_ids = BTreeSet::new();
         for exception in &resource.calendar_exceptions {
@@ -661,14 +794,16 @@ fn validate(case: &Case, policy: SchedulePolicy) -> Vec<String> {
             || !route.max_cargo_kg.is_finite()
             || route.max_cargo_kg <= 0.0
         {
-            errors.push(format!("{} has invalid logistics parameters", route.route_id));
+            errors.push(format!(
+                "{} has invalid logistics parameters",
+                route.route_id
+            ));
         }
     }
 
     errors.sort();
     errors
 }
-
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -870,7 +1005,6 @@ fn build_report(
     }
 }
 
-
 fn weighted_quantile(values: &[(f64, f64)], quantile: f64) -> f64 {
     let mut ordered = values.to_vec();
     ordered.sort_by(|left, right| left.0.total_cmp(&right.0));
@@ -883,7 +1017,6 @@ fn weighted_quantile(values: &[(f64, f64)], quantile: f64) -> f64 {
     }
     ordered.last().map(|item| item.0).unwrap_or(0.0)
 }
-
 
 fn weighted_cvar(values: &[(f64, f64)], confidence: f64) -> f64 {
     let tail_mass = (1.0 - confidence).clamp(0.0, 1.0);
@@ -925,7 +1058,9 @@ fn evaluate_scenario_set(
         scenario_set.probability_basis.as_str(),
         "synthetic_assumption" | "expert_elicitation" | "empirical_fit"
     ) {
-        return Err(vec!["scenario set has unsupported probabilityBasis".to_string()]);
+        return Err(vec![
+            "scenario set has unsupported probabilityBasis".to_string(),
+        ]);
     }
     if scenario_set.probability_source.trim().is_empty() {
         return Err(vec!["scenario set requires probabilitySource".to_string()]);
@@ -944,7 +1079,9 @@ fn evaluate_scenario_set(
         )]);
     }
     if scenario_set.scenarios.is_empty() {
-        return Err(vec!["scenario set must contain at least one scenario".to_string()]);
+        return Err(vec![
+            "scenario set must contain at least one scenario".to_string(),
+        ]);
     }
 
     let profiles_base = resource_capacities(case);
@@ -994,7 +1131,9 @@ fn evaluate_scenario_set(
             }
             let task = tasks
                 .iter_mut()
-                .find(|task| task.event_id == adjustment.event_id && task.task_id == adjustment.task_id)
+                .find(|task| {
+                    task.event_id == adjustment.event_id && task.task_id == adjustment.task_id
+                })
                 .expect("validated task key exists");
             task.duration_hours = adjustment.duration_hours;
         }
@@ -1048,7 +1187,9 @@ fn evaluate_scenario_set(
             cause_groups.insert(outage.correlation_group_id.clone());
             cause_ids.insert(outage.cause_id.clone());
             affected_resources.insert(outage.resource_id.clone());
-            let boundaries = outage_boundaries.entry(outage.resource_id.clone()).or_default();
+            let boundaries = outage_boundaries
+                .entry(outage.resource_id.clone())
+                .or_default();
             boundaries.push(outage.start_hour);
             boundaries.push(outage.end_hour);
             profile.outage_windows.push(ResourceOutageWindow {
@@ -1058,7 +1199,10 @@ fn evaluate_scenario_set(
             });
         }
         for (resource_id, profile) in &profiles {
-            let mut boundaries = outage_boundaries.get(resource_id).cloned().unwrap_or_default();
+            let mut boundaries = outage_boundaries
+                .get(resource_id)
+                .cloned()
+                .unwrap_or_default();
             boundaries.sort_by(f64::total_cmp);
             boundaries.dedup_by(|left, right| (*left - *right).abs() <= 1e-9);
             for boundary in boundaries {
@@ -1123,7 +1267,10 @@ fn evaluate_scenario_set(
         .sum();
     let worst = outcomes
         .iter()
-        .max_by(|left, right| left.weighted_unserved_energy_mwh.total_cmp(&right.weighted_unserved_energy_mwh))
+        .max_by(|left, right| {
+            left.weighted_unserved_energy_mwh
+                .total_cmp(&right.weighted_unserved_energy_mwh)
+        })
         .expect("scenario set is non-empty");
 
     Ok(ScenarioSetReport {
@@ -1183,7 +1330,9 @@ fn main() {
         } else if path.is_none() {
             path = Some(argument);
         } else {
-            eprintln!("usage: grid-asset-recovery-validator [--policy-service-weighted-critical-path] [--scenario-set scenarios.json] [--exact-small|--exact-small-service] <case.json>");
+            eprintln!(
+                "usage: grid-asset-recovery-validator [--policy-service-weighted-critical-path] [--scenario-set scenarios.json] [--exact-small|--exact-small-service] <case.json>"
+            );
             process::exit(2);
         }
     }
@@ -1192,7 +1341,9 @@ fn main() {
         process::exit(2);
     }
     let Some(path) = path else {
-        eprintln!("usage: grid-asset-recovery-validator [--exact-small|--exact-small-service] <case.json>");
+        eprintln!(
+            "usage: grid-asset-recovery-validator [--exact-small|--exact-small-service] <case.json>"
+        );
         process::exit(2);
     };
     let input = fs::read_to_string(&path).unwrap_or_else(|error| {
@@ -1215,7 +1366,8 @@ fn main() {
                             .map(|task| task.end_hour)
                             .fold(0.0, f64::max);
                         Some(ExactSmallComparison {
-                            reference_type: "exhaustive_small_instance_minimum_makespan".to_string(),
+                            reference_type: "exhaustive_small_instance_minimum_makespan"
+                                .to_string(),
                             maximum_tasks: 10,
                             greedy_makespan_hours: greedy_makespan,
                             exact_makespan_hours: exact_makespan,
@@ -1252,21 +1404,24 @@ fn main() {
                 };
                 match exact_small_service_schedule(&tasks, &profiles) {
                     Ok(exact_schedule) => {
-                        let exact_service = match weighted_unserved_energy_mwh(&tasks, &exact_schedule) {
-                            Ok(value) => value,
-                            Err(errors) => {
-                                for error in errors {
-                                    eprintln!("EXACT-SERVICE-OBJECTIVE-FAIL: {error}");
+                        let exact_service =
+                            match weighted_unserved_energy_mwh(&tasks, &exact_schedule) {
+                                Ok(value) => value,
+                                Err(errors) => {
+                                    for error in errors {
+                                        eprintln!("EXACT-SERVICE-OBJECTIVE-FAIL: {error}");
+                                    }
+                                    process::exit(1);
                                 }
-                                process::exit(1);
-                            }
-                        };
+                            };
                         let exact_makespan = exact_schedule
                             .iter()
                             .map(|task| task.end_hour)
                             .fold(0.0, f64::max);
                         Some(ExactSmallServiceComparison {
-                            reference_type: "exhaustive_small_instance_minimum_weighted_unserved_energy".to_string(),
+                            reference_type:
+                                "exhaustive_small_instance_minimum_weighted_unserved_energy"
+                                    .to_string(),
                             maximum_tasks: 8,
                             greedy_weighted_unserved_energy_mwh: greedy_service,
                             exact_weighted_unserved_energy_mwh: exact_service,
@@ -1334,12 +1489,15 @@ mod tests {
     use super::*;
     use serde_json::{Value, json};
 
-    const FIXTURE: &str =
-        include_str!("../../../docs/research/grid-asset-recovery/data/synthetic-asset-recovery-v0.1.json");
-    const CABLE_FIXTURE: &str =
-        include_str!("../../../docs/research/grid-asset-recovery/data/synthetic-cable-recovery-v0.1.json");
-    const SCENARIO_FIXTURE: &str =
-        include_str!("../../../docs/research/grid-asset-recovery/data/synthetic-recovery-scenarios-v0.1.json");
+    const FIXTURE: &str = include_str!(
+        "../../../docs/research/grid-asset-recovery/data/synthetic-asset-recovery-v0.1.json"
+    );
+    const CABLE_FIXTURE: &str = include_str!(
+        "../../../docs/research/grid-asset-recovery/data/synthetic-cable-recovery-v0.1.json"
+    );
+    const SCENARIO_FIXTURE: &str = include_str!(
+        "../../../docs/research/grid-asset-recovery/data/synthetic-recovery-scenarios-v0.1.json"
+    );
 
     fn fixture() -> Value {
         serde_json::from_str(FIXTURE).expect("fixture JSON")
@@ -1349,7 +1507,6 @@ mod tests {
         let case: Case = serde_json::from_value(value.clone()).expect("typed fixture");
         validate(&case, SchedulePolicy::EarliestFeasibleStart)
     }
-
 
     #[test]
     fn replays_probability_weighted_disruption_scenarios() {
@@ -1373,7 +1530,10 @@ mod tests {
             .iter()
             .find(|outcome| outcome.scenario_id == "COMPOUND-STORM-SUPPLIER")
             .unwrap();
-        assert_eq!(compound.correlated_cause_groups, vec!["REGIONAL-STORM-02".to_string()]);
+        assert_eq!(
+            compound.correlated_cause_groups,
+            vec!["REGIONAL-STORM-02".to_string()]
+        );
         assert_eq!(
             compound.affected_resource_ids,
             vec!["CRANE-200T".to_string(), "HEAVY-HAULER".to_string()]
@@ -1483,40 +1643,63 @@ mod tests {
             "partId": "SPARE-A",
             "quantity": 1
         });
-        value["events"][1]["selectedPlan"]["logisticsRouteId"] = Value::String("ROUTE-CENTRAL-NORTH".to_string());
+        value["events"][1]["selectedPlan"]["logisticsRouteId"] =
+            Value::String("ROUTE-CENTRAL-NORTH".to_string());
         value["events"][1]["selectedPlan"]["transportMassKg"] = Value::from(90000);
-        value["events"][1]["selectedPlan"]["tasks"].as_array_mut().unwrap().insert(
-            3,
-            json!({
-                "taskId": "transport",
-                "stage": "transport",
-                "dependsOn": ["source-part"],
-                "durationHours": 12
-            }),
+        value["events"][1]["selectedPlan"]["tasks"]
+            .as_array_mut()
+            .unwrap()
+            .insert(
+                3,
+                json!({
+                    "taskId": "transport",
+                    "stage": "transport",
+                    "dependsOn": ["source-part"],
+                    "durationHours": 12
+                }),
+            );
+        assert!(
+            check(&value)
+                .iter()
+                .any(|x| x.contains("spare double-allocation"))
         );
-        assert!(check(&value).iter().any(|x| x.contains("spare double-allocation")));
     }
 
     #[test]
     fn rejects_reserved_inventory() {
         let mut value = fixture();
         value["depots"][0]["inventory"][0]["quantityReserved"] = Value::from(1);
-        assert!(check(&value).iter().any(|x| x.contains("only 0 serviceable unreserved")));
+        assert!(
+            check(&value)
+                .iter()
+                .any(|x| x.contains("only 0 serviceable unreserved"))
+        );
     }
 
     #[test]
     fn rejects_duplicate_inventory_rows() {
         let mut value = fixture();
         let duplicate = value["depots"][0]["inventory"][0].clone();
-        value["depots"][0]["inventory"].as_array_mut().unwrap().push(duplicate);
-        assert!(check(&value).iter().any(|x| x.contains("duplicate partId SPARE-A in depot DEPOT-CENTRAL")));
+        value["depots"][0]["inventory"]
+            .as_array_mut()
+            .unwrap()
+            .push(duplicate);
+        assert!(
+            check(&value)
+                .iter()
+                .any(|x| x.contains("duplicate partId SPARE-A in depot DEPOT-CENTRAL"))
+        );
     }
 
     #[test]
     fn rejects_impossible_transport_mass() {
         let mut value = fixture();
         value["logisticsRoutes"][0]["maxCargoKg"] = Value::from(1000);
-        assert!(check(&value).iter().any(|x| x.contains("exceeds route limit")));
+        assert!(
+            check(&value)
+                .iter()
+                .any(|x| x.contains("exceeds route limit"))
+        );
     }
 
     #[test]
@@ -1526,43 +1709,50 @@ mod tests {
             .as_array_mut()
             .unwrap()
             .retain(|task| task["stage"] != "test_and_commission");
-        assert!(check(&value)
-            .iter()
-            .any(|x| x.contains("missing required stage test_and_commission")));
+        assert!(
+            check(&value)
+                .iter()
+                .any(|x| x.contains("missing required stage test_and_commission"))
+        );
     }
 
     #[test]
     fn detects_resource_delay_in_claimed_restoration_time() {
         let mut value = fixture();
         value["events"][2]["startHour"] = Value::from(10);
-        assert!(check(&value)
-            .iter()
-            .any(|x| x.contains("dependency/resource schedule gives")));
+        assert!(
+            check(&value)
+                .iter()
+                .any(|x| x.contains("dependency/resource schedule gives"))
+        );
     }
 
     #[test]
     fn rejects_synthetic_evidence_promotion() {
         let mut value = fixture();
         value["caseMaturity"] = Value::String("field_observed".to_string());
-        assert!(check(&value)
-            .iter()
-            .any(|x| x.contains("lacks site-qualified")));
+        assert!(
+            check(&value)
+                .iter()
+                .any(|x| x.contains("lacks site-qualified"))
+        );
     }
 
     #[test]
     fn rejects_incorrect_unserved_energy_arithmetic() {
         let mut value = fixture();
         value["events"][0]["selectedPlan"]["expectedUnservedEnergyMwh"] = Value::from(1);
-        assert!(check(&value)
-            .iter()
-            .any(|x| x.contains("scheduled arithmetic")));
+        assert!(
+            check(&value)
+                .iter()
+                .any(|x| x.contains("scheduled arithmetic"))
+        );
     }
 
     #[test]
     fn rejects_dependency_cycle() {
         let mut value = fixture();
-        value["events"][0]["selectedPlan"]["tasks"][0]["dependsOn"] =
-            json!(["test-commission"]);
+        value["events"][0]["selectedPlan"]["tasks"][0]["dependsOn"] = json!(["test-commission"]);
         assert!(check(&value).iter().any(|x| x.contains("cycle")));
     }
 
@@ -1570,6 +1760,10 @@ mod tests {
     fn rejects_missing_essential_stage_dependency() {
         let mut value = fixture();
         value["events"][0]["selectedPlan"]["tasks"][1]["dependsOn"] = json!([]);
-        assert!(check(&value).iter().any(|x| x.contains("must depend on stage detect_and_isolate")));
+        assert!(
+            check(&value)
+                .iter()
+                .any(|x| x.contains("must depend on stage detect_and_isolate"))
+        );
     }
 }
