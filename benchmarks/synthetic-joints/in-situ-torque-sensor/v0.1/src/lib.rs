@@ -138,6 +138,7 @@ pub struct InstallationCalibrationScore {
     pub reference_source_reference: String,
     pub reference_raw_trace_digest: String,
     pub reference_calibration_digest: String,
+    pub synchronized_metrology_receipt_digest: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -154,6 +155,7 @@ pub struct InstallationAssessment {
     pub reference_source_reference: String,
     pub reference_raw_trace_digest: String,
     pub calibration_digest: String,
+    pub synchronized_metrology_receipt_digest: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -763,6 +765,7 @@ pub fn evaluate_sensor_transfer(
                 reference_source_reference: installation.reference_source_reference.clone(),
                 reference_raw_trace_digest: installation.reference_raw_trace_digest.clone(),
                 reference_calibration_digest: installation.reference_calibration_digest.clone(),
+                synchronized_metrology_receipt_digest: installation.synchronized_metrology_receipt_digest.clone(),
             }
         })
         .collect();
@@ -816,6 +819,7 @@ pub fn evaluate_sensor_transfer(
                 reference_source_reference: installation.reference_source_reference.clone(),
                 reference_raw_trace_digest: installation.reference_raw_trace_digest.clone(),
                 calibration_digest: installation.calibration_digest.clone(),
+                synchronized_metrology_receipt_digest: installation.synchronized_metrology_receipt_digest.clone(),
             });
             continue;
         }
@@ -894,6 +898,7 @@ pub fn evaluate_sensor_transfer(
             reference_source_reference: installation.reference_source_reference.clone(),
             reference_raw_trace_digest: installation.reference_raw_trace_digest.clone(),
             calibration_digest: installation.calibration_digest.clone(),
+            synchronized_metrology_receipt_digest: installation.synchronized_metrology_receipt_digest.clone(),
         });
     }
 
@@ -1363,6 +1368,10 @@ mod tests {
         assert_eq!(
             report.installations[0].calibration_digest,
             "sensor-calibration-test-a"
+        );
+        assert_eq!(
+            report.installations[0].synchronized_metrology_receipt_digest,
+            "synced-metrology-receipt-test-a"
         );
     }
 
