@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: egb-cartan-replay-\${{ github.ref }}
+  group: egb-cartan-replay-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: \${{ github.sha }}
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-python@v5
         with:
@@ -38,12 +38,12 @@ jobs:
         env:
           PYTHONHASHSEED: "0"
         run: |
-          python crates/domains/symtropy-lovelock5d/benchmarks/derive_single_spin_nheg_cartan.py \\
+          python crates/domains/symtropy-lovelock5d/benchmarks/derive_single_spin_nheg_cartan.py \
             --output "$RUNNER_TEMP/single_spin_nheg_cartan_replay.json"
 
       - name: Enforce all component residuals and the wrong-index negative control
         env:
-          REPLAY_JSON: \${{ runner.temp }}/single_spin_nheg_cartan_replay.json
+          REPLAY_JSON: ${{ runner.temp }}/single_spin_nheg_cartan_replay.json
         run: |
           python - <<'PY'
           import json, os
@@ -81,6 +81,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: egb-cartan-lanczos-exact-replay
-          path: \${{ runner.temp }}/single_spin_nheg_cartan_replay.json
+          path: ${{ runner.temp }}/single_spin_nheg_cartan_replay.json
           if-no-files-found: error
           retention-days: 30
