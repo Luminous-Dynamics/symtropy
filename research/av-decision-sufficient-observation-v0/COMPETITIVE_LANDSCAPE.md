@@ -74,6 +74,14 @@ SPOT-Bench's public status also matters: detection tasks are released in full, w
 
 **StreamAV-Bench must remain a separate generation lane.** It evaluates streaming audio-video generation, temporal stability and interactive control, not perception of externally generated sensor streams. It is directly relevant to Melothaea and generated interactive worlds, but not a substitute leaderboard for AV perception. https://arxiv.org/abs/2608.26336
 
+## Benchmark data rights and reproducibility constraints
+
+- **OmniPro:** the public Hugging Face dataset card declares CC BY-NC 4.0 and describes the benchmark as evaluation-only, not model-training data. Videos are sourced from LongVALE and COIN; their source terms still matter. Use only for appropriately scoped non-commercial evaluation unless rights holders explicitly grant more. https://huggingface.co/datasets/omniproact-bench/OmniPro
+- **StreamArena:** evaluation code is Apache-2.0; annotations are CC BY-NC 4.0; videos retain original YouTube uploader copyright and the dataset card limits redistribution to non-commercial research reproducibility. Do not put source videos into our public repository or assume product-training rights. https://github.com/JIA-Lab-research/StreamArena
+- **VSAS-Bench:** the open-access paper does not by itself establish a blanket licence for its underlying media. Verify dataset terms and access before downloading, mirroring, training or commercial use. https://openaccess.thecvf.com/content/CVPR2026F/html/Vasu_VSAS-Bench_Real-Time_Evaluation_of_Visual_Streaming_Assistant_Models_CVPRF_2026_paper.html
+
+For each external benchmark, pin evaluator and dataset revisions, retain source/consent and licence metadata, respect non-commercial restrictions, and keep evaluation-only data out of training. A reproducible public score does not grant redistribution rights.
+
 ## The paradigm shifts these results imply
 
 ### 0. From one streaming loop to deadline-isolated foreground and background cognition
