@@ -58,6 +58,7 @@ Unix epoch time is the unambiguous time authority. The timezone label is preserv
 
 - Modelled service requires a model ID, pinned producer source commit/configuration and source artifacts.
 - Measured service requires a meter/instrument ID, calibration artifact and exact calibration digest in the source artifact inventory.
+- Modelled and measured service require a distinct evidence-provider identity. In the end-to-end claim package, that producer signs each exact source artifact under the EvidenceProvider role; the ServiceProvider separately signs the derived trajectory. The same producer identity/key must not self-certify both roles.
 - Each known row's evidence reference/digest must occur in the same source inventory.
 - Conflicting rows retain at least two distinct source artifact references/digests.
 - Every source record is still a claim about a producer's method; signatures and digests authenticate identity/content, not physical truth or meter accuracy.
