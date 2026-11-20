@@ -643,16 +643,18 @@ fn build_window_bounds(
             .and_then(|value| value.checked_add(margin[axis]))
             .ok_or(StopTubeBuildError::BoundsOverflow)
     });
+    let [min_x, min_y, min_z] = min;
+    let [max_x, max_y, max_z] = max;
     Ok(AabbMm {
         min: Point3Mm {
-            x: min[0]?,
-            y: min[1]?,
-            z: min[2]?,
+            x: min_x?,
+            y: min_y?,
+            z: min_z?,
         },
         max: Point3Mm {
-            x: max[0]?,
-            y: max[1]?,
-            z: max[2]?,
+            x: max_x?,
+            y: max_y?,
+            z: max_z?,
         },
     })
 }
