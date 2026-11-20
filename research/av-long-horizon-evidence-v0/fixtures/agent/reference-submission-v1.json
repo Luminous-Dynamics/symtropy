@@ -24,7 +24,8 @@
       "response_tick": 601,
       "retrieved_memory_item_refs": [],
       "retained_memory_item_refs": [],
-      "purge_receipts": []
+      "purge_receipts": [],
+      "claimed_distinct_event_count": null
     },
     {
       "episode_id": "lh-002-repeated-event-dedup",
@@ -70,7 +71,8 @@
       "response_tick": 1801,
       "retrieved_memory_item_refs": [],
       "retained_memory_item_refs": [],
-      "purge_receipts": []
+      "purge_receipts": [],
+      "claimed_distinct_event_count": null
     },
     {
       "episode_id": "lh-004-common-cause-dependence",
@@ -91,7 +93,8 @@
       "response_tick": 1201,
       "retrieved_memory_item_refs": [],
       "retained_memory_item_refs": [],
-      "purge_receipts": []
+      "purge_receipts": [],
+      "claimed_distinct_event_count": null
     },
     {
       "episode_id": "lh-005-nuisance-interference",
@@ -110,11 +113,12 @@
       "response_tick": 3601,
       "retrieved_memory_item_refs": [],
       "retained_memory_item_refs": [],
-      "purge_receipts": []
+      "purge_receipts": [],
+      "claimed_distinct_event_count": null
     },
     {
       "episode_id": "lh-006-absent-event-false-memory",
-      "decision": "abstain",
+      "decision": "answer",
       "answer": null,
       "confidence": 0,
       "cited_observation_refs": [],
@@ -125,7 +129,8 @@
       "response_tick": 901,
       "retrieved_memory_item_refs": [],
       "retained_memory_item_refs": [],
-      "purge_receipts": []
+      "purge_receipts": [],
+      "claimed_distinct_event_count": null
     },
     {
       "episode_id": "lh-007-cross-clock-and-event-order",
@@ -150,7 +155,8 @@
       "response_tick": 7201,
       "retrieved_memory_item_refs": [],
       "retained_memory_item_refs": [],
-      "purge_receipts": []
+      "purge_receipts": [],
+      "claimed_distinct_event_count": null
     },
     {
       "episode_id": "lh-008-memory-revocation",
@@ -209,7 +215,8 @@
           "receipt_id": "synthetic-purge-receipt-mem-private-response-cache",
           "attestation_level": "candidate_self_reported"
         }
-      ]
+      ],
+      "claimed_distinct_event_count": null
     },
     {
       "episode_id": "lh-009-compression-retention",
@@ -228,7 +235,8 @@
       "response_tick": 5401,
       "retrieved_memory_item_refs": [],
       "retained_memory_item_refs": [],
-      "purge_receipts": []
+      "purge_receipts": [],
+      "claimed_distinct_event_count": null
     }
   ]
 }
