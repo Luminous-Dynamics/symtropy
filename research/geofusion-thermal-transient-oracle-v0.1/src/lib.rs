@@ -19,6 +19,9 @@ pub enum ModelError {
     NegativeCumulativeEnergy,
     CumulativeEnergyRegressed,
     CumulativeEnergyPrecisionInsufficient,
+    CumulativeEnergyEpochMismatch,
+    CumulativeEnergySequenceMismatch,
+    CumulativeEnergyTimeNotIncreasing,
     NonPositiveSampleCount,
     NumericalOverflow,
 }
@@ -251,6 +254,97 @@ pub struct CumulativeEnergyDelta {
     pub energy_j: f64,
     /// Sum of one-ULP endpoint bounds; conservative for two rounded observations.
     pub resolution_bound_j: f64,
+}
+
+/// Monotone, exactly-once cursor for a producer's cumulative-energy observations.
+///
+/// The cursor advances only when the caller supplies the next sequence number,
+/// the same explicit counter epoch, and a strictly later committed time. A
+/// reset/restart must create a new epoch explicitly; it is never inferred from
+/// a decreasing value. The precision budget applies to each pair of Float64
+/// endpoint readings.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CumulativeEnergyCursor {
+    pub epoch_id: u64,
+    pub last_sequence: u64,
+    pub last_committed_time_s: f64,
+    pub last_cumulative_energy_j: f64,
+    pub maximum_resolution_error_j: f64,
+}
+
+impl CumulativeEnergyCursor {
+    pub fn from_committed_observation(
+        epoch_id: u64,
+        sequence: u64,
+        committed_time_s: f64,
+        cumulative_energy_j: f64,
+        maximum_resolution_error_j: f64,
+    ) -> Result<Self, ModelError> {
+        if !committed_time_s.is_finite()
+            || !cumulative_energy_j.is_finite()
+            || !maximum_resolution_error_j.is_finite()
+        {
+            return Err(ModelError::NonFiniteParameter);
+        }
+        if committed_time_s < 0.0 {
+            return Err(ModelError::NegativeStartTime);
+        }
+        if cumulative_energy_j < 0.0 {
+            return Err(ModelError::NegativeCumulativeEnergy);
+        }
+        if maximum_resolution_error_j < 0.0 {
+            return Err(ModelError::NonPositiveInterval);
+        }
+        Ok(Self {
+            epoch_id,
+            last_sequence: sequence,
+            last_committed_time_s: committed_time_s,
+            last_cumulative_energy_j: cumulative_energy_j,
+            maximum_resolution_error_j,
+        })
+    }
+
+    /// Consume the next committed observation and return a new cursor plus its interval delta.
+    ///
+    /// This method is pure: the old cursor remains unchanged on every error,
+    /// allowing the caller to reconcile and retry without double-consuming.
+    pub fn consume(
+        self,
+        epoch_id: u64,
+        sequence: u64,
+        committed_time_s: f64,
+        cumulative_energy_j: f64,
+    ) -> Result<(Self, CumulativeEnergyDelta), ModelError> {
+        if epoch_id != self.epoch_id {
+            return Err(ModelError::CumulativeEnergyEpochMismatch);
+        }
+        let expected_sequence = self
+            .last_sequence
+            .checked_add(1)
+            .ok_or(ModelError::NumericalOverflow)?;
+        if sequence != expected_sequence {
+            return Err(ModelError::CumulativeEnergySequenceMismatch);
+        }
+        if !committed_time_s.is_finite() {
+            return Err(ModelError::NonFiniteParameter);
+        }
+        if committed_time_s <= self.last_committed_time_s {
+            return Err(ModelError::CumulativeEnergyTimeNotIncreasing);
+        }
+        let delta = cumulative_energy_delta_with_precision_j(
+            self.last_cumulative_energy_j,
+            cumulative_energy_j,
+            self.maximum_resolution_error_j,
+        )?;
+        let next = Self {
+            epoch_id: self.epoch_id,
+            last_sequence: sequence,
+            last_committed_time_s: committed_time_s,
+            last_cumulative_energy_j: cumulative_energy_j,
+            maximum_resolution_error_j: self.maximum_resolution_error_j,
+        };
+        Ok((next, delta))
+    }
 }
 
 /// Receiver balance and the source counter-delta precision receipt.
@@ -1264,6 +1358,71 @@ mod tests {
             cumulative_energy_delta_with_precision_j(0.0, 1.0, f64::NAN),
             Err(ModelError::NonFiniteParameter)
         );
+    }
+
+    #[test]
+    fn cumulative_energy_cursor_accepts_exactly_one_monotone_committed_interval() {
+        let cursor = CumulativeEnergyCursor::from_committed_observation(
+            7, 0, 0.0, 1_000.0, 1.0e-6,
+        ).unwrap();
+        let (next, delta) = cursor.consume(7, 1, 2.0, 2_000.0).unwrap();
+        assert_eq!(delta.energy_j, 1_000.0);
+        assert_eq!(next.epoch_id, 7);
+        assert_eq!(next.last_sequence, 1);
+        assert_eq!(next.last_committed_time_s, 2.0);
+        assert_eq!(next.last_cumulative_energy_j, 2_000.0);
+    }
+
+    #[test]
+    fn cumulative_energy_cursor_rejects_replay_and_sequence_gap_without_mutation() {
+        let cursor = CumulativeEnergyCursor::from_committed_observation(
+            7, 10, 1.0, 1_000.0, 1.0e-6,
+        ).unwrap();
+        assert_eq!(
+            cursor.consume(7, 10, 2.0, 2_000.0),
+            Err(ModelError::CumulativeEnergySequenceMismatch)
+        );
+        assert_eq!(
+            cursor.consume(7, 12, 2.0, 2_000.0),
+            Err(ModelError::CumulativeEnergySequenceMismatch)
+        );
+        assert_eq!(cursor.last_sequence, 10);
+        assert_eq!(cursor.last_committed_time_s, 1.0);
+        assert_eq!(cursor.last_cumulative_energy_j, 1_000.0);
+    }
+
+    #[test]
+    fn cumulative_energy_cursor_rejects_epoch_change_time_replay_and_counter_reset() {
+        let cursor = CumulativeEnergyCursor::from_committed_observation(
+            7, 0, 1.0, 1_000.0, 1.0e-6,
+        ).unwrap();
+        assert_eq!(
+            cursor.consume(8, 1, 2.0, 2_000.0),
+            Err(ModelError::CumulativeEnergyEpochMismatch)
+        );
+        assert_eq!(
+            cursor.consume(7, 1, 1.0, 2_000.0),
+            Err(ModelError::CumulativeEnergyTimeNotIncreasing)
+        );
+        assert_eq!(
+            cursor.consume(7, 1, 2.0, 500.0),
+            Err(ModelError::CumulativeEnergyRegressed)
+        );
+        assert_eq!(cursor.last_sequence, 0);
+    }
+
+    #[test]
+    fn cumulative_energy_cursor_applies_precision_budget_before_advancing() {
+        let previous = 1.0e18;
+        let cursor = CumulativeEnergyCursor::from_committed_observation(
+            3, 5, 10.0, previous, 1.0,
+        ).unwrap();
+        assert_eq!(
+            cursor.consume(3, 6, 11.0, previous + 256.0),
+            Err(ModelError::CumulativeEnergyPrecisionInsufficient)
+        );
+        assert_eq!(cursor.last_sequence, 5);
+        assert_eq!(cursor.last_cumulative_energy_j, previous);
     }
 
     #[test]
