@@ -665,6 +665,8 @@ mod tests {
                     frame_sha256: digest('1'),
                     transform_sha256: digest('2'),
                     calibration_sha256: digest('7'),
+                    site_clock_domain_id: "site-clock-01".into(),
+                    valid_until_tick: 8_000,
                 },
             })
             .unwrap();
@@ -1043,6 +1045,8 @@ mod tests {
                     frame_sha256: digest('1'),
                     transform_sha256: digest('2'),
                     calibration_sha256: digest('8'),
+                    site_clock_domain_id: "site-clock-01".into(),
+                    valid_until_tick: 8_000,
                 },
             })
             .unwrap();
