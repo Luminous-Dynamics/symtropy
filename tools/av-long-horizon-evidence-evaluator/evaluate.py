@@ -131,6 +131,96 @@ def _event_index(episode: dict[str, Any]) -> tuple[
     return observations, delivery_event_ids, first_available_tick, revoked_at, superseded_at
 
 
+def _derived_memory_revocation_state(
+    episode: dict[str, Any],
+    observations: dict[str, dict[str, Any]],
+    revoked_at: dict[str, int],
+    query_tick: int,
+) -> tuple[dict[str, dict[str, Any]], dict[str, int], set[str]]:
+    """Compute transitive invalidation of memory items from revoked observations.
+
+    An item's invalidation time is the earliest effective revocation among its
+    direct source observations and its transitive parent memory items.
+    """
+    raw_items = episode.get("derived_memory_items", [])
+    if not isinstance(raw_items, list):
+        raise EvaluationError(f"{episode.get('episode_id')}: derived_memory_items must be an array")
+
+    items: dict[str, dict[str, Any]] = {}
+    for item in raw_items:
+        if not isinstance(item, dict):
+            raise EvaluationError("derived memory item must be an object")
+        item_ref = item.get("item_ref")
+        created_tick = item.get("created_tick")
+        if not isinstance(item_ref, str) or not item_ref:
+            raise EvaluationError("derived memory item has missing item_ref")
+        if item_ref in items:
+            raise EvaluationError(f"duplicate derived memory item: {item_ref}")
+        if isinstance(created_tick, bool) or not isinstance(created_tick, int) or created_tick < 0:
+            raise EvaluationError(f"{item_ref}: invalid created_tick")
+        if created_tick > query_tick:
+            raise EvaluationError(f"{item_ref}: workload exposes a future-created memory item")
+        source_refs = item.get("derived_from_observation_refs", [])
+        parent_refs = item.get("derived_from_item_refs", [])
+        if (
+            not isinstance(source_refs, list)
+            or any(not isinstance(ref, str) or not ref for ref in source_refs)
+            or len(source_refs) != len(set(source_refs))
+        ):
+            raise EvaluationError(f"{item_ref}: invalid derived_from_observation_refs")
+        if (
+            not isinstance(parent_refs, list)
+            or any(not isinstance(ref, str) or not ref for ref in parent_refs)
+            or len(parent_refs) != len(set(parent_refs))
+        ):
+            raise EvaluationError(f"{item_ref}: invalid derived_from_item_refs")
+        items[item_ref] = item
+
+    for item_ref, item in items.items():
+        for source_ref in item.get("derived_from_observation_refs", []):
+            if source_ref not in observations:
+                raise EvaluationError(f"{item_ref}: unknown source observation {source_ref}")
+        for parent_ref in item.get("derived_from_item_refs", []):
+            if parent_ref not in items:
+                raise EvaluationError(f"{item_ref}: unknown parent memory item {parent_ref}")
+            if items[parent_ref]["created_tick"] > item["created_tick"]:
+                raise EvaluationError(f"{item_ref}: derived memory parent is created later than child")
+
+    memo: dict[str, int | None] = {}
+    visiting: set[str] = set()
+    created_after_revocation: set[str] = set()
+
+    def invalidated_at(item_ref: str) -> int | None:
+        if item_ref in memo:
+            return memo[item_ref]
+        if item_ref in visiting:
+            raise EvaluationError(f"derived memory dependency cycle at {item_ref}")
+        visiting.add(item_ref)
+        item = items[item_ref]
+        causes = [
+            revoked_at[source_ref]
+            for source_ref in item.get("derived_from_observation_refs", [])
+            if source_ref in revoked_at and revoked_at[source_ref] <= query_tick
+        ]
+        for parent_ref in item.get("derived_from_item_refs", []):
+            parent_tick = invalidated_at(parent_ref)
+            if parent_tick is not None:
+                causes.append(parent_tick)
+        result = min(causes) if causes else None
+        if result is not None and item["created_tick"] > result:
+            created_after_revocation.add(item_ref)
+        visiting.remove(item_ref)
+        memo[item_ref] = result
+        return result
+
+    affected = {
+        item_ref: tick
+        for item_ref in items
+        if (tick := invalidated_at(item_ref)) is not None
+    }
+    return items, affected, created_after_revocation
+
+
 def _metric(rows: list[dict[str, Any]]) -> dict[str, Any]:
     answered = [row for row in rows if not row["abstained"]]
     answer_correct = sum(bool(row["answer_correct"]) for row in rows)
