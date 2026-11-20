@@ -141,6 +141,7 @@ jobs:
             and all(.results[] | select(.config_id == "detachable-uav-pod-synthetic-demo"); .scheduled_downtime_hours_per_module_year == 2.5 and .total_downtime_hours_per_module_year == null)
             and all(.results[] | select(.config_id == "amr-handoff-synthetic-demo"); ((.scheduled_downtime_hours_per_module_year - 0.8333333333 | abs) < 0.000001) and .total_downtime_hours_per_module_year == null)
             and all(.results[] | select(.config_id == "integrated-drone-bay-production-intent-unknown"); .scheduled_downtime_hours_per_module_year == null and .status == "indeterminate")
+            and all(.results[] | select(.config_id == "integrated-drone-bay-production-intent-unknown"); all(.events[] | select(.event_class == "unscheduled"); .remedy == null and .annual_event_rate_per_module == null))
           ' ev-carrier-module-lifecycle-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
