@@ -48,9 +48,10 @@
         "required": [
           "response_id",
           "episode_id",
-          "assigned_opportunity_id",
+          "assigned_trigger_ref",
           "response_start_tick",
-          "content"
+          "content",
+          "response_end_tick"
         ],
         "properties": {
           "response_id": {
@@ -58,10 +59,6 @@
             "minLength": 1
           },
           "episode_id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "assigned_opportunity_id": {
             "type": "string",
             "minLength": 1
           },
@@ -79,6 +76,14 @@
             "items": {
               "type": "string"
             }
+          },
+          "assigned_trigger_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "response_end_tick": {
+            "type": "integer",
+            "minimum": 0
           }
         }
       }
