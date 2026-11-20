@@ -156,6 +156,8 @@ jobs:
             tools/ev-passenger-cost-frontier/src/bin/ev_carrier_lifecycle_screen.rs \
             tools/ev-passenger-cost-frontier/src/lib.rs \
             tools/ev-passenger-cost-frontier/src/bin/ev_carrier_module_factory_screen.rs \
+            tools/ev-passenger-cost-frontier/README.md \
+            docs/research/EV_CARRIER_LIFECYCLE_AND_SERVICEABILITY_V0_1.md \
             ev-passenger-cost-report.json ev-localization-cost-report.json ev-factory-design-report.json ev-carrier-module-factory-report.json ev-carrier-module-lifecycle-report.json > ev-passenger-cost-report.sha256
       - uses: actions/upload-artifact@v4
         with:
