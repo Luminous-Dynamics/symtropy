@@ -107,7 +107,7 @@ pub struct TickResult {
     pub qualification_status: String,
     pub provider_available: bool,
     pub demanded_units: u64,
-    pub available_capacity_units: u64,
+    pub qualified_capacity_units: u64,
     pub unserved_demand_units: u64,
 }
 
@@ -119,7 +119,7 @@ pub struct ScenarioResult {
     pub expected_status: ServiceStatus,
     pub expected_reason: String,
     pub expected_result_matched: bool,
-    pub available_capacity_units: u64,
+    pub qualified_capacity_units: u64,
     pub unserved_demand_units: u64,
     pub capacity_unavailable_ticks: u64,
     pub first_capacity_restored_tick: Option<u64>,
@@ -425,7 +425,7 @@ fn evaluate_scenario(
         expected_status: scenario.expected_status,
         expected_reason: scenario.expected_reason.clone(),
         expected_result_matched: false,
-        available_capacity_units: 0,
+        qualified_capacity_units: 0,
         unserved_demand_units: 0,
         capacity_unavailable_ticks: 0,
         first_capacity_restored_tick: None,
@@ -508,7 +508,7 @@ fn evaluate_scenario(
 
         let accepted = if available { demand.min(provider.capacity_per_tick) } else { 0 };
         let unmet = demand.saturating_sub(accepted);
-        result.available_capacity_units = result.available_capacity_units.saturating_add(accepted);
+        result.qualified_capacity_units = result.qualified_capacity_units.saturating_add(accepted);
         result.unserved_demand_units = result.unserved_demand_units.saturating_add(unmet);
         if demand > 0 && accepted == 0 {
             result.capacity_unavailable_ticks = result.capacity_unavailable_ticks.saturating_add(1);
@@ -522,7 +522,7 @@ fn evaluate_scenario(
             qualification_status: qualification,
             provider_available: available,
             demanded_units: demand,
-            available_capacity_units: accepted,
+            qualified_capacity_units: accepted,
             unserved_demand_units: unmet,
         });
     }
@@ -531,7 +531,7 @@ fn evaluate_scenario(
         Decision::rejected("active_provider_qualification_rejected")
     } else if service_indeterminate {
         Decision::indeterminate("active_provider_qualification_indeterminate")
-    } else if result.available_capacity_units >= scenario.minimum_planned_service_capacity {
+    } else if result.qualified_capacity_units >= scenario.minimum_planned_service_capacity {
         Decision::met()
     } else {
         Decision::shortfall("planned_capacity_below_required_floor")
@@ -680,9 +680,9 @@ mod tests {
     fn planned_capacity_shortfall_is_not_claimed_as_receiver_acceptance() {
         let report = evaluate(&fixture()).expect("service fixture evaluates");
         let row = report.scenarios.iter()
-            .find(|row| row.case_id == "PARTIAL_SERVICE_COUNTS_ONLY_ACCEPTED_UNITS")
+            .find(|row| row.case_id == "PLANNED_CAPACITY_SHORTFALL")
             .expect("partial service case exists");
-        assert_eq!(row.available_capacity_units, 10);
+        assert_eq!(row.qualified_capacity_units, 10);
         assert_eq!(row.unserved_demand_units, 10);
         assert_eq!(row.actual_status, ServiceStatus::PlannedCapacityShortfall);
     }
@@ -695,7 +695,7 @@ mod tests {
             .find(|row| row.case_id == "INDEPENDENT_ROBUST_FAILOVER_MEETS_FLOOR")
             .expect("independent fallback case exists");
         assert_eq!(row.actual_status, ServiceStatus::PlannedCapacityFloorMetSynthetic);
-        assert_eq!(row.available_capacity_units, 15);
+        assert_eq!(row.qualified_capacity_units, 15);
         assert_eq!(row.first_capacity_restored_tick, Some(3));
     }
 
