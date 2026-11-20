@@ -193,6 +193,21 @@ fn is_information_action(kind: ActionKind) -> bool {
     )
 }
 
+fn source_kind_matches_action(action: ActionKind, source: SourceKind) -> bool {
+    match action {
+        ActionKind::ObserveScada => source == SourceKind::Scada,
+        ActionKind::ObserveCalls => source == SourceKind::CallReport,
+        ActionKind::ObserveNetworkModel => source == SourceKind::NetworkModel,
+        ActionKind::CrewInspect => source == SourceKind::FieldInspection,
+        ActionKind::ReadFaultIndicator => source == SourceKind::FaultIndicator,
+        ActionKind::TestSwitch => source == SourceKind::SwitchTest,
+        ActionKind::SimulateSwitch => source == SourceKind::CounterfactualSimulation,
+        ActionKind::ForecastLoad => source == SourceKind::LoadForecast,
+        ActionKind::EscalateToHuman => source == SourceKind::Other,
+        _ => false,
+    }
+}
+
 /// Hashes the normalized JSON value. Object keys are sorted by serde_json's
 /// default map representation; array order is preserved. This is not a hash
 /// of the original whitespace or byte encoding.
@@ -610,7 +625,14 @@ pub fn validate_evidence_batch(
                         ));
                     }
 
-                    if !source_map.contains_key(&item.source_id) {
+                    if let Some(source) = source_map.get(&item.source_id) {
+                        if !source_kind_matches_action(action.action_kind, source.source_kind) {
+                            errors.push(format!(
+                                "evidence {} source kind does not match request {}",
+                                item.evidence_id, result.request_id
+                            ));
+                        }
+                    } else {
                         errors.push(format!(
                             "evidence {} references missing source {}",
                             item.evidence_id, item.source_id
@@ -810,12 +832,28 @@ mod tests {
     }
 
     #[test]
-    fn conflicting_and_unverified_evidence_are_counted_separately() {
+    fn conflicting_evidence_is_not_a_fresh_current_candidate() {
         let (mut batch, proposal, case) = fixtures();
         batch.results[0].evidence[0].quality = EvidenceQuality::Conflicting;
         let report = validate_evidence_batch(&batch, &proposal, &case).unwrap();
         assert_eq!(report.conflicting_evidence_count, 1);
         assert_eq!(report.fresh_current_candidate_count, 0);
+    }
+
+    #[test]
+    fn unverified_evidence_is_counted_separately() {
+        let (mut batch, proposal, case) = fixtures();
+        batch.results[0].evidence[0].quality = EvidenceQuality::Unverified;
+        let report = validate_evidence_batch(&batch, &proposal, &case).unwrap();
+        assert_eq!(report.unverified_evidence_count, 1);
+        assert_eq!(report.fresh_current_candidate_count, 0);
+    }
+
+    #[test]
+    fn evidence_source_kind_must_match_the_requested_information_action() {
+        let (mut batch, proposal, case) = fixtures();
+        batch.sources[0].source_kind = SourceKind::CallReport;
+        assert!(validate_evidence_batch(&batch, &proposal, &case).is_err());
     }
 
     #[test]
