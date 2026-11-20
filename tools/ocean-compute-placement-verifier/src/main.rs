@@ -209,10 +209,7 @@ fn profile_index<'a>(workloads: &'a WorkloadFixture) -> BTreeMap<&'a str, &'a Wo
         if unique.len() != profile.allowed_placement_strata.len() {
             fail(format!("profile {} repeats a placement stratum", profile.id));
         }
-        let profile_energy_total = profile.energy_wh.compute
-            + profile.energy_wh.network
-            + profile.energy_wh.cooling;
-        if (profile_energy_total - profile.energy_wh.total).abs() > 1e-9 {
+        if !profile_energy_is_closed(&profile.energy_wh) {
             fail(format!("profile {} baseline energy components do not close", profile.id));
         }
         if profile.rights_state != "synthetic_only" {
@@ -223,6 +220,11 @@ fn profile_index<'a>(workloads: &'a WorkloadFixture) -> BTreeMap<&'a str, &'a Wo
         }
     }
     index
+}
+
+fn profile_energy_is_closed(energy: &ProfileEnergy) -> bool {
+    let total = energy.compute + energy.network + energy.cooling;
+    (total - energy.total).abs() <= 1e-9
 }
 
 fn energy_is_closed(energy: &Energy) -> bool {
@@ -396,6 +398,76 @@ mod tests {
     }
 
     #[test]
+    fn fractional_profile_energy_is_preserved_and_closed() {
+        let e = ProfileEnergy { compute: 350.0, network: 35.0, cooling: 52.5, total: 437.5 };
+        assert!(profile_energy_is_closed(&e));
+        let bad = ProfileEnergy { total: 437.0, ..e };
+        assert!(!profile_energy_is_closed(&bad));
+    }
+
+    fn sample_profile() -> WorkloadProfile {
+        WorkloadProfile {
+            id: "demo".to_string(),
+            service_family: "test".to_string(),
+            service_unit: "accepted result".to_string(),
+            service_units_per_batch: 2,
+            synthetic_input_bytes: 10,
+            latency_budget_seconds: 60,
+            deadline_seconds: 120,
+            maximum_deferral_seconds: 0,
+            flexibility_class: "non_deferrable".to_string(),
+            allowed_placement_strata: vec!["port_edge".to_string()],
+            local_fallback_required: true,
+            safety_critical_control_dependency: false,
+            rights_state: "synthetic_only".to_string(),
+            energy_wh: ProfileEnergy { compute: 10.0, network: 2.0, cooling: 3.0, total: 15.0 },
+            synthetic_quality_gate: "test".to_string(),
+        }
+    }
+
+    fn sample_candidate() -> PlacementCandidate {
+        PlacementCandidate {
+            profile_id: "demo".to_string(),
+            candidate_id: "demo:port".to_string(),
+            placement_stratum: "port_edge".to_string(),
+            candidate_available: true,
+            source_rights_allowed: true,
+            data_egress_required: true,
+            data_egress_allowed: true,
+            quality_gate_pass: true,
+            accepted_service_units: 2,
+            p99_latency_seconds: 10,
+            completion_seconds: 20,
+            peak_power_w: 500,
+            pcc_import_cap_w: 1000,
+            local_fallback_ready: true,
+            remote_safety_control_dependency: false,
+            energy_wh: Energy { compute: 10, network: 2, cooling: 3, facility_auxiliary: 1, total: 16 },
+            carbon_intensity_gco2e_per_kwh: 200,
+            electricity_cost_micro_usd_per_kwh: 100000,
+            synthetic_estimate: true,
+        }
+    }
+
+    #[test]
+    fn rights_egress_pcc_and_fallback_are_non_compensatory() {
+        let profile = sample_profile();
+        let mut candidate = sample_candidate();
+        candidate.source_rights_allowed = false;
+        candidate.data_egress_allowed = false;
+        candidate.peak_power_w = 2000;
+        candidate.local_fallback_ready = false;
+
+        let scored = score_candidate(&profile, &candidate);
+        assert!(!scored.result.eligible);
+        assert!(scored.result.blockers.contains(&"source_rights_not_admitted".to_string()));
+        assert!(scored.result.blockers.contains(&"data_egress_not_authorized".to_string()));
+        assert!(scored.result.blockers.contains(&"pcc_import_cap_exceeded".to_string()));
+        assert!(scored.result.blockers.contains(&"required_local_fallback_unavailable".to_string()));
+        assert!(scored.result.energy_wh_per_service_unit.is_none());
+    }
+
+    #[test]
     fn pareto_dominance_requires_no_worse_on_every_dimension() {
         let mk = |id: &str, energy: f64, carbon: f64, cost: f64, latency: u64, completion: u64| Scored {
             result: CandidateResult {
@@ -415,4 +487,3 @@ mod tests {
         assert!(!dominates(&c, &b));
         assert!(!dominates(&a, &a));
     }
-}
