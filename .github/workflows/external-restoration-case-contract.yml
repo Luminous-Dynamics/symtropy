@@ -51,12 +51,18 @@ jobs:
           assert source["commitSha"] == "0e7d2d79241ce20b2c39a5b0d7fd0f5f60fc2016"
           assert source["commitSignatureVerified"] is False
           assert source["licenseFilePresent"] is False
+          assert source["licenseStatus"] == "not_found_in_commit_inventory"
+          assert source["rightsReviewStatus"] == "pending"
           assert len(profile["sourceInventory"]) == 16
           pickles = [item for item in profile["sourceInventory"] if item["kind"] == "binary_pickle_scenario"]
           assert len(pickles) == 5
+          assert [item["byteLength"] for item in pickles] == [1092, 1128, 1120, 1124, 1124]
           assert all(item["contentState"] == "binary_metadata_only" and item.get("sha256") is None for item in pickles)
           assert profile["executionSafety"]["untrustedPickleDisposition"] == "do_not_unpickle"
           assert profile["executionSafety"]["unsafeParserDisposition"] == "do_not_execute_on_untrusted_archive_text"
+          assert profile["modelAudit"]["acLoadFlowEvidence"] == "not_found_in_audited_source"
+          assert profile["modelAudit"]["voltageConstraintEvidence"] == "not_found_in_audited_source"
+          assert profile["objectiveAudit"]["unitResolutionStatus"] == "ambiguous"
           assert profile["benchmarkReadiness"]["status"] == "source_audited_not_reproduced"
 
           nodes = {item["nodeRef"] for item in instance["network"]["nodes"]}
