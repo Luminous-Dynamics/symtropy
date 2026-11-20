@@ -91,7 +91,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-1"
           }
         },
         {
@@ -111,7 +112,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-2"
           }
         },
         {
@@ -131,7 +133,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-3"
           }
         },
         {
@@ -151,7 +154,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-4"
           }
         },
         {
@@ -171,7 +175,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-5"
           }
         }
       ],
@@ -191,7 +196,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-INTAKE"
           }
         },
         {
@@ -209,7 +215,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-OUTFALL"
           }
         }
       ],
@@ -234,7 +241,8 @@
               "calibration_state": "in_calibration",
               "quality_state": "valid",
               "evidence_state": "synthetic",
-              "source_rights_state": "synthetic_test_data_only"
+              "source_rights_state": "synthetic_test_data_only",
+              "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-INTAKE"
             }
           },
           "outfall": {
@@ -253,11 +261,13 @@
               "calibration_state": "in_calibration",
               "quality_state": "valid",
               "evidence_state": "synthetic",
-              "source_rights_state": "synthetic_test_data_only"
+              "source_rights_state": "synthetic_test_data_only",
+              "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-OUTFALL"
             }
           }
         }
-      ]
+      ],
+      "uncertainty_covariance_state": "paired_measurement_calibration_domains_independent"
     },
     {
       "interval_id": "ENV-INT-002",
@@ -295,7 +305,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-1"
           }
         },
         {
@@ -315,7 +326,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-2"
           }
         },
         {
@@ -335,7 +347,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-3"
           }
         },
         {
@@ -355,7 +368,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-4"
           }
         },
         {
@@ -375,7 +389,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-5"
           }
         }
       ],
@@ -395,7 +410,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-INTAKE"
           }
         },
         {
@@ -413,7 +429,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-OUTFALL"
           }
         }
       ],
@@ -438,7 +455,8 @@
               "calibration_state": "in_calibration",
               "quality_state": "valid",
               "evidence_state": "synthetic",
-              "source_rights_state": "synthetic_test_data_only"
+              "source_rights_state": "synthetic_test_data_only",
+              "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-INTAKE"
             }
           },
           "outfall": {
@@ -457,11 +475,13 @@
               "calibration_state": "in_calibration",
               "quality_state": "valid",
               "evidence_state": "synthetic",
-              "source_rights_state": "synthetic_test_data_only"
+              "source_rights_state": "synthetic_test_data_only",
+              "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-OUTFALL"
             }
           }
         }
-      ]
+      ],
+      "uncertainty_covariance_state": "paired_measurement_calibration_domains_independent"
     },
     {
       "interval_id": "ENV-INT-003",
@@ -499,7 +519,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-1"
           }
         },
         {
@@ -519,7 +540,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-2"
           }
         },
         {
@@ -539,7 +561,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-3"
           }
         },
         {
@@ -559,7 +582,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-4"
           }
         },
         {
@@ -579,7 +603,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-TEMPERATURE-5"
           }
         }
       ],
@@ -599,7 +624,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-INTAKE"
           }
         },
         {
@@ -617,7 +643,8 @@
             "calibration_state": "in_calibration",
             "quality_state": "valid",
             "evidence_state": "synthetic",
-            "source_rights_state": "synthetic_test_data_only"
+            "source_rights_state": "synthetic_test_data_only",
+            "calibration_independence_domain": "SYNTH-CAL-DOMAIN-FLOW-OUTFALL"
           }
         }
       ],
@@ -642,7 +669,8 @@
               "calibration_state": "in_calibration",
               "quality_state": "valid",
               "evidence_state": "synthetic",
-              "source_rights_state": "synthetic_test_data_only"
+              "source_rights_state": "synthetic_test_data_only",
+              "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-INTAKE"
             }
           },
           "outfall": {
@@ -661,11 +689,13 @@
               "calibration_state": "in_calibration",
               "quality_state": "valid",
               "evidence_state": "synthetic",
-              "source_rights_state": "synthetic_test_data_only"
+              "source_rights_state": "synthetic_test_data_only",
+              "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-OUTFALL"
             }
           }
         }
-      ]
+      ],
+      "uncertainty_covariance_state": "paired_measurement_calibration_domains_independent"
     }
   ]
 }
