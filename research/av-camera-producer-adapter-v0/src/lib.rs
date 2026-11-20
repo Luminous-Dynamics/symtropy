@@ -13,6 +13,7 @@
 
 use action_conditioned_offscreen_camera::{
     PolicyObservationReceipt, RenderError, RenderedObservation, verify_policy_receipt,
+    verify_policy_receipt_metadata,
 };
 use av_observation_replay_v0::{
     AgentObservationBundleV1, AgentObservationV1, ArtifactRefV1, BoundedTimeV1,
@@ -138,6 +139,7 @@ fn valid_root_relative_path(path: &str) -> bool {
     !path.is_empty()
         && !path.starts_with('/')
         && !path.contains('\\')
+        && !path.contains(':')
         && !path.contains('\0')
         && path
             .split('/')
@@ -279,6 +281,8 @@ pub fn validate_camera_frame_envelope_v1(
         return Err(AdapterError::ProducerProjectionMismatch);
     }
     let receipt = &envelope.producer_receipt;
+    verify_policy_receipt_metadata(receipt)
+        .map_err(AdapterError::ProducerReceiptRejected)?;
     if envelope.observation.observation_id != receipt.observation_id
         || envelope.observation.sensor_id != receipt.camera_id
         || envelope.observation.source_sequence != receipt.sequence
@@ -462,7 +466,13 @@ mod tests {
 
     #[test]
     fn artifact_paths_must_be_portable_and_root_relative() {
-        for invalid in ["/tmp/frame.rgb", "../frame.rgb", "camera/../frame.rgb", "camera\\frame.rgb"] {
+        for invalid in [
+            "/tmp/frame.rgb",
+            "../frame.rgb",
+            "camera/../frame.rgb",
+            "camera\\\\frame.rgb",
+            "C:/temp/frame.rgb",
+        ] {
             let mut ctx = context();
             ctx.artifact_relative_path = invalid.to_owned();
             assert_eq!(
