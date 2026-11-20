@@ -136,3 +136,18 @@ The finite reference submission produces eight correct event answers and one cor
 - An absent-event query is a success only when the policy abstains without inventing a supporting observation.
 - Within-clock sequence reasoning does not license cross-clock ordering. Different domains/generations remain incomparable until an existing owner supplies a qualified transform.
 - The current scorecard does not yet compare the four memory conditions or measure memory bytes, retrieval latency or energy. Those will require a separate matched run envelope and measured telemetry.
+
+### Four-condition memory tournament known-answer correction
+
+The exact-head Actions run on 20 November 2026 completed workload/schema checks, all 16 long-horizon evaluator tests, all 7 matched-memory tournament tests, both score-generation steps and scorecard schema validation. Its final comparison exposed that the frozen summary-only expected row understated the stricter evaluator's result. The expected fixture has now been corrected to the computed known answer:
+
+- summary-only answer accuracy: 2/9 (0.2222);
+- safe-decision accuracy: 3/9 (0.3333);
+- coverage: 8/9 (0.8889);
+- citation precision/recall: 0.8 / 0.8;
+- provenance completeness: 4/9 (0.4444);
+- evidence compliance: 4/9 (0.4444);
+- false-memory count: 6;
+- hard violations: 6.
+
+The six violation count is not the same as the number of non-compliant episodes: one revocation episode carries two distinct failures—reuse/residue of revoked evidence and failure to cite the still-required current public observation. Other failures are the superseded state used as current, the common-cause views claimed independent, unsupported cross-clock ordering, and substitution of a later nuisance event for the rare target event. The corrected expected summary changes only the summary-only evidence-compliance rate and hard-violation count; task/citation outcomes remain unchanged. This is an evaluator known-answer correction, not evidence that any learned memory system has achieved these scores.
