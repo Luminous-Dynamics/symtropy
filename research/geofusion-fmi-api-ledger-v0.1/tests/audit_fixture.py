@@ -87,6 +87,7 @@ def audit_fixture(d, arts):
                 fail(f"getFloat64 interval does not match most recent successful lastSuccessfulTime: {eid}")
             vals=p["values"]; refs=[x["value_reference"] for x in vals]
             if refs!=p["value_references"] or p["n_value_references"]!=len(refs): fail(f"VR list/count mismatch: {eid}")
+            if len(set(refs))!=len(refs): fail(f"duplicate value reference in one FMI API call: {eid}")
             if not vals: fail(f"empty value call: {eid}")
             for x in vals:
                 v=vars.get((fid,x["value_reference"]))
