@@ -45,6 +45,9 @@ jobs:
           def canonical(value):
               return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
 
+          for schema_path in sorted((root / "fixtures").glob("*.schema.json")):
+              Draft202012Validator.check_schema(json.loads(schema_path.read_text()))
+
           fixtures = [
               (manifest, "bundle-manifest-v0.1.schema.json"),
               (trust, "trust-root-v0.1.schema.json"),

@@ -1,25 +1,94 @@
 {
-  "$schema":"https://json-schema.org/draft/2020-12/schema",
-  "$id":"https://luminousdynamics.io/schemas/power-restoration-trust-root-v0.1.schema.json",
-  "type":"object","additionalProperties":false,
-  "required":["schemaVersion","rootId","validFromUnixMs","validUntilUnixMs","keys"],
-  "properties":{
-    "schemaVersion":{"const":"0.1.0"},
-    "rootId":{"type":"string","minLength":1},
-    "validFromUnixMs":{"type":"integer","minimum":0},
-    "validUntilUnixMs":{"type":"integer","minimum":1},
-    "keys":{"type":"array","items":{
-      "type":"object","additionalProperties":false,
-      "required":["keyId","producerId","publicKeyHex","roles","notBeforeUnixMs","notAfterUnixMs","revokedAtUnixMs"],
-      "properties":{
-        "keyId":{"type":"string","minLength":1},
-        "producerId":{"type":"string","minLength":1},
-        "publicKeyHex":{"type":"string","pattern":"^[0-9a-f]{64}$"},
-        "roles":{"type":"array","minItems":1,"uniqueItems":true,"items":{"enum":["planner","transition_engine","electrical_validator","service_provider","field_observer","scorer"]}},
-        "notBeforeUnixMs":{"type":"integer","minimum":0},
-        "notAfterUnixMs":{"type":"integer","minimum":1},
-        "revokedAtUnixMs":{"type":["integer","null"],"minimum":0}
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/power-restoration-trust-root-v0.1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "rootId",
+    "validFromUnixMs",
+    "validUntilUnixMs",
+    "keys"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "rootId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "validFromUnixMs": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "validUntilUnixMs": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "keys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "keyId",
+          "producerId",
+          "publicKeyHex",
+          "roles",
+          "notBeforeUnixMs",
+          "notAfterUnixMs",
+          "revokedAtUnixMs"
+        ],
+        "properties": {
+          "keyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "producerId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "publicKeyHex": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "roles": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "planner",
+                "transition_engine",
+                "independent_validator",
+                "electrical_validator",
+                "service_provider",
+                "field_observer",
+                "evidence_provider",
+                "run_recorder",
+                "scorer",
+                "actuation_witness"
+              ]
+            }
+          },
+          "notBeforeUnixMs": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "notAfterUnixMs": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "revokedAtUnixMs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          }
+        }
       }
-    }}
+    }
   }
 }
