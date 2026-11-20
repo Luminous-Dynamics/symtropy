@@ -14,3 +14,7 @@ construction-motion-envelope = { path = "../construction-motion-envelope-v0-1" }
 [[bin]]
 name = "differential-bench"
 path = "src/bin/differential_bench.rs"
+
+[[bin]]
+name = "stopping-reachability-bench"
+path = "src/bin/stopping_reachability_bench.rs"
