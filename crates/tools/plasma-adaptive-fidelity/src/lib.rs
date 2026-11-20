@@ -76,6 +76,7 @@ pub enum WellPosednessEvidence {
         profile_sha256: String,
         model_sha256: String,
         compatibility_sha256: String,
+        evaluated_state_sha256: String,
         receipt_sha256: String,
         envelope_sha256: String,
         /// Model-specific, normalized distance from the admitted
@@ -87,6 +88,7 @@ pub enum WellPosednessEvidence {
         profile_sha256: String,
         model_sha256: String,
         compatibility_sha256: String,
+        evaluated_state_sha256: String,
         receipt_sha256: String,
         envelope_sha256: String,
         minimum_realizability_margin: f64,
@@ -107,6 +109,7 @@ impl WellPosednessEvidence {
                 profile_sha256,
                 model_sha256,
                 compatibility_sha256,
+                evaluated_state_sha256,
                 receipt_sha256,
                 envelope_sha256,
                 ..
@@ -115,6 +118,7 @@ impl WellPosednessEvidence {
                 profile_sha256,
                 model_sha256,
                 compatibility_sha256,
+                evaluated_state_sha256,
                 receipt_sha256,
                 envelope_sha256,
                 ..
@@ -122,6 +126,7 @@ impl WellPosednessEvidence {
                 is_sha256(profile_sha256)
                     && is_sha256(model_sha256)
                     && is_sha256(compatibility_sha256)
+                    && is_sha256(evaluated_state_sha256)
                     && is_sha256(receipt_sha256)
                     && is_sha256(envelope_sha256)
             }
@@ -132,23 +137,27 @@ impl WellPosednessEvidence {
         &self,
         candidate: &ModelCandidate,
         compatibility: &ModelCompatibility,
+        evaluated_state_sha256: &str,
     ) -> bool {
         match self {
             Self::MomentHyperbolicity {
                 profile_sha256,
                 model_sha256,
                 compatibility_sha256,
+                evaluated_state_sha256: evidence_state,
                 ..
             }
             | Self::KineticAdmissibility {
                 profile_sha256,
                 model_sha256,
                 compatibility_sha256,
+                evaluated_state_sha256: evidence_state,
                 ..
             } => {
                 profile_sha256 == &candidate.profile_sha256
                     && model_sha256 == &candidate.model_sha256
                     && compatibility_sha256 == &compatibility.compatibility_sha256
+                    && evidence_state == evaluated_state_sha256
             }
         }
     }
@@ -163,6 +172,7 @@ pub struct ErrorBoundEvidence {
     pub profile_sha256: String,
     pub model_sha256: String,
     pub compatibility_sha256: String,
+    pub evaluated_state_sha256: String,
     pub estimator_sha256: String,
     pub calibration_receipt_sha256: String,
     pub validation_domain_sha256: String,
@@ -191,6 +201,7 @@ pub struct TransitionEvidence {
     pub to_profile_sha256: String,
     pub from_model_sha256: String,
     pub to_model_sha256: String,
+    pub evaluated_state_sha256: String,
     pub interface_schema_sha256: String,
     pub projection_sha256: String,
     pub reconstruction_sha256: String,
@@ -218,6 +229,8 @@ pub struct ModelCandidate {
 pub struct AdaptivePolicyRequest {
     pub schema_version: String,
     pub request_id: String,
+    /// Exact local state being evaluated; evidence from another state is stale.
+    pub local_state_sha256: String,
     pub compatibility: ModelCompatibility,
     pub candidates: Vec<ModelCandidate>,
     pub current_profile_sha256: Option<String>,
@@ -248,6 +261,7 @@ pub enum InputError {
     InvalidCompatibilityDigest,
     EmptyCompatibilityIdentity(&'static str),
     InvalidCurrentProfileDigest,
+    InvalidStateDigest,
     NoCandidates,
     EmptyCandidateIdentity,
     InvalidCandidateDigest(&'static str),
@@ -409,7 +423,11 @@ pub fn evaluate_adaptive_policy(
             excluded.push(excluded(candidate, ExclusionReason::InvalidWellPosednessReceipt));
             continue;
         }
-        if !well_posedness.identity_matches(candidate, &request.compatibility) {
+        if !well_posedness.identity_matches(
+            candidate,
+            &request.compatibility,
+            &request.local_state_sha256,
+        ) {
             excluded.push(excluded(candidate, ExclusionReason::EvidenceIdentityMismatch));
             continue;
         }
@@ -479,6 +497,7 @@ pub fn evaluate_adaptive_policy(
         if !is_sha256(&error.profile_sha256)
             || !is_sha256(&error.model_sha256)
             || !is_sha256(&error.compatibility_sha256)
+            || !is_sha256(&error.evaluated_state_sha256)
             || !is_sha256(&error.estimator_sha256)
             || !is_sha256(&error.calibration_receipt_sha256)
             || !is_sha256(&error.validation_domain_sha256)
@@ -494,6 +513,7 @@ pub fn evaluate_adaptive_policy(
         if error.profile_sha256 != candidate.profile_sha256
             || error.model_sha256 != candidate.model_sha256
             || error.compatibility_sha256 != request.compatibility.compatibility_sha256
+            || error.evaluated_state_sha256 != request.local_state_sha256
         {
             excluded.push(excluded(candidate, ExclusionReason::EvidenceIdentityMismatch));
             continue;
@@ -787,6 +807,7 @@ fn validate_transition(
         || transition.to_profile_sha256 != next.profile_sha256
         || transition.from_model_sha256 != current.model_sha256
         || transition.to_model_sha256 != next.model_sha256
+        || transition.evaluated_state_sha256 != request.local_state_sha256
         || transition.interface_schema_sha256 != request.compatibility.interface_schema_sha256
     {
         return Err(ExclusionReason::TransitionIdentityMismatch);
@@ -795,6 +816,7 @@ fn validate_transition(
         || !is_sha256(&transition.to_profile_sha256)
         || !is_sha256(&transition.from_model_sha256)
         || !is_sha256(&transition.to_model_sha256)
+        || !is_sha256(&transition.evaluated_state_sha256)
         || !is_sha256(&transition.interface_schema_sha256)
         || !is_sha256(&transition.projection_sha256)
         || !is_sha256(&transition.reconstruction_sha256)
@@ -859,6 +881,9 @@ fn validate_request(request: &AdaptivePolicyRequest) -> Result<(), InputError> {
         return Err(InputError::EmptyRequestIdentity);
     }
     validate_compatibility(&request.compatibility)?;
+    if !is_sha256(&request.local_state_sha256) {
+        return Err(InputError::InvalidStateDigest);
+    }
     if let Some(current) = &request.current_profile_sha256 {
         if !is_sha256(current) {
             return Err(InputError::InvalidCurrentProfileDigest);
@@ -1044,6 +1069,7 @@ mod tests {
             profile_sha256: profile_sha256.into(),
             model_sha256: model_sha256.into(),
             compatibility_sha256: compatibility().compatibility_sha256,
+            evaluated_state_sha256: digest('3'),
             receipt_sha256: digest('b'),
             envelope_sha256: digest('c'),
             minimum_normalized_margin: 0.25,
@@ -1056,6 +1082,7 @@ mod tests {
             profile_sha256: profile_sha256.into(),
             model_sha256: model_sha256.into(),
             compatibility_sha256: compatibility().compatibility_sha256,
+            evaluated_state_sha256: digest('3'),
             receipt_sha256: digest('d'),
             envelope_sha256: digest('e'),
             minimum_realizability_margin: 0.4,
@@ -1084,6 +1111,7 @@ mod tests {
             profile_sha256: profile_sha256.into(),
             model_sha256: model_sha256.into(),
             compatibility_sha256: compatibility().compatibility_sha256,
+            evaluated_state_sha256: digest('3'),
             estimator_sha256: digest('f'),
             calibration_receipt_sha256: digest('1'),
             validation_domain_sha256: digest('2'),
@@ -1097,6 +1125,7 @@ mod tests {
             to_profile_sha256: to.into(),
             from_model_sha256: digest('9'),
             to_model_sha256: digest('9'),
+            evaluated_state_sha256: digest('3'),
             interface_schema_sha256: compatibility().interface_schema_sha256,
             projection_sha256: digest('3'),
             reconstruction_sha256: digest('4'),
@@ -1129,6 +1158,7 @@ mod tests {
         AdaptivePolicyRequest {
             schema_version: SCHEMA_VERSION.into(),
             request_id: "adaptive-request-1".into(),
+            local_state_sha256: digest('3'),
             compatibility: compatibility(),
             candidates,
             current_profile_sha256: None,
@@ -1395,6 +1425,7 @@ mod tests {
             to_profile_sha256: digest('b'),
             from_model_sha256: digest('6'),
             to_model_sha256: digest('9'),
+            evaluated_state_sha256: digest('3'),
             interface_schema_sha256: compatibility().interface_schema_sha256,
             projection_sha256: digest('3'),
             reconstruction_sha256: digest('4'),
@@ -1592,6 +1623,33 @@ mod tests {
         );
     }
 
+
+
+    #[test]
+    fn evidence_from_another_local_state_cannot_be_reused() {
+        let mut candidate = moment_candidate('a', 8, 0.01, 1.0);
+        if let Evidence::Qualified(WellPosednessEvidence::MomentHyperbolicity {
+            evaluated_state_sha256, ..
+        }) = &mut candidate.well_posedness
+        {
+            *evaluated_state_sha256 = digest('4');
+        }
+        let decision = evaluate_adaptive_policy(&request(vec![candidate])).unwrap();
+        let PolicyDecision::Refused { excluded, .. } = decision else {
+            panic!("hyperbolicity evidence from a different state must be refused");
+        };
+        assert_eq!(excluded[0].reason, ExclusionReason::EvidenceIdentityMismatch);
+
+        let mut candidate = moment_candidate('b', 8, 0.01, 1.0);
+        if let Evidence::Qualified(error) = &mut candidate.error_bound {
+            error.evaluated_state_sha256 = digest('5');
+        }
+        let decision = evaluate_adaptive_policy(&request(vec![candidate])).unwrap();
+        let PolicyDecision::Refused { excluded, .. } = decision else {
+            panic!("error evidence from a different state must be refused");
+        };
+        assert_eq!(excluded[0].reason, ExclusionReason::EvidenceIdentityMismatch);
+    }
 
     #[test]
     fn stale_well_posedness_or_error_receipt_cannot_be_reused_for_another_model() {
