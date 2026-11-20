@@ -372,6 +372,12 @@ pub fn audit_transition(
 
     for action in &proposal.actions {
         let execution = executions.get(action.action_id.as_str()).expect("execution set was checked");
+        if execution.outcome == ActionExecutionOutcome::Failed {
+            // Failure may have partially mutated equipment or work progress.
+            // The current state model cannot represent that uncertainty.
+            unsupported_action_ids.push(action.action_id.clone());
+            continue;
+        }
         match execution.outcome {
             ActionExecutionOutcome::Applied => applied_action_count += 1,
             ActionExecutionOutcome::Rejected => rejected_action_count += 1,
@@ -597,6 +603,19 @@ mod tests {
             audit_transition(&case, &proposal, &before, &after, &envelope).unwrap().result_status,
             "supported_transition_state_delta_verified"
         );
+    }
+
+    #[test]
+    fn failed_action_is_inconclusive_when_partial_effect_cannot_be_excluded() {
+        let case = case();
+        let proposal = proposal(ActionKind::SetSwitchState);
+        let before = state(&case);
+        let mut after = before.clone();
+        after.step = 1;
+        let envelope = envelope(&case, &proposal, &before, &after, ActionExecutionOutcome::Failed);
+        let report = audit_transition(&case, &proposal, &before, &after, &envelope).unwrap();
+        assert_eq!(report.result_status, "inconclusive_unsupported_action_semantics");
+        assert_eq!(report.unsupported_action_ids, vec!["repair-action-0001".to_string()]);
     }
 
     #[test]
