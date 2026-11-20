@@ -721,6 +721,10 @@ pub fn evaluate_sensor_transfer(
         false,
         &mut installation_ids,
         &mut sensor_serials,
+        &mut flexspline_serials,
+        &mut reducer_serials,
+        &mut installation_digests,
+        &mut sensor_assembly_digests,
         &mut sample_ids,
     )?;
     if calibration_samples != test_samples {
@@ -972,6 +976,8 @@ mod tests {
             reference_evidence_class: ReferenceEvidenceClass::IndependentPhysical,
             training_installation_ids: vec!["train-installation-1".to_owned()],
             training_sensor_serials: vec!["train-sensor-1".to_owned()],
+            training_flexspline_serials: vec!["train-flex-1".to_owned()],
+            training_reducer_serials: vec!["train-reducer-1".to_owned()],
             domain: SensorDomain {
                 joint_angle_rad: NumericInterval { lower: -3.0, upper: 3.0 },
                 temperature_c: NumericInterval { lower: 10.0, upper: 70.0 },
@@ -1126,7 +1132,7 @@ mod tests {
         assert_eq!(report.status, TransferStatus::Calibrated);
         assert_eq!(report.calibration_installation_count, 3);
         assert_eq!(report.conformal_order_statistic_rank, 3);
-        // The maximum required expansions across installation groups are 0.5, 0.6 and 0.7 N m.
+        // Each installation contributes one score: 0.1, 0.3 and 0.5 N m.
         assert_eq!(
             report.calibration_scores.iter().map(|score| score.maximum_required_expansion_nm).collect::<Vec<_>>(),
             vec![0.1, 0.3, 0.5]
@@ -1371,7 +1377,31 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_024_duplicate_installation_and_sensor_identities_reject() {
+    fn sensor_transfer_024_training_flexspline_and_reducer_serials_cannot_leak() {
+        let mut invalid = plan(0.25);
+        invalid.training_flexspline_serials.push("flex-cal-a".to_owned());
+        assert!(evaluate_sensor_transfer(&invalid, &known_calibration(), &known_test()).is_err());
+
+        let mut invalid = plan(0.25);
+        invalid.training_reducer_serials.push("reducer-cal-a".to_owned());
+        assert!(evaluate_sensor_transfer(&invalid, &known_calibration(), &known_test()).is_err());
+    }
+
+    #[test]
+    fn sensor_transfer_025_shared_reducer_or_flexspline_across_splits_rejects() {
+        let calibration = known_calibration();
+        let mut test = known_test();
+        test.installations[0].reducer_serial = calibration.installations[0].reducer_serial.clone();
+        assert!(evaluate_sensor_transfer(&plan(0.25), &calibration, &test).is_err());
+
+        let calibration = known_calibration();
+        let mut test = known_test();
+        test.installations[0].flexspline_serial = calibration.installations[0].flexspline_serial.clone();
+        assert!(evaluate_sensor_transfer(&plan(0.25), &calibration, &test).is_err());
+    }
+
+    #[test]
+    fn sensor_transfer_026_duplicate_installation_and_sensor_identities_reject() {
         let mut calibration = known_calibration();
         calibration.installations[1].sensor_serial =
             calibration.installations[0].sensor_serial.clone();
