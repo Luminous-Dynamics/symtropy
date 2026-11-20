@@ -431,6 +431,7 @@ pub fn validate_role_separation(
 ) -> Result<(), Vec<String>> {
     let mut errors = Vec::new();
     let mut role_key_fingerprints: BTreeMap<SignerRole, BTreeSet<String>> = BTreeMap::new();
+    let mut fingerprint_issuers = BTreeMap::<String, String>::new();
 
     for envelope in envelopes {
         let matching_keys: Vec<&TrustedKey> = trust_root
@@ -464,6 +465,17 @@ pub fn validate_role_separation(
             }
         };
         let fingerprint = sha256_hex(&public_key);
+        if let Some(existing_issuer) = fingerprint_issuers.insert(
+            fingerprint.clone(),
+            envelope.payload.issuer_id.clone(),
+        ) {
+            if existing_issuer != envelope.payload.issuer_id {
+                errors.push(format!(
+                    "one public key fingerprint cannot authenticate multiple producer identities ({existing_issuer} and {})",
+                    envelope.payload.issuer_id
+                ));
+            }
+        }
         role_key_fingerprints
             .entry(envelope.payload.signer_role)
             .or_default()
@@ -1958,6 +1970,26 @@ mod tests {
         envelope.payload.signer_role = SignerRole::ElectricalValidator;
         let (trust, _, _, _) = fixtures();
         assert!(validate_role_separation(&[planner, envelope], &trust).is_err());
+    }
+
+    #[test]
+    fn one_public_key_cannot_impersonate_multiple_producer_identities() {
+        let (mut trust, mut envelope, expected, _) = fixtures();
+        let mut alias = trust.keys[0].clone();
+        alias.key_id = "synthetic-validator-alias".to_string();
+        alias.producer_id = "different-validator-identity".to_string();
+        trust.keys.push(alias);
+        let mut second = envelope.clone();
+        second.key_id = "synthetic-validator-alias".to_string();
+        second.payload.issuer_id = "different-validator-identity".to_string();
+        // The alias has the same public key but cannot be treated as another producer.
+        let first = verify_attestation(&envelope, &trust, &canonical_sha256(&trust).unwrap(), 2_000, &expected);
+        let mut second_expected = expected;
+        second_expected.issuer_id = "different-validator-identity".to_string();
+        let second_result = verify_attestation(&second, &trust, &canonical_sha256(&trust).unwrap(), 2_000, &second_expected);
+        assert!(first.is_ok());
+        assert!(second_result.is_ok());
+        assert!(validate_role_separation(&[envelope, second], &trust).is_err());
     }
 
     #[test]
