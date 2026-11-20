@@ -156,7 +156,10 @@ pub struct AmplitudeSensitivity {
     pub amplitude: f64,
     pub amplitude_unit: String,
     /// Each independent specimen contributes exactly one trial in this stratum.
+    /// Total unique specimens represented at this class/amplitude.
     pub independent_specimen_count: usize,
+    /// Specimens with a completed fault episode (detected or confirmed missed).
+    pub evaluable_specimen_count: usize,
     pub detected_specimen_count: usize,
     pub right_censored_specimen_count: usize,
     pub empirical_detection_rate: f64,
@@ -658,34 +661,38 @@ pub fn evaluate_fault_campaign(campaign: &FaultCampaign) -> Result<FaultObservab
 
     // One row per (fault class, amplitude, independent specimen) was enforced
     // during validation, so the Wilson denominator never counts repeated windows.
-    let mut amplitude_groups: BTreeMap<(String, String, u64), (f64, usize, usize, usize)> = BTreeMap::new();
+    let mut amplitude_groups: BTreeMap<(String, String, u64), (f64, usize, usize, usize, usize)> = BTreeMap::new();
     for assessment in &fault_assessments {
         let key = (
             assessment.fault_class.clone(),
             assessment.amplitude_unit.clone(),
             assessment.amplitude.to_bits(),
         );
-        let entry = amplitude_groups.entry(key).or_insert((assessment.amplitude, 0, 0, 0));
+        let entry = amplitude_groups.entry(key).or_insert((assessment.amplitude, 0, 0, 0, 0));
         entry.1 += 1;
         match assessment.disposition {
-            FaultEventDisposition::Detected => entry.2 += 1,
+            FaultEventDisposition::Detected => {
+                entry.2 += 1;
+                entry.4 += 1;
+            }
             FaultEventDisposition::RightCensored => entry.3 += 1,
-            FaultEventDisposition::Missed => {}
+            FaultEventDisposition::Missed => entry.4 += 1,
         }
     }
 
     let mut amplitude_sensitivity = Vec::with_capacity(amplitude_groups.len());
-    for ((fault_class, amplitude_unit, _), (amplitude, specimen_count, detected_count, censored_count)) in &amplitude_groups {
+    for ((fault_class, amplitude_unit, _), (amplitude, specimen_count, detected_count, censored_count, evaluable_count)) in &amplitude_groups {
         let (wilson_95_lower, wilson_95_upper) =
-            wilson_95(*detected_count, *specimen_count).unwrap();
+            wilson_95(*detected_count, *evaluable_count).unwrap();
         amplitude_sensitivity.push(AmplitudeSensitivity {
             fault_class: fault_class.clone(),
             amplitude: *amplitude,
             amplitude_unit: amplitude_unit.clone(),
             independent_specimen_count: *specimen_count,
+            evaluable_specimen_count: *evaluable_count,
             detected_specimen_count: *detected_count,
             right_censored_specimen_count: *censored_count,
-            empirical_detection_rate: *detected_count as f64 / *specimen_count as f64,
+            empirical_detection_rate: *detected_count as f64 / *evaluable_count as f64,
             wilson_95_lower,
             wilson_95_upper,
         });
@@ -1190,6 +1197,12 @@ mod tests {
         let report = evaluate_fault_campaign(&campaign).unwrap();
         assert_eq!(report.right_censored_fault_episode_count, 1);
         assert_eq!(report.missed_fault_episode_count, 15);
+        let censored_level = report.amplitude_sensitivity.iter()
+            .find(|level| level.fault_class == GEARBOX && level.amplitude == 0.2)
+            .unwrap();
+        assert_eq!(censored_level.independent_specimen_count, 16);
+        assert_eq!(censored_level.evaluable_specimen_count, 15);
+        assert_eq!(censored_level.right_censored_specimen_count, 1);
         assert_eq!(report.evaluable_fault_episode_count, 47);
         assert!((report.event_detection_rate.unwrap() - 32.0 / 47.0).abs() < 1.0e-12);
         let mdfa = report.mdfa.iter().find(|result| result.fault_class == GEARBOX).unwrap();
