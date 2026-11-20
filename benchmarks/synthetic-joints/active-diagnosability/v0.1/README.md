@@ -123,7 +123,7 @@ cargo clippy --manifest-path benchmarks/synthetic-joints/active-diagnosability/v
 
 Dedicated workflow: `.github/workflows/task-constrained-active-diagnosability.yml`. The authoring environment has no local Cargo/rustc/rustfmt; exact-head CI is the compile/format/Clippy gate.
 
-Twenty Rust test definitions cover nominal/dropout separability, nonseparable and unknown scenarios, hard-margin failure and missingness, provenance requirements, box-disjointness logic, feature normalization, healthy hypothesis/taxonomy, duplicate IDs/constraints, digest mismatch, units/modalities and malformed intervals.
+Twenty-one Rust test definitions cover nominal/dropout separability, nonseparable and unknown scenarios, hard-margin failure and missingness, provenance requirements, box-disjointness logic, feature normalization, healthy hypothesis/taxonomy, duplicate IDs/constraints, digest mismatch, units/modalities and malformed intervals.
 
 ## 9. M0–M5 promotion
 
