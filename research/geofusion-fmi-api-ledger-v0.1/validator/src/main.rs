@@ -9,7 +9,10 @@ fn main() -> ExitCode {
     };
     let ledger_path = PathBuf::from(ledger_path);
     let root = args.next().map(PathBuf::from).unwrap_or_else(|| {
-        ledger_path.parent().unwrap_or_else(|| std::path::Path::new(".")).to_path_buf()
+        ledger_path.parent()
+            .and_then(|path| path.parent())
+            .unwrap_or_else(|| std::path::Path::new("."))
+            .to_path_buf()
     });
     match audit_file(&ledger_path, &root) {
         Ok(report) => {
