@@ -1,3 +1,7 @@
+[workspace]
+members = ["."]
+resolver = "3"
+
 [package]
 name = "nav-observation-toy-fim"
 version = "0.1.0"
