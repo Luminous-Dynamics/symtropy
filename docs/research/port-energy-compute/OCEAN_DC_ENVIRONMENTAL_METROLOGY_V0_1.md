@@ -112,6 +112,27 @@ The data package must distinguish:
 
 A single seasonal survey is not a sufficient baseline where seasonal and event variability can materially affect intake temperatures, mixing, species abundance or habitat state.
 
+## 4. Ocean-observation interoperability: GOOS EOVs and OBIS
+
+### 4.1 GOOS Essential Ocean Variables
+
+Use the GOOS EOV framework as the shared ocean-variable layer rather than inventing a proprietary sensor taxonomy. GOOS defines EOVs as the minimum sustained variables needed to assess ocean state and variability for globally important phenomena and societal services. Its framework spans physics, biogeochemistry, biology/ecosystems and cross-disciplinary variables; the IOC reported 36 recognized EOVs in February 2026.
+
+The v0.1 mapping connects eight relevant EOVs to this programme:
+- subsurface temperature, subsurface salinity and subsurface currents;
+- sea state;
+- oxygen and nutrients;
+- benthic invertebrate abundance/distribution (pilot EOV); and
+- ocean sound.
+
+The exact mapping is machine-readable in `goos_eov_alignment`. GOOS notes that EOV specification sheets are under revision; therefore every campaign must pin the version and date of the specification sheet actually used. Project-specific measures such as intake flow, outfall pollutant mass flux and thermal-plume exposure remain project extensions, not newly declared official EOVs.
+
+### 4.2 OBIS and Darwin Core biodiversity data
+
+Biodiversity observations should be capable of interoperating with OBIS and its Darwin Core profile. The OBIS Manual v2.0 was updated in September 2026 and covers occurrence, event, extended measurement/fact and DNA-derived datasets. OBIS quality control includes initial Darwin Core formatting, automated geolocation/date/depth/precision checks, manual curation by OBIS nodes, taxonomic checks with WoRMS and geographic/habitat enrichment.
+
+The catalog provides candidate Darwin Core terms for event/date, sampling protocol, sample size, occurrence, basis of record, taxon, coordinates/datum and depth. This is a starting mapping, not a claim that this v0.1 file is a complete OBIS publication profile. Before publishing, confirm the current OBIS Manual, node requirements, sensitive-location restrictions and provider rights. Preserve quality flags rather than deleting or silently upgrading failed observations.
+
 ## 4. Evidence record contract
 
 Every accepted observation needs:
@@ -202,6 +223,10 @@ This is not an abstract concern: Uptime Institute's May 2026 outage analysis say
 - ISO/IEC 30134-2:2026 PUE: https://www.iso.org/standard/30134-2
 - ISO/IEC 30134-6 ERF: https://www.iso.org/standard/30134-6
 - ISO/IEC 30134-8 CUE: https://www.iso.org/standard/30134-8
+- UNESCO IOC / GOOS, Essential Ocean Variables (framework and specification sheets): https://goosocean.org/what-we-do/framework/essential-ocean-variables/
+- IOC UNESCO, 36 GOOS Essential Ocean Variables (24 February 2026): https://www.ioc.unesco.org/en/articles/essential-ocean-variables
+- OBIS, Quality control (Darwin Core, automated checks, manual curation, WoRMS and data quality flags): https://www.obis.org/data/quality/
+- OBIS Manual v2.0 (updated 23 September 2026): https://manual.obis.org/
 - ISO/IEC 30134-9 WUE: https://www.iso.org/standard/30134-9
 
 ---
