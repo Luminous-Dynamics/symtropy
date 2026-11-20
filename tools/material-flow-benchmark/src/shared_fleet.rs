@@ -1328,6 +1328,9 @@ mod tests {
         assert_eq!(report.exact_policy_count_evaluated, 243);
         assert_eq!(report.optimized_policy.unauthorized_aerial_dispatches, 0);
         assert_eq!(report.optimized_policy.protected_reserve_violations, 0);
+        assert_eq!(report.jurisdiction_profile_id, "ZA-UAS-OPS-GATE-001-v0.1-2026-11-20");
+        assert!(report.eligible_for_external_operator_review);
+        assert!(!report.physical_dispatch_authorized);
         assert!(!report.dispatch_commands_emitted);
     }
 
@@ -1499,6 +1502,29 @@ mod tests {
         assert!(!report.physical_dispatch_authorized);
         assert_eq!(report.optimized_policy.expected_aerial_deliveries, 0);
         assert_eq!(report.optimized_policy.expected_hard_gate_blocked_actions, 1);
+    }
+
+    #[test]
+    fn stale_unsupported_or_out_of_scope_za_profile_never_enables_aerial_capacity() {
+        for status in [
+            JurisdictionReviewStatus::Unsupported,
+            JurisdictionReviewStatus::Stale,
+            JurisdictionReviewStatus::Revoked,
+            JurisdictionReviewStatus::OutOfScope,
+            JurisdictionReviewStatus::Unknown,
+            JurisdictionReviewStatus::ApprovalRequired,
+        ] {
+            let mut test = input();
+            test.period_count = 1;
+            for scenario in &mut test.scenarios {
+                scenario.periods.truncate(1);
+            }
+            test.jurisdictional_operating_envelope.review_status = status;
+            let report = evaluate_shared_fleet(&test).expect("well-formed but ineligible envelope");
+            assert!(!report.eligible_for_external_operator_review);
+            assert_eq!(report.optimized_policy.expected_aerial_deliveries, 0);
+            assert!(!report.physical_dispatch_authorized);
+        }
     }
 
     #[test]
