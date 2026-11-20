@@ -1,0 +1,1586 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "South African Part 101 delivery-UAS eligibility evidence v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "source_snapshot_id",
+    "source_references",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "source_snapshot_id": {
+      "const": "ZA-SACAA-PART101-2026-11-20"
+    },
+    "source_references": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "string",
+        "format": "uri",
+        "minLength": 1
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "assessment_time_utc",
+          "operator",
+          "aircraft",
+          "pilot",
+          "operation",
+          "approvals"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assessment_time_utc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "operator": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operator_id",
+              "activity_class"
+            ],
+            "properties": {
+              "operator_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "activity_class": {
+                "enum": [
+                  "commercial",
+                  "corporate",
+                  "non_profit",
+                  "private"
+                ]
+              }
+            }
+          },
+          "aircraft": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "aircraft_id",
+              "configuration_id",
+              "uas_class",
+              "autonomous_control"
+            ],
+            "properties": {
+              "aircraft_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "configuration_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uas_class": {
+                "enum": [
+                  "class1_a",
+                  "class1_b",
+                  "class2",
+                  "class3_or_higher",
+                  "unknown"
+                ]
+              },
+              "autonomous_control": {
+                "type": "boolean"
+              }
+            }
+          },
+          "pilot": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pilot_id"
+            ],
+            "properties": {
+              "pilot_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "operation": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operation_id",
+              "operation_scope_digest_sha256",
+              "visual_flight_mode",
+              "rlos_command_link_available",
+              "rlos_command_link_evidence_reference",
+              "payload_release_or_delivery",
+              "multi_uas_operation",
+              "public_road_takeoff_or_landing",
+              "controlled_airspace",
+              "restricted_or_prohibited_airspace",
+              "within_ten_km_of_aerodrome",
+              "property_owner_permission_required",
+              "dangerous_goods_payload",
+              "near_manned_aircraft",
+              "over_or_within_fifty_m_of_public_road",
+              "over_public_road",
+              "rps_id",
+              "operations_manual_revision"
+            ],
+            "properties": {
+              "operation_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "operation_scope_digest_sha256": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "visual_flight_mode": {
+                "enum": [
+                  "restricted_vlos",
+                  "vlos",
+                  "evlos",
+                  "bvlos",
+                  "brlos"
+                ]
+              },
+              "rlos_command_link_available": {
+                "type": "boolean"
+              },
+              "rlos_command_link_evidence_reference": {
+                "type": "string",
+                "minLength": 1
+              },
+              "payload_release_or_delivery": {
+                "type": "boolean"
+              },
+              "multi_uas_operation": {
+                "type": "boolean"
+              },
+              "public_road_takeoff_or_landing": {
+                "type": "boolean"
+              },
+              "controlled_airspace": {
+                "type": "boolean"
+              },
+              "restricted_or_prohibited_airspace": {
+                "type": "boolean"
+              },
+              "within_ten_km_of_aerodrome": {
+                "type": "boolean"
+              },
+              "property_owner_permission_required": {
+                "type": "boolean"
+              },
+              "dangerous_goods_payload": {
+                "type": "boolean"
+              },
+              "near_manned_aircraft": {
+                "type": "boolean"
+              },
+              "over_or_within_fifty_m_of_public_road": {
+                "type": "boolean"
+              },
+              "over_public_road": {
+                "type": "boolean"
+              },
+              "rps_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "operations_manual_revision": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "approvals": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "air_service_licence",
+              "uas_operator_certificate",
+              "aircraft_letter_of_approval",
+              "remote_pilot_licence",
+              "aircraft_certificate_of_registration",
+              "operations_manual_scope",
+              "director_payload_release_approval",
+              "director_bvlos_approval",
+              "sa_cats_101_bvlos_compliance",
+              "sa_cats_101_c2_compliance",
+              "director_class_3_applicability",
+              "director_multi_uas_approval",
+              "director_rps_topology_approval",
+              "director_public_road_approval",
+              "local_authority_public_road_approval",
+              "airspace_approval",
+              "property_owner_permission",
+              "dangerous_goods_director_approval",
+              "part_92_dangerous_goods_compliance",
+              "director_public_road_overflight_approval",
+              "public_road_closure_evidence",
+              "public_road_safety_controls",
+              "multi_uas_uses_command_inputs_only"
+            ],
+            "properties": {
+              "air_service_licence": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "uas_operator_certificate": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "aircraft_letter_of_approval": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "remote_pilot_licence": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "aircraft_certificate_of_registration": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "operations_manual_scope": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "director_payload_release_approval": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "director_bvlos_approval": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "sa_cats_101_bvlos_compliance": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "sa_cats_101_c2_compliance": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "director_class_3_applicability": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "director_multi_uas_approval": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "director_rps_topology_approval": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "director_public_road_approval": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "local_authority_public_road_approval": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "airspace_approval": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "property_owner_permission": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "dangerous_goods_director_approval": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "part_92_dangerous_goods_compliance": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "director_public_road_overflight_approval": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "public_road_closure_evidence": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "public_road_safety_controls": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_class",
+                      "status",
+                      "record_id",
+                      "authority",
+                      "subject_id",
+                      "operation_scope_digest_sha256",
+                      "source_reference"
+                    ],
+                    "properties": {
+                      "evidence_class": {
+                        "enum": [
+                          "synthetic",
+                          "authority_record",
+                          "unknown"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "fresh_in_scope",
+                          "unknown",
+                          "stale",
+                          "missing",
+                          "expired",
+                          "revoked",
+                          "out_of_scope"
+                        ]
+                      },
+                      "record_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "authority": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "operation_scope_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "multi_uas_uses_command_inputs_only": {
+                "oneOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
