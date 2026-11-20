@@ -19,6 +19,8 @@ pub struct StoppingDynamicsQualification {
     pub qualification_receipt_sha256: String,
     pub robot_brake_configuration_sha256: String,
     pub operating_condition_sha256: String,
+    /// Shared frozen test-scenario identity used to pair brake and sensor evidence.
+    pub scenario_context_sha256: String,
     pub maximum_qualified_speed_mm_s: f64,
     pub maximum_detection_to_brake_latency_ms: u64,
     pub maximum_positive_acceleration_mm_s2: f64,
@@ -55,6 +57,10 @@ pub enum StoppingReachabilityError {
     InvalidSensorProfileDigest,
     InvalidSensorQualificationReceiptDigest,
     InvalidTargetConditionDigest,
+    InvalidScenarioContextDigest,
+    IncompatibleScenarioContext,
+    InvalidMaximumQualifiedApproachSpeed,
+    DetectionSpeedOutsideQualifiedDomain,
     InvalidMinimumDetectionDistance,
     InvalidHazardDistanceMargin,
     HazardDistanceBudgetOverflow,
@@ -64,6 +70,8 @@ pub enum StoppingReachabilityError {
 pub struct StoppingReachabilityResult {
     pub qualified_profile_sha256: [u8; 32],
     pub qualification_receipt_sha256: [u8; 32],
+    pub speed_at_trigger_upper_mm_s: f64,
+    pub scenario_context_sha256: [u8; 32],
     pub speed_at_brake_onset_mm_s: f64,
     pub latency_travel_distance_mm: f64,
     pub braking_distance_mm: f64,
@@ -84,6 +92,10 @@ pub struct HazardDetectionQualification {
     pub detection_qualification_receipt_sha256: String,
     /// Frozen obstacle class/material/size/pose and environmental test stratum.
     pub target_condition_sha256: String,
+    /// Must match the braking qualification's frozen scenario context.
+    pub scenario_context_sha256: String,
+    /// Highest approach speed covered by the detection-range campaign.
+    pub maximum_qualified_approach_speed_mm_s: f64,
     /// Lower bound on reliable detection range, not advertised maximum sensor range.
     pub minimum_qualified_detection_distance_mm: f64,
 }
@@ -126,6 +138,20 @@ pub fn evaluate_hazard_stopping_budget(
     }
     if decode_sha256(&detection.target_condition_sha256).is_none() {
         return Err(StoppingReachabilityError::InvalidTargetConditionDigest);
+    }
+    if decode_sha256(&detection.scenario_context_sha256).is_none() {
+        return Err(StoppingReachabilityError::InvalidScenarioContextDigest);
+    }
+    if detection.scenario_context_sha256 != hex_encode(&stopping.scenario_context_sha256) {
+        return Err(StoppingReachabilityError::IncompatibleScenarioContext);
+    }
+    if !detection.maximum_qualified_approach_speed_mm_s.is_finite()
+        || detection.maximum_qualified_approach_speed_mm_s <= 0.0
+    {
+        return Err(StoppingReachabilityError::InvalidMaximumQualifiedApproachSpeed);
+    }
+    if stopping.speed_at_trigger_upper_mm_s > detection.maximum_qualified_approach_speed_mm_s {
+        return Err(StoppingReachabilityError::DetectionSpeedOutsideQualifiedDomain);
     }
     if !detection.minimum_qualified_detection_distance_mm.is_finite()
         || detection.minimum_qualified_detection_distance_mm < 0.0
@@ -256,6 +282,9 @@ pub fn calculate_stopping_reachability(
             &qualification.qualification_receipt_sha256,
         )
         .ok_or(StoppingReachabilityError::InvalidQualificationReceiptDigest)?,
+        speed_at_trigger_upper_mm_s: request.speed_upper_mm_s,
+        scenario_context_sha256: decode_sha256(&qualification.scenario_context_sha256)
+            .ok_or(StoppingReachabilityError::InvalidScenarioContextDigest)?,
         speed_at_brake_onset_mm_s,
         latency_travel_distance_mm: latency_distance_mm,
         braking_distance_mm,
@@ -289,6 +318,9 @@ fn validate_qualification(
     }
     if decode_sha256(&qualification.operating_condition_sha256).is_none() {
         return Err(StoppingReachabilityError::InvalidOperatingConditionDigest);
+    }
+    if decode_sha256(&qualification.scenario_context_sha256).is_none() {
+        return Err(StoppingReachabilityError::InvalidScenarioContextDigest);
     }
     if !qualification.maximum_qualified_speed_mm_s.is_finite()
         || qualification.maximum_qualified_speed_mm_s <= 0.0
@@ -332,6 +364,15 @@ fn outward_integer_bound(value: f64, numeric_guard: f64) -> Option<u64> {
     Some(guarded.ceil() as u64)
 }
 
+fn hex_encode(bytes: &[u8; 32]) -> String {
+    let mut output = String::with_capacity(64);
+    for byte in bytes {
+        use std::fmt::Write;
+        let _ = write!(&mut output, "{byte:02x}");
+    }
+    output
+}
+
 fn decode_sha256(value: &str) -> Option<[u8; 32]> {
     if value.len() != 64 {
         return None;
@@ -367,6 +408,7 @@ mod tests {
             qualification_receipt_sha256: digest('2'),
             robot_brake_configuration_sha256: digest('3'),
             operating_condition_sha256: digest('4'),
+            scenario_context_sha256: digest('8'),
             maximum_qualified_speed_mm_s: 2_000.0,
             maximum_detection_to_brake_latency_ms: 100,
             maximum_positive_acceleration_mm_s2: 500.0,
@@ -603,6 +645,8 @@ mod tests {
             sensor_profile_sha256: digest('5'),
             detection_qualification_receipt_sha256: digest('6'),
             target_condition_sha256: digest('7'),
+            scenario_context_sha256: digest('8'),
+            maximum_qualified_approach_speed_mm_s: 1_500.0,
             minimum_qualified_detection_distance_mm: 1_300.0,
         };
         let margins = HazardStoppingMargins {
@@ -654,6 +698,44 @@ mod tests {
                 }
             ),
             Err(StoppingReachabilityError::InvalidSensorProfileDigest)
+        );
+    }
+
+
+    #[test]
+    fn detection_range_cannot_be_reused_for_another_speed_or_scenario() {
+        let stop = calculate_stopping_reachability(
+            &qualification(),
+            StoppingReachabilityRequest {
+                speed_upper_mm_s: 1_000.0,
+            },
+        )
+        .unwrap();
+        let detection = HazardDetectionQualification {
+            sensor_profile_sha256: digest('5'),
+            detection_qualification_receipt_sha256: digest('6'),
+            target_condition_sha256: digest('7'),
+            scenario_context_sha256: digest('8'),
+            maximum_qualified_approach_speed_mm_s: 900.0,
+            minimum_qualified_detection_distance_mm: 2_000.0,
+        };
+        let margins = HazardStoppingMargins {
+            localization_uncertainty_mm: 0.0,
+            frame_registration_uncertainty_mm: 0.0,
+            body_geometry_uncertainty_mm: 0.0,
+            site_policy_clearance_mm: 0.0,
+        };
+        assert_eq!(
+            evaluate_hazard_stopping_budget(stop, &detection, margins),
+            Err(StoppingReachabilityError::DetectionSpeedOutsideQualifiedDomain)
+        );
+
+        let mut mismatched = detection.clone();
+        mismatched.maximum_qualified_approach_speed_mm_s = 1_500.0;
+        mismatched.scenario_context_sha256 = digest('9');
+        assert_eq!(
+            evaluate_hazard_stopping_budget(stop, &mismatched, margins),
+            Err(StoppingReachabilityError::IncompatibleScenarioContext)
         );
     }
 
