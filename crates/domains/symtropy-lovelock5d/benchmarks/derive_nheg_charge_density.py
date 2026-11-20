@@ -64,7 +64,7 @@ def main() -> None:
         -736*beta**3*eps**12+3536*beta**2*eps**8
         +2112*beta*eps**4-1600
     )
-    exact_zero("normalized source polynomial",P_source-alpha**6*P_normalized/64)
+    exact_zero("normalized source polynomial",P_source-alpha**6*P_normalized)
     exact_zero("Q polynomial sign",Q+P_normalized)
 
     # Source Eq. (24), per angular coordinate dtheta dphi dpsi.
