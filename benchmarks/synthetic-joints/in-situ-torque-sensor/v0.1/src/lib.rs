@@ -113,6 +113,8 @@ pub struct InstallationGroup {
     pub reference_method: String,
     pub reference_raw_trace_digest: String,
     pub sensor_raw_trace_digest: String,
+    /// Receipt digest from the synchronized torque/sensor metrology chain.
+    pub synchronized_metrology_receipt_digest: String,
     pub observations: Vec<SensorObservation>,
 }
 
@@ -476,6 +478,7 @@ fn validate_dataset(
             ("reference method", installation.reference_method.as_str()),
             ("reference raw-trace digest", installation.reference_raw_trace_digest.as_str()),
             ("sensor raw-trace digest", installation.sensor_raw_trace_digest.as_str()),
+            ("synchronized metrology receipt digest", installation.synchronized_metrology_receipt_digest.as_str()),
         ] {
             if !nonempty(value) {
                 return Err(format!("{label} is required"));
@@ -1045,6 +1048,7 @@ mod tests {
             reference_method: "Synthetic independent external torque reference fixture".to_owned(),
             reference_raw_trace_digest: format!("reference-trace-{id}"),
             sensor_raw_trace_digest: format!("sensor-trace-{id}"),
+            synchronized_metrology_receipt_digest: format!("synced-metrology-receipt-{id}"),
             observations,
         }
     }
@@ -1416,7 +1420,14 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_027_duplicate_installation_and_sensor_identities_reject() {
+    fn sensor_transfer_027_synchronized_metrology_receipt_is_required() {
+        let mut calibration = known_calibration();
+        calibration.installations[0].synchronized_metrology_receipt_digest.clear();
+        assert!(evaluate_sensor_transfer(&plan(0.25), &calibration, &known_test()).is_err());
+    }
+
+    #[test]
+    fn sensor_transfer_028_duplicate_installation_and_sensor_identities_reject() {
         let mut calibration = known_calibration();
         calibration.installations[1].sensor_serial =
             calibration.installations[0].sensor_serial.clone();
