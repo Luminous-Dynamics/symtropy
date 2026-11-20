@@ -49,15 +49,18 @@
       ]
     },
     "field_equations": {
-      "status": "unresolved",
-      "scope": "five-dimensional local NHEG field equations",
-      "basis": "The source reports the exact geometry as an EGB solution; Symtropy has not yet independently evaluated all field-equation components",
+      "status": "pass",
+      "scope": "five-dimensional exact local near-horizon field equations on alpha_sym>0, 0<beta<1, 0<=theta<pi/2",
+      "basis": "Independent Cartan coframe and Levi-Civita connection; full Riemann/Ricci contractions; Lanczos tensor; all 25 components of G_ab+alpha_sym*H_ab/4 rationalize to exact zero. A deliberately wrong single-index Ricci raise yields four nonzero residuals.",
       "evidence": [
-        "https://arxiv.org/abs/2605.15005",
-        "single_spin_nheg_reference_v1.md"
+        "derive_single_spin_nheg_cartan.py",
+        "single_spin_nheg_cartan_fixture_v1.json",
+        "single_spin_nheg_cartan_v1.md",
+        "GitHub Actions exact replay workflow pending for clean-checkout confirmation"
       ],
       "limitations": [
-        "No independent full 5D Lovelock tensor replay"
+        "The independent second symbolic contraction uses the frozen Cartan curvature forms; clean-checkout execution of the complete committed generator remains pending",
+        "This is a local near-horizon solution, not a global asymptotically-flat spacetime"
       ]
     },
     "lorentzian_signature": {
@@ -189,5 +192,5 @@
       ]
     }
   },
-  "claim_ceiling": "This vector records a source-reported local solution with independently checked geometric identities. It does not certify a global black hole, finite entropy/charges, strong hyperbolicity, stability, or EFT validity."
+  "claim_ceiling": "The singly rotating near-horizon metric now has an independent exact local EGB field-equation replay on the declared open domain. It remains noncompact with divergent standard horizon measure and charges; global completion, strong hyperbolicity, stability and EFT validity remain unresolved."
 }
