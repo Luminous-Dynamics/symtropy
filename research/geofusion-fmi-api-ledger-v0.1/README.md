@@ -25,7 +25,7 @@ The schema is deliberately strict (additionalProperties=false). v0.1 is a synchr
 
 ### State and rollback semantics
 
-FMI state capture is optional and conditional. Only an FMU that advertises both canGetAndSetFMUState and canSerializeFMUState can qualify serialized state evidence in this profile. The collector must hash the exact serialized bytes and record their byte length; the independent checker must recompute both. When these capabilities are absent, the ledger reports STATE_SNAPSHOT_UNAVAILABLE. It must not claim rollback, restore, deterministic replay or state-continuity qualification from caller-supplied text digests alone.
+FMI state capture is optional and conditional. Only an FMU that advertises both canGetAndSetFMUState and canSerializeFMUState can qualify serialized state evidence in this profile. The collector must hash the exact serialized bytes and record their byte length; the independent checker must recompute both. When either capability is absent, the ledger reports `SERIALIZATION_CAPABILITY_NOT_ADVERTISED`; in-memory state support alone does not qualify serialized checkpoint evidence. It must not claim rollback, restore, deterministic replay or state-continuity qualification from caller-supplied text digests alone.
 
 A matching SHA-256 proves only that the bytes examined by the checker match the recorded digest. It does not prove semantic correctness of an opaque FMU state or that a compromised, uninstrumented importer reported the right bytes. Runtime evidence requires an instrumented collector at the actual FMI C-API boundary and an independently controlled artifact root.
 
@@ -43,7 +43,7 @@ The fixture contains two federates and one normalized barrier. **All referenced 
 
 ## Run the fixture audit
 
-The production contract is intended to be implemented in Rust. The small Python script is test-only fixture tooling, not a production parser, runtime, adapter or dependency. It validates the JSON Schema, root-confined artifact byte length/digests, ordered call shape, exact Float64 encodings, one-to-one trace links, barrier membership and synthetic energy cross-reference.
+The Rust crate in `validator/` is the authoritative typed validator. It uses strict Serde decoding, root-confined SHA-256 artifact checks, FMI lifecycle and call-order validation, exact Float64 bit checking, transfer identity, trace/barrier cross-checks and independent energy residual recomputation. The small Python script is secondary fixture/schema tooling, not a production runtime or adapter. It validates the JSON Schema, root-confined artifact byte length/digests, ordered call shape, exact Float64 encodings, one-to-one trace links, barrier membership and synthetic energy cross-reference.
 
 ```sh
 python3 -m pip install --requirement research/geofusion-fmi-api-ledger-v0.1/tests/requirements.txt
@@ -54,7 +54,7 @@ CI pins jsonschema and runs only this fixture audit. It does not compile Rust, l
 
 ## Frozen negative controls
 
-fixtures/frozen-cases.tsv records 25 planned adversarial controls with expected REJECT or NOT_EVALUABLE dispositions. The current fixture audit checks corpus shape and unique case IDs; it does not yet execute these mutations against a production Rust validator. Their presence is a frozen test plan, not a 25/25 executed pass.
+fixtures/frozen-cases.tsv records 25 planned adversarial controls with expected REJECT or NOT_EVALUABLE dispositions. The current Python fixture audit checks corpus shape and unique case IDs. The Rust validator adds executable mutation tests for core API-order, identity, interval, Float64, barrier, trace-link and root-traversal failures; the full 25-case matrix still needs one-to-one mutation implementations. Their presence is a frozen test plan, not a 25/25 executed pass.
 
 ## Unsupported in v0.1
 
