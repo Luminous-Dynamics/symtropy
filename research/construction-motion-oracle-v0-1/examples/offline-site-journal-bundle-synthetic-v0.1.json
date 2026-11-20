@@ -117,7 +117,7 @@
   ],
   "expected_reconciliation": {
     "can_ingest": false,
-    "conflict_count": 2,
+    "conflict_count": 1,
     "conflict_event_ids": [
       "referee-a-assessment",
       "robot-a-observation",
