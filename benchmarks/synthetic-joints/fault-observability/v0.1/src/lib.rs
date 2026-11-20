@@ -19,9 +19,16 @@ pub enum GroundTruthEvidenceClass {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FaultEventTermination {
+    FaultCleared,
+    ObservationEnded,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FaultEventDisposition {
     Detected,
     Missed,
+    RightCensored,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,6 +46,7 @@ pub enum MdfaDisposition {
     FalseAlarmBudgetExceeded,
     InsufficientAmplitudeLevels,
     InsufficientIndependentSpecimens,
+    InsufficientFollowup,
     NoAmplitudeMeetsSensitivityTarget,
 }
 
@@ -67,7 +75,9 @@ pub struct FaultEpisode {
     pub amplitude: f64,
     pub amplitude_unit: String,
     pub onset_s: f64,
+    /// Fault-clear time or end of observable follow-up, according to termination.
     pub clear_s: f64,
+    pub termination: FaultEventTermination,
     pub evidence_class: GroundTruthEvidenceClass,
     pub ground_truth_reference: String,
     pub raw_trace_digest: String,
@@ -148,6 +158,7 @@ pub struct AmplitudeSensitivity {
     /// Each independent specimen contributes exactly one trial in this stratum.
     pub independent_specimen_count: usize,
     pub detected_specimen_count: usize,
+    pub right_censored_specimen_count: usize,
     pub empirical_detection_rate: f64,
     pub wilson_95_lower: f64,
     pub wilson_95_upper: f64,
@@ -178,6 +189,8 @@ pub struct FaultObservabilityReport {
     pub fault_episode_count: usize,
     pub detected_fault_episode_count: usize,
     pub missed_fault_episode_count: usize,
+    pub right_censored_fault_episode_count: usize,
+    pub evaluable_fault_episode_count: usize,
     pub event_detection_rate: Option<f64>,
     pub detected_time_to_detect_median_s: Option<f64>,
     pub detected_time_to_detect_p95_s: Option<f64>,
@@ -550,8 +563,10 @@ pub fn evaluate_fault_campaign(campaign: &FaultCampaign) -> Result<FaultObservab
                 Some(ttd),
                 Some(alarm.alarm_id.clone()),
             )
-        } else {
+        } else if episode.termination == FaultEventTermination::FaultCleared {
             (FaultEventDisposition::Missed, None, None)
+        } else {
+            (FaultEventDisposition::RightCensored, None, None)
         };
 
         fault_assessments.push(FaultEventAssessment {
@@ -612,11 +627,20 @@ pub fn evaluate_fault_campaign(campaign: &FaultCampaign) -> Result<FaultObservab
         .iter()
         .filter(|assessment| assessment.disposition == FaultEventDisposition::Detected)
         .count();
-    let missed_fault_episode_count = fault_assessments.len() - detected_fault_episode_count;
-    let event_detection_rate = if fault_assessments.is_empty() {
+    let missed_fault_episode_count = fault_assessments
+        .iter()
+        .filter(|assessment| assessment.disposition == FaultEventDisposition::Missed)
+        .count();
+    let right_censored_fault_episode_count = fault_assessments
+        .iter()
+        .filter(|assessment| assessment.disposition == FaultEventDisposition::RightCensored)
+        .count();
+    let evaluable_fault_episode_count =
+        detected_fault_episode_count + missed_fault_episode_count;
+    let event_detection_rate = if evaluable_fault_episode_count == 0 {
         None
     } else {
-        Some(detected_fault_episode_count as f64 / fault_assessments.len() as f64)
+        Some(detected_fault_episode_count as f64 / evaluable_fault_episode_count as f64)
     };
 
     detected_times.sort_by(f64::total_cmp);
@@ -634,7 +658,7 @@ pub fn evaluate_fault_campaign(campaign: &FaultCampaign) -> Result<FaultObservab
 
     // One row per (fault class, amplitude, independent specimen) was enforced
     // during validation, so the Wilson denominator never counts repeated windows.
-    let mut amplitude_groups: BTreeMap<(String, String, u64), (f64, usize, usize)> = BTreeMap::new();
+    let mut amplitude_groups: BTreeMap<(String, String, u64), (f64, usize, usize, usize)> = BTreeMap::new();
     for assessment in &fault_assessments {
         let key = (
             assessment.fault_class.clone(),
@@ -643,13 +667,15 @@ pub fn evaluate_fault_campaign(campaign: &FaultCampaign) -> Result<FaultObservab
         );
         let entry = amplitude_groups.entry(key).or_insert((assessment.amplitude, 0, 0));
         entry.1 += 1;
-        if assessment.disposition == FaultEventDisposition::Detected {
-            entry.2 += 1;
+        match assessment.disposition {
+            FaultEventDisposition::Detected => entry.2 += 1,
+            FaultEventDisposition::RightCensored => entry.3 += 1,
+            FaultEventDisposition::Missed => {}
         }
     }
 
     let mut amplitude_sensitivity = Vec::with_capacity(amplitude_groups.len());
-    for ((fault_class, amplitude_unit, _), (amplitude, specimen_count, detected_count)) in &amplitude_groups {
+    for ((fault_class, amplitude_unit, _), (amplitude, specimen_count, detected_count, censored_count)) in &amplitude_groups {
         let (wilson_95_lower, wilson_95_upper) =
             wilson_95(*detected_count, *specimen_count).unwrap();
         amplitude_sensitivity.push(AmplitudeSensitivity {
@@ -658,6 +684,7 @@ pub fn evaluate_fault_campaign(campaign: &FaultCampaign) -> Result<FaultObservab
             amplitude_unit: amplitude_unit.clone(),
             independent_specimen_count: *specimen_count,
             detected_specimen_count: *detected_count,
+            right_censored_specimen_count: *censored_count,
             empirical_detection_rate: *detected_count as f64 / *specimen_count as f64,
             wilson_95_lower,
             wilson_95_upper,
@@ -692,6 +719,8 @@ pub fn evaluate_fault_campaign(campaign: &FaultCampaign) -> Result<FaultObservab
             result.disposition = MdfaDisposition::FalseAlarmBudgetExceeded;
         } else if class_levels.len() < 2 {
             result.disposition = MdfaDisposition::InsufficientAmplitudeLevels;
+        } else if class_levels.iter().any(|level| level.right_censored_specimen_count > 0) {
+            result.disposition = MdfaDisposition::InsufficientFollowup;
         } else if class_levels.iter().any(|level| {
             level.independent_specimen_count < plan.minimum_independent_specimens_per_amplitude
         }) {
@@ -726,6 +755,8 @@ pub fn evaluate_fault_campaign(campaign: &FaultCampaign) -> Result<FaultObservab
         fault_episode_count: fault_assessments.len(),
         detected_fault_episode_count,
         missed_fault_episode_count,
+        right_censored_fault_episode_count,
+        evaluable_fault_episode_count,
         event_detection_rate,
         detected_time_to_detect_median_s,
         detected_time_to_detect_p95_s,
@@ -788,6 +819,7 @@ mod tests {
             amplitude_unit: "normalized_fault_severity".to_owned(),
             onset_s: 1.0,
             clear_s: 5.0,
+            termination: FaultEventTermination::FaultCleared,
             evidence_class: GroundTruthEvidenceClass::SyntheticFixture,
             ground_truth_reference: format!("https://example.invalid/ground-truth/{episode_id}"),
             raw_trace_digest: format!("synthetic-trace-{episode_id}"),
@@ -1144,21 +1176,42 @@ mod tests {
     }
 
     #[test]
-    fn fault_024_unknown_alarm_hypotheses_reject() {
+    fn fault_024_right_censored_fault_is_not_counted_as_a_confirmed_miss() {
+        let mut campaign = known_campaign();
+        let censored_id = campaign.fault_episodes.iter()
+            .find(|episode| episode.specimen_id == "spec-0.2-00")
+            .unwrap()
+            .episode_id
+            .clone();
+        let censored = campaign.fault_episodes.iter_mut()
+            .find(|episode| episode.episode_id == censored_id)
+            .unwrap();
+        censored.termination = FaultEventTermination::ObservationEnded;
+        let report = evaluate_fault_campaign(&campaign).unwrap();
+        assert_eq!(report.right_censored_fault_episode_count, 1);
+        assert_eq!(report.missed_fault_episode_count, 15);
+        assert_eq!(report.evaluable_fault_episode_count, 47);
+        assert!((report.event_detection_rate.unwrap() - 32.0 / 47.0).abs() < 1.0e-12);
+        let mdfa = report.mdfa.iter().find(|result| result.fault_class == GEARBOX).unwrap();
+        assert_eq!(mdfa.disposition, MdfaDisposition::InsufficientFollowup);
+    }
+
+    #[test]
+    fn fault_025_unknown_alarm_hypotheses_reject() {
         let mut campaign = known_campaign();
         campaign.alarm_episodes[0].hypothesized_fault_classes = vec!["mystery-fault".to_owned()];
         assert!(evaluate_fault_campaign(&campaign).is_err());
     }
 
     #[test]
-    fn fault_025_expected_fault_classes_must_be_unique_and_nonempty() {
+    fn fault_026_expected_fault_classes_must_be_unique_and_nonempty() {
         let mut campaign = known_campaign();
         campaign.plan.expected_fault_classes.push(GEARBOX.to_owned());
         assert!(evaluate_fault_campaign(&campaign).is_err());
     }
 
     #[test]
-    fn fault_026_zero_alarm_is_not_a_correct_diagnosis() {
+    fn fault_027_zero_alarm_is_not_a_correct_diagnosis() {
         let mut campaign = known_campaign();
         campaign.alarm_episodes.clear();
         let report = evaluate_fault_campaign(&campaign).unwrap();
@@ -1168,7 +1221,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_027_specimen_amplitude_group_reports_wilson_interval() {
+    fn fault_028_specimen_amplitude_group_reports_wilson_interval() {
         let report = evaluate_fault_campaign(&known_campaign()).unwrap();
         let perfect = report.amplitude_sensitivity.iter()
             .find(|level| level.fault_class == GEARBOX && level.amplitude == 0.3)
