@@ -26,6 +26,8 @@ pub struct ServiceFixture {
     pub schema: String,
     pub evidence_class: String,
     pub claim_ceiling: String,
+    pub mission_id: String,
+    pub service_window_id: String,
     pub planned_capacity_source_commit: String,
     pub composition_source_commit: String,
     pub source_commits: SourceCommits,
@@ -49,6 +51,8 @@ pub struct SourceCommits {
 #[serde(deny_unknown_fields)]
 pub struct ServiceProfile {
     pub client_id: String,
+    pub target_orbit_id: String,
+    pub destination_node_id: String,
     pub interface_id: String,
     pub interface_revision: u64,
     pub fluid_id: String,
@@ -83,6 +87,7 @@ pub struct Scenario {
 #[serde(deny_unknown_fields)]
 pub struct ServiceReceipt {
     pub event_id: String,
+    pub operation_id: String,
     pub idempotency_key: String,
     pub provider_id: String,
     pub provider_profile_id: String,
@@ -105,6 +110,8 @@ pub struct ReceiptResult {
     pub observed_at_tick: u64,
     pub provider_id: String,
     pub accepted_receiver_mass_g: u64,
+    pub measurement_uncertainty_g: u64,
+    pub conservative_accepted_mass_g: u64,
     pub counted: bool,
     pub duplicate_replay: bool,
     pub superseded: bool,
@@ -119,10 +126,13 @@ pub struct ScenarioResult {
     pub expected_reason: String,
     pub expected_result_matched: bool,
     pub accepted_receiver_mass_g: u64,
+    pub total_measurement_uncertainty_g: u64,
+    pub conservative_receiver_accepted_mass_g: u64,
     pub required_receiver_accepted_mass_g: u64,
     pub counted_receipt_count: usize,
     pub duplicate_replays: usize,
     pub superseded_receipts: usize,
+    pub late_receipts: usize,
     pub missing_operation_ticks: Vec<u64>,
     pub authority_granted: bool,
     pub receipts: Vec<ReceiptResult>,
@@ -192,11 +202,14 @@ struct PlanTick {
 struct AdmittedReceipt {
     event_time_tick: u64,
     accepted_receiver_mass_g: u64,
+    measurement_uncertainty_g: u64,
+    conservative_accepted_mass_g: u64,
     causal_predecessor_event_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
 struct ReceiptIdentity {
+    operation_id: String,
     idempotency_key: String,
     composition_receipt_sha256: String,
     provider_id: String,
@@ -211,6 +224,7 @@ struct ReceiptIdentity {
 impl ReceiptIdentity {
     fn from_receipt(receipt: &ServiceReceipt, digest: &str) -> Self {
         Self {
+            operation_id: receipt.operation_id.clone(),
             idempotency_key: receipt.idempotency_key.clone(),
             composition_receipt_sha256: digest.to_owned(),
             provider_id: receipt.provider_id.clone(),
@@ -224,7 +238,8 @@ impl ReceiptIdentity {
     }
 
     fn same_replay(&self, receipt: &ServiceReceipt, digest: &str) -> bool {
-        self.idempotency_key == receipt.idempotency_key
+        self.operation_id == receipt.operation_id
+            && self.idempotency_key == receipt.idempotency_key
             && self.composition_receipt_sha256 == digest
             && self.provider_id == receipt.provider_id
             && self.provider_profile_id == receipt.provider_profile_id
@@ -236,7 +251,8 @@ impl ReceiptIdentity {
     }
 
     fn same_supersession_scope(&self, receipt: &ServiceReceipt) -> bool {
-        self.idempotency_key == receipt.idempotency_key
+        self.operation_id == receipt.operation_id
+            && self.idempotency_key == receipt.idempotency_key
             && self.provider_id == receipt.provider_id
             && self.provider_profile_id == receipt.provider_profile_id
             && self.provider_configuration_revision == receipt.provider_configuration_revision
@@ -296,7 +312,15 @@ fn validate_source_hashes(
     let Some(artifacts) = bundle.get("artifact_sha256") else {
         return Err(Decision::indeterminate("composition_artifact_digests_missing"));
     };
-    for key in ["composition_fixture", "delivery_receipt", "capture_receipt", "fluid_receipt"] {
+    for key in [
+        "composition_fixture",
+        "delivery_receipt",
+        "delivery_campaign",
+        "capture_receipt",
+        "capture_fixture",
+        "fluid_receipt",
+        "fluid_fixture",
+    ] {
         let Some(digest) = get_str(artifacts, key) else {
             return Err(Decision::indeterminate("composition_artifact_digest_missing"));
         };
@@ -392,10 +416,17 @@ fn validate_plan_receipt(
     Ok(result)
 }
 
+#[derive(Debug, Clone, Copy)]
+struct ReceiverMass {
+    accepted_mass_g: u64,
+    uncertainty_g: u64,
+    conservative_mass_g: u64,
+}
+
 fn validate_composition_receipt(
     fixture: &ServiceFixture,
     receipt: &ServiceReceipt,
-) -> Result<u64, Decision> {
+) -> Result<ReceiverMass, Decision> {
     if !valid_hex(&receipt.composition_receipt_sha256, 64) {
         return Err(Decision::rejected("composition_receipt_digest_malformed"));
     }
@@ -408,6 +439,9 @@ fn validate_composition_receipt(
         .map_err(|_| Decision::rejected("composition_receipt_json_invalid"))?;
     if get_str(&value, "receipt_schema") != Some(COMPOSITION_RECEIPT_SCHEMA) {
         return Err(Decision::rejected("composition_receipt_schema_mismatch"));
+    }
+    if get_str(&value, "validator_version") != Some("0.1.0") {
+        return Err(Decision::rejected("composition_validator_version_mismatch"));
     }
     if get_str(&value, "source_commit") != Some(fixture.composition_source_commit.as_str()) {
         return Err(Decision::rejected("composition_validator_source_commit_mismatch"));
@@ -427,6 +461,10 @@ fn validate_composition_receipt(
     if get_str(bundle, "evidence_class") != Some("synthetic") {
         return Err(Decision::indeterminate("composition_bundle_evidence_class_mismatch"));
     }
+    const COMPOSITION_CLAIM_CEILING: &str = "Synthetic composition of independently generated source software receipts only; no physical launch, capture, seal, fluid transfer, mission service or flight qualification claim.";
+    if get_str(bundle, "claim_ceiling") != Some(COMPOSITION_CLAIM_CEILING) {
+        return Err(Decision::rejected("composition_claim_ceiling_mismatch"));
+    }
     if get_bool(bundle, "authority_granted") != Some(false) {
         return Err(Decision::rejected("composition_bundle_authority_invalid"));
     }
@@ -436,8 +474,11 @@ fn validate_composition_receipt(
         return Err(Decision::indeterminate("joined_service_missing"));
     };
     for (key, expected, reason) in [
+        ("cargo_lot_id", fixture.service_profile.client_id.as_str(), "composition_cargo_identity_mismatch"),
         ("client_id", fixture.service_profile.client_id.as_str(), "composition_client_id_mismatch"),
         ("receiver_id", fixture.service_profile.client_id.as_str(), "composition_receiver_id_mismatch"),
+        ("target_orbit_id", fixture.service_profile.target_orbit_id.as_str(), "composition_target_orbit_mismatch"),
+        ("destination_node_id", fixture.service_profile.destination_node_id.as_str(), "composition_destination_node_mismatch"),
         ("capture_interface_id", fixture.service_profile.interface_id.as_str(), "composition_interface_id_mismatch"),
         ("fluid_id", fixture.service_profile.fluid_id.as_str(), "composition_fluid_id_mismatch"),
         ("phase", "liquid", "composition_fluid_phase_mismatch"),
@@ -470,10 +511,13 @@ fn validate_composition_receipt(
     if uncertainty == 0 || uncertainty > mass {
         return Err(Decision::rejected("receiver_mass_uncertainty_invalid"));
     }
-    if get_str(bundle, "claim_ceiling").is_none() {
-        return Err(Decision::indeterminate("composition_claim_ceiling_missing"));
-    }
-    Ok(mass)
+    let conservative = mass.checked_sub(uncertainty)
+        .ok_or(Decision::rejected("receiver_conservative_mass_underflow"))?;
+    Ok(ReceiverMass {
+        accepted_mass_g: mass,
+        uncertainty_g: uncertainty,
+        conservative_mass_g: conservative,
+    })
 }
 
 fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioResult {
