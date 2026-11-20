@@ -12,7 +12,9 @@
     "interpretation",
     "totals",
     "per_episode",
-    "hard_violations"
+    "hard_violations",
+    "timing_evidence_mode",
+    "clock_relation_ref"
   ],
   "properties": {
     "schema_version": {
@@ -36,7 +38,10 @@
       ],
       "properties": {
         "status": {
-          "const": "synthetic_response_window_score"
+          "enum": [
+            "synthetic_response_window_score",
+            "renderer_qualified_response_window_score"
+          ]
         },
         "limitations": {
           "type": "array",
@@ -167,6 +172,16 @@
           }
         }
       }
+    },
+    "timing_evidence_mode": {
+      "enum": [
+        "synthetic_reference",
+        "renderer_qualified"
+      ]
+    },
+    "clock_relation_ref": {
+      "type": "string",
+      "minLength": 1
     }
   },
   "$defs": {
