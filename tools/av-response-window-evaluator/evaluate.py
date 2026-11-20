@@ -105,6 +105,7 @@ def evaluate(
         "deadline_miss_count": 0,
         "duplicate_response_count": 0,
     }
+    total["response_count"] = len(response_rows)
     on_time_offsets: list[int] = []
     quality_denominator = 0
     on_time_quality_denominator = 0
@@ -136,8 +137,6 @@ def evaluate(
                 continue
             if tick < query_tick:
                 episode_violations.append("response_precedes_query")
-            if tick > deadline:
-                total["deadline_miss_count"] += 1
             by_opportunity[opportunity_id].append(response)
 
         episode_total = {
@@ -145,7 +144,8 @@ def evaluate(
             "respond_required_count": 0,
             "silent_expected_count": 0,
             "decision_correct_count": 0,
-            "responses_assigned": 0,
+            "responses_assigned": len(responses_by_episode[episode_id]),
+            "duplicate_response_count": 0,
             "on_time_count": 0,
             "early_count": 0,
             "late_count": 0,
@@ -168,6 +168,7 @@ def evaluate(
             if len(assigned) > 1:
                 episode_violations.append("multiple_responses_assigned_to_one_opportunity")
                 total["duplicate_response_count"] += len(assigned) - 1
+                episode_total["duplicate_response_count"] += len(assigned) - 1
 
             if participation == "silent":
                 total["expected_silence_count"] += 1
@@ -200,8 +201,6 @@ def evaluate(
 
             response = assigned[0]
             tick = response["response_start_tick"]
-            total["response_count"] += 1
-            episode_total["responses_assigned"] += 1
             total["interaction_decision_correct_count"] += 1
             episode_total["decision_correct_count"] += 1
 
@@ -224,6 +223,7 @@ def evaluate(
 
             content_correct = response.get("content") == opportunity.get("expected_content")
             episode_quality_denominator += 1
+            quality_denominator += 1
             if content_correct:
                 total["content_correct_count"] += 1
                 episode_total["content_correct_count"] += 1
