@@ -70,7 +70,7 @@ pub struct AuditReportBody {
     pub disposition: AuditDisposition,
     pub reversible_skew_relative_residual: f64,
     pub dissipative_symmetry_relative_residual: f64,
-    pub dissipative_minimum_normalized_eigenvalue: f64,
+    pub dissipative_minimum_normalized_eigenvalue: Option<f64>,
     pub entropy_degeneracy_relative_residual: f64,
     pub energy_degeneracy_relative_residual: f64,
     pub energy_rate: f64,
@@ -359,9 +359,16 @@ pub fn audit_metriplectic_structure(request: &AuditRequest) -> Result<AuditRepor
         matrix_skew_residual(&request.reversible_operator, dimension);
     let dissipative_symmetry_relative_residual =
         matrix_symmetry_residual(&request.dissipative_operator, dimension);
-    let symmetric_dissipative = symmetric_part(&request.dissipative_operator, dimension, m_scale);
     let dissipative_minimum_normalized_eigenvalue =
-        minimum_symmetric_eigenvalue(&symmetric_dissipative, dimension)?;
+        if dissipative_symmetry_relative_residual
+            <= request.tolerances.dissipative_symmetry_relative
+        {
+            let symmetric_dissipative =
+                symmetric_part(&request.dissipative_operator, dimension, m_scale);
+            Some(minimum_symmetric_eigenvalue(&symmetric_dissipative, dimension)?)
+        } else {
+            None
+        };
 
     let entropy_gradient_scale = max_abs(&request.entropy_gradient).max(f64::MIN_POSITIVE);
     let energy_gradient_scale = max_abs(&request.energy_gradient).max(f64::MIN_POSITIVE);
@@ -475,12 +482,17 @@ pub fn audit_metriplectic_structure(request: &AuditRequest) -> Result<AuditRepor
             });
         }
     }
-    if dissipative_minimum_normalized_eigenvalue < -request.tolerances.dissipative_psd_relative {
+    if dissipative_minimum_normalized_eigenvalue
+        .is_some_and(|value| value < -request.tolerances.dissipative_psd_relative)
+    {
         rejected = true;
         findings.push(AuditFinding {
             code: "dissipative_operator_not_positive_semidefinite".to_owned(),
-            detail: "The minimum eigenvalue of the scale-normalized symmetric part of M is below the declared PSD tolerance."
-                .to_owned(),
+            detail: concat!(
+                "The minimum eigenvalue of the scale-normalized symmetric part of M ",
+                "is below the declared PSD tolerance."
+            )
+            .to_owned(),
         });
     }
 
@@ -583,7 +595,12 @@ mod tests {
         assert_eq!(report.body.time_derivative, vec![0.0, 1.0, 1.0]);
         assert!((report.body.energy_rate).abs() < 1.0e-12);
         assert!((report.body.entropy_rate - 1.0).abs() < 1.0e-12);
-        assert!(report.body.dissipative_minimum_normalized_eigenvalue >= -1.0e-12);
+        assert!(
+            report
+                .body
+                .dissipative_minimum_normalized_eigenvalue
+                .is_some_and(|value| value >= -1.0e-12)
+        );
     }
 
     #[test]
@@ -627,6 +644,15 @@ mod tests {
         assert!(report.body.findings.iter().any(|finding| {
             finding.code == "dissipative_operator_not_symmetric"
         }));
+    }
+
+    #[test]
+    fn materially_asymmetric_dissipator_has_no_psd_eigenvalue_claim() {
+        let mut request = base_request();
+        request.dissipative_operator[2] = 0.25;
+        let report = audit_metriplectic_structure(&request).expect("audit report");
+        assert_eq!(report.body.disposition, AuditDisposition::Rejected);
+        assert_eq!(report.body.dissipative_minimum_normalized_eigenvalue, None);
     }
 
     #[test]
