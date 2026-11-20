@@ -158,7 +158,7 @@ fn run_case(segment_count: usize) {
     let throughput = expected_slices as f64 / p50.as_secs_f64();
 
     println!(
-        "{},{},{},{},{},{},{:.2}",
+        "{},{},{},{},{},{},{},{:.2}",
         segment_count,
         4,
         segment_count * 10,
