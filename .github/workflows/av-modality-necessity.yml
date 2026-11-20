@@ -1,0 +1,98 @@
+name: AV modality necessity fixture integrity
+
+on:
+  push:
+    branches:
+      - research/av-modality-necessity-v0
+    paths:
+      - "research/av-modality-necessity-v0/**"
+      - ".github/workflows/av-modality-necessity.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/av-modality-necessity-v0/**"
+      - ".github/workflows/av-modality-necessity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: av-modality-necessity-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  fixture-integrity:
+    name: Exact-head modality-pair integrity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+
+      - name: Assert exact checkout
+        run: test "$(git rev-parse HEAD)" = "${QUALIFIED_SHA}"
+
+      - name: Validate three JSON planes and identity alignment
+        run: |
+          jq -e '.schema_version == 1 and .benchmark_id == "av-modality-necessity-v0" and (.episodes | length == 13) and ([.episodes[].episode_id] | unique | length == 13)' research/av-modality-necessity-v0/fixtures/agent/workload-v1.json
+          jq -e '.schema_version == 1 and .benchmark_id == "av-modality-necessity-v0" and (.episodes | length == 13) and ([.episodes[].episode_id] | unique | length == 13)' research/av-modality-necessity-v0/fixtures/evaluator-only/modality-truth-v1.json
+          jq -e '.schema_version == 1 and .benchmark_id == "av-modality-necessity-v0" and (.episodes | length == 13) and ([.episodes[].episode_id] | unique | length == 13)' research/av-modality-necessity-v0/fixtures/expected/known-answer-v1.json
+          diff <(jq -r '.episodes[].episode_id' research/av-modality-necessity-v0/fixtures/agent/workload-v1.json) <(jq -r '.episodes[].episode_id' research/av-modality-necessity-v0/fixtures/evaluator-only/modality-truth-v1.json)
+          diff <(jq -r '.episodes[].episode_id' research/av-modality-necessity-v0/fixtures/agent/workload-v1.json) <(jq -r '.episodes[].episode_id' research/av-modality-necessity-v0/fixtures/expected/known-answer-v1.json)
+
+      - name: Reject evaluator labels in public workload
+        run: |
+          ! grep -Eq '"(necessity|truth_answer|video_sufficient|audio_sufficient|joint_sufficient|source_event_id|transcript_shortcut_valid)"' research/av-modality-necessity-v0/fixtures/agent/workload-v1.json
+
+      - name: Same video, changed audio for audio-necessary pair
+        run: |
+          jq -e '.episodes as $e |
+            ($e[] | select(.episode_id == "mod-001-audio-needed-a")) as $a |
+            ($e[] | select(.episode_id == "mod-001-audio-needed-b")) as $b |
+            $a.video.artifact_sha256 == $b.video.artifact_sha256 and
+            $a.audio.artifact_sha256 != $b.audio.artifact_sha256' research/av-modality-necessity-v0/fixtures/agent/workload-v1.json
+
+      - name: Same audio, changed video for video-necessary pair
+        run: |
+          jq -e '.episodes as $e |
+            ($e[] | select(.episode_id == "mod-002-video-needed-a")) as $a |
+            ($e[] | select(.episode_id == "mod-002-video-needed-b")) as $b |
+            $a.audio.artifact_sha256 == $b.audio.artifact_sha256 and
+            $a.video.artifact_sha256 != $b.video.artifact_sha256' research/av-modality-necessity-v0/fixtures/agent/workload-v1.json
+
+      - name: Jointly necessary pair changes both modalities
+        run: |
+          jq -e '.episodes as $e |
+            ($e[] | select(.episode_id == "mod-003-joint-needed-a")) as $a |
+            ($e[] | select(.episode_id == "mod-003-joint-needed-b")) as $b |
+            $a.audio.artifact_sha256 != $b.audio.artifact_sha256 and
+            $a.video.artifact_sha256 != $b.video.artifact_sha256' research/av-modality-necessity-v0/fixtures/agent/workload-v1.json
+
+      - name: Common-cause views expose shared dependency metadata
+        run: |
+          jq -e '.episodes[] | select(.episode_id == "mod-005-common-cause-redundancy") |
+            .audio.source_dependency_group == .video.source_dependency_group' research/av-modality-necessity-v0/fixtures/agent/workload-v1.json
+
+      - name: Missing audio remains payload-free
+        run: |
+          jq -e '.episodes[] | select(.episode_id == "mod-008-missing-audio") |
+            .audio == null and .transport_events[0].disposition == "Dropped" and
+            .transport_events[0].observation_ref == null' research/av-modality-necessity-v0/fixtures/agent/workload-v1.json
+
+      - name: Non-speech task has no transcript shortcut
+        run: |
+          jq -e '.episodes[] | select(.episode_id == "mod-006-nonspeech-audio") |
+            .audio_profile.signal_class == "non_speech_pcm" and
+            .audio_profile.transcript_available == false' research/av-modality-necessity-v0/fixtures/agent/workload-v1.json
+
+      - name: Temporal misalignment is explicit
+        run: |
+          jq -e '.episodes[] | select(.episode_id == "mod-007-temporal-misalignment") |
+            .audio.capture_start_us > .video.capture_end_us' research/av-modality-necessity-v0/fixtures/agent/workload-v1.json
