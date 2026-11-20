@@ -76,12 +76,9 @@ pub struct IntegratedDispatchReadinessRequest {
     pub task_plan_sha256: String,
     pub station_id: String,
     pub station_qualification_event_id: String,
-    pub station_qualification_valid_until_tick: u64,
     pub speed_upper_mm_s: f64,
     pub stopping_dynamics: StoppingDynamicsQualification,
-    pub stopping_evidence_valid_until_tick: u64,
     pub hazard_detection: HazardDetectionQualification,
-    pub detection_evidence_valid_until_tick: u64,
     pub stopping_margins: HazardStoppingMargins,
 }
 
@@ -135,7 +132,10 @@ pub enum IntegratedDispatchReadinessFailure {
     StationQualificationMissing,
     StationQualificationNotLatest,
     StationQualificationContextMismatch,
+    StationQualificationClockDomainMismatch,
     StationQualificationExpired,
+    StoppingEvidenceClockDomainMismatch,
+    DetectionEvidenceClockDomainMismatch,
     TaskPlanBindingMismatch,
     RobotBrakeConfigurationMismatch,
     StoppingEvidenceExpired,
@@ -201,10 +201,12 @@ pub fn check_integrated_dispatch_readiness(
     {
         return Err(IntegratedDispatchReadinessFailure::StationQualificationContextMismatch);
     }
-    if let SiteEventPayload::StationQualified {
+    let now_tick = request.dispatch.now_tick;
+    let station_valid_until_tick = if let SiteEventPayload::StationQualified {
         frame_sha256,
         transform_sha256,
-        calibration_sha256: _,
+        site_clock_domain_id,
+        valid_until_tick,
         ..
     } = &station_event.payload
     {
@@ -213,30 +215,32 @@ pub fn check_integrated_dispatch_readiness(
         {
             return Err(IntegratedDispatchReadinessFailure::StationQualificationContextMismatch);
         }
+        if site_clock_domain_id != &request.dispatch.envelope.site_clock_domain_id {
+            return Err(IntegratedDispatchReadinessFailure::StationQualificationClockDomainMismatch);
+        }
+        *valid_until_tick
     } else {
         return Err(IntegratedDispatchReadinessFailure::StationQualificationMissing);
-    }
+    };
 
-    let now_tick = request.dispatch.now_tick;
-    for (label, valid_until) in [
-        (
-            "station qualification",
-            request.station_qualification_valid_until_tick,
-        ),
-        ("stopping evidence", request.stopping_evidence_valid_until_tick),
-        ("detection evidence", request.detection_evidence_valid_until_tick),
-    ] {
-        if valid_until <= now_tick {
-            return Err(match label {
-                "station qualification" => {
-                    IntegratedDispatchReadinessFailure::StationQualificationExpired
-                }
-                "stopping evidence" => {
-                    IntegratedDispatchReadinessFailure::StoppingEvidenceExpired
-                }
-                _ => IntegratedDispatchReadinessFailure::DetectionEvidenceExpired,
-            });
-        }
+    if station_valid_until_tick <= now_tick {
+        return Err(IntegratedDispatchReadinessFailure::StationQualificationExpired);
+    }
+    if request.stopping_dynamics.site_clock_domain_id
+        != request.dispatch.envelope.site_clock_domain_id
+    {
+        return Err(IntegratedDispatchReadinessFailure::StoppingEvidenceClockDomainMismatch);
+    }
+    if request.hazard_detection.site_clock_domain_id
+        != request.dispatch.envelope.site_clock_domain_id
+    {
+        return Err(IntegratedDispatchReadinessFailure::DetectionEvidenceClockDomainMismatch);
+    }
+    if request.stopping_dynamics.valid_until_tick <= now_tick {
+        return Err(IntegratedDispatchReadinessFailure::StoppingEvidenceExpired);
+    }
+    if request.hazard_detection.valid_until_tick <= now_tick {
+        return Err(IntegratedDispatchReadinessFailure::DetectionEvidenceExpired);
     }
 
     if request.stopping_dynamics.robot_brake_configuration_sha256
@@ -279,9 +283,9 @@ pub fn check_integrated_dispatch_readiness(
     let checked_at_tick = now_tick;
     let valid_until_tick = dispatch_readiness
         .valid_until_tick
-        .min(request.station_qualification_valid_until_tick)
-        .min(request.stopping_evidence_valid_until_tick)
-        .min(request.detection_evidence_valid_until_tick);
+        .min(station_valid_until_tick)
+        .min(request.stopping_dynamics.valid_until_tick)
+        .min(request.hazard_detection.valid_until_tick);
 
     Ok(IntegratedDispatchReadinessReceipt {
         schema_version: INTEGRATED_DISPATCH_RECEIPT_SCHEMA_VERSION.to_owned(),
@@ -729,6 +733,8 @@ mod tests {
             robot_brake_configuration_sha256: digest('8'),
             operating_condition_sha256: digest('3'),
             scenario_context_sha256: digest('4'),
+            site_clock_domain_id: "site-clock-01".into(),
+            valid_until_tick: 7_000,
             maximum_qualified_speed_mm_s: 1_000.0,
             maximum_detection_to_brake_latency_ms: 100,
             maximum_positive_acceleration_mm_s2: 1_000.0,
@@ -741,6 +747,8 @@ mod tests {
             detection_qualification_receipt_sha256: digest('6'),
             target_condition_sha256: digest('7'),
             scenario_context_sha256: digest('4'),
+            site_clock_domain_id: "site-clock-01".into(),
+            valid_until_tick: 6_000,
             maximum_qualified_approach_speed_mm_s: 1_000.0,
             minimum_qualified_detection_distance_mm: 2_000.0,
         };
@@ -828,12 +836,9 @@ mod tests {
             task_plan_sha256,
             station_id: "station-01".into(),
             station_qualification_event_id: station_event_id,
-            station_qualification_valid_until_tick: 8_000,
             speed_upper_mm_s: 500.0,
             stopping_dynamics,
-            stopping_evidence_valid_until_tick: 7_000,
             hazard_detection,
-            detection_evidence_valid_until_tick: 6_000,
             stopping_margins: HazardStoppingMargins {
                 localization_uncertainty_mm: 10.0,
                 frame_registration_uncertainty_mm: 10.0,
@@ -989,6 +994,10 @@ mod tests {
                     frame_sha256: digest('1'),
                     transform_sha256: digest('2'),
                     calibration_sha256: digest('8'),
+                    site_clock_domain_id: "site-clock-01".into(),
+                    valid_until_tick: 8_000,
+                    site_clock_domain_id: "site-clock-01".into(),
+                    valid_until_tick: 8_000,
                 },
             })
             .unwrap();
