@@ -81,7 +81,12 @@ This is a qualification disposition under submitted M1 records only; it is not w
 
 ## 5. Joint-port cross-check
 
-When an independently measured physical joint-output torque transducer is available, the evaluator subtracts its interval from the sum of individual unit torque intervals. If the residual interval contains zero, the intervals overlap and are **Consistent**. If not, the result is **Contradictory** and the joint is Infeasible under this M1 comparison.
+The evaluator subtracts the declared joint-output reference interval from the sum of individual unit torque intervals. The cross-check result is evidence-scoped:
+
+- **Consistent / Contradictory:** reserved for a cross-check labelled `IndependentPhysical`.
+- **SyntheticConsistent / SyntheticContradictory:** used for a synthetic known-answer reference. These statuses qualify only interval arithmetic and never represent an independent physical observation.
+
+A synthetic contradictory fixture can still make the arithmetic disposition Infeasible for that synthetic case; it does not establish that a real actuator assembly failed.
 
 The cross-check must use the same:
 - joint configuration digest;
