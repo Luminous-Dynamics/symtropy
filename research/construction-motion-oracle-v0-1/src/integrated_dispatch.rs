@@ -56,6 +56,7 @@ pub struct IntegratedEvidenceNodeIds {
     pub motion_envelope: String,
     pub stopping_tube_envelope: String,
     pub stopping_tube_builder_build: String,
+    pub trigger_domain: String,
     pub sensor_configuration: String,
     pub stopping_dynamics: String,
     pub hazard_detection: String,
@@ -466,7 +467,7 @@ fn validate_stopping_envelope_binding(
     let expected = [
         (tube.composite_envelope_sha256.as_str(), envelope.envelope_sha256.as_str(), "composite envelope"),
         (tube.nominal_trajectory_sha256.as_str(), envelope.trajectory_sha256.as_str(), "nominal trajectory"),
-        (tube.trigger_domain_sha256.as_str(), envelope.trajectory_sha256.as_str(), "trigger domain"),
+        (tube.trigger_domain_sha256.as_str(), envelope.trigger_domain_sha256.as_str(), "trigger domain"),
         (tube.primitive_manifest_sha256.as_str(), envelope.primitive_manifest_sha256.as_str(), "primitive manifest"),
         (tube.robot_configuration_sha256.as_str(), envelope.robot_configuration_sha256.as_str(), "robot configuration"),
         (tube.tool_configuration_sha256.as_str(), envelope.tool_configuration_sha256.as_str(), "tool configuration"),
@@ -573,7 +574,7 @@ fn validate_dependency_snapshot(
         return Err(IntegratedDispatchReadinessFailure::EvidenceSnapshotNotCurrent);
     }
 
-    let expected: [(&str, EvidenceNodeKind, &str); 22] = [
+    let expected: [(&str, EvidenceNodeKind, &str); 23] = [
         (
             &bindings.work_package,
             EvidenceNodeKind::WorkPackage,
@@ -653,6 +654,11 @@ fn validate_dependency_snapshot(
             &bindings.stopping_tube_builder_build,
             EvidenceNodeKind::StoppingTubeBuilderBuild,
             request.stopping_envelope.stop_tube_builder_build_sha256.as_str(),
+        ),
+        (
+            &bindings.trigger_domain,
+            EvidenceNodeKind::TriggerDomain,
+            request.dispatch.envelope.trigger_domain_sha256.as_str(),
         ),
         (
             &bindings.sensor_configuration,
@@ -851,6 +857,7 @@ mod tests {
                 payload_configuration_sha256: digest('a'),
                 primitive_manifest_sha256: digest('b'),
                 trajectory_sha256: digest('c'),
+                trigger_domain_sha256: digest('0'),
                 envelope_sha256: digest('d'),
                 site_clock_domain_id: "site-clock-01".into(),
                 generated_at_tick: 100,
@@ -912,7 +919,7 @@ mod tests {
             stop_tube_builder_build_sha256: digest('a'),
             composite_envelope_sha256: digest('d'),
             nominal_trajectory_sha256: digest('c'),
-            trigger_domain_sha256: digest('c'),
+            trigger_domain_sha256: digest('0'),
             primitive_manifest_sha256: digest('b'),
             robot_configuration_sha256: digest('8'),
             tool_configuration_sha256: digest('9'),
@@ -965,6 +972,7 @@ mod tests {
             motion_envelope: "motion-envelope".into(),
             stopping_tube_envelope: "stopping-tube-envelope".into(),
             stopping_tube_builder_build: "stopping-tube-builder-build".into(),
+            trigger_domain: "trigger-domain".into(),
             sensor_configuration: "sensor-config".into(),
             stopping_dynamics: "stopping-dynamics".into(),
             hazard_detection: "hazard-detection".into(),
@@ -990,6 +998,7 @@ mod tests {
             evidence_node("motion-envelope", EvidenceNodeKind::MotionEnvelope, &dispatch.envelope.envelope_sha256),
             evidence_node("stopping-tube-envelope", EvidenceNodeKind::StoppingTubeEnvelope, &stopping_envelope.stop_tube_sha256),
             evidence_node("stopping-tube-builder-build", EvidenceNodeKind::StoppingTubeBuilderBuild, &stopping_envelope.stop_tube_builder_build_sha256),
+            evidence_node("trigger-domain", EvidenceNodeKind::TriggerDomain, &dispatch.envelope.trigger_domain_sha256),
             evidence_node("sensor-config", EvidenceNodeKind::SensorConfiguration, &hazard_detection.sensor_profile_sha256),
             evidence_node("stopping-dynamics", EvidenceNodeKind::StoppingDynamicsQualification, &stopping_dynamics.profile_sha256),
             evidence_node("hazard-detection", EvidenceNodeKind::HazardDetectionQualification, &hazard_detection.detection_qualification_receipt_sha256),
@@ -1006,6 +1015,7 @@ mod tests {
             dependency("dispatch-readiness", "motion-envelope"),
             dependency("dispatch-readiness", "stopping-tube-envelope"),
             dependency("dispatch-readiness", "stopping-tube-builder-build"),
+            dependency("dispatch-readiness", "trigger-domain"),
             dependency("dispatch-readiness", "station-qualification"),
             dependency("dispatch-readiness", "sensor-config"),
             dependency("dispatch-readiness", "stopping-dynamics"),
@@ -1086,6 +1096,7 @@ mod tests {
             (&ids.motion_envelope, EvidenceNodeKind::MotionEnvelope, &request.dispatch.envelope.envelope_sha256),
             (&ids.stopping_tube_envelope, EvidenceNodeKind::StoppingTubeEnvelope, &request.stopping_envelope.stop_tube_sha256),
             (&ids.stopping_tube_builder_build, EvidenceNodeKind::StoppingTubeBuilderBuild, &request.stopping_envelope.stop_tube_builder_build_sha256),
+            (&ids.trigger_domain, EvidenceNodeKind::TriggerDomain, &request.dispatch.envelope.trigger_domain_sha256),
             (&ids.sensor_configuration, EvidenceNodeKind::SensorConfiguration, &request.hazard_detection.sensor_profile_sha256),
             (&ids.stopping_dynamics, EvidenceNodeKind::StoppingDynamicsQualification, &request.stopping_dynamics.profile_sha256),
             (&ids.hazard_detection, EvidenceNodeKind::HazardDetectionQualification, &request.hazard_detection.detection_qualification_receipt_sha256),
@@ -1105,6 +1116,7 @@ mod tests {
             &ids.motion_envelope,
             &ids.stopping_tube_envelope,
             &ids.stopping_tube_builder_build,
+            &ids.trigger_domain,
             &ids.station_qualification,
             &ids.sensor_configuration,
             &ids.stopping_dynamics,
