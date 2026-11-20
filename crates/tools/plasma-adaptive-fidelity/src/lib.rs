@@ -1076,7 +1076,7 @@ mod tests {
         }
     }
 
-    fn cost(estimated_cost: f64, profile_sha256: &str, model_sha256: &str) -> CostEvidence {
+    fn cost_evidence(estimated_cost: f64, profile_sha256: &str, model_sha256: &str) -> CostEvidence {
         CostEvidence {
             estimated_cost,
             cost_units_id: "normalized-runtime-cost-v1".into(),
@@ -1134,7 +1134,7 @@ mod tests {
             compatibility: compatibility(),
             well_posedness: Evidence::Qualified(moment_evidence(&digest(profile_character), &digest('9'))),
             error_bound: Evidence::Qualified(error(error_bound, &digest(profile_character), &digest('9'))),
-            cost_evidence: Evidence::Qualified(cost(cost, &digest(profile_character), &digest('9'))),
+            cost_evidence: Evidence::Qualified(cost_evidence(cost, &digest(profile_character), &digest('9'))),
             transition: None,
         }
     }
@@ -1309,7 +1309,7 @@ mod tests {
             compatibility: compatibility(),
             well_posedness: Evidence::Qualified(kinetic_evidence(&digest('6'), &digest('8'))),
             error_bound: Evidence::Qualified(error(0.02, &digest('6'), &digest('8'))),
-            cost_evidence: Evidence::Qualified(cost(40.0, &digest('6'), &digest('8'))),
+            cost_evidence: Evidence::Qualified(cost_evidence(40.0, &digest('6'), &digest('8'))),
             transition: None,
         };
         let decision = evaluate_adaptive_policy(&request(vec![kinetic])).unwrap();
@@ -1341,7 +1341,7 @@ mod tests {
             compatibility: compatibility(),
             well_posedness: Evidence::Qualified(kinetic_evidence(&digest('6'), &digest('5'))),
             error_bound: Evidence::Qualified(error(0.02, &digest('6'), &digest('5'))),
-            cost_evidence: Evidence::Qualified(cost(50.0, &digest('6'), &digest('5'))),
+            cost_evidence: Evidence::Qualified(cost_evidence(50.0, &digest('6'), &digest('5'))),
             transition: None,
         };
         let decision = evaluate_adaptive_policy(&request(vec![moment, kinetic])).unwrap();
@@ -1569,7 +1569,7 @@ mod tests {
             evaluate_adaptive_policy(&request(vec![cheap_mean, more_certain])).unwrap()
         );
         assert_eq!(receipt.profile_sha256, digest('b'));
-        assert_eq!(receipt.cost_upper_bound, 5.05);
+        assert!((receipt.cost_upper_bound - 5.05).abs() < 1.0e-12);
     }
 
     #[test]
