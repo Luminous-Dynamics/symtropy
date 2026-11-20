@@ -1,4 +1,5 @@
 #include "fmi3Functions.h"
+#include <float.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -146,7 +147,9 @@ FMI3_Export fmi3Status fmi3DoStep(
     const fmi3Float64 residual = receiver->pendingIntervalEnergyJ - service - loss - storage;
     if (!isfinite(service) || !isfinite(loss) || !isfinite(storage)
         || !isfinite(nextStoredEnergy) || !isfinite(nextTime) || !isfinite(residual)
-        || residual != 0.0) return fmi3Error;
+        || fabs(residual) > 16.0 * DBL_EPSILON * fmax(receiver->pendingIntervalEnergyJ, 1.0)) {
+        return fmi3Error;
+    }
 
     receiver->serviceEnergyJ = service;
     receiver->lossEnergyJ = loss;
