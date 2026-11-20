@@ -16,7 +16,9 @@ pub enum EvidenceNodeKind {
     SourceModel,
     SourceEntity,
     IdsSpecification,
+    IdsEngineBuild,
     IdsEvaluation,
+    CoordinateContext,
     CoordinateFrame,
     SurveyTransform,
     SurveyCalibration,
@@ -498,9 +500,10 @@ fn action_for_kind(kind: EvidenceNodeKind) -> RequalificationAction {
         EvidenceNodeKind::SourceModel | EvidenceNodeKind::SourceEntity => {
             RequalificationAction::RequalifySourceEvidence
         }
-        EvidenceNodeKind::IdsSpecification | EvidenceNodeKind::IdsEvaluation => {
-            RequalificationAction::RevalidateIds
-        }
+        EvidenceNodeKind::IdsSpecification
+        | EvidenceNodeKind::IdsEngineBuild
+        | EvidenceNodeKind::IdsEvaluation => RequalificationAction::RevalidateIds,
+        EvidenceNodeKind::CoordinateContext => RequalificationAction::RequalifySurvey,
         EvidenceNodeKind::CoordinateFrame
         | EvidenceNodeKind::SurveyTransform
         | EvidenceNodeKind::SurveyCalibration => RequalificationAction::RequalifySurvey,
