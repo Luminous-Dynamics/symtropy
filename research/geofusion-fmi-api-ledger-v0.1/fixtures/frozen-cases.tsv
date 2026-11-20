@@ -27,5 +27,5 @@ collector.not_instrumented	NOT_EVALUABLE	runtime ledger was not collected at the
 state.stale_interval	REJECT	state observation interval differs from the most recent successful lastSuccessfulTime
 sampling.joule_flow_without_integral	REJECT	joule-valued flux must use integral_over_half_open_interval semantics, not a point or average sample
 state.duplicate_same_boundary	REJECT	state sample is duplicated for one federate variable and lastSuccessfulTime
-state.wrong_unit_or_causality\tREJECT\tstate observation is not declared as a Joule-valued output
+state.wrong_unit_or_causality	REJECT	state observation is not declared as a Joule-valued output
 variable.duplicate_value_reference_in_call	REJECT	one FMI get/set call repeats a value reference
