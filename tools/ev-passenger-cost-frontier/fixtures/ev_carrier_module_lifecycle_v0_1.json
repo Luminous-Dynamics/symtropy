@@ -156,7 +156,37 @@
       "notes": [
         "All task times are synthetic fixture values to validate arithmetic only.",
         "No observed module-years or failure events are supplied; annual unscheduled burden remains unknown."
-      ]
+      ],
+      "annualized_factory_capex_per_module_year": {
+        "amount": null,
+        "evidence_class": "unknown",
+        "evidence_reference": "unknown://lifecycle/detachable-uav-pod-synthetic-demo/factory-capex"
+      },
+      "annual_spares_inventory_cost_per_module_year": {
+        "amount": null,
+        "evidence_class": "unknown",
+        "evidence_reference": "unknown://lifecycle/detachable-uav-pod-synthetic-demo/spares"
+      },
+      "annual_logistics_cost_per_module_year": {
+        "amount": null,
+        "evidence_class": "unknown",
+        "evidence_reference": "unknown://lifecycle/detachable-uav-pod-synthetic-demo/logistics"
+      },
+      "annual_energy_cost_per_module_year": {
+        "amount": null,
+        "evidence_class": "unknown",
+        "evidence_reference": "unknown://lifecycle/detachable-uav-pod-synthetic-demo/energy"
+      },
+      "annual_warranty_cost_per_module_year": {
+        "amount": null,
+        "evidence_class": "unknown",
+        "evidence_reference": "unknown://lifecycle/detachable-uav-pod-synthetic-demo/warranty"
+      },
+      "annual_end_of_life_cost_per_module_year": {
+        "amount": null,
+        "evidence_class": "unknown",
+        "evidence_reference": "unknown://lifecycle/detachable-uav-pod-synthetic-demo/end-of-life"
+      }
     },
     {
       "profile_id": "amr-handoff-lifecycle-v0-1",
@@ -303,7 +333,37 @@
       "notes": [
         "All task times are synthetic fixture values to validate accounting.",
         "No observed failure frequency or acquisition cost is asserted."
-      ]
+      ],
+      "annualized_factory_capex_per_module_year": {
+        "amount": null,
+        "evidence_class": "unknown",
+        "evidence_reference": "unknown://lifecycle/amr-handoff-synthetic-demo/factory-capex"
+      },
+      "annual_spares_inventory_cost_per_module_year": {
+        "amount": null,
+        "evidence_class": "unknown",
+        "evidence_reference": "unknown://lifecycle/amr-handoff-synthetic-demo/spares"
+      },
+      "annual_logistics_cost_per_module_year": {
+        "amount": null,
+        "evidence_class": "unknown",
+        "evidence_reference": "unknown://lifecycle/amr-handoff-synthetic-demo/logistics"
+      },
+      "annual_energy_cost_per_module_year": {
+        "amount": null,
+        "evidence_class": "unknown",
+        "evidence_reference": "unknown://lifecycle/amr-handoff-synthetic-demo/energy"
+      },
+      "annual_warranty_cost_per_module_year": {
+        "amount": null,
+        "evidence_class": "unknown",
+        "evidence_reference": "unknown://lifecycle/amr-handoff-synthetic-demo/warranty"
+      },
+      "annual_end_of_life_cost_per_module_year": {
+        "amount": null,
+        "evidence_class": "unknown",
+        "evidence_reference": "unknown://lifecycle/amr-handoff-synthetic-demo/end-of-life"
+      }
     },
     {
       "profile_id": "integrated-drone-bay-lifecycle-unknown",
@@ -449,7 +509,42 @@
       ],
       "notes": [
         "Production-intent service processes, event frequencies and task durations have not been studied."
-      ]
+      ],
+      "annualized_factory_capex_per_module_year": {
+        "amount": null,
+        "evidence_class": "unknown",
+        "evidence_reference": "unknown://lifecycle/integrated-drone-bay-production-intent-unknown/factory-capex"
+      },
+      "annual_spares_inventory_cost_per_module_year": {
+        "amount": null,
+        "evidence_class": "unknown",
+        "evidence_reference": "unknown://lifecycle/integrated-drone-bay-production-intent-unknown/spares"
+      },
+      "annual_logistics_cost_per_module_year": {
+        "amount": null,
+        "evidence_class": "unknown",
+        "evidence_reference": "unknown://lifecycle/integrated-drone-bay-production-intent-unknown/logistics"
+      },
+      "annual_energy_cost_per_module_year": {
+        "amount": null,
+        "evidence_class": "unknown",
+        "evidence_reference": "unknown://lifecycle/integrated-drone-bay-production-intent-unknown/energy"
+      },
+      "annual_warranty_cost_per_module_year": {
+        "amount": null,
+        "evidence_class": "unknown",
+        "evidence_reference": "unknown://lifecycle/integrated-drone-bay-production-intent-unknown/warranty"
+      },
+      "annual_end_of_life_cost_per_module_year": {
+        "amount": null,
+        "evidence_class": "unknown",
+        "evidence_reference": "unknown://lifecycle/integrated-drone-bay-production-intent-unknown/end-of-life"
+      }
     }
-  ]
+  ],
+  "downtime_cost_per_unavailable_hour": {
+    "amount": null,
+    "evidence_class": "unknown",
+    "evidence_reference": "unknown://lifecycle/downtime-value-per-hour"
+  }
 }
