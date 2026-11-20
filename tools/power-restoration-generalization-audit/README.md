@@ -20,11 +20,13 @@ Each assignment pins case ID, split, reviewed topology-family ID, canonical case
 ## Fingerprinting
 
 The fingerprint combines:
-- the distribution power graph (nodes, branches, switches, source/load/fault incidence and declared branch electrical-data presence);
-- the road/crew/mobile-source graph (road nodes/edges, closure state and starting resource placement);
-- electrical-data maturity and basic equipment-count profile.
+- the distribution power graph (nodes, branch connectivity/type, normally-energized classification, switch/tie connectivity and declared branch electrical-data presence);
+- the road graph and its power-node interface mapping;
+- electrical-data maturity, graph sizes and branch electrical-data coverage.
 
-The graph hash uses attributed Weisfeiler-Lehman color refinement with undirected edges and sorted neighborhoods. Node/branch/switch IDs are excluded so simple identifier renaming does not evade the structural screen. Load magnitudes and scenario seeds are excluded, so ordinary scenario variations on the same topology retain the same fingerprint.
+Dynamic scenario variables are intentionally excluded from the topology fingerprint: load magnitude and placement, fault location, initial switch state, crew/mobile-source starting positions and temporary road closures. Those belong in scenario/observation split metadata, not the feeder's static topology identity.
+
+The graph hash uses attributed Weisfeiler-Lehman color refinement with undirected edges and sorted neighborhoods. Node/branch/switch IDs are excluded so simple identifier renaming does not evade the structural screen. Load magnitudes/locations, fault positions, current switch positions, crew/MPS starting locations, road closures and scenario seeds are excluded, so ordinary scenario variations on the same feeder retain the same fingerprint.
 
 **Important limitation:** Weisfeiler-Lehman color refinement is not a complete graph-isomorphism algorithm. It can collide for non-isomorphic graphs, and bounded refinement can miss distant structural differences in very large graphs. Therefore this is a leakage-screening control, not a proof of topology uniqueness. A reviewed topologyFamilyId remains mandatory and must group all scenarios, variants and derived cases from the same feeder family.
 
