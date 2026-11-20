@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-long-horizon-scorecard-v1.schema.json",
+  "title": "Long-Horizon AV Evidence Scorecard v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "policy_id",
+    "run_id",
+    "memory_condition",
+    "interpretation",
+    "totals",
+    "per_episode",
+    "hard_violations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "av-long-horizon-evidence-v0"
+    },
+    "policy_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "memory_condition": {
+      "enum": [
+        "recent_window",
+        "summary_only",
+        "episodic_retrieval",
+        "evidence_ledger"
+      ]
+    },
+    "interpretation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "limitations"
+      ],
+      "properties": {
+        "status": {
+          "const": "offline_candidate_submission_score"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "totals": {
+      "$ref": "#/$defs/metrics"
+    },
+    "per_episode": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "episode_id",
+          "memory_condition",
+          "answer_correct",
+          "decision_correct",
+          "abstained",
+          "confidence",
+          "citations_complete",
+          "citation_precision",
+          "violations",
+          "deadline_miss"
+        ],
+        "properties": {
+          "episode_id": {
+            "type": "string"
+          },
+          "memory_condition": {
+            "type": "string"
+          },
+          "answer_correct": {
+            "type": "boolean"
+          },
+          "decision_correct": {
+            "type": "boolean"
+          },
+          "abstained": {
+            "type": "boolean"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "citations_complete": {
+            "type": "boolean"
+          },
+          "citation_precision": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "violations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "deadline_miss": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "hard_violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "episode_id",
+          "violations"
+        ],
+        "properties": {
+          "episode_id": {
+            "type": "string"
+          },
+          "violations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_count",
+        "answer_correct_count",
+        "answer_accuracy",
+        "answered_count",
+        "coverage",
+        "selective_accuracy",
+        "decision_correct_count",
+        "safe_decision_accuracy",
+        "citations_complete_count",
+        "citation_completeness_rate",
+        "mean_citation_precision",
+        "hard_violation_count",
+        "deadline_miss_count"
+      ],
+      "properties": {
+        "episode_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "answer_correct_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "answer_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "answered_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "coverage": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "selective_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "decision_correct_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "safe_decision_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "citations_complete_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "citation_completeness_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "mean_citation_precision": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "hard_violation_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deadline_miss_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
