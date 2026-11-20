@@ -56,11 +56,23 @@ Their sum is zero for that boundary interaction, but the outward export is **not
 
 This is accounting only. It does not solve sheath, conducting-wall, absorbing, reflecting, open or inflow boundary physics, and a fingerprint is not proof that the boundary state is physically correct. A solver adapter must source-pin its actual boundary condition and orientation convention.
 
+
+## Deterministic domain-balance assembly
+
+The `domain` module consumes the internal-face and external-boundary receipts and reconstructs per-cell integrated updates in stable face-identity order. It refuses duplicate/missing cell and face identities, schema or compatibility mismatches, malformed candidate receipts, non-finite contributions, and receipts whose integrated flux does not match the declared face measure.
+
+It independently checks:
+- each internal face applies equal-and-opposite contributions to its two cells;
+- each external boundary cell update is the negative of its signed outward integrated export;
+- the cell sum plus the signed physical-boundary export is within the declared conservation tolerance.
+
+The report preserves per-cell updates, internal and boundary face identities, global cell change, signed boundary export and the residual. This is arithmetic / receipt consistency over supplied reports, not a solver execution, a proof that the face fluxes are physically correct, or a verification that the receipts were authenticated.
+
 ## Claim boundary
 
 - Caller-supplied Qualified status is not authenticated here.
 - A well-formed digest does not prove that the referenced bytes are available or correct.
-- The authored test suite contains 36 Rust tests: the independent periodic-grid stencil oracle, a 36-case sampled entropy-convexity sweep, and seven external-boundary accounting tests, including a two-cell mixed internal/external global-balance case. These are not reported as executed until Rust tooling or hosted CI actually runs them.
+- The authored test suite contains 44 Rust tests across shared-face composition, sampled entropy audits, external-boundary accounting and multi-face domain assembly. It includes a 36-case entropy-convexity sweep, four-cell periodic stencil oracle, two-cell mixed-boundary known answer, deterministic input-order test and receipt-tampering negative controls. These are not reported as executed until Rust tooling or hosted CI actually runs them.
 - Matching declared compatibility keys do not prove the solver adapter is semantically correct.
 - This primitive does not choose experts, compute weights, implement hysteresis, normalize units, validate pressure-tensor PSD, prove hyperbolicity or entropy consistency, or execute a plasma solver.
 - Synthetic unit tests do not reproduce ECsim, the Landau-damping papers, the magnetosheath paper or an industrial solver.
