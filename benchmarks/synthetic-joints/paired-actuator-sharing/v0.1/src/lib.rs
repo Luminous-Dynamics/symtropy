@@ -42,8 +42,14 @@ pub enum JointDisposition {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TorqueSumConsistency {
+    /// Overlapping intervals from a joint cross-check marked IndependentPhysical.
     Consistent,
+    /// Non-overlapping intervals from an IndependentPhysical cross-check.
     Contradictory,
+    /// Overlapping intervals from an explicitly Synthetic reference.
+    SyntheticConsistent,
+    /// Non-overlapping intervals from an explicitly Synthetic reference.
+    SyntheticContradictory,
     Unknown,
     NotAvailable,
 }
@@ -537,10 +543,12 @@ pub fn evaluate_joint(input: &JointEvaluationInput) -> Result<JointEvaluation, S
             }
             let residual = interval_subtract(sum, check.output_torque_nm)
                 .ok_or_else(|| "joint torque residual interval overflowed".to_owned())?;
-            let consistency = if residual.lower <= 0.0 && residual.upper >= 0.0 {
-                TorqueSumConsistency::Consistent
-            } else {
-                TorqueSumConsistency::Contradictory
+            let overlaps = residual.lower <= 0.0 && residual.upper >= 0.0;
+            let consistency = match (check.evidence_class, overlaps) {
+                (EvidenceClass::Synthetic, true) => TorqueSumConsistency::SyntheticConsistent,
+                (EvidenceClass::Synthetic, false) => TorqueSumConsistency::SyntheticContradictory,
+                (_, true) => TorqueSumConsistency::Consistent,
+                (_, false) => TorqueSumConsistency::Contradictory,
             };
             (Some(check.output_torque_nm), Some(residual), consistency)
         }
@@ -564,7 +572,10 @@ pub fn evaluate_joint(input: &JointEvaluationInput) -> Result<JointEvaluation, S
 
     let any_infeasible = unit_assessments.iter().any(|assessment| {
         assessment.capability_disposition == UnitCapabilityDisposition::Infeasible
-    }) || consistency == TorqueSumConsistency::Contradictory;
+    }) || matches!(
+        consistency,
+        TorqueSumConsistency::Contradictory | TorqueSumConsistency::SyntheticContradictory
+    );
 
     let any_unknown = aggregate.is_none()
         || unit_assessments.iter().any(|assessment| {
@@ -786,7 +797,7 @@ mod tests {
         ]);
         input.joint_torque_cross_check = Some(cross_check(interval(10.0, 12.0)));
         let report = evaluate_joint(&input).unwrap();
-        assert_eq!(report.torque_sum_consistency, TorqueSumConsistency::Consistent);
+        assert_eq!(report.torque_sum_consistency, TorqueSumConsistency::SyntheticConsistent);
         assert_eq!(report.torque_sum_residual_nm, Some(interval(-3.0, 1.0)));
     }
 
@@ -799,7 +810,7 @@ mod tests {
         input.joint_torque_cross_check = Some(cross_check(interval(20.0, 22.0)));
         let report = evaluate_joint(&input).unwrap();
         assert_eq!(report.disposition, JointDisposition::Infeasible);
-        assert_eq!(report.torque_sum_consistency, TorqueSumConsistency::Contradictory);
+        assert_eq!(report.torque_sum_consistency, TorqueSumConsistency::SyntheticContradictory);
     }
 
     #[test]
@@ -955,7 +966,7 @@ mod tests {
         ]);
         input.joint_torque_cross_check = Some(cross_check(interval(9.0, 11.0)));
         let report = evaluate_joint(&input).unwrap();
-        assert_eq!(report.torque_sum_consistency, TorqueSumConsistency::Consistent);
+        assert_eq!(report.torque_sum_consistency, TorqueSumConsistency::SyntheticConsistent);
         assert_eq!(report.joint_torque_cross_check_nm, Some(interval(9.0, 11.0)));
         assert_eq!(
             report.joint_torque_cross_check_evidence.as_ref().unwrap().evidence_class,
@@ -979,6 +990,7 @@ mod tests {
             report.joint_torque_cross_check_evidence.as_ref().unwrap().evidence_class,
             EvidenceClass::IndependentPhysical
         );
+        assert_eq!(report.torque_sum_consistency, TorqueSumConsistency::Consistent);
     }
 
     #[test]
