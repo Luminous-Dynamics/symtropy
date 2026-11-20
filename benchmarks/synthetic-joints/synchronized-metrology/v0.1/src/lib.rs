@@ -70,7 +70,9 @@ pub struct NumericInterval {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChannelMeasurement {
     pub kind: ChannelKind,
-    /// Conservative interval before time-alignment expansion.
+    /// Canonical unit for this channel: "N m" or "rad/s".
+    pub unit: String,
+    /// Conservative interval before calibration-range and time-alignment checks.
     pub value: NumericInterval,
     /// Physical range of the installed sensor.
     pub sensor_range: NumericInterval,
@@ -121,6 +123,7 @@ pub struct ChannelMeasurement {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChannelAlignment {
+    pub unit: String,
     pub original_interval: NumericInterval,
     pub aligned_interval: NumericInterval,
     pub sensor_range: NumericInterval,
@@ -198,6 +201,16 @@ fn unknown(reason: impl Into<String>) -> PortPowerAssessment {
 }
 
 fn validate_numeric_channel(channel: &ChannelMeasurement) -> Result<(), String> {
+    let expected_unit = match channel.kind {
+        ChannelKind::OutputTorque => "N m",
+        ChannelKind::AngularVelocity => "rad/s",
+    };
+    if channel.unit != expected_unit {
+        return Err(format!(
+            "channel unit {:?} does not match {:?} unit {:?}",
+            channel.unit, channel.kind, expected_unit
+        ));
+    }
     if !finite_interval(channel.value)
         || !finite_interval(channel.sensor_range)
         || !finite_interval(channel.calibrated_range)
@@ -341,11 +354,14 @@ fn align_channel(channel: &ChannelMeasurement) -> Result<Option<ChannelAlignment
     }
     if aligned_interval.lower < channel.calibrated_range.lower
         || aligned_interval.upper > channel.calibrated_range.upper
+        || aligned_interval.lower < channel.sensor_range.lower
+        || aligned_interval.upper > channel.sensor_range.upper
     {
         return Ok(None);
     }
 
     Ok(Some(ChannelAlignment {
+        unit: channel.unit.clone(),
         original_interval: channel.value,
         aligned_interval,
         sensor_range: channel.sensor_range,
@@ -472,6 +488,10 @@ mod tests {
     fn channel(kind: ChannelKind, value: NumericInterval) -> ChannelMeasurement {
         ChannelMeasurement {
             kind,
+            unit: match kind {
+                ChannelKind::OutputTorque => "N m",
+                ChannelKind::AngularVelocity => "rad/s",
+            }.to_owned(),
             value,
             sensor_range: NumericInterval { lower: -200.0, upper: 200.0 },
             calibrated_range: NumericInterval { lower: -200.0, upper: 200.0 },
@@ -812,7 +832,45 @@ mod tests {
     }
 
     #[test]
-    fn metrology_026_nonfinite_combined_skew_rejects() {
+    fn metrology_026_time_expansion_outside_physical_sensor_range_is_unknown() {
+        let (mut torque, speed) = pair();
+        torque.sensor_range = NumericInterval { lower: 9.0, upper: 11.0 };
+        torque.absolute_slew_bound_per_s = 10.0;
+        torque.sample_time_offset_s = 0.1;
+        let report = evaluate_mechanical_port_power(&torque, &speed).unwrap();
+        assert_eq!(report.disposition, MeasurementDisposition::Unknown);
+        assert!(report.reason.as_ref().unwrap().contains("time-expanded torque interval"));
+    }
+
+    #[test]
+    fn metrology_027_unit_mismatch_rejects_instead_of_guessing() {
+        let (mut torque, speed) = pair();
+        torque.unit = "Nm".to_owned();
+        assert!(evaluate_mechanical_port_power(&torque, &speed).is_err());
+
+        let (torque, mut speed) = pair();
+        speed.unit = "degrees/second".to_owned();
+        assert!(evaluate_mechanical_port_power(&torque, &speed).is_err());
+    }
+
+    #[test]
+    fn metrology_028_calibration_range_may_be_narrower_than_sensor_range_when_measurement_is_covered() {
+        let (mut torque, speed) = pair();
+        torque.calibrated_range = NumericInterval { lower: 8.0, upper: 12.0 };
+        let report = evaluate_mechanical_port_power(&torque, &speed).unwrap();
+        assert_eq!(report.disposition, MeasurementDisposition::QualifiedBoundedEstimate);
+        assert_eq!(
+            report.torque_alignment.as_ref().unwrap().unit,
+            "N m"
+        );
+        assert_eq!(
+            report.angular_velocity_alignment.as_ref().unwrap().unit,
+            "rad/s"
+        );
+    }
+
+    #[test]
+    fn metrology_029_nonfinite_combined_skew_rejects() {
         let (mut torque, speed) = pair();
         torque.sample_time_offset_s = f64::MAX;
         torque.clock_offset_uncertainty_s = f64::MAX;
