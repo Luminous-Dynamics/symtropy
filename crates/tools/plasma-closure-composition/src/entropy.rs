@@ -422,10 +422,10 @@ mod tests {
     #[test]
     fn candidate_violation_is_rejected_even_when_the_average_could_pass() {
         let mut req = request();
-        // expert-b violates: 1.25 - 1.0 = +0.25.
-        // The weighted average can nevertheless be <= 0; the convex guarantee
+        // expert-b violates: 1.1 - 1.0 = +0.1.
+        // The weighted average remains below zero, but the convex guarantee
         // requires every candidate itself to satisfy the common inequality.
-        req.face.candidates[1].flux = vec![1.25];
+        req.face.candidates[1].flux = vec![1.1];
         assert!(matches!(
             audit_entropy_stable_blend(&req),
             Err(EntropyAuditError::CandidateEntropyViolation { expert_id, .. })
