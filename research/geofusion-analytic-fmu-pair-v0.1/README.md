@@ -11,7 +11,7 @@ This package builds two separate FMI 3.0.2 Co-Simulation FMUs:
 
 The FMI 3.0.2 C-API headers are vendored verbatim from the official Modelica Association repository at tag `v3.0.2`. Exact upstream blob hashes, release commit and license provenance are recorded in `third_party/FMI-3.0.2/UPSTREAM.md`.
 
-The source also exports the remaining FMI 3.0 function symbols through `src/fmi3_unsupported.c`. Those 66 functions are generated from the pinned FMI 3.0.2 function typedefs and the FMPy 0.3.32 wrapper surface; they return `fmi3Error` (or `NULL` for unsupported interface instantiation) and are not advertised as supported capabilities. This is necessary because FMPy resolves a broad FMI 3 symbol set when constructing its importer object. The explicit stubs make unsupported calls fail closed instead of failing at dynamic symbol lookup.
+The source also exports the remaining FMI 3.0 function symbols through `src/fmi3_unsupported.c`. Those 66 functions are generated from the pinned FMI 3.0.2 function typedefs and the FMPy 0.3.32 wrapper surface; they return `fmi3Error` (or `NULL` for unsupported interface instantiation) and are not advertised as supported capabilities. This is necessary because FMPy resolves a broad FMI 3 symbol set when constructing its importer object. The explicit stubs make unsupported calls fail closed instead of failing at dynamic symbol lookup. A source-level symbol-closure test is pinned in `tests/fmi3-symbol-manifest.json` and `tests/check_fmi3_surface.py`; it requires all 75 FMPy-resolved symbols to have exactly one definition and checks that all 66 unsupported symbols fail closed.
 
 ## Model and analytic known answer
 
