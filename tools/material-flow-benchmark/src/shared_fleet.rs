@@ -91,6 +91,44 @@ pub struct SharedRepositionLink {
     pub evidence_reference: String,
 }
 
+/// Structural result consumed from ZA-UAS-OPS-GATE-001 (#6330).
+/// EligibleForExternalOperatorReview is not an authorization to fly or deliver.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum JurisdictionReviewStatus {
+    EligibleForExternalOperatorReview,
+    ApprovalRequired,
+    Unsupported,
+    Stale,
+    Revoked,
+    OutOfScope,
+    Unknown,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OperatorActivityClass {
+    Commercial,
+    Corporate,
+    NonProfit,
+    Private,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct JurisdictionalOperatingEnvelope {
+    pub jurisdiction_profile_id: String,
+    pub source_snapshot_id: String,
+    pub jurisdiction_code: String,
+    pub operator_activity_class: OperatorActivityClass,
+    pub review_status: JurisdictionReviewStatus,
+    pub operator_identity_reference: String,
+    pub aircraft_configuration_reference: String,
+    pub operations_manual_revision_reference: String,
+    pub subject_scope_digest_sha256: String,
+    pub evidence_reference: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SharedFleetInput {
@@ -104,6 +142,7 @@ pub struct SharedFleetInput {
     pub energy_units_per_aerial_delivery: u64,
     pub recharge_energy_units_per_idle_period: u64,
     pub aircraft_idle_cost_per_period: u64,
+    pub jurisdictional_operating_envelope: JurisdictionalOperatingEnvelope,
     pub regions: Vec<SharedFleetRegion>,
     pub reposition_links: Vec<SharedRepositionLink>,
     pub scenarios: Vec<SharedFleetScenario>,
@@ -200,6 +239,11 @@ pub struct SharedFleetReport {
     pub nonanticipative_policy_node_count: usize,
     pub exact_policy_count_evaluated: u64,
     pub probability_ambiguity_radius_bps: u32,
+    pub jurisdiction_profile_id: String,
+    pub jurisdiction_source_snapshot_id: String,
+    pub operator_activity_class: OperatorActivityClass,
+    pub jurisdiction_review_status: JurisdictionReviewStatus,
+    pub eligible_for_external_operator_review: bool,
     /// Policy minimizing expected total cost.
     pub optimized_policy: SharedFleetOutcome,
     pub optimized_decisions: Vec<SharedFleetDecision>,
@@ -275,6 +319,28 @@ fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
     }
     if input.scenario_set_id.trim().is_empty() {
         errors.push("scenario_set_id: must be non-empty".into());
+    }
+    let envelope = &input.jurisdictional_operating_envelope;
+    if envelope.jurisdiction_profile_id.trim().is_empty()
+        || envelope.source_snapshot_id.trim().is_empty()
+        || envelope.jurisdiction_code.trim().is_empty()
+        || envelope.operator_identity_reference.trim().is_empty()
+        || envelope.aircraft_configuration_reference.trim().is_empty()
+        || envelope.operations_manual_revision_reference.trim().is_empty()
+        || envelope.evidence_reference.trim().is_empty()
+    {
+        errors.push("jurisdictional_operating_envelope: profile, source, jurisdiction, operator, aircraft configuration, operations manual and evidence references are required".into());
+    }
+    if envelope.subject_scope_digest_sha256.len() != 64
+        || !envelope.subject_scope_digest_sha256.chars().all(|character| character.is_ascii_hexdigit() && !character.is_ascii_uppercase())
+    {
+        errors.push("jurisdictional_operating_envelope.subject_scope_digest_sha256: expected 64 lowercase hexadecimal characters".into());
+    }
+    if envelope.jurisdiction_code != "ZA" {
+        errors.push("v0.1 shared-fleet jurisdiction adapter supports only ZA".into());
+    }
+    if envelope.jurisdiction_profile_id != "ZA-UAS-OPS-GATE-001-v0.1-2026-11-20" {
+        errors.push("unsupported_ZA_UAS_operational_profile_revision".into());
     }
     if input.period_count == 0 || usize::from(input.period_count) > MAX_SHARED_PERIODS {
         errors.push(format!("period_count: expected 1..={MAX_SHARED_PERIODS}"));
@@ -501,7 +567,13 @@ fn simulate_scenario(
         let mut idle_cost_recorded = false;
 
         if aircraft_enabled {
-            if action == input.regions.len() {
+            if input.jurisdictional_operating_envelope.review_status
+                != JurisdictionReviewStatus::EligibleForExternalOperatorReview
+            {
+                // A typed applicability result is necessary to model aerial capacity,
+                // but it never becomes flight/dispatch authorization.
+                checked_add(&mut metrics.hard_gate_blocked_actions, 1, "jurisdictional hard-gate blocks")?;
+            } else if action == input.regions.len() {
                 let before = energy;
                 energy = energy.saturating_add(input.recharge_energy_units_per_idle_period)
                     .min(input.maximum_aircraft_energy_units);
@@ -975,6 +1047,12 @@ pub fn evaluate_shared_fleet(
         nonanticipative_policy_node_count: nodes.len(),
         exact_policy_count_evaluated: policy_count,
         probability_ambiguity_radius_bps: SHARED_PROBABILITY_AMBIGUITY_RADIUS_BPS,
+        jurisdiction_profile_id: canonical.jurisdictional_operating_envelope.jurisdiction_profile_id.clone(),
+        jurisdiction_source_snapshot_id: canonical.jurisdictional_operating_envelope.source_snapshot_id.clone(),
+        operator_activity_class: canonical.jurisdictional_operating_envelope.operator_activity_class,
+        jurisdiction_review_status: canonical.jurisdictional_operating_envelope.review_status,
+        eligible_for_external_operator_review: canonical.jurisdictional_operating_envelope.review_status
+            == JurisdictionReviewStatus::EligibleForExternalOperatorReview,
         optimized_policy: outcome(best_expected).map_err(|error| vec![error])?,
         optimized_decisions: decision_list(&canonical, &nodes, best_expected_mask),
         cvar90_optimal_policy: outcome(best_cvar90).map_err(|error| vec![error])?,
@@ -1050,6 +1128,18 @@ mod tests {
             energy_units_per_aerial_delivery: 2,
             recharge_energy_units_per_idle_period: 8,
             aircraft_idle_cost_per_period: 0,
+            jurisdictional_operating_envelope: JurisdictionalOperatingEnvelope {
+                jurisdiction_profile_id: "ZA-UAS-OPS-GATE-001-v0.1-2026-11-20".into(),
+                source_snapshot_id: "SACAA-UAS-PART101-SNAPSHOT-2026-11-20".into(),
+                jurisdiction_code: "ZA".into(),
+                operator_activity_class: OperatorActivityClass::Commercial,
+                review_status: JurisdictionReviewStatus::EligibleForExternalOperatorReview,
+                operator_identity_reference: "synthetic://za-uas/operator".into(),
+                aircraft_configuration_reference: "synthetic://za-uas/aircraft-config".into(),
+                operations_manual_revision_reference: "synthetic://za-uas/operations-manual/rev-0".into(),
+                subject_scope_digest_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
+                evidence_reference: "synthetic://za-uas/review-envelope".into(),
+            },
             regions: vec![
                 SharedFleetRegion {
                     region_id: "urban".into(),
@@ -1393,6 +1483,45 @@ mod tests {
         assert_eq!(metrics.repositioning_events, 0);
         assert_eq!(metrics.energy_blocked_actions, 3);
         assert_eq!(metrics.end_energy_units, 2);
+    }
+
+    #[test]
+    fn south_african_operational_review_gate_blocks_aerial_policy_when_not_eligible() {
+        let mut test = input();
+        test.period_count = 1;
+        for scenario in &mut test.scenarios {
+            scenario.periods.truncate(1);
+        }
+        test.jurisdictional_operating_envelope.review_status =
+            JurisdictionReviewStatus::ApprovalRequired;
+        let report = evaluate_shared_fleet(&test).expect("profile remains structurally valid");
+        assert!(!report.eligible_for_external_operator_review);
+        assert!(!report.physical_dispatch_authorized);
+        assert_eq!(report.optimized_policy.expected_aerial_deliveries, 0);
+        assert_eq!(report.optimized_policy.expected_hard_gate_blocked_actions, 1);
+    }
+
+    #[test]
+    fn south_african_review_eligible_does_not_grant_physical_dispatch_authority() {
+        let report = evaluate_shared_fleet(&input()).expect("synthetic structural review envelope");
+        assert!(report.eligible_for_external_operator_review);
+        assert_eq!(
+            report.jurisdiction_review_status,
+            JurisdictionReviewStatus::EligibleForExternalOperatorReview
+        );
+        assert!(!report.physical_dispatch_authorized);
+        assert!(!report.dispatch_commands_emitted);
+    }
+
+    #[test]
+    fn rejects_empty_or_unscoped_south_african_operational_envelope() {
+        let mut missing = input();
+        missing.jurisdictional_operating_envelope.operations_manual_revision_reference.clear();
+        assert!(validate_input(&missing).is_err());
+
+        let mut wrong_scope = input();
+        wrong_scope.jurisdictional_operating_envelope.subject_scope_digest_sha256 = "not-a-digest".into();
+        assert!(validate_input(&wrong_scope).is_err());
     }
 
     #[test]
