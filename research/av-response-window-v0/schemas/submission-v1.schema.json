@@ -13,7 +13,8 @@
     "runtime_revision",
     "responses",
     "timing_evidence_mode",
-    "clock_relation_ref"
+    "clock_relation_ref",
+    "renderer_lifecycle_events"
   ],
   "properties": {
     "schema_version": {
@@ -56,7 +57,9 @@
           "response_end_tick",
           "playback_start_event_ref",
           "playback_end_event_ref",
-          "playback_end_kind"
+          "playback_end_kind",
+          "session_epoch",
+          "turn_id"
         ],
         "properties": {
           "response_id": {
@@ -112,6 +115,14 @@
             "type": "string",
             "minLength": 1,
             "description": "Optional controller permission receipt; this is intent only and is never scored as audible playback."
+          },
+          "session_epoch": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "turn_id": {
+            "type": "string",
+            "minLength": 1
           }
         },
         "allOf": [
@@ -144,6 +155,70 @@
     "clock_relation_ref": {
       "type": "string",
       "minLength": 1
+    },
+    "renderer_lifecycle_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event_ref",
+          "session_epoch",
+          "turn_id",
+          "event_kind",
+          "tick"
+        ],
+        "properties": {
+          "event_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "session_epoch": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "turn_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "event_kind": {
+            "enum": [
+              "assistant_speech_permitted",
+              "playback_started",
+              "playback_ended",
+              "output_stop_requested",
+              "output_stopped"
+            ]
+          },
+          "tick": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cause_event_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "event_kind": {
+                  "const": "output_stopped"
+                }
+              },
+              "required": [
+                "event_kind"
+              ]
+            },
+            "then": {
+              "required": [
+                "cause_event_ref"
+              ]
+            }
+          }
+        ]
+      }
     }
   },
   "allOf": [
