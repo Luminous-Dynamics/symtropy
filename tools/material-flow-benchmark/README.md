@@ -371,4 +371,4 @@ The v0.1 fixture has two regions, three periods, two scenarios, five observed-hi
 
 Detailed formulation, independent fixture replay, limits, target benchmarks and current literature comparators: [Shared aircraft repositioning v0.1](../../docs/research/MFB_SHARED_AIRCRAFT_REPOSITIONING_V0_1.md).
 
-This is a synthetic oracle, not a fleet-scale optimizer or flight model. The full programme remains [LOGISTICS-MODE-OPTIONS-001 #6153](https://github.com/Luminous-Dynamics/symtropy/issues/6153).
+This is a synthetic oracle, not a fleet-scale optimizer or flight model. Its v0.1 objective minimizes probability-weighted expected cost; it does not yet constrain CVaR, worst-case regret or distribution shift. Those risk measures are a separately tracked next benchmark increment, not silently approximated by expected cost. The full programme remains [LOGISTICS-MODE-OPTIONS-001 #6153](https://github.com/Luminous-Dynamics/symtropy/issues/6153).
