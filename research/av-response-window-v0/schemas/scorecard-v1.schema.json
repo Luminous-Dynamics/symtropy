@@ -1,0 +1,313 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-response-window-scorecard-v1.schema.json",
+  "title": "AV Response Window Scorecard v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "policy_id",
+    "run_id",
+    "interpretation",
+    "totals",
+    "per_episode",
+    "hard_violations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "av-response-window-v0"
+    },
+    "policy_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "interpretation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "limitations"
+      ],
+      "properties": {
+        "status": {
+          "const": "synthetic_response_window_score"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "totals": {
+      "$ref": "#/$defs/metrics"
+    },
+    "per_episode": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "episode_id",
+          "opportunity_count",
+          "respond_required_count",
+          "silent_expected_count",
+          "decision_correct_count",
+          "responses_assigned",
+          "on_time_count",
+          "early_count",
+          "late_count",
+          "missed_count",
+          "false_intervention_count",
+          "content_correct_count",
+          "response_quality_accuracy",
+          "violations",
+          "deadline_miss_count"
+        ],
+        "properties": {
+          "episode_id": {
+            "type": "string"
+          },
+          "opportunity_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "respond_required_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "silent_expected_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "decision_correct_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "responses_assigned": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "on_time_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "early_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "late_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "missed_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "false_intervention_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "content_correct_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "response_quality_accuracy": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "violations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "deadline_miss_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "hard_violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "episode_id",
+          "violations"
+        ],
+        "properties": {
+          "episode_id": {
+            "type": "string"
+          },
+          "violations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_count",
+        "opportunity_count",
+        "response_required_count",
+        "expected_silence_count",
+        "interaction_decision_correct_count",
+        "interaction_decision_accuracy",
+        "false_intervention_count",
+        "expected_silence_specificity",
+        "response_count",
+        "on_time_count",
+        "early_count",
+        "late_count",
+        "missed_count",
+        "window_response_rate",
+        "content_correct_count",
+        "content_accuracy",
+        "on_time_content_correct_count",
+        "on_time_content_accuracy",
+        "response_offset_p50_ticks",
+        "response_offset_p95_ticks",
+        "deadline_miss_count",
+        "hard_violation_count"
+      ],
+      "properties": {
+        "episode_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "opportunity_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "response_required_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expected_silence_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "interaction_decision_correct_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "interaction_decision_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "false_intervention_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expected_silence_specificity": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "response_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "on_time_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "early_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "late_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "missed_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "window_response_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "content_correct_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "content_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "on_time_content_correct_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "on_time_content_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "response_offset_p50_ticks": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "response_offset_p95_ticks": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "deadline_miss_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hard_violation_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
