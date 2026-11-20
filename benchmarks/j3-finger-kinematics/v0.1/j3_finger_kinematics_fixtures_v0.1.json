@@ -1,0 +1,34 @@
+{
+  "schema_version": "0.1.0",
+  "model_class": "serial_chain_geometry_reconstruction",
+  "source": "Kumar et al., PACT, arXiv:2611.05302 (2026-11-03), Table I and Section V-B",
+  "source_reported_dimensions_m": {
+    "abduction_link_a": 0.01,
+    "phalanx_lengths_mcp_pip_dip": [0.045, 0.025, 0.02]
+  },
+  "joint_order": ["mcp_abduction_adduction", "mcp_flexion_extension", "pip_flexion_extension", "dip_flexion_extension"],
+  "coordinate_convention": {
+    "handedness": "right_handed",
+    "base_frame_axes": {
+      "positive_y": "extended finger direction at zero pose",
+      "positive_z": "positive flexion direction",
+      "positive_x": "MCP flexion-extension axis at zero abduction"
+    },
+    "mcp_abduction_axis": "positive base Z",
+    "abduction_link_interpretation": "10 mm offset along local positive Y from MCP A/A origin to MCP F/E origin",
+    "flexion_axes": "MCP, PIP and DIP flexion axes are parallel to local positive X; distal phalanx orientation uses cumulative flexion angles",
+    "fingertip_definition": "distal endpoint of the 20 mm DIP phalanx",
+    "status": "explicit_reconstruction_assumption_not_author_confirmed"
+  },
+  "claim_ceiling": "FK positions and Jacobians are outputs of the declared serial-chain reconstruction. They are not published PACT Jacobians or exact PACT source reproduction.",
+  "poses": [
+    {"id": 1, "name": "small_tip_pinch", "joint_angles_deg": [0,60,60,30], "expected_tip_position_m": [0.0,0.0026794919243112378,0.07062177826491071]},
+    {"id": 2, "name": "medium_pad_pinch", "joint_angles_deg": [0,45,45,20], "expected_tip_position_m": [0.0,0.03497940228688126,0.07561365756911281]},
+    {"id": 3, "name": "large_pad_pinch", "joint_angles_deg": [0,25,30,15], "expected_tip_position_m": [0.0,0.07196366419193878,0.05829047530127444]},
+    {"id": 4, "name": "medium_tripod", "joint_angles_deg": [0,40,50,25], "expected_tip_position_m": [0.0,0.03601963470554002,0.07205159817662726]},
+    {"id": 5, "name": "small_tripod", "joint_angles_deg": [0,55,60,30], "expected_tip_position_m": [0.0,0.00886244220649976,0.07099106539594181]},
+    {"id": 6, "name": "extended_reach", "joint_angles_deg": [0,15,20,10], "expected_tip_position_m": [0.0,0.08808759891396381,0.04012840356212054]},
+    {"id": 7, "name": "deep_flexion", "joint_angles_deg": [0,70,70,35], "expected_tip_position_m": [0.0,-0.013684098590154263,0.060098973032482524]},
+    {"id": 8, "name": "abducted_pinch", "joint_angles_deg": [15,45,45,20], "expected_tip_position_m": [-0.009053335498147538,0.03378750805705351,0.07561365756911281]}
+  ]
+}
