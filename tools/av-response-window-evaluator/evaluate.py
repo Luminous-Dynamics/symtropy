@@ -159,6 +159,8 @@ def evaluate(
                     if trigger_ref not in primary_trigger_refs:
                         raise EvaluationError(f"{episode_id}: duplicate trigger has no earlier primary trigger")
                 if event.get("kind") == "cancel":
+                    if trigger_ref not in primary_trigger_refs:
+                        raise EvaluationError(f"{episode_id}: cancellation has no earlier primary trigger")
                     cancellation_ticks[trigger_ref] = min(
                         cancellation_ticks.get(trigger_ref, tick), tick
                     )
