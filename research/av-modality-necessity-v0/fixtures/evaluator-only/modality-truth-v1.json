@@ -61,9 +61,9 @@
       "episode_id": "mod-004-audio-video-conflict",
       "necessity": "conflict_abstain_or_separate_hypotheses",
       "truth_answer": "different_sources",
-      "video_sufficient": true,
-      "audio_sufficient": true,
-      "joint_sufficient": false,
+      "video_sufficient": false,
+      "audio_sufficient": false,
+      "joint_sufficient": true,
       "source_event_id": "evt-conflict"
     },
     {
@@ -90,9 +90,9 @@
       "episode_id": "mod-007-temporal-misalignment",
       "necessity": "no_cross_modal_association",
       "truth_answer": "not_coincident",
-      "video_sufficient": true,
-      "audio_sufficient": true,
-      "joint_sufficient": false,
+      "video_sufficient": false,
+      "audio_sufficient": false,
+      "joint_sufficient": true,
       "source_event_id": "evt-misaligned"
     },
     {
