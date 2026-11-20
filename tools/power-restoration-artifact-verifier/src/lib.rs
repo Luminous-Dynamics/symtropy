@@ -2521,6 +2521,11 @@ mod tests {
             issuer_id: "synthetic-metering-system".to_string(),
             tool_source_commit: "1".repeat(40),
             tool_configuration_sha256: "2".repeat(64),
+        }, ClaimProducerProfile {
+            signer_role: SignerRole::EvidenceProvider,
+            issuer_id: "synthetic-meter-data-source".to_string(),
+            tool_source_commit: "3".repeat(40),
+            tool_configuration_sha256: "4".repeat(64),
         }]
     }
 
@@ -2614,6 +2619,7 @@ mod tests {
                 source_commit: "1".repeat(40),
                 configuration_sha256: "2".repeat(64),
                 model_id: None,
+                evidence_provider_id: Some("synthetic-meter-data-source".to_string()),
                 instrument_id: Some("meter-set-001".to_string()),
                 calibration_artifact_ref: Some(calibration_uri.clone()),
                 calibration_artifact_sha256: Some(calibration_sha.clone()),
@@ -2725,6 +2731,111 @@ mod tests {
         };
         let verified = verify_bundle_manifest(&root, &manifest, 1024 * 1024).unwrap();
         (root, verified)
+    }
+
+    #[test]
+    fn service_sources_require_distinct_evidence_provider_attestations() {
+        let (root, bundle, case, receipt, final_ref) =
+            final_service_bundle_fixture(true);
+        let (trajectory, _) = verify_final_service_trajectory_bundle(
+            &root,
+            &bundle,
+            &final_ref,
+            &receipt,
+            &case,
+            &service_provider_profiles(),
+            8 * 1024 * 1024,
+        ).unwrap();
+        let mut expected_artifacts = BTreeMap::new();
+        let mut requirements = Vec::new();
+        let mut errors = Vec::new();
+        add_service_source_attestations(
+            &trajectory,
+            &receipt,
+            &canonical_case_sha256(&case).unwrap(),
+            &proposal_set_sha256(&receipt).unwrap(),
+            &service_provider_profiles(),
+            &mut expected_artifacts,
+            &mut requirements,
+            &mut errors,
+        );
+        assert!(errors.is_empty(), "{errors:?}");
+        assert_eq!(requirements.len(), trajectory.source_artifacts.len());
+        assert!(requirements.iter().all(|requirement| {
+            requirement.signer_role == SignerRole::EvidenceProvider
+                && requirement.issuer_id == "synthetic-meter-data-source"
+                && requirement.predicate_type == "power-restoration/service-source-evidence/v1"
+        }));
+        assert_eq!(expected_artifacts.len(), trajectory.source_artifacts.len());
+    }
+
+    #[test]
+    fn service_sources_reject_missing_evidence_provider_profile() {
+        let (root, bundle, case, receipt, final_ref) =
+            final_service_bundle_fixture(true);
+        let (trajectory, _) = verify_final_service_trajectory_bundle(
+            &root,
+            &bundle,
+            &final_ref,
+            &receipt,
+            &case,
+            &service_provider_profiles(),
+            8 * 1024 * 1024,
+        ).unwrap();
+        let profiles = service_provider_profiles().into_iter()
+            .filter(|profile| profile.signer_role == SignerRole::ServiceProvider)
+            .collect::<Vec<_>>();
+        let mut expected_artifacts = BTreeMap::new();
+        let mut requirements = Vec::new();
+        let mut errors = Vec::new();
+        add_service_source_attestations(
+            &trajectory,
+            &receipt,
+            &canonical_case_sha256(&case).unwrap(),
+            &proposal_set_sha256(&receipt).unwrap(),
+            &profiles,
+            &mut expected_artifacts,
+            &mut requirements,
+            &mut errors,
+        );
+        assert!(errors.iter().any(|error| error.contains("no pinned producer profile")));
+        assert!(requirements.is_empty());
+    }
+
+    #[test]
+    fn service_sources_reject_same_producer_identity_for_service_and_evidence() {
+        let (root, bundle, case, receipt, final_ref) =
+            final_service_bundle_fixture(true);
+        let (mut trajectory, _) = verify_final_service_trajectory_bundle(
+            &root,
+            &bundle,
+            &final_ref,
+            &receipt,
+            &case,
+            &service_provider_profiles(),
+            8 * 1024 * 1024,
+        ).unwrap();
+        trajectory.producer.evidence_provider_id = Some("synthetic-metering-system".to_string());
+        let mut profiles = service_provider_profiles();
+        let source_profile = profiles.iter_mut()
+            .find(|profile| profile.signer_role == SignerRole::EvidenceProvider)
+            .unwrap();
+        source_profile.issuer_id = "synthetic-metering-system".to_string();
+        let mut expected_artifacts = BTreeMap::new();
+        let mut requirements = Vec::new();
+        let mut errors = Vec::new();
+        add_service_source_attestations(
+            &trajectory,
+            &receipt,
+            &canonical_case_sha256(&case).unwrap(),
+            &proposal_set_sha256(&receipt).unwrap(),
+            &profiles,
+            &mut expected_artifacts,
+            &mut requirements,
+            &mut errors,
+        );
+        assert!(errors.iter().any(|error| error.contains("must be distinct producer identities")));
+        assert!(requirements.is_empty());
     }
 
     #[test]
