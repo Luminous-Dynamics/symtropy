@@ -344,13 +344,13 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             }
             _ => errors.push(format!("sample '{sample_id}' has duplicate, missing or out-of-order gateway_ingest_index")),
         }
+        let Some(contract) = contracts.get(&signal_id) else {
+            errors.push(format!("sample '{sample_id}' references unknown signal '{signal_id}'"));
+            continue;
+        };
         let Some(source) = sources.get(&source_id) else {
             observation_issues.push(json!({"sample_id":sample_id,"signal_id":signal_id,"disposition":"UNTRUSTED","reason":"source is absent from the trusted source registry"}));
             signal_issue_reasons.entry(signal_id).or_default().push("unregistered source".to_owned());
-            continue;
-        };
-        let Some(contract) = contracts.get(&signal_id) else {
-            errors.push(format!("sample '{sample_id}' references unknown signal '{signal_id}'"));
             continue;
         };
 
