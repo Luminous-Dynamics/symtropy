@@ -3,9 +3,9 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 
 use nalgebra::{SMatrix, SVector};
-use crate::mass_properties::RotationalInertiaOperator;
+use crate::mass_properties::{MassProperties, RotationalInertiaOperator};
 use serde::{Deserialize, Serialize};
-use symtropy_math::{Bivector, Point, Shape, Transform};
+use symtropy_math::{Bivector, CompoundShape, Point, Shape, Transform};
 
 /// Unique identifier for a body handle.
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -59,6 +59,19 @@ pub enum ToolheadMergeError {
     UnrepresentableResult,
 }
 
+/// Errors returned when binding validated mass properties to a rigid body.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MassPropertiesBodyError {
+    /// Rotational dynamics require at least one bivector plane.
+    InvalidDimension,
+    /// The supplied geometry-frame transform is not finite or proper.
+    InvalidGeometryTransform,
+    /// Moving the origin to the supplied COM produced an unrepresentable pose.
+    UnrepresentableCenterOfMass,
+    /// The supplied full inertia operator has no finite positive mean-plane view.
+    InvalidMeanPlaneCompatibilityValue,
+}
+
 /// N-dimensional rigid body.
 pub struct RigidBody<const D: usize> {
     pub handle: BodyHandle,
@@ -69,10 +82,15 @@ pub struct RigidBody<const D: usize> {
     pub angular_velocity: Bivector<D>,
     pub mass: f64,
     pub inv_mass: f64,
-    /// Principal moments in the body's local frame. In 3D the principal axes
-    /// are aligned with the body's local X/Y/Z basis and are rotated into
-    /// world space for angular dynamics. For D != 3 this remains a legacy
-    /// per-axis compatibility vector used by the explicitly approximate path.
+    /// Legacy per-axis inertia compatibility values.
+    ///
+    /// When no full operator is attached, the 3D values are principal moments
+    /// in the body-local frame; for D != 3 they feed an explicitly approximate
+    /// mean-inertia path. When a validated full bivector operator is attached,
+    /// that operator is authoritative. In particular, the COM-bound constructor
+    /// stores the operator's mean plane diagonal here as a compatibility view;
+    /// these values are not claimed to be principal moments of a non-diagonal
+    /// operator.
     pub inertia: SVector<f64, D>,
     /// Reciprocals of inertia; invalid source moments produce zero here and
     /// are exposed as InvalidPrincipalMoments by the 3D model census.
@@ -152,6 +170,101 @@ impl<const D: usize> RigidBody<D> {
             collision_group: 0x0001,
             collision_mask: 0xFFFF,
         }
+    }
+
+    /// Construct a dynamic body from validated algebraic mass properties.
+    ///
+    /// The supplied transform maps the collider's **geometry frame** into world
+    /// space. The body's live origin is moved to the validated body-frame COM,
+    /// and the collider is re-expressed about that COM before the body is
+    /// returned. The full bivector inertia operator is attached as the
+    /// authoritative rotational model.
+    ///
+    /// This constructor validates the mass, COM, operator, and frame
+    /// transformation. It does not establish that the caller's collider,
+    /// material/density assignment, or geometry revision actually produced
+    /// those mass properties; that external source binding remains a separate
+    /// engineering-evidence obligation.
+    pub fn try_new_with_mass_properties(
+        handle: BodyHandle,
+        geometry_transform: Transform<D>,
+        collider: Box<dyn Shape<D>>,
+        mass_properties: MassProperties<D>,
+    ) -> Result<Self, MassPropertiesBodyError> {
+        if D < 2 {
+            return Err(MassPropertiesBodyError::InvalidDimension);
+        }
+        if !geometry_transform.translation.0.iter().all(|value| value.is_finite())
+            || !geometry_transform.rotation.is_proper_rotation(1.0e-8)
+        {
+            return Err(MassPropertiesBodyError::InvalidGeometryTransform);
+        }
+
+        let center_of_mass_local = *mass_properties.center_of_mass_m();
+        if !center_of_mass_local.iter().all(|value| value.is_finite()) {
+            return Err(MassPropertiesBodyError::UnrepresentableCenterOfMass);
+        }
+
+        let world_com_offset = geometry_transform
+            .rotation
+            .rotate_vector(&center_of_mass_local);
+        let center_of_mass_world = geometry_transform.translation.0 + world_com_offset;
+        if !world_com_offset.iter().all(|value| value.is_finite())
+            || !center_of_mass_world.iter().all(|value| value.is_finite())
+        {
+            return Err(MassPropertiesBodyError::UnrepresentableCenterOfMass);
+        }
+
+        // Preserve the complete plane-space operator. The vector field is
+        // populated only as a legacy compatibility view; it is not used while
+        // the full operator remains attached.
+        let operator = mass_properties.rotational_inertia();
+        let dof = operator.dof();
+        if dof == 0 {
+            return Err(MassPropertiesBodyError::InvalidDimension);
+        }
+        let matrix = operator.as_row_major();
+        if matrix.len() != dof * dof {
+            return Err(MassPropertiesBodyError::InvalidMeanPlaneCompatibilityValue);
+        }
+        let mean_plane_moment = (0..dof)
+            .map(|index| matrix[index * dof + index])
+            .sum::<f64>()
+            / dof as f64;
+        if !mean_plane_moment.is_finite() || mean_plane_moment <= 0.0 {
+            return Err(MassPropertiesBodyError::InvalidMeanPlaneCompatibilityValue);
+        }
+
+        // Rebase the collider's child transforms from the geometry origin to
+        // the COM origin. This also preserves existing compound child rotations.
+        let mut centered_collider = CompoundShape::<D>::new();
+        if let Some(existing) = collider.as_any().downcast_ref::<CompoundShape<D>>() {
+            for (child_transform, shape) in existing.children() {
+                let mut shifted = child_transform.clone();
+                shifted.translation.0 -= center_of_mass_local;
+                centered_collider.add_child(shifted, shape.clone_box());
+            }
+        } else {
+            let mut geometry_from_centered = Transform::from_translation(Point(-center_of_mass_local));
+            centered_collider.add_child(geometry_from_centered, collider);
+        }
+
+        let body_transform = Transform {
+            translation: Point(center_of_mass_world),
+            rotation: geometry_transform.rotation,
+        };
+        let mass = mass_properties.mass_kg();
+        let compatibility_inertia = SVector::from_element(mean_plane_moment);
+        let mut body = Self::new(
+            handle,
+            BodyType::Dynamic,
+            body_transform,
+            Box::new(centered_collider),
+            mass,
+            compatibility_inertia,
+        );
+        body.set_rotational_inertia_operator(operator.clone());
+        Ok(body)
     }
 
     pub fn static_body(
