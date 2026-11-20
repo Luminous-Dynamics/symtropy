@@ -1,0 +1,300 @@
+{
+  "schema_version": "construction-integrated-dispatch-readiness-request/0.1",
+  "dispatch": {
+    "schema_version": "construction-dispatch-readiness-request/0.1",
+    "envelope": {
+      "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "design_revision_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "entity_id": "ifc4x3:0000000000000000000001",
+      "frame_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "transform_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "robot_id": "robot-01",
+      "robot_configuration_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "tool_configuration_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "payload_configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "primitive_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "trajectory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "envelope_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "site_clock_domain_id": "site-clock-01",
+      "generated_at_tick": 100,
+      "valid_until_tick": 10000
+    },
+    "trusted_occupancy_engine_build_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "required_clearance_policy_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "occupancy": {
+      "assessed_envelope_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "primitive_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "site_snapshot_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "site_ledger_sequence": 2,
+      "site_ledger_event_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "dynamic_occupancy_manifest_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "actor_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "occupancy_engine_build_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "clearance_policy_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "site_clock_domain_id": "site-clock-01",
+      "checked_at_tick": 110,
+      "valid_until_tick": 9000,
+      "primitive_coverage_complete": true,
+      "dynamic_actor_coverage_complete": true,
+      "broadphase_pair_coverage_complete": true,
+      "narrowphase_coverage_complete": true,
+      "candidate_pair_count": 0,
+      "narrowphase_evaluated_pair_count": 0,
+      "conflict_count": 0,
+      "unresolved_pair_count": 0,
+      "invalid_bound_count": 0,
+      "unqualified_bound_count": 0,
+      "stale_actor_count": 0,
+      "unmodelled_occupant_count": 0,
+      "assessment_receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+    },
+    "now_tick": 120
+  },
+  "evidence_snapshot": {
+    "subject_node_id": "dispatch-readiness",
+    "subject_version_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "transitive_dependency_versions": [
+      {
+        "node_id": "work-package",
+        "kind": "work_package",
+        "version_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "node_id": "source-model",
+        "kind": "source_model",
+        "version_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      {
+        "node_id": "ids-spec",
+        "kind": "ids_specification",
+        "version_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      {
+        "node_id": "ids-engine",
+        "kind": "ids_engine_build",
+        "version_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      {
+        "node_id": "ids-evaluation-manifest",
+        "kind": "ids_evaluation_manifest",
+        "version_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      {
+        "node_id": "coordinate-context",
+        "kind": "coordinate_context",
+        "version_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      {
+        "node_id": "coordinate-frame",
+        "kind": "coordinate_frame",
+        "version_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      {
+        "node_id": "survey-transform",
+        "kind": "survey_transform",
+        "version_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      {
+        "node_id": "station-qualification",
+        "kind": "station_qualification",
+        "version_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      {
+        "node_id": "task-plan",
+        "kind": "task_plan",
+        "version_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+      },
+      {
+        "node_id": "robot-config",
+        "kind": "robot_configuration",
+        "version_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+      },
+      {
+        "node_id": "tool-config",
+        "kind": "tool_configuration",
+        "version_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+      },
+      {
+        "node_id": "payload-config",
+        "kind": "payload_configuration",
+        "version_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "node_id": "motion-envelope",
+        "kind": "motion_envelope",
+        "version_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      {
+        "node_id": "sensor-config",
+        "kind": "sensor_configuration",
+        "version_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      {
+        "node_id": "stopping-dynamics",
+        "kind": "stopping_dynamics",
+        "version_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      {
+        "node_id": "hazard-detection",
+        "kind": "hazard_detection",
+        "version_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      {
+        "node_id": "operating-condition",
+        "kind": "operating_condition",
+        "version_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      {
+        "node_id": "occupancy-engine",
+        "kind": "occupancy_engine_build",
+        "version_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      {
+        "node_id": "clearance-policy",
+        "kind": "clearance_policy",
+        "version_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    ],
+    "dependency_edges": [
+      {
+        "dependent_node_id": "dispatch-readiness",
+        "prerequisite_node_id": "clearance-policy"
+      },
+      {
+        "dependent_node_id": "dispatch-readiness",
+        "prerequisite_node_id": "hazard-detection"
+      },
+      {
+        "dependent_node_id": "dispatch-readiness",
+        "prerequisite_node_id": "motion-envelope"
+      },
+      {
+        "dependent_node_id": "dispatch-readiness",
+        "prerequisite_node_id": "occupancy-engine"
+      },
+      {
+        "dependent_node_id": "dispatch-readiness",
+        "prerequisite_node_id": "operating-condition"
+      },
+      {
+        "dependent_node_id": "dispatch-readiness",
+        "prerequisite_node_id": "payload-config"
+      },
+      {
+        "dependent_node_id": "dispatch-readiness",
+        "prerequisite_node_id": "robot-config"
+      },
+      {
+        "dependent_node_id": "dispatch-readiness",
+        "prerequisite_node_id": "sensor-config"
+      },
+      {
+        "dependent_node_id": "dispatch-readiness",
+        "prerequisite_node_id": "stopping-dynamics"
+      },
+      {
+        "dependent_node_id": "dispatch-readiness",
+        "prerequisite_node_id": "station-qualification"
+      },
+      {
+        "dependent_node_id": "dispatch-readiness",
+        "prerequisite_node_id": "task-plan"
+      },
+      {
+        "dependent_node_id": "dispatch-readiness",
+        "prerequisite_node_id": "tool-config"
+      },
+      {
+        "dependent_node_id": "dispatch-readiness",
+        "prerequisite_node_id": "work-package"
+      },
+      {
+        "dependent_node_id": "work-package",
+        "prerequisite_node_id": "coordinate-context"
+      },
+      {
+        "dependent_node_id": "work-package",
+        "prerequisite_node_id": "coordinate-frame"
+      },
+      {
+        "dependent_node_id": "work-package",
+        "prerequisite_node_id": "ids-engine"
+      },
+      {
+        "dependent_node_id": "work-package",
+        "prerequisite_node_id": "ids-evaluation-manifest"
+      },
+      {
+        "dependent_node_id": "work-package",
+        "prerequisite_node_id": "ids-spec"
+      },
+      {
+        "dependent_node_id": "work-package",
+        "prerequisite_node_id": "source-model"
+      },
+      {
+        "dependent_node_id": "work-package",
+        "prerequisite_node_id": "survey-transform"
+      }
+    ]
+  },
+  "evidence_snapshot_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "dispatch_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "evidence_nodes": {
+    "dispatch_readiness": "dispatch-readiness",
+    "work_package": "work-package",
+    "source_model": "source-model",
+    "ids_specification": "ids-spec",
+    "ids_engine_build": "ids-engine",
+    "ids_evaluation_manifest": "ids-evaluation-manifest",
+    "coordinate_context": "coordinate-context",
+    "coordinate_frame": "coordinate-frame",
+    "survey_transform": "survey-transform",
+    "station_qualification": "station-qualification",
+    "task_plan": "task-plan",
+    "robot_configuration": "robot-config",
+    "tool_configuration": "tool-config",
+    "payload_configuration": "payload-config",
+    "motion_envelope": "motion-envelope",
+    "sensor_configuration": "sensor-config",
+    "stopping_dynamics": "stopping-dynamics",
+    "hazard_detection": "hazard-detection",
+    "operating_condition": "operating-condition",
+    "occupancy_engine_build": "occupancy-engine",
+    "clearance_policy": "clearance-policy"
+  },
+  "task_plan_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+  "station_id": "station-01",
+  "station_qualification_event_id": "station-qualification-01",
+  "station_qualification_valid_until_tick": 8000,
+  "speed_upper_mm_s": 500,
+  "stopping_dynamics": {
+    "profile_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "qualification_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "robot_brake_configuration_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "operating_condition_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "scenario_context_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "maximum_qualified_speed_mm_s": 1000,
+    "maximum_detection_to_brake_latency_ms": 100,
+    "maximum_positive_acceleration_mm_s2": 1000,
+    "minimum_net_deceleration_mm_s2": 1500,
+    "minimum_braking_jerk_mm_s3": 3000,
+    "additional_distance_guard_mm": 10
+  },
+  "stopping_evidence_valid_until_tick": 7000,
+  "hazard_detection": {
+    "sensor_profile_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "detection_qualification_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "target_condition_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "scenario_context_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "maximum_qualified_approach_speed_mm_s": 1000,
+    "minimum_qualified_detection_distance_mm": 2000
+  },
+  "detection_evidence_valid_until_tick": 6000,
+  "stopping_margins": {
+    "localization_uncertainty_mm": 10,
+    "frame_registration_uncertainty_mm": 10,
+    "body_geometry_uncertainty_mm": 5,
+    "site_policy_clearance_mm": 30
+  }
+}
