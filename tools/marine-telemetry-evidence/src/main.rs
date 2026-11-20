@@ -1,4 +1,4 @@
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, Duration, FixedOffset};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
@@ -128,6 +128,15 @@ struct QualifiedObservation {
     age_seconds: f64,
     source_id: String,
     failure_domains: Vec<String>,
+    source_sequence: u64,
+    boot_epoch_id: String,
+    boot_epoch_ordinal: u64,
+    observed_at: DateTime<FixedOffset>,
+    received_at: DateTime<FixedOffset>,
+    raw_frame_sha256: String,
+    calibration_id: String,
+    calibration_evidence_sha256: String,
+    valid_until: DateTime<FixedOffset>,
 }
 
 #[derive(Clone)]
@@ -515,13 +524,24 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             signal_issue_reasons.entry(signal_id).or_default().push("measurement interval crosses declared range".to_owned());
             continue;
         }
+        let age_expiry = observed_at.clone() + Duration::seconds(contract.max_observation_age_seconds);
+        let valid_until = calibration_until.min(age_expiry);
         latest_by_signal.entry(signal_id.clone()).or_default().insert(source_id.clone(),QualifiedObservation {
             sample_id:sample_id.clone(),
             value:value_number,
             uncertainty,
             age_seconds,
             source_id:source_id.clone(),
-            failure_domains:source.failure_domains.clone()
+            failure_domains:source.failure_domains.clone(),
+            source_sequence:cursor.source_sequence,
+            boot_epoch_id:cursor.boot_epoch_id.clone(),
+            boot_epoch_ordinal:cursor.boot_epoch_ordinal,
+            observed_at:observed_at.clone(),
+            received_at:received_at.clone(),
+            raw_frame_sha256:string_at(observation,"raw_frame_sha256").unwrap_or("").to_owned(),
+            calibration_id:string_at(observation,"calibration_id").unwrap_or("").to_owned(),
+            calibration_evidence_sha256:string_at(observation,"calibration_evidence_sha256").unwrap_or("").to_owned(),
+            valid_until,
         });
         observation_issues.push(json!({"sample_id":sample_id,"signal_id":signal_id,"disposition":"VALIDATED_INPUT","age_seconds":age_seconds,"note":"signal-level quorum and disagreement disposition is computed after the full source set is evaluated"}));
     }
@@ -562,23 +582,66 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             qualified_signal_count += 1;
             ("QUALIFIED",true)
         };
+        let valid_until = if usable {
+            accepted.iter().map(|item|item.valid_until).min()
+        } else {
+            None
+        };
+        let contributing_samples = accepted.iter().map(|item|json!({
+            "sample_id":item.sample_id,
+            "source_id":item.source_id,
+            "value":item.value,
+            "uncertainty":item.uncertainty,
+            "failure_domains":item.failure_domains,
+            "boot_epoch_id":item.boot_epoch_id,
+            "boot_epoch_ordinal":item.boot_epoch_ordinal,
+            "source_sequence":item.source_sequence,
+            "observed_at":item.observed_at.to_rfc3339(),
+            "received_at":item.received_at.to_rfc3339(),
+            "raw_frame_sha256":item.raw_frame_sha256,
+            "calibration_id":item.calibration_id,
+            "calibration_evidence_sha256":item.calibration_evidence_sha256,
+            "source_age_seconds":item.age_seconds,
+            "source_valid_until":item.valid_until.to_rfc3339()
+        })).collect::<Vec<_>>();
+        let mut qualification_receipt = json!({
+            "receipt_version":"0.1.0",
+            "signal_id":signal_id,
+            "disposition":disposition,
+            "usable":usable,
+            "unit":contract.unit,
+            "decision_cutoff":string_at(value,"decision_cutoff"),
+            "valid_until":valid_until.map(|time|time.to_rfc3339()),
+            "signal_contract_sha256":string_at(value,"signal_contracts_sha256"),
+            "source_registry_sha256":string_at(value,"source_registry_sha256"),
+            "telemetry_batch_sha256":string_at(value,"batch_sha256"),
+            "independent_source_count":independent_sources,
+            "required_independent_source_count":contract.minimum_independent_sources,
+            "source_disagreement":disagreement,
+            "maximum_allowed_disagreement":contract.max_source_disagreement,
+            "measurement_interval_hull_lower":if usable && envelope_lower.is_finite(){json!(envelope_lower)}else{Value::Null},
+            "measurement_interval_hull_upper":if usable && envelope_upper.is_finite(){json!(envelope_upper)}else{Value::Null},
+            "contributing_samples":contributing_samples
+        });
+        let receipt_digest = canonical_digest(&qualification_receipt).unwrap_or_default();
+        qualification_receipt["qualification_receipt_sha256"] = json!(receipt_digest);
         signal_reports.push(json!({
             "signal_id":signal_id,
             "disposition":disposition,
             "usable":usable,
+            "unit":contract.unit,
             "accepted_source_count":accepted.len(),
             "independent_source_count":independent_sources,
             "required_independent_source_count":contract.minimum_independent_sources,
             "coverage_fraction":coverage,
             "source_disagreement":disagreement,
             "maximum_allowed_disagreement":contract.max_source_disagreement,
-            "qualified_envelope_lower":if envelope_lower.is_finite(){json!(envelope_lower)}else{Value::Null},
-            "qualified_envelope_upper":if envelope_upper.is_finite(){json!(envelope_upper)}else{Value::Null},
+            "qualified_envelope_lower":if usable && envelope_lower.is_finite(){json!(envelope_lower)}else{Value::Null},
+            "qualified_envelope_upper":if usable && envelope_upper.is_finite(){json!(envelope_upper)}else{Value::Null},
+            "valid_until":valid_until.map(|time|time.to_rfc3339()),
+            "qualification_receipt_sha256":receipt_digest,
+            "qualification_receipt":qualification_receipt,
             "maximum_observation_age_seconds":accepted.iter().map(|item|item.age_seconds).fold(0.0,f64::max),
-            "contributing_samples":accepted.iter().map(|item|json!({
-                "sample_id":item.sample_id,"source_id":item.source_id,"value":item.value,
-                "uncertainty":item.uncertainty,"failure_domains":item.failure_domains
-            })).collect::<Vec<_>>(),
             "issues":issues
         }));
     }
@@ -689,6 +752,34 @@ mod tests {
         assert_eq!(report["signals"][0]["usable"],true);
         assert_eq!(report["read_only"],true);
         assert_eq!(report["actuation_authorized"],false);
+    }
+
+    #[test]
+    fn qualified_signal_receipt_binds_observations_and_has_expiry() {
+        let report=audit(&fixture());
+        let signal=report["signals"].as_array().unwrap().iter()
+            .find(|signal|signal["signal_id"]=="freshwater_tank_level").unwrap();
+        assert_eq!(signal["usable"],true);
+        assert!(parse_time(string_at(&signal["qualification_receipt"],"valid_until")).unwrap()
+            >= parse_time(Some("2026-11-20T05:00:00Z")).unwrap());
+        assert_eq!(signal["qualification_receipt"]["contributing_samples"].as_array().unwrap().len(),2);
+        let mut receipt=signal["qualification_receipt"].clone();
+        let recorded=string_at(&receipt,"qualification_receipt_sha256").unwrap().to_owned();
+        receipt.as_object_mut().unwrap().remove("qualification_receipt_sha256");
+        assert_eq!(canonical_digest(&receipt).unwrap(),recorded);
+        assert_eq!(signal["qualification_receipt_sha256"],recorded);
+    }
+
+    #[test]
+    fn degraded_common_cause_signal_has_no_usable_lease_or_envelope() {
+        let report=audit(&common_cause_fixture());
+        let signal=report["signals"].as_array().unwrap().iter()
+            .find(|signal|signal["signal_id"]=="freshwater_tank_level").unwrap();
+        assert_eq!(signal["usable"],false);
+        assert_eq!(signal["valid_until"],Value::Null);
+        assert_eq!(signal["qualified_envelope_lower"],Value::Null);
+        assert_eq!(signal["qualification_receipt"]["usable"],false);
+        assert_eq!(signal["qualification_receipt"]["valid_until"],Value::Null);
     }
 
     #[test]
