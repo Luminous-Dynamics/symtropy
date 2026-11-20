@@ -696,5 +696,126 @@
     "optional_itu_comprehensive_metric": "May be reported as supplementary per ITU-T L.1312 with published normalization, best/worst values and weights.",
     "project_rule": "Publish raw metric values, dimensions, uncertainty and life-cycle stage. Never let a composite score offset protected-habitat exclusion, legal noncompliance, unknown baseline, unsafe discharge or a failed ecological hard gate.",
     "environmental_claim_ceiling": "No claim of zero ecological harm can be inferred from PUE, WUE, REF, CUE or a single MSA result."
+  },
+  "goos_eov_alignment": {
+    "framework": "Global Ocean Observing System Essential Ocean Variables",
+    "source_url": "https://goosocean.org/what-we-do/framework/essential-ocean-variables/",
+    "IOC_2026_summary_url": "https://www.ioc.unesco.org/en/articles/essential-ocean-variables",
+    "recognized_eov_count_as_reported_2026": 36,
+    "principle": "Use the current GOOS EOV specification sheets and best-practice guidance as the interoperable ocean-variable layer. GOOS notes that EOV specification sheets are under revision; pin the accessed version and do not freeze a custom project taxonomy as an official EOV list.",
+    "mappings": [
+      {
+        "eov": "Subsurface temperature",
+        "domain": "physics",
+        "mapped_project_metrics": [
+          "MARINE-TEMP-PROFILE",
+          "MARINE-THERMAL-DELTA",
+          "MARINE-THERMAL-PLUME"
+        ],
+        "related_sensor_class": "ocean_profile_and_hydrodynamics"
+      },
+      {
+        "eov": "Subsurface salinity",
+        "domain": "physics",
+        "mapped_project_metrics": [
+          "MARINE-TEMP-PROFILE",
+          "MARINE-WATER-CHEMISTRY"
+        ],
+        "related_sensor_class": "ocean_profile_and_hydrodynamics"
+      },
+      {
+        "eov": "Subsurface currents",
+        "domain": "physics",
+        "mapped_project_metrics": [
+          "MARINE-HYDRODYNAMICS",
+          "MARINE-THERMAL-PLUME"
+        ],
+        "related_sensor_class": "ocean_profile_and_hydrodynamics"
+      },
+      {
+        "eov": "Sea state",
+        "domain": "physics",
+        "mapped_project_metrics": [
+          "MARINE-HYDRODYNAMICS"
+        ],
+        "related_sensor_class": "meteorology_and_sea_state"
+      },
+      {
+        "eov": "Oxygen",
+        "domain": "biogeochemistry",
+        "mapped_project_metrics": [
+          "MARINE-WATER-CHEMISTRY"
+        ],
+        "related_sensor_class": "water_quality"
+      },
+      {
+        "eov": "Nutrients",
+        "domain": "biogeochemistry",
+        "mapped_project_metrics": [
+          "MARINE-WATER-CHEMISTRY",
+          "ITU-WATER-POLLUTANTS"
+        ],
+        "related_sensor_class": "water_quality"
+      },
+      {
+        "eov": "Benthic invertebrate abundance and distribution (pilot)",
+        "domain": "biology_and_ecosystems",
+        "mapped_project_metrics": [
+          "ITU-MSA",
+          "MARINE-BENTHIC-ECOSYSTEM"
+        ],
+        "related_sensor_class": "ecology_and_habitat"
+      },
+      {
+        "eov": "Ocean sound",
+        "domain": "cross_disciplinary_human_impact",
+        "mapped_project_metrics": [
+          "ITU-OUTDOOR-NOISE",
+          "MARINE-UNDERWATER-NOISE"
+        ],
+        "related_sensor_class": "underwater_acoustics"
+      }
+    ],
+    "adoption_rule": "Map only the EOVs materially relevant to the approved site question. Preserve official EOV identity and current specification version. Project-specific outfall, intake, pollutant flux and thermal-plume metrics remain project extensions, not newly declared GOOS EOVs."
+  },
+  "biodiversity_data_interoperability": {
+    "framework": "Ocean Biodiversity Information System (OBIS) and Darwin Core",
+    "obis_manual_version": "2.0",
+    "manual_updated": "2026-09-23",
+    "manual_url": "https://manual.obis.org/",
+    "quality_control_url": "https://www.obis.org/data/quality/",
+    "data_policy": "https://www.obis.org/data/policy/",
+    "purpose": "Preserve interoperable biodiversity occurrence, event, measurement/fact and, where relevant, DNA-derived records with traceable source, location, date, depth, taxon, method, ownership and QC flags.",
+    "candidate_darwin_core_terms": [
+      "eventID",
+      "eventDate",
+      "samplingProtocol",
+      "sampleSizeValue",
+      "sampleSizeUnit",
+      "occurrenceID",
+      "basisOfRecord",
+      "scientificName",
+      "scientificNameID",
+      "occurrenceStatus",
+      "decimalLatitude",
+      "decimalLongitude",
+      "geodeticDatum",
+      "minimumDepthInMeters",
+      "maximumDepthInMeters",
+      "measurementType",
+      "measurementValue",
+      "measurementUnit",
+      "measurementRemarks"
+    ],
+    "qc_stages": [
+      "initial_formatting_and_Darwin_Core_compliance",
+      "automated_geolocation_date_depth_and_precision_checks",
+      "manual_curation_by_relevant_OBIS_node_or_qualified_taxonomic_reviewer",
+      "taxonomic_validation_against_WoRMS_or_current_authoritative_marine_taxonomy",
+      "geographic_habitat_enrichment_with_versioned_reference_layers",
+      "publication_with_visible_quality_flags_attribution_and_rights"
+    ],
+    "project_rule": "Candidate terms are a mapping starting point, not a complete Darwin Core profile. Confirm current OBIS Manual guidance and provider/node requirements before publication. Preserve source-specific fields and quality flags; failed checks are flagged/quarantined rather than silently deleted or upgraded.",
+    "rights_rule": "Use rights-reviewed and purpose-compatible records. Retain attribution, ownership, licence, sensitive-species location restrictions and applicable CARE/FAIR obligations."
   }
 }
