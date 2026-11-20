@@ -1127,8 +1127,10 @@ pub fn aggregate_cascade_endpoint_availability(
     }
     if report.case_sha256 != case_sha
         || mapping.case_sha256 != case_sha
-        || report.stream_kind != ServiceStreamKind::ModelledService
-            && report.stream_kind != ServiceStreamKind::MeasuredService
+        || !matches!(
+            report.stream_kind,
+            ServiceStreamKind::ModelledService | ServiceStreamKind::MeasuredService
+        )
         || mapping.service_id != report.service_id
         || mapping.service_type != report.service_type
         || mapping.service_boundary_id != report.service_boundary_id
