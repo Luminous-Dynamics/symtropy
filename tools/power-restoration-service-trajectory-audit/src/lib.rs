@@ -1,5 +1,5 @@
 use power_restoration_benchmark_case::{
-    BenchmarkCase, canonical_case_sha256, validate_case,
+    BenchmarkCase, canonical_case_sha256,
 };
 use power_restoration_run_receipt::{
     RunReceipt, RunStatus, ServiceOutcome, StepDisposition, qualify as qualify_run_receipt,
@@ -1022,7 +1022,9 @@ mod tests {
                     evidence_ref: Some(format!("evidence://meter/{}/{}", load.load_id, step)),
                     evidence_sha256: Some("1".repeat(64)),
                     uncertainty_kwh: Some(0.01),
+                    unknown_reason: None,
                     conflict_reason: None,
+                    conflict_evidence: Vec::new(),
                 });
             }
         }
@@ -1053,16 +1055,33 @@ mod tests {
                 calibration_artifact_ref: Some("calibration://meter-set-001".to_string()),
                 calibration_artifact_sha256: Some("3".repeat(64)),
             },
-            source_artifacts: vec![ServiceSourceArtifact {
-                artifact_ref: "meter-capture://synthetic-run-0001".to_string(),
-                sha256: "4".repeat(64),
-            }],
+            source_artifacts: vec![
+                ServiceSourceArtifact {
+                    artifact_ref: "meter-capture://synthetic-run-0001".to_string(),
+                    sha256: "4".repeat(64),
+                },
+                ServiceSourceArtifact {
+                    artifact_ref: "calibration://meter-set-001".to_string(),
+                    sha256: "3".repeat(64),
+                },
+            ],
             samples,
             work_milestones: Vec::new(),
             parent_service_artifacts: vec![ServiceSourceArtifact {
                 artifact_ref: "synthetic://service-trajectory/step-0".to_string(),
                 sha256: "b".repeat(64),
             }],
+        }
+    }
+
+    fn mark_receipt_incomplete(receipt: &mut RunReceipt) {
+        receipt.run_status = RunStatus::Incomplete;
+        receipt.terminal_reason = Some(power_restoration_run_receipt::TerminalReason::EvidenceIncomplete);
+        receipt.final_service_trajectory = None;
+        receipt.aggregate_score = None;
+        for step in receipt.decision_steps.iter_mut().skip(1) {
+            step.disposition = StepDisposition::NotRunAfterAbort;
+            step.not_run_reason = Some(power_restoration_run_receipt::NotRunReason::EvidenceIncomplete);
         }
     }
 
@@ -1099,7 +1118,6 @@ mod tests {
                 * f64::from(case.timebase.horizon_steps)
                 * load.priority_weight
         }).sum::<f64>();
-        bind_final_and_score(&trajectory, &mut receipt, expected);
         trajectory.parent_service_artifacts = receipt.decision_steps.iter()
             .filter(|step| step.disposition == StepDisposition::Executed
                 && step.service_outcome == ServiceOutcome::Scored)
@@ -1108,6 +1126,7 @@ mod tests {
                 artifact_ref: artifact.artifact_ref.clone(),
                 sha256: artifact.sha256.clone(),
             }).collect();
+        bind_final_and_score(&trajectory, &mut receipt, expected);
 
         let report = audit_service_trajectory(&trajectory, &receipt, &case).unwrap();
         assert_eq!(report.result_status, "measured_service_and_score_reconciled");
@@ -1163,6 +1182,7 @@ mod tests {
         sample.delivered_kwh = None;
         sample.evidence_ref = None;
         sample.evidence_sha256 = None;
+        sample.unknown_reason = Some("meter data missing".to_string());
         trajectory.parent_service_artifacts = receipt.decision_steps.iter()
             .filter(|step| step.disposition == StepDisposition::Executed
                 && step.service_outcome == ServiceOutcome::Scored)
@@ -1171,10 +1191,8 @@ mod tests {
                 artifact_ref: artifact.artifact_ref.clone(),
                 sha256: artifact.sha256.clone(),
             }).collect();
-        // Unknown service cannot coexist with a published completed aggregate score.
-        receipt.aggregate_score = None;
-        bind_final_and_score(&trajectory, &mut receipt, 0.0);
-        receipt.aggregate_score = None;
+        // Incomplete runs cannot publish a completed aggregate score/final trajectory.
+        mark_receipt_incomplete(&mut receipt);
         let report = audit_service_trajectory(&trajectory, &receipt, &case).unwrap();
         assert_eq!(report.result_status, "inconclusive_unknown_or_conflicting_service");
         assert!(report.weighted_delivered_kwh.is_none());
@@ -1188,7 +1206,18 @@ mod tests {
         let mut trajectory = fully_served_trajectory(&case, &receipt);
         trajectory.samples[0].status = ServiceSampleStatus::Conflicting;
         trajectory.samples[0].delivered_kwh = None;
+        trajectory.samples[0].unknown_reason = None;
         trajectory.samples[0].conflict_reason = Some("two meters disagree".to_string());
+        trajectory.samples[0].conflict_evidence = vec![
+            ServiceSourceArtifact {
+                artifact_ref: "meter://A/load-L3/step-0".to_string(),
+                sha256: "7".repeat(64),
+            },
+            ServiceSourceArtifact {
+                artifact_ref: "meter://B/load-L3/step-0".to_string(),
+                sha256: "8".repeat(64),
+            },
+        ];
         trajectory.parent_service_artifacts = receipt.decision_steps.iter()
             .filter(|step| step.disposition == StepDisposition::Executed
                 && step.service_outcome == ServiceOutcome::Scored)
@@ -1198,7 +1227,7 @@ mod tests {
                 sha256: artifact.sha256.clone(),
             }).collect();
         let mut receipt = receipt;
-        receipt.aggregate_score = None;
+        mark_receipt_incomplete(&mut receipt);
         let report = audit_service_trajectory(&trajectory, &receipt, &case).unwrap();
         assert_eq!(report.conflicting_sample_count, 1);
         assert_eq!(report.result_status, "inconclusive_unknown_or_conflicting_service");
