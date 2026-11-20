@@ -76,7 +76,7 @@ The output has **two independent dimensions**:
 
 **Arithmetic/capability disposition** (`Feasible`, `Infeasible`, `Unknown`) evaluates the submitted interval and limit values. `Feasible` means only that the submitted values pass those M1 gates; it does not certify the provenance of those values.
 
-**Evidence qualification** (`FullyIndependentPhysical`, `PhysicalWithNonIndependentSources`, `ModelDependent`, `SyntheticOnly`, `MixedSynthetic`, `Incomplete`) summarizes the required per-unit torque, capability and thermal inputs. A synthetic known-answer case can be `Feasible + SyntheticOnly`; that is an arithmetic test pass, never a physical capability pass. A mixed synthetic/physical record remains `MixedSynthetic`, and any missing required evidence remains `Incomplete`.
+**Evidence qualification** (`FullyIndependentPhysical`, `PhysicalWithNonIndependentSources`, `ModelDependent`, `SyntheticOnly`, `MixedSynthetic`, `Incomplete`) summarizes the required per-unit torque, capability and thermal inputs. A synthetic known-answer case can be `Feasible + SyntheticOnly`; that is an arithmetic test pass, never a physical capability pass. A mixed synthetic/physical record remains `MixedSynthetic`, and any missing required evidence or required numeric quantity (torque, speed, temperature, or capability bound) remains `Incomplete`. The `FullyIndependentPhysical` label is emitted only when every required per-unit value is present and each required class is `IndependentPhysical`.
 
 - **Infeasible:** at least one unit has a known torque, duration, speed or thermal violation, or the submitted torque-sum cross-check is contradictory.
 - **Unknown:** at least one required per-unit input or capability is unsupported, and there is no known violation.
@@ -132,7 +132,7 @@ cargo clippy --manifest-path benchmarks/synthetic-joints/paired-actuator-sharing
 
 Dedicated workflow: `.github/workflows/paired-actuator-load-sharing.yml`.
 
-Twenty-two Rust test definitions cover conservative torque sum, unequal torque shares, missing shares, no equal-share assumption, hottest-unit thermal gate, aggregate-pass/unit-fail, loaded speed, per-unit peak duration, joint-transducer agreement/contradiction, reference-plane/clock/condition mismatch, unknown evidence, preserved vendor/model classes, separate current share, joint configuration/time binding, per-unit evidence receipts, independent-only joint cross-check, known peak overload precedence and malformed capabilities.
+Thirty-two Rust test definitions cover conservative torque sum, unequal torque shares, missing shares, no equal-share assumption, hottest-unit thermal gate, aggregate-pass/unit-fail, loaded speed, per-unit peak duration, joint-transducer agreement/contradiction, reference-plane/clock/condition mismatch, unknown evidence, preserved vendor/model classes, separate current share, joint configuration/time binding, per-unit evidence receipts, independent-only joint cross-check, known peak overload precedence and malformed capabilities.
 
 ## 9. M0–M5 and prospective targets
 
