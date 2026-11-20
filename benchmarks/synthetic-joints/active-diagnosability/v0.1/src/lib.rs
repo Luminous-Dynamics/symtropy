@@ -253,7 +253,7 @@ fn validate_profile_structure(profile: &DiagnosticProfile) -> Result<(), String>
                     feature.feature_id, signature.hypothesis_id
                 ));
             }
-            if !features.insert(
+            if features.insert(
                 feature.feature_id.clone(),
                 (
                     feature.sensor_channel_id.clone(),
@@ -261,7 +261,7 @@ fn validate_profile_structure(profile: &DiagnosticProfile) -> Result<(), String>
                     feature.unit.clone(),
                     feature.separation_scale.to_bits(),
                 ),
-            ).is_none() {
+            ).is_some() {
                 return Err(format!(
                     "duplicate feature {} in hypothesis {}",
                     feature.feature_id, signature.hypothesis_id
