@@ -172,6 +172,7 @@ pub struct EventResult {
     /// Evidence completeness only. This field does not authorize a release.
     pub return_to_service_evidence_complete: bool,
     pub release_attempt_without_passing_test: bool,
+    pub release_attempt_without_complete_evidence: bool,
     pub missing_fields: Vec<String>,
 }
 
@@ -216,6 +217,7 @@ pub struct ProfileResult {
     pub all_return_to_service_evidence_complete: bool,
     pub post_maintenance_test_failure_count: u64,
     pub release_attempt_without_passing_test_count: u64,
+    pub release_attempt_without_complete_evidence_count: u64,
     pub service_burden_comparison_complete: bool,
     /// Always false in v0.1: acquisition, warranty, EOL and field failure data are incomplete.
     pub whole_life_cost_ranking_eligible: bool,
@@ -278,6 +280,9 @@ fn validate_task(task: &ServiceTask, profile_index: usize, event_index: usize, t
             }
         }
         PhaseOutcome::NotApplicable => {
+            if task.evidence_class == EvidenceClass::Unknown {
+                errors.push(format!("{prefix}.evidence_class: not_applicable requires supporting evidence"));
+            }
             if task.outcome_note.as_ref().is_none_or(|v| v.trim().is_empty()) {
                 errors.push(format!("{prefix}.outcome_note: not_applicable requires a reason"));
             }
@@ -557,8 +562,11 @@ fn evaluate_event(profile: &LifecycleProfile, event: &ServiceEvent) -> EventResu
 
     let test_passed = test_result == Some(TestResult::Pass);
     let authorized_disposition_recorded = disposition == Some(ReturnDisposition::ReleasedByAuthorizedPersonnel);
-    let return_to_service_evidence_complete = test_passed && authorized_disposition_recorded;
+    let task_evidence_complete = time_complete && labor_complete
+        && event.tasks.iter().all(|task| matches!(task.outcome, PhaseOutcome::Performed | PhaseOutcome::NotApplicable));
+    let return_to_service_evidence_complete = task_evidence_complete && test_passed && authorized_disposition_recorded;
     let release_attempt_without_passing_test = authorized_disposition_recorded && !test_passed;
+    let release_attempt_without_complete_evidence = authorized_disposition_recorded && !return_to_service_evidence_complete;
     if !test_passed { missing_fields.push("passing_post_maintenance_test_evidence".into()); }
     if !authorized_disposition_recorded { missing_fields.push("authorized_return_to_service_disposition_evidence".into()); }
     missing_fields.sort();
@@ -580,6 +588,7 @@ fn evaluate_event(profile: &LifecycleProfile, event: &ServiceEvent) -> EventResu
         return_disposition: disposition,
         return_to_service_evidence_complete,
         release_attempt_without_passing_test,
+        release_attempt_without_complete_evidence,
         missing_fields,
     }
 }
@@ -644,12 +653,13 @@ fn evaluate_profile(
 
     let test_failure_count = event_results.iter().filter(|event| event.post_maintenance_test == Some(TestResult::Fail)).count() as u64;
     let release_attempt_count = event_results.iter().filter(|event| event.release_attempt_without_passing_test).count() as u64;
+    let incomplete_release_attempt_count = event_results.iter().filter(|event| event.release_attempt_without_complete_evidence).count() as u64;
     let all_return_evidence = event_results.iter().all(|event| event.return_to_service_evidence_complete);
     let any_blocked = event_results.iter().any(|event| {
         event.post_maintenance_test == Some(TestResult::Fail)
             || event.return_disposition == Some(ReturnDisposition::Held)
             || event.missing_fields.iter().any(|field| field.ends_with(":blocked_task"))
-            || event.release_attempt_without_passing_test
+            || event.release_attempt_without_complete_evidence
     });
     let all_synthetic = profile.evidence_class == EvidenceClass::Synthetic
         && events.iter().all(|event| event.occurrence_evidence_class == EvidenceClass::Synthetic)
@@ -680,6 +690,7 @@ fn evaluate_profile(
     }
     if test_failure_count > 0 { findings.push("post_maintenance_test_failure_prevents_return_to_service_evidence_completion".into()); }
     if release_attempt_count > 0 { findings.push("return_to_service_disposition_claimed_without_a_passing_post_maintenance_test".into()); }
+    if incomplete_release_attempt_count > 0 { findings.push("return_to_service_disposition_claimed_without_complete_task_and_test_evidence".into()); }
     if downtime_overrun { findings.push("additive_single_module_downtime_exceeds_annual_operating_time".into()); }
     if factory.is_some_and(|row| !row.base_factory_production_release_ready) {
         findings.push("base_factory_is_not_production_release_ready".into());
@@ -727,6 +738,7 @@ fn evaluate_profile(
         all_return_to_service_evidence_complete: all_return_evidence,
         post_maintenance_test_failure_count: test_failure_count,
         release_attempt_without_passing_test_count: release_attempt_count,
+        release_attempt_without_complete_evidence_count: incomplete_release_attempt_count,
         service_burden_comparison_complete: total_downtime.is_some() && total_labor.is_some() && total_cost.is_some(),
         whole_life_cost_ranking_eligible: false,
         module_production_release_ready: false,
@@ -986,6 +998,20 @@ mod tests {
         let result = evaluate_profile("sa", "contract", 1_000, &p, Some(&factory_row("pod", "sa", "contract", 1_000)));
         assert_eq!(result.status, Status::Blocked);
         assert_eq!(result.release_attempt_without_passing_test_count, 1);
+    }
+
+    #[test]
+    fn released_disposition_with_unknown_pretest_phase_is_not_complete() {
+        let mut p = profile("pod", "detachable_drone_pod");
+        p.events[0].tasks[2].outcome = PhaseOutcome::Unknown;
+        p.events[0].tasks[2].elapsed_minutes = None;
+        p.events[0].tasks[2].technician_count = None;
+        p.events[0].tasks[2].skill_code = None;
+        p.events[0].tasks[2].evidence_class = EvidenceClass::Unknown;
+        let result = evaluate_profile("sa", "contract", 1_000, &p, Some(&factory_row("pod", "sa", "contract", 1_000)));
+        assert!(!result.events[0].return_to_service_evidence_complete);
+        assert!(result.events[0].release_attempt_without_complete_evidence);
+        assert_eq!(result.status, Status::Blocked);
     }
 
     #[test]
