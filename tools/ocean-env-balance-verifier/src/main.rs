@@ -741,7 +741,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index:
             (&interval.outfall_window_start_utc, &interval.outfall_window_end_utc)
         };
         validate_evidence(&flow.evidence, interval, expected_start, expected_end,
-            &mut sample_ids, &mut calibration_domains)?;
+            &mut sample_ids, &mut calibration_domains, limit)?;
         if flow.station_id.trim().is_empty()
             || !["intake", "outfall"].contains(&flow.station_role.as_str())
             || flows.contains_key(flow.station_role.as_str()) {
