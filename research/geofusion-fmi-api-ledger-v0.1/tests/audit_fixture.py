@@ -43,6 +43,8 @@ def audit_fixture(d, arts):
         for v in f["variables"]:
             vr=v["value_reference"]
             if vr in seen: fail(f"duplicate value reference {fid}/{vr}")
+            if v["port_role"] not in ("coupling_source", "coupling_sink", "terminal_sink", "state_observation"):
+                fail(f"unsupported port role: {fid}/{vr}")
             seen.add(vr); vars[(fid,vr)]=v
     life={fid:{"created":False,"entered":False,"initialized":False,"terminated":False,"freed":False} for fid in feds}
     steps={}; successful=set(); values=[]; event_ids=set()
@@ -83,6 +85,13 @@ def audit_fixture(d, arts):
                 if v is None: fail(f"undeclared value reference: {eid}")
                 if v["causality"]!=("input" if k=="set_float64" else "output"): fail(f"wrong variable causality: {eid}")
                 if v["port_id"]!=x["port_id"] or x["source_interval_id"]!=iv["source_interval_id"]: fail(f"port or interval mismatch: {eid}")
+                value_semantics=x.get("sampling_semantics",iv["sampling_semantics"])
+                if value_semantics not in ("constant_over_declared_half_open_interval","sample_at_interval_end","sample_at_interval_start","interval_average"):
+                    fail(f"invalid per-value sampling semantics: {eid}")
+                if v["port_role"]=="state_observation" and (
+                    k!="get_float64" or value_semantics!="sample_at_interval_end" or "transfer_id" in x
+                ):
+                    fail(f"state observation must be a non-transfer output sampled at interval end: {eid}")
                 y=float(x["value"])
                 if not math.isfinite(y) or bits(y)!=x["raw_f64_bits"] or not math.isfinite(unbits(x["raw_f64_bits"])): fail(f"Float64 exact-bit mismatch: {eid}")
                 values.append((k,fid,v,x,iv))
@@ -120,6 +129,17 @@ def audit_fixture(d, arts):
             target=reads if kind=="get_float64" else writes
             if tid in target: fail(f"duplicate transfer leg: {tid}")
             target[tid]=(key,fid,var,iv)
+    state_observations=[record for record in values if record[2]["port_role"]=="state_observation"]
+    if len(state_observations)!=1: fail("expected exactly one declared state observation")
+    state_kind,state_fid,state_var,state_value,state_interval=state_observations[0]
+    if (state_kind,state_fid,state_var["port_id"],state_var["unit"],state_value["value"],
+        state_value.get("sampling_semantics"),state_interval["end_master_ns"]) != (
+        "get_float64","heat-exchanger-buffer","hx.stored_energy","J",10000,
+        "sample_at_interval_end",1000000000
+    ):
+        fail("stored-energy state observation identity/value/time mismatch")
+    if state_value["raw_f64_bits"]!=bits(10000.0):
+        fail("stored-energy state observation exact bits mismatch")
     if set(reads)!={"thermal-transfer-0"} or set(writes)!={"thermal-transfer-0"}: fail("missing or duplicate transfer leg")
     rk,rf,rv,ri=reads["thermal-transfer-0"]; wk,wf,wv,wi=writes["thermal-transfer-0"]
     if rk!=wk or rv["port_role"]!="coupling_source" or wv["port_role"]!="coupling_sink": fail("source/receiver transfer identity mismatch")
