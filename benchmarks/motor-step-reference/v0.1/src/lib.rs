@@ -62,7 +62,7 @@ pub struct MotorStepReceipt {
 
 /// Accumulated impulse budget for one scalar generalized coordinate and one
 /// elapsed interval. Construct a fresh budget once per world step.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct MotorStepBudget {
     maximum_effort: f64,
     duration_s: f64,
@@ -148,20 +148,17 @@ impl MotorStepBudget {
         let velocity_after = current_relative_velocity + effective_inverse_mass * delta_impulse;
         let work = delta_impulse * (current_relative_velocity + velocity_after) * 0.5;
 
-        if !velocity_after.is_finite() || !work.is_finite() {
+        let accumulated_work = self.generalized_mechanical_work_j + work;
+        if !velocity_after.is_finite() || !work.is_finite() || !accumulated_work.is_finite() {
             return Err(MotorStepError::NonFiniteResult);
         }
 
         self.accumulated_impulse = projected_total;
-        self.generalized_mechanical_work_j += work;
+        self.generalized_mechanical_work_j = accumulated_work;
         self.solver_iterations = self.solver_iterations.saturating_add(1);
         if delta_impulse != 0.0 {
             self.nonzero_impulse_iterations =
                 self.nonzero_impulse_iterations.saturating_add(1);
-        }
-
-        if !self.generalized_mechanical_work_j.is_finite() {
-            return Err(MotorStepError::NonFiniteResult);
         }
 
         Ok(MotorIteration {
