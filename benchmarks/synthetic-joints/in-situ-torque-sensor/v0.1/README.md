@@ -55,6 +55,7 @@ Each installation group preserves:
 - flexspline and reducer serials;
 - sensor calibration digest;
 - independent external reference-transducer calibration digest, source, method and raw-trace digest;
+- synchronized metrology receipt digest binding the sensor and reference channels to common clock, calibration and system boundary;
 - in-situ sensor raw-trace digest;
 - all matched trajectory observations.
 
@@ -140,7 +141,7 @@ The report keeps separate:
 
 raw_improvement_nm is positive when the compensated mean centre error is smaller than the raw mean centre error; it can be negative when compensation makes the estimate worse. There is no forced “compensation always helps” score.
 
-The installation-level report also preserves per-group maximum raw, compensated and calibrated interval misses, reference source/raw-trace IDs and sensor calibration digest.
+The installation-level report also preserves per-group maximum raw, compensated and calibrated interval misses, reference source/raw-trace IDs, sensor calibration digest and synchronized metrology receipt digest.
 
 ## 8. Synthetic known-answer fixture
 
@@ -168,7 +169,7 @@ cargo clippy --manifest-path benchmarks/synthetic-joints/in-situ-torque-sensor/v
 
 Dedicated workflow: .github/workflows/in-situ-torque-sensor-transfer.yml. The authoring environment has no local Cargo/rustc/rustfmt; exact-head CI is the compilation and formatting gate.
 
-Twenty-seven Rust test definitions cover grouped installation ranks, whole-installation held-out coverage, OOD abstention, raw-versus-compensated error, insufficient calibration count, split/specimen/sensor/flexspline/reducer/assembly leakage, training-lineage inventory, duplicate sample IDs, calibration-domain rejection, direction/sign consistency, independent-reference evidence, all model/boundary/feature/sensor/reference/domain digests, invalid intervals/edges/alpha, frozen trajectory length, stratified reporting, zero in-domain coverage, Wilson bounds, evidence receipts and static/reverse-quadrant handling.
+Twenty-eight Rust test definitions cover grouped installation ranks, whole-installation held-out coverage, OOD abstention, raw-versus-compensated error, insufficient calibration count, split/specimen/sensor/flexspline/reducer/assembly leakage, training-lineage inventory, synchronized metrology receipt presence/propagation, duplicate sample IDs, calibration-domain rejection, direction/sign consistency, independent-reference evidence, all model/boundary/feature/sensor/reference/domain digests, invalid intervals/edges/alpha, frozen trajectory length, stratified reporting, zero in-domain coverage, Wilson bounds, evidence receipts and static/reverse-quadrant handling.
 
 ## 10. M0–M5 promotion
 
