@@ -13,7 +13,7 @@ use symtropy_math::{Bivector, Capsule, HalfSpace, HyperBox, Point, Sphere, Trans
 use crate::body::{BodyHandle, NetId, RigidBody};
 use crate::broadphase;
 use crate::ccd;
-use crate::constraint::Constraint;
+use crate::constraint::{Constraint, MotorStepState};
 use crate::contact::{CollisionEvent, ContactCache, ContactManifold};
 use crate::gjk;
 use crate::integrator;
@@ -693,7 +693,12 @@ impl<const D: usize> PhysicsWorld<D> {
             }
         }
 
-        // 6b. Velocity-level constraint solve (active islands only)
+        // 6b. Velocity-level constraint solve (active islands only).
+        // Motor state is allocated once per constraint for this world step and
+        // shared across every solver iteration. This keeps actuator effort and
+        // mechanical work tied to elapsed dt, not iteration count.
+        let mut motor_step_states =
+            vec![MotorStepState::default(); self.constraints.len()];
         for _ in 0..self.solver_iterations {
             for &ci in &active_constraint_indices {
                 if ci >= self.constraints.len() {
@@ -704,22 +709,36 @@ impl<const D: usize> PhysicsWorld<D> {
                 if let (Some(a), Some(b)) = (idx_a, idx_b) {
                     if a < b {
                         let (left, right) = self.bodies.split_at_mut(b);
-                        self.constraints[ci].solve_velocity(
+                        self.constraints[ci].solve_velocity_with_state(
                             &mut left[a],
                             &mut right[0],
                             dt,
                             Some(callback),
+                            &mut motor_step_states[ci],
                         );
                     } else {
                         let (left, right) = self.bodies.split_at_mut(a);
-                        self.constraints[ci].solve_velocity(
+                        self.constraints[ci].solve_velocity_with_state(
                             &mut right[0],
                             &mut left[b],
                             dt,
                             Some(callback),
+                            &mut motor_step_states[ci],
                         );
                     }
                 }
+            }
+        }
+
+        // Emit one aggregate mechanical-port work receipt per motorized
+        // constraint after all solver iterations have completed.
+        for &ci in &active_constraint_indices {
+            if ci >= self.constraints.len() {
+                continue;
+            }
+            if let Some(work_joules) = motor_step_states[ci].take_work_receipt() {
+                let (_, motor_body) = self.constraints[ci].bodies();
+                callback.record_work(motor_body, work_joules);
             }
         }
 
