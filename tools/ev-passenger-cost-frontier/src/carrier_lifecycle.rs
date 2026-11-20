@@ -357,6 +357,15 @@ fn validate_inputs(factory: &FactoryModuleReport, catalog: &LifecycleCatalog) ->
         }
     }
 
+    let mut base_scenario_keys = BTreeSet::new();
+    for row in &factory.results {
+        base_scenario_keys.insert((
+            row.site_id.as_str(),
+            row.template_id.as_str(),
+            row.target_good_vehicles_per_year,
+        ));
+    }
+
     let mut profile_ids = BTreeSet::new();
     let mut mapped_factory_ids = BTreeSet::new();
     let mut baseline_count = 0_usize;
@@ -387,6 +396,23 @@ fn validate_inputs(factory: &FactoryModuleReport, catalog: &LifecycleCatalog) ->
         if let Some(factory_config_id) = &profile.factory_config_id {
             if factory_config_id.trim().is_empty() || !mapped_factory_ids.insert(factory_config_id.as_str()) {
                 errors.push(format!("profiles[{profile_index}].factory_config_id: nonempty unique mapping required"));
+            }
+            for key in &base_scenario_keys {
+                let matching: Vec<&FactoryModuleScenario> = factory.results.iter().filter(|row| {
+                    row.site_id == key.0
+                        && row.template_id == key.1
+                        && row.target_good_vehicles_per_year == key.2
+                        && row.config_id == *factory_config_id
+                }).collect();
+                if matching.len() != 1 {
+                    errors.push(format!(
+                        "profiles[{profile_index}]: factory config {factory_config_id} must have exactly one row for each base site/template/volume scenario"
+                    ));
+                } else if matching[0].architecture != profile.architecture {
+                    errors.push(format!(
+                        "profiles[{profile_index}]: lifecycle architecture does not match factory architecture for {factory_config_id}"
+                    ));
+                }
             }
         } else {
             baseline_count += 1;
@@ -424,8 +450,14 @@ fn validate_inputs(factory: &FactoryModuleReport, catalog: &LifecycleCatalog) ->
             {
                 errors.push(format!("profiles[{profile_index}].events[{event_index}]: planned frequency must be explicit"));
             }
+            if event.occurrences_per_module_year.is_some()
+                && event.occurrence_evidence_class == EvidenceClass::Unknown
+            {
+                errors.push(format!("profiles[{profile_index}].events[{event_index}]: a supplied event rate cannot have unknown evidence class"));
+            }
             if !finite_nonnegative(event.occurrences_per_module_year)
                 || event.occurrences_per_module_year.is_some_and(|v| v > MAX_EVENT_RATE_PER_YEAR)
+                || event.exposure_module_hours.is_some_and(|v| !v.is_finite() || v <= 0.0)
                 || !finite_nonnegative(event.parts_cost_per_occurrence)
                 || event.parts_cost_per_occurrence.is_some_and(|v| v > MAX_MONEY_PER_EVENT)
             {
