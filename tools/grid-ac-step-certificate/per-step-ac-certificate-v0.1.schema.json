@@ -50,6 +50,7 @@
         "parameterSetRef",
         "parameterSetSha256",
         "modelClass",
+        "requiredPhases",
         "requiredConstraintTypes",
         "applicabilityRef",
         "limitPolicyRef"
@@ -102,6 +103,14 @@
               "island_source",
               "other_declared"
             ]
+          }
+        },
+        "requiredPhases": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
@@ -482,6 +491,7 @@
         "constraintId",
         "constraintType",
         "subjectRef",
+        "phaseRef",
         "measuredValue",
         "unit",
         "lowerLimit",
@@ -548,6 +558,12 @@
             "fail",
             "not_assessed",
             "not_applicable"
+          ]
+        },
+        "phaseRef": {
+          "type": [
+            "string",
+            "null"
           ]
         }
       }
