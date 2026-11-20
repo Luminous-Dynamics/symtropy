@@ -351,7 +351,7 @@ fn validate_internal_face(
         || face
             .candidate_receipts
             .windows(2)
-            .any(|pair| pair[0].expert_id >= pair[1].expert_id)
+            .any(|pair| pair[0].expert_id.as_str() >= pair[1].expert_id.as_str())
     {
         return Err(DomainBalanceError::InvalidCandidateReceipt(
             face.face_id.clone(),
