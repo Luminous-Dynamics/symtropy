@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "0.1.0",
+  "scenarioSetId": "SYNTHETIC-TX-FLEET-DISRUPTIONS-01",
+  "baseCaseId": "SYNTHETIC-TX-FLEET-01",
+  "probabilityBasis": "synthetic_assumption",
+  "probabilitySource": "Illustrative scenario weights chosen solely to test probability aggregation; not estimated from outage frequency, weather records or supplier data.",
+  "scenarios": [
+    {
+      "scenarioId": "BASELINE",
+      "description": "No additional disruptions beyond the declared daily resource calendars.",
+      "probability": 0.55,
+      "taskDurationOverrides": [],
+      "taskReleaseDelays": [],
+      "resourceOutages": []
+    },
+    {
+      "scenarioId": "REGIONAL-STORM",
+      "description": "One regional storm affects the heavy-haul route and heavy-lift crane availability in a shared time window. Both outages carry one correlation group to prevent treating them as independent events.",
+      "probability": 0.25,
+      "taskDurationOverrides": [],
+      "taskReleaseDelays": [],
+      "resourceOutages": [
+        {
+          "resourceId": "HEAVY-HAULER",
+          "startHour": 0,
+          "endHour": 48,
+          "unitsUnavailable": 1,
+          "causeId": "STORM-FRONT-01",
+          "correlationGroupId": "REGIONAL-STORM-01"
+        },
+        {
+          "resourceId": "CRANE-200T",
+          "startHour": 0,
+          "endHour": 24,
+          "unitsUnavailable": 1,
+          "causeId": "STORM-FRONT-01",
+          "correlationGroupId": "REGIONAL-STORM-01"
+        }
+      ]
+    },
+    {
+      "scenarioId": "SUPPLIER-SHOCK",
+      "description": "OEM manufacturing and international dispatch lead time for the second transformer spare increases in the scenario realization.",
+      "probability": 0.15,
+      "taskDurationOverrides": [
+        {
+          "eventId": "OUTAGE-002",
+          "taskId": "source-part",
+          "durationHours": 1800
+        }
+      ],
+      "taskReleaseDelays": [],
+      "resourceOutages": []
+    },
+    {
+      "scenarioId": "COMPOUND-STORM-SUPPLIER",
+      "description": "Regional storm resource disruption coincides with the OEM supplier delay; this is a compound scenario, not the product of assumed independent probabilities.",
+      "probability": 0.05,
+      "taskDurationOverrides": [
+        {
+          "eventId": "OUTAGE-002",
+          "taskId": "source-part",
+          "durationHours": 1800
+        }
+      ],
+      "taskReleaseDelays": [],
+      "resourceOutages": [
+        {
+          "resourceId": "HEAVY-HAULER",
+          "startHour": 0,
+          "endHour": 72,
+          "unitsUnavailable": 1,
+          "causeId": "STORM-FRONT-02",
+          "correlationGroupId": "REGIONAL-STORM-02"
+        },
+        {
+          "resourceId": "CRANE-200T",
+          "startHour": 0,
+          "endHour": 36,
+          "unitsUnavailable": 1,
+          "causeId": "STORM-FRONT-02",
+          "correlationGroupId": "REGIONAL-STORM-02"
+        }
+      ]
+    }
+  ]
+}

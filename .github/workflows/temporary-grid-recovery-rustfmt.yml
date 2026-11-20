@@ -1,0 +1,41 @@
+name: Temporary rustfmt repair for Grid Asset Recovery validator
+
+on:
+  push:
+    branches:
+      - research/grid-asset-recovery-6119-v0.1
+    paths:
+      - "tools/grid-asset-recovery-validator/src/**"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.ref == 'refs/heads/research/grid-asset-recovery-6119-v0.1'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/grid-asset-recovery-6119-v0.1
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Apply canonical rustfmt
+        run: cargo fmt --manifest-path tools/grid-asset-recovery-validator/Cargo.toml --all
+      - name: Verify canonical rustfmt
+        run: cargo fmt --manifest-path tools/grid-asset-recovery-validator/Cargo.toml --all -- --check
+      - name: Commit only the two validator source files
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/grid-asset-recovery-validator/src/main.rs tools/grid-asset-recovery-validator/src/scheduler.rs
+          if git diff --cached --quiet; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git commit -m "style(recovery): apply canonical rustfmt to validator sources"
+          git push origin HEAD:research/grid-asset-recovery-6119-v0.1

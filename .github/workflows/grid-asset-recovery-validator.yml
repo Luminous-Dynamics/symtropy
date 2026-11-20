@@ -1,0 +1,110 @@
+name: Grid Asset Recovery Validator
+
+on:
+  pull_request:
+    paths:
+      - "docs/research/grid-asset-recovery/**"
+      - "tools/grid-asset-recovery-validator/**"
+      - ".github/workflows/grid-asset-recovery-validator.yml"
+  push:
+    paths:
+      - "docs/research/grid-asset-recovery/**"
+      - "tools/grid-asset-recovery-validator/**"
+      - ".github/workflows/grid-asset-recovery-validator.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  recovery-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Install pinned JSON Schema validator
+        run: python3 -m pip install 'jsonschema==4.26.0'
+
+      - name: Validate JSON Schema and fixture
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+
+          root = Path("docs/research/grid-asset-recovery/data")
+          schema = json.loads((root / "asset-recovery-v0.1.schema.json").read_text())
+          fixtures = [
+              "synthetic-asset-recovery-v0.1.json",
+              "synthetic-cable-recovery-v0.1.json",
+          ]
+          Draft202012Validator.check_schema(schema)
+          for fixture_name in fixtures:
+              fixture = json.loads((root / fixture_name).read_text())
+              errors = sorted(
+                  Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(fixture),
+                  key=lambda error: list(map(str, error.absolute_path)),
+              )
+              if errors:
+                  for error in errors:
+                      location = ".".join(map(str, error.absolute_path)) or "$"
+                      print(f"{fixture_name}:{location}: {error.message}")
+                  raise SystemExit(1)
+              print(f"JSON Schema PASS: {fixture_name} conforms to Draft 2020-12 contract")
+          scenario_schema = json.loads((root / "recovery-scenarios-v0.1.schema.json").read_text())
+          scenario_fixture = json.loads((root / "synthetic-recovery-scenarios-v0.1.json").read_text())
+          Draft202012Validator.check_schema(scenario_schema)
+          errors = sorted(
+              Draft202012Validator(
+                  scenario_schema,
+                  format_checker=FormatChecker(),
+              ).iter_errors(scenario_fixture),
+              key=lambda error: list(map(str, error.absolute_path)),
+          )
+          if errors:
+              for error in errors:
+                  location = ".".join(map(str, error.absolute_path)) or "$"
+                  print(f"scenario-set:{location}: {error.message}")
+              raise SystemExit(1)
+          print("JSON Schema PASS: synthetic recovery scenario set conforms")
+
+          register_schema = json.loads((root / "scheduling-benchmark-register-v0.1.schema.json").read_text())
+          register = json.loads((root / "scheduling-benchmark-register-v0.1.json").read_text())
+          Draft202012Validator.check_schema(register_schema)
+          errors = sorted(
+              Draft202012Validator(
+                  register_schema,
+                  format_checker=FormatChecker(),
+              ).iter_errors(register),
+              key=lambda error: list(map(str, error.absolute_path)),
+          )
+          if errors:
+              for error in errors:
+                  location = ".".join(map(str, error.absolute_path)) or "$"
+                  print(f"benchmark-register:{location}: {error.message}")
+              raise SystemExit(1)
+          print(f"JSON Schema PASS: {len(register['records'])} benchmark register records conform")
+          PY
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/grid-asset-recovery-validator/Cargo.toml -- --check
+
+      - name: Run adversarial semantic tests
+        run: cargo test --manifest-path tools/grid-asset-recovery-validator/Cargo.toml
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --manifest-path tools/grid-asset-recovery-validator/Cargo.toml --all-targets -- -D warnings
+
+      - name: Validate synthetic recovery case
+        run: cargo run --manifest-path tools/grid-asset-recovery-validator/Cargo.toml -- docs/research/grid-asset-recovery/data/synthetic-asset-recovery-v0.1.json
+
+      - name: Validate submarine cable recovery case
+        run: cargo run --manifest-path tools/grid-asset-recovery-validator/Cargo.toml -- docs/research/grid-asset-recovery/data/synthetic-cable-recovery-v0.1.json
+
+      - name: Evaluate compound disruption scenario set
+        run: cargo run --manifest-path tools/grid-asset-recovery-validator/Cargo.toml -- --scenario-set docs/research/grid-asset-recovery/data/synthetic-recovery-scenarios-v0.1.json docs/research/grid-asset-recovery/data/synthetic-asset-recovery-v0.1.json
