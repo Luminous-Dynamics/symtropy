@@ -40,7 +40,7 @@ fixtures/positive-two-fmu-ledger.json demonstrates a source-to-heat-exchanger ex
 - synthetic first-law residual: 0 W;
 - cumulative buffer stored-energy state observation: 10,000 J at the end of the declared one-second interval (VR 34, sampled at interval end).
 
-The fixture contains two federates and one normalized barrier. The heat-exchanger declares all five FMI variables: input power (VR 21), service (VR 31), loss (VR 32), storage power (VR 33), and stored-energy state (VR 34, J). Power-flow values and the sampled state are kept distinct. **All referenced FMU packages, model descriptions, platform binaries, master binary, trace and energy-contract artifacts are explicitly non-executable text/JSON stubs. They are test data, not valid FMUs, binaries or external solver results.** No FMI API was called and no model was simulated.
+The fixture contains two federates and one normalized barrier. The heat-exchanger declares all five FMI variables: input power `thermalPowerIn` (VR 21), service `thermalService` (VR 31), `heatLoss` (VR 32), storage power `storageCharge` (VR 33), and stored-energy state `storedEnergy` (VR 34, J). Power-flow values and the sampled state are kept distinct. **All referenced FMU packages, model descriptions, platform binaries, master binary, trace and energy-contract artifacts are explicitly non-executable text/JSON stubs. They are test data, not valid FMUs, binaries or external solver results.** No FMI API was called and no model was simulated.
 
 ## Run the fixture audit
 
