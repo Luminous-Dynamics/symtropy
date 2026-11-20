@@ -30,7 +30,7 @@ It does not reimplement the three-stage composition logic, fluid-transfer physic
 
 ## Frozen corpus
 
-The 32-case synthetic corpus covers complete receipt chains, partial accepted mass, missing and late receipts, exact-byte tampering, source/schema/identity mismatch, receiver/interface/fluid mismatch, duplicate and conflicting replay, causal order, provider configuration effectivity, supersession, and authority-negative controls.
+The 34-case synthetic corpus covers complete receipt chains, partial accepted mass, missing and late receipts, exact-byte tampering, source/schema/identity mismatch, receiver/interface/fluid mismatch, duplicate and conflicting replay, causal order, provider configuration effectivity, supersession, and authority-negative controls.
 
 ## Metrics
 
