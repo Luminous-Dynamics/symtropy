@@ -1,6 +1,7 @@
 {
   "schema_version": "0.1.0",
   "programme_id": "EV-CARRIER-ICD-001",
+  "evaluated_at_utc": "2026-11-20T00:00:00Z",
   "claim_ceiling": "Synthetic interface-identity and evidence-admission fixture only. It contains no qualified physical ratings, connector selections or production compatibility claims.",
   "vehicle_configuration": {
     "configuration_id": "ev-carrier-ref-01-synthetic",
@@ -110,51 +111,54 @@
       }
     }
   ],
-  "assessments": [
+  "interface_pairs": [
     {
       "pair_id": "vehicle-pod-mechanical-mount",
       "vehicle_port_id": "vehicle-mechanical-mount-a",
       "module_port_id": "pod-mechanical-mount-b",
-      "disposition": "incompatible",
-      "reason_codes": [
-        "MATING_PROFILE_MISMATCH"
-      ],
-      "evidence_references": [
-        "synthetic://evidence/vehicle-mechanical-mount",
-        "synthetic://evidence/pod-mechanical-mount"
-      ],
-      "claim_ceiling": "Declared mount-profile IDs disagree; no physical load or fit conclusion is made."
+      "compatibility_profile_id": "ICD-MOUNT-PAIR-A",
+      "compatibility_profile_reference": "doc://interface-control/mechanical-mount-pair-A",
+      "compatibility_profile_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+      "qualification_evidence": {
+        "classification": "synthetic",
+        "source_reference": "synthetic://evidence/pair/mechanical-mount",
+        "vehicle_configuration_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "module_configuration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "report_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "valid_until": null
+      }
     },
     {
       "pair_id": "vehicle-pod-hv-power",
       "vehicle_port_id": "vehicle-hv-output-01",
       "module_port_id": "pod-hv-input-01",
-      "disposition": "indeterminate",
-      "reason_codes": [
-        "EVIDENCE_UNQUALIFIED",
-        "PROFILE_DETAIL_NOT_ADMITTED"
-      ],
-      "evidence_references": [
-        "synthetic://evidence/vehicle-hv-interface",
-        "unknown://pod-hv-test-not-performed"
-      ],
-      "claim_ceiling": "Mating profile identity alone does not qualify voltage, current, isolation, interlock, fault or thermal compatibility."
+      "compatibility_profile_id": "ICD-HV-PAIR-UNSELECTED",
+      "compatibility_profile_reference": "doc://interface-control/hv-pair-not-yet-selected",
+      "compatibility_profile_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+      "qualification_evidence": {
+        "classification": "unknown",
+        "source_reference": "unknown://hv-pair-qualification-not-performed",
+        "vehicle_configuration_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "module_configuration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "report_digest": null,
+        "valid_until": null
+      }
     },
     {
       "pair_id": "vehicle-pod-data-control",
       "vehicle_port_id": "vehicle-data-control-01",
       "module_port_id": "pod-data-control-01",
-      "disposition": "indeterminate",
-      "reason_codes": [
-        "EVIDENCE_UNQUALIFIED",
-        "EVIDENCE_MISSING",
-        "PROFILE_DETAIL_NOT_ADMITTED"
-      ],
-      "evidence_references": [
-        "measurement://vehicle-data-interface/preliminary",
-        "unknown://pod-data-protocol-selection-pending"
-      ],
-      "claim_ceiling": "Preliminary measured/unknown records do not establish authenticated protocol, schema, timing, cybersecurity or safe-state compatibility."
+      "compatibility_profile_id": "ICD-DATA-PAIR-UNSELECTED",
+      "compatibility_profile_reference": "doc://interface-control/data-pair-not-yet-selected",
+      "compatibility_profile_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "qualification_evidence": {
+        "classification": "unknown",
+        "source_reference": "unknown://data-pair-qualification-not-performed",
+        "vehicle_configuration_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "module_configuration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "report_digest": null,
+        "valid_until": null
+      }
     }
   ]
 }
