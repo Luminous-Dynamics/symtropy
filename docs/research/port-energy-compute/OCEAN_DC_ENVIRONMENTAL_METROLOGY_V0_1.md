@@ -14,7 +14,7 @@ ITU-T Recommendation **L.1312 (07/2026)** was approved on 29 July 2026 and is in
 
 Its 14 data-centre metrics include PUE, energy reuse factor, space usage effectiveness, WUE, reclaimed/non-potable water proportion, WEEE reuse/recycling, REF, CUE, GHGEF, air pollutant concentration, water pollutant concentration, land pollutant concentration, outdoor noise and mean species abundance (MSA). The Recommendation explicitly discusses aquatic-organism impacts from underwater data-centre construction, operation and maintenance, and describes MSA relative to an undisturbed baseline.
 
-**Project shift:** environmental evidence is an admission gate and a measured system output, not a paragraph after the PUE result. We preserve the 14 standard metrics while adding a separate ocean-specific layer for intake/return flow, thermal plume, water chemistry, sediment, underwater noise, benthic habitat and ecological response.
+**Project shift:** environmental evidence is an admission gate and a measured system output, not a paragraph after the PUE result. We preserve the 14 standard metrics while adding a separate ocean-specific layer for intake/return flow, thermal plume, pollutant mass flux, water chemistry, sediment, underwater noise, benthic habitat and ecological response. The catalog now contains 14 separate marine-extension metrics.
 
 The machine-readable crosswalk is `OCEAN_DC_ENVIRONMENTAL_METROLOGY_V0_1.json`. Its catalog-only Rust verifier is `tools/ocean-env-metrics-verifier/`.
 
@@ -40,8 +40,8 @@ ITU-T L.1312 maps WUE to ISO/IEC 30134-9 and requires the selected WUE category 
 The Recommendation's reclaimed/non-potable-water proportion metric defines its total-water-withdrawal denominator as **excluding seawater**. This does not mean seawater is environmentally irrelevant or that a seawater cooling loop consumes no marine resource. Therefore:
 - report freshwater and non-potable water under the declared WUE category;
 - separately report seawater intake/withdrawal volume, return/discharge volume, recirculation, purge and cleaning flows;
-- report intake-to-return temperature difference and thermal energy;
-- report chemistry, pollutants, entrainment/impingement and ecological indicators.
+- report intake-to-return temperature difference, spatial/temporal thermal-plume exposure and thermal energy;
+- report chemistry, pollutant concentrations and flow-weighted pollutant mass fluxes, entrainment/impingement and ecological indicators.
 
 Do not use an attractive WUE value to hide an unmeasured seawater intake or outfall.
 
@@ -70,14 +70,14 @@ Every measurement must have a declared physical/logical boundary, location, dept
 | Facility and IT energy | Grid import/export, on-site generation, UPS losses, BESS charge/discharge, IT PDU energy, cooling pumps, fans/chillers and auxiliaries | Meter identity/class, CT/VT ratios, wiring diagram, verification/calibration, synchronized intervals, uncertainty budget |
 | Thermal-hydraulic loop | Primary and secondary supply/return temperatures, intake/outfall temperatures, flow, differential pressure, pump state/power | Paired calibrated sensors, flow calibration, heat-exchanger boundary, location/depth, time sync |
 | Ocean profile and hydrodynamics | Temperature-depth, conductivity/salinity, current speed/direction, waves, turbidity | Coordinates/datum, depth, calibration, deployment metadata, timebase, fouling inspection, QC |
-| Water quality | pH, dissolved oxygen, conductivity, turbidity, nutrients where relevant, metals/pollutants by laboratory method | Paired intake/outfall/reference samples, accredited method, chain of custody, blanks/duplicates, detection limits |
+| Water quality | pH, dissolved oxygen, conductivity, turbidity, nutrients where relevant, metals/pollutants by laboratory method; analyte concentration × synchronized outfall flow for mass flux | Paired intake/outfall/reference samples, accredited method, chain of custody, blanks/duplicates, detection limits |
 | Ecology and habitat | Benthic taxa, habitat classes, abundance/MSA inputs, entrainment/impingement observations, biofouling taxa | Independent ecologist, repeatable protocol, predeclared reference/control stations, seasonal coverage, taxonomic resolution |
 | Underwater acoustics | Radiated-noise spectrum, ambient noise, duty cycle, source/received level and location/range/depth | Calibrated hydrophone and recorder chain, sensitivity, frequency band, ambient reference, timebase |
 | Land/site emissions | Generator exhaust and air pollutants, refrigerants, soil contaminants, WEEE and construction/decommission waste | Applicable sampling methods, analytes, source boundary, laboratory evidence, waste chain-of-custody |
 
 ### 3.1 Heat and water mass balance
 
-At the heat-exchanger boundary, compute thermal transfer from synchronized mass/volume flow and paired temperature measurements using the stated fluid-property assumptions. Keep:
+At the heat-exchanger boundary, compute thermal transfer from synchronized mass/volume flow and paired temperature measurements using the stated fluid-property assumptions. Add a spatial/temporal thermal-plume measurement over the impact and reference stations, rather than treating a single outfall thermometer as ecological exposure. For each pollutant analyte, also compute discharge mass flux = measured concentration × synchronized discharge flow, propagating both measurement uncertainties. Keep:
 - heat transferred from the data-centre loop to seawater;
 - heat reused by another party at the actual handoff meter;
 - return-water temperature;
