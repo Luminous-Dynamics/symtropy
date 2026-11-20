@@ -857,6 +857,13 @@ mod tests {
     }
 
     #[test]
+    fn wrong_issuer_is_rejected_even_with_a_trusted_key() {
+        let (trust, envelope, mut expected, _) = fixtures();
+        expected.issuer_id = "different-producer".to_string();
+        assert!(verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err());
+    }
+
+    #[test]
     fn wrong_role_or_wrong_case_binding_is_rejected() {
         let (trust, envelope, mut expected, _) = fixtures();
         expected.signer_role = SignerRole::Scorer;
