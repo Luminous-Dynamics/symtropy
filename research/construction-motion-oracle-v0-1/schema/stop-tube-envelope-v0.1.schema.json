@@ -26,6 +26,7 @@
     "site_clock_domain_id",
     "trigger_domain_start_tick",
     "trigger_domain_end_tick",
+    "trigger_domain_duration_ms",
     "stop_coverage_duration_ms",
     "conservative_stop_distance_bound_mm",
     "primitive_count",
@@ -124,6 +125,10 @@
       "const": true
     },
     "valid_until_tick": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "trigger_domain_duration_ms": {
       "type": "integer",
       "minimum": 1
     }
