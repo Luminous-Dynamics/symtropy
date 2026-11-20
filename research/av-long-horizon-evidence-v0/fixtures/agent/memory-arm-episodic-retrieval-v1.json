@@ -39,14 +39,19 @@
         "evidence_as_of_tick": 600,
         "response_tick": 601,
         "claimed_independent_corroboration": false,
-        "claimed_cross_clock_ordering": false,
         "memory_bytes_used": null,
         "input_tokens": null,
         "retrieval_latency_ms": null,
         "energy_joules": null,
         "retrieved_memory_item_refs": [],
         "retained_memory_item_refs": [],
-        "purge_receipts": []
+        "purge_receipts": [],
+        "decision": "answer",
+        "claimed_cross_clock_order": false,
+        "claimed_distinct_event_count": null,
+        "current_observation_refs": [
+          "obs-door-impact"
+        ]
       },
       {
         "episode_id": "lh-002-repeated-event-dedup",
@@ -62,14 +67,22 @@
         "evidence_as_of_tick": 900,
         "response_tick": 901,
         "claimed_independent_corroboration": false,
-        "claimed_cross_clock_ordering": false,
         "memory_bytes_used": null,
         "input_tokens": null,
         "retrieval_latency_ms": null,
         "energy_joules": null,
         "retrieved_memory_item_refs": [],
         "retained_memory_item_refs": [],
-        "purge_receipts": []
+        "purge_receipts": [],
+        "decision": "answer",
+        "claimed_cross_clock_order": false,
+        "claimed_distinct_event_count": 4,
+        "current_observation_refs": [
+          "obs-tap-1",
+          "obs-tap-2",
+          "obs-tap-3",
+          "obs-tap-4"
+        ]
       },
       {
         "episode_id": "lh-003-correction-supersession",
@@ -82,14 +95,17 @@
         "evidence_as_of_tick": 1800,
         "response_tick": 1801,
         "claimed_independent_corroboration": false,
-        "claimed_cross_clock_ordering": false,
         "memory_bytes_used": null,
         "input_tokens": null,
         "retrieval_latency_ms": null,
         "energy_joules": null,
         "retrieved_memory_item_refs": [],
         "retained_memory_item_refs": [],
-        "purge_receipts": []
+        "purge_receipts": [],
+        "decision": "answer",
+        "claimed_cross_clock_order": false,
+        "claimed_distinct_event_count": null,
+        "current_observation_refs": []
       },
       {
         "episode_id": "lh-004-common-cause-dependence",
@@ -103,14 +119,20 @@
         "evidence_as_of_tick": 1200,
         "response_tick": 1201,
         "claimed_independent_corroboration": false,
-        "claimed_cross_clock_ordering": false,
         "memory_bytes_used": null,
         "input_tokens": null,
         "retrieval_latency_ms": null,
         "energy_joules": null,
         "retrieved_memory_item_refs": [],
         "retained_memory_item_refs": [],
-        "purge_receipts": []
+        "purge_receipts": [],
+        "decision": "answer",
+        "claimed_cross_clock_order": false,
+        "claimed_distinct_event_count": null,
+        "current_observation_refs": [
+          "obs-impact-video",
+          "obs-impact-audio"
+        ]
       },
       {
         "episode_id": "lh-005-nuisance-interference",
@@ -123,14 +145,19 @@
         "evidence_as_of_tick": 3600,
         "response_tick": 3601,
         "claimed_independent_corroboration": false,
-        "claimed_cross_clock_ordering": false,
         "memory_bytes_used": null,
         "input_tokens": null,
         "retrieval_latency_ms": null,
         "energy_joules": null,
         "retrieved_memory_item_refs": [],
         "retained_memory_item_refs": [],
-        "purge_receipts": []
+        "purge_receipts": [],
+        "decision": "answer",
+        "claimed_cross_clock_order": false,
+        "claimed_distinct_event_count": null,
+        "current_observation_refs": [
+          "obs-target-alarm"
+        ]
       },
       {
         "episode_id": "lh-006-absent-event-false-memory",
@@ -141,14 +168,17 @@
         "evidence_as_of_tick": 900,
         "response_tick": 901,
         "claimed_independent_corroboration": false,
-        "claimed_cross_clock_ordering": false,
         "memory_bytes_used": null,
         "input_tokens": null,
         "retrieval_latency_ms": null,
         "energy_joules": null,
         "retrieved_memory_item_refs": [],
         "retained_memory_item_refs": [],
-        "purge_receipts": []
+        "purge_receipts": [],
+        "decision": "abstain",
+        "claimed_cross_clock_order": false,
+        "claimed_distinct_event_count": null,
+        "current_observation_refs": []
       },
       {
         "episode_id": "lh-007-cross-clock-and-event-order",
@@ -164,14 +194,22 @@
         "evidence_as_of_tick": 7200,
         "response_tick": 7201,
         "claimed_independent_corroboration": false,
-        "claimed_cross_clock_ordering": false,
         "memory_bytes_used": null,
         "input_tokens": null,
         "retrieval_latency_ms": null,
         "energy_joules": null,
         "retrieved_memory_item_refs": [],
         "retained_memory_item_refs": [],
-        "purge_receipts": []
+        "purge_receipts": [],
+        "decision": "answer",
+        "claimed_cross_clock_order": false,
+        "claimed_distinct_event_count": null,
+        "current_observation_refs": [
+          "obs-camera-action",
+          "obs-mic-sound",
+          "obs-camera-reset",
+          "obs-mic-after-reset"
+        ]
       },
       {
         "episode_id": "lh-008-memory-revocation",
@@ -184,7 +222,6 @@
         "evidence_as_of_tick": 3600,
         "response_tick": 3601,
         "claimed_independent_corroboration": false,
-        "claimed_cross_clock_ordering": false,
         "memory_bytes_used": null,
         "input_tokens": null,
         "retrieval_latency_ms": null,
@@ -232,7 +269,11 @@
             "receipt_id": "synthetic-episodic_retrieval-purge-mem-private-response-cache",
             "attestation_level": "candidate_self_reported"
           }
-        ]
+        ],
+        "decision": "answer",
+        "claimed_cross_clock_order": false,
+        "claimed_distinct_event_count": null,
+        "current_observation_refs": []
       },
       {
         "episode_id": "lh-009-compression-retention",
@@ -245,14 +286,19 @@
         "evidence_as_of_tick": 5400,
         "response_tick": 5401,
         "claimed_independent_corroboration": false,
-        "claimed_cross_clock_ordering": false,
         "memory_bytes_used": null,
         "input_tokens": null,
         "retrieval_latency_ms": null,
         "energy_joules": null,
         "retrieved_memory_item_refs": [],
         "retained_memory_item_refs": [],
-        "purge_receipts": []
+        "purge_receipts": [],
+        "decision": "answer",
+        "claimed_cross_clock_order": false,
+        "claimed_distinct_event_count": null,
+        "current_observation_refs": [
+          "obs-rare-vibration"
+        ]
       }
     ]
   }
