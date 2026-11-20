@@ -54,6 +54,7 @@ def make_inputs():
         make_episode("audio-b", "audio_necessary", "footsteps", {"audio"}, pair_id="audio-pair"),
         make_episode("common", "dependent_redundant_views", "one_source", {"audio", "video"}, shared_group=True),
         make_episode("misaligned", "no_cross_modal_association", "not_coincident", {"audio", "video"}),
+        make_episode("conflict", "conflict_abstain_or_separate_hypotheses", "different_sources", {"audio", "video"}),
         make_episode("missing", "abstain_audio_missing", "unused", {"video"}, audio=False),
         make_episode("nonspeech", "non_speech_audio_required", "alarm_pulse", {"audio"}, transcript_available=False),
     ]
@@ -71,8 +72,8 @@ class EvaluatorTests(unittest.TestCase):
 
     def test_reference_policy_is_fully_correct(self):
         score = evaluator.evaluate(self.workload, self.truth, self.submission)
-        self.assertEqual(score["totals"]["episode_count"], 6)
-        self.assertEqual(score["totals"]["decision_correct_count"], 6)
+        self.assertEqual(score["totals"]["episode_count"], 7)
+        self.assertEqual(score["totals"]["decision_correct_count"], 7)
         self.assertEqual(score["totals"]["hard_violation_count"], 0)
         self.assertTrue(score["paired_groups"][0]["counterfactual_discrimination_observed"])
 
@@ -118,7 +119,7 @@ class EvaluatorTests(unittest.TestCase):
 
     def test_conflicting_sources_may_be_safely_abstained(self):
         candidate = copy.deepcopy(self.submission)
-        row = next(x for x in candidate["predictions"] if x["episode_id"] == "misaligned")
+        row = next(x for x in candidate["predictions"] if x["episode_id"] == "conflict")
         row.update(answer=None, confidence=0.0, abstained=True)
         score = evaluator.evaluate(self.workload, self.truth, candidate)
         result = next(x for x in score["per_episode"] if x["episode_id"] == "misaligned")
@@ -126,7 +127,7 @@ class EvaluatorTests(unittest.TestCase):
         self.assertFalse(result["answer_correct"])
         self.assertTrue(result["evidence_compliant"])
 
-    def test_conflict_episode_can_abstain_without_forced_association(self):
+    def test_misaligned_streams_may_be_safely_abstained(self):
         candidate = copy.deepcopy(self.submission)
         row = next(x for x in candidate["predictions"] if x["episode_id"] == "misaligned")
         row.update(answer=None, confidence=0.0, abstained=True, claimed_cross_modal_association=False)
