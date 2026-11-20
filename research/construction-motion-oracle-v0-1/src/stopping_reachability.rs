@@ -21,6 +21,9 @@ pub struct StoppingDynamicsQualification {
     pub operating_condition_sha256: String,
     /// Shared frozen test-scenario identity used to pair brake and sensor evidence.
     pub scenario_context_sha256: String,
+    /// Qualified site monotonic clock domain and evidence validity ceiling.
+    pub site_clock_domain_id: String,
+    pub valid_until_tick: u64,
     pub maximum_qualified_speed_mm_s: f64,
     pub maximum_detection_to_brake_latency_ms: u64,
     pub maximum_positive_acceleration_mm_s2: f64,
@@ -58,6 +61,8 @@ pub enum StoppingReachabilityError {
     InvalidSensorQualificationReceiptDigest,
     InvalidTargetConditionDigest,
     InvalidScenarioContextDigest,
+    InvalidQualificationClockDomain,
+    InvalidQualificationExpiry,
     IncompatibleScenarioContext,
     InvalidMaximumQualifiedApproachSpeed,
     DetectionSpeedOutsideQualifiedDomain,
@@ -94,6 +99,9 @@ pub struct HazardDetectionQualification {
     pub target_condition_sha256: String,
     /// Must match the braking qualification's frozen scenario context.
     pub scenario_context_sha256: String,
+    /// Must share the site-clock domain and validity convention used by dispatch.
+    pub site_clock_domain_id: String,
+    pub valid_until_tick: u64,
     /// Highest approach speed covered by the detection-range campaign.
     pub maximum_qualified_approach_speed_mm_s: f64,
     /// Lower bound on reliable detection range, not advertised maximum sensor range.
@@ -141,6 +149,12 @@ pub fn evaluate_hazard_stopping_budget(
     }
     if decode_sha256(&detection.scenario_context_sha256).is_none() {
         return Err(StoppingReachabilityError::InvalidScenarioContextDigest);
+    }
+    if detection.site_clock_domain_id.trim().is_empty() {
+        return Err(StoppingReachabilityError::InvalidQualificationClockDomain);
+    }
+    if detection.valid_until_tick == 0 {
+        return Err(StoppingReachabilityError::InvalidQualificationExpiry);
     }
     if detection.scenario_context_sha256 != hex_encode(&stopping.scenario_context_sha256) {
         return Err(StoppingReachabilityError::IncompatibleScenarioContext);
@@ -322,6 +336,12 @@ fn validate_qualification(
     if decode_sha256(&qualification.scenario_context_sha256).is_none() {
         return Err(StoppingReachabilityError::InvalidScenarioContextDigest);
     }
+    if qualification.site_clock_domain_id.trim().is_empty() {
+        return Err(StoppingReachabilityError::InvalidQualificationClockDomain);
+    }
+    if qualification.valid_until_tick == 0 {
+        return Err(StoppingReachabilityError::InvalidQualificationExpiry);
+    }
     if !qualification.maximum_qualified_speed_mm_s.is_finite()
         || qualification.maximum_qualified_speed_mm_s <= 0.0
     {
@@ -409,6 +429,8 @@ mod tests {
             robot_brake_configuration_sha256: digest('3'),
             operating_condition_sha256: digest('4'),
             scenario_context_sha256: digest('8'),
+            site_clock_domain_id: "site-clock-01".into(),
+            valid_until_tick: 10_000,
             maximum_qualified_speed_mm_s: 2_000.0,
             maximum_detection_to_brake_latency_ms: 100,
             maximum_positive_acceleration_mm_s2: 500.0,
@@ -646,6 +668,8 @@ mod tests {
             detection_qualification_receipt_sha256: digest('6'),
             target_condition_sha256: digest('7'),
             scenario_context_sha256: digest('8'),
+            site_clock_domain_id: "site-clock-01".into(),
+            valid_until_tick: 10_000,
             maximum_qualified_approach_speed_mm_s: 1_500.0,
             minimum_qualified_detection_distance_mm: 1_300.0,
         };
@@ -685,6 +709,8 @@ mod tests {
             detection_qualification_receipt_sha256: digest('6'),
             target_condition_sha256: digest('7'),
             scenario_context_sha256: digest('8'),
+            site_clock_domain_id: "site-clock-01".into(),
+            valid_until_tick: 10_000,
             maximum_qualified_approach_speed_mm_s: 1_500.0,
             minimum_qualified_detection_distance_mm: 1_000.0,
         };
@@ -718,6 +744,8 @@ mod tests {
             detection_qualification_receipt_sha256: digest('6'),
             target_condition_sha256: digest('7'),
             scenario_context_sha256: digest('8'),
+            site_clock_domain_id: "site-clock-01".into(),
+            valid_until_tick: 10_000,
             maximum_qualified_approach_speed_mm_s: 900.0,
             minimum_qualified_detection_distance_mm: 2_000.0,
         };
