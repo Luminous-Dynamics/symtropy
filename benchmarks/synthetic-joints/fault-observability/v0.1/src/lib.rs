@@ -38,6 +38,7 @@ pub enum MdfaDisposition {
     NoVerifiedNoFaultExposure,
     FalseAlarmBudgetExceeded,
     InsufficientAmplitudeLevels,
+    InsufficientIndependentSpecimens,
     NoAmplitudeMeetsSensitivityTarget,
 }
 
@@ -54,6 +55,7 @@ pub struct CampaignPlan {
     pub minimum_detection_wilson_lower_95: f64,
     /// False alarm events per hour of verified no-fault exposure.
     pub maximum_false_alarms_per_hour: f64,
+    pub minimum_independent_specimens_per_amplitude: usize,
     pub evidence_class: GroundTruthEvidenceClass,
 }
 
@@ -160,6 +162,7 @@ pub struct MdfaResult {
     pub qualifying_amplitude_levels: Vec<f64>,
     pub required_wilson_lower_95: f64,
     pub maximum_false_alarms_per_hour: f64,
+    pub minimum_independent_specimens_per_amplitude: usize,
     pub observed_false_alarms_per_hour: Option<f64>,
 }
 
@@ -234,6 +237,7 @@ fn validate_campaign(campaign: &FaultCampaign) -> Result<(), String> {
         || !(0.0..=1.0).contains(&plan.minimum_detection_wilson_lower_95)
         || !plan.maximum_false_alarms_per_hour.is_finite()
         || plan.maximum_false_alarms_per_hour < 0.0
+        || plan.minimum_independent_specimens_per_amplitude == 0
     {
         return Err("MDFA sensitivity threshold and false-alarm budget must be finite and in range".to_owned());
     }
@@ -678,6 +682,7 @@ pub fn evaluate_fault_campaign(campaign: &FaultCampaign) -> Result<FaultObservab
             qualifying_amplitude_levels: Vec::new(),
             required_wilson_lower_95: plan.minimum_detection_wilson_lower_95,
             maximum_false_alarms_per_hour: plan.maximum_false_alarms_per_hour,
+            minimum_independent_specimens_per_amplitude: plan.minimum_independent_specimens_per_amplitude,
             observed_false_alarms_per_hour: false_alarms_per_hour,
         };
 
@@ -687,6 +692,10 @@ pub fn evaluate_fault_campaign(campaign: &FaultCampaign) -> Result<FaultObservab
             result.disposition = MdfaDisposition::FalseAlarmBudgetExceeded;
         } else if class_levels.len() < 2 {
             result.disposition = MdfaDisposition::InsufficientAmplitudeLevels;
+        } else if class_levels.iter().any(|level| {
+            level.independent_specimen_count < plan.minimum_independent_specimens_per_amplitude
+        }) {
+            result.disposition = MdfaDisposition::InsufficientIndependentSpecimens;
         } else {
             let qualifying_indices: Vec<usize> = (0..class_levels.len())
                 .filter(|index| {
@@ -760,6 +769,7 @@ mod tests {
             expected_fault_classes: vec![GEARBOX.to_owned(), BEARING.to_owned(), "encoder_dropout".to_owned()],
             minimum_detection_wilson_lower_95: 0.8,
             maximum_false_alarms_per_hour: 0.2,
+            minimum_independent_specimens_per_amplitude: 16,
             evidence_class: GroundTruthEvidenceClass::SyntheticFixture,
         }
     }
@@ -1087,7 +1097,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_026_insufficient_amplitude_grid_does_not_claim_mdfa() {
+    fn fault_020_insufficient_amplitude_grid_does_not_claim_mdfa() {
         let mut campaign = known_campaign();
         campaign.fault_episodes.retain(|episode| episode.fault_class != GEARBOX || episode.amplitude == 0.3);
         let report = evaluate_fault_campaign(&campaign).unwrap();
@@ -1097,7 +1107,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_019_median_and_nearest_rank_p95_are_deterministic() {
+    fn fault_021_median_and_nearest_rank_p95_are_deterministic() {
         let mut campaign = known_campaign();
         for (index, alarm) in campaign.alarm_episodes.iter_mut().filter(|alarm| alarm.alarm_time_s == 2.0).enumerate() {
             alarm.alarm_time_s = 1.25 + index as f64 * 0.01;
@@ -1109,7 +1119,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_026_no_fault_exposure_windows_may_not_overlap_each_other() {
+    fn fault_022_no_fault_exposure_windows_may_not_overlap_each_other() {
         let mut campaign = known_campaign();
         let mut duplicate_window = campaign.no_fault_exposure[0].clone();
         duplicate_window.exposure_id = "overlapping-window".to_owned();
@@ -1120,21 +1130,35 @@ mod tests {
     }
 
     #[test]
-    fn fault_025_unknown_alarm_hypotheses_reject() {
+    fn fault_023_independent_specimen_minimum_is_predeclared_for_mdfa() {
+        let mut campaign = known_campaign();
+        campaign.fault_episodes.retain(|episode| {
+            !(episode.fault_class == GEARBOX
+                && episode.amplitude == 0.3
+                && episode.specimen_id.ends_with("15"))
+        });
+        let report = evaluate_fault_campaign(&campaign).unwrap();
+        let mdfa = report.mdfa.iter().find(|result| result.fault_class == GEARBOX).unwrap();
+        assert_eq!(mdfa.disposition, MdfaDisposition::InsufficientIndependentSpecimens);
+        assert_eq!(mdfa.minimum_independent_specimens_per_amplitude, 16);
+    }
+
+    #[test]
+    fn fault_024_unknown_alarm_hypotheses_reject() {
         let mut campaign = known_campaign();
         campaign.alarm_episodes[0].hypothesized_fault_classes = vec!["mystery-fault".to_owned()];
         assert!(evaluate_fault_campaign(&campaign).is_err());
     }
 
     #[test]
-    fn fault_026_expected_fault_classes_must_be_unique_and_nonempty() {
+    fn fault_025_expected_fault_classes_must_be_unique_and_nonempty() {
         let mut campaign = known_campaign();
         campaign.plan.expected_fault_classes.push(GEARBOX.to_owned());
         assert!(evaluate_fault_campaign(&campaign).is_err());
     }
 
     #[test]
-    fn fault_025_zero_alarm_is_not_a_correct_diagnosis() {
+    fn fault_026_zero_alarm_is_not_a_correct_diagnosis() {
         let mut campaign = known_campaign();
         campaign.alarm_episodes.clear();
         let report = evaluate_fault_campaign(&campaign).unwrap();
@@ -1144,7 +1168,7 @@ mod tests {
     }
 
     #[test]
-    fn fault_026_specimen_amplitude_group_reports_wilson_interval() {
+    fn fault_027_specimen_amplitude_group_reports_wilson_interval() {
         let report = evaluate_fault_campaign(&known_campaign()).unwrap();
         let perfect = report.amplitude_sensitivity.iter()
             .find(|level| level.fault_class == GEARBOX && level.amplitude == 0.3)
