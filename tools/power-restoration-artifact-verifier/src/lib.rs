@@ -1454,7 +1454,7 @@ pub fn verify_restoration_claim_evidence(
                 &case_sha256,
                 step.decision_step,
                 &proposal_sha,
-                parents,
+                canonical_parent_digests(parents),
                 &mut errors,
             );
         }
@@ -1495,7 +1495,7 @@ pub fn verify_restoration_claim_evidence(
                 &proposal_sha,
                 &profile.tool_source_commit,
                 &profile.tool_configuration_sha256,
-                parents,
+                canonical_parent_digests(parents),
                 &mut errors,
             );
             service_trajectory_digests.push(service.sha256.clone());
