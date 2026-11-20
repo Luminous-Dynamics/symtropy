@@ -1,208 +1,281 @@
-# Consciousness as a Physical Force: Formal Mathematical Specification
+# Experimental Metric-Coupled Agent Model: Formal Specification
+
+**Document status:** research-model specification. The equations below describe one configurable simulation model, not an established physical theory, material constitutive law, regulatory standard or experimentally validated model of consciousness.
 
 ## Abstract
 
-We present a formal specification of the consciousness-physics coupling model implemented in the Symtropy engine. The model treats consciousness (Φ) as a thermodynamic quantity that modulates rigid body dynamics through five coupling channels. Under strict energy conservation with a Landauer-bounded floor, the model predicts that cooperative behavior is a thermodynamic necessity, not a design choice.
+This document specifies an experimental agent-and-rigid-body model in which an operationally computed metric Φ, resource reservoirs, collision events and configurable harmony variables influence agent behavior and selected contact callbacks. It defines five software coupling channels, resource bookkeeping and hypotheses that can be tested within the model.
 
-## 1. Definitions
+The model is useful for simulation research, sensitivity analysis and falsification. Its equations and numerical outcomes do not establish that Φ is a physical force, that the system is thermodynamically closed, that cooperation is universally required by thermodynamics, or that the model explains subjective experience.
 
-### 1.1 State Space
+## 1. Scope, quantities and assumptions
 
-An agent `i` at time `t` has state:
-```
-S_i(t) = (x_i, v_i, ω_i, Φ_i, E_i, h_i, σ_i, π_i)
-```
+An agent \(i\) at model time \(t\) is represented by:
+
+\[
+S_i(t) = (x_i, v_i, \omega_i, \Phi_i, E_i, h_i, \sigma_i, \pi_i)
+\]
 
 where:
-- `x_i ∈ ℝ^D` — position (D-dimensional)
-- `v_i ∈ ℝ^D` — linear velocity
-- `ω_i ∈ Λ²(ℝ^D)` — angular velocity (bivector, element of so(D))
-- `Φ_i ∈ [0, 1]` — integrated information (consciousness level)
-- `E_i ∈ [0, E_max]` — energy reservoir (Joules)
-- `h_i ∈ [0, 1]^8` — harmony activation vector (Eight Harmonies)
-- `σ_i ∈ [0, ∞)` — prediction error (from unexpected collisions)
-- `π_i ∈ [0, 1]` — motor precision (inverse of 1 + σ_i)
+- \(x_i \in \mathbb{R}^D\): position in the declared simulation coordinate frame;
+- \(v_i \in \mathbb{R}^D\): linear velocity;
+- \(\omega_i \in \Lambda^2(\mathbb{R}^D)\): angular-velocity representation used by this model;
+- \(\Phi_i \in [0,1]\): output of a specifically configured metric estimator;
+- \(E_i\): model resource reservoir (treated as joules only if its source, units and conversion are calibrated);
+- \(h_i \in [0,1]^8\): eight-component harmony parameter vector used by this experiment;
+- \(\sigma_i \geq 0\): model prediction-error state;
+- \(\pi_i \in [0,1]\): motor-precision factor defined by the update rule below.
 
-### 1.2 Safety Tiers
+The following assumptions apply:
 
-Motor gain `g(Φ)` is a piecewise function (NRC-inspired):
-```
-g(Φ) = { 1.0   if Φ > 0.6    (Green)
-        { 0.6   if Φ > 0.3    (Yellow)
-        { 0.3   if Φ > 0.1    (Orange)
-        { 0.0   if Φ ≤ 0.1    (Red)
-```
+1. Φ is a model input/state produced by a selected estimator. Do not equate a configured scalar with a universal physical field or subjective experience.
+2. \(h_i\) is a parameter vector. The name “harmony” does not identify a standard physical quantity.
+3. Numerical constants are experiment parameters until their dimensions, calibration data and validity domain are established.
+4. Energy-like bookkeeping is not proof of first-law closure. Every physical source, sink, internal transfer and boundary must be identified and audited.
+5. The model is deterministic only under the exact execution profile and random-seed policy used for a run.
 
-Effective motor gain: `G_i = g(Φ_i) × π_i`
+## 2. Motor-authority mappings
 
-## 2. Five Coupling Channels
+One experimental four-tier mapping is:
 
-### 2.1 Force Modulation (Φ → Force)
+\[
+g(\Phi) =
+\begin{cases}
+1.0 & \Phi > 0.6 \\
+0.6 & 0.3 < \Phi \leq 0.6 \\
+0.3 & 0.1 < \Phi \leq 0.3 \\
+0.0 & \Phi \leq 0.1
+\end{cases}
+\]
 
-Applied force is scaled by effective motor gain:
-```
-F_effective = G_i × F_intended
-```
+Effective motor gain:
 
-When `E_i = 0` (collapsed), `g(Φ_i) = 0`, so `F_effective = 0`. No movement possible.
+\[
+G_i = g(\Phi_i)\,\pi_i
+\]
 
-### 2.2 Energy Budget (Φ → Energy)
+This is a model policy mapping, not an NRC requirement or a safety certification. The repository README records that platform demos use a separate two-level sprint/floor gate with platform-specific thresholds; the four-tier mapping must not be assumed to describe every demo or deployed platform. A threshold requires calibration and adverse-case testing for the relevant platform.
 
-Energy depletes through three mechanisms:
+## 3. Five experimental coupling channels
 
-**Movement cost:**
-```
-dE_move/dt = -c_move × |v_i| × κ_sprint
-```
-where `c_move = 0.005 J/unit` and `κ_sprint ∈ {1.0, 2.5}`.
+### 3.1 Metric-conditioned intended force
 
-**Consciousness maintenance:**
-```
-dE_maint/dt = -c_maint × (1 + 0.5 × Φ_i)
-```
-where `c_maint = 0.08 J/tick`. Higher consciousness costs more (thermodynamic necessity: maintaining integration requires entropy reduction).
+\[
+F_{\mathrm{effective}} = G_i\,F_{\mathrm{intended}}
+\]
 
-**Collision drain:**
-```
-ΔE_collision = -c_collision × |J_n|
-```
-where `c_collision = 0.05` and `J_n` is the normal impulse magnitude.
+This equation defines a motor-command policy. It is not a claim that Φ directly generates or attenuates a natural force. If the policy is used in a physical robot, its safety and performance require an independently specified controller, actuator model, authority boundary and physical validation.
 
-### 2.3 Sanctuary Zones (Harmony → Impulse)
+### 3.2 Resource-budget model
 
-When Sacred Stillness `h_i[7] > 0.6` and `Σ h_i > 2.0` and `Φ_i > 0.3`:
+Movement cost:
 
-A sanctuary zone of radius `r_s` forms. Collision impulses within the zone are dampened:
-```
-J_dampened = J × (1 - δ × (1 - d/r_s))
-```
-where `δ = 0.9 × h_i[7] × min(Φ_i, 1.0)` and `d` is distance from zone center.
+\[
+\frac{dE_{\mathrm{move}}}{dt} =
+-c_{\mathrm{move}}\,\lVert v_i\rVert\,\kappa_{\mathrm{sprint}}
+\]
 
-Maximum dampening: 90% at zone center.
+where the coefficient must have units consistent with the selected distance/time convention (for example, J/m if speed is in m/s and this is an energy rate).
 
-### 2.4 Harmony Fields (Harmony → Friction)
+Metric-dependent maintenance:
 
-Each agent emits a harmony field with 1/r² falloff:
-```
-H(x) = Σ_i (strength_i / max(|x - x_i|, 1)²) × h_i
-```
+\[
+\frac{dE_{\mathrm{maint}}}{dt} =
+-c_{\mathrm{maint}}(1 + 0.5\,\Phi_i)
+\]
 
-Friction coefficient modulation:
-```
-μ_effective = μ_base × (1 - 0.5 × R(H(x), h_agent))
-```
+Collision-associated budget change:
 
-where `R(a, b) = (a · b) / (|a| × |b|)` is the harmony resonance (cosine similarity).
+\[
+\Delta E_{\mathrm{collision}} =
+-c_{\mathrm{collision}}\,\lvert J_n\rvert
+\]
 
-- `R = 1.0` → friction halved (resonance → cooperation flows)
-- `R = 0.0` → friction unchanged
-- `R = -1.0` → friction doubled (dissonance → conflict resists)
+These expressions are experimental accounting rules. The coefficients require dimensions, calibration and source provenance before \(E_i\) can be interpreted as a measured SI energy reservoir. In particular, impulse is not energy; the collision coefficient must not be treated as a physically derived impact-energy relation without an explicit mechanical model.
 
-### 2.5 Prediction Error Feedback (Collision → Consciousness)
+### 3.3 Sanctuary-zone impulse rule
 
-On collision with impulse magnitude `|J|`:
-```
-Δσ_i = min(0.01 × |J|, 2.0)     (prediction error spike)
-π_i = 1 / (1 + σ_i)               (motor precision update)
-```
+For configured conditions \(h_i[7] > 0.6\), \(\sum_k h_i[k] > 2.0\), and \(\Phi_i > 0.3\), a model-defined zone of radius \(r_s\) may be formed. Its callback rule is:
 
-Habituation (decay per tick):
-```
-σ_i(t+1) = σ_i(t) × (1 - λ)
-```
-where `λ = 0.05` (recovery in ~20 ticks).
+\[
+J_{\mathrm{dampened}} =
+J\left(1 - \delta\left(1 - \frac{d}{r_s}\right)\right)
+\]
 
-## 3. Energy Regeneration
+with:
 
-### 3.1 Ambient Regeneration
-```
-dE_ambient/dt = c_ambient × R_collective
-```
-where `c_ambient = 0.02 J/tick` and `R_collective = 0.5 + 1.5 × Φ_collective`.
+\[
+\delta = 0.9\,h_i[7]\,\min(\Phi_i,1)
+\]
 
-Too slow for solo survival (~260 seconds).
+This is a synthetic impulse-modulation rule. It is not a general collision law. Any real-world analogue would need a measurable physical mechanism, a dimensional and momentum/energy account, and independent validation.
 
-### 3.2 Energy Wells
-Spatial sources with finite capacity `W_remaining`:
-```
-dE_well/dt = c_well    if |x_i - x_well| < r_well and W_remaining > 0
-```
-where `c_well = 0.25 J/tick`.
+### 3.4 Harmony-field friction rule
 
-### 3.3 Harmony Resonance Transfer
-For agents `i, j` within range `r_harmony`:
-```
-R_ij = R(h_i, h_j)
-dE_reson/dt = c_reson × max(R_ij - 0.5, 0) × 2     if R_ij > 0.5
-```
-where `c_reson = 0.15 J/tick`.
+A model field is defined by:
 
-**Key property:** `c_reson > c_maint` when resonance is high, so cooperation is thermodynamically sustainable.
+\[
+H(x) =
+\sum_i
+\frac{s_i}{\max(\lVert x-x_i\rVert,1)^2}\,h_i
+\]
 
-## 4. Collapse and Recovery
+The model's resonance is the cosine similarity:
 
-### 4.1 Collapse
-When `E_i ≤ 0`:
-- `collapsed_i = true`
-- `Φ_i` forced to 0
-- `g(Φ_i) = 0` (Red tier, no motor output)
-- Entity becomes inert (physics body remains, consciousness ceases)
+\[
+R(a,b) =
+\frac{a\cdot b}{\lVert a\rVert\,\lVert b\rVert}
+\]
 
-### 4.2 Recovery
-Recovery requires another conscious agent `j` with:
-- `|x_j - x_i| < r_harmony`
-- `R(h_j, h_i) > 0.5` (harmony resonance threshold)
-- `collapsed_j = false` (rescuer must be alive)
+and the callback coefficient is:
 
-On recovery: `E_i = 0.1 × E_max` (enough to regain consciousness, not full charge).
+\[
+\mu_{\mathrm{effective}} =
+\mu_{\mathrm{base}}\left(1 - 0.5\,R(H(x),h_{\mathrm{agent}})\right)
+\]
 
-## 5. Thermodynamic Closure
+Zero-norm vectors require an explicit disposition; they must not yield NaN or an implicit favorable result.
 
-### 5.1 Conservation Law
-Total energy is tracked by the `ThermodynamicLedger`:
-```
-E_total = Σ_i E_i + E_dissipated + E_wells_remaining
-```
+The rule maps an abstract parameter similarity to a friction multiplier. It is a phenomenological research intervention, not evidence that information integration or harmony changes the friction of real materials. If used for engineering, replace it with a calibrated material/contact model appropriate to the physical interface.
 
-Conservation error:
-```
-ε = |E_in - E_out| / E_in
-```
+### 3.5 Collision prediction-error feedback
 
-Must remain < 1% for a valid simulation.
+For a collision with impulse magnitude \(\lvert J\rvert\):
 
-### 5.2 Joules-per-Phi (Novel Metric)
+\[
+\Delta \sigma_i = \min(0.01\,\lvert J\rvert,2.0)
+\]
 
-```
-J/Φ = (Σ_i E_consumed_i × Φ_i) / (Σ_i |ΔΦ_i|)
-```
+\[
+\pi_i = \frac{1}{1+\sigma_i}
+\]
 
-This measures the energy cost of consciousness. No prior publication of this metric exists.
+A per-tick recovery rule is:
 
-### 5.3 Landauer Bound
+\[
+\sigma_i(t+1) = \sigma_i(t)(1-\lambda)
+\]
 
-Minimum energy per bit of information processing:
-```
-E_min = k_B × T × ln(2) = 2.87 × 10⁻²¹ J/bit    (at T = 310K)
-```
+with experimental parameter \(\lambda=0.05\). The update cadence and units of impulse must be frozen as part of the scenario identity. This rule is a chosen agent-response model, not a general law of biological motor adaptation.
 
-Per Landauer (1961). All energy consumption in the model exceeds this floor.
+## 4. Resource sources, transfers and ledger closure
 
-## 6. Testable Predictions
+The experiment may model three resource mechanisms.
 
-1. **Cooperation emergence**: Under strict energy conservation, agents must cluster and harmonize to survive. Isolated agents collapse within ~4 minutes.
+### 4.1 Ambient source term
 
-2. **Governance emergence**: As population grows, collective decision-making (governance) becomes thermodynamically necessary to coordinate energy well access.
+\[
+\frac{dE_{\mathrm{ambient}}}{dt} =
+c_{\mathrm{ambient}}\,R_{\mathrm{collective}}
+\]
 
-3. **Spatial integration**: The living dungeon topology (wall opening/closing based on collective Φ) should correlate with agent clustering — high integration = connected spaces.
+where:
 
-4. **Joules-per-Phi stability**: The J/Φ metric should converge to a stable value characteristic of the substrate, analogous to metabolic rate in biological systems.
+\[
+R_{\mathrm{collective}} = 0.5 + 1.5\,\Phi_{\mathrm{collective}}
+\]
+
+This is an imposed source term unless a physical source and conversion mechanism are specified. If it adds energy to agent reservoirs, the corresponding source term must be recorded in the ledger.
+
+### 4.2 Finite resource wells
+
+\[
+\frac{dE_{\mathrm{well}}}{dt} =
+-c_{\mathrm{well}}
+\quad \text{when } \lVert x_i-x_{\mathrm{well}}\rVert < r_{\mathrm{well}}
+\]
+
+A transfer from a well to an agent must debit the well and credit the agent by equal amounts. A well cannot supply more than its remaining modeled capacity.
+
+### 4.3 Pairwise transfer rule
+
+For agents \(i,j\) within the configured interaction radius:
+
+\[
+R_{ij}=R(h_i,h_j)
+\]
+
+\[
+\frac{dE_{i\leftarrow j}}{dt} =
+c_{\mathrm{reson}}\,\max(R_{ij}-0.5,0)\,2
+\quad \text{when }R_{ij}>0.5
+\]
+
+This rule is an internal transfer only if the source agent or reservoir is debited by the same amount. Otherwise it is an additional source, not energy conservation.
+
+### 4.4 Ledger identity
+
+A physically interpretable energy balance requires all boundaries and flows to be declared. For a closed accounting scope:
+
+\[
+E_{\mathrm{initial}} + E_{\mathrm{in}} =
+E_{\mathrm{final}} + E_{\mathrm{out}} + E_{\mathrm{dissipated}}
+\]
+
+where each term has the same energy unit and time interval, internal transfers cancel pairwise, and stored energy includes every modeled reservoir. Define the residual:
+
+\[
+r_E =
+E_{\mathrm{initial}} + E_{\mathrm{in}}
+- E_{\mathrm{final}} - E_{\mathrm{out}} - E_{\mathrm{dissipated}}
+\]
+
+Report both absolute and normalized residuals with their boundary, interval, units and numerical uncertainty. The often-used 1% tolerance is only a proposed experiment-specific threshold; it is not a universal thermodynamic standard.
+
+Until every source/sink and transfer is accounted for with validated units and physical boundaries, call the result **model resource bookkeeping**, not thermodynamic closure.
+
+## 5. J/Φ diagnostic
+
+The experimental statistic:
+
+\[
+J/\Phi =
+\frac{\sum_i E_{\mathrm{consumed},i}\,\Phi_i}
+{\sum_i\lvert\Delta\Phi_i\rvert}
+\]
+
+has the interpretation of a model-specific energy-weighted metric-change ratio only if the energy and Φ definitions, time window and aggregation are fixed. It is not a standard physical constant or established measure of the energy cost of consciousness. Its units and behavior may change under rescaling, estimator changes or a different aggregation rule. Any claim of stability must be tested under parameter variation, estimator variation, independent implementations and held-out scenarios.
+
+## 6. Landauer principle: narrow applicability
+
+Landauer's bound is:
+
+\[
+E_{\min}=k_B T\ln 2
+\]
+
+for the minimum heat dissipated when an irreversible logical operation erases one bit of information in an environment at temperature \(T\), under the principle's assumptions.
+
+At \(T=310\,\mathrm{K}\), this is approximately \(2.97\times10^{-21}\,\mathrm{J/bit}\). This is **not** a universal lower bound on the energy of consciousness, integrated information, every computation or every model state. Applying it to a Symtropy experiment requires an explicit mapping from modeled logical erasures to physical bit erasures, a temperature, an implementation and an energy boundary. Without that mapping, the Landauer expression is contextual background, not a constraint enforced on the simulation's energy variables.
+
+## 7. Falsifiable model hypotheses
+
+The following are hypotheses about this specific configurable simulation model. They are not established universal physical predictions:
+
+1. **Clustering under resource constraints:** for a frozen parameter family, interaction and transfer rules may produce different clustering distributions than a non-cooperative control. Test against ablations, parameter sweeps and independent seeds.
+2. **Governance-like coordination:** increasing the number of agents may change resource-allocation outcomes under the selected policy. This does not show that governance is thermodynamically necessary in real societies.
+3. **Topology/metric association:** a procedurally defined topology may correlate with a model-defined collective metric. This is a property of the generative rule until tested against independent data.
+4. **J/Φ statistic behavior:** the ratio may converge under some substrate/parameter configurations. Test whether this persists under changes to timestep, agent count, metric estimator, resource policy and normalization.
+
+Every result should include exact source revision, configuration digest, seed policy, sample size, exclusions, statistical analysis and all negative controls. Separate exploratory results from preregistered confirmation and independent physical validation.
+
+## 8. Required validation before stronger claims
+
+- **Dimensional analysis:** every energy, impulse, force, time, length, temperature and metric coefficient has defined units.
+- **Ledger audit:** every external source/sink and internal transfer is represented once; no source is duplicated and no missing sink is silently ignored.
+- **Sensitivity:** vary coefficients, thresholds, number of agents, timestep, solver profile and metric estimator.
+- **Ablations:** remove each coupling channel in turn; include shuffled/random metric controls where appropriate.
+- **Numerical verification:** check timestep refinement, numerical stability, boundedness, invariants and replay under a frozen execution profile.
+- **Independent analysis:** use a second implementation or test oracle where practical; preserve disagreement.
+- **Physical validation:** if a physical interpretation is proposed, use independent calibrated observations relevant to that mechanism and context of use.
+
+Synthetic rollout counts do not increase the number of independent physical experiments. A passing code test or replay only establishes its declared software property.
 
 ## References
 
-- Tononi, G. (2004). An information integration theory of consciousness. BMC Neuroscience, 5(1), 42.
-- Friston, K. (2019). A Free Energy Principle for a Particular Physics. arXiv:1906.10184.
-- Adams, R.A., Shipp, S., & Friston, K.J. (2013). Predictions not commands: active inference in the motor system. Brain Structure and Function, 218(3), 611-643.
-- McFadden, J. (2020). Integrating information in the brain's EM field: the cemi field theory of consciousness. Neuroscience of Consciousness, 2020(1), niaa016.
-- Landauer, R. (1961). Irreversibility and Heat Generation in the Computing Process. IBM J. Res. Dev., 5(3), 183-191.
-- Lundbak, M., et al. (2023). Phi fluctuates with surprisal. PLOS Computational Biology, 19(10), e1011517.
+- Tononi, G. (2004). An information integration theory of consciousness. *BMC Neuroscience*, 5(1), 42.
+- Friston, K. (2019). A Free Energy Principle for a Particular Physics. *arXiv:1906.10184*.
+- Adams, R.A., Shipp, S. & Friston, K.J. (2013). Predictions not commands: active inference in the motor system. *Brain Structure and Function*, 218(3), 611–643.
+- McFadden, J. (2020). Integrating information in the brain's EM field: the cemi field theory of consciousness. *Neuroscience of Consciousness*, 2020(1), niaa016.
+- Landauer, R. (1961). Irreversibility and Heat Generation in the Computing Process. *IBM Journal of Research and Development*, 5(3), 183–191.
+- Lundbak, M. et al. (2023). Phi fluctuates with surprisal. *PLOS Computational Biology*, 19(10), e1011517.
