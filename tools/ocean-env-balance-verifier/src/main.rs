@@ -157,6 +157,7 @@ struct ThermalObservation {
     position_evidence_state: String,
     temperature_deg_c: f64,
     standard_uncertainty_deg_c: f64,
+    temporal_rate_deg_c_per_s: f64,
 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -166,6 +167,7 @@ struct FlowSample {
     station_role: String,
     flow_m3_s: f64,
     standard_uncertainty_m3_s: f64,
+    temporal_rate_m3_s_per_s: f64,
 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -189,6 +191,7 @@ struct ConcentrationSample {
     sample_preservation_state: String,
     chain_of_custody_id: String,
     laboratory_batch_id: String,
+    temporal_rate_mg_l_per_s: f64,
 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -206,6 +209,7 @@ struct PlumeConcentrationObservation {
     sample_preservation_state: String,
     chain_of_custody_id: String,
     laboratory_batch_id: String,
+    temporal_rate_mg_l_per_s: f64,
 }
 
 #[derive(Debug, Serialize)]
@@ -214,6 +218,7 @@ struct StationAnomaly {
     distance_from_outfall_m: f64,
     delta_from_reference_deg_c: f64,
     standard_uncertainty_deg_c: f64,
+    hydraulic_alignment_standard_uncertainty_deg_c: f64,
 }
 #[derive(Debug, Serialize)]
 struct StationConcentrationAnomaly {
@@ -222,6 +227,7 @@ struct StationConcentrationAnomaly {
     distance_from_outfall_m: f64,
     delta_from_reference_mg_l: f64,
     standard_uncertainty_mg_l: f64,
+    hydraulic_alignment_standard_uncertainty_mg_l: f64,
 }
 #[derive(Debug, Serialize)]
 struct PollutantResult {
@@ -230,6 +236,7 @@ struct PollutantResult {
     intake_standard_uncertainty_g_s: f64,
     outfall_g_s: f64,
     outfall_standard_uncertainty_g_s: f64,
+    outfall_hydraulic_alignment_standard_uncertainty_g_s: f64,
     net_added_g_s: f64,
     net_added_standard_uncertainty_g_s: f64,
     net_added_kg_day: f64,
@@ -244,14 +251,18 @@ struct IntervalResult {
     outfall_temperature_deg_c: f64,
     delta_temperature_deg_c: f64,
     delta_temperature_standard_uncertainty_deg_c: f64,
+    delta_temperature_hydraulic_alignment_standard_uncertainty_deg_c: f64,
     intake_flow_m3_s: f64,
     outfall_flow_m3_s: f64,
     water_balance_residual_m3_s: f64,
     water_balance_standard_uncertainty_m3_s: f64,
+    outfall_flow_hydraulic_alignment_standard_uncertainty_m3_s: f64,
     water_balance_z_score: f64,
     water_balance_status: String,
     thermal_power_kw: f64,
     thermal_power_standard_uncertainty_kw: f64,
+    thermal_power_hydraulic_alignment_standard_uncertainty_kw: f64,
+    hydraulic_residence_time_standard_uncertainty_seconds: f64,
     station_anomalies: Vec<StationAnomaly>,
     pollutant_station_anomalies: Vec<StationConcentrationAnomaly>,
     pollutant_results: Vec<PollutantResult>,
@@ -429,7 +440,8 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
         return Err(format!("interval {} lacks fluid-property source", interval.interval_id));
     }
 
-    if interval.uncertainty_covariance_state != "paired_measurement_calibration_domains_independent" {
+    if interval.uncertainty_covariance_state
+        != "independent_instrument_domains_with_common_hydraulic_lag_covariance_propagated_via_temporal_sensitivities" {
         return Err(format!("interval {} lacks an explicit paired-input covariance assessment", interval.interval_id));
     }
     let mut sample_ids = HashSet::new();
@@ -460,6 +472,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
         nonnegative(observation.distance_from_outfall_m, "distance_from_outfall_m")?;
         finite(observation.temperature_deg_c, "temperature_deg_c")?;
         nonnegative(observation.standard_uncertainty_deg_c, "temperature standard uncertainty")?;
+        finite(observation.temporal_rate_deg_c_per_s, "temperature temporal sensitivity")?;
         temperatures.insert(observation.station_role.as_str(), observation);
     }
     if temperatures.len() != REQUIRED_ROLES.len()
@@ -486,6 +499,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
         }
         positive(flow.flow_m3_s, "flow_m3_s")?;
         nonnegative(flow.standard_uncertainty_m3_s, "flow standard uncertainty")?;
+        finite(flow.temporal_rate_m3_s_per_s, "flow temporal sensitivity")?;
         flows.insert(flow.station_role.as_str(), flow);
     }
     let intake_flow = flows.get("intake").copied().ok_or("missing intake flow")?;
@@ -504,28 +518,40 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
     let intake_temp = temperatures["intake"].temperature_deg_c;
     let outfall_temp = temperatures["outfall"].temperature_deg_c;
     let reference = temperatures["independent_reference_control"];
-    let u_delta_temp = (temperatures["intake"].standard_uncertainty_deg_c.powi(2)
-        + temperatures["outfall"].standard_uncertainty_deg_c.powi(2)).sqrt();
+    let u_lag = interval.hydraulic_residence_time_standard_uncertainty_seconds;
     let delta_temp = outfall_temp - intake_temp;
     let q_out = outfall_flow.flow_m3_s;
     let q_in = intake_flow.flow_m3_s;
-    let u_q_out = outfall_flow.standard_uncertainty_m3_s;
+    let u_q_out_instrument = outfall_flow.standard_uncertainty_m3_s;
     let u_q_in = intake_flow.standard_uncertainty_m3_s;
+    let u_delta_temp_instrument = (temperatures["intake"].standard_uncertainty_deg_c.powi(2)
+        + temperatures["outfall"].standard_uncertainty_deg_c.powi(2)).sqrt();
+    let delta_temp_lag_sensitivity =
+        temperatures["outfall"].temporal_rate_deg_c_per_s;
+    let u_delta_temp_lag = delta_temp_lag_sensitivity.abs() * u_lag;
+    let u_delta_temp = (u_delta_temp_instrument.powi(2) + u_delta_temp_lag.powi(2)).sqrt();
 
     let thermal_kw = rho * cp * q_out * delta_temp / 1000.0;
     let d_rho = cp * q_out * delta_temp / 1000.0;
     let d_cp = rho * q_out * delta_temp / 1000.0;
     let d_flow = rho * cp * delta_temp / 1000.0;
     let d_delta = rho * cp * q_out / 1000.0;
-    let u_thermal_kw = ((d_rho * u_rho).powi(2)
+    let u_thermal_kw_instrument = ((d_rho * u_rho).powi(2)
         + (d_cp * u_cp).powi(2)
-        + (d_flow * u_q_out).powi(2)
-        + (d_delta * u_delta_temp).powi(2)).sqrt();
+        + (d_flow * u_q_out_instrument).powi(2)
+        + (d_delta * u_delta_temp_instrument).powi(2)).sqrt();
+    let thermal_lag_sensitivity = rho * cp / 1000.0
+        * (q_out * temperatures["outfall"].temporal_rate_deg_c_per_s
+            + delta_temp * outfall_flow.temporal_rate_m3_s_per_s);
+    let u_thermal_kw_lag = thermal_lag_sensitivity.abs() * u_lag;
+    let u_thermal_kw = (u_thermal_kw_instrument.powi(2) + u_thermal_kw_lag.powi(2)).sqrt();
+    let u_q_out_lag = outfall_flow.temporal_rate_m3_s_per_s.abs() * u_lag;
+    let u_q_out_total = (u_q_out_instrument.powi(2) + u_q_out_lag.powi(2)).sqrt();
     finite(thermal_kw, "thermal_power_kw")?;
     nonnegative(u_thermal_kw, "thermal_power_standard_uncertainty_kw")?;
 
     let water_residual = q_out - q_in;
-    let u_water_balance = (u_q_out.powi(2) + u_q_in.powi(2)).sqrt();
+    let u_water_balance = (u_q_out_total.powi(2) + u_q_in.powi(2)).sqrt();
     let water_z = if u_water_balance == 0.0 {
         if water_residual == 0.0 { 0.0 } else { f64::INFINITY }
     } else {
@@ -539,8 +565,15 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
     for role in REQUIRED_ROLES {
         let station = temperatures[role];
         let anomaly = station.temperature_deg_c - reference.temperature_deg_c;
-        let u_anomaly = (station.standard_uncertainty_deg_c.powi(2)
+        let u_anomaly_instrument = (station.standard_uncertainty_deg_c.powi(2)
             + reference.standard_uncertainty_deg_c.powi(2)).sqrt();
+        let lag_sensitivity = if role == "intake" {
+            -reference.temporal_rate_deg_c_per_s
+        } else {
+            station.temporal_rate_deg_c_per_s - reference.temporal_rate_deg_c_per_s
+        };
+        let u_anomaly_lag = lag_sensitivity.abs() * u_lag;
+        let u_anomaly = (u_anomaly_instrument.powi(2) + u_anomaly_lag.powi(2)).sqrt();
         finite(anomaly, "station_temperature_anomaly")?;
         nonnegative(u_anomaly, "station_temperature_anomaly_uncertainty")?;
         station_anomalies.push(StationAnomaly {
@@ -548,6 +581,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
             distance_from_outfall_m:station.distance_from_outfall_m,
             delta_from_reference_deg_c:anomaly,
             standard_uncertainty_deg_c:u_anomaly,
+            hydraulic_alignment_standard_uncertainty_deg_c:u_anomaly_lag,
         });
     }
 
@@ -581,6 +615,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
         for (sample, name) in [(&pair.intake, "intake"), (&pair.outfall, "outfall")] {
             nonnegative(sample.concentration_mg_l, "concentration_mg_l")?;
             nonnegative(sample.standard_uncertainty_mg_l, "concentration standard uncertainty")?;
+            finite(sample.temporal_rate_mg_l_per_s, "concentration temporal sensitivity")?;
             positive(sample.detection_limit_mg_l, "detection_limit_mg_l")?;
             if sample.concentration_mg_l < sample.detection_limit_mg_l {
                 return Err(format!("{} concentration for analyte {} is below detection limit; censored-data method required", name, pair.analyte_id));
@@ -590,8 +625,12 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
         let fout = pair.outfall.concentration_mg_l * q_out;
         let u_fin = ((q_in * pair.intake.standard_uncertainty_mg_l).powi(2)
             + (pair.intake.concentration_mg_l * u_q_in).powi(2)).sqrt();
-        let u_fout = ((q_out * pair.outfall.standard_uncertainty_mg_l).powi(2)
-            + (pair.outfall.concentration_mg_l * u_q_out).powi(2)).sqrt();
+        let u_fout_instrument = ((q_out * pair.outfall.standard_uncertainty_mg_l).powi(2)
+            + (pair.outfall.concentration_mg_l * u_q_out_instrument).powi(2)).sqrt();
+        let outfall_flux_lag_sensitivity = q_out * pair.outfall.temporal_rate_mg_l_per_s
+            + pair.outfall.concentration_mg_l * outfall_flow.temporal_rate_m3_s_per_s;
+        let u_fout_lag = outfall_flux_lag_sensitivity.abs() * u_lag;
+        let u_fout = (u_fout_instrument.powi(2) + u_fout_lag.powi(2)).sqrt();
         let net = fout - fin;
         let u_net = (u_fin.powi(2) + u_fout.powi(2)).sqrt();
         positive(u_net, "net pollutant flux standard uncertainty")?;
@@ -613,6 +652,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
             intake_standard_uncertainty_g_s:u_fin,
             outfall_g_s:fout,
             outfall_standard_uncertainty_g_s:u_fout,
+            outfall_hydraulic_alignment_standard_uncertainty_g_s:u_fout_lag,
             net_added_g_s:net,
             net_added_standard_uncertainty_g_s:u_net,
             net_added_kg_day:net * 86.4,
@@ -649,6 +689,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
             }
             nonnegative(sample.concentration_mg_l, "plume concentration_mg_l")?;
             nonnegative(sample.standard_uncertainty_mg_l, "plume concentration uncertainty")?;
+            finite(sample.temporal_rate_mg_l_per_s, "plume concentration temporal sensitivity")?;
             positive(sample.detection_limit_mg_l, "plume detection limit")?;
             if sample.concentration_mg_l < sample.detection_limit_mg_l {
                 return Err(format!("analyte {} plume concentration below detection limit; censored-data method required", pair.analyte_id));
@@ -673,8 +714,23 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
                 return Err(format!("analyte {} concentration station mismatch for {role}", pair.analyte_id));
             }
             let delta = concentration - reference_sample.concentration_mg_l;
-            let delta_uncertainty = (uncertainty.powi(2)
+            let mut station_rate = 0.0;
+            if role == "intake" {
+                station_rate = 0.0;
+            } else {
+                station_rate = plume_by_role.get(role)
+                    .map(|s| s.temporal_rate_mg_l_per_s).unwrap_or(0.0);
+            }
+            let lag_sensitivity = if role == "intake" {
+                -reference_sample.temporal_rate_mg_l_per_s
+            } else {
+                station_rate - reference_sample.temporal_rate_mg_l_per_s
+            };
+            let alignment_uncertainty = lag_sensitivity.abs() * u_lag;
+            let delta_uncertainty_instrument = (uncertainty.powi(2)
                 + reference_sample.standard_uncertainty_mg_l.powi(2)).sqrt();
+            let delta_uncertainty = (delta_uncertainty_instrument.powi(2)
+                + alignment_uncertainty.powi(2)).sqrt();
             finite(delta, "station concentration anomaly")?;
             nonnegative(delta_uncertainty, "station concentration anomaly uncertainty")?;
             pollutant_station_anomalies.push(StationConcentrationAnomaly {
@@ -683,6 +739,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
                 distance_from_outfall_m:station.distance_from_outfall_m,
                 delta_from_reference_mg_l:delta,
                 standard_uncertainty_mg_l:delta_uncertainty,
+                hydraulic_alignment_standard_uncertainty_mg_l:alignment_uncertainty,
             });
         }
     }
@@ -693,14 +750,18 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
         outfall_temperature_deg_c:outfall_temp,
         delta_temperature_deg_c:delta_temp,
         delta_temperature_standard_uncertainty_deg_c:u_delta_temp,
+        delta_temperature_hydraulic_alignment_standard_uncertainty_deg_c:u_delta_temp_lag,
         intake_flow_m3_s:q_in,
         outfall_flow_m3_s:q_out,
         water_balance_residual_m3_s:water_residual,
         water_balance_standard_uncertainty_m3_s:u_water_balance,
+        outfall_flow_hydraulic_alignment_standard_uncertainty_m3_s:u_q_out_lag,
         water_balance_z_score:water_z,
         water_balance_status:"WITHIN_DECLARED_INSTRUMENT_UNCERTAINTY_SCREEN_NOT_PERMIT_COMPLIANCE".into(),
         thermal_power_kw:thermal_kw,
         thermal_power_standard_uncertainty_kw:u_thermal_kw,
+        thermal_power_hydraulic_alignment_standard_uncertainty_kw:u_thermal_kw_lag,
+        hydraulic_residence_time_standard_uncertainty_seconds:u_lag,
         station_anomalies,
         pollutant_station_anomalies,
         pollutant_results,
