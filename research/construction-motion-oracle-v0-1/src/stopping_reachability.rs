@@ -52,6 +52,12 @@ pub enum StoppingReachabilityError {
     NonFiniteIntermediate,
     DistanceBoundOverflow,
     TimeBoundOverflow,
+    InvalidSensorProfileDigest,
+    InvalidSensorQualificationReceiptDigest,
+    InvalidTargetConditionDigest,
+    InvalidMinimumDetectionDistance,
+    InvalidHazardDistanceMargin,
+    HazardDistanceBudgetOverflow,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -68,6 +74,95 @@ pub struct StoppingReachabilityResult {
     pub braking_time_ms: f64,
     /// Latency plus braking time, rounded outward and numerically guarded.
     pub conservative_stop_time_bound_ms: u64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct HazardDetectionQualification {
+    /// Exact sensor, firmware, mounting and configuration digest.
+    pub sensor_profile_sha256: String,
+    /// Independent detection-range test campaign and measurement-chain receipt.
+    pub detection_qualification_receipt_sha256: String,
+    /// Frozen obstacle class/material/size/pose and environmental test stratum.
+    pub target_condition_sha256: String,
+    /// Lower bound on reliable detection range, not advertised maximum sensor range.
+    pub minimum_qualified_detection_distance_mm: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct HazardStoppingMargins {
+    pub localization_uncertainty_mm: f64,
+    pub frame_registration_uncertainty_mm: f64,
+    pub body_geometry_uncertainty_mm: f64,
+    pub site_policy_clearance_mm: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct HazardStoppingBudget {
+    pub minimum_qualified_detection_distance_mm: f64,
+    pub required_distance_bound_mm: u64,
+    pub remaining_distance_mm: f64,
+    /// A non-negative budget under the declared bounds. This is not a safety
+    /// certification, a sensor coverage proof or an actuation permission.
+    pub distance_budget_satisfied: bool,
+}
+
+/// Compare independently qualified minimum hazard detection range with the
+/// stop-distance bound and explicit localization/frame/geometry/policy margins.
+///
+/// A passing result means only that the declared scalar distance budget closes
+/// for the frozen obstacle/sensor and robot/brake profiles. It does not prove
+/// that the sensor detects every relevant obstacle, that the margins cover
+/// every uncertainty source, or that motion is safe to authorize.
+pub fn evaluate_hazard_stopping_budget(
+    stopping: StoppingReachabilityResult,
+    detection: &HazardDetectionQualification,
+    margins: HazardStoppingMargins,
+) -> Result<HazardStoppingBudget, StoppingReachabilityError> {
+    if decode_sha256(&detection.sensor_profile_sha256).is_none() {
+        return Err(StoppingReachabilityError::InvalidSensorProfileDigest);
+    }
+    if decode_sha256(&detection.detection_qualification_receipt_sha256).is_none() {
+        return Err(StoppingReachabilityError::InvalidSensorQualificationReceiptDigest);
+    }
+    if decode_sha256(&detection.target_condition_sha256).is_none() {
+        return Err(StoppingReachabilityError::InvalidTargetConditionDigest);
+    }
+    if !detection.minimum_qualified_detection_distance_mm.is_finite()
+        || detection.minimum_qualified_detection_distance_mm < 0.0
+    {
+        return Err(StoppingReachabilityError::InvalidMinimumDetectionDistance);
+    }
+    let margin_values = [
+        margins.localization_uncertainty_mm,
+        margins.frame_registration_uncertainty_mm,
+        margins.body_geometry_uncertainty_mm,
+        margins.site_policy_clearance_mm,
+    ];
+    if margin_values
+        .into_iter()
+        .any(|value| !value.is_finite() || value < 0.0)
+    {
+        return Err(StoppingReachabilityError::InvalidHazardDistanceMargin);
+    }
+
+    let required_distance = stopping.conservative_distance_bound_mm as f64
+        + margins.localization_uncertainty_mm
+        + margins.frame_registration_uncertainty_mm
+        + margins.body_geometry_uncertainty_mm
+        + margins.site_policy_clearance_mm;
+    let required_distance_bound_mm =
+        outward_integer_bound(required_distance, NUMERIC_DISTANCE_GUARD_MM)
+            .ok_or(StoppingReachabilityError::HazardDistanceBudgetOverflow)?;
+    let remaining_distance_mm =
+        detection.minimum_qualified_detection_distance_mm - required_distance_bound_mm as f64;
+
+    Ok(HazardStoppingBudget {
+        minimum_qualified_detection_distance_mm: detection
+            .minimum_qualified_detection_distance_mm,
+        required_distance_bound_mm,
+        remaining_distance_mm,
+        distance_budget_satisfied: remaining_distance_mm >= 0.0,
+    })
 }
 
 /// Calculate the straight-line stopping extension for a frozen dynamics profile.
@@ -492,6 +587,74 @@ mod tests {
         let mut slower_jerk = base;
         slower_jerk.minimum_braking_jerk_mm_s3 = 500.0;
         assert!(distance(&slower_jerk, 800.0) > reference);
+    }
+
+
+    #[test]
+    fn detection_to_stop_budget_accounts_for_uncertainty_and_clearance() {
+        let stop = calculate_stopping_reachability(
+            &qualification(),
+            StoppingReachabilityRequest {
+                speed_upper_mm_s: 1_000.0,
+            },
+        )
+        .unwrap();
+        let detection = HazardDetectionQualification {
+            sensor_profile_sha256: digest('5'),
+            detection_qualification_receipt_sha256: digest('6'),
+            target_condition_sha256: digest('7'),
+            minimum_qualified_detection_distance_mm: 1_300.0,
+        };
+        let margins = HazardStoppingMargins {
+            localization_uncertainty_mm: 10.0,
+            frame_registration_uncertainty_mm: 20.0,
+            body_geometry_uncertainty_mm: 5.0,
+            site_policy_clearance_mm: 30.0,
+        };
+        let budget =
+            evaluate_hazard_stopping_budget(stop, &detection, margins).unwrap();
+        assert_eq!(budget.required_distance_bound_mm, 1_210);
+        assert!(budget.distance_budget_satisfied);
+        assert!(budget.remaining_distance_mm >= 0.0);
+
+        let insufficient = HazardDetectionQualification {
+            minimum_qualified_detection_distance_mm: 1_200.0,
+            ..detection
+        };
+        let failed =
+            evaluate_hazard_stopping_budget(stop, &insufficient, margins).unwrap();
+        assert!(!failed.distance_budget_satisfied);
+        assert!(failed.remaining_distance_mm < 0.0);
+    }
+
+    #[test]
+    fn invalid_sensor_or_margin_evidence_cannot_close_hazard_distance_budget() {
+        let stop = calculate_stopping_reachability(
+            &qualification(),
+            StoppingReachabilityRequest {
+                speed_upper_mm_s: 500.0,
+            },
+        )
+        .unwrap();
+        let detection = HazardDetectionQualification {
+            sensor_profile_sha256: "bad".into(),
+            detection_qualification_receipt_sha256: digest('6'),
+            target_condition_sha256: digest('7'),
+            minimum_qualified_detection_distance_mm: 1_000.0,
+        };
+        assert_eq!(
+            evaluate_hazard_stopping_budget(
+                stop,
+                &detection,
+                HazardStoppingMargins {
+                    localization_uncertainty_mm: 0.0,
+                    frame_registration_uncertainty_mm: 0.0,
+                    body_geometry_uncertainty_mm: 0.0,
+                    site_policy_clearance_mm: 0.0,
+                }
+            ),
+            Err(StoppingReachabilityError::InvalidSensorProfileDigest)
+        );
     }
 
 }
