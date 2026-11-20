@@ -21,7 +21,10 @@
       "claimed_independent_corroboration": false,
       "claimed_cross_clock_order": false,
       "evidence_as_of_tick": 600,
-      "response_tick": 601
+      "response_tick": 601,
+      "retrieved_memory_item_refs": [],
+      "retained_memory_item_refs": [],
+      "purge_receipts": []
     },
     {
       "episode_id": "lh-002-repeated-event-dedup",
@@ -44,7 +47,10 @@
       "claimed_cross_clock_order": false,
       "evidence_as_of_tick": 900,
       "response_tick": 901,
-      "claimed_distinct_event_count": 4
+      "claimed_distinct_event_count": 4,
+      "retrieved_memory_item_refs": [],
+      "retained_memory_item_refs": [],
+      "purge_receipts": []
     },
     {
       "episode_id": "lh-003-correction-supersession",
@@ -61,7 +67,10 @@
       "claimed_independent_corroboration": false,
       "claimed_cross_clock_order": false,
       "evidence_as_of_tick": 1800,
-      "response_tick": 1801
+      "response_tick": 1801,
+      "retrieved_memory_item_refs": [],
+      "retained_memory_item_refs": [],
+      "purge_receipts": []
     },
     {
       "episode_id": "lh-004-common-cause-dependence",
@@ -79,7 +88,10 @@
       "claimed_independent_corroboration": false,
       "claimed_cross_clock_order": false,
       "evidence_as_of_tick": 1200,
-      "response_tick": 1201
+      "response_tick": 1201,
+      "retrieved_memory_item_refs": [],
+      "retained_memory_item_refs": [],
+      "purge_receipts": []
     },
     {
       "episode_id": "lh-005-nuisance-interference",
@@ -95,7 +107,10 @@
       "claimed_independent_corroboration": false,
       "claimed_cross_clock_order": false,
       "evidence_as_of_tick": 3600,
-      "response_tick": 3601
+      "response_tick": 3601,
+      "retrieved_memory_item_refs": [],
+      "retained_memory_item_refs": [],
+      "purge_receipts": []
     },
     {
       "episode_id": "lh-006-absent-event-false-memory",
@@ -107,7 +122,10 @@
       "claimed_independent_corroboration": false,
       "claimed_cross_clock_order": false,
       "evidence_as_of_tick": 900,
-      "response_tick": 901
+      "response_tick": 901,
+      "retrieved_memory_item_refs": [],
+      "retained_memory_item_refs": [],
+      "purge_receipts": []
     },
     {
       "episode_id": "lh-007-cross-clock-and-event-order",
@@ -129,7 +147,10 @@
       "claimed_independent_corroboration": false,
       "claimed_cross_clock_order": false,
       "evidence_as_of_tick": 7200,
-      "response_tick": 7201
+      "response_tick": 7201,
+      "retrieved_memory_item_refs": [],
+      "retained_memory_item_refs": [],
+      "purge_receipts": []
     },
     {
       "episode_id": "lh-008-memory-revocation",
@@ -145,7 +166,50 @@
       "claimed_independent_corroboration": false,
       "claimed_cross_clock_order": false,
       "evidence_as_of_tick": 3600,
-      "response_tick": 3601
+      "response_tick": 3601,
+      "retrieved_memory_item_refs": [
+        "mem-public-action-summary"
+      ],
+      "retained_memory_item_refs": [
+        "mem-public-action-summary"
+      ],
+      "purge_receipts": [
+        {
+          "item_ref": "mem-private-summary",
+          "status": "purged",
+          "purge_tick": 1800,
+          "receipt_id": "synthetic-purge-receipt-mem-private-summary",
+          "attestation_level": "candidate_self_reported"
+        },
+        {
+          "item_ref": "mem-private-embedding",
+          "status": "purged",
+          "purge_tick": 1800,
+          "receipt_id": "synthetic-purge-receipt-mem-private-embedding",
+          "attestation_level": "candidate_self_reported"
+        },
+        {
+          "item_ref": "mem-private-retrieval-index",
+          "status": "purged",
+          "purge_tick": 1800,
+          "receipt_id": "synthetic-purge-receipt-mem-private-retrieval-index",
+          "attestation_level": "candidate_self_reported"
+        },
+        {
+          "item_ref": "mem-private-working-context",
+          "status": "purged",
+          "purge_tick": 1800,
+          "receipt_id": "synthetic-purge-receipt-mem-private-working-context",
+          "attestation_level": "candidate_self_reported"
+        },
+        {
+          "item_ref": "mem-private-response-cache",
+          "status": "purged",
+          "purge_tick": 1800,
+          "receipt_id": "synthetic-purge-receipt-mem-private-response-cache",
+          "attestation_level": "candidate_self_reported"
+        }
+      ]
     },
     {
       "episode_id": "lh-009-compression-retention",
@@ -161,7 +225,10 @@
       "claimed_independent_corroboration": false,
       "claimed_cross_clock_order": false,
       "evidence_as_of_tick": 5400,
-      "response_tick": 5401
+      "response_tick": 5401,
+      "retrieved_memory_item_refs": [],
+      "retained_memory_item_refs": [],
+      "purge_receipts": []
     }
   ]
 }
