@@ -403,7 +403,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
         temperatures.insert(observation.station_role.as_str(), observation);
     }
     if temperatures.len() != REQUIRED_ROLES.len()
-        || REQUIRED_ROLES.iter().any(|role| !temperatures.contains_key(role)) {
+        || REQUIRED_ROLES.iter().any(|role| !temperatures.contains_key(*role)) {
         return Err(format!("interval {} must contain each required thermal station role exactly once", interval.interval_id));
     }
 
@@ -647,7 +647,7 @@ fn validate(bundle: &Bundle) -> Result<Report, String> {
         return Err("bundle must be nonempty and explicitly synthetic".into());
     }
     if bundle.station_roles.len() != REQUIRED_ROLES.len()
-        || REQUIRED_ROLES.iter().any(|role| !bundle.station_roles.iter().any(|x| x == role)) {
+        || REQUIRED_ROLES.iter().any(|role| !bundle.station_roles.iter().any(|x| x.as_str() == *role)) {
         return Err("station role contract must contain exactly the five required roles".into());
     }
     if bundle.pairing_contract.timestamp_format != "YYYY-MM-DDTHH:MM:SSZ"
