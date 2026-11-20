@@ -271,6 +271,23 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
     output
 }
 
+/// Domain-separated, length-prefixed key for one logical service operation.
+/// Corrections retain operation_id; distinct operations cannot collide through
+/// ambiguous delimiter concatenation.
+pub fn canonical_idempotency_key(fixture: &ServiceFixture, receipt: &ServiceReceipt) -> String {
+    let mut input = b"luminous.orbital-service-idempotency.v1".to_vec();
+    for value in [
+        fixture.mission_id.as_str(),
+        fixture.service_window_id.as_str(),
+        receipt.operation_id.as_str(),
+    ] {
+        let length = value.len() as u64;
+        input.extend_from_slice(&length.to_be_bytes());
+        input.extend_from_slice(value.as_bytes());
+    }
+    sha256_hex(&input)
+}
+
 fn present(value: &str) -> bool {
     !value.trim().is_empty()
 }
@@ -577,8 +594,24 @@ fn evaluate_scenario(fixture: &ServiceFixture, scenario: &Scenario) -> ScenarioR
 
     // Input order is observation/ingestion order. Event time is kept separately.
     for receipt in &scenario.receipts {
-        if !present(&receipt.event_id) || !present(&receipt.idempotency_key) {
+        if !present(&receipt.event_id)
+            || !present(&receipt.operation_id)
+            || !present(&receipt.idempotency_key)
+        {
             hard_rejection = Some("event_or_idempotency_identity_missing");
+            break;
+        }
+        let expected_key = canonical_idempotency_key(fixture, receipt);
+        if receipt.idempotency_key != expected_key {
+            disputed = Some(if let Some(existing) = seen_key.get(&receipt.idempotency_key) {
+                if existing == &receipt.event_id {
+                    "idempotency_key_reused_outside_event_scope"
+                } else {
+                    "idempotency_key_reused_with_conflicting_receipt"
+                }
+            } else {
+                "idempotency_key_not_bound_to_logical_operation"
+            });
             break;
         }
         if receipt.event_time_tick < fixture.service_window_start_tick
