@@ -1446,23 +1446,47 @@ fn add_service_source_attestations(
         proposal_set_sha256.to_string(),
     ]);
     for source in &trajectory.source_artifacts {
-        add_attested_artifact(
-            expected_artifacts,
-            requirements,
-            &source.artifact_ref,
-            &source.sha256,
-            SignerRole::EvidenceProvider,
-            &evidence_profile.issuer_id,
-            "power-restoration/service-source-evidence/v1",
-            &receipt.run_id,
-            case_sha256,
-            0,
-            proposal_set_sha256,
-            &evidence_profile.tool_source_commit,
-            &evidence_profile.tool_configuration_sha256,
-            parents.clone(),
-            errors,
-        );
+        let existing = requirements.iter().find(|requirement| {
+            requirement.artifact_uri == source.artifact_ref
+                && requirement.signer_role == SignerRole::EvidenceProvider
+        });
+        if let Some(existing) = existing {
+            // Source evidence may already have been attested during observation
+            // acquisition. Reuse that obligation only when identity and bytes
+            // match the source producer asserted by this trajectory.
+            if existing.issuer_id != evidence_profile.issuer_id
+                || existing.artifact_sha256 != source.sha256
+            {
+                errors.push(format!(
+                    "existing EvidenceProvider attestation for {} does not match the trajectory's source identity and digest",
+                    source.artifact_ref
+                ));
+            }
+            add_expected_artifact(
+                expected_artifacts,
+                &source.artifact_ref,
+                &source.sha256,
+                errors,
+            );
+        } else {
+            add_attested_artifact(
+                expected_artifacts,
+                requirements,
+                &source.artifact_ref,
+                &source.sha256,
+                SignerRole::EvidenceProvider,
+                &evidence_profile.issuer_id,
+                "power-restoration/service-source-evidence/v1",
+                &receipt.run_id,
+                case_sha256,
+                0,
+                proposal_set_sha256,
+                &evidence_profile.tool_source_commit,
+                &evidence_profile.tool_configuration_sha256,
+                parents.clone(),
+                errors,
+            );
+        }
     }
 
     // The derived trajectory provider signs the trajectory digest with the
