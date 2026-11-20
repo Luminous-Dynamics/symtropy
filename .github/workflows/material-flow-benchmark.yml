@@ -115,6 +115,8 @@ jobs:
             and ([.results[] | select(.operation_id == "commercial-brlos")][0].candidate_status == "blocked")
             and ([.results[] | select(.operation_id == "commercial-bvlos-missing-director-approval")][0].candidate_status == "indeterminate")
             and ([.results[] | select(.operation_id == "private-class-1a-rvlos-non-delivery")][0].candidate_status == "eligible_for_external_operator_review")
+            and ([.results[] | select(.operation_id == "corporate-vlos-no-asl")][0].candidate_status == "eligible_for_external_operator_review")
+            and ([.results[] | select(.operation_id == "commercial-rvlos-delivery")][0].required_evidence | any(.requirement == "uas_operations_specification" and .state == "caller_verified_current"))
           ' mfb-l1-evidence/za-uas-eligibility-report.json
           cat mfb-l1-evidence/za-uas-eligibility-report.json
       - name: Validate synthetic 3D cargo-bay loading
