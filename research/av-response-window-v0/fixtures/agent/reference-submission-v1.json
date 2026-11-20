@@ -16,7 +16,9 @@
       "playback_start_event_ref": "render-start-r1",
       "playback_end_event_ref": "render-end-r1",
       "playback_end_kind": "playback_ended",
-      "controller_permission_event_ref": "controller-permit-r1"
+      "controller_permission_event_ref": "controller-permit-r1",
+      "session_epoch": 1,
+      "turn_id": "turn-r1"
     },
     {
       "response_id": "r2",
@@ -28,7 +30,9 @@
       "playback_start_event_ref": "render-start-r2",
       "playback_end_event_ref": "render-end-r2",
       "playback_end_kind": "playback_ended",
-      "controller_permission_event_ref": "controller-permit-r2"
+      "controller_permission_event_ref": "controller-permit-r2",
+      "session_epoch": 1,
+      "turn_id": "turn-r2"
     },
     {
       "response_id": "r3",
@@ -40,7 +44,9 @@
       "playback_start_event_ref": "render-start-r3",
       "playback_end_event_ref": "render-end-r3",
       "playback_end_kind": "playback_ended",
-      "controller_permission_event_ref": "controller-permit-r3"
+      "controller_permission_event_ref": "controller-permit-r3",
+      "session_epoch": 1,
+      "turn_id": "turn-r3"
     },
     {
       "response_id": "r4a",
@@ -52,7 +58,9 @@
       "playback_start_event_ref": "render-start-r4a",
       "playback_end_event_ref": "render-end-r4a",
       "playback_end_kind": "playback_ended",
-      "controller_permission_event_ref": "controller-permit-r4a"
+      "controller_permission_event_ref": "controller-permit-r4a",
+      "session_epoch": 1,
+      "turn_id": "turn-r4a"
     },
     {
       "response_id": "r4b",
@@ -64,7 +72,9 @@
       "playback_start_event_ref": "render-start-r4b",
       "playback_end_event_ref": "render-end-r4b",
       "playback_end_kind": "playback_ended",
-      "controller_permission_event_ref": "controller-permit-r4b"
+      "controller_permission_event_ref": "controller-permit-r4b",
+      "session_epoch": 1,
+      "turn_id": "turn-r4b"
     },
     {
       "response_id": "r5",
@@ -76,7 +86,9 @@
       "playback_start_event_ref": "render-start-r5",
       "playback_end_event_ref": "render-end-r5",
       "playback_end_kind": "playback_ended",
-      "controller_permission_event_ref": "controller-permit-r5"
+      "controller_permission_event_ref": "controller-permit-r5",
+      "session_epoch": 1,
+      "turn_id": "turn-r5"
     },
     {
       "response_id": "r6",
@@ -88,7 +100,9 @@
       "playback_start_event_ref": "render-start-r6",
       "playback_end_event_ref": "render-end-r6",
       "playback_end_kind": "playback_ended",
-      "controller_permission_event_ref": "controller-permit-r6"
+      "controller_permission_event_ref": "controller-permit-r6",
+      "session_epoch": 1,
+      "turn_id": "turn-r6"
     },
     {
       "response_id": "r9",
@@ -100,9 +114,181 @@
       "playback_start_event_ref": "render-start-r9",
       "playback_end_event_ref": "render-end-r9",
       "playback_end_kind": "playback_ended",
-      "controller_permission_event_ref": "controller-permit-r9"
+      "controller_permission_event_ref": "controller-permit-r9",
+      "session_epoch": 1,
+      "turn_id": "turn-r9"
     }
   ],
   "timing_evidence_mode": "synthetic_reference",
-  "clock_relation_ref": "synthetic:logical-replay-tick-v1"
+  "clock_relation_ref": "synthetic:logical-replay-tick-v1",
+  "renderer_lifecycle_events": [
+    {
+      "event_ref": "controller-permit-r1",
+      "session_epoch": 1,
+      "turn_id": "turn-r1",
+      "event_kind": "assistant_speech_permitted",
+      "tick": 11
+    },
+    {
+      "event_ref": "render-start-r1",
+      "session_epoch": 1,
+      "turn_id": "turn-r1",
+      "event_kind": "playback_started",
+      "tick": 12
+    },
+    {
+      "event_ref": "controller-permit-r4a",
+      "session_epoch": 1,
+      "turn_id": "turn-r4a",
+      "event_kind": "assistant_speech_permitted",
+      "tick": 14
+    },
+    {
+      "event_ref": "render-end-r1",
+      "session_epoch": 1,
+      "turn_id": "turn-r1",
+      "event_kind": "playback_ended",
+      "tick": 14
+    },
+    {
+      "event_ref": "render-start-r4a",
+      "session_epoch": 1,
+      "turn_id": "turn-r4a",
+      "event_kind": "playback_started",
+      "tick": 15
+    },
+    {
+      "event_ref": "controller-permit-r9",
+      "session_epoch": 1,
+      "turn_id": "turn-r9",
+      "event_kind": "assistant_speech_permitted",
+      "tick": 17
+    },
+    {
+      "event_ref": "render-end-r4a",
+      "session_epoch": 1,
+      "turn_id": "turn-r4a",
+      "event_kind": "playback_ended",
+      "tick": 17
+    },
+    {
+      "event_ref": "controller-permit-r3",
+      "session_epoch": 1,
+      "turn_id": "turn-r3",
+      "event_kind": "assistant_speech_permitted",
+      "tick": 18
+    },
+    {
+      "event_ref": "render-start-r9",
+      "session_epoch": 1,
+      "turn_id": "turn-r9",
+      "event_kind": "playback_started",
+      "tick": 18
+    },
+    {
+      "event_ref": "controller-permit-r2",
+      "session_epoch": 1,
+      "turn_id": "turn-r2",
+      "event_kind": "assistant_speech_permitted",
+      "tick": 19
+    },
+    {
+      "event_ref": "controller-permit-r4b",
+      "session_epoch": 1,
+      "turn_id": "turn-r4b",
+      "event_kind": "assistant_speech_permitted",
+      "tick": 19
+    },
+    {
+      "event_ref": "render-start-r3",
+      "session_epoch": 1,
+      "turn_id": "turn-r3",
+      "event_kind": "playback_started",
+      "tick": 19
+    },
+    {
+      "event_ref": "render-end-r9",
+      "session_epoch": 1,
+      "turn_id": "turn-r9",
+      "event_kind": "playback_ended",
+      "tick": 20
+    },
+    {
+      "event_ref": "render-start-r2",
+      "session_epoch": 1,
+      "turn_id": "turn-r2",
+      "event_kind": "playback_started",
+      "tick": 20
+    },
+    {
+      "event_ref": "render-start-r4b",
+      "session_epoch": 1,
+      "turn_id": "turn-r4b",
+      "event_kind": "playback_started",
+      "tick": 20
+    },
+    {
+      "event_ref": "render-end-r3",
+      "session_epoch": 1,
+      "turn_id": "turn-r3",
+      "event_kind": "playback_ended",
+      "tick": 21
+    },
+    {
+      "event_ref": "render-end-r2",
+      "session_epoch": 1,
+      "turn_id": "turn-r2",
+      "event_kind": "playback_ended",
+      "tick": 22
+    },
+    {
+      "event_ref": "render-end-r4b",
+      "session_epoch": 1,
+      "turn_id": "turn-r4b",
+      "event_kind": "playback_ended",
+      "tick": 22
+    },
+    {
+      "event_ref": "controller-permit-r6",
+      "session_epoch": 1,
+      "turn_id": "turn-r6",
+      "event_kind": "assistant_speech_permitted",
+      "tick": 34
+    },
+    {
+      "event_ref": "render-start-r6",
+      "session_epoch": 1,
+      "turn_id": "turn-r6",
+      "event_kind": "playback_started",
+      "tick": 35
+    },
+    {
+      "event_ref": "render-end-r6",
+      "session_epoch": 1,
+      "turn_id": "turn-r6",
+      "event_kind": "playback_ended",
+      "tick": 37
+    },
+    {
+      "event_ref": "controller-permit-r5",
+      "session_epoch": 1,
+      "turn_id": "turn-r5",
+      "event_kind": "assistant_speech_permitted",
+      "tick": 44
+    },
+    {
+      "event_ref": "render-start-r5",
+      "session_epoch": 1,
+      "turn_id": "turn-r5",
+      "event_kind": "playback_started",
+      "tick": 45
+    },
+    {
+      "event_ref": "render-end-r5",
+      "session_epoch": 1,
+      "turn_id": "turn-r5",
+      "event_kind": "playback_ended",
+      "tick": 47
+    }
+  ]
 }
