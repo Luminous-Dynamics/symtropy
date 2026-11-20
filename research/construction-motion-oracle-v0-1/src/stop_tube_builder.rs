@@ -34,6 +34,9 @@ pub const STOP_TUBE_BUILD_SCHEMA_VERSION: &str = "construction-stop-tube-build/0
 pub const STOP_TUBE_BUILDER_MODEL: &str = "fixed-orientation-fixed-tangent-translation/0.1";
 const NUMERIC_AXIS_GUARD_MM: u64 = 1;
 const MAX_TRIGGER_WINDOWS_PER_SOURCE_SEGMENT: u64 = 65_536;
+/// Keeps f64 direction normalization error well below the explicit 1 mm
+/// outward projection guard. This still covers continental-scale site frames.
+const MAX_NUMERIC_DIRECTION_COMPONENT_MM: i128 = 1_000_000_000_000;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StopTubeKinematics {
@@ -760,9 +763,15 @@ fn stop_displacement(
         i128::from(to.y) - i128::from(from.y),
         i128::from(to.z) - i128::from(from.z),
     ];
-    let length_squared = (delta[0] * delta[0])
-        .checked_add(delta[1] * delta[1])
-        .and_then(|value| value.checked_add(delta[2] * delta[2]))
+    if delta.iter().any(|value| value.abs() > MAX_NUMERIC_DIRECTION_COMPONENT_MM)
+        || i128::from(distance_mm) > MAX_NUMERIC_DIRECTION_COMPONENT_MM
+    {
+        return Err(StopTubeBuildError::BoundsOverflow);
+    }
+    let length_squared = delta[0]
+        .checked_mul(delta[0])
+        .and_then(|value| value.checked_add(delta[1].checked_mul(delta[1])?))
+        .and_then(|value| value.checked_add(delta[2].checked_mul(delta[2])?))
         .ok_or(StopTubeBuildError::BoundsOverflow)?;
     if length_squared == 0 {
         return Ok([0, 0, 0]);
@@ -852,10 +861,11 @@ fn div_ceil_u64(value: u64, divisor: u64) -> Result<u64, StopTubeBuildError> {
     if divisor == 0 {
         return Err(StopTubeBuildError::InvalidTriggerWindow);
     }
-    let adjusted = value
-        .checked_add(divisor - 1)
-        .ok_or(StopTubeBuildError::TimeArithmeticOverflow)?;
-    Ok(adjusted / divisor)
+    let quotient = value / divisor;
+    let remainder = value % divisor;
+    quotient
+        .checked_add(u64::from(remainder != 0))
+        .ok_or(StopTubeBuildError::TimeArithmeticOverflow)
 }
 
 fn is_sha256(value: &str) -> bool {
@@ -1230,7 +1240,7 @@ mod tests {
                 + delta[2] * delta[2])
                 .sqrt();
             let stop = stopping.conservative_distance_bound_mm as f64;
-            let margin = [120.0, 124.0, 127.0];
+            let margin = [120.0, 124.0, 128.0];
             let min = [slice.bounds.min.x, slice.bounds.min.y, slice.bounds.min.z];
             let max = [slice.bounds.max.x, slice.bounds.max.y, slice.bounds.max.z];
             for axis in 0..3 {
