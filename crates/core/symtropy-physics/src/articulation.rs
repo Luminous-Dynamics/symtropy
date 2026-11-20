@@ -304,6 +304,31 @@ mod tests {
     }
 
     #[test]
+    fn checked_chain_builder_prevalidates_all_links_before_world_mutation() {
+        let mut world = world_with_gravity();
+        let result = ChainBuilder::new()
+            .base_position(Point::new([0.0, 0.0, 2.0]))
+            .add_link(LinkSpec {
+                mass: 1.0,
+                length: 0.5,
+                radius: 0.03,
+                ..Default::default()
+            })
+            .add_link(LinkSpec {
+                mass: 1.0,
+                length: 0.2,
+                radius: 0.15,
+                ..Default::default()
+            })
+            .try_build(&mut world);
+        assert!(matches!(
+            result,
+            Err(ChainBuildError::InvalidLinkGeometry { index: 1 })
+        ));
+        assert_eq!(world.body_count(), 0);
+    }
+
+    #[test]
     fn test_single_link_pendulum() {
         let mut world = world_with_gravity();
         let chain = ChainBuilder::new()
