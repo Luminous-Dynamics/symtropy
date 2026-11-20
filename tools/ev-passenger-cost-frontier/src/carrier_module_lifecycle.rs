@@ -619,7 +619,8 @@ fn evaluate_profile(
     missing_fields.dedup();
 
     let blocked = factory.status == "blocked";
-    let all_evidence_backed = matches!(
+    let all_evidence_backed = factory.status == "passes_evidence_backed_screen"
+        && matches!(
         catalog.annual_operating_hours_evidence_class,
         EvidenceClass::Measured | EvidenceClass::IndependentTest
     ) && matches!(
@@ -644,14 +645,15 @@ fn evaluate_profile(
         && lifecycle_cost.is_some()
         && downtime_fraction.is_some()
         && all_evidence_backed;
-    let synthetic = !all_evidence_backed
+    let synthetic = factory.status == "passes_synthetic_screen"
+        || (!all_evidence_backed
         && catalog.annual_operating_hours_evidence_class != EvidenceClass::Unknown
         && catalog.labour_rate_evidence_class != EvidenceClass::Unknown
         && profile.acquisition_cost_evidence_class != EvidenceClass::Unknown
         && profile.events.iter().all(|event| {
             event.frequency_evidence_class != EvidenceClass::Unknown
                 && event.tasks.iter().all(|task| task.evidence_class != EvidenceClass::Unknown)
-        });
+        }));
     let status = if blocked {
         LifecycleStatus::Blocked
     } else if !missing_fields.is_empty() {
@@ -889,7 +891,9 @@ mod tests {
         unscheduled.observed_event_count = Some(2);
         unscheduled.exposure_module_years = Some(10.0);
 
-        let report = validate_and_evaluate(&factory(), &catalog).expect("complete evidence input");
+        let mut factory_report = factory();
+        factory_report.results[0].status = "passes_evidence_backed_screen".into();
+        let report = validate_and_evaluate(&factory_report, &catalog).expect("complete evidence input");
         let result = &report.results[0];
         assert_eq!(result.status, LifecycleStatus::EvidenceBackedScreen);
         assert!(result.full_lifecycle_ranking_eligible);
@@ -977,6 +981,38 @@ mod tests {
         first_catalog.profiles[0].events[0].tasks.reverse();
         let second = validate_and_evaluate(&base, &first_catalog).expect("permuted result");
         assert_eq!(first, second);
+    }
+
+    #[test]
+    fn synthetic_factory_screen_cannot_support_evidence_backed_lifecycle_ranking() {
+        let mut catalog = catalog();
+        catalog.annual_operating_hours_evidence_class = EvidenceClass::Measured;
+        catalog.annual_operating_hours_evidence_reference = "measurement://hours".into();
+        catalog.labour_rate_per_technician_hour = Some(40.0);
+        catalog.labour_rate_evidence_class = EvidenceClass::Measured;
+        catalog.labour_rate_evidence_reference = "measurement://labour-rate".into();
+        let profile = &mut catalog.profiles[0];
+        profile.acquisition_cost_per_good_module = Some(1_000.0);
+        profile.acquisition_cost_evidence_class = EvidenceClass::Measured;
+        profile.acquisition_cost_evidence_reference = "quote://module-cost".into();
+        profile.amortization_years = Some(5.0);
+        for event in &mut profile.events {
+            event.frequency_evidence_class = EvidenceClass::Measured;
+            event.frequency_evidence_reference = "measurement://event-rate".into();
+            for task in &mut event.tasks {
+                task.evidence_class = EvidenceClass::Measured;
+                task.evidence_reference = "measurement://task".into();
+            }
+        }
+        let unscheduled = profile.events.iter_mut()
+            .find(|event| event.event_class == EventClass::Unscheduled).unwrap();
+        unscheduled.observed_event_count = Some(1);
+        unscheduled.exposure_module_years = Some(10.0);
+
+        let report = validate_and_evaluate(&factory(), &catalog).expect("complete service data");
+        assert_eq!(report.results[0].status, LifecycleStatus::SyntheticScreen);
+        assert!(!report.results[0].full_lifecycle_ranking_eligible);
+        assert!(!report.full_lifecycle_ranking_available);
     }
 
     #[test]
