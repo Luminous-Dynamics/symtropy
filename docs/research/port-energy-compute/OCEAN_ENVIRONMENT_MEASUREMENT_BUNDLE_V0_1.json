@@ -10,8 +10,8 @@
     "nonlinear_model_policy": "Use a validated nonlinear measurement model and distribution propagation (e.g. JCGM 101 Monte Carlo) where first-order linearization is not adequate; this v0.1 fixture only exercises an explicitly declared locally-linear model.",
     "water_sampling_reference": "ISO 5667-10:2026, representative sampling of urban/industrial wastewater including cooling water",
     "water_sampling_url": "https://www.iso.org/standard/86841.html",
-    "observation_interoperability": "OGC SensorThings API 2.0 / Part 1 Sensing 1.1 compatible mapping",
-    "observation_interoperability_url": "https://www.ogc.org/standards/sensorthings/"
+    "observation_interoperability": "OGC SensorThings API 2.0 (published 2026-11-04)",
+    "observation_interoperability_url": "https://docs.ogc.org/is/23-019/23-019.html"
   },
   "station_roles": [
     "intake",
@@ -42,7 +42,9 @@
     "covariance_assumption": "Inputs are treated as independent for this synthetic fixture. Any shared calibration, common reference or correlated errors require covariance terms or Monte Carlo propagation; independence must not be assumed silently."
   },
   "ogc_sensorthings_mapping": {
-    "standard": "OGC SensorThings API Part 1: Sensing 1.1",
+    "standard": "OGC SensorThings API 2.0",
+    "standard_url": "https://docs.ogc.org/is/23-019/23-019.html",
+    "publication_date": "2026-11-04",
     "entity_mapping": {
       "station_or_platform": "Thing",
       "station_location": "Location",
@@ -50,9 +52,18 @@
       "measured_property": "ObservedProperty",
       "sensor_and_property_series": "Datastream",
       "individual_measurement": "Observation",
-      "intake_outfall_or_reference_station": "FeatureOfInterest"
+      "station_or_sampled_environment_feature": "Feature",
+      "observation_proximate_feature_link": "ProximateFeatureOfInterest",
+      "datastream_proximate_feature_link": "ProximateFeatureOfInterest",
+      "datastream_ultimate_feature_link": "UltimateFeatureOfInterest"
     },
-    "data_model_policy": "The fixture stores a local normalized representation; it is not yet a SensorThings API payload. Preserve units, resultTime/phenomenonTime, Datastream identity, FeatureOfInterest and sensor metadata during adapter implementation."
+    "datastream_result_encoding": {
+      "result_type": "SWE-Common JSON structure description",
+      "result_encoding": "SWE-Common encoding descriptor",
+      "unit_location": "Unit of measure is part of resultType field structure",
+      "legacy_unit_of_measurement": "not used in v2.0 Datastream contract"
+    },
+    "data_model_policy": "Local normalized bundle only, not a SensorThings API payload. Preserve phenomenonTime and resultTime separately; preserve Datastream resultType and resultEncoding; model sampling locations and sampled environmental features with Feature, linking observations through ProximateFeatureOfInterest and Datastreams through proximate/ultimate feature links. Query server $metadata before assuming optional extensions. v1.1 adapters, if ever needed, must be explicit versioned translations rather than silent aliases."
   },
   "interval_records": [
     {
@@ -107,8 +118,8 @@
           "evidence": {
             "sample_id": "ENV-INT-001-temperature-2-1",
             "interval_id": "ENV-INT-001",
-            "interval_start_utc": "2026-10-12T10:00:00Z",
-            "interval_end_utc": "2026-10-12T10:05:00Z",
+            "interval_start_utc": "2026-10-12T10:05:00Z",
+            "interval_end_utc": "2026-10-12T10:10:00Z",
             "sensor_id": "SYNTH-SENSOR-TEMPERATURE-2",
             "calibration_id": "SYNTH-CAL-TEMPERATURE-2-2026-09",
             "calibration_state": "in_calibration",
@@ -130,8 +141,8 @@
           "evidence": {
             "sample_id": "ENV-INT-001-temperature-3-1",
             "interval_id": "ENV-INT-001",
-            "interval_start_utc": "2026-10-12T10:00:00Z",
-            "interval_end_utc": "2026-10-12T10:05:00Z",
+            "interval_start_utc": "2026-10-12T10:05:00Z",
+            "interval_end_utc": "2026-10-12T10:10:00Z",
             "sensor_id": "SYNTH-SENSOR-TEMPERATURE-3",
             "calibration_id": "SYNTH-CAL-TEMPERATURE-3-2026-09",
             "calibration_state": "in_calibration",
@@ -153,8 +164,8 @@
           "evidence": {
             "sample_id": "ENV-INT-001-temperature-4-1",
             "interval_id": "ENV-INT-001",
-            "interval_start_utc": "2026-10-12T10:00:00Z",
-            "interval_end_utc": "2026-10-12T10:05:00Z",
+            "interval_start_utc": "2026-10-12T10:05:00Z",
+            "interval_end_utc": "2026-10-12T10:10:00Z",
             "sensor_id": "SYNTH-SENSOR-TEMPERATURE-4",
             "calibration_id": "SYNTH-CAL-TEMPERATURE-4-2026-09",
             "calibration_state": "in_calibration",
@@ -176,8 +187,8 @@
           "evidence": {
             "sample_id": "ENV-INT-001-temperature-5-1",
             "interval_id": "ENV-INT-001",
-            "interval_start_utc": "2026-10-12T10:00:00Z",
-            "interval_end_utc": "2026-10-12T10:05:00Z",
+            "interval_start_utc": "2026-10-12T10:05:00Z",
+            "interval_end_utc": "2026-10-12T10:10:00Z",
             "sensor_id": "SYNTH-SENSOR-TEMPERATURE-5",
             "calibration_id": "SYNTH-CAL-TEMPERATURE-5-2026-09",
             "calibration_state": "in_calibration",
@@ -220,8 +231,8 @@
           "evidence": {
             "sample_id": "ENV-INT-001-flow-outfall-1",
             "interval_id": "ENV-INT-001",
-            "interval_start_utc": "2026-10-12T10:00:00Z",
-            "interval_end_utc": "2026-10-12T10:05:00Z",
+            "interval_start_utc": "2026-10-12T10:05:00Z",
+            "interval_end_utc": "2026-10-12T10:10:00Z",
             "sensor_id": "SYNTH-SENSOR-FLOW-OUTFALL",
             "calibration_id": "SYNTH-CAL-FLOW-OUTFALL-2026-09",
             "calibration_state": "in_calibration",
@@ -259,7 +270,8 @@
               "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-INTAKE",
               "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
               "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-            }
+            },
+            "sample_collection_method": "synthetic_flow_proportional_composite"
           },
           "outfall": {
             "station_id": "station-outfall",
@@ -270,8 +282,8 @@
             "evidence": {
               "sample_id": "ENV-INT-001-concentration-outfall-1",
               "interval_id": "ENV-INT-001",
-              "interval_start_utc": "2026-10-12T10:00:00Z",
-              "interval_end_utc": "2026-10-12T10:05:00Z",
+              "interval_start_utc": "2026-10-12T10:05:00Z",
+              "interval_end_utc": "2026-10-12T10:10:00Z",
               "sensor_id": "SYNTH-SENSOR-CONCENTRATION-OUTFALL",
               "calibration_id": "SYNTH-CAL-CONCENTRATION-OUTFALL-2026-09",
               "calibration_state": "in_calibration",
@@ -281,7 +293,8 @@
               "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-OUTFALL",
               "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
               "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-            }
+            },
+            "sample_collection_method": "synthetic_flow_proportional_composite"
           }
         }
       ],
@@ -294,8 +307,8 @@
           "evidence": {
             "sample_id": "ENV-INT-001-PLUME-NEAR",
             "interval_id": "ENV-INT-001",
-            "interval_start_utc": "2026-10-12T10:00:00Z",
-            "interval_end_utc": "2026-10-12T10:05:00Z",
+            "interval_start_utc": "2026-10-12T10:05:00Z",
+            "interval_end_utc": "2026-10-12T10:10:00Z",
             "sensor_id": "SYNTH-LAB-PLUME-NEAR",
             "calibration_id": "SYNTH-CAL-PLUME-NEAR-2026-09",
             "calibration_state": "in_calibration",
@@ -310,7 +323,8 @@
           "station_role": "near_field_plume",
           "concentration_mg_l": 0.0208,
           "standard_uncertainty_mg_l": 0.0015,
-          "detection_limit_mg_l": 0.001
+          "detection_limit_mg_l": 0.001,
+          "sample_collection_method": "synthetic_flow_proportional_composite"
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -319,8 +333,8 @@
           "evidence": {
             "sample_id": "ENV-INT-001-PLUME-FAR",
             "interval_id": "ENV-INT-001",
-            "interval_start_utc": "2026-10-12T10:00:00Z",
-            "interval_end_utc": "2026-10-12T10:05:00Z",
+            "interval_start_utc": "2026-10-12T10:05:00Z",
+            "interval_end_utc": "2026-10-12T10:10:00Z",
             "sensor_id": "SYNTH-LAB-PLUME-FAR",
             "calibration_id": "SYNTH-CAL-PLUME-FAR-2026-09",
             "calibration_state": "in_calibration",
@@ -335,7 +349,8 @@
           "station_role": "far_field_impact",
           "concentration_mg_l": 0.0203,
           "standard_uncertainty_mg_l": 0.0015,
-          "detection_limit_mg_l": 0.001
+          "detection_limit_mg_l": 0.001,
+          "sample_collection_method": "synthetic_flow_proportional_composite"
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -344,8 +359,8 @@
           "evidence": {
             "sample_id": "ENV-INT-001-PLUME-CONTROL",
             "interval_id": "ENV-INT-001",
-            "interval_start_utc": "2026-10-12T10:00:00Z",
-            "interval_end_utc": "2026-10-12T10:05:00Z",
+            "interval_start_utc": "2026-10-12T10:05:00Z",
+            "interval_end_utc": "2026-10-12T10:10:00Z",
             "sensor_id": "SYNTH-LAB-PLUME-CONTROL",
             "calibration_id": "SYNTH-CAL-PLUME-CONTROL-2026-09",
             "calibration_state": "in_calibration",
@@ -360,9 +375,16 @@
           "station_role": "independent_reference_control",
           "concentration_mg_l": 0.02,
           "standard_uncertainty_mg_l": 0.0015,
-          "detection_limit_mg_l": 0.001
+          "detection_limit_mg_l": 0.001,
+          "sample_collection_method": "synthetic_flow_proportional_composite"
         }
-      ]
+      ],
+      "hydraulic_pairing_state": "residence_time_aligned_synthetic",
+      "hydraulic_residence_time_seconds": 300,
+      "hydraulic_residence_time_standard_uncertainty_seconds": 15,
+      "outfall_window_start_utc": "2026-10-12T10:05:00Z",
+      "outfall_window_end_utc": "2026-10-12T10:10:00Z",
+      "transport_lag_basis": "synthetic_tracer_characterization_assumption_not_measured"
     },
     {
       "interval_id": "ENV-INT-002",
@@ -416,8 +438,8 @@
           "evidence": {
             "sample_id": "ENV-INT-002-temperature-2-2",
             "interval_id": "ENV-INT-002",
-            "interval_start_utc": "2026-10-12T10:05:00Z",
-            "interval_end_utc": "2026-10-12T10:10:00Z",
+            "interval_start_utc": "2026-10-12T10:10:00Z",
+            "interval_end_utc": "2026-10-12T10:15:00Z",
             "sensor_id": "SYNTH-SENSOR-TEMPERATURE-2",
             "calibration_id": "SYNTH-CAL-TEMPERATURE-2-2026-09",
             "calibration_state": "in_calibration",
@@ -439,8 +461,8 @@
           "evidence": {
             "sample_id": "ENV-INT-002-temperature-3-2",
             "interval_id": "ENV-INT-002",
-            "interval_start_utc": "2026-10-12T10:05:00Z",
-            "interval_end_utc": "2026-10-12T10:10:00Z",
+            "interval_start_utc": "2026-10-12T10:10:00Z",
+            "interval_end_utc": "2026-10-12T10:15:00Z",
             "sensor_id": "SYNTH-SENSOR-TEMPERATURE-3",
             "calibration_id": "SYNTH-CAL-TEMPERATURE-3-2026-09",
             "calibration_state": "in_calibration",
@@ -462,8 +484,8 @@
           "evidence": {
             "sample_id": "ENV-INT-002-temperature-4-2",
             "interval_id": "ENV-INT-002",
-            "interval_start_utc": "2026-10-12T10:05:00Z",
-            "interval_end_utc": "2026-10-12T10:10:00Z",
+            "interval_start_utc": "2026-10-12T10:10:00Z",
+            "interval_end_utc": "2026-10-12T10:15:00Z",
             "sensor_id": "SYNTH-SENSOR-TEMPERATURE-4",
             "calibration_id": "SYNTH-CAL-TEMPERATURE-4-2026-09",
             "calibration_state": "in_calibration",
@@ -485,8 +507,8 @@
           "evidence": {
             "sample_id": "ENV-INT-002-temperature-5-2",
             "interval_id": "ENV-INT-002",
-            "interval_start_utc": "2026-10-12T10:05:00Z",
-            "interval_end_utc": "2026-10-12T10:10:00Z",
+            "interval_start_utc": "2026-10-12T10:10:00Z",
+            "interval_end_utc": "2026-10-12T10:15:00Z",
             "sensor_id": "SYNTH-SENSOR-TEMPERATURE-5",
             "calibration_id": "SYNTH-CAL-TEMPERATURE-5-2026-09",
             "calibration_state": "in_calibration",
@@ -529,8 +551,8 @@
           "evidence": {
             "sample_id": "ENV-INT-002-flow-outfall-2",
             "interval_id": "ENV-INT-002",
-            "interval_start_utc": "2026-10-12T10:05:00Z",
-            "interval_end_utc": "2026-10-12T10:10:00Z",
+            "interval_start_utc": "2026-10-12T10:10:00Z",
+            "interval_end_utc": "2026-10-12T10:15:00Z",
             "sensor_id": "SYNTH-SENSOR-FLOW-OUTFALL",
             "calibration_id": "SYNTH-CAL-FLOW-OUTFALL-2026-09",
             "calibration_state": "in_calibration",
@@ -568,7 +590,8 @@
               "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-INTAKE",
               "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
               "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-            }
+            },
+            "sample_collection_method": "synthetic_flow_proportional_composite"
           },
           "outfall": {
             "station_id": "station-outfall",
@@ -579,8 +602,8 @@
             "evidence": {
               "sample_id": "ENV-INT-002-concentration-outfall-2",
               "interval_id": "ENV-INT-002",
-              "interval_start_utc": "2026-10-12T10:05:00Z",
-              "interval_end_utc": "2026-10-12T10:10:00Z",
+              "interval_start_utc": "2026-10-12T10:10:00Z",
+              "interval_end_utc": "2026-10-12T10:15:00Z",
               "sensor_id": "SYNTH-SENSOR-CONCENTRATION-OUTFALL",
               "calibration_id": "SYNTH-CAL-CONCENTRATION-OUTFALL-2026-09",
               "calibration_state": "in_calibration",
@@ -590,7 +613,8 @@
               "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-OUTFALL",
               "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
               "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-            }
+            },
+            "sample_collection_method": "synthetic_flow_proportional_composite"
           }
         }
       ],
@@ -603,8 +627,8 @@
           "evidence": {
             "sample_id": "ENV-INT-002-PLUME-NEAR",
             "interval_id": "ENV-INT-002",
-            "interval_start_utc": "2026-10-12T10:05:00Z",
-            "interval_end_utc": "2026-10-12T10:10:00Z",
+            "interval_start_utc": "2026-10-12T10:10:00Z",
+            "interval_end_utc": "2026-10-12T10:15:00Z",
             "sensor_id": "SYNTH-LAB-PLUME-NEAR",
             "calibration_id": "SYNTH-CAL-PLUME-NEAR-2026-09",
             "calibration_state": "in_calibration",
@@ -619,7 +643,8 @@
           "station_role": "near_field_plume",
           "concentration_mg_l": 0.0209,
           "standard_uncertainty_mg_l": 0.0015,
-          "detection_limit_mg_l": 0.001
+          "detection_limit_mg_l": 0.001,
+          "sample_collection_method": "synthetic_flow_proportional_composite"
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -628,8 +653,8 @@
           "evidence": {
             "sample_id": "ENV-INT-002-PLUME-FAR",
             "interval_id": "ENV-INT-002",
-            "interval_start_utc": "2026-10-12T10:05:00Z",
-            "interval_end_utc": "2026-10-12T10:10:00Z",
+            "interval_start_utc": "2026-10-12T10:10:00Z",
+            "interval_end_utc": "2026-10-12T10:15:00Z",
             "sensor_id": "SYNTH-LAB-PLUME-FAR",
             "calibration_id": "SYNTH-CAL-PLUME-FAR-2026-09",
             "calibration_state": "in_calibration",
@@ -644,7 +669,8 @@
           "station_role": "far_field_impact",
           "concentration_mg_l": 0.0203,
           "standard_uncertainty_mg_l": 0.0015,
-          "detection_limit_mg_l": 0.001
+          "detection_limit_mg_l": 0.001,
+          "sample_collection_method": "synthetic_flow_proportional_composite"
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -653,8 +679,8 @@
           "evidence": {
             "sample_id": "ENV-INT-002-PLUME-CONTROL",
             "interval_id": "ENV-INT-002",
-            "interval_start_utc": "2026-10-12T10:05:00Z",
-            "interval_end_utc": "2026-10-12T10:10:00Z",
+            "interval_start_utc": "2026-10-12T10:10:00Z",
+            "interval_end_utc": "2026-10-12T10:15:00Z",
             "sensor_id": "SYNTH-LAB-PLUME-CONTROL",
             "calibration_id": "SYNTH-CAL-PLUME-CONTROL-2026-09",
             "calibration_state": "in_calibration",
@@ -669,9 +695,16 @@
           "station_role": "independent_reference_control",
           "concentration_mg_l": 0.02,
           "standard_uncertainty_mg_l": 0.0015,
-          "detection_limit_mg_l": 0.001
+          "detection_limit_mg_l": 0.001,
+          "sample_collection_method": "synthetic_flow_proportional_composite"
         }
-      ]
+      ],
+      "hydraulic_pairing_state": "residence_time_aligned_synthetic",
+      "hydraulic_residence_time_seconds": 300,
+      "hydraulic_residence_time_standard_uncertainty_seconds": 15,
+      "outfall_window_start_utc": "2026-10-12T10:10:00Z",
+      "outfall_window_end_utc": "2026-10-12T10:15:00Z",
+      "transport_lag_basis": "synthetic_tracer_characterization_assumption_not_measured"
     },
     {
       "interval_id": "ENV-INT-003",
@@ -725,8 +758,8 @@
           "evidence": {
             "sample_id": "ENV-INT-003-temperature-2-3",
             "interval_id": "ENV-INT-003",
-            "interval_start_utc": "2026-10-12T10:10:00Z",
-            "interval_end_utc": "2026-10-12T10:15:00Z",
+            "interval_start_utc": "2026-10-12T10:15:00Z",
+            "interval_end_utc": "2026-10-12T10:20:00Z",
             "sensor_id": "SYNTH-SENSOR-TEMPERATURE-2",
             "calibration_id": "SYNTH-CAL-TEMPERATURE-2-2026-09",
             "calibration_state": "in_calibration",
@@ -748,8 +781,8 @@
           "evidence": {
             "sample_id": "ENV-INT-003-temperature-3-3",
             "interval_id": "ENV-INT-003",
-            "interval_start_utc": "2026-10-12T10:10:00Z",
-            "interval_end_utc": "2026-10-12T10:15:00Z",
+            "interval_start_utc": "2026-10-12T10:15:00Z",
+            "interval_end_utc": "2026-10-12T10:20:00Z",
             "sensor_id": "SYNTH-SENSOR-TEMPERATURE-3",
             "calibration_id": "SYNTH-CAL-TEMPERATURE-3-2026-09",
             "calibration_state": "in_calibration",
@@ -771,8 +804,8 @@
           "evidence": {
             "sample_id": "ENV-INT-003-temperature-4-3",
             "interval_id": "ENV-INT-003",
-            "interval_start_utc": "2026-10-12T10:10:00Z",
-            "interval_end_utc": "2026-10-12T10:15:00Z",
+            "interval_start_utc": "2026-10-12T10:15:00Z",
+            "interval_end_utc": "2026-10-12T10:20:00Z",
             "sensor_id": "SYNTH-SENSOR-TEMPERATURE-4",
             "calibration_id": "SYNTH-CAL-TEMPERATURE-4-2026-09",
             "calibration_state": "in_calibration",
@@ -794,8 +827,8 @@
           "evidence": {
             "sample_id": "ENV-INT-003-temperature-5-3",
             "interval_id": "ENV-INT-003",
-            "interval_start_utc": "2026-10-12T10:10:00Z",
-            "interval_end_utc": "2026-10-12T10:15:00Z",
+            "interval_start_utc": "2026-10-12T10:15:00Z",
+            "interval_end_utc": "2026-10-12T10:20:00Z",
             "sensor_id": "SYNTH-SENSOR-TEMPERATURE-5",
             "calibration_id": "SYNTH-CAL-TEMPERATURE-5-2026-09",
             "calibration_state": "in_calibration",
@@ -838,8 +871,8 @@
           "evidence": {
             "sample_id": "ENV-INT-003-flow-outfall-3",
             "interval_id": "ENV-INT-003",
-            "interval_start_utc": "2026-10-12T10:10:00Z",
-            "interval_end_utc": "2026-10-12T10:15:00Z",
+            "interval_start_utc": "2026-10-12T10:15:00Z",
+            "interval_end_utc": "2026-10-12T10:20:00Z",
             "sensor_id": "SYNTH-SENSOR-FLOW-OUTFALL",
             "calibration_id": "SYNTH-CAL-FLOW-OUTFALL-2026-09",
             "calibration_state": "in_calibration",
@@ -877,7 +910,8 @@
               "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-INTAKE",
               "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
               "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-            }
+            },
+            "sample_collection_method": "synthetic_flow_proportional_composite"
           },
           "outfall": {
             "station_id": "station-outfall",
@@ -888,8 +922,8 @@
             "evidence": {
               "sample_id": "ENV-INT-003-concentration-outfall-3",
               "interval_id": "ENV-INT-003",
-              "interval_start_utc": "2026-10-12T10:10:00Z",
-              "interval_end_utc": "2026-10-12T10:15:00Z",
+              "interval_start_utc": "2026-10-12T10:15:00Z",
+              "interval_end_utc": "2026-10-12T10:20:00Z",
               "sensor_id": "SYNTH-SENSOR-CONCENTRATION-OUTFALL",
               "calibration_id": "SYNTH-CAL-CONCENTRATION-OUTFALL-2026-09",
               "calibration_state": "in_calibration",
@@ -899,7 +933,8 @@
               "calibration_independence_domain": "SYNTH-CAL-DOMAIN-CONCENTRATION-OUTFALL",
               "calibration_valid_from_utc": "2026-09-01T00:00:00Z",
               "calibration_valid_until_utc": "2026-12-01T00:00:00Z"
-            }
+            },
+            "sample_collection_method": "synthetic_flow_proportional_composite"
           }
         }
       ],
@@ -912,8 +947,8 @@
           "evidence": {
             "sample_id": "ENV-INT-003-PLUME-NEAR",
             "interval_id": "ENV-INT-003",
-            "interval_start_utc": "2026-10-12T10:10:00Z",
-            "interval_end_utc": "2026-10-12T10:15:00Z",
+            "interval_start_utc": "2026-10-12T10:15:00Z",
+            "interval_end_utc": "2026-10-12T10:20:00Z",
             "sensor_id": "SYNTH-LAB-PLUME-NEAR",
             "calibration_id": "SYNTH-CAL-PLUME-NEAR-2026-09",
             "calibration_state": "in_calibration",
@@ -928,7 +963,8 @@
           "station_role": "near_field_plume",
           "concentration_mg_l": 0.0208,
           "standard_uncertainty_mg_l": 0.0015,
-          "detection_limit_mg_l": 0.001
+          "detection_limit_mg_l": 0.001,
+          "sample_collection_method": "synthetic_flow_proportional_composite"
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -937,8 +973,8 @@
           "evidence": {
             "sample_id": "ENV-INT-003-PLUME-FAR",
             "interval_id": "ENV-INT-003",
-            "interval_start_utc": "2026-10-12T10:10:00Z",
-            "interval_end_utc": "2026-10-12T10:15:00Z",
+            "interval_start_utc": "2026-10-12T10:15:00Z",
+            "interval_end_utc": "2026-10-12T10:20:00Z",
             "sensor_id": "SYNTH-LAB-PLUME-FAR",
             "calibration_id": "SYNTH-CAL-PLUME-FAR-2026-09",
             "calibration_state": "in_calibration",
@@ -953,7 +989,8 @@
           "station_role": "far_field_impact",
           "concentration_mg_l": 0.0203,
           "standard_uncertainty_mg_l": 0.0015,
-          "detection_limit_mg_l": 0.001
+          "detection_limit_mg_l": 0.001,
+          "sample_collection_method": "synthetic_flow_proportional_composite"
         },
         {
           "analyte_id": "SYNTH-TRACE-ANALYTE-001",
@@ -962,8 +999,8 @@
           "evidence": {
             "sample_id": "ENV-INT-003-PLUME-CONTROL",
             "interval_id": "ENV-INT-003",
-            "interval_start_utc": "2026-10-12T10:10:00Z",
-            "interval_end_utc": "2026-10-12T10:15:00Z",
+            "interval_start_utc": "2026-10-12T10:15:00Z",
+            "interval_end_utc": "2026-10-12T10:20:00Z",
             "sensor_id": "SYNTH-LAB-PLUME-CONTROL",
             "calibration_id": "SYNTH-CAL-PLUME-CONTROL-2026-09",
             "calibration_state": "in_calibration",
@@ -978,9 +1015,16 @@
           "station_role": "independent_reference_control",
           "concentration_mg_l": 0.02,
           "standard_uncertainty_mg_l": 0.0015,
-          "detection_limit_mg_l": 0.001
+          "detection_limit_mg_l": 0.001,
+          "sample_collection_method": "synthetic_flow_proportional_composite"
         }
-      ]
+      ],
+      "hydraulic_pairing_state": "residence_time_aligned_synthetic",
+      "hydraulic_residence_time_seconds": 300,
+      "hydraulic_residence_time_standard_uncertainty_seconds": 15,
+      "outfall_window_start_utc": "2026-10-12T10:15:00Z",
+      "outfall_window_end_utc": "2026-10-12T10:20:00Z",
+      "transport_lag_basis": "synthetic_tracer_characterization_assumption_not_measured"
     }
   ]
 }
