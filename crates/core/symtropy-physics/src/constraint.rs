@@ -20,8 +20,30 @@ pub trait Constraint<const D: usize>: Send + Sync + std::any::Any {
     /// Called multiple times per frame for iterative convergence.
     fn solve(&self, body_a: &mut RigidBody<D>, body_b: &mut RigidBody<D>, dt: f64);
 
-    /// Optional velocity-level correction (impulse-based, Fix 7).
-    /// Called after position solve for hybrid PBD+impulse dynamics.
+    /// Apply actuator effort exactly once for the current world-step interval.
+    ///
+    /// This hook is called once per active constraint after positional
+    /// projection and before the iterative velocity-level constraint solver.
+    /// It is deliberately separate from solve_velocity, which may be invoked
+    /// multiple times as a numerical relaxation procedure.
+    ///
+    /// Actuated constraints should apply a single bounded impulse for dt and
+    /// record its mechanical work once. The default is a no-op for passive
+    /// constraints.
+    fn solve_actuator(
+        &self,
+        _body_a: &mut RigidBody<D>,
+        _body_b: &mut RigidBody<D>,
+        _dt: f64,
+        _callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
+    ) {
+    }
+
+    /// Optional iterative velocity-level constraint correction.
+    ///
+    /// Called repeatedly after the once-per-step actuator hook. Implementors
+    /// must treat this as solver relaxation, not as another elapsed-time
+    /// interval; do not apply a fresh full-frame motor impulse here.
     /// Default: no-op (pure PBD).
     fn solve_velocity(
         &self,

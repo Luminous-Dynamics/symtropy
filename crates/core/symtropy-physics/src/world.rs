@@ -79,9 +79,12 @@ pub trait PhysicsCallback<const D: usize> {
     /// Called after each physics step to record energy dissipated.
     fn record_dissipation(&mut self, energy: f64);
 
-    /// Record mechanical work performed (or energy recovered) by an actuator.
-    /// Positive work = energy consumed (motor driving motion).
-    /// Negative work = energy recovered (regenerative braking).
+    /// Record signed mechanical-port work performed by an actuator impulse.
+    /// Positive work delivers energy to the mechanical body; negative work
+    /// means the actuator absorbs mechanical energy from it. Negative
+    /// mechanical work does not guarantee that electrical energy reached a
+    /// DC bus, battery, or other storage device; that requires separate
+    /// electrical-port and storage measurements.
     fn record_work(&mut self, body: BodyHandle, work_joules: f64);
 
     /// Calculates and applies the long-term effect of a collision event
@@ -693,7 +696,38 @@ impl<const D: usize> PhysicsWorld<D> {
             }
         }
 
-        // 6b. Velocity-level constraint solve (active islands only)
+        // 6b. Apply each actuator once for this simulated interval. Actuator
+        // effort is elapsed-time integration, not iterative constraint
+        // relaxation; solver_iterations must never multiply its impulse or
+        // work-ledger receipt.
+        for &ci in &active_constraint_indices {
+            if ci >= self.constraints.len() {
+                continue;
+            }
+            let (ha, hb) = self.constraints[ci].bodies();
+            let (idx_a, idx_b) = self.find_body_indices(ha, hb);
+            if let (Some(a), Some(b)) = (idx_a, idx_b) {
+                if a < b {
+                    let (left, right) = self.bodies.split_at_mut(b);
+                    self.constraints[ci].solve_actuator(
+                        &mut left[a],
+                        &mut right[0],
+                        dt,
+                        Some(callback),
+                    );
+                } else {
+                    let (left, right) = self.bodies.split_at_mut(a);
+                    self.constraints[ci].solve_actuator(
+                        &mut right[0],
+                        &mut left[b],
+                        dt,
+                        Some(callback),
+                    );
+                }
+            }
+        }
+
+        // 6c. Iterative velocity-level constraint solve (passive relaxation).
         for _ in 0..self.solver_iterations {
             for &ci in &active_constraint_indices {
                 if ci >= self.constraints.len() {
@@ -2561,3 +2595,199 @@ mod transformed_halfspace_tests {
         assert!(world.static_tree_dirty);
     }
 }
+
+
+#[cfg(test)]
+mod actuator_step_semantics_tests {
+    use super::*;
+    use crate::joints::{HingeJoint, MotorDrive, PrismaticJoint};
+    use symtropy_math::Point;
+
+    #[derive(Default)]
+    struct WorkRecorder {
+        receipts: Vec<(BodyHandle, f64)>,
+    }
+
+    impl PhysicsCallback<3> for WorkRecorder {
+        fn modulate_force(
+            &self,
+            _body: BodyHandle,
+            force: &SVector<f64, 3>,
+        ) -> SVector<f64, 3> {
+            *force
+        }
+
+        fn modulate_impulse(&self, impulse: f64, _point: &SVector<f64, 3>) -> f64 {
+            impulse
+        }
+
+        fn friction_multiplier(&self, _point: &SVector<f64, 3>, _body: BodyHandle) -> f64 {
+            1.0
+        }
+
+        fn on_collision(&mut self, _event: &CollisionEvent<3>) {}
+
+        fn record_dissipation(&mut self, _energy: f64) {}
+
+        fn record_work(&mut self, body: BodyHandle, work_joules: f64) {
+            self.receipts.push((body, work_joules));
+        }
+
+        fn apply_trauma(&mut self, _event: &CollisionEvent<3>) {}
+    }
+
+    fn static_anchor(world: &mut PhysicsWorld<3>, position: [f64; 3]) -> BodyHandle {
+        world.add_body(RigidBody::<3>::static_body(
+            BodyHandle(usize::MAX),
+            Point::new(position),
+            Box::new(Sphere::<3>::new(Point::origin(), 0.25)),
+        ))
+    }
+
+    #[test]
+    fn prismatic_motor_impulse_and_work_are_invariant_to_solver_iterations() {
+        let mut observed_velocities = Vec::new();
+        let mut observed_work = Vec::new();
+
+        for iterations in [1, 2, 4, 8] {
+            let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+            world.solver_iterations = iterations;
+            let anchor = static_anchor(&mut world, [0.0, 0.0, 0.0]);
+            let slider = world.add_sphere(Point::new([10.0, 0.0, 0.0]), 0.25, 1.0);
+            let motor = MotorDrive::new(11.0, 10.0).with_gains(10.0, 0.0);
+            world.add_constraint(Box::new(
+                PrismaticJoint::new(anchor, slider, 0).with_motor(motor),
+            ));
+
+            let mut callback = WorkRecorder::default();
+            world.step_with_callback(0.01, &mut callback);
+
+            let velocity = world.body(slider).unwrap().linear_velocity[0];
+            assert!(
+                (velocity - 0.1).abs() < 1.0e-12,
+                "iterations={iterations}: expected 0.1 m/s, got {velocity}"
+            );
+            assert_eq!(
+                callback.receipts.len(),
+                1,
+                "iterations={iterations}: one actuator receipt per world step"
+            );
+            assert!(
+                (callback.receipts[0].1 - 0.005).abs() < 1.0e-12,
+                "iterations={iterations}: expected 0.005 J, got {}",
+                callback.receipts[0].1
+            );
+            observed_velocities.push(velocity);
+            observed_work.push(callback.receipts[0].1);
+        }
+
+        assert!(observed_velocities.windows(2).all(|pair| pair[0] == pair[1]));
+        assert!(observed_work.windows(2).all(|pair| pair[0] == pair[1]));
+    }
+
+    #[test]
+    fn hinge_motor_impulse_and_work_are_invariant_to_solver_iterations() {
+        let mut observed_velocities = Vec::new();
+        let mut observed_work = Vec::new();
+
+        for iterations in [1, 2, 4, 8] {
+            let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+            world.solver_iterations = iterations;
+            let anchor = static_anchor(&mut world, [0.0, 0.0, 0.0]);
+            let rotor = world.add_sphere(Point::new([10.0, 0.0, 0.0]), 0.5, 1.0);
+            let mut motor = MotorDrive::new(0.0, 2.0).with_gains(0.0, 2.0);
+            motor.target_vel = 1.0;
+            let hinge = HingeJoint::with_anchors(
+                anchor,
+                rotor,
+                SVector::from([10.0, 0.0, 0.0]),
+                SVector::zeros(),
+                0,
+                1,
+            )
+            .with_motor(motor);
+            world.add_constraint(Box::new(hinge));
+
+            let mut callback = WorkRecorder::default();
+            world.step_with_callback(0.01, &mut callback);
+
+            let velocity = world.body(rotor).unwrap().angular_velocity.get(0, 1);
+            assert!(
+                (velocity - 0.2).abs() < 1.0e-12,
+                "iterations={iterations}: expected 0.2 rad/s, got {velocity}"
+            );
+            assert_eq!(
+                callback.receipts.len(),
+                1,
+                "iterations={iterations}: one actuator receipt per world step"
+            );
+            assert!(
+                (callback.receipts[0].1 - 0.002).abs() < 1.0e-12,
+                "iterations={iterations}: expected 0.002 J, got {}",
+                callback.receipts[0].1
+            );
+            observed_velocities.push(velocity);
+            observed_work.push(callback.receipts[0].1);
+        }
+
+        assert!(observed_velocities.windows(2).all(|pair| pair[0] == pair[1]));
+        assert!(observed_work.windows(2).all(|pair| pair[0] == pair[1]));
+    }
+
+    #[test]
+    fn hinge_velocity_target_is_an_equilibrium_with_nonzero_position_gain_and_velocity_gain() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.solver_iterations = 4;
+        let anchor = static_anchor(&mut world, [0.0, 0.0, 0.0]);
+        let rotor = world.add_sphere(Point::new([10.0, 0.0, 0.0]), 0.5, 1.0);
+        let mut motor = MotorDrive::new(0.0, 2.0).with_gains(3.0, 2.0);
+        motor.target_vel = 1.0;
+        let hinge = HingeJoint::with_anchors(
+            anchor,
+            rotor,
+            SVector::from([10.0, 0.0, 0.0]),
+            SVector::zeros(),
+            0,
+            1,
+        )
+        .with_motor(motor);
+        world.add_constraint(Box::new(hinge));
+        world
+            .body_mut(rotor)
+            .expect("rotor")
+            .angular_velocity
+            .set(0, 1, 1.0);
+
+        let mut callback = WorkRecorder::default();
+        world.step_with_callback(0.01, &mut callback);
+
+        let velocity = world.body(rotor).unwrap().angular_velocity.get(0, 1);
+        assert!((velocity - 1.0).abs() < 1.0e-12);
+        assert_eq!(callback.receipts.len(), 1);
+        assert!(callback.receipts[0].1.abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn prismatic_pair_receives_equal_opposite_impulse_not_equal_velocity_split() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.solver_iterations = 4;
+        let body_a = world.add_sphere(Point::new([0.0, 0.0, 0.0]), 0.25, 1.0);
+        let body_b = world.add_sphere(Point::new([10.0, 0.0, 0.0]), 0.25, 2.0);
+        let motor = MotorDrive::new(11.0, 10.0).with_gains(10.0, 0.0);
+        world.add_constraint(Box::new(
+            PrismaticJoint::new(body_a, body_b, 0).with_motor(motor),
+        ));
+
+        let mut callback = WorkRecorder::default();
+        world.step_with_callback(0.01, &mut callback);
+
+        let velocity_a = world.body(body_a).unwrap().linear_velocity[0];
+        let velocity_b = world.body(body_b).unwrap().linear_velocity[0];
+        assert!((velocity_a + 0.1).abs() < 1.0e-12);
+        assert!((velocity_b - 0.05).abs() < 1.0e-12);
+        assert!((velocity_a + 2.0 * velocity_b).abs() < 1.0e-12);
+        assert_eq!(callback.receipts.len(), 1);
+        assert!((callback.receipts[0].1 - 0.0075).abs() < 1.0e-12);
+    }
+}
+
