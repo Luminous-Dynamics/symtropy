@@ -512,6 +512,29 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn convexity_holds_over_frozen_sweep_when_each_candidate_is_admissible() {
+        // For Delta_v = 1 and Delta_psi = 0, every non-positive scalar
+        // candidate flux satisfies the interface inequality. A convex blend
+        // must also satisfy it. This is a finite sampled property sweep, not
+        // a proof over all states or fluxes.
+        for left_flux in -5..=0 {
+            for right_flux in -5..=0 {
+                let mut req = request();
+                req.context.entropy_potential_jump = 0.0;
+                req.face.candidates[0].flux = vec![f64::from(left_flux)];
+                req.face.candidates[1].flux = vec![f64::from(right_flux)];
+
+                let expected = 0.25 * f64::from(left_flux)
+                    + 0.75 * f64::from(right_flux);
+                let report = audit_entropy_stable_blend(&req).expect("stable convex blend");
+                assert!(report.blended_flux_residual <= 0.0);
+                assert!((report.blended_flux_residual - expected).abs() < 1.0e-12);
+            }
+        }
+    }
+
     #[test]
     fn entropy_audit_refuses_zero_or_negative_tolerance() {
         let mut zero = request();
