@@ -46,6 +46,7 @@ pub enum InstallationDisposition {
     Covered,
     Uncovered,
     OutOfDomain,
+    UnseenCalibrationStratum,
     NotEvaluated,
 }
 
@@ -70,6 +71,7 @@ pub struct TransferPlan {
     pub training_split_digest: String,
     pub calibration_split_digest: String,
     pub test_split_digest: String,
+    pub mission_set_digest: String,
     pub system_boundary_digest: String,
     pub sensor_family_digest: String,
     pub reference_method_digest: String,
@@ -121,6 +123,7 @@ pub struct InstallationGroup {
 #[derive(Debug, Clone, PartialEq)]
 pub struct TransferDataset {
     pub split_digest: String,
+    pub mission_set_digest: String,
     pub model_digest: String,
     pub feature_schema_digest: String,
     pub system_boundary_digest: String,
@@ -186,6 +189,7 @@ pub struct TransferReport {
     pub training_split_digest: String,
     pub calibration_split_digest: String,
     pub test_split_digest: String,
+    pub mission_set_digest: String,
     pub system_boundary_digest: String,
     pub sensor_family_digest: String,
     pub reference_method_digest: String,
@@ -195,7 +199,11 @@ pub struct TransferReport {
     pub conformal_order_statistic_rank: usize,
     pub correction_q_nm: Option<f64>,
     pub test_installation_count: usize,
+    /// Groups in the declared numeric domain, including those whose strata were not calibrated.
     pub in_domain_test_installation_count: usize,
+    /// Groups whose every angle/temperature/speed/direction stratum appeared in calibration.
+    pub calibration_supported_test_installation_count: usize,
+    pub unseen_calibration_stratum_test_installation_count: usize,
     pub covered_test_installation_count: usize,
     pub uncovered_test_installation_count: usize,
     pub out_of_domain_test_installation_count: usize,
@@ -285,6 +293,7 @@ fn validate_plan(plan: &TransferPlan) -> Result<(), String> {
         ("training split digest", plan.training_split_digest.as_str()),
         ("calibration split digest", plan.calibration_split_digest.as_str()),
         ("test split digest", plan.test_split_digest.as_str()),
+        ("mission-set digest", plan.mission_set_digest.as_str()),
         ("system-boundary digest", plan.system_boundary_digest.as_str()),
         ("sensor-family digest", plan.sensor_family_digest.as_str()),
         ("reference-method digest", plan.reference_method_digest.as_str()),
@@ -443,7 +452,8 @@ fn validate_dataset(
     if dataset.split_digest != expected_split {
         return Err("dataset split digest does not match frozen plan".to_owned());
     }
-    if dataset.model_digest != plan.model_digest
+    if dataset.mission_set_digest != plan.mission_set_digest
+        || dataset.model_digest != plan.model_digest
         || dataset.feature_schema_digest != plan.feature_schema_digest
         || dataset.system_boundary_digest != plan.system_boundary_digest
         || dataset.sensor_family_digest != plan.sensor_family_digest
@@ -651,6 +661,7 @@ fn make_empty_report(
         training_split_digest: plan.training_split_digest.clone(),
         calibration_split_digest: plan.calibration_split_digest.clone(),
         test_split_digest: plan.test_split_digest.clone(),
+        mission_set_digest: plan.mission_set_digest.clone(),
         system_boundary_digest: plan.system_boundary_digest.clone(),
         sensor_family_digest: plan.sensor_family_digest.clone(),
         reference_method_digest: plan.reference_method_digest.clone(),
@@ -661,6 +672,8 @@ fn make_empty_report(
         correction_q_nm: None,
         test_installation_count: test.installations.len(),
         in_domain_test_installation_count: 0,
+        calibration_supported_test_installation_count: 0,
+        unseen_calibration_stratum_test_installation_count: 0,
         covered_test_installation_count: 0,
         uncovered_test_installation_count: 0,
         out_of_domain_test_installation_count: 0,
@@ -786,11 +799,20 @@ pub fn evaluate_sensor_transfer(
         return Ok(make_empty_report(plan, n, rank, calibration_scores, test));
     };
 
+    let calibration_strata: BTreeSet<ConditionStratum> = calibration
+        .installations
+        .iter()
+        .flat_map(|installation| installation.observations.iter())
+        .filter_map(|sample| condition_stratum(plan, sample))
+        .collect();
+
     let mut installations = Vec::with_capacity(test.installations.len());
     let mut covered_installations = 0usize;
     let mut uncovered_installations = 0usize;
     let mut ood_installations = 0usize;
     let mut in_domain_installations = 0usize;
+    let mut calibration_supported_installations = 0usize;
+    let mut unseen_stratum_installations = 0usize;
     let mut raw_error_sum = 0.0;
     let mut compensated_error_sum = 0.0;
     let mut calibrated_interval_miss_sum = 0.0;
@@ -826,6 +848,30 @@ pub fn evaluate_sensor_transfer(
         }
 
         in_domain_installations += 1;
+        let has_unseen_stratum = installation.observations.iter().any(|sample| {
+            condition_stratum(plan, sample)
+                .is_none_or(|stratum| !calibration_strata.contains(&stratum))
+        });
+        if has_unseen_stratum {
+            unseen_stratum_installations += 1;
+            installations.push(InstallationAssessment {
+                installation_id: installation.installation_id.clone(),
+                sensor_serial: installation.sensor_serial.clone(),
+                flexspline_serial: installation.flexspline_serial.clone(),
+                reducer_serial: installation.reducer_serial.clone(),
+                disposition: InstallationDisposition::UnseenCalibrationStratum,
+                observation_count: installation.observations.len(),
+                maximum_raw_interval_miss_nm: None,
+                maximum_compensated_interval_miss_nm: None,
+                maximum_calibrated_interval_miss_nm: None,
+                reference_source_reference: installation.reference_source_reference.clone(),
+                reference_raw_trace_digest: installation.reference_raw_trace_digest.clone(),
+                calibration_digest: installation.calibration_digest.clone(),
+                synchronized_metrology_receipt_digest: installation.synchronized_metrology_receipt_digest.clone(),
+            });
+            continue;
+        }
+        calibration_supported_installations += 1;
         let mut group_covered = true;
         let mut maximum_raw_miss = 0.0_f64;
         let mut maximum_compensated_miss = 0.0_f64;
@@ -910,13 +956,13 @@ pub fn evaluate_sensor_transfer(
             Some(sum / in_domain_observation_count as f64)
         }
     };
-    let coverage = if in_domain_installations == 0 {
+    let coverage = if calibration_supported_installations == 0 {
         None
     } else {
-        Some(covered_installations as f64 / in_domain_installations as f64)
+        Some(covered_installations as f64 / calibration_supported_installations as f64)
     };
     let (wilson_95_lower, wilson_95_upper) =
-        wilson_95(covered_installations, in_domain_installations)
+        wilson_95(covered_installations, calibration_supported_installations)
             .map_or((None, None), |(lower, upper)| (Some(lower), Some(upper)));
 
     let strata = strata
@@ -934,6 +980,7 @@ pub fn evaluate_sensor_transfer(
         training_split_digest: plan.training_split_digest.clone(),
         calibration_split_digest: plan.calibration_split_digest.clone(),
         test_split_digest: plan.test_split_digest.clone(),
+        mission_set_digest: plan.mission_set_digest.clone(),
         system_boundary_digest: plan.system_boundary_digest.clone(),
         sensor_family_digest: plan.sensor_family_digest.clone(),
         reference_method_digest: plan.reference_method_digest.clone(),
@@ -944,6 +991,8 @@ pub fn evaluate_sensor_transfer(
         correction_q_nm: Some(q),
         test_installation_count: test.installations.len(),
         in_domain_test_installation_count: in_domain_installations,
+        calibration_supported_test_installation_count: calibration_supported_installations,
+        unseen_calibration_stratum_test_installation_count: unseen_stratum_installations,
         covered_test_installation_count: covered_installations,
         uncovered_test_installation_count: uncovered_installations,
         out_of_domain_test_installation_count: ood_installations,
@@ -960,7 +1009,7 @@ pub fn evaluate_sensor_transfer(
         calibration_scores,
         installations,
         strata,
-        interpretation: "Installation-level split-conformal expansion under exchangeability of independent physical installations, a fixed compensation model and frozen condition domain. Test group coverage is marginal at the installation unit; stratum metrics are descriptive and do not establish conditional coverage. Raw versus compensated centre errors are descriptive per-observation summaries.".to_owned(),
+        interpretation: "Installation-level split-conformal expansion under exchangeability of independent physical installations, a fixed compensation model, frozen mission set and condition domain. Installations in numeric-domain strata absent from calibration abstain and are excluded from the coverage denominator. Test group coverage is marginal at the installation unit; stratum metrics are descriptive and do not establish conditional coverage. Raw versus compensated centre errors are descriptive per-observation summaries.".to_owned(),
     })
 }
 
@@ -973,6 +1022,7 @@ mod tests {
     const TRAIN: &str = "training-installations-v1";
     const CAL: &str = "calibration-installations-v1";
     const TEST: &str = "heldout-installations-v1";
+    const MISSION_SET: &str = "frozen-angle-temperature-torque-trajectory-set-v1";
     const BOUNDARY: &str = "installed-harmonic-joint-boundary-v1";
     const SENSOR_FAMILY: &str = "flexspline-mems-grid-family-v1";
     const REFERENCE: &str = "external-torque-transducer-method-v1";
@@ -985,6 +1035,7 @@ mod tests {
             training_split_digest: TRAIN.to_owned(),
             calibration_split_digest: CAL.to_owned(),
             test_split_digest: TEST.to_owned(),
+            mission_set_digest: MISSION_SET.to_owned(),
             system_boundary_digest: BOUNDARY.to_owned(),
             sensor_family_digest: SENSOR_FAMILY.to_owned(),
             reference_method_digest: REFERENCE.to_owned(),
@@ -1078,6 +1129,7 @@ mod tests {
     fn calibration_dataset(groups: Vec<InstallationGroup>) -> TransferDataset {
         TransferDataset {
             split_digest: CAL.to_owned(),
+            mission_set_digest: MISSION_SET.to_owned(),
             model_digest: MODEL.to_owned(),
             feature_schema_digest: FEATURE.to_owned(),
             system_boundary_digest: BOUNDARY.to_owned(),
@@ -1091,6 +1143,7 @@ mod tests {
     fn test_dataset(groups: Vec<InstallationGroup>) -> TransferDataset {
         TransferDataset {
             split_digest: TEST.to_owned(),
+            mission_set_digest: MISSION_SET.to_owned(),
             model_digest: MODEL.to_owned(),
             feature_schema_digest: FEATURE.to_owned(),
             system_boundary_digest: BOUNDARY.to_owned(),
@@ -1437,7 +1490,32 @@ mod tests {
     }
 
     #[test]
-    fn sensor_transfer_028_duplicate_installation_and_sensor_identities_reject() {
+    fn sensor_transfer_028_unseen_calibration_stratum_abstains() {
+        let calibration = known_calibration();
+        let mut test = known_test();
+        // Angle 2.0 is within the declared [-3, 3] range but falls in a
+        // sector never represented by any calibration installation.
+        test.installations[0].observations[0].joint_angle_rad = 2.0;
+        let report = evaluate_sensor_transfer(&plan(0.25), &calibration, &test).unwrap();
+        assert_eq!(
+            report.installations[0].disposition,
+            InstallationDisposition::UnseenCalibrationStratum
+        );
+        assert_eq!(report.in_domain_test_installation_count, 3);
+        assert_eq!(report.calibration_supported_test_installation_count, 2);
+        assert_eq!(report.unseen_calibration_stratum_test_installation_count, 1);
+        assert_eq!(report.empirical_installation_coverage, Some(1.0));
+    }
+
+    #[test]
+    fn sensor_transfer_029_mission_set_digest_mismatch_rejects() {
+        let mut test = known_test();
+        test.mission_set_digest = "different-trajectory-population-v2".to_owned();
+        assert!(evaluate_sensor_transfer(&plan(0.25), &known_calibration(), &test).is_err());
+    }
+
+    #[test]
+    fn sensor_transfer_030_duplicate_installation_and_sensor_identities_reject() {
         let mut calibration = known_calibration();
         calibration.installations[1].sensor_serial =
             calibration.installations[0].sensor_serial.clone();
