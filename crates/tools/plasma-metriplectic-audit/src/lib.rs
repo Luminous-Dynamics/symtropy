@@ -695,6 +695,7 @@ mod tests {
     #[test]
     fn small_negative_entropy_rate_is_checked_independently_of_psd_tolerance() {
         let mut request = base_request();
+        request.dissipative_operator[4] = 1.0;
         request.dissipative_operator[8] = -1.0e-13;
         request.tolerances.dissipative_psd_relative = 1.0e-12;
         request.tolerances.entropy_rate_relative = 1.0e-14;
