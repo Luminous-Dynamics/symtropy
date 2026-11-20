@@ -6,6 +6,7 @@ FMI_HEADERS := $(BASE)/third_party/FMI-3.0.2/headers
 UNSUPPORTED := $(BASE)/src/fmi3_unsupported.c
 BUILD := build
 STAGE := $(BUILD)/stage
+SSP := $(STAGE)/GeoFusion-Integrated-Flux-Federation.ssp
 CFLAGS ?= -std=c11 -O2 -Wall -Wextra -Werror -fPIC -fvisibility=hidden -ffile-prefix-map=$(CURDIR)=.
 LDFLAGS ?= -shared -Wl,--build-id=none
 
@@ -37,10 +38,13 @@ package: $(BUILD)/IntegratedFluxSource.so $(BUILD)/IntegratedFluxReceiver.so
 	cd $(STAGE)/source && find . -type f -printf '%P\n' | LC_ALL=C sort | $(ZIP) -X -q ../GeoFusion-IntegratedFluxSource.fmu -@
 	cd $(STAGE)/receiver && find . -type f -printf '%P\n' | LC_ALL=C sort | $(ZIP) -X -q ../GeoFusion-IntegratedFluxReceiver.fmu -@
 	cd $(STAGE) && sha256sum *.fmu > artifact-digests.sha256
+	python3 ssp/integrated_flux_ssp.py $(STAGE)/GeoFusion-IntegratedFluxSource.fmu $(STAGE)/GeoFusion-IntegratedFluxReceiver.fmu $(SSP)
+	cd $(STAGE) && sha256sum *.ssp >> artifact-digests.sha256
 	cd $(BUILD) && sha256sum IntegratedFluxSource.so IntegratedFluxReceiver.so >> stage/artifact-digests.sha256
 
 test: package
 	python3 tests/check_fmi3_surface.py
+	python3 tests/test_integrated_flux_ssp.py
 	python3 tests/fmpy_flux_smoke.py
 
 clean:
