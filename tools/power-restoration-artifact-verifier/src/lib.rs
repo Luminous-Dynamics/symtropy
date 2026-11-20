@@ -2853,6 +2853,89 @@ mod tests {
     }
 
     #[test]
+    fn service_sources_reuse_matching_existing_evidence_provider_attestation() {
+        let (root, bundle, case, receipt, final_ref) =
+            final_service_bundle_fixture(true);
+        let (trajectory, report) = verify_final_service_trajectory_bundle(
+            &root,
+            &bundle,
+            &final_ref,
+            &receipt,
+            &case,
+            &service_provider_profiles(),
+            8 * 1024 * 1024,
+        ).unwrap();
+        let profiles = service_provider_profiles();
+        let evidence_profile = profile_for_role(&profiles, SignerRole::EvidenceProvider).unwrap();
+        let service_profile = profile_for_role(&profiles, SignerRole::ServiceProvider).unwrap();
+        let case_sha = canonical_case_sha256(&case).unwrap();
+        let proposals_sha = proposal_set_sha256(&receipt).unwrap();
+        let mut expected_artifacts = BTreeMap::new();
+        let mut requirements = Vec::new();
+        let mut errors = Vec::new();
+
+        let source = &trajectory.source_artifacts[0];
+        add_attested_artifact(
+            &mut expected_artifacts,
+            &mut requirements,
+            &source.artifact_ref,
+            &source.sha256,
+            SignerRole::EvidenceProvider,
+            &evidence_profile.issuer_id,
+            "power-restoration/observation-evidence/v1",
+            &receipt.run_id,
+            &case_sha,
+            0,
+            &proposals_sha,
+            &evidence_profile.tool_source_commit,
+            &evidence_profile.tool_configuration_sha256,
+            canonical_parent_digests(vec![case_sha.clone(), proposals_sha.clone()]),
+            &mut errors,
+        );
+        add_attested_artifact(
+            &mut expected_artifacts,
+            &mut requirements,
+            &trajectory.artifact_uri,
+            &report.trajectory_sha256,
+            SignerRole::ServiceProvider,
+            &service_profile.issuer_id,
+            "power-restoration/final-service-trajectory/v1",
+            &receipt.run_id,
+            &case_sha,
+            case.timebase.horizon_steps.saturating_sub(1),
+            &proposals_sha,
+            &service_profile.tool_source_commit,
+            &service_profile.tool_configuration_sha256,
+            Vec::new(),
+            &mut errors,
+        );
+
+        add_service_source_attestations(
+            &trajectory,
+            &receipt,
+            &case_sha,
+            &proposals_sha,
+            &profiles,
+            &mut expected_artifacts,
+            &mut requirements,
+            &mut errors,
+        );
+
+        assert!(errors.is_empty(), "{errors:?}");
+        let first = requirements.iter().find(|requirement| {
+            requirement.artifact_uri == source.artifact_ref
+                && requirement.signer_role == SignerRole::EvidenceProvider
+        }).unwrap();
+        assert_eq!(first.predicate_type, "power-restoration/observation-evidence/v1");
+        assert_eq!(
+            requirements.iter()
+                .filter(|requirement| requirement.signer_role == SignerRole::EvidenceProvider)
+                .count(),
+            trajectory.source_artifacts.len()
+        );
+    }
+
+    #[test]
     fn service_sources_reject_missing_evidence_provider_profile() {
         let (root, bundle, case, receipt, final_ref) =
             final_service_bundle_fixture(true);
