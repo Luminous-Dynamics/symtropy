@@ -1,0 +1,126 @@
+{
+  "schema_version": "construction-stop-tube-build/0.1",
+  "builder_model": "fixed-orientation-fixed-tangent-translation/0.1",
+  "builder_build_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "nominal_report_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "trajectory_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+  "primitive_manifest_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+  "frame_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+  "frame_id": "site-frame-01",
+  "transform_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+  "design_revision_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+  "site_epoch": "site-epoch-01",
+  "robot_id": "robot-01",
+  "robot_configuration_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+  "tool_configuration_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+  "payload_configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "collision_model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "stopping_profile_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "stopping_qualification_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "robot_brake_configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "operating_condition_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "scenario_context_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "site_clock_domain_id": "site-clock-01",
+  "trigger_domain_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "trigger_domain_start_ms": 1000,
+  "trigger_domain_end_ms": 2000,
+  "trigger_domain_duration_ms": 1000,
+  "maximum_trigger_window_ms": 500,
+  "conservative_stop_distance_bound_mm": 500,
+  "conservative_stop_time_bound_ms": 200,
+  "stop_coverage_duration_ms": 1200,
+  "primitive_count": 2,
+  "trigger_window_count": 2,
+  "slice_count": 4,
+  "trigger_domain_coverage_complete": true,
+  "primitive_coverage_complete": true,
+  "continuous_time_coverage_complete": true,
+  "conservative_outer_bound": true,
+  "valid_until_tick": 9000,
+  "slices": [
+    {
+      "primitive_id": "base",
+      "source_slice_index": 0,
+      "trigger_window_index": 0,
+      "trigger_start_ms": 1000,
+      "trigger_end_ms": 1500,
+      "occupancy_start_ms": 1000,
+      "occupancy_end_ms": 1700,
+      "bounds": {
+        "min": {
+          "x": -120,
+          "y": -124,
+          "z": -128
+        },
+        "max": {
+          "x": 1121,
+          "y": 124,
+          "z": 128
+        }
+      }
+    },
+    {
+      "primitive_id": "tool",
+      "source_slice_index": 0,
+      "trigger_window_index": 0,
+      "trigger_start_ms": 1000,
+      "trigger_end_ms": 1500,
+      "occupancy_start_ms": 1000,
+      "occupancy_end_ms": 1700,
+      "bounds": {
+        "min": {
+          "x": 130,
+          "y": -24,
+          "z": -53
+        },
+        "max": {
+          "x": 1271,
+          "y": 124,
+          "z": 103
+        }
+      }
+    },
+    {
+      "primitive_id": "base",
+      "source_slice_index": 0,
+      "trigger_window_index": 1,
+      "trigger_start_ms": 1500,
+      "trigger_end_ms": 2000,
+      "occupancy_start_ms": 1500,
+      "occupancy_end_ms": 2200,
+      "bounds": {
+        "min": {
+          "x": 380,
+          "y": -124,
+          "z": -128
+        },
+        "max": {
+          "x": 1621,
+          "y": 124,
+          "z": 128
+        }
+      }
+    },
+    {
+      "primitive_id": "tool",
+      "source_slice_index": 0,
+      "trigger_window_index": 1,
+      "trigger_start_ms": 1500,
+      "trigger_end_ms": 2000,
+      "occupancy_start_ms": 1500,
+      "occupancy_end_ms": 2200,
+      "bounds": {
+        "min": {
+          "x": 630,
+          "y": -24,
+          "z": -53
+        },
+        "max": {
+          "x": 1771,
+          "y": 124,
+          "z": 103
+        }
+      }
+    }
+  ]
+}
