@@ -26,6 +26,14 @@ pub enum EvidenceClass {
     Unknown,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EvidenceBoundCost {
+    pub amount: Option<f64>,
+    pub evidence_class: EvidenceClass,
+    pub evidence_reference: String,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EventClass {
@@ -77,6 +85,8 @@ pub struct LifecycleCatalog {
     pub labour_rate_per_technician_hour: Option<f64>,
     pub labour_rate_evidence_class: EvidenceClass,
     pub labour_rate_evidence_reference: String,
+    /// Monetized value of one unavailable module-hour; it must be source-backed.
+    pub downtime_cost_per_unavailable_hour: EvidenceBoundCost,
     pub profiles: Vec<ModuleLifecycleProfile>,
     pub claim_ceiling: String,
 }
@@ -91,6 +101,13 @@ pub struct ModuleLifecycleProfile {
     pub acquisition_cost_evidence_class: EvidenceClass,
     pub acquisition_cost_evidence_reference: String,
     pub amortization_years: Option<f64>,
+    /// Annual allocations, expressed per good module and in the catalog currency/year.
+    pub annualized_factory_capex_per_module_year: EvidenceBoundCost,
+    pub annual_spares_inventory_cost_per_module_year: EvidenceBoundCost,
+    pub annual_logistics_cost_per_module_year: EvidenceBoundCost,
+    pub annual_energy_cost_per_module_year: EvidenceBoundCost,
+    pub annual_warranty_cost_per_module_year: EvidenceBoundCost,
+    pub annual_end_of_life_cost_per_module_year: EvidenceBoundCost,
     pub events: Vec<LifecycleEvent>,
     pub notes: Vec<String>,
 }
@@ -192,6 +209,13 @@ pub struct LifecycleScenarioResult {
     pub unscheduled_parts_cost_per_module_year: Option<f64>,
     pub total_service_parts_cost_per_module_year: Option<f64>,
     pub amortized_acquisition_cost_per_module_year: Option<f64>,
+    pub allocated_factory_capex_cost_per_module_year: Option<f64>,
+    pub downtime_loss_cost_per_module_year: Option<f64>,
+    pub annual_spares_inventory_cost_per_module_year: Option<f64>,
+    pub annual_logistics_cost_per_module_year: Option<f64>,
+    pub annual_energy_cost_per_module_year: Option<f64>,
+    pub annual_warranty_cost_per_module_year: Option<f64>,
+    pub annual_end_of_life_cost_per_module_year: Option<f64>,
     pub labour_cost_per_module_year: Option<f64>,
     pub full_lifecycle_cost_per_module_year: Option<f64>,
     pub currency: String,
@@ -222,6 +246,29 @@ const CLAIM_CEILING: &str = "Lifecycle task accounting and evidence-gated annual
 
 fn valid_nonnegative(value: Option<f64>) -> bool {
     value.is_none_or(|number| number.is_finite() && (0.0..=1_000_000.0).contains(&number))
+}
+
+fn validate_cost_component(component: &EvidenceBoundCost) -> bool {
+    let amount_valid = component.amount.is_none_or(|amount| {
+        amount.is_finite() && (0.0..=1_000_000.0).contains(&amount)
+    });
+    let value_class_valid = match (component.amount, component.evidence_class) {
+        (Some(_), EvidenceClass::Unknown) => false,
+        (None, EvidenceClass::Unknown) => true,
+        (None, _) => false,
+        (Some(_), _) => true,
+    };
+    amount_valid
+        && value_class_valid
+        && evidence_reference_is_valid(component.evidence_class, &component.evidence_reference)
+}
+
+fn cost_is_evidence_backed(component: &EvidenceBoundCost) -> bool {
+    component.amount.is_some()
+        && matches!(
+            component.evidence_class,
+            EvidenceClass::Measured | EvidenceClass::IndependentTest
+        )
 }
 
 fn evidence_reference_is_valid(class: EvidenceClass, reference: &str) -> bool {
@@ -313,7 +360,10 @@ fn validate_catalog(
         catalog.labour_rate_evidence_class,
         &catalog.labour_rate_evidence_reference,
     ) {
-        errors.push("annual operating-hours and labour-rate evidence references are required, including explicit unknown references".into());
+        errors.push("annual operating-hours or labour-rate evidence reference does not match its evidence class".into());
+    }
+    if !validate_cost_component(&catalog.downtime_cost_per_unavailable_hour) {
+        errors.push("downtime_cost_per_unavailable_hour: amount/evidence/reference are inconsistent".into());
     }
     if catalog.profiles.is_empty() || catalog.profiles.len() > MAX_PROFILES {
         errors.push(format!("profiles: expected 1..={MAX_PROFILES}"));
@@ -367,6 +417,18 @@ fn validate_catalog(
             &profile.acquisition_cost_evidence_reference,
         ) {
             errors.push(format!("profiles[{profile_index}]: acquisition cost evidence reference does not match its evidence class"));
+        }
+        for (field, component) in [
+            ("annualized_factory_capex_per_module_year", &profile.annualized_factory_capex_per_module_year),
+            ("annual_spares_inventory_cost_per_module_year", &profile.annual_spares_inventory_cost_per_module_year),
+            ("annual_logistics_cost_per_module_year", &profile.annual_logistics_cost_per_module_year),
+            ("annual_energy_cost_per_module_year", &profile.annual_energy_cost_per_module_year),
+            ("annual_warranty_cost_per_module_year", &profile.annual_warranty_cost_per_module_year),
+            ("annual_end_of_life_cost_per_module_year", &profile.annual_end_of_life_cost_per_module_year),
+        ] {
+            if !validate_cost_component(component) {
+                errors.push(format!("profiles[{profile_index}].{field}: amount/evidence/reference are inconsistent"));
+            }
         }
         if profile.events.is_empty() || profile.events.len() > MAX_EVENTS_PER_PROFILE {
             errors.push(format!("profiles[{profile_index}].events: expected 1..={MAX_EVENTS_PER_PROFILE}"));
@@ -623,10 +685,22 @@ fn evaluate_profile(
         .acquisition_cost_per_good_module
         .zip(profile.amortization_years)
         .map(|(cost, years)| cost / years);
+    let downtime_loss_cost = total_downtime
+        .zip(catalog.downtime_cost_per_unavailable_hour.amount)
+        .map(|(hours, value_per_hour)| hours * value_per_hour);
     let lifecycle_cost = total_parts
         .zip(labour_cost)
         .zip(amortized_acquisition)
-        .map(|((parts, labour), acquisition)| parts + labour + acquisition);
+        .zip(profile.annualized_factory_capex_per_module_year.amount)
+        .zip(downtime_loss_cost)
+        .zip(profile.annual_spares_inventory_cost_per_module_year.amount)
+        .zip(profile.annual_logistics_cost_per_module_year.amount)
+        .zip(profile.annual_energy_cost_per_module_year.amount)
+        .zip(profile.annual_warranty_cost_per_module_year.amount)
+        .zip(profile.annual_end_of_life_cost_per_module_year.amount)
+        .map(|(((((((((parts, labour), acquisition), factory_capex), downtime), spares), logistics), energy), warranty), end_of_life)| {
+            parts + labour + acquisition + factory_capex + downtime + spares + logistics + energy + warranty + end_of_life
+        });
 
     let mut missing_fields = Vec::new();
     if total_downtime.is_none() { missing_fields.push("complete_annual_downtime_requires_known_planned_and_unscheduled_event_rates_and_task_times".into()); }
@@ -636,6 +710,21 @@ fn evaluate_profile(
     if catalog.labour_rate_per_technician_hour.is_none() { missing_fields.push("labour_rate_per_technician_hour".into()); }
     if profile.acquisition_cost_per_good_module.is_none() { missing_fields.push("acquisition_cost_per_good_module".into()); }
     if profile.amortization_years.is_none() { missing_fields.push("amortization_years".into()); }
+    if catalog.downtime_cost_per_unavailable_hour.amount.is_none() {
+        missing_fields.push("downtime_cost_per_unavailable_hour".into());
+    }
+    for (field, component) in [
+        ("annualized_factory_capex_per_module_year", &profile.annualized_factory_capex_per_module_year),
+        ("annual_spares_inventory_cost_per_module_year", &profile.annual_spares_inventory_cost_per_module_year),
+        ("annual_logistics_cost_per_module_year", &profile.annual_logistics_cost_per_module_year),
+        ("annual_energy_cost_per_module_year", &profile.annual_energy_cost_per_module_year),
+        ("annual_warranty_cost_per_module_year", &profile.annual_warranty_cost_per_module_year),
+        ("annual_end_of_life_cost_per_module_year", &profile.annual_end_of_life_cost_per_module_year),
+    ] {
+        if component.amount.is_none() {
+            missing_fields.push(field.into());
+        }
+    }
     if profile.events.iter().any(|event| event.event_class == EventClass::Unscheduled && annual_event_rate(event).is_none()) {
         missing_fields.push("unscheduled_failure_rate_requires_measured_count_and_module_year_exposure".into());
     }
@@ -645,6 +734,13 @@ fn evaluate_profile(
 
     let blocked = factory.status == "blocked";
     let all_evidence_backed = factory.status == "passes_evidence_backed_screen"
+        && cost_is_evidence_backed(&catalog.downtime_cost_per_unavailable_hour)
+        && cost_is_evidence_backed(&profile.annualized_factory_capex_per_module_year)
+        && cost_is_evidence_backed(&profile.annual_spares_inventory_cost_per_module_year)
+        && cost_is_evidence_backed(&profile.annual_logistics_cost_per_module_year)
+        && cost_is_evidence_backed(&profile.annual_energy_cost_per_module_year)
+        && cost_is_evidence_backed(&profile.annual_warranty_cost_per_module_year)
+        && cost_is_evidence_backed(&profile.annual_end_of_life_cost_per_module_year)
         && matches!(
         catalog.annual_operating_hours_evidence_class,
         EvidenceClass::Measured | EvidenceClass::IndependentTest
@@ -726,6 +822,13 @@ fn evaluate_profile(
         unscheduled_parts_cost_per_module_year: unscheduled_parts,
         total_service_parts_cost_per_module_year: total_parts,
         amortized_acquisition_cost_per_module_year: amortized_acquisition,
+        allocated_factory_capex_cost_per_module_year: profile.annualized_factory_capex_per_module_year.amount,
+        downtime_loss_cost_per_module_year: downtime_loss_cost,
+        annual_spares_inventory_cost_per_module_year: profile.annual_spares_inventory_cost_per_module_year.amount,
+        annual_logistics_cost_per_module_year: profile.annual_logistics_cost_per_module_year.amount,
+        annual_energy_cost_per_module_year: profile.annual_energy_cost_per_module_year.amount,
+        annual_warranty_cost_per_module_year: profile.annual_warranty_cost_per_module_year.amount,
+        annual_end_of_life_cost_per_module_year: profile.annual_end_of_life_cost_per_module_year.amount,
         labour_cost_per_module_year: labour_cost,
         full_lifecycle_cost_per_module_year: lifecycle_cost,
         currency: catalog.currency.clone(),
