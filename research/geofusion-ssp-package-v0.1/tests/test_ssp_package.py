@@ -366,9 +366,13 @@ class SSPPackageTests(unittest.TestCase):
         recompressed_buffer = io.BytesIO()
         with zipfile.ZipFile(recompressed_buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
             with zipfile.ZipFile(io.BytesIO(source_fmu), "r") as original_fmu:
-                for info in original_fmu.infolist():
-                    if not info.is_dir():
-                        archive.writestr(info.filename, original_fmu.read(info.filename))
+                for original_info in original_fmu.infolist():
+                    if not original_info.is_dir():
+                        info = zipfile.ZipInfo(
+                            original_info.filename, date_time=(2000, 1, 1, 0, 0, 0)
+                        )
+                        info.compress_type = zipfile.ZIP_DEFLATED
+                        archive.writestr(info, original_fmu.read(original_info.filename))
         members["resources/GeoFusion-GeothermalSource.fmu"] = recompressed_buffer.getvalue()
 
         candidate_buffer = io.BytesIO()
