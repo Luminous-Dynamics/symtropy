@@ -1,0 +1,16 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://luminousdynamics.io/schemas/power-restoration-state-snapshot-v0.1.schema.json",
+  "title":"Power restoration discrete state snapshot v0.1",
+  "type":"object","additionalProperties":false,
+  "required":["schemaVersion","caseSha256","step","switchStates","crewRoadPositions","mobileSourceRoadPositions","mobileSourceConnections"],
+  "properties":{
+    "schemaVersion":{"const":"0.1.0"},
+    "caseSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "step":{"type":"integer","minimum":0},
+    "switchStates":{"type":"object","additionalProperties":{"enum":["open","closed"]}},
+    "crewRoadPositions":{"type":"object","additionalProperties":{"type":"string","minLength":1}},
+    "mobileSourceRoadPositions":{"type":"object","additionalProperties":{"type":"string","minLength":1}},
+    "mobileSourceConnections":{"type":"object","additionalProperties":{"type":["string","null"],"minLength":1}}
+  }
+}
