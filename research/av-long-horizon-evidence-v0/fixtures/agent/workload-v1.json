@@ -129,7 +129,7 @@
           "event_id": "ev-tap-2-replay",
           "kind": "observation",
           "availability_tick": 360,
-          "observation_ref": "obs-tap-2-replay",
+          "observation_ref": "obs-tap-2",
           "modalities": [
             "audio"
           ],
@@ -181,13 +181,6 @@
           "clock_generation": 0
         },
         {
-          "event_id": "ev-correction-1",
-          "kind": "correction",
-          "availability_tick": 600,
-          "supersedes_observation_ref": "obs-machine-state-v1",
-          "replacement_observation_ref": "obs-machine-state-corrected"
-        },
-        {
           "event_id": "ev-machine-state-corrected",
           "kind": "observation",
           "availability_tick": 600,
@@ -200,6 +193,13 @@
           "source_dependency_group": "root-machine-state-corrected",
           "clock_domain_id": "clock-room-b",
           "clock_generation": 0
+        },
+        {
+          "event_id": "ev-correction-1",
+          "kind": "correction",
+          "availability_tick": 601,
+          "supersedes_observation_ref": "obs-machine-state-v1",
+          "replacement_observation_ref": "obs-machine-state-corrected"
         }
       ],
       "query": {
