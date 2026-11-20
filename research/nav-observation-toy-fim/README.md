@@ -35,7 +35,7 @@ The example contains six candidate range observations with different bearings, n
 - The objective is lexicographic: maximize observable rank; then maximize log(det(J)) for full-rank geometry (or trace(J) if rank-deficient); then minimize abstract cost; then use canonical action IDs as a deterministic tie-break.
 - A deliberately costly north-facing observation cannot be selected with the two-unit budget, even though it could make an east-facing observation orthogonal.
 
-The eleven included tests assert that orthogonal observations produce isotropic full-rank information, collinear and near-collinear observations remain rank deficient, the exhaustive oracle finds the budget-feasible orthogonal diagonal pair, the greedy baseline is strictly suboptimal on the frozen instance, common rotation and uniform noise scaling obey the expected information invariants, the result is invariant to input ordering, and invalid/overflowing input is rejected.
+The thirteen included tests assert that orthogonal observations produce isotropic full-rank information, collinear and near-collinear observations remain rank deficient, the exhaustive oracle finds the budget-feasible orthogonal diagonal pair, the greedy baseline is strictly suboptimal on the frozen instance, common rotation and uniform noise scaling obey the expected information invariants, the result is invariant to input ordering, and invalid/overflowing input is rejected.
 
 ## Scope and limitations
 
@@ -49,3 +49,13 @@ Fisher information is not itself a calibrated posterior covariance, an integrity
     cargo run --manifest-path research/nav-observation-toy-fim/Cargo.toml
 
 This package has no third-party dependencies and declares its own Cargo workspace boundary. The commands are provided but have not been executed here; a Rust toolchain and exact-head CI are still required.
+
+
+## Why D, A and E optimality must be compared separately
+
+The CLI includes a second four-candidate counterexample with a two-observation budget. D-optimality prefers a pair with a larger determinant but a weakly constrained direction. A- and E-optimality select a more balanced pair. For the frozen numeric values, an independent arithmetic check gives:
+
+- D-optimal pair: det(J) ≈ 500, minimum eigenvalue ≈ 4.751, A-optimal trace(J^-1) ≈ 0.220, condition number ≈ 22.15.
+- A-/E-optimal pair: det(J) = 90, minimum eigenvalue = 9, A-optimal trace(J^-1) ≈ 0.211, condition number ≈ 1.11.
+
+This is not a universal ordering of criteria. It demonstrates that the selected geometry depends on the objective and that a benchmark should report the full information spectrum and downstream decision quality rather than calling one criterion universally best. The values are a host-side arithmetic check, not an executed Rust result.
