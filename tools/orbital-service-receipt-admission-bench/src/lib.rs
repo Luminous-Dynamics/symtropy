@@ -329,6 +329,12 @@ fn validate_plan_receipt(
     if get_str(&value, "result") != Some("pass") {
         return Err(Decision::indeterminate("capacity_plan_receipt_not_pass"));
     }
+    let Some(fixture_digest) = get_str(&value, "fixture_sha256") else {
+        return Err(Decision::indeterminate("capacity_plan_fixture_digest_missing"));
+    };
+    if !valid_hex(fixture_digest, 64) {
+        return Err(Decision::rejected("capacity_plan_fixture_digest_malformed"));
+    }
     if get_bool(&value, "authority_granted") != Some(false) {
         return Err(Decision::rejected("capacity_plan_authority_flag_invalid"));
     }
@@ -337,6 +343,9 @@ fn validate_plan_receipt(
     };
     if get_str(report, "evidence_class") != Some("synthetic") {
         return Err(Decision::indeterminate("capacity_plan_evidence_class_mismatch"));
+    }
+    if get_str(report, "claim_ceiling") != Some("synthetic-service-reconfiguration-only") {
+        return Err(Decision::rejected("capacity_plan_claim_ceiling_mismatch"));
     }
     if get_bool(report, "authority_granted") != Some(false) {
         return Err(Decision::rejected("capacity_plan_report_authority_invalid"));
