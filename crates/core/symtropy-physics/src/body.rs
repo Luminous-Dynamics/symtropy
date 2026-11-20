@@ -224,7 +224,10 @@ impl<const D: usize> RigidBody<D> {
             return Err(MassPropertiesBodyError::InvalidDimension);
         }
         let matrix = operator.as_row_major();
-        if matrix.len() != dof * dof {
+        let expected_matrix_len = dof
+            .checked_mul(dof)
+            .ok_or(MassPropertiesBodyError::InvalidMeanPlaneCompatibilityValue)?;
+        if matrix.len() != expected_matrix_len {
             return Err(MassPropertiesBodyError::InvalidMeanPlaneCompatibilityValue);
         }
         let mean_plane_moment = (0..dof)
@@ -240,8 +243,16 @@ impl<const D: usize> RigidBody<D> {
         let mut centered_collider = CompoundShape::<D>::new();
         if let Some(existing) = collider.as_any().downcast_ref::<CompoundShape<D>>() {
             for (child_transform, shape) in existing.children() {
+                if !child_transform.translation.0.iter().all(|value| value.is_finite())
+                    || !child_transform.rotation.is_proper_rotation(1.0e-8)
+                {
+                    return Err(MassPropertiesBodyError::InvalidGeometryTransform);
+                }
                 let mut shifted = child_transform.clone();
                 shifted.translation.0 -= center_of_mass_local;
+                if !shifted.translation.0.iter().all(|value| value.is_finite()) {
+                    return Err(MassPropertiesBodyError::UnrepresentableCenterOfMass);
+                }
                 centered_collider.add_child(shifted, shape.clone_box());
             }
         } else {
