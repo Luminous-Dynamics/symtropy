@@ -495,7 +495,10 @@ pub fn qualify(case: &Case) -> Result<QualificationReport, Vec<String>> {
             {
                 metric_inconclusive = true;
             }
-            if assessment.service_fraction_lower_bound + TOLERANCE < assessment.minimum_service_floor {
+            if assessment.acceptance_status == AcceptanceStatus::Accepted
+                && assessment.evidence_maturity == case.case_maturity
+                && assessment.service_fraction_lower_bound + TOLERANCE < assessment.minimum_service_floor
+            {
                 floor_breach_count += 1;
                 floor_violations.push(FloorViolation {
                     branch_id: branch.branch_id.clone(),
@@ -660,12 +663,15 @@ mod tests {
     #[test]
     fn unaccepted_service_evidence_is_inconclusive_not_zero() {
         let mut case = fixture();
-        case.service_outcome_manifest.branches[0].service_assessments[0].acceptance_status = AcceptanceStatus::Unknown;
+        let unknown = &mut case.service_outcome_manifest.branches[0].service_assessments[0];
+        unknown.acceptance_status = AcceptanceStatus::Unknown;
+        unknown.service_fraction_lower_bound = 0.0;
         refresh_service_digest(&mut case);
         let report = qualify(&case).expect("unknown service evidence yields an inconclusive report");
         assert_eq!(report.result_status, "inconclusive_service_evidence");
         assert!(!report.inconclusive_reasons.is_empty());
         assert_eq!(report.interval_worst_case_metric_results.len(), 4);
+        assert!(report.floor_violations.is_empty(), "unaccepted data cannot assert a hard-floor breach");
     }
 
     #[test]
