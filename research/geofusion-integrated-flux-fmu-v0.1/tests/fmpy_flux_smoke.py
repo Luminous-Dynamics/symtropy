@@ -130,6 +130,8 @@ def main() -> int:
             current_time = 0.0
             previous_cumulative = 0.0
             previous_stored_energy = 0.0
+            last_source_observation = (0.0, 0.0)
+            last_receiver_observation = (0.0, 0.0, 0.0, 0.0)
             totals = {"input": 0.0, "service": 0.0, "loss": 0.0, "storage": 0.0}
             step_bounds = [(0.0, 30.0), (30.0, 120.0)]
 
@@ -148,6 +150,7 @@ def main() -> int:
                     raise AssertionError("unexpected producer FMI step result")
 
                 cumulative_energy, direct_interval_energy = source.getFloat64([11, 12])
+                last_source_observation = (cumulative_energy, direct_interval_energy)
                 if cumulative_energy < previous_cumulative:
                     raise AssertionError("producer cumulative energy regressed")
                 delta_energy = cumulative_energy - previous_cumulative
@@ -174,6 +177,7 @@ def main() -> int:
                     raise AssertionError("producer/receiver lastSuccessfulTime mismatch")
 
                 service, loss, storage_delta, cumulative_stored = receiver.getFloat64([31, 32, 33, 34])
+                last_receiver_observation = (service, loss, storage_delta, cumulative_stored)
                 residual = direct_interval_energy - service - loss - storage_delta
                 if abs(residual) > 16.0 * math.ulp(max(direct_interval_energy, 1.0)):
                     raise AssertionError(f"receiver energy allocation residual too large: {residual}")
@@ -201,6 +205,8 @@ def main() -> int:
                     ),
                     "receiver duplicate interval consumption",
                 )
+                if receiver.getFloat64([31, 32, 33, 34]) != last_receiver_observation:
+                    raise AssertionError("rejected duplicate receiver step mutated committed outputs")
                 if start_s == 0.0:
                     expect_fmi_error(
                         lambda: receiver.setFloat64([21], [-1.0]),
@@ -214,6 +220,8 @@ def main() -> int:
                         ),
                         "producer stale currentCommunicationPoint",
                     )
+                    if source.getFloat64([11, 12]) != last_source_observation:
+                        raise AssertionError("rejected stale producer step mutated cumulative/interval outputs")
 
                 previous_cumulative = cumulative_energy
                 previous_stored_energy = cumulative_stored
@@ -236,6 +244,8 @@ def main() -> int:
                 ),
                 "producer step beyond declared stop time",
             )
+            if source.getFloat64([11, 12]) != last_source_observation:
+                raise AssertionError("rejected stop-time overrun mutated producer outputs")
 
             print("FMPy integrated-flux FMI 3.0.2 pair: PASS")
             print(f"intervals={len(step_bounds)}")
