@@ -1,0 +1,14 @@
+[package]
+name = "plasma-stream-telemetry"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Replayable multi-clock timing and deadline audit for real-time plasma diagnostic streams"
+
+[dependencies]
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.150"
+sha2 = "=0.10.9"
+
+[workspace]
