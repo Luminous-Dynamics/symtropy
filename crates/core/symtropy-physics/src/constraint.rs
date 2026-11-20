@@ -5,6 +5,80 @@
 
 use crate::body::{BodyHandle, RigidBody};
 
+/// Per-constraint actuator state for one physics world step.
+///
+/// The world creates a fresh value before velocity iterations and reuses it
+/// across those iterations. This keeps actuator impulse limits tied to elapsed
+/// simulation time rather than solver iteration count.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct MotorStepState {
+    accumulated_impulse: f64,
+    mechanical_work_j: f64,
+    active: bool,
+}
+
+impl MotorStepState {
+    /// Project a desired total impulse into one step's symmetric effort budget.
+    ///
+    /// Returns the incremental impulse to apply and resulting relative
+    /// velocity. The work receipt uses midpoint velocity, so for a fixed
+    /// scalar effective inverse mass it matches the exact kinetic-energy
+    /// change caused by the impulse.
+    pub fn project_impulse(
+        &mut self,
+        desired_total_impulse: f64,
+        maximum_step_impulse: f64,
+        relative_velocity_before: f64,
+        effective_inverse_mass: f64,
+    ) -> Option<(f64, f64)> {
+        if !desired_total_impulse.is_finite()
+            || !maximum_step_impulse.is_finite()
+            || !relative_velocity_before.is_finite()
+            || !effective_inverse_mass.is_finite()
+            || maximum_step_impulse < 0.0
+            || effective_inverse_mass <= 0.0
+        {
+            return None;
+        }
+
+        let projected_total = desired_total_impulse
+            .clamp(-maximum_step_impulse, maximum_step_impulse);
+        let delta_impulse = projected_total - self.accumulated_impulse;
+        let relative_velocity_after =
+            relative_velocity_before + effective_inverse_mass * delta_impulse;
+        let incremental_work =
+            delta_impulse * (relative_velocity_before + relative_velocity_after) * 0.5;
+        let accumulated_work = self.mechanical_work_j + incremental_work;
+
+        if !delta_impulse.is_finite()
+            || !relative_velocity_after.is_finite()
+            || !incremental_work.is_finite()
+            || !accumulated_work.is_finite()
+        {
+            return None;
+        }
+
+        self.accumulated_impulse = projected_total;
+        self.mechanical_work_j = accumulated_work;
+        self.active = true;
+        Some((delta_impulse, relative_velocity_after))
+    }
+
+    /// Consume the single aggregate mechanical-port work receipt for this step.
+    pub fn take_work_receipt(&mut self) -> Option<f64> {
+        if !self.active {
+            return None;
+        }
+        self.active = false;
+        Some(self.mechanical_work_j)
+    }
+
+    /// Total accumulated generalized impulse for diagnostics and tests.
+    pub fn accumulated_impulse(&self) -> f64 {
+        self.accumulated_impulse
+    }
+}
+
 /// A constraint between two rigid bodies.
 pub trait Constraint<const D: usize>: Send + Sync + std::any::Any {
     /// The two bodies this constraint connects.
@@ -30,6 +104,21 @@ pub trait Constraint<const D: usize>: Send + Sync + std::any::Any {
         _dt: f64,
         _callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
     ) {
+    }
+
+    /// State-aware velocity solve used by the world for iterative motor
+    /// constraints. The default preserves existing third-party implementations
+    /// by delegating to solve_velocity; motorized joints override this hook to
+    /// share one MotorStepState across all solver iterations.
+    fn solve_velocity_with_state(
+        &self,
+        body_a: &mut RigidBody<D>,
+        body_b: &mut RigidBody<D>,
+        dt: f64,
+        callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
+        _motor_state: &mut MotorStepState,
+    ) {
+        self.solve_velocity(body_a, body_b, dt, callback);
     }
 }
 
