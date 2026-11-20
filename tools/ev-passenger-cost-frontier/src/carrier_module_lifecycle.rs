@@ -126,10 +126,10 @@ pub struct LifecycleTask {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-struct FactoryReport {
-    schema_version: String,
-    benchmark_id: String,
-    base_factory_benchmark_id: String,
+pub struct FactoryReport {
+    pub schema_version: String,
+    pub benchmark_id: String,
+    pub base_factory_benchmark_id: String,
     results: Vec<FactoryModuleScenario>,
 }
 
