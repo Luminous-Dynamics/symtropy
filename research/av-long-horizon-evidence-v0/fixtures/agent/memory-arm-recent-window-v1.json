@@ -31,7 +31,6 @@
       {
         "episode_id": "lh-001-delayed-recall-10m",
         "answer": "door-impact",
-        "abstained": false,
         "confidence": 0.9,
         "cited_observation_refs": [
           "obs-door-impact"
@@ -56,7 +55,6 @@
       {
         "episode_id": "lh-002-repeated-event-dedup",
         "answer": "four_distinct_taps",
-        "abstained": false,
         "confidence": 0.9,
         "cited_observation_refs": [
           "obs-tap-1",
@@ -87,7 +85,6 @@
       {
         "episode_id": "lh-003-correction-supersession",
         "answer": "corrected_machine_state",
-        "abstained": false,
         "confidence": 0.9,
         "cited_observation_refs": [
           "obs-machine-state-corrected"
@@ -112,7 +109,6 @@
       {
         "episode_id": "lh-004-common-cause-dependence",
         "answer": "dependent_views_not_independent",
-        "abstained": false,
         "confidence": 0.9,
         "cited_observation_refs": [
           "obs-impact-video",
@@ -139,7 +135,6 @@
       {
         "episode_id": "lh-005-nuisance-interference",
         "answer": null,
-        "abstained": true,
         "confidence": 0,
         "cited_observation_refs": [],
         "evidence_as_of_tick": 3600,
@@ -160,7 +155,6 @@
       {
         "episode_id": "lh-006-absent-event-false-memory",
         "answer": null,
-        "abstained": true,
         "confidence": 0,
         "cited_observation_refs": [],
         "evidence_as_of_tick": 900,
@@ -181,7 +175,6 @@
       {
         "episode_id": "lh-007-cross-clock-and-event-order",
         "answer": null,
-        "abstained": true,
         "confidence": 0,
         "cited_observation_refs": [],
         "evidence_as_of_tick": 7200,
@@ -202,7 +195,6 @@
       {
         "episode_id": "lh-008-memory-revocation",
         "answer": null,
-        "abstained": true,
         "confidence": 0,
         "cited_observation_refs": [],
         "evidence_as_of_tick": 3600,
@@ -259,7 +251,6 @@
       {
         "episode_id": "lh-009-compression-retention",
         "answer": null,
-        "abstained": true,
         "confidence": 0,
         "cited_observation_refs": [],
         "evidence_as_of_tick": 5400,
