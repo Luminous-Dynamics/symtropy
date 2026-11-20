@@ -673,6 +673,7 @@ mod tests {
         let envelope = envelope(&case, &proposal, &before, &after, ActionExecutionOutcome::Failed);
         let report = audit_transition(&case, &proposal, &before, &after, &envelope).unwrap();
         assert_eq!(report.result_status, "inconclusive_unsupported_action_semantics");
+        assert_eq!(report.failed_action_count, 1);
         assert_eq!(report.unsupported_action_ids, vec!["repair-action-0001".to_string()]);
     }
 
