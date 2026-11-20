@@ -315,6 +315,18 @@ struct IntervalResult {
     pollutant_results: Vec<PollutantResult>,
 }
 #[derive(Debug, Serialize)]
+struct TimeGap {
+    start_utc: String,
+    end_utc: String,
+    duration_seconds: u64,
+}
+#[derive(Debug)]
+struct TimeCoverage {
+    observed_interval_seconds: u64,
+    unobserved_gap_seconds: u64,
+    gaps: Vec<TimeGap>,
+}
+#[derive(Debug, Serialize)]
 struct Report {
     schema_version: String,
     tool_version: String,
@@ -326,6 +338,12 @@ struct Report {
     synthetic_only: bool,
     status: String,
     interval_count: usize,
+    observed_interval_seconds: u64,
+    unobserved_gap_seconds: u64,
+    unobserved_gap_count: usize,
+    time_coverage_status: String,
+    energy_scope: String,
+    unobserved_gaps: Vec<TimeGap>,
     total_thermal_energy_kwh_th: f64,
     interval_results: Vec<IntervalResult>,
     environmental_compliance_status: String,
@@ -565,6 +583,56 @@ fn monte_carlo_thermal_distribution(
         config.lower_95_percentile,
         config.upper_95_percentile,
     )
+}
+fn measure_time_coverage(intervals: &[IntervalRecord]) -> Result<TimeCoverage, String> {
+    let mut observed_interval_seconds = 0u64;
+    let mut unobserved_gap_seconds = 0u64;
+    let mut gaps = Vec::new();
+    let mut previous_start: Option<i64> = None;
+    let mut previous_end: Option<i64> = None;
+    for interval in intervals {
+        let start = parse_utc_timestamp(&interval.interval_start_utc)
+            .ok_or_else(|| format!("interval {} start timestamp invalid", interval.interval_id))?;
+        let end = parse_utc_timestamp(&interval.interval_end_utc)
+            .ok_or_else(|| format!("interval {} end timestamp invalid", interval.interval_id))?;
+        if end <= start {
+            return Err(format!("interval {} has non-positive input-side observation window", interval.interval_id));
+        }
+        if let Some(last_start) = previous_start {
+            if start <= last_start {
+                return Err("input-side observation windows are not strictly chronological".into());
+            }
+        }
+        if let Some(last_end) = previous_end {
+            if start < last_end {
+                return Err(format!("interval {} overlaps a prior input-side observation window", interval.interval_id));
+            }
+            if start > last_end {
+                let gap_seconds = (start - last_end) as u64;
+                unobserved_gap_seconds = unobserved_gap_seconds.checked_add(gap_seconds)
+                    .ok_or("unobserved gap duration overflow")?;
+                gaps.push(TimeGap {
+                    start_utc:intervals
+                        .iter()
+                        .find(|candidate| parse_utc_timestamp(&candidate.interval_end_utc) == Some(last_end))
+                        .map(|candidate| candidate.interval_end_utc.clone())
+                        .unwrap_or_default(),
+                    end_utc:interval.interval_start_utc.clone(),
+                    duration_seconds:gap_seconds,
+                });
+            }
+        }
+        let duration = (end - start) as u64;
+        observed_interval_seconds = observed_interval_seconds.checked_add(duration)
+            .ok_or("observed interval duration overflow")?;
+        previous_start = Some(start);
+        previous_end = Some(end);
+    }
+    Ok(TimeCoverage {
+        observed_interval_seconds,
+        unobserved_gap_seconds,
+        gaps,
+    })
 }
 fn validate_interval(bundle: &Bundle, interval: &IntervalRecord, interval_index: usize) -> Result<IntervalResult, String> {
     let start_seconds = parse_utc_timestamp(&interval.interval_start_utc)
@@ -1105,6 +1173,7 @@ fn validate(bundle: &Bundle) -> Result<Report, String> {
         return Err("OGC SensorThings 2.0 entity, Feature relationship or SWE-Common result mapping incomplete".into());
     }
 
+    let time_coverage = measure_time_coverage(&bundle.interval_records)?;
     let mut interval_ids = HashSet::new();
     let mut results = Vec::new();
     let mut total_thermal_kwh = 0.0;
@@ -1134,6 +1203,16 @@ fn validate(bundle: &Bundle) -> Result<Report, String> {
         synthetic_only:true,
         status:"SYNTHETIC_MEASUREMENT_BUNDLE_VALID_NO_SITE_OR_COMPLIANCE_CLAIM".into(),
         interval_count:results.len(),
+        observed_interval_seconds:time_coverage.observed_interval_seconds,
+        unobserved_gap_seconds:time_coverage.unobserved_gap_seconds,
+        unobserved_gap_count:time_coverage.gaps.len(),
+        time_coverage_status:if time_coverage.gaps.is_empty() {
+            "CONTIGUOUS_OBSERVED_WINDOWS_NO_INTERPOLATION".into()
+        } else {
+            "GAPS_EXPLICIT_NO_INTERPOLATION".into()
+        },
+        energy_scope:"sum of observed input-side intervals only; unobserved gaps are not interpolated or counted as zero load".into(),
+        unobserved_gaps:time_coverage.gaps,
         total_thermal_energy_kwh_th:total_thermal_kwh,
         interval_results:results,
         environmental_compliance_status:"NOT_ASSESSED_NO_PERMIT_LIMIT_OR_FIELD_BASELINE".into(),
@@ -1322,6 +1401,23 @@ mod tests {
         let end = parse_utc_timestamp("2026-10-13T00:03:00Z").unwrap();
         assert_eq!(end - start, 300);
         assert!(parse_utc_timestamp("2026-02-30T00:00:00Z").is_none());
+    }
+    #[test]
+    fn time_coverage_reports_gaps_without_interpolating() {
+        let mut b = fixture();
+        b.interval_records[1].interval_start_utc = "2026-10-12T10:10:00Z".into();
+        b.interval_records[1].interval_end_utc = "2026-10-12T10:15:00Z".into();
+        let coverage = measure_time_coverage(&b.interval_records).expect("ordered non-overlapping windows");
+        assert_eq!(coverage.unobserved_gap_seconds, 300);
+        assert_eq!(coverage.gaps.len(), 1);
+        assert_eq!(coverage.gaps[0].duration_seconds, 300);
+    }
+    #[test]
+    fn overlapping_or_out_of_order_windows_are_rejected() {
+        let mut b = fixture();
+        b.interval_records[1].interval_start_utc = "2026-10-12T10:04:00Z".into();
+        b.interval_records[1].interval_end_utc = "2026-10-12T10:09:00Z".into();
+        assert!(measure_time_coverage(&b.interval_records).unwrap_err().contains("overlaps"));
     }
     #[test]
     fn hydraulic_lag_uncertainty_is_propagated_into_thermal_output() {
