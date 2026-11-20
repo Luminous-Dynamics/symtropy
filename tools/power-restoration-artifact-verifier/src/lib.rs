@@ -1230,6 +1230,40 @@ pub fn verify_restoration_claim_evidence(
             }
         };
         let source_uri = format!("power-fabric://source/{}/snapshot", source.source_id);
+        let matching_source_attestations: Vec<&AttestationEnvelope> = attestations
+            .iter()
+            .filter(|envelope| {
+                envelope.payload.subject_uri == source_uri
+                    && envelope.payload.subject_sha256 == source.source_snapshot_sha256
+                    && envelope.payload.signer_role == SignerRole::EvidenceProvider
+                    && envelope.payload.issuer_id == source.producer_id
+            })
+            .collect();
+        match matching_source_attestations.as_slice() {
+            [envelope] => {
+                match (artifact_envelope_uri(envelope), canonical_sha256(envelope)) {
+                    (Ok(expected_uri), Ok(expected_sha)) => {
+                        if source.producer_attestation_ref != expected_uri
+                            || source.producer_attestation_sha256 != expected_sha
+                        {
+                            errors.push(format!(
+                                "source {} producer-attestation reference/digest does not bind the supplied signed envelope",
+                                source.source_id
+                            ));
+                        }
+                    }
+                    (Err(error), _) | (_, Err(error)) => errors.push(error),
+                }
+            }
+            [] => errors.push(format!(
+                "source {} has no EvidenceProvider attestation for its snapshot",
+                source.source_id
+            )),
+            _ => errors.push(format!(
+                "source {} has multiple EvidenceProvider attestations for one snapshot",
+                source.source_id
+            )),
+        }
         let mut parents = Vec::new();
         for parent_id in &source.parent_source_ids {
             match all_sources.get(parent_id) {
@@ -1480,7 +1514,7 @@ pub fn verify_restoration_claim_evidence(
     }
     for (uri, digest) in &expected_artifacts {
         match manifest_map.get(uri.as_str()) {
-            Some(manifest_digest) if *manifest_digest == digest => {}
+            Some(manifest_digest) if *manifest_digest == digest.as_str() => {}
             Some(_) => errors.push(format!(
                 "manifest digest for required artifact {uri} does not match its typed record"
             )),
