@@ -1,0 +1,146 @@
+# Navigation Observability Transition Benchmark v0.1
+
+**Status:** draft contract and synthetic fixtures; not executed or qualified  
+**Owner:** Symtropy scenario/transition benchmark  
+**Cross-stack parent:** Symthaea EMSR-001 #10775  
+**Transition benchmark:** Symtropy #6434  
+**PNT degradation substrate:** Symtropy #3909
+
+## Purpose
+
+This benchmark evaluates whether a navigation system preserves a justified spatial belief while its observations, sensor modalities, reference frames, time bases, geometry and communication paths change.
+
+It deliberately does not attempt to build another estimator. It composes:
+
+- Mycelix Position #413 / #416 / #417 / #435 / #458 for spatial truth, frames, fusion, qualified time and profile-specific navigation health;
+- Mycelix #5899 / #5904 for observation provenance and common-mode dependencies;
+- Symthaea #10824 / #10826 for the mobile adapter and independent ground-truth/oracle qualification;
+- Symtropy #3909 / #1612 / #3893 / #4115 for PNT degradation, deterministic replay, maritime modes and airborne pose observability;
+- Sol-Atlas #584 for the PNT/timing/communications dependency twin.
+
+No new global coordinate engine, time service, trust authority, runtime-assurance controller, evidence ledger or physical actuation authority is introduced here.
+
+## Paradigm shift: measure continuity of justified belief
+
+A static localization benchmark usually asks how close an estimated trajectory is to reference truth on one data sequence. This benchmark asks whether the system remains justified when the observation regime changes.
+
+A transition episode has four separately represented layers:
+
+1. **Controller-visible stream:** observations, source-health changes, integrity messages, transform availability, clock-correlation status and network status.
+2. **Source registry:** modality, configuration, calibration reference, source clock domain and declared failure domains.
+3. **Evaluator-only oracle:** independent/synthetic trajectory truth and fault adjudication. This object must be withheld from the navigation subject.
+4. **Expected disposition:** the minimum defensible service state given the declared profile and currently admissible evidence.
+
+The important outcome is not always a coordinate. It can be a qualified estimate, a bounded coast, a degraded state, an explicit abstention or an INDETERMINATE result.
+
+## Initial synthetic transition coverage
+
+The current fixture contains seven authored examples:
+
+| Case | Environment transition / challenge | Main failure mode |
+|---|---|---|
+| Land → urban → tunnel | GNSS degradation followed by GNSS loss and local geometric/inertial navigation | NLOS, multipath, sensor availability and frame transition |
+| Surface water → underwater | GNSS loss, DVL/depth/sonar support and acoustic-network partition | Local navigation vs network reachability |
+| Airborne GNSS integrity degradation | Plausible but integrity-uncertain GNSS followed by loss | False continuity and alternate-source qualification |
+| Orbital absolute → optical relative | Ephemeris/inertial support, optical bearing, target occultation | Relative-only state, mission clock and observability collapse |
+| Common-mode false independence | Three receiver identities with shared antenna/clock/power/correction dependencies | Peer count mistaken for independent evidence |
+| Frame/time-basis mismatch | Deliberate frame and time association error | Silent coordinate or timestamp laundering |
+| Lunar body-fixed → local surface | Moon body-fixed state to local terrain frame | Body identity and epoch-bound transform |
+
+These are synthetic contract fixtures, not measured sensor traces or physical-world claims. The corpus is not yet the full 12–20 episode preregistration target. It must gain positive controls for genuinely independent sources, valid reacquisition, benign faults and recoverable map/frame transitions before any benchmark run is preregistered.
+
+## External comparison anchors
+
+The goal is to reproduce strong, task-matched baselines rather than compare unrelated headline numbers.
+
+### GNSS / urban and interference resilience
+
+- [UrbanNav](https://github.com/IPNL-POLYU/UrbanNavDataset) is a multisensor positioning dataset from Asian urban canyons. Its project page describes GNSS receiver, LiDAR, camera and IMU observations with SPAN-CPT reference data. Freeze the exact dataset release, sequence, license, calibration and reference-quality assumptions before admitting it.
+- A 13 May 2026 cross-domain GNSS spoofing study on TEXBAT and OAKBAT reports average in-domain classification accuracy above 90% for its evaluated models, while its cross-testing accuracy falls to 66% or less. This motivates receiver/dataset/campaign holdouts; the result is not a general ceiling for GNSS integrity. [IEEE Access, DOI 10.1109/ACCESS.2026.3693081](https://doi.org/10.1109/ACCESS.2026.3693081).
+- Use receiver-native integrity tests and statistical residual/RAIM-style baselines alongside matched ML methods. Anomaly classification is not proof of physical position validity, intentional interference or actor attribution.
+
+### Indoor / terrestrial localization
+
+[ISO/IEC 21134:2026](https://www.iso.org/standard/86651.html), published January 2026, specifies a reference framework for benchmarking integrated indoor localization and tracking methods using dead reckoning, including test environments, metrics, process and conformance. Align the indoor track to this framework. The standard is a benchmark-method reference, not proof that this v0.1 corpus conforms to it.
+
+### Underground / subterranean robotics
+
+[SubT-MRS (CVPR 2024)](https://openaccess.thecvf.com/content/CVPR2024/html/Zhao_SubT-MRS_Dataset_Pushing_SLAM_Towards_All-weather_Environments_CVPR_2024_paper.html) is a useful multi-platform reference for SLAM under subterranean and adverse visibility conditions. [CERBERUS DARPA SubT datasets](https://github.com/leggedrobotics/cerberus_darpa_subt_datasets) provide additional cave/tunnel sensor records. Exact release, redistribution and commercial-use terms must be reviewed independently. Neither benchmark establishes mine-wide positioning or personnel safety.
+
+### Underwater navigation and SLAM
+
+The [Tank dataset](https://senseroboticslab.github.io/underwater-tank-dataset/) includes stereo camera, IMU, DVL, pressure/depth and 6-DoF reference poses over eight tank sequences. Its published license is **CC BY-NC-SA 4.0**; do not use its data in a commercial-use path or redistribute it incompatibly without separate permission. The associated paper compares UVA, SVIN2, ORB-SLAM3 and VINS-Fusion under its stated setup. [Dataset paper](https://doi.org/10.1177/02783649251364904).
+
+This is a strong controlled underwater SLAM baseline, not an open-ocean or long-duration multi-AUV navigation qualification. AQUALOC and Girona/Caves data remain candidate additions subject to exact source and rights review.
+
+### Space / relative navigation
+
+NASA's StarFOX is an actual on-orbit angles-only relative-navigation demonstration. NASA's current GNC overview reports approximately 0.5% relative-range error in the demonstrated configuration. This is a technology-demonstration reference, not a downloadable general leaderboard, and it must not be conflated with relative pose, rendezvous guidance, docking capture or servicing-arm performance. [NASA GNC state of the art](https://www.nasa.gov/smallsat-institute/sst-soa/guidance-navigation-and-control/).
+
+NASA/JPL SPICE may supply ancillary ephemerides and observation geometry, but SPICE is not an orbit-determination or attitude-estimation algorithm. The exact NAIF kernels and time/frame conversions must remain bound to the evaluation record. [NAIF SPICE](https://naif.jpl.nasa.gov/naif/public.html).
+
+## Baselines
+
+For each domain/task, use the strongest exact-match baseline available:
+
+- domain-appropriate ESKF/EKF and a factor-graph smoother where the data and measurement model support them;
+- benchmark-native reference implementations;
+- visual-inertial baselines such as ORB-SLAM3/VINS-Fusion for matching underwater/terrestrial visual tasks;
+- underwater acoustic/visual/inertial systems such as UVA where the released sensor channels match;
+- receiver-native GNSS integrity and statistical residual baselines;
+- the frozen pre-change Mycelix/Symthaea subject;
+- simple modality ablations and a cognition-disabled baseline when measuring Symthaea's decision value;
+- an oracle trajectory only as an evaluator upper bound, never a fair navigation controller.
+
+Never compare headline scores across different sensor privileges, reference truth, environments, splits, hardware or scoring protocols.
+
+## Metrics — keep them separate
+
+Report by domain, transition, scenario and seed:
+
+- ATE/RPE and position, velocity and attitude errors where independent truth supports them;
+- p50/p95/p99 error, worst-tail error and maximum unqualified interval;
+- covariance/protection-region empirical coverage and calibration;
+- time-integrated invalid/unqualified-position exposure;
+- false accepted-position exposure after integrity loss;
+- time-to-detect, false alarms per operating hour and false exclusion;
+- observability/conditioning and estimator consistency;
+- time in NORMAL / DEGRADED / INTEGRITY_UNCERTAIN / UNAVAILABLE / RECOVERING / INDETERMINATE;
+- requalification time and premature healthy-state re-entry;
+- common-mode false-independence rate and correct unknown/abstention rate;
+- energy, compute, memory, bandwidth and human handover burden;
+- deterministic replay and independent-verifier reconstruction.
+
+Do not publish one universal navigation score. Compare each operating profile's error/continuity/false-safe/recovery/resource Pareto frontier.
+
+## Proposed research targets (not achieved)
+
+- Zero accepted frame/body/time-basis mix-ups in the frozen negative-control corpus.
+- Zero false independence decisions for known common-mode cases.
+- Zero premature healthy-state re-entry in the frozen synthetic recovery corpus.
+- Empirical uncertainty-region coverage consistent with the declared confidence level and model assumptions.
+- At matched operating point, pursue at least 20% reduction in p95 trajectory error or unqualified-position exposure on a preregistered transition profile without worsening false alarms or false-safe exposure.
+- Every decision-relevant output binds exact input, configuration, model/profile, frame/time transform, evidence snapshot and oracle-manifest digests—or returns INDETERMINATE.
+- 100% byte-reproducible replay of the frozen synthetic corpus.
+
+The 20% figure is a falsifiable research hypothesis, not a claimed result or a universal target across all domains.
+
+## Current artifacts
+
+- `nav_transition_case.schema.json`: JSON Schema Draft 2020-12 authoring contract for a single case.
+- `fixtures/nav_transition_cases.v0.1.json`: seven synthetic examples with an explicit controller/evaluator split.
+
+The schema verifies structure only. A later semantic validator must enforce cross-reference integrity (case/source/frame/time IDs), monotonic event schedules, interval consistency, frame/body compatibility, source-clock-to-time-basis correlation, transformation validity, source common-mode graph correctness, oracle separation and expected-state logic. Schema syntax and fixture validity have not yet been independently checked or executed in CI.
+
+## P0 work still required
+
+1. Add positive-control episodes for genuinely independent source combinations, valid recovery, benign false-alarm controls and known-answer frame/time transformations.
+2. Add a semantic validator and mutation tests; a JSON Schema pass alone cannot establish cross-field correctness.
+3. Freeze a 12–20 case corpus and exact seed list before held-out evaluation.
+4. Bind the independent oracle manifest and source rights state using the existing EMSR receipt/ground-truth owners.
+5. Audit each scenario against the exact Symtropy physics/model-capability census. Unsupported physical effects remain abstract or UNKNOWN; no convenient coefficients are invented.
+6. Reproduce matched baselines on the exact data release and metric definitions before claiming any SOTA comparison.
+
+## Explicit non-claims
+
+This is not a navigation estimator, a real-time runtime-assurance controller, a flight/maritime/mine/space safety case, airworthiness/seaworthiness certification, an operational PNT service or physical navigation authority. No RF attack generation, emitter targeting, kinetic cueing or physical actuation is in scope. Synthetic success does not establish field performance.
