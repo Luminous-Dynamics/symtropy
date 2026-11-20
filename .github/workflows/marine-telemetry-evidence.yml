@@ -1,0 +1,52 @@
+name: Marine Telemetry Evidence Gateway Audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/marine-telemetry-evidence/**"
+      - ".github/workflows/marine-telemetry-evidence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marine-telemetry-evidence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  telemetry-evidence-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/marine-telemetry-evidence/Cargo.toml -- --check
+
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/marine-telemetry-evidence/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run semantic and negative-control tests
+        run: cargo test --manifest-path tools/marine-telemetry-evidence/Cargo.toml
+
+      - name: Check strict schema and known-answer fixture structure
+        run: |
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.source_registry.maxItems <= 32 and .properties.observations.maxItems <= 10000' tools/marine-telemetry-evidence/schema/marine-telemetry-evidence.schema.json
+          jq -e '.record_status == "synthetic" and (.signal_contracts | length == 2) and (.source_registry | length == 3) and (.observations | length == 3)' tools/marine-telemetry-evidence/fixtures/synthetic-qualified-telemetry-0001.json
+          jq -e '.source_registry[0].gateway_id == .source_registry[1].gateway_id and .source_registry[0].network_segment_id == .source_registry[1].network_segment_id' tools/marine-telemetry-evidence/fixtures/synthetic-common-cause-not-independent-0001.json
+
+      - name: Independent sources must qualify synthetic signals
+        run: |
+          cargo run --quiet --manifest-path tools/marine-telemetry-evidence/Cargo.toml -- audit-telemetry tools/marine-telemetry-evidence/fixtures/synthetic-qualified-telemetry-0001.json > /tmp/telemetry-qualified.json
+          jq -e '.disposition == "SYNTHETIC_ONLY" and .qualified_signal_count == 2 and .read_only == true and .actuation_authorized == false' /tmp/telemetry-qualified.json
+
+      - name: Shared failure domain must not qualify a false quorum
+        run: |
+          cargo run --quiet --manifest-path tools/marine-telemetry-evidence/Cargo.toml -- audit-telemetry tools/marine-telemetry-evidence/fixtures/synthetic-common-cause-not-independent-0001.json > /tmp/telemetry-common-cause.json
+          jq -e '.disposition == "DEGRADED/ABSTAIN" and ([.signals[] | select(.signal_id == "freshwater_tank_level") | .independent_source_count] == [1]) and ([.signals[] | select(.signal_id == "freshwater_tank_level") | .usable] == [false])' /tmp/telemetry-common-cause.json
