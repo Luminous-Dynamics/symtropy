@@ -316,6 +316,62 @@
       "trajectory_error_vs_continuous_k": 0.039259655204017,
       "source_energy_error_j": 0
     },
-    "claim_ceiling": "The producer-reported cumulative interval energy is used as an exact declared J input; the oracle cannot prove that an arbitrary producer integrated its physical flux correctly. The receiver uses average power over the interval, so the within-window trajectory is approximate even though the macro-interval input energy is exact. A scalar energy observation is not a serialized FMU checkpoint."
+    "claim_ceiling": "The producer-reported cumulative interval energy is used as an exact declared J input; the oracle cannot prove that an arbitrary producer integrated its physical flux correctly. The receiver uses average power over the interval, so the within-window trajectory is approximate even though the macro-interval input energy is exact. A scalar energy observation is not a serialized FMU checkpoint.",
+    "producer_cumulative_energy_method": "cumulative_sinusoidal_source_energy_j(t) = mean_power_w*t + (2*amplitude_w/angular_frequency_rad_per_s)*sin(angular_frequency_rad_per_s*t/2)^2",
+    "cumulative_readings_for_points": [
+      {
+        "time_s": 0,
+        "cumulative_energy_j": 0
+      },
+      {
+        "time_s": 1e-9,
+        "cumulative_energy_j": 0.0005000000000007854
+      },
+      {
+        "time_s": 30,
+        "cumulative_energy_j": 15693874.017607527
+      },
+      {
+        "time_s": 120,
+        "cumulative_energy_j": 68333461.00984275
+      },
+      {
+        "time_s": 400,
+        "cumulative_energy_j": 200000000
+      },
+      {
+        "time_s": 1000,
+        "cumulative_energy_j": 512732395.44735163
+      }
+    ]
+  },
+  "cumulative_energy_precision_contract": {
+    "representation": "IEEE-754 Float64 cumulative joules",
+    "policy": "derive delta only if the conservative sum of one-ULP endpoint bounds is within the caller-supplied absolute energy-error budget",
+    "error_bound": "ulp(previous_cumulative_j) + ulp(current_cumulative_j)",
+    "cases": [
+      {
+        "previous_j": 0,
+        "current_j": 68333461.00984275,
+        "max_resolution_error_j": 0.000001,
+        "expected_delta_j": 68333461.00984275,
+        "disposition": "ACCEPT"
+      },
+      {
+        "previous_j": 1000000000000000000,
+        "current_j": 1000000000000000300,
+        "max_resolution_error_j": 1,
+        "disposition": "REJECT",
+        "reason": "CumulativeEnergyPrecisionInsufficient"
+      },
+      {
+        "previous_j": 1000000000000000000,
+        "current_j": 1000000000000000300,
+        "max_resolution_error_j": 1024,
+        "expected_delta_j": 256,
+        "disposition": "ACCEPT_WITH_RECORDED_RESOLUTION_BOUND"
+      }
+    ],
+    "claim_ceiling": "This bounds endpoint Float64 quantization under the stated round-to-nearest observation model; it does not authenticate producer integration, prove sensor uncertainty, or correct within-interval physics. For long-running large counters or tight tolerances, prefer interval-energy J outputs or a higher-precision/epoch-based counter profile."
   }
 }
