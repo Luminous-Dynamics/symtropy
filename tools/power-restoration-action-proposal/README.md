@@ -13,12 +13,28 @@ It is not a scheduler or executor. A valid proposal is not necessarily feasible,
 
 ## Action vocabulary
 
+Physical/recovery actions:
+
 - move_crew: repair crew to a road-network node;
 - repair_fault: qualified crew to a known fault;
 - move_mobile_source: mobile source to a road node;
 - connect_mobile_source / disconnect_mobile_source: mobile source at an explicitly permitted power node;
 - set_switch_state: grid-operator actor sets a known switch explicitly open or closed;
 - wait: system no-op with no target.
+
+Active information acquisition:
+
+- observe_scada: current telemetry for a known power node or branch;
+- observe_calls: reports associated with a known load or node;
+- observe_network_model: request the current network-model artifact;
+- crew_inspect: qualified repair crew inspects a known fault;
+- read_fault_indicator: request an indicator observation for a known fault;
+- test_switch: grid-operator actor requests a test of a known switch;
+- simulate_switch: system requests a counterfactual switch state for a known switch (the executor must use a clone and prove no live-state mutation);
+- forecast_load: request a forecast for a known load;
+- escalate_to_human: explicit system escalation with no target.
+
+Information actions may start without prior evidence because their purpose is to acquire evidence. This exception does not apply to repair, movement, connection or switch-state changes.
 
 There is deliberately no toggle action. Setting an explicit desired state is idempotent and safe to retry at the proposal layer.
 
@@ -58,13 +74,13 @@ Those belong to independent authority, transition, electrical and service valida
 
 LARA, MILP, CP-SAT, heuristic and Symthaea adapters all emit this same envelope. The independent transition engine receives the same case and observation and decides whether each proposed action can be applied. Invalid proposals stay in the denominator of the invalid-action rate; no adapter may silently repair or discard invalid outputs before scoring.
 
-## Synthetic fixture
+## Synthetic fixtures
 
-The bundled proposal points at the six-node synthetic case from #6346. It proposes one repair action for F23-A by CREW-A at decision step 4, using a step-3 inspection evidence reference. The fixture is only a data-contract example, not a repair recommendation or execution plan.
+The bundled repair proposal points at the six-node synthetic case from #6346. A second initial-SCADA-request fixture demonstrates an information request at step 0 with an empty precondition-evidence list. It proposes one repair action for F23-A by CREW-A at decision step 4, using a step-3 inspection evidence reference. The fixture is only a data-contract example, not a repair recommendation or execution plan.
 
 ## Verification
 
-There are 25 authored Rust unit tests. They cover case digest binding, canonical case identity, actor/action pairing, target refs, crew skill, mobile-source permitted nodes, explicit switch state, rejection of toggle, future evidence rejection, exact observation binding, duplicate actions/evidence, authority and provenance digest requirements, and deterministic receipts.
+There are 36 authored Rust unit tests. They cover case digest binding, canonical case identity, actor/action pairing, target refs, crew skill, mobile-source permitted nodes, explicit switch state, rejection of toggle, future evidence rejection, exact observation binding, duplicate actions/evidence, authority and provenance digest requirements, and deterministic receipts.
 
 The authoring environment has no Rust toolchain. Tests are authored but not locally executed; CI must pass on the exact PR head before qualification.
 
