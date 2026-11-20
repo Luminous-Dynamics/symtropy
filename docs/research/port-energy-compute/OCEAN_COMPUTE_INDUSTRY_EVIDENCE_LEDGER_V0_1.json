@@ -337,6 +337,82 @@
         }
       ],
       "comparability_warning": "Candidate Darwin Core terms are not a complete OBIS profile. Confirm current Manual/node requirements, taxonomy, data rights, attribution and sensitive-species location restrictions before publication."
+    },
+    {
+      "reference_id": "ISO-5667-10-2026",
+      "project": "ISO 5667-10:2026 — Water quality — Sampling — Part 10: Guidance on sampling of waste waters",
+      "geography": "International standard",
+      "status": "Edition 3, published 18 November 2026",
+      "metrics": [
+        {
+          "metric": "industrial_and_urban_wastewater_sampling",
+          "value": "Sampling guidance includes representative sampling of industrial and urban wastewater and cooling-water contexts.",
+          "unit": "standard scope",
+          "evidence_class": "normative_standard_scope",
+          "source_url": "https://www.iso.org/standard/86841.html"
+        },
+        {
+          "metric": "sampling_program_design",
+          "value": "Sampling programme design and representative sample collection are within the standard's scope.",
+          "unit": "guidance",
+          "evidence_class": "normative_sampling_guidance",
+          "source_url": "https://www.iso.org/standard/86841.html"
+        }
+      ],
+      "comparability_warning": "The synthetic flow-proportional-composite fixture is not an ISO-compliant sampling campaign. Actual sampling methods, preservation, analytes, location, timing, and laboratory QA/QC require a site-specific plan and qualified review."
+    },
+    {
+      "reference_id": "JCGM-GUM-AMENDMENT-2026",
+      "project": "JCGM 100:2008/Amd.1:2026 — Evaluation of measurement data: Guide to the expression of uncertainty in measurement",
+      "geography": "International metrology guidance",
+      "status": "2026 amendment; published in JCGM guidance register",
+      "metrics": [
+        {
+          "metric": "measurement_model_nonlinearity",
+          "value": "The amendment adds guidance addressing nonlinearity in measurement models.",
+          "unit": "guidance update",
+          "evidence_class": "metrology_guidance",
+          "source_url": "https://www.bipm.org/en/committees/jc/jcgm/publications"
+        },
+        {
+          "metric": "distribution_propagation",
+          "value": "JCGM 101 describes propagation of distributions using a Monte Carlo method.",
+          "unit": "metrology method",
+          "evidence_class": "metrology_guidance",
+          "source_url": "https://doi.org/10.59161/JCGM101-2008"
+        }
+      ],
+      "comparability_warning": "The project Monte Carlo fixture is an engineering cross-check with explicitly synthetic normal inputs and a common transport-lag variable. It is not a complete demonstration of GUM/JCGM conformity; real use requires justified input distributions, covariance, model adequacy and traceability."
+    },
+    {
+      "reference_id": "OGC-SENSORTHINGS-API-2-2026",
+      "project": "OGC SensorThings API 2.0",
+      "geography": "International geospatial/IoT interoperability standard",
+      "status": "Approved 14 September 2026; published 4 November 2026",
+      "metrics": [
+        {
+          "metric": "entity_model",
+          "value": "2.0 uses Thing, Location, Sensor, ObservedProperty, Datastream, Observation and Feature; Feature replaces FeatureOfInterest and supports proximate/ultimate feature links.",
+          "unit": "API data model",
+          "evidence_class": "published_standard",
+          "source_url": "https://docs.ogc.org/is/23-019/23-019.html"
+        },
+        {
+          "metric": "datastream_result_structure",
+          "value": "Datastream resultType and resultEncoding describe SWE-Common structures; units are represented in resultType rather than the removed v1.1 unitOfMeasurement field.",
+          "unit": "API data model",
+          "evidence_class": "published_standard",
+          "source_url": "https://docs.ogc.org/is/23-019/23-019.html"
+        },
+        {
+          "metric": "sampling_feature_linkage",
+          "value": "Observation and Datastream relationships include proximate/ultimate Feature links.",
+          "unit": "API data model",
+          "evidence_class": "published_standard",
+          "source_url": "https://docs.ogc.org/is/23-019/23-019.html"
+        }
+      ],
+      "comparability_warning": "The measurement bundle currently defines a normalized local mapping, not a SensorThings 2.0 API payload. Conformance requires schema validation and inspection of service $metadata; legacy v1.1 adapters must be explicitly versioned."
     }
   ],
   "project_target_ladder": {
