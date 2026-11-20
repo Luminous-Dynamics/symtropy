@@ -68,7 +68,7 @@ The service trajectory's parentServiceArtifacts must exactly equal the per-decis
 
 An incomplete/aborted/timed-out run may still have a partial, fully mapped service trajectory. The report can expose that trajectory's native-unit totals, but it cannot produce a completed score match or a CIVDYN availability export.
 
-Only a complete, reconciled modelled/measured trajectory can be converted through per_load_cascade_availability to per-load [0,1] service fractions. This is a typed adapter into the existing CivDyn service-cascade kernel; it does not reimplement dependency propagation.
+Only a complete, reconciled modelled/measured trajectory can be exported. per_load_cascade_availability exposes per-load [0,1] fractions. aggregate_cascade_endpoint_availability additionally requires a separate, case-bound, digest-bound mapping from every feeder load ID to exactly one CIVDYN cascade node. Multiple feeder loads assigned to one endpoint are aggregated as delivered kWh divided by demand kWh at each interval; the bridge never assumes feeder load IDs equal cascade node IDs or applies a plain arithmetic mean. The mapping rows hash must match its source artifact digest. This is a typed adapter into the existing CivDyn service-cascade kernel; it does not reimplement dependency propagation.
 
 Forecast/work streams, unknown/conflicting trajectories, incomplete runs or score-mismatched records cannot be exported as completed service inputs.
 
@@ -77,7 +77,7 @@ Forecast/work streams, unknown/conflicting trajectories, incomplete runs or scor
     cargo fmt --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --all -- --check
     cargo clippy --locked --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --all-targets -- -D warnings
     cargo test --locked --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --all-targets
-    cargo run --locked --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --bin power-restoration-service-trajectory-audit -- trajectory.json run-receipt.json benchmark-case.json [cascade-endpoint-mapping.json]
+    cargo run --locked --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --bin power-restoration-service-trajectory-audit -- trajectory.json run-receipt.json benchmark-case.json [cascade-endpoint-mapping.json] [cascade-endpoint-mapping.json]
 
 CLI exit codes:
 - 0: complete modelled/measured service trajectory and aggregate weighted-energy score reconcile;
@@ -87,7 +87,7 @@ CLI exit codes:
 
 ## Tests
 
-20 authored Rust tests cover:
+24 authored Rust tests cover:
 - full measured-service weighted-kWh hand calculation, per-load cascade output and explicit multi-load endpoint aggregation;
 - modelled versus measured producer roles;
 - planned forecast and observed work non-promotion;
