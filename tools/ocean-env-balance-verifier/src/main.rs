@@ -311,6 +311,8 @@ fn validate_evidence(e: &Evidence, interval: &IntervalRecord, ids: &mut HashSet<
         ("sensor_id", e.sensor_id.as_str()),
         ("calibration_id", e.calibration_id.as_str()),
         ("calibration_independence_domain", e.calibration_independence_domain.as_str()),
+        ("calibration_valid_from_utc", e.calibration_valid_from_utc.as_str()),
+        ("calibration_valid_until_utc", e.calibration_valid_until_utc.as_str()),
     ] {
         if value.trim().is_empty() {
             return Err(format!("sample {} missing {name}", e.sample_id));
@@ -380,6 +382,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
     let mut sample_ids = HashSet::new();
     let mut temperatures = std::collections::HashMap::new();
     let mut station_ids = HashSet::new();
+    let mut thermal_calibration_domains = HashSet::new();
     for observation in &interval.thermal_observations {
         validate_evidence(&observation.evidence, interval, &mut sample_ids)?;
         if !REQUIRED_ROLES.contains(&observation.station_role.as_str()) {
@@ -390,6 +393,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
         }
         if observation.station_id.trim().is_empty()
             || !station_ids.insert(observation.station_id.as_str())
+            || !thermal_calibration_domains.insert(observation.evidence.calibration_independence_domain.as_str())
             || observation.position_evidence_state != "synthetic_relative_layout" {
             return Err(format!("station {} lacks synthetic position context", observation.station_id));
         }
@@ -430,6 +434,9 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
 
     if interval.concentration_pairs.is_empty() {
         return Err(format!("interval {} has no paired pollutant samples", interval.interval_id));
+    }
+    if interval.plume_concentration_observations.len() != interval.concentration_pairs.len() * 3 {
+        return Err(format!("interval {} must have exactly three plume/reference samples per analyte", interval.interval_id));
     }
     if temperatures["intake"].evidence.calibration_independence_domain
         == temperatures["outfall"].evidence.calibration_independence_domain {
@@ -595,7 +602,7 @@ fn validate_interval(bundle: &Bundle, interval: &IntervalRecord) -> Result<Inter
         for (role, station_id, concentration, uncertainty) in station_concentrations {
             let station = temperatures.get(role)
                 .ok_or_else(|| format!("analyte {} has no station metadata for {role}", pair.analyte_id))?;
-            if station_id != &station.station_id {
+            if station_id != station.station_id.as_str() {
                 return Err(format!("analyte {} concentration station mismatch for {role}", pair.analyte_id));
             }
             let delta = concentration - reference_sample.concentration_mg_l;
@@ -769,7 +776,7 @@ mod tests {
         assert!(report.interval_results.iter().all(|interval|
             interval.pollutant_results.iter().all(|p|
                 p.net_flux_resolution_status == "BELOW_1_STANDARD_UNCERTAINTY_UNRESOLVED"
-            )
+            ) && interval.pollutant_station_anomalies.len() == 4
         ));
     }
     #[test]
@@ -820,6 +827,21 @@ mod tests {
         let intake_domain = b.interval_records[0].concentration_pairs[0].intake.evidence.calibration_independence_domain.clone();
         b.interval_records[0].concentration_pairs[0].outfall.evidence.calibration_independence_domain = intake_domain;
         assert!(validate(&b).unwrap_err().contains("shares a calibration domain"));
+    }
+    #[test]
+    fn expired_calibration_validity_window_is_rejected() {
+        let mut b = fixture();
+        b.interval_records[0].thermal_observations[0].evidence.calibration_valid_until_utc =
+            "2026-10-12T09:59:59Z".into();
+        assert!(validate(&b).unwrap_err().contains("calibration validity does not cover"));
+    }
+    #[test]
+    fn missing_far_field_chemistry_sample_is_rejected() {
+        let mut b = fixture();
+        b.interval_records[0].plume_concentration_observations.retain(|sample|
+            sample.station_role != "far_field_impact"
+        );
+        assert!(validate(&b).unwrap_err().contains("three plume/reference samples"));
     }
     #[test]
     fn missing_calibration_independence_domain_is_rejected() {
