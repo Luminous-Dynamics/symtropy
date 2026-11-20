@@ -46,7 +46,6 @@ pub use field_layout_acceptance::{
 };
 pub use site_state_ledger::{
     RobotExecutionDisposition, SiteActorRole, SiteApplyOutcome, SiteEntityState, SiteEventEnvelope,
-    SiteLedgerTip,
     SiteActorRegistry, SiteEventPayload, SiteLedgerError, SiteLedgerTip,
     SiteRefereeAssessment, SiteRejectionReason, SiteStateLedger, SiteWorkPackage,
 };
