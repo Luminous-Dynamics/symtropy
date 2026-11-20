@@ -348,7 +348,15 @@ pub fn compose_receipt_bundle(
         if required_str(&source_input, "evidence_class", label)? != fixture.evidence_class {
             return Err(format!("{label}: source input evidence class mismatch"));
         }
-        required_str(&source_input, "claim_ceiling", label)?;
+        let source_claim_ceiling = required_str(&source_input, "claim_ceiling", label)?;
+        let reported_claim_ceiling = required_str(
+            receipt.get("report").expect("source receipt report was validated"),
+            "claim_ceiling",
+            label,
+        )?;
+        if source_claim_ceiling != reported_claim_ceiling {
+            return Err(format!("{label}: report claim ceiling differs from exact source input"));
+        }
     }
 
     let delivery_report = delivery.get("report").expect("delivery report checked above");
