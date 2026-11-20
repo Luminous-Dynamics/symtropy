@@ -47,7 +47,9 @@
       "station_id": "tracker-A",
       "frame_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "transform_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-      "calibration_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      "calibration_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "site_clock_domain_id": "site-clock-01",
+      "valid_until_tick": 10000
     }
   },
   {
