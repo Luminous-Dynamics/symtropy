@@ -1,0 +1,14 @@
+[package]
+name = "geofusion-fmi-api-ledger"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Strict Rust validator for FMI API exchange evidence ledgers"
+
+[dependencies]
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.145"
+sha2 = "=0.10.9"
+
+[workspace]
