@@ -300,7 +300,7 @@ pub fn reconcile_site_journal_bundle(
                     journal.journal_id.clone(),
                 ));
             }
-            if committed_event_ids.contains(&entry.event_id) {
+            if committed_context.event_ids.contains(&entry.event_id) {
                 return Err(SiteJournalReconciliationError::EventAlreadyCommitted(
                     entry.event_id.clone(),
                 ));
@@ -512,11 +512,7 @@ fn add_payload_dependencies(
             SiteEventPayload::StationQualified { .. } => {
                 station_events.insert(event.event_id.clone());
             }
-            SiteEventPayload::ExecutionStarted {
-                package_sha256,
-                attempt_id,
-                ..
-            } => {
+            SiteEventPayload::ExecutionStarted { attempt_id, .. } => {
                 if committed_context.attempt_ids.contains(attempt_id) {
                     return Err(SiteJournalReconciliationError::AttemptAlreadyCommitted(
                         attempt_id.clone(),
@@ -529,12 +525,6 @@ fn add_payload_dependencies(
                     return Err(SiteJournalReconciliationError::DuplicateAttemptStart(
                         attempt_id.clone(),
                     ));
-                }
-                if committed_context.package_sha256s.contains(package_sha256)
-                    || package_publications.contains_key(package_sha256)
-                {
-                    // Package references are checked again below after all
-                    // package publication events have been collected.
                 }
             }
             SiteEventPayload::RobotObservationRecorded { attempt_id, .. }
@@ -1120,15 +1110,15 @@ mod tests {
             )],
         );
         let interruption = journal(
-            "journal-referee-a",
-            "referee-a",
+            "journal-robot-b",
+            "robot-b",
             vec![entry(
                 1,
                 None,
                 "interruption",
                 '2',
-                "referee-a",
-                SiteActorRole::Referee,
+                "robot-b",
+                SiteActorRole::Robot,
                 &[],
                 interruption_payload("attempt-a"),
             )],
