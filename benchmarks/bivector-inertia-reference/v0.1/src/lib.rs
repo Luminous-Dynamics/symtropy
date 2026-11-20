@@ -460,6 +460,35 @@ mod tests {
         );
     }
 
+
+    fn direct_transpose(matrix: &Matrix) -> Matrix {
+        let n = matrix.len();
+        let mut output = vec![vec![0.0; n]; n];
+        for row in 0..n {
+            for column in 0..n {
+                output[column][row] = matrix[row][column];
+            }
+        }
+        output
+    }
+
+    fn direct_product(left: &Matrix, right: &Matrix) -> Matrix {
+        let rows = left.len();
+        let inner = right.len();
+        let columns = right[0].len();
+        let mut output = vec![vec![0.0; columns]; rows];
+        for row in 0..rows {
+            for column in 0..columns {
+                let mut value = 0.0;
+                for k in 0..inner {
+                    value += left[row][k] * right[k][column];
+                }
+                output[row][column] = value;
+            }
+        }
+        output
+    }
+
     fn rotate_3d_xz_quarter_turn() -> Matrix {
         vec![
             vec![0.0, 0.0, -1.0],
@@ -545,25 +574,41 @@ mod tests {
 
         // Independent direct matrix reference: R^T B R, solve each plane
         // using the derived eigenvalues (5,4,3), then R response R^T.
-        let body_impulse = multiply(
-            &multiply(&transpose(&rotation), &impulse.to_matrix()).expect("left product"),
+        let rotation_transpose = direct_transpose(&rotation);
+        let body_impulse = direct_product(
+            &direct_product(&rotation_transpose, &impulse.to_matrix()),
             &rotation,
-        )
-        .expect("body impulse");
+        );
         let mut body_response = zero_matrix(3);
         for (i, j, plane) in [(0, 1, 5.0), (0, 2, 4.0), (1, 2, 3.0)] {
             let value = body_impulse[i][j] / plane;
             body_response[i][j] = value;
             body_response[j][i] = -value;
         }
-        let direct_world = multiply(
-            &multiply(&rotation, &body_response).expect("right product"),
-            &transpose(&rotation),
-        )
-        .expect("world response");
+        let direct_world = direct_product(
+            &direct_product(&rotation, &body_response),
+            &rotation_transpose,
+        );
         let expected = Bivector::from_matrix(&direct_world).expect("direct bivector");
 
         for (actual, expected) in actual.components().iter().zip(expected.components()) {
+            close(*actual, *expected, 1.0e-12);
+        }
+        // The quarter-turn rotation produces an explicit world-frame response
+        // [1/3, 1/2, -3/5] for this impulse and principal-moment fixture.
+        for (actual, expected) in actual.components().iter().zip([1.0 / 3.0, 0.5, -0.6]) {
+            close(*actual, expected, 1.0e-12);
+        }
+    }
+
+
+    #[test]
+    fn bivector_rotation_adjoint_round_trip_preserves_plane_coordinates() {
+        let rotation = rotate_3d_xz_quarter_turn();
+        let original = Bivector::new(3, vec![0.25, -0.75, 1.5]).expect("original");
+        let rotated = rotate_bivector(&rotation, &original).expect("rotated");
+        let recovered = rotate_bivector(&direct_transpose(&rotation), &rotated).expect("recovered");
+        for (actual, expected) in recovered.components().iter().zip(original.components()) {
             close(*actual, *expected, 1.0e-12);
         }
     }
