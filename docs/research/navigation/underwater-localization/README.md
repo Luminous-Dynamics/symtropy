@@ -36,6 +36,8 @@ These are candidates, not automatically admitted datasets. Pin exact source revi
 | [FLSea](https://viseaon.haifa.ac.il/) | Stereo / visual-inertial data with depth ground truth | Optical navigation under underwater visibility variation |
 | [Tank dataset](https://doi.org/10.1177/02783649251364904) | Stereo, IMU, DVL, depth; marker-based six-DoF reference | Calibrated multi-sensor underwater visual SLAM |
 
+**Known rights detail — Tank dataset:** its official dataset page states **CC BY-NC-SA 4.0**. That permits the specified non-commercial sharing/adaptation subject to attribution and ShareAlike terms; it is not a commercially unrestricted benchmark input. Use it for a research-only reproducibility baseline unless separate permission is obtained. Source: https://senseroboticslab.github.io/underwater-tank-dataset/
+
 Dataset discovery index: https://ros-maritime.oceansoft.org/datasets/ (contents reviewed October 2026). The index itself warns that dataset licences vary, including non-commercial-only and unspecified terms. The manifest therefore records rights status independently of technical availability.
 
 ## Versioned input contract
