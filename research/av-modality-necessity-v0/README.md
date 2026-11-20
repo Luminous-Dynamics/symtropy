@@ -35,9 +35,20 @@ The evaluator records whether A-only, V-only or A+V is sufficient. A fused model
 
 The metadata contains synthetic identifiers and placeholder content commitments for pair-identity testing. It does not contain raw PCM/RGB evidence or physically qualified sensor claims. The artifact/transport integration remains owned by #6201/#6301.
 
-## Evaluation arms
+## External protocol mapping and evaluation arms
 
-Video-only; audio-only; modular late fusion; transcript-mediated video; strong general AV model; Symthaea native; Symthaea hybrid. Keep model, hardware, task and resource budgets matched. A model's advertised input modality is not evidence that it actually used it.
+OmniPro provides 2,700 test samples over 1,262 videos, 9,051 triggers and nine tasks. Its audio-dependency labels are required / helpful / none; 65.5% are audio-required and 18.5% audio-helpful. Use Probe mode for trigger-centred content understanding and Online mode for response timing. Map our internal strata onto those official labels only where task semantics match; do not relabel a task solely from its modality inputs. Its 84% audio-required-or-helpful coverage makes it a useful external audio-necessity complement. OmniPro's dataset card declares CC BY-NC 4.0 and evaluation-only use.
+
+Matched evaluation arms:
+- video-only model / vision-only input;
+- audio-only model / raw audio input;
+- transcript-mediated video (ASR transcript plus video; no raw audio);
+- modular specialist audio + visual encoders with late fusion;
+- strong general AV model such as Qwen3.5-Omni or an appropriately documented proprietary omni model;
+- Symthaea native acoustic/HDC-CfC path;
+- Symthaea hybrid path.
+
+Use the official OmniPro Probe and Online metrics when evaluating OmniPro; use our paired counterfactual scorecard only for the synthetic local challenge. Keep model, hardware, task, input-sampling and resource budgets matched. A model's advertised input modality is not evidence that it actually used it.
 
 ## Core invariants
 
