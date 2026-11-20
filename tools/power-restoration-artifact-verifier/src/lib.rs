@@ -1705,13 +1705,9 @@ pub fn verify_restoration_claim_evidence(
     let successful_terminal = receipt.run_status == RunStatus::Completed
         && receipt.terminal_reason == Some(TerminalReason::RestorationComplete);
     let claim_status = if successful_terminal {
-        match case.maturity {
-            CaseMaturity::SyntheticFixture => "synthetic_evidence_chain_complete",
-            CaseMaturity::HistoricalReplay => "historical_replay_evidence_chain_complete",
-            CaseMaturity::FieldObserved => "field_evidence_chain_complete",
-        }
+        "signed_evidence_chain_complete_for_declared_scope"
     } else {
-        "claim_evidence_verified_but_run_not_complete"
+        "signed_evidence_chain_verified_but_run_not_complete"
     };
 
     let _ = receipt_report;
