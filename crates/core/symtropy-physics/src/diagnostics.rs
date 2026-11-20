@@ -42,6 +42,9 @@ pub struct InvariantSnapshot<const D: usize> {
     pub max_penetration_depth: f64,
     /// Number of bodies whose state contains a NaN or infinity.
     pub non_finite_body_count: usize,
+    /// Number of bodies whose known inertia mass disagrees with translational mass.
+    #[serde(default)]
+    pub mass_property_mismatch_count: usize,
 }
 
 impl<const D: usize> InvariantSnapshot<D> {
@@ -49,6 +52,7 @@ impl<const D: usize> InvariantSnapshot<D> {
     /// supplied proper-rotation tolerance.
     pub fn is_numerically_healthy(&self, rotation_tolerance: f64) -> bool {
         self.non_finite_body_count == 0
+            && self.mass_property_mismatch_count == 0
             && self.max_rotation_orthogonality_error <= rotation_tolerance
             && self.max_rotation_determinant_error <= rotation_tolerance
     }
@@ -65,6 +69,7 @@ impl<const D: usize> InvariantSnapshot<D> {
             max_rotation_orthogonality_error: later.max_rotation_orthogonality_error,
             max_rotation_determinant_error: later.max_rotation_determinant_error,
             non_finite_body_count: later.non_finite_body_count,
+            mass_property_mismatch_count: later.mass_property_mismatch_count,
         }
     }
 }
@@ -79,6 +84,38 @@ pub struct InvariantDrift<const D: usize> {
     pub max_rotation_orthogonality_error: f64,
     pub max_rotation_determinant_error: f64,
     pub non_finite_body_count: usize,
+    /// Number of bodies whose known inertia mass disagrees with translational mass.
+    #[serde(default)]
+    pub mass_property_mismatch_count: usize,
+}
+
+/// Deterministic observation of one successfully committed world step.
+///
+/// This records the state transition and invariant drift, but is not a
+/// conservation certificate: callers must account for applied forces,
+/// contacts, motors and other work sources before judging energy balance.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct InvariantStepReceipt<const D: usize> {
+    pub dt: f64,
+    pub total_body_count: usize,
+    pub dynamic_body_count: usize,
+    pub contact_count: usize,
+    pub max_penetration_depth: f64,
+    pub before: InvariantSnapshot<D>,
+    pub after: InvariantSnapshot<D>,
+    pub drift: InvariantDrift<D>,
+}
+
+impl<const D: usize> InvariantStepReceipt<D> {
+    /// True when the post-step state contains no non-finite bodies and all
+    /// rotations satisfy the given proper-rotation tolerance.
+    pub fn is_numerically_healthy(&self, rotation_tolerance: f64) -> bool {
+        self.after.is_numerically_healthy(rotation_tolerance)
+    }
+
+    pub fn mechanical_energy_delta(&self) -> f64 {
+        self.after.mechanical_energy - self.before.mechanical_energy
+    }
 }
 
 impl<const D: usize> InvariantDrift<D> {
@@ -92,6 +129,40 @@ impl<const D: usize> InvariantDrift<D> {
 }
 
 impl<const D: usize> PhysicsWorld<D> {
+    /// Step the world and return deterministic before/after invariant evidence.
+    ///
+    /// If the physical step fails, this returns the same typed error as
+    /// `try_step` and the world's transactional rollback remains in effect.
+    /// The receipt describes the committed state transition only; it does not
+    /// attribute every external or constraint work source.
+    pub fn try_step_with_receipt(
+        &mut self,
+        dt: f64,
+    ) -> Result<InvariantStepReceipt<D>, crate::world::PhysicsStepError> {
+        let before = self.invariant_snapshot();
+        let total_body_count = self.bodies.len();
+        let dynamic_body_count = self
+            .bodies
+            .iter()
+            .filter(|body| body.body_type == BodyType::Dynamic)
+            .count();
+
+        self.try_step(dt)?;
+
+        let after = self.invariant_snapshot();
+        let drift = before.drift_to(&after);
+        Ok(InvariantStepReceipt {
+            dt,
+            total_body_count,
+            dynamic_body_count,
+            contact_count: self.contacts.len(),
+            max_penetration_depth: after.max_penetration_depth,
+            before,
+            after,
+            drift,
+        })
+    }
+
     /// Capture physical invariants and numerical-health metrics.
     ///
     /// The snapshot is deterministic for a fixed world state and contains no
@@ -107,6 +178,7 @@ impl<const D: usize> PhysicsWorld<D> {
         let mut max_rotation_orthogonality_error = 0.0_f64;
         let mut max_rotation_determinant_error = 0.0_f64;
         let mut non_finite_body_count = 0;
+        let mut mass_property_mismatch_count = 0;
 
         for body in &self.bodies {
             let position = body.transform.translation.0;
@@ -116,6 +188,14 @@ impl<const D: usize> PhysicsWorld<D> {
                 max_rotation_orthogonality_error.max(rotation_orthogonality_error);
             max_rotation_determinant_error =
                 max_rotation_determinant_error.max(rotation_determinant_error);
+
+            if body
+                .rotational_inertia
+                .as_ref()
+                .is_some_and(|inertia| inertia.validate_body_mass(body.mass, 1e-10).is_err())
+            {
+                mass_property_mismatch_count += 1;
+            }
 
             let finite = position.iter().all(|value| value.is_finite())
                 && body.linear_velocity.iter().all(|value| value.is_finite())
@@ -164,6 +244,7 @@ impl<const D: usize> PhysicsWorld<D> {
             max_rotation_determinant_error,
             max_penetration_depth,
             non_finite_body_count,
+            mass_property_mismatch_count,
         }
     }
 }
@@ -188,6 +269,25 @@ mod tests {
         assert!((snapshot.center_of_mass[0] - 1.0 / 3.0).abs() < 1e-12);
         assert!((snapshot.linear_momentum[0] - 3.0).abs() < 1e-12);
         assert!(snapshot.is_numerically_healthy(1e-12));
+    }
+
+    #[test]
+    fn snapshot_detects_known_rotational_inertia_mass_mismatch() {
+        use crate::inertia::BivectorInertia;
+
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        world
+            .body_mut(handle)
+            .unwrap()
+            .set_rotational_inertia_operator(
+                BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.0, 0.8, 0.6))
+                    .unwrap(),
+            );
+
+        let snapshot = world.invariant_snapshot();
+        assert_eq!(snapshot.mass_property_mismatch_count, 1);
+        assert!(!snapshot.is_numerically_healthy(1e-12));
     }
 
     #[test]
@@ -219,5 +319,25 @@ mod tests {
         let snapshot = world.invariant_snapshot();
         assert_eq!(snapshot.non_finite_body_count, 1);
         assert!(!snapshot.is_numerically_healthy(1e-9));
+    }
+
+    #[test]
+    fn accepted_step_receipt_captures_deterministic_invariant_transition() {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        world.body_mut(handle).unwrap().linear_velocity = SVector::from([2.0, 0.0]);
+
+        let receipt = world.try_step_with_receipt(0.01).unwrap();
+        assert_eq!(receipt.dt, 0.01);
+        assert_eq!(receipt.total_body_count, 1);
+        assert_eq!(receipt.dynamic_body_count, 1);
+        assert_eq!(receipt.contact_count, 0);
+        assert!(receipt.is_numerically_healthy(1e-12));
+        assert!(
+            (receipt.after.center_of_mass[0] - receipt.before.center_of_mass[0] - 0.02).abs()
+                < 1e-12
+        );
+        assert!(receipt.mechanical_energy_delta().abs() < 1e-12);
+        assert!(receipt.drift.linear_momentum_error_norm() < 1e-12);
     }
 }
