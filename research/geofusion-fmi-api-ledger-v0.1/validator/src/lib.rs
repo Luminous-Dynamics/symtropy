@@ -312,15 +312,15 @@ fn parse_bits(value: &str, label: &str) -> Result<f64, String> {
     Ok(decoded)
 }
 
-fn gcd_i128(mut left: i128, mut right: i128) -> i128 {
-    left = left.abs();
-    right = right.abs();
-    while right != 0 {
-        let remainder = left % right;
-        left = right;
-        right = remainder;
+fn gcd_i128(left: i128, right: i128) -> i128 {
+    let mut a = left.unsigned_abs();
+    let mut b = right.unsigned_abs();
+    while b != 0 {
+        let remainder = a % b;
+        a = b;
+        b = remainder;
     }
-    left
+    i128::try_from(a).expect("gcd is bounded by a positive i128 denominator")
 }
 
 /// Convert the exact IEEE-754 value into an integer nanosecond count using
@@ -872,6 +872,23 @@ mod tests {
     fn run(d: Value) -> Result<AuditReport, String> {
         let ledger: Ledger = serde_json::from_value(d).map_err(|e| e.to_string())?;
         audit(ledger, &root())
+    }
+
+    #[test]
+    fn exact_binary64_clock_mapping_refuses_fractional_nanoseconds() {
+        let clock = Clock {
+            clock_id: "clock-test".to_owned(),
+            master_clock_id: "master-test".to_owned(),
+            model_time_unit: "s".to_owned(),
+            mapping_digest: "mapping-test".to_owned(),
+            nanoseconds_per_model_time_numerator: 1_000_000_000,
+            nanoseconds_per_model_time_denominator: 1,
+        };
+        assert_eq!(to_ns(0.0, &clock, "zero"), Ok(0));
+        assert_eq!(to_ns(0.25, &clock, "quarter-second"), Ok(250_000_000));
+        assert_eq!(to_ns(2.0, &clock, "two-seconds"), Ok(2_000_000_000));
+        assert!(to_ns(0.1, &clock, "binary64-tenth").is_err());
+        assert!(to_ns(f64::MAX, &clock, "overflow").is_err());
     }
 
     #[test]
