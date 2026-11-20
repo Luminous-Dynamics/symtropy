@@ -21,14 +21,18 @@ This is not another FMI importer/master, trace verifier or physical energy-contr
 
 The default SSD uses SSP's required SSD format attribute `version="2.0"` and SSP release 2.0.1 schema files.
 
-| Component | FMU resource URI | Connector | Kind | Type / unit |
+| Component | Connector | Kind | Type / unit | Physical binding |
 |---|---|---|---|---|
-| GeothermalSource | `resources/GeoFusion-GeothermalSource.fmu` | `thermalPowerOut` | output | Float64 / W |
-| HeatExchangerBuffer | `resources/GeoFusion-HeatExchangerBuffer.fmu` | `thermalPowerIn` | input | Float64 / W |
+| GeothermalSource | `thermalPowerOut` | output | Float64 / W | `geo.thermal_out`, source of `geo-to-hx` |
+| HeatExchangerBuffer | `thermalPowerIn` | input | Float64 / W | `hx.thermal_in`, sink of `geo-to-hx` |
+| HeatExchangerBuffer | `thermalService` | output | Float64 / W | useful services at `hx-terminal-services` |
+| HeatExchangerBuffer | `heatLoss` | output | Float64 / W | losses at `hx-terminal-losses` |
+| HeatExchangerBuffer | `storageCharge` | output | Float64 / W | interval storage power at `hx-terminal-storage` |
+| HeatExchangerBuffer | `storedEnergy` | output | Float64 / J | state observation at `hx-storage-state` |
 
-The package contains exactly one connection: geothermal output `thermalPowerOut` → buffer input `thermalPowerIn`.
+The package contains exactly one connection: geothermal output `thermalPowerOut` → buffer input `thermalPowerIn`. The other four buffer outputs are declared terminal/state observations and are deliberately not auto-connected to the source power port.
 
-The SSP unit definition for W is (kg\,m^2\,s^{-3}), with unit factor 1 and offset 0. Because both connector units are W, no unit transformation is declared.
+The SSP unit dictionary declares W = kg·m²·s⁻³ and J = kg·m²·s⁻², each with unit factor 1 and offset 0. The package preserves each FMI variable's unit; it does not coerce stored energy into a power signal.
 
 ## Build a release package from actual FMU files
 
@@ -64,7 +68,7 @@ Inside the SSP package:
 - `SystemStructure.ssd`: default SSP system description.
 - `resources/GeoFusion-GeothermalSource.fmu`.
 - `resources/GeoFusion-HeatExchangerBuffer.fmu`.
-- `resources/geofusion-ssp-evidence.json`: embedded provenance manifest containing each FMU package, modelDescription and selected binary digest, model identity, FMI version and capability flags.
+- `resources/geofusion-ssp-evidence.json`: embedded provenance manifest containing each FMU package, modelDescription and selected binary digest, model identity, FMI version, capability flags and the full variable-to-port binding map.
 
 The assembler preserves the original FMU ZIP bytes. It does not unpack/repack or rewrite an FMU.
 
@@ -72,7 +76,9 @@ The assembler preserves the original FMU ZIP bytes. It does not unpack/repack or
 
 - Validate the SSD against the vendored official SSP 2.0.1 XSD.
 - Inspect each FMU ZIP for unsafe/duplicate paths, modelDescription, FMI 3.0 Co-Simulation interface, expected modelIdentifier and selected `x86_64-linux` binary.
-- Verify the declared Float64 variable's value reference, causality, variability and unit, plus the exact SI base-unit definition for W.
+- Verify every profiled Float64 variable's value reference, causality, variability and unit, including the three power-allocation outputs and the stored-energy state; check exact SI dimensions for both W and J.
+- Require a one-to-one match between each profiled FMI variable and its SSP connector, and persist typed physical-port metadata (carrier, boundary, source/sink role, quantity kind) in the embedded manifest.
+- Reject an SSP graph that omits, renames, rewires or changes the type/kind/unit of any declared component connector.
 - Check component source URIs, connector type/kind/unit, one-to-one component membership, and the exact directed connection.
 - Recompute package, modelDescription and binary SHA-256 digests from actual bytes and cross-check the embedded manifest.
 - Reject DTDs/external entities, symlink members, path traversal, duplicate ZIP entries and non-relative component resource URIs.
@@ -93,7 +99,7 @@ It does not claim the tools can execute the contained FMUs. Tool versions, impor
 
 `tests/test_ssp_package.py` creates tiny **NON-EXECUTABLE, test-only FMU doubles** in temporary directories. They contain placeholder binary bytes; they are used solely to test packaging and the negative-control suite and are not committed as FMUs or accepted as real model evidence.
 
-The 27-case test suite covers deterministic assembly, correct graph/unit semantics, wrong variable identity/type/causality/unit, missing binaries, model identifier mismatch, path traversal, duplicate archive entries, reversed/wrong connections, stale FMU bytes, symlink inputs, DTD/external-entity rejection, canonical graph comparison, layout-insensitive round-trip equivalence, FMU ZIP recompression, and platform-binary tampering.
+The 31-case test suite covers deterministic assembly, complete FMI-variable-to-SSP-connector binding (including J-valued stored energy), typed port metadata, missing state/output variables, wrong variable identity/type/causality/unit, missing binaries, model identifier mismatch, path traversal, duplicate archive entries, reversed/wrong connections, stale FMU bytes, symlink inputs, DTD/external-entity rejection, canonical graph comparison, layout-insensitive round-trip equivalence, FMU ZIP recompression, and platform-binary tampering.
 
 Run:
 
