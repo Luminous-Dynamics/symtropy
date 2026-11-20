@@ -44,11 +44,23 @@ Background:
 - Tadmor's entropy stability framework for conservative numerical fluxes.
 - Klein et al. (2026), *Generalized Tadmor Conditions and Structure-Preserving Numerical Fluxes for the Compressible Flow of Real Gases*, [arXiv:2603.15112](https://arxiv.org/abs/2603.15112), which extends flux conditions to secondary structures and introduces discrete null-consistency for non-convex structures. That result motivates future structure-specific contracts; it is not assumed to transfer directly to plasma closures.
 
+
+## External-boundary accounting
+
+The `boundary` module accepts one already-computed external boundary flux oriented with the declared outward normal. For each component it retains both the outward integrated flux and the adjacent-cell contribution:
+
+    outward export = A * F_out
+    cell update     = -A * F_out
+
+Their sum is zero for that boundary interaction, but the outward export is **not** cancelled against an internal neighbour. This prevents an open or prescribed physical boundary from being accidentally treated as periodic. The module binds the boundary condition, outward-normal identity, cell/boundary state fingerprints, boundary profile/model digests and solver compatibility key.
+
+This is accounting only. It does not solve sheath, conducting-wall, absorbing, reflecting, open or inflow boundary physics, and a fingerprint is not proof that the boundary state is physically correct. A solver adapter must source-pin its actual boundary condition and orientation convention.
+
 ## Claim boundary
 
 - Caller-supplied Qualified status is not authenticated here.
 - A well-formed digest does not prove that the referenced bytes are available or correct.
-- The authored test suite contains 29 Rust tests, including the independent periodic-grid stencil oracle and a 36-case sampled entropy-convexity sweep. These are not reported as executed until Rust tooling or hosted CI actually runs them.
+- The authored test suite contains 35 Rust tests: the independent periodic-grid stencil oracle, a 36-case sampled entropy-convexity sweep, and six external-boundary accounting tests. These are not reported as executed until Rust tooling or hosted CI actually runs them.
 - Matching declared compatibility keys do not prove the solver adapter is semantically correct.
 - This primitive does not choose experts, compute weights, implement hysteresis, normalize units, validate pressure-tensor PSD, prove hyperbolicity or entropy consistency, or execute a plasma solver.
 - Synthetic unit tests do not reproduce ECsim, the Landau-damping papers, the magnetosheath paper or an industrial solver.
