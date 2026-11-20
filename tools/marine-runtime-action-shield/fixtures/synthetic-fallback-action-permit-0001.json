@@ -197,8 +197,8 @@
         "metric": "power_service_availability",
         "unit": "fraction",
         "value": 1,
-        "lower_bound": 0.9,
-        "upper_bound": 1.1,
+        "lower_bound": 1,
+        "upper_bound": 1,
         "coverage_fraction": 1,
         "evidence_sha256": "156898031e0b891c9beae2e7ee02d936f41f2936ca27954ac763c72b2fb3d863"
       },
@@ -206,8 +206,8 @@
         "metric": "potable_water_service_availability",
         "unit": "fraction",
         "value": 1,
-        "lower_bound": 0.9,
-        "upper_bound": 1.1,
+        "lower_bound": 1,
+        "upper_bound": 1,
         "coverage_fraction": 1,
         "evidence_sha256": "581ddd06b44506bf6bb2c135036481604bc0c7b2c19f5f88ca452a3827eb70a2"
       },
@@ -215,8 +215,8 @@
         "metric": "sanitation_service_availability",
         "unit": "fraction",
         "value": 1,
-        "lower_bound": 0.9,
-        "upper_bound": 1.1,
+        "lower_bound": 1,
+        "upper_bound": 1,
         "coverage_fraction": 1,
         "evidence_sha256": "9abca0ad188ace0b9947ad7a54329a332918aa16ef4a117f6dea3352e96a4a07"
       },
@@ -224,8 +224,8 @@
         "metric": "refrigeration_service_availability",
         "unit": "fraction",
         "value": 1,
-        "lower_bound": 0.9,
-        "upper_bound": 1.1,
+        "lower_bound": 1,
+        "upper_bound": 1,
         "coverage_fraction": 1,
         "evidence_sha256": "7934173b35b4d4aac7c8ec5512b8dbe4d6b4817903b52b4a0711814fecef75f2"
       },
@@ -248,7 +248,7 @@
         "evidence_sha256": "c525bdf32147600e5eb7b603e5d6e579449c4f2d220b9239c1f97abf8f79ce18"
       }
     ],
-    "state_sha256": "d6b9770be71bb288840042028e9f871658c2dd2c9f22d497a113e117b623320a"
+    "state_sha256": "28562fe689415b306b5ceba7f9826be4be0fa837e1e81ac2d61a79e567d1e777"
   },
   "decision": {
     "decision_time": "2026-11-20T05:00:00Z",
@@ -274,7 +274,7 @@
         "steering"
       ],
       "precondition_state_sequence": 42,
-      "precondition_state_sha256": "d6b9770be71bb288840042028e9f871658c2dd2c9f22d497a113e117b623320a",
+      "precondition_state_sha256": "28562fe689415b306b5ceba7f9826be4be0fa837e1e81ac2d61a79e567d1e777",
       "craft_configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
       "actuator_configuration_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
       "model_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
@@ -286,7 +286,7 @@
         {
           "scenario_class": "adverse_forecast_error",
           "disturbance_sha256": "85aa6a95efa2fcbd4fb9d02e1d098ae833c543841ce14f86e11b80fb2b8e7282",
-          "successor_state_sha256": "c7f6a1125b8b526aff27808e874773fb9b37dce266e5978b1d7a2b67a614686f",
+          "successor_state_sha256": "31e95c8c63d0a5681017f1280fd746055c559da3b1611b4a02fdeb3f65c83874",
           "resource_metrics": [
             {
               "metric": "energy_reserve_kwh",
@@ -337,8 +337,8 @@
               "metric": "power_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "b3ea0a99479c83cec8328a6e56e1851d75dbcaf4ff02dfe71f0cdb3e22a21730"
             },
@@ -346,8 +346,8 @@
               "metric": "potable_water_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "8a24177a8bcb28bb35d408a2f7558c54e9e8ebdad348c5ff17df84af66fb7f39"
             },
@@ -355,8 +355,8 @@
               "metric": "sanitation_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "f112c944df1e3d9e2c1468581e716ceddaa88c72f2d0d7cb73920fc8f79e7fb3"
             },
@@ -364,8 +364,8 @@
               "metric": "refrigeration_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "90bf7791e2ab8ce4fd64dfd1fa2e7f05745d96465aa99d5847f292d4155ef2e0"
             },
@@ -415,7 +415,7 @@
         {
           "scenario_class": "common_cause_generation_watermaker_outage",
           "disturbance_sha256": "1dfc3a7ef4126dd31bf028a041840bf01b02677012ea61fd9104d63d022e348c",
-          "successor_state_sha256": "5992685039c457b24e9ff3d9f4fe79a0e58028676769a46a41e2d8fb3f85baab",
+          "successor_state_sha256": "5b84a325f5eb890eb91c3d387c2b1bc8f74c619119442051a4cff625bb1c3bb7",
           "resource_metrics": [
             {
               "metric": "energy_reserve_kwh",
@@ -466,8 +466,8 @@
               "metric": "power_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "6f88f6e8543d475a251b1a983e299bc52b11445dcbd18c8ca71e8343cfddd1a8"
             },
@@ -475,8 +475,8 @@
               "metric": "potable_water_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "14aa8e05141827bdc1eea95ee25d11b3ba37957b6989c7e9100407e13dd44d81"
             },
@@ -484,8 +484,8 @@
               "metric": "sanitation_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "6c501b452bc8adda5899bc026f520052a4fac2c75323a8db53f9fa8d8c9bece4"
             },
@@ -493,8 +493,8 @@
               "metric": "refrigeration_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "b59d8f2f203f3e1b06a32a4fc46e7417ec8c0819300ef0dfe95656cbac913dfd"
             },
@@ -544,7 +544,7 @@
         {
           "scenario_class": "main_generation_outage",
           "disturbance_sha256": "e4ccc5f2baf3a12164de59b441535dcfba520ea132c33b83ceddc240a91afd83",
-          "successor_state_sha256": "b488ef78ab641cbeb4a9e7136fa986dca91f6453649df6b55d3826a97125ed49",
+          "successor_state_sha256": "199b2e994a8c0381f3357b08593aab258d02059b44a5631da036c777df25e937",
           "resource_metrics": [
             {
               "metric": "energy_reserve_kwh",
@@ -595,8 +595,8 @@
               "metric": "power_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "5d75de3de723116b62792af7a5fb695b0b5946e0e2a6523aaf8f160faa70cef8"
             },
@@ -604,8 +604,8 @@
               "metric": "potable_water_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "c52896e06201ad81eee09326d666422a2e1f60b04ffe3dc97f01ec54c91488fc"
             },
@@ -613,8 +613,8 @@
               "metric": "sanitation_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "6f6d35c62e36d241d335df1410a52d16a25378a0006203ae7b9a4816dbaeeedd"
             },
@@ -622,8 +622,8 @@
               "metric": "refrigeration_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "cd223969821ae4a522cbd328d2d0600c3962f6a9908b46455d5467f7a82307c9"
             },
@@ -673,7 +673,7 @@
         {
           "scenario_class": "nominal",
           "disturbance_sha256": "0b1bc928bc9828fdc3031cc701e8ace9e62bb97bff59c4531dbf986c261bfb1f",
-          "successor_state_sha256": "cb43d34fc6b2b5787e27efa8464868c4bc20eaf529a0c812aaa0ac5ebce2bc40",
+          "successor_state_sha256": "83d35ec339b0f5824e6e165fb514545275c72690d06887f669fde63675408942",
           "resource_metrics": [
             {
               "metric": "energy_reserve_kwh",
@@ -724,8 +724,8 @@
               "metric": "power_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "4df3d2c22bb062b7a5b2a20c0d6dc311d7ff3dfb005cc3e2e3ded5ddc89a8ef4"
             },
@@ -733,8 +733,8 @@
               "metric": "potable_water_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "5cbbe5f0acf72c323f6a0900ccb5d1f4b3b4aa50d80b4c50bf2b839fa6fbbb85"
             },
@@ -742,8 +742,8 @@
               "metric": "sanitation_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "999dc6596e24aee78e387cf01991f67ecbea20ae1c4f8e8a0f66c340cfac7dfe"
             },
@@ -751,8 +751,8 @@
               "metric": "refrigeration_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "d5b4a15a69de148b87a56ea88771734a70d0ccec8bec715116f6ade2f293875b"
             },
@@ -802,7 +802,7 @@
         {
           "scenario_class": "watermaker_outage",
           "disturbance_sha256": "594dd899771822c347257a5e6d1874d61c37fe9a1d1c4932d89da65696890ceb",
-          "successor_state_sha256": "c9c7040428ab72ba045e4cefff42c49a998e7df42af4ed61d53ec961aa330f19",
+          "successor_state_sha256": "c0e5fccf70291a59b49d6d5f56dda5291e03e667b42ab61d39b603acd0bf67df",
           "resource_metrics": [
             {
               "metric": "energy_reserve_kwh",
@@ -853,8 +853,8 @@
               "metric": "power_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "9670dd86cd6412be6b1117b88a6596512cc2a45168a23e9d31334b4228c49591"
             },
@@ -862,8 +862,8 @@
               "metric": "potable_water_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "ddcf107afa1cc0d3d7291a36641d96b7c793d11e8a75a0ecda956e7bc8d87f1b"
             },
@@ -871,8 +871,8 @@
               "metric": "sanitation_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "7195114d4dee85b00454963e148c974e6cb543931000a4cbd4c225e06be33cde"
             },
@@ -880,8 +880,8 @@
               "metric": "refrigeration_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "2b921e9e79ed48e3d6f47bddb513cb622411e3f6db42e9a6ea63431e6fcdbd79"
             },
@@ -929,7 +929,7 @@
           }
         }
       ],
-      "action_digest_sha256": "1c06ed2577ed024adf1138ca31ce2519ec7b7be4ddd290e00fefc1411f1af93f"
+      "action_digest_sha256": "f5d21eb52d0e740ae6f864940d71f7b764007f9c6b41cfd7bba49fe926d339f2"
     },
     {
       "candidate_id": "fallback-reduce-speed",
@@ -940,7 +940,7 @@
         "sail-handling"
       ],
       "precondition_state_sequence": 42,
-      "precondition_state_sha256": "d6b9770be71bb288840042028e9f871658c2dd2c9f22d497a113e117b623320a",
+      "precondition_state_sha256": "28562fe689415b306b5ceba7f9826be4be0fa837e1e81ac2d61a79e567d1e777",
       "craft_configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
       "actuator_configuration_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
       "model_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
@@ -952,7 +952,7 @@
         {
           "scenario_class": "adverse_forecast_error",
           "disturbance_sha256": "85aa6a95efa2fcbd4fb9d02e1d098ae833c543841ce14f86e11b80fb2b8e7282",
-          "successor_state_sha256": "8db3c50b252d68032b6bf2836fb3aa55f9dd7cf9b67ee4047d2e348ebc364d39",
+          "successor_state_sha256": "acfdb3ed980b8a49784f31a0ed92e0a3f33eedd53e62917d38a77e10ab4dc620",
           "resource_metrics": [
             {
               "metric": "energy_reserve_kwh",
@@ -1003,8 +1003,8 @@
               "metric": "power_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "b3ea0a99479c83cec8328a6e56e1851d75dbcaf4ff02dfe71f0cdb3e22a21730"
             },
@@ -1012,8 +1012,8 @@
               "metric": "potable_water_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "8a24177a8bcb28bb35d408a2f7558c54e9e8ebdad348c5ff17df84af66fb7f39"
             },
@@ -1021,8 +1021,8 @@
               "metric": "sanitation_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "f112c944df1e3d9e2c1468581e716ceddaa88c72f2d0d7cb73920fc8f79e7fb3"
             },
@@ -1030,8 +1030,8 @@
               "metric": "refrigeration_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "90bf7791e2ab8ce4fd64dfd1fa2e7f05745d96465aa99d5847f292d4155ef2e0"
             },
@@ -1081,7 +1081,7 @@
         {
           "scenario_class": "common_cause_generation_watermaker_outage",
           "disturbance_sha256": "1dfc3a7ef4126dd31bf028a041840bf01b02677012ea61fd9104d63d022e348c",
-          "successor_state_sha256": "5992685039c457b24e9ff3d9f4fe79a0e58028676769a46a41e2d8fb3f85baab",
+          "successor_state_sha256": "5b84a325f5eb890eb91c3d387c2b1bc8f74c619119442051a4cff625bb1c3bb7",
           "resource_metrics": [
             {
               "metric": "energy_reserve_kwh",
@@ -1132,8 +1132,8 @@
               "metric": "power_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "6f88f6e8543d475a251b1a983e299bc52b11445dcbd18c8ca71e8343cfddd1a8"
             },
@@ -1141,8 +1141,8 @@
               "metric": "potable_water_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "14aa8e05141827bdc1eea95ee25d11b3ba37957b6989c7e9100407e13dd44d81"
             },
@@ -1150,8 +1150,8 @@
               "metric": "sanitation_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "6c501b452bc8adda5899bc026f520052a4fac2c75323a8db53f9fa8d8c9bece4"
             },
@@ -1159,8 +1159,8 @@
               "metric": "refrigeration_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "b59d8f2f203f3e1b06a32a4fc46e7417ec8c0819300ef0dfe95656cbac913dfd"
             },
@@ -1210,7 +1210,7 @@
         {
           "scenario_class": "main_generation_outage",
           "disturbance_sha256": "e4ccc5f2baf3a12164de59b441535dcfba520ea132c33b83ceddc240a91afd83",
-          "successor_state_sha256": "b488ef78ab641cbeb4a9e7136fa986dca91f6453649df6b55d3826a97125ed49",
+          "successor_state_sha256": "199b2e994a8c0381f3357b08593aab258d02059b44a5631da036c777df25e937",
           "resource_metrics": [
             {
               "metric": "energy_reserve_kwh",
@@ -1261,8 +1261,8 @@
               "metric": "power_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "5d75de3de723116b62792af7a5fb695b0b5946e0e2a6523aaf8f160faa70cef8"
             },
@@ -1270,8 +1270,8 @@
               "metric": "potable_water_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "c52896e06201ad81eee09326d666422a2e1f60b04ffe3dc97f01ec54c91488fc"
             },
@@ -1279,8 +1279,8 @@
               "metric": "sanitation_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "6f6d35c62e36d241d335df1410a52d16a25378a0006203ae7b9a4816dbaeeedd"
             },
@@ -1288,8 +1288,8 @@
               "metric": "refrigeration_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "cd223969821ae4a522cbd328d2d0600c3962f6a9908b46455d5467f7a82307c9"
             },
@@ -1339,7 +1339,7 @@
         {
           "scenario_class": "nominal",
           "disturbance_sha256": "0b1bc928bc9828fdc3031cc701e8ace9e62bb97bff59c4531dbf986c261bfb1f",
-          "successor_state_sha256": "cb43d34fc6b2b5787e27efa8464868c4bc20eaf529a0c812aaa0ac5ebce2bc40",
+          "successor_state_sha256": "83d35ec339b0f5824e6e165fb514545275c72690d06887f669fde63675408942",
           "resource_metrics": [
             {
               "metric": "energy_reserve_kwh",
@@ -1390,8 +1390,8 @@
               "metric": "power_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "4df3d2c22bb062b7a5b2a20c0d6dc311d7ff3dfb005cc3e2e3ded5ddc89a8ef4"
             },
@@ -1399,8 +1399,8 @@
               "metric": "potable_water_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "5cbbe5f0acf72c323f6a0900ccb5d1f4b3b4aa50d80b4c50bf2b839fa6fbbb85"
             },
@@ -1408,8 +1408,8 @@
               "metric": "sanitation_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "999dc6596e24aee78e387cf01991f67ecbea20ae1c4f8e8a0f66c340cfac7dfe"
             },
@@ -1417,8 +1417,8 @@
               "metric": "refrigeration_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "d5b4a15a69de148b87a56ea88771734a70d0ccec8bec715116f6ade2f293875b"
             },
@@ -1468,7 +1468,7 @@
         {
           "scenario_class": "watermaker_outage",
           "disturbance_sha256": "594dd899771822c347257a5e6d1874d61c37fe9a1d1c4932d89da65696890ceb",
-          "successor_state_sha256": "c9c7040428ab72ba045e4cefff42c49a998e7df42af4ed61d53ec961aa330f19",
+          "successor_state_sha256": "c0e5fccf70291a59b49d6d5f56dda5291e03e667b42ab61d39b603acd0bf67df",
           "resource_metrics": [
             {
               "metric": "energy_reserve_kwh",
@@ -1519,8 +1519,8 @@
               "metric": "power_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "9670dd86cd6412be6b1117b88a6596512cc2a45168a23e9d31334b4228c49591"
             },
@@ -1528,8 +1528,8 @@
               "metric": "potable_water_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "ddcf107afa1cc0d3d7291a36641d96b7c793d11e8a75a0ecda956e7bc8d87f1b"
             },
@@ -1537,8 +1537,8 @@
               "metric": "sanitation_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "7195114d4dee85b00454963e148c974e6cb543931000a4cbd4c225e06be33cde"
             },
@@ -1546,8 +1546,8 @@
               "metric": "refrigeration_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "2b921e9e79ed48e3d6f47bddb513cb622411e3f6db42e9a6ea63431e6fcdbd79"
             },
@@ -1595,7 +1595,7 @@
           }
         }
       ],
-      "action_digest_sha256": "2f96d1138099ddf416841d415d755db5734255e5e9c8ed8feb42cc4cc5d08693"
+      "action_digest_sha256": "d88e5ff24420f16e48634143cc423f2ce846517950c04301eaf086e7bc0575db"
     },
     {
       "candidate_id": "fallback-divert-refuge",
@@ -1607,7 +1607,7 @@
         "crew-watch"
       ],
       "precondition_state_sequence": 42,
-      "precondition_state_sha256": "d6b9770be71bb288840042028e9f871658c2dd2c9f22d497a113e117b623320a",
+      "precondition_state_sha256": "28562fe689415b306b5ceba7f9826be4be0fa837e1e81ac2d61a79e567d1e777",
       "craft_configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
       "actuator_configuration_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
       "model_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
@@ -1619,7 +1619,7 @@
         {
           "scenario_class": "adverse_forecast_error",
           "disturbance_sha256": "85aa6a95efa2fcbd4fb9d02e1d098ae833c543841ce14f86e11b80fb2b8e7282",
-          "successor_state_sha256": "8db3c50b252d68032b6bf2836fb3aa55f9dd7cf9b67ee4047d2e348ebc364d39",
+          "successor_state_sha256": "acfdb3ed980b8a49784f31a0ed92e0a3f33eedd53e62917d38a77e10ab4dc620",
           "resource_metrics": [
             {
               "metric": "energy_reserve_kwh",
@@ -1670,8 +1670,8 @@
               "metric": "power_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "b3ea0a99479c83cec8328a6e56e1851d75dbcaf4ff02dfe71f0cdb3e22a21730"
             },
@@ -1679,8 +1679,8 @@
               "metric": "potable_water_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "8a24177a8bcb28bb35d408a2f7558c54e9e8ebdad348c5ff17df84af66fb7f39"
             },
@@ -1688,8 +1688,8 @@
               "metric": "sanitation_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "f112c944df1e3d9e2c1468581e716ceddaa88c72f2d0d7cb73920fc8f79e7fb3"
             },
@@ -1697,8 +1697,8 @@
               "metric": "refrigeration_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "90bf7791e2ab8ce4fd64dfd1fa2e7f05745d96465aa99d5847f292d4155ef2e0"
             },
@@ -1748,7 +1748,7 @@
         {
           "scenario_class": "common_cause_generation_watermaker_outage",
           "disturbance_sha256": "1dfc3a7ef4126dd31bf028a041840bf01b02677012ea61fd9104d63d022e348c",
-          "successor_state_sha256": "5992685039c457b24e9ff3d9f4fe79a0e58028676769a46a41e2d8fb3f85baab",
+          "successor_state_sha256": "5b84a325f5eb890eb91c3d387c2b1bc8f74c619119442051a4cff625bb1c3bb7",
           "resource_metrics": [
             {
               "metric": "energy_reserve_kwh",
@@ -1799,8 +1799,8 @@
               "metric": "power_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "6f88f6e8543d475a251b1a983e299bc52b11445dcbd18c8ca71e8343cfddd1a8"
             },
@@ -1808,8 +1808,8 @@
               "metric": "potable_water_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "14aa8e05141827bdc1eea95ee25d11b3ba37957b6989c7e9100407e13dd44d81"
             },
@@ -1817,8 +1817,8 @@
               "metric": "sanitation_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "6c501b452bc8adda5899bc026f520052a4fac2c75323a8db53f9fa8d8c9bece4"
             },
@@ -1826,8 +1826,8 @@
               "metric": "refrigeration_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "b59d8f2f203f3e1b06a32a4fc46e7417ec8c0819300ef0dfe95656cbac913dfd"
             },
@@ -1877,7 +1877,7 @@
         {
           "scenario_class": "main_generation_outage",
           "disturbance_sha256": "e4ccc5f2baf3a12164de59b441535dcfba520ea132c33b83ceddc240a91afd83",
-          "successor_state_sha256": "b488ef78ab641cbeb4a9e7136fa986dca91f6453649df6b55d3826a97125ed49",
+          "successor_state_sha256": "199b2e994a8c0381f3357b08593aab258d02059b44a5631da036c777df25e937",
           "resource_metrics": [
             {
               "metric": "energy_reserve_kwh",
@@ -1928,8 +1928,8 @@
               "metric": "power_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "5d75de3de723116b62792af7a5fb695b0b5946e0e2a6523aaf8f160faa70cef8"
             },
@@ -1937,8 +1937,8 @@
               "metric": "potable_water_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "c52896e06201ad81eee09326d666422a2e1f60b04ffe3dc97f01ec54c91488fc"
             },
@@ -1946,8 +1946,8 @@
               "metric": "sanitation_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "6f6d35c62e36d241d335df1410a52d16a25378a0006203ae7b9a4816dbaeeedd"
             },
@@ -1955,8 +1955,8 @@
               "metric": "refrigeration_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "cd223969821ae4a522cbd328d2d0600c3962f6a9908b46455d5467f7a82307c9"
             },
@@ -2006,7 +2006,7 @@
         {
           "scenario_class": "nominal",
           "disturbance_sha256": "0b1bc928bc9828fdc3031cc701e8ace9e62bb97bff59c4531dbf986c261bfb1f",
-          "successor_state_sha256": "cb43d34fc6b2b5787e27efa8464868c4bc20eaf529a0c812aaa0ac5ebce2bc40",
+          "successor_state_sha256": "83d35ec339b0f5824e6e165fb514545275c72690d06887f669fde63675408942",
           "resource_metrics": [
             {
               "metric": "energy_reserve_kwh",
@@ -2057,8 +2057,8 @@
               "metric": "power_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "4df3d2c22bb062b7a5b2a20c0d6dc311d7ff3dfb005cc3e2e3ded5ddc89a8ef4"
             },
@@ -2066,8 +2066,8 @@
               "metric": "potable_water_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "5cbbe5f0acf72c323f6a0900ccb5d1f4b3b4aa50d80b4c50bf2b839fa6fbbb85"
             },
@@ -2075,8 +2075,8 @@
               "metric": "sanitation_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "999dc6596e24aee78e387cf01991f67ecbea20ae1c4f8e8a0f66c340cfac7dfe"
             },
@@ -2084,8 +2084,8 @@
               "metric": "refrigeration_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "d5b4a15a69de148b87a56ea88771734a70d0ccec8bec715116f6ade2f293875b"
             },
@@ -2135,7 +2135,7 @@
         {
           "scenario_class": "watermaker_outage",
           "disturbance_sha256": "594dd899771822c347257a5e6d1874d61c37fe9a1d1c4932d89da65696890ceb",
-          "successor_state_sha256": "c9c7040428ab72ba045e4cefff42c49a998e7df42af4ed61d53ec961aa330f19",
+          "successor_state_sha256": "c0e5fccf70291a59b49d6d5f56dda5291e03e667b42ab61d39b603acd0bf67df",
           "resource_metrics": [
             {
               "metric": "energy_reserve_kwh",
@@ -2186,8 +2186,8 @@
               "metric": "power_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "9670dd86cd6412be6b1117b88a6596512cc2a45168a23e9d31334b4228c49591"
             },
@@ -2195,8 +2195,8 @@
               "metric": "potable_water_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "ddcf107afa1cc0d3d7291a36641d96b7c793d11e8a75a0ecda956e7bc8d87f1b"
             },
@@ -2204,8 +2204,8 @@
               "metric": "sanitation_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "7195114d4dee85b00454963e148c974e6cb543931000a4cbd4c225e06be33cde"
             },
@@ -2213,8 +2213,8 @@
               "metric": "refrigeration_service_availability",
               "unit": "fraction",
               "value": 1,
-              "lower_bound": 0.8,
-              "upper_bound": 1.2,
+              "lower_bound": 1,
+              "upper_bound": 1,
               "coverage_fraction": 1,
               "evidence_sha256": "2b921e9e79ed48e3d6f47bddb513cb622411e3f6db42e9a6ea63431e6fcdbd79"
             },
@@ -2262,7 +2262,7 @@
           }
         }
       ],
-      "action_digest_sha256": "fc3bea6da1d8f210568aef220879dc6ee0b033e40a0688577f8ddaa62d44250a"
+      "action_digest_sha256": "6a2c4d042f3cfcb7d2b2e7057b2d6bccb709c6dabd1ac6c913bf1a95d1fb1555"
     }
   ]
 }
