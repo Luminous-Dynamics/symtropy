@@ -120,7 +120,6 @@ def main() -> None:
     root_right=sp.Rational(45151,100000)
     if not (Q_t.subs(t,root_left)>0 and Q_t.subs(t,root_right)<0):
         raise AssertionError("rational root bracket for Q(t) failed")
-    root_decimal=sp.N(sp.nroots(Q_t,maxsteps=200)[1],20)
     # Sort numerical roots and select the unique one in (0,1).
     real_roots=[sp.re(r) for r in sp.nroots(Q_t,maxsteps=200)
                 if abs(float(sp.im(r)))<1e-10 and 0<float(sp.re(r))<1]
