@@ -3,7 +3,9 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 
 use nalgebra::{SMatrix, SVector};
-use crate::mass_properties::{MassProperties, RotationalInertiaOperator};
+use crate::mass_properties::{
+    MassProperties, MassPropertiesError, RotationalInertiaOperator,
+};
 use serde::{Deserialize, Serialize};
 use symtropy_math::{Bivector, CompoundShape, Point, Shape, Transform};
 
