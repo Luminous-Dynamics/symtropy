@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "case_id": "5D-EGB-SINGLE-SPIN-NHEG-LOCAL-001",
+  "source": {
+    "title": "An Exact Single-Rotating Near-Horizon Geometry in Einstein-Gauss-Bonnet Gravity",
+    "reference": "Çelik, Hajian & Kunz, arXiv:2605.15005 (2026), https://arxiv.org/abs/2605.15005",
+    "source_reports_solution": true,
+    "source_scope": "Exact local near-horizon geometry; global asymptotically-flat completion explicitly remains open in the source"
+  },
+  "candidate_scope": "local_near_horizon",
+  "theory": {
+    "name": "Five-dimensional vacuum Einstein-Gauss-Bonnet gravity",
+    "dimension": 5,
+    "action": "R + alpha_NH*L_GB",
+    "coupling_convention": "Symtropy alpha_sym=4*alpha_NH; beta=2*a^2/alpha_sym",
+    "signature": "(-++++)",
+    "curvature_convention": "Source conventions in arXiv:2605.15005; full independent tensor replay pending"
+  },
+  "domain": {
+    "parameters": {
+      "alpha_sym": ">0",
+      "beta": "0<beta<1",
+      "u": "cos(theta)^4 in [0,1]"
+    },
+    "coordinates": [
+      "t",
+      "r",
+      "theta",
+      "phi",
+      "psi"
+    ],
+    "coordinate_patch": "r>0, 0<=theta<pi/2; pole theta->pi/2 treated by invariant/measure limits",
+    "excluded_endpoints": [
+      "beta=0: a=0 and phi-period degenerates",
+      "beta=1: Delta_minus vanishes at theta=0 and curvature diverges"
+    ]
+  },
+  "gates": {
+    "action_identity": {
+      "status": "pass",
+      "scope": "source-to-Symtropy coupling normalization",
+      "basis": "Exact alpha_sym=4*alpha_NH conversion and Delta_plus/minus mapping",
+      "evidence": [
+        "derive_single_spin_nheg_reference.py",
+        "single_spin_nheg_reference_v1.json"
+      ],
+      "limitations": [
+        "The complete EGB tensor has not been independently rederived from the metric"
+      ]
+    },
+    "field_equations": {
+      "status": "unresolved",
+      "scope": "five-dimensional local NHEG field equations",
+      "basis": "The source reports the exact geometry as an EGB solution; Symtropy has not yet independently evaluated all field-equation components",
+      "evidence": [
+        "https://arxiv.org/abs/2605.15005",
+        "single_spin_nheg_reference_v1.md"
+      ],
+      "limitations": [
+        "No independent full 5D Lovelock tensor replay"
+      ]
+    },
+    "lorentzian_signature": {
+      "status": "pass",
+      "scope": "declared open near-horizon coordinate patch",
+      "basis": "t-psi block determinant is negative and remaining radial/angular diagonal blocks are positive for alpha_sym>0 and 0<beta<1",
+      "evidence": [
+        "derive_single_spin_nheg_reference.py",
+        "single_spin_nheg_reference_v1.json"
+      ],
+      "limitations": [
+        "The coordinate pole limit is handled by invariant limits; the global quotient is not specified"
+      ]
+    },
+    "local_curvature": {
+      "status": "pass",
+      "scope": "Kretschmann invariant over u in [0,1]",
+      "basis": "Exact expression has Delta_plus>0 and |Delta_minus|>0; pole limit K=160/alpha_sym^2; an explicit full-angular upper bound is supplied for every fixed beta<1",
+      "evidence": [
+        "derive_single_spin_nheg_reference.py",
+        "single_spin_nheg_reference_v1.json"
+      ],
+      "limitations": [
+        "Scalar curvature bound alone is not a complete frame-regularity or hyperbolicity result"
+      ]
+    },
+    "axis_regularities": {
+      "status": "pass",
+      "scope": "shrinking phi orbit at theta=0",
+      "basis": "Beta-dependent conical period Delta_phi=2*pi*(1-beta)/sqrt(beta*(1+beta)) removes the local conical defect",
+      "evidence": [
+        "single_spin_nheg_reference_v1.json",
+        "single_spin_nheg_reference_v1.md"
+      ],
+      "limitations": [
+        "This local condition does not determine the psi-circle period"
+      ]
+    },
+    "global_identifications": {
+      "status": "unresolved",
+      "scope": "global U(1)^2 identifications and bundle topology",
+      "basis": "The psi Killing field has no local axis in this regular parameter range, so its period is not fixed by conical regularity",
+      "evidence": [
+        "https://arxiv.org/abs/2605.15005",
+        "single_spin_nheg_reference_v1.md"
+      ],
+      "limitations": [
+        "A global completion or explicit U(1)-bundle choice is required"
+      ]
+    },
+    "horizon_measure": {
+      "status": "fail",
+      "scope": "integrated horizon three-volume",
+      "basis": "Exact cutoff area grows as Delta_phi*Delta_psi*a*alpha_sym/(4*epsilon^2)",
+      "evidence": [
+        "single_spin_nheg_reference_v1.json",
+        "single_spin_nheg_reference_v1.md"
+      ],
+      "limitations": [
+        "A different regularization prescription would be a separate proposed physical definition, not the standard area"
+      ]
+    },
+    "charge_integrability": {
+      "status": "fail",
+      "scope": "standard NHEG entropy and J_psi charge integrals",
+      "basis": "The source finds these integrals divergent with the horizon measure under the standard integration prescription",
+      "evidence": [
+        "https://arxiv.org/abs/2605.15005",
+        "single_spin_nheg_reference_v1.md"
+      ],
+      "limitations": [
+        "No alternative renormalized covariant phase-space prescription has been established"
+      ]
+    },
+    "physical_characteristics": {
+      "status": "unresolved",
+      "scope": "physical gravitational characteristic cones",
+      "basis": "No principal-symbol calculation has been performed for this background",
+      "evidence": [
+        "global_admissibility_protocol_v1.md",
+        "https://arxiv.org/abs/2605.15005"
+      ],
+      "limitations": [
+        "Finite curvature does not imply hyperbolicity"
+      ]
+    },
+    "strong_hyperbolicity": {
+      "status": "unresolved",
+      "scope": "any gauge-fixed first-order evolution formulation",
+      "basis": "No evolution gauge or symmetrizer has been constructed for this background",
+      "evidence": [
+        "global_admissibility_protocol_v1.md"
+      ],
+      "limitations": [
+        "Requires gauge/constraint reduction and eigenbasis/symmetrizer bounds"
+      ]
+    },
+    "mode_stability": {
+      "status": "unresolved",
+      "scope": "linear perturbation spectrum",
+      "basis": "No mode calculation has been performed",
+      "evidence": [
+        "global_admissibility_protocol_v1.md"
+      ],
+      "limitations": [
+        "Near-horizon local geometry does not determine the global mode spectrum"
+      ]
+    },
+    "global_completion": {
+      "status": "unresolved",
+      "scope": "global asymptotically-flat exterior",
+      "basis": "The source explicitly states the corresponding global black-hole existence problem remains open",
+      "evidence": [
+        "https://arxiv.org/abs/2605.15005"
+      ],
+      "limitations": [
+        "No global radial solution, asymptotic matching, or branch identification"
+      ]
+    },
+    "eft_validity": {
+      "status": "unresolved",
+      "scope": "regime of validity of the higher-curvature theory",
+      "basis": "The source geometry is a classical EGB solution; no UV completion, omitted-operator hierarchy, or EFT cutoff is established here",
+      "evidence": [
+        "https://arxiv.org/abs/2605.15005"
+      ],
+      "limitations": [
+        "Requires independent theory-specific scale and omitted-operator analysis"
+      ]
+    }
+  },
+  "claim_ceiling": "This vector records a source-reported local solution with independently checked geometric identities. It does not certify a global black hole, finite entropy/charges, strong hyperbolicity, stability, or EFT validity."
+}
