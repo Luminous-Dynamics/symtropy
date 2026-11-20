@@ -281,7 +281,7 @@ fn validate(catalog: &Value) -> Result<String, String> {
             return Err(format!("{ctx} has no project metric mapping"));
         }
         for metric in mapped.iter().filter_map(Value::as_str) {
-            if !actual.contains(metric) && !marine_ids.iter().any(|id| id == metric) {
+            if !actual.contains(metric) && !marine_ids.iter().any(|id| id.as_str() == metric) {
                 return Err(format!("{ctx} references unknown metric {metric}"));
             }
         }
