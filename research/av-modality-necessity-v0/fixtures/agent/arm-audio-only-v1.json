@@ -1,0 +1,253 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-modality-necessity-v0",
+  "comparison_id": "synthetic-known-answer-ablation-v1",
+  "policy_id": "synthetic-reference-rule-policy-v1",
+  "run_id": "synthetic-audio-only-v1",
+  "input_arm": "audio_only",
+  "allowed_modalities": [
+    "audio"
+  ],
+  "model_revision": null,
+  "runtime_revision": "reference-rule-evaluator-v1",
+  "hardware_id": "synthetic-no-device",
+  "seed": 0,
+  "workload_ref": "git-blob-sha1:c75da05798b0d100bae2366e9fade87056e6e4d3",
+  "protocol_id": "counterfactual-av-ablation-v1",
+  "shared_config_id": "synthetic-reference-rule-policy-v1",
+  "budget": {
+    "max_audio_bytes": 1000000,
+    "max_video_frames": 32,
+    "max_input_tokens": 8192,
+    "max_output_tokens": 512,
+    "max_response_ms": 1000,
+    "max_energy_joules": 100
+  },
+  "submission": {
+    "schema_version": 1,
+    "benchmark_id": "av-modality-necessity-v0",
+    "policy_id": "synthetic-reference-rule-policy-v1",
+    "run_id": "synthetic-audio-only-v1",
+    "model_revision": null,
+    "runtime_revision": "reference-rule-evaluator-v1",
+    "predictions": [
+      {
+        "episode_id": "mod-001-audio-needed-a",
+        "answer": "impact",
+        "confidence": 0.95,
+        "abstained": false,
+        "used_modalities": [
+          "audio"
+        ],
+        "used_transcript": false,
+        "cited_observation_refs": [
+          "a-audio-1"
+        ],
+        "claimed_independent_corroboration": false,
+        "claimed_cross_modal_association": false,
+        "evidence_as_of_tick": 20,
+        "response_tick": 21
+      },
+      {
+        "episode_id": "mod-001-audio-needed-b",
+        "answer": "footsteps",
+        "confidence": 0.95,
+        "abstained": false,
+        "used_modalities": [
+          "audio"
+        ],
+        "used_transcript": false,
+        "cited_observation_refs": [
+          "a-audio-2"
+        ],
+        "claimed_independent_corroboration": false,
+        "claimed_cross_modal_association": false,
+        "evidence_as_of_tick": 20,
+        "response_tick": 21
+      },
+      {
+        "episode_id": "mod-002-video-needed-a",
+        "answer": null,
+        "confidence": 0,
+        "abstained": true,
+        "used_modalities": [
+          "audio"
+        ],
+        "used_transcript": false,
+        "cited_observation_refs": [
+          "a-video-1"
+        ],
+        "claimed_independent_corroboration": false,
+        "claimed_cross_modal_association": false,
+        "evidence_as_of_tick": 30,
+        "response_tick": 31
+      },
+      {
+        "episode_id": "mod-002-video-needed-b",
+        "answer": null,
+        "confidence": 0,
+        "abstained": true,
+        "used_modalities": [
+          "audio"
+        ],
+        "used_transcript": false,
+        "cited_observation_refs": [
+          "a-video-2"
+        ],
+        "claimed_independent_corroboration": false,
+        "claimed_cross_modal_association": false,
+        "evidence_as_of_tick": 30,
+        "response_tick": 31
+      },
+      {
+        "episode_id": "mod-003-joint-needed-a",
+        "answer": null,
+        "confidence": 0,
+        "abstained": true,
+        "used_modalities": [
+          "audio"
+        ],
+        "used_transcript": false,
+        "cited_observation_refs": [
+          "a-joint-1"
+        ],
+        "claimed_independent_corroboration": false,
+        "claimed_cross_modal_association": false,
+        "evidence_as_of_tick": 42,
+        "response_tick": 43
+      },
+      {
+        "episode_id": "mod-003-joint-needed-b",
+        "answer": null,
+        "confidence": 0,
+        "abstained": true,
+        "used_modalities": [
+          "audio"
+        ],
+        "used_transcript": false,
+        "cited_observation_refs": [
+          "a-joint-2"
+        ],
+        "claimed_independent_corroboration": false,
+        "claimed_cross_modal_association": false,
+        "evidence_as_of_tick": 42,
+        "response_tick": 43
+      },
+      {
+        "episode_id": "mod-004-audio-video-conflict",
+        "answer": null,
+        "confidence": 0,
+        "abstained": true,
+        "used_modalities": [
+          "audio"
+        ],
+        "used_transcript": false,
+        "cited_observation_refs": [
+          "a-conflict"
+        ],
+        "claimed_independent_corroboration": false,
+        "claimed_cross_modal_association": false,
+        "evidence_as_of_tick": 62,
+        "response_tick": 63
+      },
+      {
+        "episode_id": "mod-005-common-cause-redundancy",
+        "answer": null,
+        "confidence": 0,
+        "abstained": true,
+        "used_modalities": [
+          "audio"
+        ],
+        "used_transcript": false,
+        "cited_observation_refs": [
+          "a-common"
+        ],
+        "claimed_independent_corroboration": false,
+        "claimed_cross_modal_association": false,
+        "evidence_as_of_tick": 80,
+        "response_tick": 81
+      },
+      {
+        "episode_id": "mod-006-nonspeech-audio",
+        "answer": "alarm_pulse",
+        "confidence": 0.95,
+        "abstained": false,
+        "used_modalities": [
+          "audio"
+        ],
+        "used_transcript": false,
+        "cited_observation_refs": [
+          "a-nonspeech"
+        ],
+        "claimed_independent_corroboration": false,
+        "claimed_cross_modal_association": false,
+        "evidence_as_of_tick": 100,
+        "response_tick": 101
+      },
+      {
+        "episode_id": "mod-007-temporal-misalignment",
+        "answer": null,
+        "confidence": 0,
+        "abstained": true,
+        "used_modalities": [
+          "audio"
+        ],
+        "used_transcript": false,
+        "cited_observation_refs": [
+          "a-misaligned"
+        ],
+        "claimed_independent_corroboration": false,
+        "claimed_cross_modal_association": false,
+        "evidence_as_of_tick": 155,
+        "response_tick": 156
+      },
+      {
+        "episode_id": "mod-008-missing-audio",
+        "answer": null,
+        "confidence": 0,
+        "abstained": true,
+        "used_modalities": [],
+        "used_transcript": false,
+        "cited_observation_refs": [],
+        "claimed_independent_corroboration": false,
+        "claimed_cross_modal_association": false,
+        "evidence_as_of_tick": 0,
+        "response_tick": 1
+      },
+      {
+        "episode_id": "mod-009-nuisance-shortcut",
+        "answer": null,
+        "confidence": 0,
+        "abstained": true,
+        "used_modalities": [
+          "audio"
+        ],
+        "used_transcript": false,
+        "cited_observation_refs": [
+          "a-nuisance-a"
+        ],
+        "claimed_independent_corroboration": false,
+        "claimed_cross_modal_association": false,
+        "evidence_as_of_tick": 190,
+        "response_tick": 191
+      },
+      {
+        "episode_id": "mod-009-nuisance-shortcut-b",
+        "answer": null,
+        "confidence": 0,
+        "abstained": true,
+        "used_modalities": [
+          "audio"
+        ],
+        "used_transcript": false,
+        "cited_observation_refs": [
+          "a-nuisance-b"
+        ],
+        "claimed_independent_corroboration": false,
+        "claimed_cross_modal_association": false,
+        "evidence_as_of_tick": 190,
+        "response_tick": 191
+      }
+    ]
+  }
+}
