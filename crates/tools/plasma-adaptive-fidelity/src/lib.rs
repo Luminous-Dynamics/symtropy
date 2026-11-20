@@ -1068,13 +1068,12 @@ mod tests {
 
     #[test]
     fn retains_current_profile_inside_coarsening_band() {
-        let mut current = moment_candidate('a', 8, 0.04, 20.0);
+        let current = moment_candidate('a', 8, 0.04, 20.0);
         let mut cheaper = moment_candidate('b', 4, 0.02, 5.0);
         cheaper.transition = Some(transition(&digest('a'), &digest('b')));
         let mut req = request(vec![current.clone(), cheaper]);
         req.current_profile_sha256 = Some(digest('a'));
         req.current_dwell_steps = 10;
-        current.estimated_cost = 20.0;
         let receipt = selected(evaluate_adaptive_policy(&req).unwrap());
         assert_eq!(receipt.profile_sha256, digest('a'));
         assert_eq!(receipt.reason, SelectionReason::RetainedInsideCoarseningBand);
@@ -1082,7 +1081,7 @@ mod tests {
 
     #[test]
     fn minimum_dwell_prevents_coarsening_until_hysteresis_expires() {
-        let mut current = moment_candidate('a', 8, 0.08, 20.0);
+        let current = moment_candidate('a', 8, 0.08, 20.0);
         let mut cheaper = moment_candidate('b', 4, 0.04, 5.0);
         cheaper.transition = Some(transition(&digest('a'), &digest('b')));
         let mut req = request(vec![current.clone(), cheaper]);
@@ -1095,12 +1094,11 @@ mod tests {
         req.current_dwell_steps = req.minimum_dwell_steps;
         let receipt = selected(evaluate_adaptive_policy(&req).unwrap());
         assert_eq!(receipt.profile_sha256, digest('b'));
-        current.estimated_cost = 20.0;
     }
 
     #[test]
     fn refinement_for_error_exceedance_can_bypass_minimum_dwell() {
-        let mut current = moment_candidate('a', 4, 0.5, 3.0);
+        let current = moment_candidate('a', 4, 0.5, 3.0);
         let mut refined = moment_candidate('b', 8, 0.08, 12.0);
         refined.transition = Some(transition(&digest('a'), &digest('b')));
         let mut req = request(vec![current.clone(), refined]);
@@ -1109,7 +1107,6 @@ mod tests {
         let receipt = selected(evaluate_adaptive_policy(&req).unwrap());
         assert_eq!(receipt.profile_sha256, digest('b'));
         assert_eq!(receipt.reason, SelectionReason::EscalatedForErrorOrValidity);
-        current.estimated_cost = 3.0;
     }
 
     #[test]
@@ -1173,7 +1170,7 @@ mod tests {
 
     #[test]
     fn kinetic_patch_can_be_selected_when_its_own_admissibility_evidence_passes() {
-        let mut kinetic = ModelCandidate {
+        let kinetic = ModelCandidate {
             profile_id: "kinetic-patch-medium".into(),
             profile_sha256: digest('6'),
             model_sha256: digest('8'),
@@ -1189,7 +1186,6 @@ mod tests {
             cost_units_id: "normalized-runtime-cost-v1".into(),
             transition: None,
         };
-        kinetic.estimated_cost = 40.0;
         let decision = evaluate_adaptive_policy(&request(vec![kinetic])).unwrap();
         assert!(matches!(
             selected(decision).kind,
@@ -1292,12 +1288,11 @@ mod tests {
     fn duplicate_profiles_are_rejected_as_invalid_request() {
         let a = moment_candidate('a', 4, 0.04, 10.0);
         let duplicate = a.clone();
-        let mut req = request(vec![a, duplicate]);
+        let req = request(vec![a, duplicate]);
         assert_eq!(
             evaluate_adaptive_policy(&req),
             Err(InputError::DuplicateProfile("moment-order-4".into()))
         );
-        req.candidates.pop();
     }
 
     #[test]
