@@ -377,8 +377,11 @@ fn evaluate_operation(
         AircraftControlMode::Autonomous => blocked.push(
             "autonomous_aircraft_applicability_is_unsupported_pending_written_competent_authority_determination".into(),
         ),
-        AircraftControlMode::NotManagedInRealTime | AircraftControlMode::OtherOrUnclassified => {
-            blocked.push("aircraft_is_not_a_supported_remotely_piloted_class_1_or_class_2_case".into())
+        AircraftControlMode::NotManagedInRealTime => {
+            blocked.push("aircraft_is_not_managed_in_real_time_under_the_supported_profile".into())
+        }
+        AircraftControlMode::OtherOrUnclassified => {
+            indeterminate.push("aircraft_control_mode_is_unclassified".into())
         }
         AircraftControlMode::RemotelyPiloted => {}
     }
@@ -404,11 +407,15 @@ fn evaluate_operation(
     }
 
     if operation.activity_class == ActivityClass::Private {
-        if !operation.aircraft_class.private_operation_class() {
-            blocked.push("private_operations_are_limited_to_class_1a_or_1b".into());
+        match operation.aircraft_class {
+            AircraftClass::Class1A | AircraftClass::Class1B => {}
+            AircraftClass::Unknown => {}
+            _ => blocked.push("private_operations_are_limited_to_class_1a_or_1b".into()),
         }
-        if operation.operating_visibility != OperatingVisibility::RestrictedVisualLineOfSight {
-            blocked.push("private_operations_are_limited_to_restricted_visual_line_of_sight".into());
+        match operation.operating_visibility {
+            OperatingVisibility::RestrictedVisualLineOfSight => {}
+            OperatingVisibility::Unknown => {}
+            _ => blocked.push("private_operations_are_limited_to_restricted_visual_line_of_sight".into()),
         }
         if operation.payload_release_or_delivery {
             blocked.push(
@@ -775,6 +782,28 @@ mod tests {
         assert!(report.results[0].blocked_reasons.iter().any(|reason| {
             reason.contains("private_operation_does_not_satisfy")
         }));
+    }
+
+    #[test]
+    fn unknown_private_aircraft_class_or_visibility_remains_indeterminate() {
+        let mut operation = base_operation();
+        operation.activity_class = ActivityClass::Private;
+        operation.payload_release_or_delivery = false;
+        operation.approval_evidence.clear();
+        operation.aircraft_class = AircraftClass::Unknown;
+        operation.operating_visibility = OperatingVisibility::Unknown;
+        let report = evaluate_za_uas_corpus(&corpus(vec![operation]))
+            .expect("unknown private scope is structurally valid");
+        assert_eq!(report.results[0].candidate_status, CandidateStatus::Indeterminate);
+    }
+
+    #[test]
+    fn unclassified_aircraft_control_mode_is_indeterminate_not_a_pass() {
+        let mut operation = base_operation();
+        operation.aircraft_control_mode = AircraftControlMode::OtherOrUnclassified;
+        let report = evaluate_za_uas_corpus(&corpus(vec![operation]))
+            .expect("unclassified mode is structurally valid");
+        assert_eq!(report.results[0].candidate_status, CandidateStatus::Indeterminate);
     }
 
     #[test]
