@@ -1,7 +1,7 @@
 # Power restoration transition audit v0.1
 
 **Owner:** Symtropy #6430  
-**Action contract:** #6348 / PR #6350  
+**Action contract:** #6348 / PR #6350, information-action extension #6369 / PR #6370  
 **Case contract:** #6346 / PR #6347  
 **Claim gate:** #6419 / PR #6427  
 **Programme:** #6320 / #5241
@@ -35,6 +35,9 @@ An applied action outside the supported subset produces INCONCLUSIVE; it is neve
 - transition envelope binds case, proposal, epoch and previous/successor state digests;
 - before/after snapshots exactly cover the case's switches, crews and mobile sources;
 - every proposal action has exactly one execution outcome, with no duplicate or extra action IDs;
+- each physical action declares whether actuation was acquired;
+- a rejected physical action must declare a before-actuation boundary, not-acquired state and a no-actuation receipt reference/digest; this crate does not cryptographically authenticate that witness, so such a rejection remains INCONCLUSIVE;
+- non-mutating information actions must carry no physical actuation or no-actuation claims;
 - supported applied actions are replayed deterministically;
 - any unrequested mutation or missing action-derived mutation is rejected;
 - mobile connection must match the declared permitted node and mobile-source road/power interface.
