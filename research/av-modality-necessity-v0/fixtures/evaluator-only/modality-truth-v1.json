@@ -70,8 +70,8 @@
       "episode_id": "mod-005-common-cause-redundancy",
       "necessity": "dependent_redundant_views",
       "truth_answer": "one_source_not_independent_corroboration",
-      "video_sufficient": true,
-      "audio_sufficient": true,
+      "video_sufficient": false,
+      "audio_sufficient": false,
       "joint_sufficient": true,
       "source_event_id": "evt-impact-7",
       "shared_dependency_group": "root-event-impact-7"
