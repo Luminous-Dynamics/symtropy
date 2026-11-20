@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_extremal_equal_spin_near_horizon_attractor",
+  "status": "exact_symbolic_specialization_with_dimensionless_reference_grid",
+  "source": "Kleihaus, Kunz and Radu, Universe 9 (2023) 156, DOI 10.3390/universe9040156, Eqs. (13), (16)-(20)",
+  "coupling_map": "alpha_sym = 4*alpha_NH",
+  "reference_grid": {
+    "v3_start": "0.05",
+    "v3_end": "1.95",
+    "step": "0.05",
+    "point_count": 39
+  },
+  "exact_positivity": {
+    "R_bernstein_on_0_1": ["16", "2", "1/6", "2", "4"],
+    "R_bernstein_on_1_2": ["4", "6", "49/6", "7", "4"],
+    "R_minus_P_squared": "v3^2*(v3-4)*(v3-2)",
+    "v_star": "0.295840542120770452",
+    "V_positive": true,
+    "U1_positive": true
+  },
+  "validation": {
+    "coupling_conversion_exact": true,
+    "static_BD_lapse_conversion_exact": true,
+    "v1_v2_reductions_exact": true,
+    "J_AH_S_scalings_exact": true,
+    "k_reduction_exact": true,
+    "entropy_area_identity_exact": true,
+    "critical_endpoint_limits_exact": true
+  },
+  "claim_ceiling": "Exact local extremal near-horizon attractor specialization only; no global extremal black-hole solution or matched near-extremal sequence is claimed."
+}
