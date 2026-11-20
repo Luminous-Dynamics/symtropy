@@ -251,13 +251,6 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
                 && motor.max_force >= 0.0;
 
             if motor_inputs_valid {
-                // Evaluate the PD torque command once per world step
-                // and convert it into a fixed target relative velocity. Later
-                // iterations solve only the residual against that target.
-                let torque_command = (motor.kp * (motor.target_vel - rel_angular_vel)
-                    - rel_angular_vel * motor.kd)
-                    .clamp(-motor.max_force, motor.max_force);
-
                 let inv_i_a = if body_a.is_dynamic() {
                     body_a.inv_inertia.sum() / D as f64
                 } else {
@@ -271,11 +264,22 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
                 let effective_inv_inertia = inv_i_a + inv_i_b;
 
                 if effective_inv_inertia.is_finite() && effective_inv_inertia > 1e-15 {
-                    let target_velocity = motor_state.initialize_velocity_target(
-                        rel_angular_vel,
-                        torque_command * dt,
-                        effective_inv_inertia,
-                    );
+                    let target_velocity = if let Some(target) =
+                        motor_state.target_relative_velocity()
+                    {
+                        Some(target)
+                    } else {
+                        // Evaluate and integrate the PD torque command once per
+                        // world step. Later iterations solve only the residual.
+                        let torque_command = (motor.kp * (motor.target_vel - rel_angular_vel)
+                            - rel_angular_vel * motor.kd)
+                            .clamp(-motor.max_force, motor.max_force);
+                        motor_state.initialize_velocity_target(
+                            rel_angular_vel,
+                            torque_command * dt,
+                            effective_inv_inertia,
+                        )
+                    };
                     if let Some(target_velocity) = target_velocity {
                         let desired_impulse_increment =
                             (target_velocity - rel_angular_vel) / effective_inv_inertia;
