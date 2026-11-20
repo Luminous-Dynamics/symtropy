@@ -87,11 +87,11 @@ The first release should prioritize small cases with exact analytical or control
 
 ## 4. Current industry and SOTA comparator snapshot
 
-Checked 2026-11-19. Recheck exact releases and solver subcomponents before every published run.
+Checked 2026-11-20. Recheck exact releases and solver subcomponents before every published run.
 
 | Domain | Reference snapshot | What it means for Symtropy |
 |---|---|---|
-| Rigid/deformable robotics | MuJoCo 4.0.1 (11 Nov 2026); Newton 1.8.0 (11 Nov 2026); Project Chrono 10.0.0 (27 Mar 2026) | Compare single-world accuracy/latency, multi-world throughput, contact/deformable semantics and diagnostics separately. MuJoCo 4.0.0 added speculative contacts and elasto-plasticity; 4.0.1 corrected a sparse-Cholesky issue introduced in 4.0.0. Newton 1.8.0 adds experimental Steel solver capabilities: label experimental paths precisely. Chrono 10 includes SPH/TDPF FSI, peridynamics and checkpointing. |
+| Rigid/deformable robotics | MuJoCo 4.0.1 (11 Nov 2026; 3.17 batch API introduced 22 Oct); Newton 1.8.0 (11 Nov 2026); Drake 1.59.0 (17 Nov 2026); Project Chrono 10.0.0 (27 Mar 2026) | Compare single-world accuracy/latency, multi-world throughput, contact/deformable semantics and diagnostics separately. MuJoCo 4.0.0 added speculative contacts and elasto-plasticity; 4.0.1 corrected a sparse-Cholesky issue introduced in 4.0.0. MuJoCo 3.17 added batched multi-simulation stepping with bit-identical results across thread counts. Newton 1.8.0 adds experimental Steel solver capabilities for high-throughput articulated contact workloads: label experimental paths precisely. Drake 1.59 is the newest checked release. Chrono 10 includes SPH/TDPF FSI, peridynamics and checkpointing. |
 | CFD | OpenFOAM v14 documentation (released 14 Jul 2026) and documented V&V/tutorial cases | Use its official comparison cases and exact solver/turbulence configuration; do not compare a reduced model against a turbulent CFD case. |
 | Multiphysics / continuum | MOOSE physics modules | Relevant module families include solid mechanics, electromagnetics, heat transfer, Navier–Stokes, porous flow, geochemistry, chemical reactions, FSI and peridynamics. Match only the modules and equations actually exercised. |
 | Plasma PIC | WarpX 26.04 documented example suite | Each example has an explicit physical setup; benchmark one supported regime with pinned input, solver, particle/mesh resolution, boundary conditions and raw output. |
@@ -102,7 +102,9 @@ Checked 2026-11-19. Recheck exact releases and solver subcomponents before every
 
 Official sources:
 - [MuJoCo 4.0.1 changelog](https://mujoco.readthedocs.io/en/4.0.1/changelog.html)
-- [Newton releases](https://github.com/newton-physics/newton/releases)
+- [Newton v1.8.0 releases](https://github.com/newton-physics/newton/releases)
+- [Drake release notes](https://drake.mit.edu/release_notes/release_notes.html)
+- [MuJoCo 3.17.0 batch API changelog](https://mujoco.readthedocs.io/en/4.0.1/changelog.html#version-3-17-0-october-22-2026)
 - [Project Chrono release news](https://projectchrono.org/news/)
 - [OpenFOAM v14 user guide](https://doc.cfd.direct/openfoam/user-guide/tutorials?s=2024)
 - [OpenFOAM verification/validation cases](https://doc.openfoam.com/2306/examples/verification-validation/)
@@ -118,8 +120,9 @@ Official sources:
 
 ### Comparator version discipline
 
-- MuJoCo 4.0.1 is the latest release in the checked release list. Keep MuJoCo 4.0.0-specific contact and elasto-plastic workloads distinct from general rigid-body cases.
-- Newton 1.8.0 is a stable release; experimental solver features within it must still be reported as experimental, not generalized to all Newton models.
+- MuJoCo 4.0.1 is the latest checked 4.0 patch. The 3.17.0 batch API is part of the release history and must be included in multi-world comparisons; do not compare its batch interface against a single-world Symtropy loop and call the result a solver-only speed comparison. Keep 4.0.0-specific speculative-contact and elasto-plastic workloads distinct from generic rigid-body cases.
+- Newton 1.8.0 is a stable release; its Steel solver is experimental and targets high-throughput contact-rich articulated simulation. Report Steel separately from Newton's other solver backends.
+- Drake 1.59.0 (17 November 2026) is the newest checked release and should be pinned for multibody dynamics, constraints, inverse dynamics and trajectory-optimization comparison where problem semantics match.
 - Project Chrono 10.0.0 is a domain-specific multiphysics comparator, not an across-the-board rigid-body winner or loser.
 - Record host application, embedded solver and standalone solver versions separately. An application bundle that embeds an older solver is its own pinned comparison profile.
 - GPU comparisons must include driver/runtime, device, precision, kernels, memory and transfer behavior.
@@ -174,6 +177,48 @@ Every engineering benchmark should separate at least:
 Where supported, compare distribution propagation against first/second-moment propagation, and use adjoint-based sensitivities only with an explicit differentiability and numerical-conditioning audit. Report predictive coverage and sharpness, proper probabilistic scores, calibration drift, false confidence, OOD/abstention behavior, influence and consequence tiers. Keep calibration, validation and sealed prediction-challenge data independent by physical subject/configuration/material batch/campaign.
 
 Source: [NIST AMS 100-85 — On Methods of Uncertainty Quantification in Computational Modeling and Simulation: Harmonizing Modeling and Metrology Practices (5 October 2026)](https://doi.org/10.6028/NIST.AMS.100-85).
+
+## 4B. Current frontier: batch physics, contact-rich articulation and decision-quality
+
+**Status: research targets, not achieved Symtropy results.** The industry snapshot is not a leaderboard. The next comparison should test the strongest relevant capability of each peer on matched subproblems.
+
+### New comparator capabilities to include
+
+- **MuJoCo 3.17.0 batch stepping:** the multi-simulation API runs a single model across a thread pool, retains per-simulation state, and reports bit-identical results to a plain loop across thread counts. Its use cases include persistent worlds and recorded trajectories. This creates a strong determinism/throughput comparator; Symtropy must separately report one-world latency and many-world throughput.
+- **MuJoCo 4.0.0/4.0.1:** speculative contact is an opt-in tool for fast convex bodies crossing thin obstacles; supported elasto-plastic joint/tendon and flex paths broaden material behavior. The 4.0.1 patch fixed an important sparse-Cholesky regression from 4.0.0. Pin exact patch versions and solver/factorization configuration.
+- **Newton 1.8.0 Steel:** an experimental matrix-free projected Gauss–Seidel solver for articulated rigid-body contact, with run-to-run determinism, island sleeping and patch-based Coulomb friction. Benchmark it as an experimental solver path, not as the default behavior of every Newton backend. Newton also has routed tendons and richer deformable workflows.
+- **Drake 1.59.0:** newest checked release (17 November 2026). Use it for matched multibody dynamics, constraints, inverse dynamics, kinematics and trajectory-optimization subproblems; do not compare unrelated system-level feature counts.
+- **Chrono 10.0.0:** retain as the specialist reference for SPH/TDPF FSI, peridynamics, checkpointing and other multiphysics cases.
+
+### Symtropy benchmark targets
+
+Freeze and publish this matrix before claiming SOTA progress:
+
+| Benchmark lane | Required sweep | Primary report | Aspirational gate before a superiority claim |
+|---|---|---|---|
+| Single-world rigid-body fidelity | analytical impact, rolling/sliding, resting contact, mass ratios, rotated contact and thin-obstacle crossing; vary timestep and solver tolerance | observable error, penetration, impulse, contact timing, residuals and convergence | Meet the preregistered error/constraint envelope with no hidden case exclusions |
+| Articulated and inertia | isotropic/asymmetric links, products of inertia, arbitrary rigid scene rotations, static/dynamic and unequal-inertia endpoints, hinge-frame rotations | joint residual, angular momentum, kinetic/work closure, frame-equivariance error and limit violation | Zero false frame-equivalence; observed convergence under timestep refinement; known-answer inertia/work cases pass |
+| Actuator-step semantics | motorized hinge/prismatic; solver iterations 1/2/4/8; one step versus subdivisions summing to the same elapsed time | applied impulse, saturation, receipt count, work, final state and iteration sensitivity | One authoritative actuator interval and work receipt per joint/step; no solver-iteration-dependent effort budget |
+| CCD and deformables | fast translating and rotating convex bodies, thin geometry, supported plasticity/flex/tendon cases | miss/false-positive rate, penetration, deformation and energy residual | No tunnel claim outside the declared CCD profile; matched-feature coverage only |
+| Multi-world throughput | 1/32/256/1,024/8,192 worlds where hardware permits; sparse/dense contact and sleeping/waking mixes | worlds/s, simulated ticks/s, p50/p95 step latency, startup cost, peak memory and energy per simulated second | Target ≥1.25× the best matched baseline on at least one preregistered workload while preserving the same accuracy envelope; disclose every workload where it loses |
+| Determinism and replay | repeated runs, worker counts, batch widths, process restarts and supported device profiles | bitwise state equality where promised; otherwise bounded numeric divergence and root-cause localization | Exact equality for the declared same-platform deterministic profile; no cross-platform claim without a separate matrix |
+| Model selection and abstention | in-envelope, boundary, out-of-envelope and unknown-capability scenarios | requested-case denominator, admitted-case numerator, error/coverage, abstention and escalation cost | Zero false admissions in the frozen hostile corpus; higher qualified coverage at equal or lower risk is the objective—not a higher unqualified completion rate |
+| Uncertainty and calibration | held-out geometry, material lot, physical specimen, temperature and operating condition | calibration, predictive coverage/sharpness, proper scores, sensitivity and model discrepancy | Pre-registered coverage on sealed independent groups; no random frame/sample split that leaks specimen identity |
+
+The 1.25× target is a **campaign goal**, not a forecast or existing result. It is only valid when the same physical problem, precision, hardware class, observable set, accuracy envelope, memory accounting and warm-up policy are matched. A candidate that is faster because it drops difficult contacts, changes material law, lowers precision, uses a wider error tolerance or omits failed cases has not beaten the baseline.
+
+### Better-than-SOTA strategy: compete on the admissible frontier
+
+The most credible path is not to reproduce every specialist backend. It is to make Symtropy unusually strong at the interface between them:
+
+1. **Capability-aware routing:** select a backend/solver only when its exact path is supported and admitted for the context of use; otherwise escalate or abstain.
+2. **Semantic equivalence before scoring:** compare only cases with matching equations, contact/constitutive laws, geometry, frames, boundary conditions and observables.
+3. **Quality-qualified throughput:** rank by validated cases per wall-clock and compute budget, with the full requested denominator visible.
+4. **Evidence-carrying counterexamples:** every differential mismatch becomes a minimized, replayable case with exact model/solver/configuration identities and observable-level diagnosis.
+5. **Decision-relevant uncertainty:** report whether uncertainty can change the design decision, not just one scalar error bar. Spend high-fidelity compute where model influence and consequence are largest.
+6. **Repairability and operational cost:** add calibration effort, model setup, recovery/replay and maintenance burden to the frontier instead of measuring FLOP/s alone.
+
+The research claim to pursue is therefore: **higher decision-quality coverage per unit compute**, not merely a faster integrator or a larger number of simulated worlds. This is falsifiable and lets Symtropy outperform a specialist on coordination/qualification even where that specialist remains the better solver for its native physics.
 
 ## 5. Fair-comparison protocol
 
