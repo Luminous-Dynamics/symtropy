@@ -1,0 +1,455 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "EV-CARRIER-LIFECYCLE-001",
+  "currency": "USD",
+  "cost_year": 2026,
+  "annual_operating_hours_per_module": 2200,
+  "annual_operating_hours_evidence_class": "synthetic",
+  "annual_operating_hours_evidence_reference": "synthetic://lifecycle/annual-operating-hours",
+  "labour_rate_per_technician_hour": null,
+  "labour_rate_evidence_class": "unknown",
+  "labour_rate_evidence_reference": "unknown://lifecycle/labour-rate-not-sourced",
+  "claim_ceiling": "Synthetic task-time accounting only. Unknown failure rates, acquisition price and labour rate prevent full lifecycle ranking.",
+  "profiles": [
+    {
+      "profile_id": "detachable-uav-pod-lifecycle-v0-1",
+      "config_id": "detachable-uav-pod-synthetic-demo",
+      "architecture": "detachable_drone_pod",
+      "acquisition_cost_per_good_module": null,
+      "acquisition_cost_evidence_class": "unknown",
+      "acquisition_cost_evidence_reference": "unknown://pod-acquisition-price-not-sourced",
+      "amortization_years": null,
+      "events": [
+        {
+          "event_id": "planned-annual-inspection",
+          "event_class": "planned",
+          "remedy": null,
+          "annual_occurrences_per_module": 2,
+          "observed_event_count": null,
+          "exposure_module_years": null,
+          "frequency_evidence_class": "synthetic",
+          "frequency_evidence_reference": "synthetic://pod/inspection-frequency",
+          "tasks": [
+            {
+              "phase": "safe_isolation",
+              "elapsed_downtime_minutes_per_event": 10,
+              "technician_minutes_per_event": 10,
+              "crew_size": 1,
+              "parts_cost_per_event": 0,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/safe_isolation"
+            },
+            {
+              "phase": "access_and_disassembly",
+              "elapsed_downtime_minutes_per_event": 15,
+              "technician_minutes_per_event": 15,
+              "crew_size": 1,
+              "parts_cost_per_event": 0,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/access_and_disassembly"
+            },
+            {
+              "phase": "diagnose_and_inspect",
+              "elapsed_downtime_minutes_per_event": 30,
+              "technician_minutes_per_event": 30,
+              "crew_size": 1,
+              "parts_cost_per_event": 0,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/diagnose_and_inspect"
+            },
+            {
+              "phase": "post_maintenance_test",
+              "elapsed_downtime_minutes_per_event": 20,
+              "technician_minutes_per_event": 20,
+              "crew_size": 1,
+              "parts_cost_per_event": 0,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/post_maintenance_test"
+            }
+          ]
+        },
+        {
+          "event_id": "unscheduled-module-failure",
+          "event_class": "unscheduled",
+          "remedy": "repair",
+          "annual_occurrences_per_module": null,
+          "observed_event_count": null,
+          "exposure_module_years": null,
+          "frequency_evidence_class": "unknown",
+          "frequency_evidence_reference": "unknown://pod/unscheduled-failure-rate-not-measured",
+          "tasks": [
+            {
+              "phase": "safe_isolation",
+              "elapsed_downtime_minutes_per_event": 10,
+              "technician_minutes_per_event": 10,
+              "crew_size": 1,
+              "parts_cost_per_event": 0,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/safe_isolation"
+            },
+            {
+              "phase": "access_and_disassembly",
+              "elapsed_downtime_minutes_per_event": 20,
+              "technician_minutes_per_event": 20,
+              "crew_size": 1,
+              "parts_cost_per_event": 0,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/access_and_disassembly"
+            },
+            {
+              "phase": "diagnose_and_inspect",
+              "elapsed_downtime_minutes_per_event": 45,
+              "technician_minutes_per_event": 45,
+              "crew_size": 1,
+              "parts_cost_per_event": 10,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/diagnose_and_inspect"
+            },
+            {
+              "phase": "remove",
+              "elapsed_downtime_minutes_per_event": 15,
+              "technician_minutes_per_event": 15,
+              "crew_size": 1,
+              "parts_cost_per_event": 0,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/remove"
+            },
+            {
+              "phase": "repair_or_replace",
+              "elapsed_downtime_minutes_per_event": 60,
+              "technician_minutes_per_event": 60,
+              "crew_size": 1,
+              "parts_cost_per_event": 30,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/repair_or_replace"
+            },
+            {
+              "phase": "reinstall_reconnect_configure",
+              "elapsed_downtime_minutes_per_event": 30,
+              "technician_minutes_per_event": 30,
+              "crew_size": 1,
+              "parts_cost_per_event": 0,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/reinstall_reconnect_configure"
+            },
+            {
+              "phase": "post_maintenance_test",
+              "elapsed_downtime_minutes_per_event": 30,
+              "technician_minutes_per_event": 30,
+              "crew_size": 1,
+              "parts_cost_per_event": 5,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/post_maintenance_test"
+            },
+            {
+              "phase": "return_to_service_disposition",
+              "elapsed_downtime_minutes_per_event": 15,
+              "technician_minutes_per_event": 15,
+              "crew_size": 1,
+              "parts_cost_per_event": 0,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/return_to_service_disposition"
+            }
+          ]
+        }
+      ],
+      "notes": [
+        "All task times are synthetic fixture values to validate arithmetic only.",
+        "No observed module-years or failure events are supplied; annual unscheduled burden remains unknown."
+      ]
+    },
+    {
+      "profile_id": "amr-handoff-lifecycle-v0-1",
+      "config_id": "amr-handoff-synthetic-demo",
+      "architecture": "amr_cargo_handoff",
+      "acquisition_cost_per_good_module": null,
+      "acquisition_cost_evidence_class": "unknown",
+      "acquisition_cost_evidence_reference": "unknown://amr-acquisition-price-not-sourced",
+      "amortization_years": null,
+      "events": [
+        {
+          "event_id": "planned-annual-inspection",
+          "event_class": "planned",
+          "remedy": null,
+          "annual_occurrences_per_module": 1,
+          "observed_event_count": null,
+          "exposure_module_years": null,
+          "frequency_evidence_class": "synthetic",
+          "frequency_evidence_reference": "synthetic://amr/inspection-frequency",
+          "tasks": [
+            {
+              "phase": "safe_isolation",
+              "elapsed_downtime_minutes_per_event": 5,
+              "technician_minutes_per_event": 5,
+              "crew_size": 1,
+              "parts_cost_per_event": 0,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/safe_isolation"
+            },
+            {
+              "phase": "access_and_disassembly",
+              "elapsed_downtime_minutes_per_event": 10,
+              "technician_minutes_per_event": 10,
+              "crew_size": 1,
+              "parts_cost_per_event": 0,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/access_and_disassembly"
+            },
+            {
+              "phase": "diagnose_and_inspect",
+              "elapsed_downtime_minutes_per_event": 20,
+              "technician_minutes_per_event": 20,
+              "crew_size": 1,
+              "parts_cost_per_event": 0,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/diagnose_and_inspect"
+            },
+            {
+              "phase": "post_maintenance_test",
+              "elapsed_downtime_minutes_per_event": 15,
+              "technician_minutes_per_event": 15,
+              "crew_size": 1,
+              "parts_cost_per_event": 0,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/post_maintenance_test"
+            }
+          ]
+        },
+        {
+          "event_id": "unscheduled-drive-or-sensor-failure",
+          "event_class": "unscheduled",
+          "remedy": "replace",
+          "annual_occurrences_per_module": null,
+          "observed_event_count": null,
+          "exposure_module_years": null,
+          "frequency_evidence_class": "unknown",
+          "frequency_evidence_reference": "unknown://amr/unscheduled-failure-rate-not-measured",
+          "tasks": [
+            {
+              "phase": "safe_isolation",
+              "elapsed_downtime_minutes_per_event": 10,
+              "technician_minutes_per_event": 10,
+              "crew_size": 1,
+              "parts_cost_per_event": 0,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/safe_isolation"
+            },
+            {
+              "phase": "access_and_disassembly",
+              "elapsed_downtime_minutes_per_event": 20,
+              "technician_minutes_per_event": 20,
+              "crew_size": 1,
+              "parts_cost_per_event": 0,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/access_and_disassembly"
+            },
+            {
+              "phase": "diagnose_and_inspect",
+              "elapsed_downtime_minutes_per_event": 45,
+              "technician_minutes_per_event": 45,
+              "crew_size": 1,
+              "parts_cost_per_event": 10,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/diagnose_and_inspect"
+            },
+            {
+              "phase": "remove",
+              "elapsed_downtime_minutes_per_event": 15,
+              "technician_minutes_per_event": 15,
+              "crew_size": 1,
+              "parts_cost_per_event": 0,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/remove"
+            },
+            {
+              "phase": "repair_or_replace",
+              "elapsed_downtime_minutes_per_event": 60,
+              "technician_minutes_per_event": 60,
+              "crew_size": 1,
+              "parts_cost_per_event": 30,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/repair_or_replace"
+            },
+            {
+              "phase": "reinstall_reconnect_configure",
+              "elapsed_downtime_minutes_per_event": 30,
+              "technician_minutes_per_event": 30,
+              "crew_size": 1,
+              "parts_cost_per_event": 0,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/reinstall_reconnect_configure"
+            },
+            {
+              "phase": "post_maintenance_test",
+              "elapsed_downtime_minutes_per_event": 30,
+              "technician_minutes_per_event": 30,
+              "crew_size": 1,
+              "parts_cost_per_event": 5,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/post_maintenance_test"
+            },
+            {
+              "phase": "return_to_service_disposition",
+              "elapsed_downtime_minutes_per_event": 15,
+              "technician_minutes_per_event": 15,
+              "crew_size": 1,
+              "parts_cost_per_event": 0,
+              "evidence_class": "synthetic",
+              "evidence_reference": "synthetic://lifecycle/task/return_to_service_disposition"
+            }
+          ]
+        }
+      ],
+      "notes": [
+        "All task times are synthetic fixture values to validate accounting.",
+        "No observed failure frequency or acquisition cost is asserted."
+      ]
+    },
+    {
+      "profile_id": "integrated-drone-bay-lifecycle-unknown",
+      "config_id": "integrated-drone-bay-production-intent-unknown",
+      "architecture": "integrated_enclosed_bay",
+      "acquisition_cost_per_good_module": null,
+      "acquisition_cost_evidence_class": "unknown",
+      "acquisition_cost_evidence_reference": "unknown://integrated-bay-acquisition-price-not-sourced",
+      "amortization_years": null,
+      "events": [
+        {
+          "event_id": "planned-inspection-process-not-studied",
+          "event_class": "planned",
+          "remedy": null,
+          "annual_occurrences_per_module": null,
+          "observed_event_count": null,
+          "exposure_module_years": null,
+          "frequency_evidence_class": "unknown",
+          "frequency_evidence_reference": "unknown://integrated-bay-inspection-frequency",
+          "tasks": [
+            {
+              "phase": "safe_isolation",
+              "elapsed_downtime_minutes_per_event": null,
+              "technician_minutes_per_event": null,
+              "crew_size": null,
+              "parts_cost_per_event": null,
+              "evidence_class": "unknown",
+              "evidence_reference": "unknown://lifecycle/task/safe_isolation"
+            },
+            {
+              "phase": "access_and_disassembly",
+              "elapsed_downtime_minutes_per_event": null,
+              "technician_minutes_per_event": null,
+              "crew_size": null,
+              "parts_cost_per_event": null,
+              "evidence_class": "unknown",
+              "evidence_reference": "unknown://lifecycle/task/access_and_disassembly"
+            },
+            {
+              "phase": "diagnose_and_inspect",
+              "elapsed_downtime_minutes_per_event": null,
+              "technician_minutes_per_event": null,
+              "crew_size": null,
+              "parts_cost_per_event": null,
+              "evidence_class": "unknown",
+              "evidence_reference": "unknown://lifecycle/task/diagnose_and_inspect"
+            },
+            {
+              "phase": "post_maintenance_test",
+              "elapsed_downtime_minutes_per_event": null,
+              "technician_minutes_per_event": null,
+              "crew_size": null,
+              "parts_cost_per_event": null,
+              "evidence_class": "unknown",
+              "evidence_reference": "unknown://lifecycle/task/post_maintenance_test"
+            }
+          ]
+        },
+        {
+          "event_id": "unscheduled-failure-process-not-studied",
+          "event_class": "unscheduled",
+          "remedy": "repair",
+          "annual_occurrences_per_module": null,
+          "observed_event_count": null,
+          "exposure_module_years": null,
+          "frequency_evidence_class": "unknown",
+          "frequency_evidence_reference": "unknown://integrated-bay-failure-frequency",
+          "tasks": [
+            {
+              "phase": "safe_isolation",
+              "elapsed_downtime_minutes_per_event": null,
+              "technician_minutes_per_event": null,
+              "crew_size": null,
+              "parts_cost_per_event": null,
+              "evidence_class": "unknown",
+              "evidence_reference": "unknown://lifecycle/task/safe_isolation"
+            },
+            {
+              "phase": "access_and_disassembly",
+              "elapsed_downtime_minutes_per_event": null,
+              "technician_minutes_per_event": null,
+              "crew_size": null,
+              "parts_cost_per_event": null,
+              "evidence_class": "unknown",
+              "evidence_reference": "unknown://lifecycle/task/access_and_disassembly"
+            },
+            {
+              "phase": "diagnose_and_inspect",
+              "elapsed_downtime_minutes_per_event": null,
+              "technician_minutes_per_event": null,
+              "crew_size": null,
+              "parts_cost_per_event": null,
+              "evidence_class": "unknown",
+              "evidence_reference": "unknown://lifecycle/task/diagnose_and_inspect"
+            },
+            {
+              "phase": "remove",
+              "elapsed_downtime_minutes_per_event": null,
+              "technician_minutes_per_event": null,
+              "crew_size": null,
+              "parts_cost_per_event": null,
+              "evidence_class": "unknown",
+              "evidence_reference": "unknown://lifecycle/task/remove"
+            },
+            {
+              "phase": "repair_or_replace",
+              "elapsed_downtime_minutes_per_event": null,
+              "technician_minutes_per_event": null,
+              "crew_size": null,
+              "parts_cost_per_event": null,
+              "evidence_class": "unknown",
+              "evidence_reference": "unknown://lifecycle/task/repair_or_replace"
+            },
+            {
+              "phase": "reinstall_reconnect_configure",
+              "elapsed_downtime_minutes_per_event": null,
+              "technician_minutes_per_event": null,
+              "crew_size": null,
+              "parts_cost_per_event": null,
+              "evidence_class": "unknown",
+              "evidence_reference": "unknown://lifecycle/task/reinstall_reconnect_configure"
+            },
+            {
+              "phase": "post_maintenance_test",
+              "elapsed_downtime_minutes_per_event": null,
+              "technician_minutes_per_event": null,
+              "crew_size": null,
+              "parts_cost_per_event": null,
+              "evidence_class": "unknown",
+              "evidence_reference": "unknown://lifecycle/task/post_maintenance_test"
+            },
+            {
+              "phase": "return_to_service_disposition",
+              "elapsed_downtime_minutes_per_event": null,
+              "technician_minutes_per_event": null,
+              "crew_size": null,
+              "parts_cost_per_event": null,
+              "evidence_class": "unknown",
+              "evidence_reference": "unknown://lifecycle/task/return_to_service_disposition"
+            }
+          ]
+        }
+      ],
+      "notes": [
+        "Production-intent service processes, event frequencies and task durations have not been studied."
+      ]
+    }
+  ]
+}
