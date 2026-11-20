@@ -109,13 +109,14 @@ Each sample carries:
 - exact UTC interval window;
 - sensor and calibration identifiers;
 - calibration-valid-from/to timestamps;
+- signed per-sample sensor/logger clock offset (checked independently for every reading, not inferred from an interval-level health flag);
 - calibration independence domain;
 - QC and source-rights state;
 - station identity and role;
 - method, preservation, chain-of-custody and laboratory batch for lab observations;
 - value, unit, standard uncertainty, detection limit and temporal sensitivity where applicable.
 
-The verifier computes SHA-256 over the exact source-file bytes and emits byte length and hash scope. This proves input-byte identity only; it does not authenticate a sensor, logger, calibration certificate, laboratory or acquisition chain.
+The verifier checks the absolute signed clock offset for each sample independently against the declared bound. A valid interval-level clock flag cannot mask one skewed sensor. It computes SHA-256 over the exact source-file bytes and emits byte length and hash scope. This proves input-byte identity only; it does not authenticate a sensor, logger, calibration certificate, laboratory or acquisition chain.
 
 Observation coverage is reported independently:
 - exact observed input-side durations;
@@ -133,7 +134,7 @@ These are project gates for software and future field qualification—not standa
 |---|---|---|
 | Schema/provenance | 100% of accepted records have IDs, UTC windows, station, calibration, rights and raw-data digest/custody | Reject or quarantine |
 | Calibration | Validity covers the complete sample window | Reject |
-| Time synchronisation | Within the fixture's 250 ms clock-offset test bound; field bound to be set from actual response time and sensor dynamics | Reject / resynchronise |
+| Time synchronisation | Every sensor/logger and laboratory record within the fixture's signed ±250 ms clock-offset test bound; field bound to be set from actual response time, transport lag and sensor dynamics | Reject / resynchronise |
 | Parcel pairing | Input and output windows match validated residence time; transport-lag uncertainty declared | Reject until identified |
 | Sample handling | Method, preservation, batch and custody complete | Quarantine lab result |
 | Detection limit | Below-LOD values use a reviewed censored-data method | Do not set to zero |
