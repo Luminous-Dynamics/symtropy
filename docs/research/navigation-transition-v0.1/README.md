@@ -35,7 +35,7 @@ The important outcome is not always a coordinate. It can be a qualified estimate
 
 ## Initial synthetic transition coverage
 
-The current fixture contains seven authored examples:
+The current fixture contains eight authored examples:
 
 | Case | Environment transition / challenge | Main failure mode |
 |---|---|---|
@@ -46,6 +46,7 @@ The current fixture contains seven authored examples:
 | Common-mode false independence | Three receiver identities with shared antenna/clock/power/correction dependencies | Peer count mistaken for independent evidence |
 | Frame/time-basis mismatch | Deliberate frame and time association error | Silent coordinate or timestamp laundering |
 | Lunar body-fixed → local surface | Moon body-fixed state to local terrain frame | Body identity and epoch-bound transform |
+| Independent multimodal positive control | UWB + LiDAR + IMU with distinct declared failure domains | Correct acceptance of genuinely independent evidence |
 
 These are synthetic contract fixtures, not measured sensor traces or physical-world claims. The corpus is not yet the full 12–20 episode preregistration target. It must gain positive controls for genuinely independent sources, valid reacquisition, benign faults and recoverable map/frame transitions before any benchmark run is preregistered.
 
