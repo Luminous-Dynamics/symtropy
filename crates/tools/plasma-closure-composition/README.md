@@ -59,7 +59,7 @@ This is accounting only. It does not solve sheath, conducting-wall, absorbing, r
 
 ## Deterministic domain-balance assembly
 
-The `domain` module consumes the internal-face and external-boundary receipts and reconstructs per-cell integrated updates in stable face-identity order. It refuses duplicate/missing cell and face identities, schema or compatibility mismatches, unqualified or malformed candidate receipts, inconsistent declared/recomputed weight sums, non-finite contributions, and receipts whose integrated flux does not match the declared face measure. Component layout is explicit so two vectors with the same length but different semantics or ordering cannot be blended.
+The `domain` module consumes the internal-face and external-boundary receipts and reconstructs per-cell integrated updates in stable face-identity order. It refuses duplicate/missing cell and face identities, schema or compatibility mismatches, unqualified or malformed candidate receipts, inconsistent declared/recomputed weight sums, weights no longer bound to the same expert/profile/model identity, non-finite contributions, and receipts whose integrated flux does not match the declared face measure. Component layout is explicit so two vectors with the same length but different semantics or ordering cannot be blended.
 
 It independently checks:
 - each internal face applies equal-and-opposite contributions to its two cells;
