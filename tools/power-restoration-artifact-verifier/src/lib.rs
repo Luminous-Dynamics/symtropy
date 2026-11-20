@@ -1782,6 +1782,54 @@ mod tests {
     }
 
     #[test]
+    fn claim_verifier_rejects_unacquired_action_precondition_evidence() {
+        let case: power_restoration_benchmark_case::BenchmarkCase = serde_json::from_str(include_str!(
+            "../../power-restoration-benchmark-case/fixtures/synthetic-restoration-case-v0.1.json"
+        )).unwrap();
+        let receipt: power_restoration_run_receipt::RunReceipt = serde_json::from_str(include_str!(
+            "../../power-restoration-run-receipt/fixtures/synthetic-restoration-run-receipt-v0.1.json"
+        )).unwrap();
+        let manifest = BundleManifest {
+            schema_version: "0.1.0".to_string(),
+            bundle_id: "empty-claim-bundle".to_string(),
+            artifacts: Vec::new(),
+        };
+        let trust = TrustRoot {
+            schema_version: "0.1.0".to_string(),
+            root_id: "empty-root".to_string(),
+            valid_from_unix_ms: 0,
+            valid_until_unix_ms: 10_000,
+            keys: Vec::new(),
+        };
+        let profile = ClaimProducerProfile {
+            signer_role: SignerRole::RunRecorder,
+            issuer_id: "synthetic-run-recorder".to_string(),
+            tool_source_commit: "1".repeat(40),
+            tool_configuration_sha256: "2".repeat(64),
+        };
+        let profiles = vec![profile];
+        let pinned = "0".repeat(64);
+        let result = verify_restoration_claim_evidence(
+            Path::new("."),
+            &case,
+            &receipt,
+            &[],
+            &manifest,
+            &trust,
+            &pinned,
+            &[],
+            &profiles,
+            "power-fabric://run/synthetic/receipt",
+            2_000,
+            1024,
+        );
+        assert!(result.is_err());
+        assert!(result.unwrap_err().iter().any(|error| {
+            error.contains("absent from all acquired observation results")
+        }));
+    }
+
+    #[test]
     fn claim_verifier_requires_a_pinned_run_recorder_profile() {
         let case: power_restoration_benchmark_case::BenchmarkCase = serde_json::from_str(include_str!(
             "../../power-restoration-benchmark-case/fixtures/synthetic-restoration-case-v0.1.json"
