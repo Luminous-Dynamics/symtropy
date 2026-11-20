@@ -351,6 +351,8 @@ fn validate_catalog(
     if !valid_nonnegative(catalog.labour_rate_per_technician_hour)
         || (catalog.labour_rate_per_technician_hour.is_some()
             && catalog.labour_rate_evidence_class == EvidenceClass::Unknown)
+        || (catalog.labour_rate_per_technician_hour.is_none()
+            && catalog.labour_rate_evidence_class != EvidenceClass::Unknown)
     {
         errors.push("labour_rate_per_technician_hour: must be finite and nonnegative".into());
     }
@@ -406,10 +408,12 @@ fn validate_catalog(
         {
             errors.push(format!("profiles[{profile_index}].amortization_years: must be positive when supplied"));
         }
-        if profile.acquisition_cost_per_good_module.is_some()
+        if (profile.acquisition_cost_per_good_module.is_some()
             && (profile.acquisition_cost_evidence_class == EvidenceClass::Unknown
                 || profile.acquisition_cost_evidence_reference.trim().is_empty()
-                || profile.amortization_years.is_none())
+                || profile.amortization_years.is_none()))
+            || (profile.acquisition_cost_per_good_module.is_none()
+                && profile.acquisition_cost_evidence_class != EvidenceClass::Unknown)
         {
             errors.push(format!("profiles[{profile_index}]: acquisition cost requires evidence and amortization horizon"));
         }
@@ -1068,11 +1072,11 @@ mod tests {
         let result = &report.results[0];
         assert_eq!(result.status, LifecycleStatus::EvidenceBackedScreen);
         assert!(result.full_lifecycle_ranking_eligible);
-        assert_eq!(result.total_downtime_hours_per_module_year, Some(3.3));
-        assert_eq!(result.total_technician_hours_per_module_year, Some(3.3));
+        assert!((result.total_downtime_hours_per_module_year.unwrap() - 3.3).abs() < 1e-9);
+        assert!((result.total_technician_hours_per_module_year.unwrap() - 3.3).abs() < 1e-9);
         assert_eq!(result.total_service_parts_cost_per_module_year, Some(9.0));
-        assert_eq!(result.downtime_loss_cost_per_module_year, Some(82.5));
-        assert_eq!(result.full_lifecycle_cost_per_module_year, Some(623.5));
+        assert!((result.downtime_loss_cost_per_module_year.unwrap() - 82.5).abs() < 1e-9);
+        assert!((result.full_lifecycle_cost_per_module_year.unwrap() - 623.5).abs() < 1e-9);
         assert!(!result.module_production_release_ready);
         assert!(!result.return_to_service_authorized);
     }
