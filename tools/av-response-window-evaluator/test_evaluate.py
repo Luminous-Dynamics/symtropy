@@ -36,6 +36,8 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
             "response_start_tick": start,
             "response_end_tick": end,
             "content": content,
+            "session_epoch": 1,
+            "turn_id": f"turn-{response_id}",
             "playback_start_event_ref": f"render-start-{response_id}",
             "playback_end_event_ref": f"render-end-{response_id}",
             "playback_end_kind": end_kind,
