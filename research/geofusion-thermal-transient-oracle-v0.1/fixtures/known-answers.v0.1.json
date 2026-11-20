@@ -364,7 +364,16 @@
         "time_s": 1000,
         "cumulative_energy_j": 512732395.44735163
       }
-    ]
+    ],
+    "maximum_resolution_error_j": 0.000001,
+    "float64_endpoint_resolution_bound_j": 1.490116119384766e-8,
+    "receiver_api": "integrated_flux_exchange_from_cumulative(..., maximum_resolution_error_j, ...)",
+    "receipt": {
+      "source_interval_energy_j": 68333461.00984275,
+      "source_interval_resolution_bound_j": 1.490116119384766e-8,
+      "resolution_budget_j": 0.000001,
+      "disposition": "ACCEPT"
+    }
   },
   "cumulative_energy_precision_contract": {
     "representation": "IEEE-754 Float64 cumulative joules",
