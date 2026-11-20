@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_bd_isotropic_horizon_strong_coupling_asymptotic",
+  "precision": {
+    "mpmath_dps": 90
+  },
+  "matched_asymptotic": {
+    "I_lambda": "-log(xi_H)=pi*sqrt(lambda)/2 - log(lambda)/2 + C_inner + o(1)",
+    "xi_H": "A_inner*sqrt(lambda)*exp(-pi*sqrt(lambda)/2)*(1+o(1))",
+    "C_inner_exact": "-1 -(2+sqrt(2))*log(1+1/sqrt(2))/4 -(2-sqrt(2))*log(1-1/sqrt(2))/4 + log(2)",
+    "C_inner_numeric": "-0.5835044693003125492681718980633031505374451108061843717",
+    "A_inner_exact": "exp(-C_inner)",
+    "A_inner_numeric": "1.792308527864158580567669561327316248563265695888601044",
+    "inner_lapse_inverse_sqrt": "A(t)=sqrt((1+t^2+sqrt(1+t^4))/2), t=sqrt(lambda)*y",
+    "inner_constant_integral": "C_inner=lim(T->inf)[integral_0^T (A(t)-1)/t dt - T + log(T)]",
+    "inner_substitution": "t^2=2*u^2*(u^2-1)/(2*u^2-1), u=A(t)",
+    "horizon_log_chart": "eta=log(xi/xi_H), d(eta)/d(rho)=1/(rho*sqrt(F))"
+  },
+  "cases": [
+    {
+      "lambda": "100",
+      "log_xi_horizon": "-12.85830730001402672882080253998629285887038463453066034",
+      "xi_horizon": "0.000002604402436598807682393921234550555909919199066757867063",
+      "leading_asymptotic_xi_horizon": "0.000002701039914320221962516820282046290196897365128989258771",
+      "exact_to_asymptotic_ratio": "0.96422212155804617344372632739440215",
+      "relative_asymptotic_error": "0.035777878442"
+    },
+    {
+      "lambda": "1000",
+      "log_xi_horizon": "-45.64770899501480767422986053984695969062857085624726467",
+      "xi_horizon": "1.497793259964556951194910825692327098431998316363805427e-20",
+      "leading_asymptotic_xi_horizon": "1.516102109785593359085113945932791497303791845986753637e-20",
+      "exact_to_asymptotic_ratio": "0.98792373567528005144794198646264026",
+      "relative_asymptotic_error": "0.0120762643247"
+    },
+    {
+      "lambda": "10000",
+      "log_xi_horizon": "-151.8948586851038068443526684538271748982400388682032579",
+      "xi_horizon": "1.078700906220524448928008555821642442400777880176865741e-66",
+      "leading_asymptotic_xi_horizon": "1.082916769652375626999091841110693219510489630178893973e-66",
+      "exact_to_asymptotic_ratio": "0.99610693679330083536580102336526216",
+      "relative_asymptotic_error": "0.0038930632067"
+    },
+    {
+      "lambda": "100000",
+      "log_xi_horizon": "-490.3906852952033027062058205351061587998293399117871041",
+      "xi_horizon": "1.061772320679886026239867892787933412704862257313441907e-213",
+      "leading_asymptotic_xi_horizon": "1.063088892151023497874930372928196902149791482229765983e-213",
+      "exact_to_asymptotic_ratio": "0.99876156031649097680332847863873042",
+      "relative_asymptotic_error": "0.00123843968351"
+    },
+    {
+      "lambda": "1000000",
+      "log_xi_horizon": "-1563.305459484590228306859203345953261226325026697740797",
+      "xi_horizon": "1.161623572911370450988234273853143085735559096568343836e-679",
+      "leading_asymptotic_xi_horizon": "1.162079527576377087287617893660958625287948823429018025e-679",
+      "exact_to_asymptotic_ratio": "0.99960763901765176832066120929641041",
+      "relative_asymptotic_error": "0.000392360982348"
+    }
+  ],
+  "checks": {
+    "positive_horizon_radius": true,
+    "asymptotic_ratio_converges_monotonically_on_frozen_grid": true,
+    "max_relative_error_on_grid": "0.035777878442",
+    "all_relative_errors_below_0_05": true
+  },
+  "claim_ceiling": "Matched-asymptotic prediction for the static BD isotropic horizon coordinate, numerically checked on the listed lambda grid. The coordinate collapse is gauge-related, not a physical decrease of the areal horizon radius. The o(1) remainder is not an interval bound."
+}

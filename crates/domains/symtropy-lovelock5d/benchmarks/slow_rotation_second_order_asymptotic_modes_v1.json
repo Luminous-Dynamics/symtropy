@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_spin2_alpha_zero_asymptotic_indicial_modes",
+  "status": "symbolically_derived_from_action_generated_homogeneous_operator",
+  "input": {
+    "sha256": "019ef493497c11efd26958481de9bd4b040f365d29076065d0195c9d26ccf237",
+    "source_derivation_script_git_blob_sha1": "c5b30eaf3ee972a0a316d4193f13e2710eb4c677",
+    "source_derivation_script_sha256": "8a9c272fedd86ea934b0b19c9b105987fc86252edf4e8261811eee824a3253ae"
+  },
+  "conventions": {
+    "background": "alpha=0 Einstein/Myers-Perry limit",
+    "operator": "linear_operators only; W1^2 source excluded",
+    "ansatz": "B2=b*r^p, F2=f*r^p, H2=h*r^(p+2)",
+    "equations": [
+      "E_b",
+      "E_f",
+      "E_g",
+      "E_h"
+    ],
+    "rescalings": {
+      "E_b": "r^(-p-1)",
+      "E_f": "r^(-p-1)",
+      "E_g": "r^(-p+1)",
+      "E_h": "r^(-p+1)"
+    }
+  },
+  "leading_matrix": {
+    "columns": [
+      "b",
+      "f",
+      "h"
+    ],
+    "rows": [
+      [
+        "0",
+        "-3*(p + 2)/2",
+        "-(p + 1)*(p + 2)/2"
+      ],
+      [
+        "3*p/2",
+        "3",
+        "p + 1"
+      ],
+      [
+        "-p*(p + 1)",
+        "-2*(p + 1)",
+        "-p**2 - 2*p + 2"
+      ],
+      [
+        "-p*(p + 1)/2",
+        "-p - 1",
+        "-3"
+      ]
+    ]
+  },
+  "maximal_3x3_minors": [
+    "-3*p*(p - 2)*(p + 2)*(p + 4)/4",
+    "3*p*(p - 2)*(p + 2)*(p + 4)/4",
+    "-3*p*(p - 2)*(p + 1)*(p + 2)*(p + 4)/4",
+    "0"
+  ],
+  "common_factor": "p*(p - 2)*(p + 2)*(p + 4)",
+  "indicial_roots": [
+    -4,
+    -2,
+    0,
+    2
+  ],
+  "mode_directions": {
+    "0": [
+      1,
+      0,
+      0
+    ],
+    "2": [
+      0,
+      -1,
+      1
+    ],
+    "-4": [
+      0,
+      1,
+      1
+    ],
+    "-2": [
+      1,
+      1,
+      0
+    ]
+  },
+  "interpretation": {
+    "0": "constant lapse mode; removed by b(infinity)=1",
+    "2": "growing F2/H2 mode; excluded by asymptotic flatness",
+    "-4": "decaying: F2~r^-4, H2~r^-2; B2 has no leading r^-4 term",
+    "-2": "mass-like: B2 and F2 share r^-2; leading H2~r^0 coefficient is zero"
+  },
+  "validation": {
+    "all_four_equations_included": true,
+    "radial_constraint_Eg_included": true,
+    "all_maximal_minors_and_nullspaces_checked": true,
+    "sympy_version": "1.14.0",
+    "clean_git_checkout": "not claimed"
+  },
+  "analysis_script_sha256": "8378ad84fd8e495e2e286b8fb469cb56e5483c2f1a27d23f456c2b6cd31418ea",
+  "execution_note": "Exact action-derived equation emitter and independent asymptotic analyzer were locally replayed; no Rust or finite-alpha BVP execution is claimed.",
+  "claim_ceiling": "Exact alpha=0 spatial-infinity indicial analysis only; not a finite-alpha mode proof, complete Frobenius expansion, horizon analysis, BVP solution, or existence theorem."
+}

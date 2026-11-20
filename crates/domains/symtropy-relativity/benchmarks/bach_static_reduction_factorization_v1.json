@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "static_bach_equation_factorization_and_parameter_kernel",
+  "status": "symbolically_derived_exact_rational_controls_rust_oracle_authored",
+  "metric": "ds^2=-B(r)dt^2+dr^2/B(r)+r^2 dOmega^2",
+  "assumptions": [
+    "four spacetime dimensions",
+    "pure Weyl-squared vacuum equations",
+    "static spherical metric ansatz",
+    "r>0",
+    "B(r)>0"
+  ],
+  "generic_reduction": {
+    "A": "(1-B)/r^2+B''/2",
+    "E": "1/2*((1-B)/r^2+B'/r-B''/2)",
+    "X": "A'+A/r",
+    "B1_plus_B2": "-2*B*X/r-(2/3)*B*X'",
+    "B1_plus_B2_factored": "-B*(r*B''''+4*B''')/(3*r)",
+    "factorization_identity_symbolically_verified": true
+  },
+  "first_equation": {
+    "ode": "r*B''''+4*B'''=0",
+    "equivalent_integral": "(r^4*B''')'=0",
+    "complete_local_solution": "c_inverse/r+c_constant+c_linear*r+c_quadratic*r^2",
+    "integration_domain": "connected interval with r>0 and B(r)>0",
+    "solution_family_complete_for_first_reduced_equation": true
+  },
+  "second_equation": {
+    "B1_minus_B2": "4*(c_constant^2-3*c_linear*c_inverse-1)/(3*r^4)",
+    "vacuum_constraint": "Q=c_constant^2-3*c_linear*c_inverse-1=0",
+    "quadratic_coefficient_free": true
+  },
+  "frozen_mk_point": {
+    "coefficients": {
+      "c_inverse": "-17/10",
+      "c_constant": "7/10",
+      "c_linear": "1/10",
+      "c_quadratic": "-1/100"
+    },
+    "Q": "0",
+    "linearized_constraint": "14*delta_c_constant-3*delta_c_inverse+51*delta_c_linear=0",
+    "coefficient_order": [
+      "delta_c_inverse",
+      "delta_c_constant",
+      "delta_c_linear",
+      "delta_c_quadratic"
+    ],
+    "tangent_basis": [
+      [
+        "1",
+        "3/14",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "-51/14",
+        "1",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "0",
+        "1"
+      ]
+    ],
+    "profile_basis": [
+      "1/r+3/14",
+      "r-51/14",
+      "r^2"
+    ],
+    "tangent_dimension": 3,
+    "tangent_basis_exactly_satisfies_linearized_constraint": true,
+    "c_quadratic_direction_unconstrained": true,
+    "parameter_directions_are_gauge": false
+  },
+  "negative_control": {
+    "mutation": "c_constant:7/10->11/10",
+    "Q": "18/25",
+    "B1_plus_B2": "0",
+    "B1_minus_B2_at_r3": "8/675",
+    "B1_minus_B2_at_r6": "1/1350",
+    "residual_ratio_r3_over_r6": "16"
+  },
+  "rust_oracle": {
+    "api": "static_spherical_bach_sum_factorized(radius,lapse_jet)",
+    "path": "crates/domains/symtropy-relativity/src/bach_static.rs",
+    "derivative_order": 4,
+    "tests_authored_not_executed": true
+  },
+  "claim_ceiling": "Static spherical pure Weyl-squared vacuum classification in the nonzero static domain only; no rotating or generic metric result."
+}

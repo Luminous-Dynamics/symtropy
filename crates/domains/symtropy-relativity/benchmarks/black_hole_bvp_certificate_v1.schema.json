@@ -1,0 +1,429 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/bach-taylor-jets-2026-11-18/crates/domains/symtropy-relativity/benchmarks/black_hole_bvp_certificate_v1.schema.json",
+  "title": "Black-hole radii-polynomial BVP certificate v1",
+  "description": "Schema for a future validated local-existence certificate. This schema is not itself a certificate and does not imply that any black-hole BVP has been solved.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "claim_ceiling",
+    "theory",
+    "equation",
+    "chart",
+    "domain",
+    "boundary_and_gauge",
+    "function_space",
+    "candidate",
+    "radii_polynomial",
+    "operator_evidence",
+    "verification",
+    "replay"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "verified_local_solution",
+        "inconclusive",
+        "invalid_certificate"
+      ]
+    },
+    "claim_ceiling": {
+      "const": "local existence/uniqueness only for the stated equation, function space, chart, domain, boundary/gauge conditions and parameter ball; no global uniqueness, horizon regularity, rotating branch, stability or observational claim"
+    },
+    "theory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "action_digest",
+        "normalization",
+        "couplings"
+      ],
+      "properties": {
+        "action_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "normalization": {
+          "type": "string",
+          "minLength": 1
+        },
+        "couplings": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "equation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "field_equation_id",
+        "field_equation_digest",
+        "index_convention",
+        "residual_definition"
+      ],
+      "properties": {
+        "field_equation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "field_equation_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "index_convention": {
+          "type": "string",
+          "minLength": 1
+        },
+        "residual_definition": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "chart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "chart_id",
+        "signature",
+        "coordinate_order",
+        "coordinate_units",
+        "metric_units"
+      ],
+      "properties": {
+        "chart_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signature": {
+          "enum": [
+            "-+++",
+            "+---"
+          ]
+        },
+        "coordinate_order": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "coordinate_units": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "metric_units": {
+          "type": "string"
+        }
+      }
+    },
+    "domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "coordinates",
+        "parameter_box",
+        "chart_domain_statement"
+      ],
+      "properties": {
+        "coordinates": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "parameter_box": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "chart_domain_statement": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "boundary_and_gauge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "boundary_conditions",
+        "normalization_conditions",
+        "free_parameters_accounted_for"
+      ],
+      "properties": {
+        "boundary_conditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "normalization_conditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "free_parameters_accounted_for": {
+          "type": "boolean"
+        }
+      }
+    },
+    "function_space": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain_space",
+        "codomain_space",
+        "basis",
+        "norm",
+        "derivative_domain"
+      ],
+      "properties": {
+        "domain_space": {
+          "type": "string"
+        },
+        "codomain_space": {
+          "type": "string"
+        },
+        "basis": {
+          "type": "string"
+        },
+        "norm": {
+          "type": "string"
+        },
+        "derivative_domain": {
+          "type": "string"
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "representation",
+        "coefficient_digest",
+        "truncation_order",
+        "candidate_generator"
+      ],
+      "properties": {
+        "representation": {
+          "type": "string"
+        },
+        "coefficient_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "truncation_order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "candidate_generator": {
+          "type": "string"
+        }
+      }
+    },
+    "radii_polynomial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "Y0",
+        "Z0",
+        "Z1",
+        "Z2",
+        "radius",
+        "polynomial_value",
+        "polynomial_negative",
+        "contraction_bound",
+        "contraction_less_than_one"
+      ],
+      "properties": {
+        "Y0": {
+          "type": "string",
+          "pattern": "^-?\\d+/\\d+$"
+        },
+        "Z0": {
+          "type": "string",
+          "pattern": "^-?\\d+/\\d+$"
+        },
+        "Z1": {
+          "type": "string",
+          "pattern": "^-?\\d+/\\d+$"
+        },
+        "Z2": {
+          "type": "string",
+          "pattern": "^-?\\d+/\\d+$"
+        },
+        "radius": {
+          "type": "string",
+          "pattern": "^-?\\d+/\\d+$"
+        },
+        "polynomial_value": {
+          "type": "string",
+          "pattern": "^-?\\d+/\\d+$"
+        },
+        "polynomial_negative": {
+          "const": true
+        },
+        "contraction_bound": {
+          "type": "string",
+          "pattern": "^-?\\d+/\\d+$"
+        },
+        "contraction_less_than_one": {
+          "const": true
+        }
+      }
+    },
+    "operator_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approximate_inverse_digest",
+        "linearization_digest",
+        "Y0_evidence_digest",
+        "Z0_evidence_digest",
+        "Z1_evidence_digest",
+        "Z2_evidence_digest",
+        "tail_bound_digest",
+        "boundary_bound_digest",
+        "injectivity_evidence_digest"
+      ],
+      "properties": {
+        "approximate_inverse_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "linearization_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "Y0_evidence_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "Z0_evidence_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "Z1_evidence_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "Z2_evidence_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tail_bound_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "boundary_bound_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "injectivity_evidence_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backend",
+        "precision_bits",
+        "interval_subdivision",
+        "lean_source_revision",
+        "lean_toolchain",
+        "mathlib_revision",
+        "leancert_revision",
+        "theorem_name",
+        "axiom_report_digest",
+        "lean_exit_code"
+      ],
+      "properties": {
+        "backend": {
+          "type": "string"
+        },
+        "precision_bits": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "interval_subdivision": {
+          "type": "string"
+        },
+        "lean_source_revision": {
+          "type": "string"
+        },
+        "lean_toolchain": {
+          "type": "string"
+        },
+        "mathlib_revision": {
+          "type": "string"
+        },
+        "leancert_revision": {
+          "type": "string"
+        },
+        "theorem_name": {
+          "type": "string"
+        },
+        "axiom_report_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "lean_exit_code": {
+          "type": "integer"
+        }
+      }
+    },
+    "replay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "input_manifest_digest",
+        "source_revision",
+        "stdout_digest",
+        "exit_status"
+      ],
+      "properties": {
+        "command": {
+          "type": "string"
+        },
+        "input_manifest_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_revision": {
+          "type": "string"
+        },
+        "stdout_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "exit_status": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

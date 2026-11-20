@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "near_extremal_eft_validity_benchmark_protocol",
+  "status": "protocol_only_no_symtropy_results_claimed",
+  "owner_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6014",
+  "protocol_document": "crates/domains/symtropy-relativity/benchmarks/near_extremal_eft_validity_protocol_v1.md",
+  "sources": [
+    {
+      "id": "near_extremal_eft_validity_2026",
+      "title": "Living on the edge of effective field theory: Near-extremal black holes in quadratic gravity",
+      "authors": [
+        "Kelvin Ka-Ho Lam",
+        "Gary T. Horowitz",
+        "Nicolás Yunes"
+      ],
+      "journal": "Physical Review D",
+      "volume": 114,
+      "article": 104044,
+      "publication_date": "2026-11-13",
+      "doi": "10.1103/ddyq-94zb",
+      "theories": [
+        "dynamical_Chern_Simons",
+        "scalar_Gauss_Bonnet"
+      ],
+      "comparator_role": "near-extremal background, regularity and EFT-validity controls",
+      "reported_observations": [
+        "dCS fixed-surface-gravity/fixed-horizon-angular-velocity family approaches an asymptotically flat extremal exterior with a deformed NHEK limit",
+        "sGB family develops logarithmic scalar horizon behaviour and a near-horizon boundary layer",
+        "finite scalar curvature invariants can coexist with divergent infalling-observer tidal forces"
+      ],
+      "transfer_limit": "Do not generalize theory-specific dCS/sGB conclusions to pure Weyl gravity."
+    },
+    {
+      "id": "high_spin_scalar_qnm_2026",
+      "title": "Quadratic gravity corrections to scalar quasinormal modes of rapidly rotating black holes",
+      "journal": "Physical Review D",
+      "volume": 114,
+      "article": 64072,
+      "publication_date": "2026-09-22",
+      "doi": "10.1103/jrnh-wsxw",
+      "theories": [
+        "dynamical_Chern_Simons",
+        "scalar_Gauss_Bonnet"
+      ],
+      "max_reported_dimensionless_spin": 0.99,
+      "reported_accuracy": {
+        "l=m=0": "approximately 1e-3 or better",
+        "higher_multipoles": "approximately 1e-6 or better"
+      },
+      "comparator_role": "matched scalar test-field QNM validation only"
+    },
+    {
+      "id": "akribeia_neural_spectral_2026",
+      "title": "Neural-spectral discovery of rotating black holes beyond general relativity",
+      "journal": "Physical Review D accepted paper",
+      "acceptance_date": "2026-11-12",
+      "doi": "10.1103/3kz2-6dvv",
+      "comparator_role": "neural discovery plus pseudo-spectral refinement method",
+      "transfer_limit": "Demonstrated higher-dimensional quadratic/cubic-curvature settings are not a matched 4D pure-Weyl benchmark."
+    }
+  ],
+  "independent_qualification_gates": [
+    "chart_regular",
+    "scalar_invariants_bounded",
+    "infalling_tidal_tensor_bounded_for_declared_observer",
+    "extra_fields_regular",
+    "near_horizon_boundary_layer_resolved",
+    "theory_specific_eft_expansion_ordered",
+    "spectral_residual_and_tail_bounded",
+    "perturbation_error_separated_from_background_error",
+    "observational_likelihood_calibrated"
+  ],
+  "family_parameters": [
+    "ADM_mass",
+    "ADM_angular_momentum",
+    "dimensionless_spin",
+    "surface_gravity_times_mass",
+    "horizon_angular_velocity_times_mass",
+    "horizon_area",
+    "theory_couplings_and_units",
+    "branch_identity",
+    "coordinate_chart_and_gauge"
+  ],
+  "observer_manifest_required": [
+    "geodesic_initial_data",
+    "conserved_energy_and_angular_momentum",
+    "four_velocity",
+    "orthonormal_tetrad",
+    "tetrad_transport_rule",
+    "tetrad_orientation",
+    "evaluation_radius_or_affine_parameter"
+  ],
+  "rules": {
+    "scalar_invariants_do_not_override_tidal_divergence": true,
+    "exact_extremality_is_not_finite_spin_extrapolation": true,
+    "theory_identity_must_match_qnm_comparator": true,
+    "eft_truncation_error_is_separate_from_numerical_error": true,
+    "unresolved_is_permitted": true
+  },
+  "validation_status": {
+    "protocol_authored": true,
+    "benchmark_data_reproduced_by_symtropy": false,
+    "rotating_dcs_sgb_background_reproduction": false,
+    "near_extremal_tidal_atlas_executed": false,
+    "qnm_reproduction_executed": false
+  },
+  "claim_ceiling": "A passing benchmark qualifies only the declared theory, branch, parameter range, chart, observer family and EFT truncation. It does not establish UV completion, global stability or observational viability."
+}

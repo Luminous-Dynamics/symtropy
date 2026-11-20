@@ -1,0 +1,2210 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_static_bd_hyperbolicity_reference_grid",
+  "status": "formula_generated_reference_grid_no_rotating_branch_classification",
+  "source_artifact": "static_bd_characteristic_speeds_v1.json",
+  "definitions": {
+    "lambda": "alpha/r_H^2",
+    "rho": "r/r_H",
+    "z": "lambda*(lambda+2)/rho^4",
+    "c_tensor": "(1+3*z)/(1+z)",
+    "c_vector": "1/(1+z)",
+    "c_scalar": "(1-z)/(1+z)",
+    "rho_critical": "[lambda*(lambda+2)]^(1/4)"
+  },
+  "exact_threshold": {
+    "lambda": "sqrt(2)-1",
+    "decimal": "0.41421356237309515",
+    "first_supercritical_grid_point": "0.42"
+  },
+  "grid": {
+    "lambda_start": "0.00",
+    "lambda_end": "3.00",
+    "step": "0.01",
+    "total_points": 301,
+    "static_subcritical_or_critical": 42,
+    "static_supercritical_points": 259,
+    "first_supercritical": {
+      "lambda": "0.42",
+      "z_h": "1.016400000000",
+      "c_scalar_horizon_limit": "-0.008133306884",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.004075023537"
+    },
+    "last_supercritical": {
+      "lambda": "3.00",
+      "z_h": "15.000000000000",
+      "c_scalar_horizon_limit": "-0.875000000000",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.967989671265"
+    }
+  },
+  "selected_points": [
+    {
+      "lambda": "0.00",
+      "z_h": "0.000000000000",
+      "c_scalar_horizon_limit": "1.000000000000",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.41",
+      "z_h": "0.988100000000",
+      "c_scalar_horizon_limit": "0.005985614406",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.42",
+      "z_h": "1.016400000000",
+      "c_scalar_horizon_limit": "-0.008133306884",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.004075023537"
+    },
+    {
+      "lambda": "0.50",
+      "z_h": "1.250000000000",
+      "c_scalar_horizon_limit": "-0.111111111111",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.057371263441"
+    },
+    {
+      "lambda": "0.70",
+      "z_h": "1.890000000000",
+      "c_scalar_horizon_limit": "-0.307958477509",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.172507018523"
+    },
+    {
+      "lambda": "1.00",
+      "z_h": "3.000000000000",
+      "c_scalar_horizon_limit": "-0.500000000000",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.316074012952"
+    },
+    {
+      "lambda": "2.00",
+      "z_h": "8.000000000000",
+      "c_scalar_horizon_limit": "-0.777777777778",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.681792830507"
+    },
+    {
+      "lambda": "3.00",
+      "z_h": "15.000000000000",
+      "c_scalar_horizon_limit": "-0.875000000000",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.967989671265"
+    }
+  ],
+  "points": [
+    {
+      "lambda": "0.00",
+      "z_h": "0.000000000000",
+      "c_scalar_horizon_limit": "1.000000000000",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.01",
+      "z_h": "0.020100000000",
+      "c_scalar_horizon_limit": "0.960592098814",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.02",
+      "z_h": "0.040400000000",
+      "c_scalar_horizon_limit": "0.922337562476",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.03",
+      "z_h": "0.060900000000",
+      "c_scalar_horizon_limit": "0.885191818268",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.04",
+      "z_h": "0.081600000000",
+      "c_scalar_horizon_limit": "0.849112426036",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.05",
+      "z_h": "0.102500000000",
+      "c_scalar_horizon_limit": "0.814058956916",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.06",
+      "z_h": "0.123600000000",
+      "c_scalar_horizon_limit": "0.779992880028",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.07",
+      "z_h": "0.144900000000",
+      "c_scalar_horizon_limit": "0.746877456546",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.08",
+      "z_h": "0.166400000000",
+      "c_scalar_horizon_limit": "0.714677640604",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.09",
+      "z_h": "0.188100000000",
+      "c_scalar_horizon_limit": "0.683359986533",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.10",
+      "z_h": "0.210000000000",
+      "c_scalar_horizon_limit": "0.652892561983",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.11",
+      "z_h": "0.232100000000",
+      "c_scalar_horizon_limit": "0.623244866488",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.12",
+      "z_h": "0.254400000000",
+      "c_scalar_horizon_limit": "0.594387755102",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.13",
+      "z_h": "0.276900000000",
+      "c_scalar_horizon_limit": "0.566293366748",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.14",
+      "z_h": "0.299600000000",
+      "c_scalar_horizon_limit": "0.538935056941",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.15",
+      "z_h": "0.322500000000",
+      "c_scalar_horizon_limit": "0.512287334594",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.16",
+      "z_h": "0.345600000000",
+      "c_scalar_horizon_limit": "0.486325802616",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.17",
+      "z_h": "0.368900000000",
+      "c_scalar_horizon_limit": "0.461027102053",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.18",
+      "z_h": "0.392400000000",
+      "c_scalar_horizon_limit": "0.436368859523",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.19",
+      "z_h": "0.416100000000",
+      "c_scalar_horizon_limit": "0.412329637737",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.20",
+      "z_h": "0.440000000000",
+      "c_scalar_horizon_limit": "0.388888888889",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.21",
+      "z_h": "0.464100000000",
+      "c_scalar_horizon_limit": "0.366026910730",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.22",
+      "z_h": "0.488400000000",
+      "c_scalar_horizon_limit": "0.343724805160",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.23",
+      "z_h": "0.512900000000",
+      "c_scalar_horizon_limit": "0.321964439157",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.24",
+      "z_h": "0.537600000000",
+      "c_scalar_horizon_limit": "0.300728407908",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.25",
+      "z_h": "0.562500000000",
+      "c_scalar_horizon_limit": "0.280000000000",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.26",
+      "z_h": "0.587600000000",
+      "c_scalar_horizon_limit": "0.259763164525",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.27",
+      "z_h": "0.612900000000",
+      "c_scalar_horizon_limit": "0.240002480005",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.28",
+      "z_h": "0.638400000000",
+      "c_scalar_horizon_limit": "0.220703125000",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.29",
+      "z_h": "0.664100000000",
+      "c_scalar_horizon_limit": "0.201850850309",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.30",
+      "z_h": "0.690000000000",
+      "c_scalar_horizon_limit": "0.183431952663",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.31",
+      "z_h": "0.716100000000",
+      "c_scalar_horizon_limit": "0.165433249811",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.32",
+      "z_h": "0.742400000000",
+      "c_scalar_horizon_limit": "0.147842056933",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.33",
+      "z_h": "0.768900000000",
+      "c_scalar_horizon_limit": "0.130646164283",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.34",
+      "z_h": "0.795600000000",
+      "c_scalar_horizon_limit": "0.113833815995",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.35",
+      "z_h": "0.822500000000",
+      "c_scalar_horizon_limit": "0.097393689986",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.36",
+      "z_h": "0.849600000000",
+      "c_scalar_horizon_limit": "0.081314878893",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.37",
+      "z_h": "0.876900000000",
+      "c_scalar_horizon_limit": "0.065586871970",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.38",
+      "z_h": "0.904400000000",
+      "c_scalar_horizon_limit": "0.050199537912",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.39",
+      "z_h": "0.932100000000",
+      "c_scalar_horizon_limit": "0.035143108535",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.40",
+      "z_h": "0.960000000000",
+      "c_scalar_horizon_limit": "0.020408163265",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.41",
+      "z_h": "0.988100000000",
+      "c_scalar_horizon_limit": "0.005985614406",
+      "classification": "subcritical_all_open_exterior_static_sectors_lorentzian",
+      "rho_critical": null
+    },
+    {
+      "lambda": "0.42",
+      "z_h": "1.016400000000",
+      "c_scalar_horizon_limit": "-0.008133306884",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.004075023537"
+    },
+    {
+      "lambda": "0.43",
+      "z_h": "1.044900000000",
+      "c_scalar_horizon_limit": "-0.021957063915",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.011040801473"
+    },
+    {
+      "lambda": "0.44",
+      "z_h": "1.073600000000",
+      "c_scalar_horizon_limit": "-0.035493827160",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.017912917572"
+    },
+    {
+      "lambda": "0.45",
+      "z_h": "1.102500000000",
+      "c_scalar_horizon_limit": "-0.048751486326",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.024695076596"
+    },
+    {
+      "lambda": "0.46",
+      "z_h": "1.131600000000",
+      "c_scalar_horizon_limit": "-0.061737661850",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.031390756095"
+    },
+    {
+      "lambda": "0.47",
+      "z_h": "1.160900000000",
+      "c_scalar_horizon_limit": "-0.074459715859",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.038003224912"
+    },
+    {
+      "lambda": "0.48",
+      "z_h": "1.190400000000",
+      "c_scalar_horizon_limit": "-0.086924762600",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.044535559835"
+    },
+    {
+      "lambda": "0.49",
+      "z_h": "1.220100000000",
+      "c_scalar_horizon_limit": "-0.099139678393",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.050990660598"
+    },
+    {
+      "lambda": "0.50",
+      "z_h": "1.250000000000",
+      "c_scalar_horizon_limit": "-0.111111111111",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.057371263441"
+    },
+    {
+      "lambda": "0.51",
+      "z_h": "1.280100000000",
+      "c_scalar_horizon_limit": "-0.122845489233",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.063679953374"
+    },
+    {
+      "lambda": "0.52",
+      "z_h": "1.310400000000",
+      "c_scalar_horizon_limit": "-0.134349030471",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.069919175312"
+    },
+    {
+      "lambda": "0.53",
+      "z_h": "1.340900000000",
+      "c_scalar_horizon_limit": "-0.145627750011",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.076091244188"
+    },
+    {
+      "lambda": "0.54",
+      "z_h": "1.371600000000",
+      "c_scalar_horizon_limit": "-0.156687468376",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.082198354165"
+    },
+    {
+      "lambda": "0.55",
+      "z_h": "1.402500000000",
+      "c_scalar_horizon_limit": "-0.167533818939",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.088242587033"
+    },
+    {
+      "lambda": "0.56",
+      "z_h": "1.433600000000",
+      "c_scalar_horizon_limit": "-0.178172255095",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.094225919894"
+    },
+    {
+      "lambda": "0.57",
+      "z_h": "1.464900000000",
+      "c_scalar_horizon_limit": "-0.188608057122",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.100150232181"
+    },
+    {
+      "lambda": "0.58",
+      "z_h": "1.496400000000",
+      "c_scalar_horizon_limit": "-0.198846338728",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.106017312102"
+    },
+    {
+      "lambda": "0.59",
+      "z_h": "1.528100000000",
+      "c_scalar_horizon_limit": "-0.208892053321",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.111828862558"
+    },
+    {
+      "lambda": "0.60",
+      "z_h": "1.560000000000",
+      "c_scalar_horizon_limit": "-0.218750000000",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.117586506576"
+    },
+    {
+      "lambda": "0.61",
+      "z_h": "1.592100000000",
+      "c_scalar_horizon_limit": "-0.228424829289",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.123291792318"
+    },
+    {
+      "lambda": "0.62",
+      "z_h": "1.624400000000",
+      "c_scalar_horizon_limit": "-0.237921048621",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.128946197703"
+    },
+    {
+      "lambda": "0.63",
+      "z_h": "1.656900000000",
+      "c_scalar_horizon_limit": "-0.247243027589",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.134551134668"
+    },
+    {
+      "lambda": "0.64",
+      "z_h": "1.689600000000",
+      "c_scalar_horizon_limit": "-0.256395002974",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.140107953109"
+    },
+    {
+      "lambda": "0.65",
+      "z_h": "1.722500000000",
+      "c_scalar_horizon_limit": "-0.265381083563",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.145617944535"
+    },
+    {
+      "lambda": "0.66",
+      "z_h": "1.755600000000",
+      "c_scalar_horizon_limit": "-0.274205254754",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.151082345449"
+    },
+    {
+      "lambda": "0.67",
+      "z_h": "1.788900000000",
+      "c_scalar_horizon_limit": "-0.282871382983",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.156502340486"
+    },
+    {
+      "lambda": "0.68",
+      "z_h": "1.822400000000",
+      "c_scalar_horizon_limit": "-0.291383219955",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.161879065331"
+    },
+    {
+      "lambda": "0.69",
+      "z_h": "1.856100000000",
+      "c_scalar_horizon_limit": "-0.299744406708",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.167213609432"
+    },
+    {
+      "lambda": "0.70",
+      "z_h": "1.890000000000",
+      "c_scalar_horizon_limit": "-0.307958477509",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.172507018523"
+    },
+    {
+      "lambda": "0.71",
+      "z_h": "1.924100000000",
+      "c_scalar_horizon_limit": "-0.316028863582",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.177760296982"
+    },
+    {
+      "lambda": "0.72",
+      "z_h": "1.958400000000",
+      "c_scalar_horizon_limit": "-0.323958896701",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.182974410020"
+    },
+    {
+      "lambda": "0.73",
+      "z_h": "1.992900000000",
+      "c_scalar_horizon_limit": "-0.331751812623",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.188150285742"
+    },
+    {
+      "lambda": "0.74",
+      "z_h": "2.027600000000",
+      "c_scalar_horizon_limit": "-0.339410754393",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.193288817054"
+    },
+    {
+      "lambda": "0.75",
+      "z_h": "2.062500000000",
+      "c_scalar_horizon_limit": "-0.346938775510",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.198390863464"
+    },
+    {
+      "lambda": "0.76",
+      "z_h": "2.097600000000",
+      "c_scalar_horizon_limit": "-0.354338842975",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.203457252759"
+    },
+    {
+      "lambda": "0.77",
+      "z_h": "2.132900000000",
+      "c_scalar_horizon_limit": "-0.361613840212",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.208488782580"
+    },
+    {
+      "lambda": "0.78",
+      "z_h": "2.168400000000",
+      "c_scalar_horizon_limit": "-0.368766569878",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.213486221898"
+    },
+    {
+      "lambda": "0.79",
+      "z_h": "2.204100000000",
+      "c_scalar_horizon_limit": "-0.375799756562",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.218450312405"
+    },
+    {
+      "lambda": "0.80",
+      "z_h": "2.240000000000",
+      "c_scalar_horizon_limit": "-0.382716049383",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.223381769813"
+    },
+    {
+      "lambda": "0.81",
+      "z_h": "2.276100000000",
+      "c_scalar_horizon_limit": "-0.389518024480",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.228281285082"
+    },
+    {
+      "lambda": "0.82",
+      "z_h": "2.312400000000",
+      "c_scalar_horizon_limit": "-0.396208187417",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.233149525573"
+    },
+    {
+      "lambda": "0.83",
+      "z_h": "2.348900000000",
+      "c_scalar_horizon_limit": "-0.402788975484",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.237987136137"
+    },
+    {
+      "lambda": "0.84",
+      "z_h": "2.385600000000",
+      "c_scalar_horizon_limit": "-0.409262759924",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.242794740134"
+    },
+    {
+      "lambda": "0.85",
+      "z_h": "2.422500000000",
+      "c_scalar_horizon_limit": "-0.415631848064",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.247572940404"
+    },
+    {
+      "lambda": "0.86",
+      "z_h": "2.459600000000",
+      "c_scalar_horizon_limit": "-0.421898485374",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.252322320175"
+    },
+    {
+      "lambda": "0.87",
+      "z_h": "2.496900000000",
+      "c_scalar_horizon_limit": "-0.428064857445",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.257043443929"
+    },
+    {
+      "lambda": "0.88",
+      "z_h": "2.534400000000",
+      "c_scalar_horizon_limit": "-0.434133091897",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.261736858212"
+    },
+    {
+      "lambda": "0.89",
+      "z_h": "2.572100000000",
+      "c_scalar_horizon_limit": "-0.440105260211",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.266403092404"
+    },
+    {
+      "lambda": "0.90",
+      "z_h": "2.610000000000",
+      "c_scalar_horizon_limit": "-0.445983379501",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.271042659449"
+    },
+    {
+      "lambda": "0.91",
+      "z_h": "2.648100000000",
+      "c_scalar_horizon_limit": "-0.451769414216",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.275656056548"
+    },
+    {
+      "lambda": "0.92",
+      "z_h": "2.686400000000",
+      "c_scalar_horizon_limit": "-0.457465277778",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.280243765805"
+    },
+    {
+      "lambda": "0.93",
+      "z_h": "2.724900000000",
+      "c_scalar_horizon_limit": "-0.463072834170",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.284806254856"
+    },
+    {
+      "lambda": "0.94",
+      "z_h": "2.763600000000",
+      "c_scalar_horizon_limit": "-0.468593899458",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.289343977450"
+    },
+    {
+      "lambda": "0.95",
+      "z_h": "2.802500000000",
+      "c_scalar_horizon_limit": "-0.474030243261",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.293857374009"
+    },
+    {
+      "lambda": "0.96",
+      "z_h": "2.841600000000",
+      "c_scalar_horizon_limit": "-0.479383590171",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.298346872163"
+    },
+    {
+      "lambda": "0.97",
+      "z_h": "2.880900000000",
+      "c_scalar_horizon_limit": "-0.484655621119",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.302812887247"
+    },
+    {
+      "lambda": "0.98",
+      "z_h": "2.920400000000",
+      "c_scalar_horizon_limit": "-0.489847974696",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.307255822784"
+    },
+    {
+      "lambda": "0.99",
+      "z_h": "2.960100000000",
+      "c_scalar_horizon_limit": "-0.494962248428",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.311676070939"
+    },
+    {
+      "lambda": "1.00",
+      "z_h": "3.000000000000",
+      "c_scalar_horizon_limit": "-0.500000000000",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.316074012952"
+    },
+    {
+      "lambda": "1.01",
+      "z_h": "3.040100000000",
+      "c_scalar_horizon_limit": "-0.504962748447",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.320450019557"
+    },
+    {
+      "lambda": "1.02",
+      "z_h": "3.080400000000",
+      "c_scalar_horizon_limit": "-0.509851975297",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.324804451364"
+    },
+    {
+      "lambda": "1.03",
+      "z_h": "3.120900000000",
+      "c_scalar_horizon_limit": "-0.514669125676",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.329137659247"
+    },
+    {
+      "lambda": "1.04",
+      "z_h": "3.161600000000",
+      "c_scalar_horizon_limit": "-0.519415609381",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.333449984691"
+    },
+    {
+      "lambda": "1.05",
+      "z_h": "3.202500000000",
+      "c_scalar_horizon_limit": "-0.524092801904",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.337741760138"
+    },
+    {
+      "lambda": "1.06",
+      "z_h": "3.243600000000",
+      "c_scalar_horizon_limit": "-0.528702045433",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.342013309314"
+    },
+    {
+      "lambda": "1.07",
+      "z_h": "3.284900000000",
+      "c_scalar_horizon_limit": "-0.533244649817",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.346264947537"
+    },
+    {
+      "lambda": "1.08",
+      "z_h": "3.326400000000",
+      "c_scalar_horizon_limit": "-0.537721893491",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.350496982014"
+    },
+    {
+      "lambda": "1.09",
+      "z_h": "3.368100000000",
+      "c_scalar_horizon_limit": "-0.542135024381",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.354709712127"
+    },
+    {
+      "lambda": "1.10",
+      "z_h": "3.410000000000",
+      "c_scalar_horizon_limit": "-0.546485260771",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.358903429704"
+    },
+    {
+      "lambda": "1.11",
+      "z_h": "3.452100000000",
+      "c_scalar_horizon_limit": "-0.550773792143",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.363078419277"
+    },
+    {
+      "lambda": "1.12",
+      "z_h": "3.494400000000",
+      "c_scalar_horizon_limit": "-0.555001779993",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.367234958333"
+    },
+    {
+      "lambda": "1.13",
+      "z_h": "3.536900000000",
+      "c_scalar_horizon_limit": "-0.559170358615",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.371373317548"
+    },
+    {
+      "lambda": "1.14",
+      "z_h": "3.579600000000",
+      "c_scalar_horizon_limit": "-0.563280635863",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.375493761020"
+    },
+    {
+      "lambda": "1.15",
+      "z_h": "3.622500000000",
+      "c_scalar_horizon_limit": "-0.567333693889",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.379596546483"
+    },
+    {
+      "lambda": "1.16",
+      "z_h": "3.665600000000",
+      "c_scalar_horizon_limit": "-0.571330589849",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.383681925518"
+    },
+    {
+      "lambda": "1.17",
+      "z_h": "3.708900000000",
+      "c_scalar_horizon_limit": "-0.575272356601",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.387750143752"
+    },
+    {
+      "lambda": "1.18",
+      "z_h": "3.752400000000",
+      "c_scalar_horizon_limit": "-0.579160003367",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.391801441055"
+    },
+    {
+      "lambda": "1.19",
+      "z_h": "3.796100000000",
+      "c_scalar_horizon_limit": "-0.582994516378",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.395836051717"
+    },
+    {
+      "lambda": "1.20",
+      "z_h": "3.840000000000",
+      "c_scalar_horizon_limit": "-0.586776859504",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.399854204632"
+    },
+    {
+      "lambda": "1.21",
+      "z_h": "3.884100000000",
+      "c_scalar_horizon_limit": "-0.590507974857",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.403856123464"
+    },
+    {
+      "lambda": "1.22",
+      "z_h": "3.928400000000",
+      "c_scalar_horizon_limit": "-0.594188783378",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.407842026813"
+    },
+    {
+      "lambda": "1.23",
+      "z_h": "3.972900000000",
+      "c_scalar_horizon_limit": "-0.597820185405",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.411812128368"
+    },
+    {
+      "lambda": "1.24",
+      "z_h": "4.017600000000",
+      "c_scalar_horizon_limit": "-0.601403061224",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.415766637062"
+    },
+    {
+      "lambda": "1.25",
+      "z_h": "4.062500000000",
+      "c_scalar_horizon_limit": "-0.604938271605",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.419705757217"
+    },
+    {
+      "lambda": "1.26",
+      "z_h": "4.107600000000",
+      "c_scalar_horizon_limit": "-0.608426658313",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.423629688678"
+    },
+    {
+      "lambda": "1.27",
+      "z_h": "4.152900000000",
+      "c_scalar_horizon_limit": "-0.611869044616",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.427538626955"
+    },
+    {
+      "lambda": "1.28",
+      "z_h": "4.198400000000",
+      "c_scalar_horizon_limit": "-0.615266235765",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.431432763345"
+    },
+    {
+      "lambda": "1.29",
+      "z_h": "4.244100000000",
+      "c_scalar_horizon_limit": "-0.618619019469",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.435312285062"
+    },
+    {
+      "lambda": "1.30",
+      "z_h": "4.290000000000",
+      "c_scalar_horizon_limit": "-0.621928166352",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.439177375351"
+    },
+    {
+      "lambda": "1.31",
+      "z_h": "4.336100000000",
+      "c_scalar_horizon_limit": "-0.625194430389",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.443028213608"
+    },
+    {
+      "lambda": "1.32",
+      "z_h": "4.382400000000",
+      "c_scalar_horizon_limit": "-0.628418549346",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.446864975490"
+    },
+    {
+      "lambda": "1.33",
+      "z_h": "4.428900000000",
+      "c_scalar_horizon_limit": "-0.631601245188",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.450687833021"
+    },
+    {
+      "lambda": "1.34",
+      "z_h": "4.475600000000",
+      "c_scalar_horizon_limit": "-0.634743224487",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.454496954694"
+    },
+    {
+      "lambda": "1.35",
+      "z_h": "4.522500000000",
+      "c_scalar_horizon_limit": "-0.637845178814",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.458292505574"
+    },
+    {
+      "lambda": "1.36",
+      "z_h": "4.569600000000",
+      "c_scalar_horizon_limit": "-0.640907785119",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.462074647390"
+    },
+    {
+      "lambda": "1.37",
+      "z_h": "4.616900000000",
+      "c_scalar_horizon_limit": "-0.643931706101",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.465843538632"
+    },
+    {
+      "lambda": "1.38",
+      "z_h": "4.664400000000",
+      "c_scalar_horizon_limit": "-0.646917590566",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.469599334635"
+    },
+    {
+      "lambda": "1.39",
+      "z_h": "4.712100000000",
+      "c_scalar_horizon_limit": "-0.649866073773",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.473342187669"
+    },
+    {
+      "lambda": "1.40",
+      "z_h": "4.760000000000",
+      "c_scalar_horizon_limit": "-0.652777777778",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.477072247024"
+    },
+    {
+      "lambda": "1.41",
+      "z_h": "4.808100000000",
+      "c_scalar_horizon_limit": "-0.655653311754",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.480789659083"
+    },
+    {
+      "lambda": "1.42",
+      "z_h": "4.856400000000",
+      "c_scalar_horizon_limit": "-0.658493272317",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.484494567408"
+    },
+    {
+      "lambda": "1.43",
+      "z_h": "4.904900000000",
+      "c_scalar_horizon_limit": "-0.661298243831",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.488187112811"
+    },
+    {
+      "lambda": "1.44",
+      "z_h": "4.953600000000",
+      "c_scalar_horizon_limit": "-0.664068798710",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.491867433427"
+    },
+    {
+      "lambda": "1.45",
+      "z_h": "5.002500000000",
+      "c_scalar_horizon_limit": "-0.666805497709",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.495535664782"
+    },
+    {
+      "lambda": "1.46",
+      "z_h": "5.051600000000",
+      "c_scalar_horizon_limit": "-0.669508890211",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.499191939866"
+    },
+    {
+      "lambda": "1.47",
+      "z_h": "5.100900000000",
+      "c_scalar_horizon_limit": "-0.672179514498",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.502836389194"
+    },
+    {
+      "lambda": "1.48",
+      "z_h": "5.150400000000",
+      "c_scalar_horizon_limit": "-0.674817898023",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.506469140872"
+    },
+    {
+      "lambda": "1.49",
+      "z_h": "5.200100000000",
+      "c_scalar_horizon_limit": "-0.677424557668",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.510090320657"
+    },
+    {
+      "lambda": "1.50",
+      "z_h": "5.250000000000",
+      "c_scalar_horizon_limit": "-0.680000000000",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.513700052018"
+    },
+    {
+      "lambda": "1.51",
+      "z_h": "5.300100000000",
+      "c_scalar_horizon_limit": "-0.682544721512",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.517298456189"
+    },
+    {
+      "lambda": "1.52",
+      "z_h": "5.350400000000",
+      "c_scalar_horizon_limit": "-0.685059208869",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.520885652233"
+    },
+    {
+      "lambda": "1.53",
+      "z_h": "5.400900000000",
+      "c_scalar_horizon_limit": "-0.687543939134",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.524461757088"
+    },
+    {
+      "lambda": "1.54",
+      "z_h": "5.451600000000",
+      "c_scalar_horizon_limit": "-0.689999379999",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.528026885623"
+    },
+    {
+      "lambda": "1.55",
+      "z_h": "5.502500000000",
+      "c_scalar_horizon_limit": "-0.692425990004",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.531581150690"
+    },
+    {
+      "lambda": "1.56",
+      "z_h": "5.553600000000",
+      "c_scalar_horizon_limit": "-0.694824218750",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.535124663167"
+    },
+    {
+      "lambda": "1.57",
+      "z_h": "5.604900000000",
+      "c_scalar_horizon_limit": "-0.697194507108",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.538657532015"
+    },
+    {
+      "lambda": "1.58",
+      "z_h": "5.656400000000",
+      "c_scalar_horizon_limit": "-0.699537287423",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.542179864314"
+    },
+    {
+      "lambda": "1.59",
+      "z_h": "5.708100000000",
+      "c_scalar_horizon_limit": "-0.701852983706",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.545691765316"
+    },
+    {
+      "lambda": "1.60",
+      "z_h": "5.760000000000",
+      "c_scalar_horizon_limit": "-0.704142011834",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.549193338483"
+    },
+    {
+      "lambda": "1.61",
+      "z_h": "5.812100000000",
+      "c_scalar_horizon_limit": "-0.706404779730",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.552684685532"
+    },
+    {
+      "lambda": "1.62",
+      "z_h": "5.864400000000",
+      "c_scalar_horizon_limit": "-0.708641687547",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.556165906474"
+    },
+    {
+      "lambda": "1.63",
+      "z_h": "5.916900000000",
+      "c_scalar_horizon_limit": "-0.710853127846",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.559637099656"
+    },
+    {
+      "lambda": "1.64",
+      "z_h": "5.969600000000",
+      "c_scalar_horizon_limit": "-0.713039485767",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.563098361797"
+    },
+    {
+      "lambda": "1.65",
+      "z_h": "6.022500000000",
+      "c_scalar_horizon_limit": "-0.715201139195",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.566549788025"
+    },
+    {
+      "lambda": "1.66",
+      "z_h": "6.075600000000",
+      "c_scalar_horizon_limit": "-0.717338458929",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.569991471917"
+    },
+    {
+      "lambda": "1.67",
+      "z_h": "6.128900000000",
+      "c_scalar_horizon_limit": "-0.719451808834",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.573423505530"
+    },
+    {
+      "lambda": "1.68",
+      "z_h": "6.182400000000",
+      "c_scalar_horizon_limit": "-0.721541546001",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.576845979437"
+    },
+    {
+      "lambda": "1.69",
+      "z_h": "6.236100000000",
+      "c_scalar_horizon_limit": "-0.723608020895",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.580258982762"
+    },
+    {
+      "lambda": "1.70",
+      "z_h": "6.290000000000",
+      "c_scalar_horizon_limit": "-0.725651577503",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.583662603207"
+    },
+    {
+      "lambda": "1.71",
+      "z_h": "6.344100000000",
+      "c_scalar_horizon_limit": "-0.727672553478",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.587056927091"
+    },
+    {
+      "lambda": "1.72",
+      "z_h": "6.398400000000",
+      "c_scalar_horizon_limit": "-0.729671280277",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.590442039372"
+    },
+    {
+      "lambda": "1.73",
+      "z_h": "6.452900000000",
+      "c_scalar_horizon_limit": "-0.731648083296",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.593818023685"
+    },
+    {
+      "lambda": "1.74",
+      "z_h": "6.507600000000",
+      "c_scalar_horizon_limit": "-0.733603282008",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.597184962363"
+    },
+    {
+      "lambda": "1.75",
+      "z_h": "6.562500000000",
+      "c_scalar_horizon_limit": "-0.735537190083",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.600542936472"
+    },
+    {
+      "lambda": "1.76",
+      "z_h": "6.617600000000",
+      "c_scalar_horizon_limit": "-0.737450115522",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.603892025833"
+    },
+    {
+      "lambda": "1.77",
+      "z_h": "6.672900000000",
+      "c_scalar_horizon_limit": "-0.739342360776",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.607232309051"
+    },
+    {
+      "lambda": "1.78",
+      "z_h": "6.728400000000",
+      "c_scalar_horizon_limit": "-0.741214222866",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.610563863542"
+    },
+    {
+      "lambda": "1.79",
+      "z_h": "6.784100000000",
+      "c_scalar_horizon_limit": "-0.743065993500",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.613886765553"
+    },
+    {
+      "lambda": "1.80",
+      "z_h": "6.840000000000",
+      "c_scalar_horizon_limit": "-0.744897959184",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.617201090194"
+    },
+    {
+      "lambda": "1.81",
+      "z_h": "6.896100000000",
+      "c_scalar_horizon_limit": "-0.746710401337",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.620506911455"
+    },
+    {
+      "lambda": "1.82",
+      "z_h": "6.952400000000",
+      "c_scalar_horizon_limit": "-0.748503596399",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.623804302232"
+    },
+    {
+      "lambda": "1.83",
+      "z_h": "7.008900000000",
+      "c_scalar_horizon_limit": "-0.750277815930",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.627093334352"
+    },
+    {
+      "lambda": "1.84",
+      "z_h": "7.065600000000",
+      "c_scalar_horizon_limit": "-0.752033326721",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.630374078589"
+    },
+    {
+      "lambda": "1.85",
+      "z_h": "7.122500000000",
+      "c_scalar_horizon_limit": "-0.753770390890",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.633646604690"
+    },
+    {
+      "lambda": "1.86",
+      "z_h": "7.179600000000",
+      "c_scalar_horizon_limit": "-0.755489265979",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.636910981397"
+    },
+    {
+      "lambda": "1.87",
+      "z_h": "7.236900000000",
+      "c_scalar_horizon_limit": "-0.757190205053",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.640167276461"
+    },
+    {
+      "lambda": "1.88",
+      "z_h": "7.294400000000",
+      "c_scalar_horizon_limit": "-0.758873456790",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.643415556669"
+    },
+    {
+      "lambda": "1.89",
+      "z_h": "7.352100000000",
+      "c_scalar_horizon_limit": "-0.760539265574",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.646655887859"
+    },
+    {
+      "lambda": "1.90",
+      "z_h": "7.410000000000",
+      "c_scalar_horizon_limit": "-0.762187871581",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.649888334938"
+    },
+    {
+      "lambda": "1.91",
+      "z_h": "7.468100000000",
+      "c_scalar_horizon_limit": "-0.763819510870",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.653112961904"
+    },
+    {
+      "lambda": "1.92",
+      "z_h": "7.526400000000",
+      "c_scalar_horizon_limit": "-0.765434415463",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.656329831862"
+    },
+    {
+      "lambda": "1.93",
+      "z_h": "7.584900000000",
+      "c_scalar_horizon_limit": "-0.767032813428",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.659539007042"
+    },
+    {
+      "lambda": "1.94",
+      "z_h": "7.643600000000",
+      "c_scalar_horizon_limit": "-0.768614928965",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.662740548813"
+    },
+    {
+      "lambda": "1.95",
+      "z_h": "7.702500000000",
+      "c_scalar_horizon_limit": "-0.770180982476",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.665934517703"
+    },
+    {
+      "lambda": "1.96",
+      "z_h": "7.761600000000",
+      "c_scalar_horizon_limit": "-0.771731190650",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.669120973416"
+    },
+    {
+      "lambda": "1.97",
+      "z_h": "7.820900000000",
+      "c_scalar_horizon_limit": "-0.773265766532",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.672299974844"
+    },
+    {
+      "lambda": "1.98",
+      "z_h": "7.880400000000",
+      "c_scalar_horizon_limit": "-0.774784919598",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.675471580084"
+    },
+    {
+      "lambda": "1.99",
+      "z_h": "7.940100000000",
+      "c_scalar_horizon_limit": "-0.776288855829",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.678635846454"
+    },
+    {
+      "lambda": "2.00",
+      "z_h": "8.000000000000",
+      "c_scalar_horizon_limit": "-0.777777777778",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.681792830507"
+    },
+    {
+      "lambda": "2.01",
+      "z_h": "8.060100000000",
+      "c_scalar_horizon_limit": "-0.779251884637",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.684942588046"
+    },
+    {
+      "lambda": "2.02",
+      "z_h": "8.120400000000",
+      "c_scalar_horizon_limit": "-0.780711372308",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.688085174134"
+    },
+    {
+      "lambda": "2.03",
+      "z_h": "8.180900000000",
+      "c_scalar_horizon_limit": "-0.782156433465",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.691220643115"
+    },
+    {
+      "lambda": "2.04",
+      "z_h": "8.241600000000",
+      "c_scalar_horizon_limit": "-0.783587257618",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.694349048620"
+    },
+    {
+      "lambda": "2.05",
+      "z_h": "8.302500000000",
+      "c_scalar_horizon_limit": "-0.785004031174",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.697470443585"
+    },
+    {
+      "lambda": "2.06",
+      "z_h": "8.363600000000",
+      "c_scalar_horizon_limit": "-0.786406937503",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.700584880261"
+    },
+    {
+      "lambda": "2.07",
+      "z_h": "8.424900000000",
+      "c_scalar_horizon_limit": "-0.787796156988",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.703692410227"
+    },
+    {
+      "lambda": "2.08",
+      "z_h": "8.486400000000",
+      "c_scalar_horizon_limit": "-0.789171867094",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.706793084403"
+    },
+    {
+      "lambda": "2.09",
+      "z_h": "8.548100000000",
+      "c_scalar_horizon_limit": "-0.790534242415",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.709886953060"
+    },
+    {
+      "lambda": "2.10",
+      "z_h": "8.610000000000",
+      "c_scalar_horizon_limit": "-0.791883454735",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.712974065835"
+    },
+    {
+      "lambda": "2.11",
+      "z_h": "8.672100000000",
+      "c_scalar_horizon_limit": "-0.793219673080",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.716054471738"
+    },
+    {
+      "lambda": "2.12",
+      "z_h": "8.734400000000",
+      "c_scalar_horizon_limit": "-0.794543063774",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.719128219165"
+    },
+    {
+      "lambda": "2.13",
+      "z_h": "8.796900000000",
+      "c_scalar_horizon_limit": "-0.795853790485",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.722195355911"
+    },
+    {
+      "lambda": "2.14",
+      "z_h": "8.859600000000",
+      "c_scalar_horizon_limit": "-0.797152014280",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.725255929175"
+    },
+    {
+      "lambda": "2.15",
+      "z_h": "8.922500000000",
+      "c_scalar_horizon_limit": "-0.798437893676",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.728309985578"
+    },
+    {
+      "lambda": "2.16",
+      "z_h": "8.985600000000",
+      "c_scalar_horizon_limit": "-0.799711584682",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.731357571165"
+    },
+    {
+      "lambda": "2.17",
+      "z_h": "9.048900000000",
+      "c_scalar_horizon_limit": "-0.800973240852",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.734398731421"
+    },
+    {
+      "lambda": "2.18",
+      "z_h": "9.112400000000",
+      "c_scalar_horizon_limit": "-0.802223013330",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.737433511278"
+    },
+    {
+      "lambda": "2.19",
+      "z_h": "9.176100000000",
+      "c_scalar_horizon_limit": "-0.803461050894",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.740461955124"
+    },
+    {
+      "lambda": "2.20",
+      "z_h": "9.240000000000",
+      "c_scalar_horizon_limit": "-0.804687500000",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.743484106814"
+    },
+    {
+      "lambda": "2.21",
+      "z_h": "9.304100000000",
+      "c_scalar_horizon_limit": "-0.805902504828",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.746500009678"
+    },
+    {
+      "lambda": "2.22",
+      "z_h": "9.368400000000",
+      "c_scalar_horizon_limit": "-0.807106207322",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.749509706528"
+    },
+    {
+      "lambda": "2.23",
+      "z_h": "9.432900000000",
+      "c_scalar_horizon_limit": "-0.808298747232",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.752513239672"
+    },
+    {
+      "lambda": "2.24",
+      "z_h": "9.497600000000",
+      "c_scalar_horizon_limit": "-0.809480262155",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.755510650917"
+    },
+    {
+      "lambda": "2.25",
+      "z_h": "9.562500000000",
+      "c_scalar_horizon_limit": "-0.810650887574",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.758501981578"
+    },
+    {
+      "lambda": "2.26",
+      "z_h": "9.627600000000",
+      "c_scalar_horizon_limit": "-0.811810756897",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.761487272490"
+    },
+    {
+      "lambda": "2.27",
+      "z_h": "9.692900000000",
+      "c_scalar_horizon_limit": "-0.812960001496",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.764466564013"
+    },
+    {
+      "lambda": "2.28",
+      "z_h": "9.758400000000",
+      "c_scalar_horizon_limit": "-0.814098750744",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.767439896038"
+    },
+    {
+      "lambda": "2.29",
+      "z_h": "9.824100000000",
+      "c_scalar_horizon_limit": "-0.815227132048",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.770407307999"
+    },
+    {
+      "lambda": "2.30",
+      "z_h": "9.890000000000",
+      "c_scalar_horizon_limit": "-0.816345270891",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.773368838878"
+    },
+    {
+      "lambda": "2.31",
+      "z_h": "9.956100000000",
+      "c_scalar_horizon_limit": "-0.817453290861",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.776324527211"
+    },
+    {
+      "lambda": "2.32",
+      "z_h": "10.022400000000",
+      "c_scalar_horizon_limit": "-0.818551313688",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.779274411097"
+    },
+    {
+      "lambda": "2.33",
+      "z_h": "10.088900000000",
+      "c_scalar_horizon_limit": "-0.819639459279",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.782218528207"
+    },
+    {
+      "lambda": "2.34",
+      "z_h": "10.155600000000",
+      "c_scalar_horizon_limit": "-0.820717845746",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.785156915785"
+    },
+    {
+      "lambda": "2.35",
+      "z_h": "10.222500000000",
+      "c_scalar_horizon_limit": "-0.821786589441",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.788089610660"
+    },
+    {
+      "lambda": "2.36",
+      "z_h": "10.289600000000",
+      "c_scalar_horizon_limit": "-0.822845804989",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.791016649251"
+    },
+    {
+      "lambda": "2.37",
+      "z_h": "10.356900000000",
+      "c_scalar_horizon_limit": "-0.823895605315",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.793938067573"
+    },
+    {
+      "lambda": "2.38",
+      "z_h": "10.424400000000",
+      "c_scalar_horizon_limit": "-0.824936101677",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.796853901243"
+    },
+    {
+      "lambda": "2.39",
+      "z_h": "10.492100000000",
+      "c_scalar_horizon_limit": "-0.825967403695",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.799764185488"
+    },
+    {
+      "lambda": "2.40",
+      "z_h": "10.560000000000",
+      "c_scalar_horizon_limit": "-0.826989619377",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.802668955148"
+    },
+    {
+      "lambda": "2.41",
+      "z_h": "10.628100000000",
+      "c_scalar_horizon_limit": "-0.828002855153",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.805568244685"
+    },
+    {
+      "lambda": "2.42",
+      "z_h": "10.696400000000",
+      "c_scalar_horizon_limit": "-0.829007215895",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.808462088187"
+    },
+    {
+      "lambda": "2.43",
+      "z_h": "10.764900000000",
+      "c_scalar_horizon_limit": "-0.830002804954",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.811350519375"
+    },
+    {
+      "lambda": "2.44",
+      "z_h": "10.833600000000",
+      "c_scalar_horizon_limit": "-0.830989724175",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.814233571607"
+    },
+    {
+      "lambda": "2.45",
+      "z_h": "10.902500000000",
+      "c_scalar_horizon_limit": "-0.831968073934",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.817111277886"
+    },
+    {
+      "lambda": "2.46",
+      "z_h": "10.971600000000",
+      "c_scalar_horizon_limit": "-0.832937953156",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.819983670861"
+    },
+    {
+      "lambda": "2.47",
+      "z_h": "11.040900000000",
+      "c_scalar_horizon_limit": "-0.833899459343",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.822850782838"
+    },
+    {
+      "lambda": "2.48",
+      "z_h": "11.110400000000",
+      "c_scalar_horizon_limit": "-0.834852688598",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.825712645780"
+    },
+    {
+      "lambda": "2.49",
+      "z_h": "11.180100000000",
+      "c_scalar_horizon_limit": "-0.835797735651",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.828569291315"
+    },
+    {
+      "lambda": "2.50",
+      "z_h": "11.250000000000",
+      "c_scalar_horizon_limit": "-0.836734693878",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.831420750742"
+    },
+    {
+      "lambda": "2.51",
+      "z_h": "11.320100000000",
+      "c_scalar_horizon_limit": "-0.837663655327",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.834267055032"
+    },
+    {
+      "lambda": "2.52",
+      "z_h": "11.390400000000",
+      "c_scalar_horizon_limit": "-0.838584710744",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.837108234836"
+    },
+    {
+      "lambda": "2.53",
+      "z_h": "11.460900000000",
+      "c_scalar_horizon_limit": "-0.839497949586",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.839944320488"
+    },
+    {
+      "lambda": "2.54",
+      "z_h": "11.531600000000",
+      "c_scalar_horizon_limit": "-0.840403460053",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.842775342011"
+    },
+    {
+      "lambda": "2.55",
+      "z_h": "11.602500000000",
+      "c_scalar_horizon_limit": "-0.841301329101",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.845601329120"
+    },
+    {
+      "lambda": "2.56",
+      "z_h": "11.673600000000",
+      "c_scalar_horizon_limit": "-0.842191642469",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.848422311229"
+    },
+    {
+      "lambda": "2.57",
+      "z_h": "11.744900000000",
+      "c_scalar_horizon_limit": "-0.843074484696",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.851238317452"
+    },
+    {
+      "lambda": "2.58",
+      "z_h": "11.816400000000",
+      "c_scalar_horizon_limit": "-0.843949939140",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.854049376610"
+    },
+    {
+      "lambda": "2.59",
+      "z_h": "11.888100000000",
+      "c_scalar_horizon_limit": "-0.844818088004",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.856855517234"
+    },
+    {
+      "lambda": "2.60",
+      "z_h": "11.960000000000",
+      "c_scalar_horizon_limit": "-0.845679012346",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.859656767567"
+    },
+    {
+      "lambda": "2.61",
+      "z_h": "12.032100000000",
+      "c_scalar_horizon_limit": "-0.846532792106",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.862453155574"
+    },
+    {
+      "lambda": "2.62",
+      "z_h": "12.104400000000",
+      "c_scalar_horizon_limit": "-0.847379506120",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.865244708941"
+    },
+    {
+      "lambda": "2.63",
+      "z_h": "12.176900000000",
+      "c_scalar_horizon_limit": "-0.848219232141",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.868031455078"
+    },
+    {
+      "lambda": "2.64",
+      "z_h": "12.249600000000",
+      "c_scalar_horizon_limit": "-0.849052046854",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.870813421129"
+    },
+    {
+      "lambda": "2.65",
+      "z_h": "12.322500000000",
+      "c_scalar_horizon_limit": "-0.849878025896",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.873590633968"
+    },
+    {
+      "lambda": "2.66",
+      "z_h": "12.395600000000",
+      "c_scalar_horizon_limit": "-0.850697243871",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.876363120209"
+    },
+    {
+      "lambda": "2.67",
+      "z_h": "12.468900000000",
+      "c_scalar_horizon_limit": "-0.851509774369",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.879130906207"
+    },
+    {
+      "lambda": "2.68",
+      "z_h": "12.542400000000",
+      "c_scalar_horizon_limit": "-0.852315689981",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.881894018060"
+    },
+    {
+      "lambda": "2.69",
+      "z_h": "12.616100000000",
+      "c_scalar_horizon_limit": "-0.853115062316",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.884652481616"
+    },
+    {
+      "lambda": "2.70",
+      "z_h": "12.690000000000",
+      "c_scalar_horizon_limit": "-0.853907962016",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.887406322473"
+    },
+    {
+      "lambda": "2.71",
+      "z_h": "12.764100000000",
+      "c_scalar_horizon_limit": "-0.854694458773",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.890155565986"
+    },
+    {
+      "lambda": "2.72",
+      "z_h": "12.838400000000",
+      "c_scalar_horizon_limit": "-0.855474621344",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.892900237268"
+    },
+    {
+      "lambda": "2.73",
+      "z_h": "12.912900000000",
+      "c_scalar_horizon_limit": "-0.856248517563",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.895640361192"
+    },
+    {
+      "lambda": "2.74",
+      "z_h": "12.987600000000",
+      "c_scalar_horizon_limit": "-0.857016214361",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.898375962397"
+    },
+    {
+      "lambda": "2.75",
+      "z_h": "13.062500000000",
+      "c_scalar_horizon_limit": "-0.857777777778",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.901107065291"
+    },
+    {
+      "lambda": "2.76",
+      "z_h": "13.137600000000",
+      "c_scalar_horizon_limit": "-0.858533272974",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.903833694051"
+    },
+    {
+      "lambda": "2.77",
+      "z_h": "13.212900000000",
+      "c_scalar_horizon_limit": "-0.859282764249",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.906555872630"
+    },
+    {
+      "lambda": "2.78",
+      "z_h": "13.288400000000",
+      "c_scalar_horizon_limit": "-0.860026315053",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.909273624757"
+    },
+    {
+      "lambda": "2.79",
+      "z_h": "13.364100000000",
+      "c_scalar_horizon_limit": "-0.860763987998",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.911986973942"
+    },
+    {
+      "lambda": "2.80",
+      "z_h": "13.440000000000",
+      "c_scalar_horizon_limit": "-0.861495844875",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.914695943476"
+    },
+    {
+      "lambda": "2.81",
+      "z_h": "13.516100000000",
+      "c_scalar_horizon_limit": "-0.862221946666",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.917400556439"
+    },
+    {
+      "lambda": "2.82",
+      "z_h": "13.592400000000",
+      "c_scalar_horizon_limit": "-0.862942353554",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.920100835698"
+    },
+    {
+      "lambda": "2.83",
+      "z_h": "13.668900000000",
+      "c_scalar_horizon_limit": "-0.863657124938",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.922796803910"
+    },
+    {
+      "lambda": "2.84",
+      "z_h": "13.745600000000",
+      "c_scalar_horizon_limit": "-0.864366319444",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.925488483528"
+    },
+    {
+      "lambda": "2.85",
+      "z_h": "13.822500000000",
+      "c_scalar_horizon_limit": "-0.865069994940",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.928175896801"
+    },
+    {
+      "lambda": "2.86",
+      "z_h": "13.899600000000",
+      "c_scalar_horizon_limit": "-0.865768208543",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.930859065778"
+    },
+    {
+      "lambda": "2.87",
+      "z_h": "13.976900000000",
+      "c_scalar_horizon_limit": "-0.866461016632",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.933538012309"
+    },
+    {
+      "lambda": "2.88",
+      "z_h": "14.054400000000",
+      "c_scalar_horizon_limit": "-0.867148474864",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.936212758050"
+    },
+    {
+      "lambda": "2.89",
+      "z_h": "14.132100000000",
+      "c_scalar_horizon_limit": "-0.867830638180",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.938883324461"
+    },
+    {
+      "lambda": "2.90",
+      "z_h": "14.210000000000",
+      "c_scalar_horizon_limit": "-0.868507560815",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.941549732815"
+    },
+    {
+      "lambda": "2.91",
+      "z_h": "14.288100000000",
+      "c_scalar_horizon_limit": "-0.869179296315",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.944212004194"
+    },
+    {
+      "lambda": "2.92",
+      "z_h": "14.366400000000",
+      "c_scalar_horizon_limit": "-0.869845897543",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.946870159495"
+    },
+    {
+      "lambda": "2.93",
+      "z_h": "14.444900000000",
+      "c_scalar_horizon_limit": "-0.870507416688",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.949524219433"
+    },
+    {
+      "lambda": "2.94",
+      "z_h": "14.523600000000",
+      "c_scalar_horizon_limit": "-0.871163905280",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.952174204539"
+    },
+    {
+      "lambda": "2.95",
+      "z_h": "14.602500000000",
+      "c_scalar_horizon_limit": "-0.871815414196",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.954820135168"
+    },
+    {
+      "lambda": "2.96",
+      "z_h": "14.681600000000",
+      "c_scalar_horizon_limit": "-0.872461993674",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.957462031495"
+    },
+    {
+      "lambda": "2.97",
+      "z_h": "14.760900000000",
+      "c_scalar_horizon_limit": "-0.873103693317",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.960099913524"
+    },
+    {
+      "lambda": "2.98",
+      "z_h": "14.840400000000",
+      "c_scalar_horizon_limit": "-0.873740562107",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.962733801083"
+    },
+    {
+      "lambda": "2.99",
+      "z_h": "14.920100000000",
+      "c_scalar_horizon_limit": "-0.874372648413",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.965363713833"
+    },
+    {
+      "lambda": "3.00",
+      "z_h": "15.000000000000",
+      "c_scalar_horizon_limit": "-0.875000000000",
+      "classification": "supercritical_static_scalar_non_lorentzian_shell",
+      "rho_critical": "1.967989671265"
+    }
+  ],
+  "claim_ceiling": "This is a formula-evaluation grid for the static spherical BD reference only. It does not classify the rotating Akribeia benchmark at omega=0.33."
+}

@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_static_bd_characteristic_speeds",
+  "status": "exact_symbolic_specialization_of_published_static_lovelock_effective_metrics",
+  "source": {
+    "paper": "Reall, Tanahashi and Way, Causality and hyperbolicity of Lovelock theories, CQG 31 (2014) 205005",
+    "arxiv": "1406.3379",
+    "equations": [
+      "(5.13)",
+      "(5.14)",
+      "(5.15)",
+      "(5.17)"
+    ],
+    "url": "https://arxiv.org/abs/1406.3379"
+  },
+  "conventions": {
+    "dimension": 5,
+    "geometry": "static, spherical, asymptotically flat Einstein-branch Boulware-Deser",
+    "lambda": "alpha/r_H^2",
+    "rho": "r/r_H",
+    "z": "lambda*(lambda+2)/rho^4",
+    "coupling_map": "RTW tilde_alpha_2=alpha; RTW mu/r_H^2=(2+lambda)/2",
+    "Symtropy_static_lapse": "F=1-(2+lambda)/(rho^2*(1+sqrt(1+z)))",
+    "RTW_static_lapse": "F=1+rho^2*(1-sqrt(1+z))/lambda"
+  },
+  "effective_speed_functions": {
+    "A": "1/(1+z)",
+    "B": "0",
+    "tensor": "(1+3*z)/(1+z)",
+    "vector": "1/(1+z)",
+    "scalar": "(1-z)/(1+z)"
+  },
+  "hyperbolicity_result": {
+    "tensor_positive_for": "lambda>=0, rho>=1",
+    "vector_positive_for": "lambda>=0, rho>=1",
+    "scalar_sign": "sign(1-z)",
+    "horizon_scalar_speed": "2/(1+lambda)^2-1",
+    "critical_coupling": "sqrt(2)-1",
+    "critical_coupling_decimal": "0.41421356237309504880168872420969807857",
+    "critical_radius": "[lambda*(lambda+2)]^(1/4)",
+    "classification": {
+      "subcritical": "0<=lambda<sqrt(2)-1: all effective characteristic metrics are Lorentzian throughout the open static exterior",
+      "threshold": "lambda=sqrt(2)-1: scalar characteristic metric reaches degeneracy in the horizon limit; it is positive for rho>1",
+      "supercritical": "lambda>sqrt(2)-1: scalar characteristic metric is non-Lorentzian for 1<rho<rho_c"
+    },
+    "minimum_open_exterior_scalar_margin": "inf_{rho>1} c_S(rho)=2/(1+lambda)^2-1"
+  },
+  "validation": {
+    "symbolic_engine": "SymPy 1.14.0",
+    "Symtropy_to_RTW_lapse_match_exact": true,
+    "all_three_speed_specializations_exact": true,
+    "Einstein_limit_all_speeds_one": true,
+    "critical_coupling_exact": true,
+    "critical_radius_exact": true,
+    "scalar_speed_monotonic_in_rho_for_lambda_nonnegative": true
+  },
+  "claim_ceiling": "Exact static spherical characteristic-sector specialization only. It establishes the scalar effective-metric signature change for the static 5D BD branch. It does not establish strong hyperbolicity of a chosen gauge-fixed evolution formulation, rotating-background characteristics, mode stability, EFT validity, or nonlinear branch behavior.",
+  "quantity_semantics": "c_T,c_V,c_S are angular coefficients in the effective characteristic metrics, not direction-independent coordinate velocities. Radial characteristic null directions coincide with those of the physical metric; the sector angular cones differ."
+}

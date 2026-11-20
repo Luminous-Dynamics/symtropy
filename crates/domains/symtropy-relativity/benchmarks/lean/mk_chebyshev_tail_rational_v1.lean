@@ -1,0 +1,244 @@
+import Mathlib
+
+/-!
+Exact-rational arithmetic for the Mannheim--Kazanas inverse-radius Chebyshev tail.
+This file checks rational inequalities and the exact rational upper-bound values.
+It does not itself prove the analytic link from sqrt(2) to the tail; the integer
+square witnesses bound sqrt(2), and the analytic monotonicity argument is in the
+companion design document. This is not a black-hole BVP or existence theorem.
+-/
+
+namespace SymtropyMKChebyshevTail
+
+def scale : ℚ := 1000000000000000000000000000000 / 1
+def sqrt2Lower : ℚ := 1414213562373095048801688724209 / 1000000000000000000000000000000
+
+theorem sqrt2_lower_square : sqrt2Lower ^ 2 < 2 := by
+  norm_num [sqrt2Lower]
+
+theorem sqrt2_upper_square :
+    2 < (sqrt2Lower + 1 / scale) ^ 2 := by
+  norm_num [sqrt2Lower, scale]
+
+theorem sqrt2_lower_lt_real_sqrt_two :
+    (sqrt2Lower : ℝ) < Real.sqrt 2 := by
+  apply Real.lt_sqrt_of_sq_lt
+  norm_num [sqrt2Lower]
+
+theorem real_sqrt_two_lt_sqrt2_upper :
+    Real.sqrt 2 < ((sqrt2Lower + 1 / scale : ℚ) : ℝ) := by
+  apply (Real.sqrt_lt' (by positivity)).2
+  norm_num [sqrt2Lower, scale]
+
+def qUpper : ℚ := 3 - 2 * sqrt2Lower
+def qNuUpper : ℚ := 2 * qUpper
+def prefactorUpper : ℚ := 17 / (15 * sqrt2Lower)
+
+theorem qNuUpper_positive : 0 < qNuUpper := by
+  norm_num [qNuUpper, qUpper, sqrt2Lower]
+
+theorem qNuUpper_lt_one : qNuUpper < 1 := by
+  norm_num [qNuUpper, qUpper, sqrt2Lower]
+
+def qExact : ℝ := 3 - 2 * Real.sqrt 2
+
+def qNuExact : ℝ := 2 * qExact
+
+theorem qExact_positive : 0 < qExact := by
+  unfold qExact
+  nlinarith [Real.sqrt_two_lt_three_halves]
+
+theorem qNuExact_lt_qNuUpper :
+    qNuExact < (qNuUpper : ℝ) := by
+  unfold qNuExact qExact qNuUpper qUpper
+  nlinarith [sqrt2_lower_lt_real_sqrt_two]
+
+theorem qNuExact_positive : 0 < qNuExact := by
+  unfold qNuExact qExact
+  nlinarith [Real.sqrt_two_lt_three_halves]
+
+theorem qNuExact_lt_one : qNuExact < 1 := by
+  have hUpper : (qNuUpper : ℝ) < 1 := by
+    exact_mod_cast qNuUpper_lt_one
+  exact qNuExact_lt_qNuUpper.trans hUpper
+
+def prefactorExact : ℝ := 17 / (15 * Real.sqrt 2)
+
+theorem prefactorExact_positive : 0 < prefactorExact := by
+  unfold prefactorExact
+  positivity
+
+theorem prefactorExact_lt_upper :
+    prefactorExact < (prefactorUpper : ℝ) := by
+  unfold prefactorExact prefactorUpper
+  apply (div_lt_div_iff₀ (by positivity) (by positivity)).2
+  nlinarith [sqrt2_lower_lt_real_sqrt_two]
+
+/-- Exact geometric-series majorant for the inverse-radius coefficient tail. -/
+def exactTail (N : ℕ) : ℝ :=
+  prefactorExact * qNuExact ^ (N + 1) / (1 - qNuExact)
+
+def qNuUpperReal : ℝ := (qNuUpper : ℝ)
+
+def prefactorUpperReal : ℝ := (prefactorUpper : ℝ)
+
+/-- The weighted coefficient tail is the geometric series with this exact sum.
+The identification of the physical Chebyshev coefficients with this sequence is
+documented in the adapter; this lemma proves the infinite-series arithmetic. -/
+theorem exact_tail_hasSum (N : ℕ) :
+    HasSum (fun k : ℕ => prefactorExact * qNuExact ^ (N + 1 + k)) (exactTail N) := by
+  simpa [exactTail, pow_add, div_eq_mul_inv, mul_assoc] using
+    (hasSum_geometric_of_lt_one qNuExact_positive.le qNuExact_lt_one).mul_left
+      (prefactorExact * qNuExact ^ (N + 1))
+
+theorem exact_tail_tsum (N : ℕ) :
+    (∑' k : ℕ, prefactorExact * qNuExact ^ (N + 1 + k)) = exactTail N :=
+  (exact_tail_hasSum N).tsum_eq
+
+/-- Positive-mode physical Chebyshev coefficient of the inverse-radius term. -/
+def mkChebyshevCoeff (n : ℕ) : ℝ :=
+  -prefactorExact * (-qExact) ^ n
+
+/-- After weighting by nu=2, the absolute physical Chebyshev coefficient is
+exactly a geometric term with ratio q*nu. -/
+theorem weighted_mk_coefficient_abs (n : ℕ) :
+    |mkChebyshevCoeff n| * (2 : ℝ) ^ n =
+      prefactorExact * qNuExact ^ n := by
+  rw [mkChebyshevCoeff, abs_mul, abs_neg,
+    abs_of_pos prefactorExact_positive, abs_pow, abs_neg,
+    abs_of_pos qExact_positive]
+  calc
+    prefactorExact * qExact ^ n * 2 ^ n =
+        prefactorExact * (2 ^ n * qExact ^ n) := by ring
+    _ = prefactorExact * (2 * qExact) ^ n := by rw [← mul_pow]
+    _ = prefactorExact * qNuExact ^ n := by rfl
+
+/-- The exact weighted one-sided Chebyshev coefficient tail after degree N
+has the geometric sum exactTail N. -/
+theorem physical_mk_coefficient_tail_hasSum (N : ℕ) :
+    HasSum
+      (fun k : ℕ =>
+        |mkChebyshevCoeff (N + 1 + k)| * (2 : ℝ) ^ (N + 1 + k))
+      (exactTail N) := by
+  refine HasSum.congr_fun (exact_tail_hasSum N) (fun k => ?_)
+  rw [weighted_mk_coefficient_abs]
+
+theorem qNuExact_le_upper : qNuExact ≤ qNuUpperReal :=
+  qNuExact_lt_qNuUpper.le
+
+theorem prefactorExact_le_upper : prefactorExact ≤ prefactorUpperReal :=
+  prefactorExact_lt_upper.le
+
+theorem qNuUpperReal_lt_one : qNuUpperReal < 1 := by
+  exact_mod_cast qNuUpper_lt_one
+
+/-- The infinite weighted coefficient tail is below the exact rational-input
+upper-bound expression. The remaining step to the stored finite fractions is
+the rational evaluation of this expression. -/
+theorem exact_tail_le_upper_expression (N : ℕ) :
+    exactTail N ≤
+      prefactorUpperReal * qNuUpperReal ^ (N + 1) / (1 - qNuUpperReal) := by
+  unfold exactTail
+  have hleft : 0 < 1 - qNuExact := by
+    linarith [qNuExact_lt_one]
+  have hright : 0 < 1 - qNuUpperReal := by
+    linarith [qNuUpperReal_lt_one]
+  have hpref : 0 ≤ prefactorUpperReal := by
+    unfold prefactorUpperReal prefactorUpper
+    positivity
+  have hpow : qNuExact ^ (N + 1) ≤ qNuUpperReal ^ (N + 1) := by
+    exact pow_le_pow_left₀ qNuExact_positive.le qNuExact_le_upper _
+  have hden : 1 - qNuUpperReal ≤ 1 - qNuExact := by
+    exact sub_le_sub_left qNuExact_le_upper 1
+  apply (div_le_div_iff₀ hleft hright).2
+  calc
+    prefactorExact * qNuExact ^ (N + 1) * (1 - qNuUpperReal)
+        ≤ prefactorUpperReal * qNuExact ^ (N + 1) * (1 - qNuUpperReal) := by
+          exact mul_le_mul_of_nonneg_right
+            (mul_le_mul_of_nonneg_right prefactorExact_le_upper
+              (pow_nonneg qNuExact_positive.le _))
+            (le_of_lt hright)
+    _ ≤ prefactorUpperReal * qNuUpperReal ^ (N + 1) * (1 - qNuUpperReal) := by
+          exact mul_le_mul_of_nonneg_right
+            (mul_le_mul_of_nonneg_left hpow hpref)
+            (le_of_lt hright)
+    _ ≤ prefactorUpperReal * qNuUpperReal ^ (N + 1) * (1 - qNuExact) := by
+          exact mul_le_mul_of_nonneg_left hden
+            (mul_nonneg hpref (pow_nonneg qNuUpper_positive.le _))
+
+def tailUpper (N : ℕ) : ℚ :=
+  prefactorUpper * qNuUpper ^ (N + 1) / (1 - qNuUpper)
+
+theorem upper_expression_eq_rational (N : ℕ) :
+    prefactorUpperReal * qNuUpperReal ^ (N + 1) / (1 - qNuUpperReal)
+      = (tailUpper N : ℝ) := by
+  simp [prefactorUpperReal, qNuUpperReal, tailUpper]
+
+theorem exact_tail_le_rational_upper (N : ℕ) :
+    exactTail N ≤ (tailUpper N : ℝ) := by
+  rw [← upper_expression_eq_rational]
+  exact exact_tail_le_upper_expression N
+
+theorem tail_upper_N4 : tailUpper 4 = (8776059929017857401510759533258955045305705252032127293726154490587588229485961199686881216291651617933019118432979325228895600003401479702035463 / 1511933899958536386705007127192549060145416956952174887211464843750000000000000000000000000000000000000000000000000000000000000000000000000000000000 : ℚ) := by
+  norm_num [tailUpper, prefactorUpper, qNuUpper, sqrt2Lower]
+
+theorem tail_upper_N8 : tailUpper 8 = (475306895530026979291538355384772713376024941864292739478443809159853888548705326693365353422992931338560622835244009137267017838104999492545854132856685383039106756246367647837890112639072215152882558999326151787802635570962383744671887383281479449489524406343 / 5905991796713032760566434090595894766193034988094433153169784545898437500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 : ℚ) := by
+  norm_num [tailUpper, prefactorUpper, qNuUpper, sqrt2Lower]
+
+theorem tail_upper_N12 : tailUpper 12 = (25742377190406750799454218091030253132950361496602834270448529973113067719695468375726392273526383957046328356367794323000914708545993516882475867335283944518383558159886030936009188179494736369066372407762164794474563490122672167480980273413377008646527222547017367051960238013000508757970312735912197526878503479647818012558358059788986062028424491844488159725174421314086023 / 23070280455910284220962633166390213930441542922243879504569470882415771484375000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 : ℚ) := by
+  norm_num [tailUpper, prefactorUpper, qNuUpper, sqrt2Lower]
+
+theorem tail_upper_N16 : tailUpper 16 = (1394193919013553063779033354853486980279336864758244497553914606741578966849611390479897239172343964698463993812583143939187843972759030215918830052142089283953277095526881477883988572352523861437180543091881508887586945661952820971302756065084146760380679211996444916889889377978007842537496530160530378336630672215794536714967334090561899570054434219613728457610509978737550211808058179016616498480852270078768708048269417432178178937837655100215848008732672668275382987326820111886680162503 / 90118283030899547738135285806211773165787277040015154314724495634436607360839843750000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 : ℚ) := by
+  norm_num [tailUpper, prefactorUpper, qNuUpper, sqrt2Lower]
+
+theorem tail_upper_N24 : tailUpper 24 = (4089519218202829229377241663449060985078495479325837931841747371404888859718421894116596956725336302432339869747754852976693645362573848239192193090708341233974773712153447144190091090291860320953469632165476987141265562908666935812088879107166314055268105651431754277679119022140791110318631608393283409346223584569130482594995306571789994474436981096360903587313603345238588987278548905961564995980370827987497169775505409276155858306432665065408245650509680491266260205624102232417887695684836541636890026260276236797509281161540839066388000748817365083966377058712363805708068632074144120931528675032902505054604304912016754620005580135311988802804693903281254726290510430773558081567323059381586664659352313789941057863 / 1375095871443169368562855313205135698940845902099840611491767816687570302747189998626708984375000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 : ℚ) := by
+  norm_num [tailUpper, prefactorUpper, qNuUpper, sqrt2Lower]
+
+theorem tail_upper_N32 : tailUpper 32 = (11995581968886569716540929355062220291406802207910949129770119169023151586458011065821541411260312515961136040204989567760225833629329708524652385201423754262335444860395079538608073652617325256716994690787950398183992892612448144662876512247897254333286850130037863299684811941122561217293896712546033110154882608384915506181666935686688152141141459113013350393011829881620490690004713703059269479676923248362540675106811012189878728696726023907426501549790047561623168906521510329709627825795159033899647661378700637435885688744657628557226657746400936361362327768988155679483033340039563767175563708476821663297845783890965135757493090278816152139605523037628239467518873605775285788238144087395462893564636123680903943043689084578188727712059813020050951149495580320000835144479844160891561745668737924002413013003531598778198503792601161477905248405621248898617949499979925061887590173197695257128403228512161793987942858653413476405525737317651796423 / 20982297843065938851361927996904536421826872285458993705623898570061802715258636453654617071151733398437500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 : ℚ) := by
+  norm_num [tailUpper, prefactorUpper, qNuUpper, sqrt2Lower]
+
+theorem exact_tail_le_upper_N4 : exactTail 4 ≤ (tailUpper 4 : ℝ) :=
+  exact_tail_le_rational_upper 4
+
+theorem exact_tail_le_upper_N8 : exactTail 8 ≤ (tailUpper 8 : ℝ) :=
+  exact_tail_le_rational_upper 8
+
+theorem exact_tail_le_upper_N12 : exactTail 12 ≤ (tailUpper 12 : ℝ) :=
+  exact_tail_le_rational_upper 12
+
+theorem exact_tail_le_upper_N16 : exactTail 16 ≤ (tailUpper 16 : ℝ) :=
+  exact_tail_le_rational_upper 16
+
+theorem exact_tail_le_upper_N24 : exactTail 24 ≤ (tailUpper 24 : ℝ) :=
+  exact_tail_le_rational_upper 24
+
+theorem exact_tail_le_upper_N32 : exactTail 32 ≤ (tailUpper 32 : ℝ) :=
+  exact_tail_le_rational_upper 32
+
+#print axioms sqrt2_lower_square
+#print axioms sqrt2_upper_square
+#print axioms sqrt2_lower_lt_real_sqrt_two
+#print axioms real_sqrt_two_lt_sqrt2_upper
+#print axioms qNuExact_lt_qNuUpper
+#print axioms qNuExact_lt_one
+#print axioms prefactorExact_lt_upper
+#print axioms exact_tail_hasSum
+#print axioms exact_tail_tsum
+#print axioms weighted_mk_coefficient_abs
+#print axioms physical_mk_coefficient_tail_hasSum
+#print axioms exact_tail_le_upper_expression
+#print axioms exact_tail_le_rational_upper
+#print axioms exact_tail_le_upper_N4
+#print axioms exact_tail_le_upper_N8
+#print axioms exact_tail_le_upper_N12
+#print axioms exact_tail_le_upper_N16
+#print axioms exact_tail_le_upper_N24
+#print axioms exact_tail_le_upper_N32
+#print axioms tail_upper_N4
+#print axioms tail_upper_N8
+#print axioms tail_upper_N12
+#print axioms tail_upper_N16
+#print axioms tail_upper_N24
+#print axioms tail_upper_N32
+
+end SymtropyMKChebyshevTail

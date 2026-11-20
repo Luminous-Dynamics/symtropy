@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "pseudo_arclength_simple_fold_control",
+  "status": "executed_dependency_free_numeric_reference",
+  "equation": "F(u,lambda)=u^2-lambda=0",
+  "exact_branch": "lambda=u^2",
+  "exact_fold": {
+    "u": 0,
+    "lambda": 0
+  },
+  "method": "weighted pseudo-arclength predictor-corrector with bordered Newton solve",
+  "runs": [
+    {
+      "arclength_metric_weights": {
+        "u": 1,
+        "lambda": 1
+      },
+      "step_size": 0.04,
+      "point_count": 75,
+      "fold_crossed": true,
+      "u_min": -1.0012580861220681,
+      "u_max": 1,
+      "lambda_min": 0.0000019697276474572017,
+      "lambda_max": 1.0025177550248268,
+      "lambda_tangent_min": -0.8944271909999159,
+      "lambda_tangent_max": 0.8946519049504408,
+      "maximum_original_residual": 1.7555401576885288e-14,
+      "minimum_absolute_bordered_determinant": 0.9968171741171333,
+      "maximum_corrector_iterations": 2
+    },
+    {
+      "arclength_metric_weights": {
+        "u": 10,
+        "lambda": 0.1
+      },
+      "step_size": 0.04,
+      "point_count": 502,
+      "fold_crossed": true,
+      "u_min": -1.003865900707138,
+      "u_max": 1,
+      "lambda_min": 4.443769047637311e-9,
+      "lambda_max": 1.0077467466025534,
+      "lambda_tangent_min": -0.1999600119960014,
+      "lambda_tangent_max": 0.20073272666725542,
+      "maximum_original_residual": 1.1102230246251565e-16,
+      "minimum_absolute_bordered_determinant": 9.999999968008888,
+      "maximum_corrector_iterations": 1
+    }
+  ],
+  "acceptance": {
+    "both_metrics_cross_fold": true,
+    "both_metrics_reach_negative_u_branch": true,
+    "all_original_residuals_below_1e_minus_11": true,
+    "all_bordered_solves_nonsingular": true
+  },
+  "execution": {
+    "python": "3.13.5",
+    "dependencies": "Python standard library only",
+    "local_replay": "passed"
+  },
+  "claim_ceiling": "This validates a scalar pseudo-arclength method control only; it is not a nonlinear EGB continuation result, fold discovery, or branch-completeness proof."
+}

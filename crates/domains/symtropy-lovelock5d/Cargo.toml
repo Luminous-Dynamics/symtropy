@@ -1,0 +1,12 @@
+[package]
+name = "symtropy-lovelock5d"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Five-dimensional equal-spin Lovelock black-hole reference profiles and Noether flux controls"
+
+[lib]
+path = "src/lib.rs"
+
+[lints.rust]
+unsafe_code = "forbid"

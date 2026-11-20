@@ -1,0 +1,1058 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "black_hole_solver_benchmark_case_manifest",
+  "status": "frozen_controls_and_external_references_planned_not_executed_with_static_BD_isotropic_map_reference_executed",
+  "frozen_at": "2026-11-18",
+  "cases": [
+    {
+      "case_id": "GR-SCHWARZSCHILD-STATIC-ANNULUS-001",
+      "status": "known_answer_frozen",
+      "theory_id": "4d_einstein_vacuum",
+      "spacetime_dimension": 4,
+      "metric": "ds^2=-B(r)dt^2+dr^2/B(r)+r^2 dOmega^2",
+      "signature": "(-+++)",
+      "chart": "static_spherical",
+      "coordinates": [
+        "t",
+        "r",
+        "theta",
+        "phi"
+      ],
+      "parameters": {
+        "mass": "1"
+      },
+      "domain": {
+        "r_min": "3",
+        "r_max": "6"
+      },
+      "lapse": "B(r)=1-2/r",
+      "known_values": {
+        "B_at_3": "1/3",
+        "B_at_6": "2/3"
+      },
+      "known_answer": [
+        "Bach tensor identically zero",
+        "all independent static spherical Bach components vanish"
+      ],
+      "purpose": [
+        "GR zero control",
+        "static-chart positivity",
+        "residual and derivative regression"
+      ],
+      "source_fixture": "crates/domains/symtropy-relativity/benchmarks/bach_static_symbolic_fixture_v1.json"
+    },
+    {
+      "case_id": "Weyl-MK-ON-SHELL-ANNULUS-001",
+      "status": "known_answer_frozen",
+      "theory_id": "4d_conformal_weyl_gravity_static_spherical",
+      "spacetime_dimension": 4,
+      "metric": "ds^2=-B(r)dt^2+dr^2/B(r)+r^2 dOmega^2",
+      "signature": "(-+++)",
+      "chart": "static_spherical",
+      "coordinates": [
+        "t",
+        "r",
+        "theta",
+        "phi"
+      ],
+      "coefficients": {
+        "c_inverse": "-17/10",
+        "c_constant": "7/10",
+        "c_linear": "1/10",
+        "c_quadratic": "-1/100"
+      },
+      "lapse": "B(r)=c_inverse/r+c_constant+c_linear*r+c_quadratic*r^2",
+      "vacuum_constraint_Q": "c_constant^2-3*c_linear*c_inverse-1=0",
+      "domain": {
+        "r_min": "3",
+        "r_max": "6"
+      },
+      "known_values": {
+        "B_at_3": "103/300",
+        "B_at_6": "197/300",
+        "Q": "0"
+      },
+      "known_answer": [
+        "all independent Bach components vanish",
+        "trace is zero",
+        "covariant divergence is zero"
+      ],
+      "purpose": [
+        "non-Einstein conformal-gravity exact control",
+        "coefficient/normalization check",
+        "Chebyshev tail fixture"
+      ],
+      "source_fixture": "crates/domains/symtropy-relativity/benchmarks/bach_static_symbolic_fixture_v1.json",
+      "spectral_tail_fixture": "crates/domains/symtropy-relativity/benchmarks/mk_chebyshev_rational_tail_certificate_v1.json",
+      "factorized_first_equation": {
+        "formula": "B1_plus_B2=-B*(r*B''''+4*B''')/(3*r)",
+        "expected_residual": "0",
+        "oracle": "static_spherical_bach_sum_factorized",
+        "purpose": "independent reduced-ODE factorization control"
+      }
+    },
+    {
+      "case_id": "Weyl-MK-OFF-SHELL-MUTATION-001",
+      "status": "negative_control_frozen",
+      "theory_id": "4d_conformal_weyl_gravity_static_spherical",
+      "spacetime_dimension": 4,
+      "metric": "ds^2=-B(r)dt^2+dr^2/B(r)+r^2 dOmega^2",
+      "signature": "(-+++)",
+      "chart": "static_spherical",
+      "coordinates": [
+        "t",
+        "r",
+        "theta",
+        "phi"
+      ],
+      "coefficients": {
+        "c_inverse": "-17/10",
+        "c_constant": "11/10",
+        "c_linear": "1/10",
+        "c_quadratic": "-1/100"
+      },
+      "lapse": "B(r)=c_inverse/r+c_constant+c_linear*r+c_quadratic*r^2",
+      "vacuum_constraint_Q": "18/25",
+      "domain": {
+        "r_min": "3",
+        "r_max": "6"
+      },
+      "known_values": {
+        "B_at_3": "223/300",
+        "B_at_6": "317/300",
+        "B1_minus_B2_at_3": "8/675",
+        "B1_minus_B2_at_6": "1/1350"
+      },
+      "expected_behavior": "independent Bach residual enclosure must exclude zero; solver must not return a verified vacuum solution",
+      "purpose": [
+        "false-acceptance negative control",
+        "r^-4 residual scaling"
+      ],
+      "source_fixture": "crates/domains/symtropy-relativity/benchmarks/bach_static_symbolic_fixture_v1.json",
+      "factorized_first_equation": {
+        "formula": "B1_plus_B2=-B*(r*B''''+4*B''')/(3*r)",
+        "expected_residual": "0",
+        "second_equation": "B1_minus_B2=4Q/(3*r^4)",
+        "second_equation_must_exclude_zero": true,
+        "purpose": "ensure the first differential equation is not confused with the independent algebraic Q constraint"
+      }
+    },
+    {
+      "case_id": "DCS-SGB-SCALAR-QNM-HIGH-SPIN-EXTERNAL-001",
+      "status": "reference_data_required",
+      "theory_ids": [
+        "dynamical_Chern_Simons",
+        "scalar_Gauss_Bonnet"
+      ],
+      "spacetime_dimension": 4,
+      "reference_paper": "Husken et al., Phys. Rev. D 114, 064072 (2026)",
+      "doi": "10.1103/jrnh-wsxw",
+      "spins": [
+        "0",
+        "0.5",
+        "0.9",
+        "0.95",
+        "0.99"
+      ],
+      "fields": [
+        "massless_minimally_coupled_test_scalar"
+      ],
+      "modes": [
+        "l=m=0",
+        "higher multipoles where tabulated"
+      ],
+      "published_accuracy": {
+        "l_m_0": "~1e-3 or better",
+        "higher_multipoles": "~1e-6 or better"
+      },
+      "data_status": "published values and convention-complete mode data must be extracted before running a matched comparison",
+      "purpose": [
+        "high-spin pseudospectral QNM accuracy comparator"
+      ]
+    },
+    {
+      "case_id": "DCS-SGB-NEAR-EXTREMAL-EFT-MATCHED-001",
+      "status": "reference_data_required",
+      "reference_paper": "Lam, Horowitz and Yunes, Phys. Rev. D 114, 104044 (2026)",
+      "doi": "10.1103/ddyq-94zb",
+      "family_parameters": [
+        "kappa_H*M",
+        "Omega_H*M",
+        "dimensionless_spin",
+        "ADM_mass",
+        "ADM_angular_momentum"
+      ],
+      "validity_gates": [
+        "scalar_invariants",
+        "infalling_tidal_tensor",
+        "extra_field_gradients",
+        "near_horizon_boundary_layer",
+        "EFT_operator_ordering"
+      ],
+      "data_status": "extract source numerical curves and observer conventions before reproducing",
+      "purpose": [
+        "near-extremal regularity and EFT validity methodology comparator"
+      ]
+    },
+    {
+      "case_id": "AKRIBEIA-5D-EGB-EQUAL-SPIN-001",
+      "status": "reference_method_pinned_data_reproduction_pending",
+      "theory_id": "5d_einstein_gauss_bonnet_lovelock",
+      "spacetime_dimension": 5,
+      "symmetry": "stationary_axisymmetric_equal_angular_momenta_cohomogeneity_one",
+      "reference_paper": "Agurto-Sepulveda et al., Neural-spectral discovery of rotating black holes beyond general relativity, PRD accepted 2026-11-12",
+      "doi": "10.1103/3kz2-6dvv",
+      "preprint": "arXiv:2607.07418",
+      "reference_setup": {
+        "horizon_radius": "1 (paper normalization)",
+        "horizon_angular_velocity": "0.33 (paper normalization)",
+        "gauss_bonnet_coupling_range": "alpha in [0,3] (paper convention; exact action normalization must be copied from paper before comparison)",
+        "branch_data": "full article and supplementary tables must be extracted before numerical reproduction",
+        "action_normalization": {
+          "alpha1": "(16*pi*G)^-1",
+          "alpha": "4*alpha2/alpha1",
+          "alpha_dimensions": "length^2 in D=5",
+          "cosmological_constant": "alpha0=0",
+          "source_paper_equation": "Lovelock action Eq. (1), alpha_1=(16*pi*G)^-1"
+        },
+        "metric_ansatz": {
+          "metric": "ds2=-b(r)dt2+dr2/f(r)+g(r)*(xiI^2+xitildeI^2)+h(r)*(zeta-w(r)dt)^2",
+          "radial_gauge": "g(r)=r^2",
+          "unknown_functions": [
+            "b(r)",
+            "f(r)",
+            "h(r)",
+            "w(r)"
+          ],
+          "horizon_conditions": [
+            "f(r_H)=0",
+            "b(r_H)=0",
+            "w(r_H)=Omega_H",
+            "h(r_H)=Theta_H"
+          ],
+          "compact_coordinate": "r-r_H=tan(x)",
+          "asymptotic_conditions": "asymptotically flat; extract exact series coefficients and normalization from Supplemental Material"
+        },
+        "branch_points": {
+          "r_H": "1",
+          "Omega_H": "0.33",
+          "alpha_range": [
+            "0",
+            "3"
+          ],
+          "alpha_step": "0.01",
+          "alpha_zero_limit": "exact Myers-Perry",
+          "alpha_three_endpoint": "matches existing 5D EGB numerical solution"
+        }
+      },
+      "published_discovery_pipeline": {
+        "neural_field": "physics-informed continuous field trained over the coupling parameter",
+        "architecture": "3 hidden layers x 20 neurons in the reported 5D EGB example",
+        "optimization": "Adam with learning-rate decay followed by L-BFGS",
+        "reported_training_steps": "10^4 to 10^5",
+        "reported_pre_refinement_equation_residual_order": "approximately 1e-3",
+        "refinement": "Chebyshev pseudo-spectral Gauss-Newton with extended precision",
+        "refinement_precision_digits": 300,
+        "reported_gr_limit_relative_L2_error": "approximately 1e-160 for the Myers-Perry limit",
+        "network_activation": "Swish hidden layers",
+        "boundary_enforcement": "strong radial boundary condition by output reparameterization: Nhat=F(x0)+(1-exp(-(x-x0)))*N",
+        "optimization_schedule": {
+          "global_steps": "10^4-10^5",
+          "adam_warmup_learning_rate": "1e-6 to 1e-3",
+          "stable_adam_learning_rate": "1e-3",
+          "stages": [
+            "Adam warm-up",
+            "stable Adam exploration",
+            "validation-loss learning-rate decay",
+            "L-BFGS"
+          ]
+        },
+        "pre_refinement_loss": "approximately 1e-5",
+        "refinement_residual": "far below machine double precision (paper qualitative statement; exact per-case residual must be extracted from supplemental data)",
+        "gr_limit_relative_l2_error": "approximately 1e-160 for the Myers-Perry limit at 300-digit extended precision"
+      },
+      "matching_requirements": [
+        "same 5D EGB action and coupling normalization",
+        "same equal-angular-momenta cohomogeneity-one ansatz",
+        "same horizon and asymptotic boundary conditions",
+        "same dimensionless parameter conventions",
+        "same radial compactification and residual norm",
+        "same parameter points and branch identity"
+      ],
+      "metrics_to_reproduce": [
+        "neural discovery convergence over frozen seeds",
+        "pre-refinement residual and training cost",
+        "post-spectral-refinement equation residual",
+        "GR-limit relative L2 error",
+        "branch continuation and failed-start rate",
+        "runtime, memory and precision"
+      ],
+      "qualification_extension": "Symtropy should additionally report independently enclosed full-domain residual/tail bounds and, only if operator bounds are proved, a radii-polynomial existence/uniqueness result. Do not assume the source paper's 'certified' continuous neural-field terminology means an interval/radii-polynomial theorem.",
+      "data_status": "reported methodology and setup pinned; exact coefficient arrays and supplementary numerical values must be extracted before a matched run",
+      "purpose": "first fair discovery/refinement comparison to Akribeia on a same-dimension, same-action 5D EGB branch",
+      "metric_ansatz_scope": "cohomogeneity-one ODE system in 5D with equal angular momenta; not a full 2D orbit-space PDE"
+    },
+    {
+      "case_id": "AKRIBEIA-7D-CUBIC-EQUAL-SPIN-001",
+      "status": "reference_method_pinned_data_reproduction_pending",
+      "theory_id": "7d_cubic_lovelock_higher_curvature",
+      "spacetime_dimension": 7,
+      "symmetry": "stationary_axisymmetric_equal_angular_momenta_cohomogeneity_one",
+      "reference_paper": "Agurto-Sepulveda et al., Neural-spectral discovery of rotating black holes beyond general relativity, PRD accepted 2026-11-12",
+      "doi": "10.1103/3kz2-6dvv",
+      "preprint": "arXiv:2607.07418",
+      "reference_setup": {
+        "quadratic_coupling": "alpha=0.5 (paper convention)",
+        "cubic_coupling_range": "beta in [0,0.5] (paper convention)",
+        "branch_data": "full article and supplementary tables must be extracted before numerical reproduction",
+        "action_normalization": {
+          "alpha1": "(16*pi*G)^-1",
+          "alpha": "4*alpha2/alpha1",
+          "beta": "16*alpha3/alpha1",
+          "alpha_dimensions": "length^2 in D=7",
+          "beta_dimensions": "length^4 in D=7",
+          "cosmological_constant": "alpha0=0",
+          "source_paper_equation": "Lovelock action Eq. (1), alpha_1=(16*pi*G)^-1"
+        },
+        "metric_ansatz": {
+          "metric": "ds2=-b(r)dt2+dr2/f(r)+g(r)*(xiI^2+xitildeI^2)+h(r)*(zeta-w(r)dt)^2",
+          "radial_gauge": "g(r)=r^2",
+          "unknown_functions": [
+            "b(r)",
+            "f(r)",
+            "h(r)",
+            "w(r)"
+          ],
+          "horizon_conditions": [
+            "f(r_H)=0",
+            "b(r_H)=0",
+            "w(r_H)=Omega_H",
+            "h(r_H)=Theta_H"
+          ],
+          "compact_coordinate": "r-r_H=tan(x)",
+          "asymptotic_conditions": "asymptotically flat; exact coefficients and normalization must be extracted from Supplemental Material"
+        },
+        "branch_points": {
+          "r_H": "1",
+          "Omega_H": "0.33",
+          "alpha": "0.5",
+          "beta_range": [
+            "0",
+            "0.5"
+          ],
+          "beta_step": "0.01",
+          "beta_zero_limit": "quadratic EGB at alpha=0.5, not the general-relativistic Myers-Perry limit",
+          "general_relativity_limit": "requires alpha=0 and beta=0; not the fixed-alpha=0.5 curve"
+        }
+      },
+      "published_discovery_pipeline": {
+        "neural_field": "physics-informed continuous field trained over the coupling parameter",
+        "architecture": "4 hidden layers x 64 neurons in the reported 7D cubic Lovelock example",
+        "optimization": "Adam with learning-rate decay followed by L-BFGS",
+        "reported_training_steps": "10^4 to 10^5",
+        "reported_pre_refinement_equation_residual_order": "approximately 1e-3",
+        "refinement": "Chebyshev pseudo-spectral Gauss-Newton with extended precision",
+        "refinement_precision_digits": 300,
+        "network_activation": "Swish hidden layers",
+        "refinement_residual": "far below machine double precision (paper qualitative statement; exact per-case residual must be extracted from supplemental data)"
+      },
+      "matching_requirements": [
+        "same 7D cubic Lovelock action and coupling normalization",
+        "same equal-angular-momenta cohomogeneity-one ansatz",
+        "same horizon and asymptotic boundary conditions",
+        "same dimensionless parameter conventions",
+        "same radial compactification and residual norm",
+        "same parameter points and branch identity"
+      ],
+      "data_status": "reported methodology and coupling range pinned; exact source branch values must be extracted before a matched run",
+      "purpose": "second-stage scaling comparison after the 5D EGB control",
+      "metric_ansatz_scope": "cohomogeneity-one ODE system in 7D with equal angular momenta; not a full 2D orbit-space PDE"
+    },
+    {
+      "case_id": "AKRIBEIA-D5-EGB-EQUAL-SPIN-001",
+      "status": "exact_5d_myers_perry_control_derived_source_data_pending",
+      "theory_id": "5d_einstein_gauss_bonnet",
+      "spacetime_dimension": 5,
+      "symmetry": "stationary_equal_angular_momenta_cohomogeneity_one_RxU(2)",
+      "action_normalization": {
+        "alpha_1": "(16*pi*G)^-1",
+        "alpha_0": "0",
+        "alpha": "4*alpha_2/alpha_1",
+        "coupling_dimensions": "copy exact convention/dimensions from pinned paper source and supplement before numerical use"
+      },
+      "metric_ansatz": {
+        "line_element": "ds^2=-b(r)dt^2+dr^2/f(r)+g(r)*(xi^1*xi^1+xi_tilde^1*xi_tilde^1)+h(r)*(zeta-w(r)*dt)^2",
+        "radial_functions": [
+          "b",
+          "f",
+          "g",
+          "h",
+          "w"
+        ],
+        "gauge": "g(r)=r^2",
+        "invariant_frame": "Hopf frame on S^3; normalization and Maurer-Cartan data must be transcribed from source/supplement",
+        "coordinate_metric_2010": "ds^2=-b dt^2+dr^2/f+g dtheta^2+h sin(theta)^2(dphi_1-w dt)^2+h cos(theta)^2(dphi_2-w dt)^2+(g-h) sin(theta)^2 cos(theta)^2(dphi_1-dphi_2)^2",
+        "left_invariant_metric_2010": "ds^2=-b dt^2+dr^2/f+g/4*(sigma_1^2+sigma_2^2)+h/4*(sigma_3+2*w*dt)^2",
+        "left_invariant_one_forms": {
+          "sigma_1": "cos(psi)*d(bar_theta)+sin(psi)*sin(bar_theta)*d(phi)",
+          "sigma_2": "-sin(psi)*d(bar_theta)+cos(psi)*sin(bar_theta)*d(phi)",
+          "sigma_3": "d(psi)+cos(bar_theta)*d(phi)",
+          "coordinate_map": {
+            "bar_theta": "2*theta",
+            "phi": "phi_1-phi_2",
+            "psi": "phi_1+phi_2"
+          }
+        }
+      },
+      "horizon": {
+        "radius": "1",
+        "angular_velocity": "0.33",
+        "conditions": [
+          "f(r_H)=0",
+          "b(r_H)=0",
+          "w(r_H)=Omega_H",
+          "h(r_H)=Theta_H",
+          "full EGB near-horizon series transcribed from Brihaye et al. (2010) where applicable; Akribeia supplemental details still pending"
+        ]
+      },
+      "parameter_sweep": {
+        "alpha_start": "0",
+        "alpha_end": "3",
+        "alpha_step": "0.01"
+      },
+      "radial_domain": {
+        "physical": "r in [r_H,infinity)",
+        "compactification": "r-r_H=tan(x)",
+        "compactified_domain": "x in [0,pi/2)",
+        "exact_infinity_boundary_map": "x->pi/2 corresponds to r->infinity"
+      },
+      "boundaries": {
+        "horizon": "nonextremal regular expansion; exact Myers-Perry coefficients pinned in the case",
+        "infinity": "asymptotically flat; h=r^2+V/r^2+O(r^-4) with U,V,W conventions",
+        "exact_series_status": "MP exact control pinned; nonzero-alpha full asymptotic expansion still requires extraction"
+      },
+      "reference_controls": {
+        "alpha_zero": "exact five-dimensional equal-spin Myers-Perry solution in the g(r)=r^2 gauge, with all five metric functions derived from Brihaye et al. (2010)",
+        "alpha_three": "published numerical 5D EGB equal-angular-momentum solution from Brihaye et al. (2010); raw profiles still require extraction/digitization",
+        "akribeia_reported_myers_perry_l2_relative_error": "~1e-160",
+        "akribeia_reported_precision_digits": 300,
+        "l2_scope": "Myers-Perry GR-limit solution-difference metric, not a generic EGB equation residual",
+        "myers_perry_exact_functions": {
+          "definitions": [
+            "q=r_H^2*Omega_H^2",
+            "u=(r_H/r)^2",
+            "D=1-q+q*u^2"
+          ],
+          "b": "1-u/D",
+          "f": "(1-u)*(1-q*(1+u))/(1-q)",
+          "g": "r^2",
+          "h": "r^2+r_H^2*q*u/(1-q)",
+          "w": "Omega_H*u^2/D",
+          "equivalent_f": "1-mu/r^2+mu*a^2/r^4",
+          "equivalent_h": "r^2+mu*a^2/r^2",
+          "mu": "r_H^2/(1-q)",
+          "a": "r_H^2*Omega_H",
+          "derivatives": {
+            "b_prime": "2*u*(1-q-q*u^2)/(r*D^2)",
+            "f_prime": "2*u*(1-2*q*u)/(r*(1-q))",
+            "g_prime": "2*r",
+            "h_prime": "2*r-2*r_H^2*q*u/((1-q)*r)",
+            "w_prime": "-4*Omega_H*u^2*(1-q)/(r*D^2)",
+            "b_second": "d^2/dr^2[1-u/D]",
+            "f_second": "2*(-3*u+10*q*u^2)/((1-q)*r^2)",
+            "h_second": "2+6*r_H^2*q*u/((1-q)*r^2)",
+            "w_second": "w_prime*(-5+8*q*u^2/D)/r"
+          },
+          "second_derivatives_in_symbolic_fixture": true
+        },
+        "nonextremal_domain": "0<=q<1/2",
+        "horizon_data": {
+          "b1": "2*(1-2*q)/r_H",
+          "f1": "2*(1-2*q)/(r_H*(1-q))",
+          "h_H": "r_H^2/(1-q)",
+          "w_H": "Omega_H",
+          "w1": "4*Omega_H*(q-1)/r_H"
+        },
+        "asymptotic_coefficients": {
+          "U": "-r_H^2/(1-q)",
+          "V": "r_H^6*Omega_H^2/(1-q)",
+          "W": "r_H^4*Omega_H/(1-q)",
+          "identity": "V=-W^2/U"
+        }
+      },
+      "discovery_refinement_baseline": {
+        "neural_architecture": "3 hidden layers x 20 units, Swish",
+        "training": "10^4-10^5 steps; Adam schedule then L-BFGS",
+        "reported_pre_refinement_residual": "~1e-3",
+        "spectral_refinement": "Chebyshev pseudo-spectral Gauss-Newton with extended precision",
+        "note": "Reproduction requires same norm, action, boundary data, domain compactification, precision and source data.",
+        "akribeia_source": "Agurto-Sepulveda et al., arXiv:2607.07418, accepted PRD 12 Nov 2026",
+        "classical_comparison_owner": "crates/domains/symtropy-relativity/benchmarks/bh_solver_comparison_matrix_v1.md"
+      },
+      "architecture_boundary": {
+        "existing_symtropy_relativity_metric_storage": "4x4",
+        "direct_reuse_permitted": false,
+        "required_adapter": "dedicated 5D invariant-frame/cohomogeneity-one Lovelock equations or explicitly dimension-generalized tensor stack"
+      },
+      "data_status": {
+        "full_paper_inspected": true,
+        "2010_reference_full_text_inspected": true,
+        "generic_5d_egb_action_extracted": true,
+        "2010_coordinate_metric_ansatz_extracted": true,
+        "2010_mp_exact_b_and_w_extracted": true,
+        "2010_mp_exact_f_and_h_derived_and_symbolically_checked": true,
+        "2010_horizon_data_extracted": true,
+        "2010_asymptotic_h_expansion_and_UVW_extracted": true,
+        "akribeia_supplemental_near_horizon_and_asymptotic_series_extracted": false,
+        "raw_akribeia_solution_arrays_extracted": false,
+        "exact_2010_reference_arrays_extracted": false,
+        "symtropy_run_executed": false,
+        "aps_accepted_paper_page_inspected": true,
+        "aps_supplemental_material_available": false,
+        "aps_supplemental_availability_note": "APS accepted-paper page explicitly says author-provided supplemental materials will be available upon publication of the version of record; accepted-paper page inspected 2026-11-18.",
+        "version_of_record_available_on_checked_page": false,
+        "next_source_gate": "recheck APS version-of-record page for Supplemental Material; meanwhile continue exact MP control and 2010 paper-based EGB boundary/source reconstruction.",
+        "main_paper_reference_data_extracted": "main-paper ansatz, training summary, coupling sweep, and 5D EGB/MP comparison are available; exact raw solution arrays and supplemental diagnostics remain unavailable on accepted-paper page.",
+        "time_sector_identity_full_alpha_terms_extracted": true,
+        "time_sector_source_balance_verified_against_bd": true,
+        "time_sector_finite_alpha_conserved": false,
+        "rotating_egb_solution_executed": false,
+        "full_coordinate_metric_cross_term_pinned": true
+      },
+      "purpose": [
+        "matched neural-spectral discovery/refinement comparison",
+        "exact Myers-Perry limit",
+        "published 5D EGB non-GR control",
+        "independent full-domain interval and existence qualification"
+      ],
+      "owner_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6063",
+      "source": "Agurto-Sepulveda et al., arXiv:2607.07418, DOI 10.1103/3kz2-6dvv",
+      "first_integral": {
+        "source": "Brihaye et al. (2010), Eq. (2.12)",
+        "original": "w'*h*sqrt(f*h/b)*(g-alpha/4*(f*g'^2/g-16+12*h/g))=constant",
+        "gauge_fixed": "P_w=w'*h*sqrt(f*h/b)*(r^2-alpha*(f-4+3*h/r^2))",
+        "asymptotic_link": "P_w=-4*W",
+        "angular_momentum": "J=(2*pi^2)*W/(8*pi*G)",
+        "quadrature_gate": "K(r)=r^2-alpha*(f-4+3*h/r^2) must be interval-certified away from zero before solving for w' by division",
+        "role": "use as exact conservation constraint, independent residual, and optional field elimination",
+        "status": "formula_source_extracted_mp_alpha0_symbolically_derived_rust_implementation_pending"
+      },
+      "published_einstein_branch_control": {
+        "name": "five-dimensional static Boulware-Deser",
+        "functions": {
+          "w": "0",
+          "h": "r^2",
+          "b": "1+(r^2/alpha)*(1-sqrt(1+alpha*(alpha+2*r_H^2)/r^4))",
+          "f": "same as b"
+        },
+        "branch": "Einstein branch",
+        "role": "separate static EGB exact control and alpha->0 Schwarzschild-Tangherlini limit"
+      },
+      "reduced_architecture_hypothesis": {
+        "full_profile": "solve b,f,h,w with g=r^2",
+        "angular_noether_reduction": "use only the true conserved P_w=-4W to reconstruct w' where K is interval-certified away from zero; retain b,f,h as remaining profiles",
+        "source_balanced_reduction": "use full Eq. (2.14) current plus L_GB source balance to constrain/reconstruct b' only where -r^2+alpha*C_b is interval-certified away from zero",
+        "status": "three alternative formulations are benchmark hypotheses; no dual conserved time-sector flux or two-global-charge reduction is claimed",
+        "fallback": "retain the full four-profile system whenever K or the b-prime coefficient is unresolved"
+      },
+      "time_sector_radial_identity": {
+        "source": "Brihaye et al. (2010), Eq. (2.14), with full alpha-dependent current",
+        "definitions": {
+          "C_b": "f-4+h/r^2+r*f*h'/h",
+          "C_w": "4-3*h/r^2-f",
+          "P_t": "sqrt(f*h/b)*(r^2*(h*w*w'-b')+alpha*(C_b*b'+C_w*h*w*w'+r*f*h*w'^2))"
+        },
+        "trace_identity_5d": "H^mu_mu=-L_GB/2; on shell R=-alpha*L_GB/12",
+        "source_balance": "dP_t/dr=(alpha/6)*r^2*sqrt(b*h/f)*L_GB",
+        "asymptotic_endpoint": "P_t(infinity)=2*U",
+        "alpha_zero": "At alpha=0, source vanishes and P_t(r)=2*U is constant",
+        "finite_alpha": "P_t is radius-dependent; it is not a conserved charge",
+        "static_boulware_deser_control": {
+          "b_f": "F(r)",
+          "h": "r^2",
+          "w": "0",
+          "current": "P_t=-r^3*F'+3*alpha*r*(F-1)*F'",
+          "gauss_bonnet_scalar": "L_GB=12/r^3*((F-1)*(r*F''+2*F')+r*(F')^2)",
+          "source_balance": "P_t'=alpha*r^3*L_GB/6",
+          "asymptotic_U": "U=-(r_H^2+alpha/2)",
+          "asymptotic_endpoint": "P_t(infinity)=2*U"
+        },
+        "alpha_zero_mp_control": {
+          "U": "-10000/8911",
+          "P_t_all_r": "-20000/8911",
+          "sample_r3": "-20000/8911",
+          "horizon_limit": "-20000/8911"
+        },
+        "rust_apis": {
+          "current": "time_sector_radial_flux(sample,alpha)",
+          "source_prefactor": "time_sector_current_source(sample,alpha,L_GB)",
+          "b_prime_reconstruction": "reconstruct_b_prime_from_time_flux(sample,alpha,local_P_t)",
+          "b_d_curvature": "BoulwareDeser5D::curvature_data(radius)"
+        },
+        "validation": {
+          "corrected_current_includes_all_alpha_terms": true,
+          "bd_gauss_bonnet_scalar_independently_derived": true,
+          "bd_source_balance_symbolically_checked": true,
+          "bd_asymptotic_current_checked": true,
+          "rust_tests_authored": 16,
+          "rust_tests_executed": false
+        },
+        "claim_ceiling": "A sourced radial identity and asymptotic endpoint, not a finite-alpha conserved charge and not a second independent Noether momentum."
+      },
+      "action_equation_oracle": {
+        "source": "Brihaye et al. (2010), Eqs. (2.10)-(2.12)",
+        "reduced_action": "L_eff=L_E+alpha*L_GB/4",
+        "equations": [
+          "E_b",
+          "E_f",
+          "E_g",
+          "E_h",
+          "E_w"
+        ],
+        "gauge_order": "vary with g unfixed; then impose g=r^2, g'=2r, g''=2; retain the E_g radial consistency residual",
+        "angular_identity": "dL_eff/dw'=P_w; E_w=-dP_w/dr",
+        "rust_module": "crates/domains/symtropy-lovelock5d/src/reduced_action.rs",
+        "differentiation": "second-order 10-variable forward-mode jet (gradient/Hessian-vector)",
+        "exact_controls": {
+          "alpha_zero_equal_spin_myers_perry": "all five gauge-sliced residuals identically zero",
+          "finite_alpha_static_boulware_deser": "all five gauge-sliced residuals identically zero"
+        },
+        "known_transcription_gate": "The fourth Einstein-Hilbert term is b*g'*h'/h, not b*g'*h'/g; exact BD/MP controls reject the latter.",
+        "implementation_status": "Rust evaluator and six tests authored, not compiled or executed.",
+        "tests_authored": 6
+      },
+      "implementation_status": "Rust exact-reference crate has 16 tests and action-derived ODE module has 6 tests; 22 authored total, none executed.",
+      "classical_bvp_baseline": {
+        "source": "Brihaye et al. (2010), Section 4.1.1",
+        "solver": "Newton-Raphson boundary-value ODE solver with adaptive mesh selection; cites Ascher, Christiansen and Russell",
+        "typical_mesh_points": "10^2-10^3",
+        "reported_typical_relative_accuracy": "~10^-6",
+        "continuation_seeds": [
+          "exact Myers-Perry while increasing alpha",
+          "static Boulware-Deser while increasing Omega_H"
+        ],
+        "matching_requirement": "Recompute common observables/residual norms from matched profiles; paper-reported relative accuracy is not directly the same as a pointwise field-residual norm.",
+        "cross_gauge_check": "The source explicitly reports repeating some runs in isotropic and g=r^2 gauges with excellent agreement in physical parameters; reproduce this. Compare T_H, A_H, S_Wald, E, J and the first-law defect; require convergence with radial mesh refinement."
+      },
+      "additional_methodological_comparator": {
+        "citation": "Lam, Chung and Yunes, Phys. Rev. D 113, 024030 (2026), DOI 10.1103/txxb-z8bx",
+        "method": "stationary-axisymmetric Kerr deformation with radial and polar spectral/pseudospectral expansions; algebraic coefficient solve at fixed spin; coefficient fits versus spin",
+        "reported_accuracy": {
+          "a_le_0_9": "below machine precision",
+          "a_le_0_999": "approximately 1e-8"
+        },
+        "slow_rotation_breakdown": "reported around a~0.2-0.6 depending on approximation order and chosen accuracy",
+        "scope_limit": "4D Kerr-based quadratic EFTs at leading coupling order; methodological comparator only, not a matched 5D pure EGB solution or nonlinear Lovelock benchmark",
+        "source_status": "PRD published 2026-01-15; APS abstract inspected 2026-11-19"
+      },
+      "adaptive_spin_order_target": {
+        "dimensionless_spin": "chi=a/r_H^2",
+        "dimensionless_coupling": "lambda=alpha/r_H^2",
+        "objective": "map maximum admissible chi for each perturbative order, observable and requested error tolerance; hand off to direct nonlinear spectral continuation before the truncation budget is exceeded",
+        "caution": "do not extrapolate slow-rotation series toward extremality without a validated remainder",
+        "breakdown_comparator": {
+          "citation": "Lam, Chung and Yunes, PRD 113, 024030 (2026), DOI 10.1103/txxb-z8bx",
+          "reported_slow_rotation_breakdown": "a approximately 0.2-0.6 depending on approximation order and requested accuracy",
+          "reported_spectral_metric_accuracy": "below machine precision for a<=0.9; approximately 1e-8 for a<=0.999",
+          "applicability": "methodological comparator only: 4D Kerr-based leading-coupling quadratic EFTs, not 5D pure EGB",
+          "objective": "measure our own chi-lambda-observable tolerance envelope; do not inherit their spin threshold"
+        },
+        "thermodynamic_observables": [
+          "E",
+          "J",
+          "T_H",
+          "A_H",
+          "S_Wald",
+          "first-law defect"
+        ]
+      },
+      "interval_quadrature_gate": {
+        "module": "crates/domains/symtropy-lovelock5d/src/interval.rs",
+        "arithmetic": "binary64 outward-rounded interval operations",
+        "function": "certify_angular_quadrature",
+        "checks": [
+          "radius,b,f,h strictly positive",
+          "K=r^2-alpha*(f-4+3h/r^2) excludes zero",
+          "full h*sqrt(fh/b)*K denominator excludes zero"
+        ],
+        "rejection": "explicit inconclusive/error if K contains zero, metric intervals not positive, denominator contains zero, or overflow occurs",
+        "static_slow_rotation_theorem": "On BD background K=r^2*sqrt(1+alpha*(alpha+2*r_H^2)/r^4)>=r^2 for alpha>=0.",
+        "validation": {
+          "interval_tests_authored": 7,
+          "profile_tests_authored": 18,
+          "action_equation_tests_authored": 6,
+          "total_authored": 31,
+          "rust_tests_executed": false,
+          "python_fraction_inclusion_check": "5000 random binary64 input pairs; 15000 exact-rational inclusion checks on add/multiply/divide"
+        },
+        "proof_boundary": "Fast binary64 screening only, not proof-grade solution certification. Require IEEE-1788 differential tests and independent FLINT Arb replay (issue #6013) before qualified use."
+      },
+      "thermodynamic_invariants": {
+        "horizon_temperature": "T_H=sqrt(b1*f1)/(4*pi)",
+        "horizon_area": "A_H=2*pi^2*r_H^2*sqrt(h_H)",
+        "wald_entropy": "S=(2*pi^2/(4*G))*sqrt(h_H)*(r_H^2+alpha*(4-h_H/r_H^2))",
+        "asymptotic_energy": "E=-3*(2*pi^2)*U/(16*pi*G)",
+        "equal_angular_momentum_each_plane": "J=(2*pi^2)*W/(8*pi*G)",
+        "first_law_fixed_alpha": "dE=T_H*dS_Wald+2*Omega_H*dJ",
+        "benchmark_gate": "finite-difference or branch-tangent first-law defect must converge under step/refinement; compare the same invariants in both radial gauges",
+        "source": "Brihaye et al. (2010), Eqs. (3.6)-(3.11), (4.3)"
+      }
+    },
+    {
+      "case_id": "BH-5D-EGB-SLOW-ROTATION-001",
+      "status": "published_first_order_control_symbolically_reproduced_rust_tests_authored",
+      "theory_id": "5d_einstein_gauss_bonnet",
+      "spacetime_dimension": 5,
+      "symmetry": "stationary_equal_angular_momenta_cohomogeneity_one_RxU(2)",
+      "source": "Brihaye et al., JHEP 11 (2010) 089, arXiv:1010.0860, Eqs. (2.12), (2.20), (2.21), (3.8)",
+      "action_normalization": {
+        "alpha": "Gauss-Bonnet coupling in I=(16*pi*G)^-1 integral sqrt(-g)*(R+alpha*L_GB/4)",
+        "branch": "Einstein branch of Boulware-Deser"
+      },
+      "metric_ansatz": {
+        "line_element": "ds^2=-b(r)dt^2+dr^2/f(r)+g(r)*(xi^1*xi^1+xi_tilde^1*xi_tilde^1)+h(r)*(zeta-w(r)*dt)^2",
+        "radial_functions": [
+          "b",
+          "f",
+          "g",
+          "h",
+          "w"
+        ],
+        "gauge": "g(r)=r^2",
+        "invariant_frame": "Hopf frame on S^3; normalization and Maurer-Cartan data must be transcribed from source/supplement",
+        "coordinate_metric_2010": "ds^2=-b dt^2+dr^2/f+g dtheta^2+h sin(theta)^2(dphi_1-w dt)^2+h cos(theta)^2(dphi_2-w dt)^2+(g-h) sin(theta)^2 cos(theta)^2(dphi_1-dphi_2)^2",
+        "left_invariant_metric_2010": "ds^2=-b dt^2+dr^2/f+g/4*(sigma_1^2+sigma_2^2)+h/4*(sigma_3+2*w*dt)^2",
+        "left_invariant_one_forms": {
+          "sigma_1": "cos(psi)*d(bar_theta)+sin(psi)*sin(bar_theta)*d(phi)",
+          "sigma_2": "-sin(psi)*d(bar_theta)+cos(psi)*sin(bar_theta)*d(phi)",
+          "sigma_3": "d(psi)+cos(bar_theta)*d(phi)",
+          "coordinate_map": {
+            "bar_theta": "2*theta",
+            "phi": "phi_1-phi_2",
+            "psi": "phi_1+phi_2"
+          }
+        }
+      },
+      "expansion": {
+        "spin_parameter": "a",
+        "horizon_angular_velocity": "Omega_H=a/r_H^2",
+        "even_metric_functions": "b=f=F+O(a^2), h=r^2+O(a^2), g=r^2",
+        "rotational_function": "w=a*W_1(r)+O(a^3)"
+      },
+      "horizon": {
+        "radius": "1",
+        "angular_velocity": "a",
+        "nonextremal_static_background": true,
+        "conditions": [
+          "b(r_H)=f(r_H)=0",
+          "w(r_H)=Omega_H",
+          "Boulware-Deser background horizon derivative b1=f1=2*r_H/(r_H^2+alpha)"
+        ]
+      },
+      "parameter_sweep": {
+        "alpha": "[0,3]",
+        "dimensionless_gauss_bonnet": "lambda=alpha/r_H^2",
+        "dimensionless_spin": "chi=a/r_H^2",
+        "exploratory_spin_values": [
+          "0.001",
+          "0.005",
+          "0.01",
+          "0.02"
+        ],
+        "exact_control": {
+          "r_H": "1",
+          "alpha": "0.7",
+          "a": "0.02"
+        }
+      },
+      "radial_domain": {
+        "physical": "r in [r_H,infinity)",
+        "compactification": "r-r_H=tan(x)",
+        "x_domain": "[0,pi/2)"
+      },
+      "boundaries": {
+        "horizon": "w(r_H)=a/r_H^2; F(r_H)=0",
+        "infinity": "w=W/r^4+O(r^-8), W=a*(2*r_H^2+alpha)/2; asymptotically flat BD background"
+      },
+      "reference_solution": {
+        "C": "2*r_H^2+alpha",
+        "s": "sqrt(1+alpha*C/r^4)",
+        "F": "1-C/(r^2*(1+s))",
+        "b": "F+O(a^2)",
+        "f": "F+O(a^2)",
+        "h": "r^2+O(a^2)",
+        "w": "a*C/(r^4*(1+s))+O(a^3)",
+        "w_prime": "-2*a*C/(r^5*s)+O(a^3)",
+        "w_second": "w_prime*(-5/r+2*alpha*C/(s^2*r^5))+O(a^3)"
+      },
+      "first_integral": {
+        "source": "Brihaye et al. (2010), Eq. (2.12)",
+        "K": "r^2-alpha*(F-1)=r^2*s",
+        "exact_P_w": "-2*a*C",
+        "asymptotic_W": "a*C/2",
+        "identity": "P_w=-4*W",
+        "positive_alpha_bound": "K>=r^2>0 for r>0 and alpha>=0",
+        "quadrature": "w_prime=P_w/(r^3*K)"
+      },
+      "exact_mp_overlap": {
+        "alpha_zero": "linearized slow-rotation profile matches exact equal-spin Myers-Perry",
+        "spin_remainder": "w_MP-a*W_1=a^3/r_H^4*u^2*(1-u^2)/(1-q+q*u^2)",
+        "u": "(r_H/r)^2",
+        "q": "a^2/r_H^2",
+        "claim": "The cubic term is the expected omitted O(a^3) contribution, not a failure of the first-order solution."
+      },
+      "action_equation_oracle": {
+        "evaluator": "ReducedActionResiduals5D::evaluate",
+        "expected_at_first_order": "E_w=0; E_b,E_f,E_g,E_h have no O(a^0) or O(a^1) residual and begin at O(a^2)",
+        "validation_control": "finite-alpha slow-rotation profile at alpha=0.7, r_H=1, r=2; compare spin a=0.01 and 0.02; even-sector residual norm must scale by 4",
+        "independent_development_replay": {
+          "method": "Python 10-variable second-order jet reimplementation",
+          "executed": true,
+          "alpha": "0.7",
+          "r_H": "1",
+          "radius": "2",
+          "spin_0_01": {
+            "residuals": [
+              "-3.2063867676512814e-05",
+              "2.4932788861536936e-05",
+              "8.7629091576335583e-06",
+              "1.0809915261589254e-05",
+              "-2.7755575615628914e-17"
+            ],
+            "max_even_residual": "3.2063867676512814e-05",
+            "P_w": "-0.054"
+          },
+          "spin_0_02": {
+            "residuals": [
+              "-0.00012825547070960397",
+              "9.9731155450422104e-05",
+              "3.505163662942401e-05",
+              "4.3239661045357813e-05",
+              "-5.5511151231257827e-17"
+            ],
+            "max_even_residual": "0.00012825547070960397",
+            "P_w": "-0.108"
+          },
+          "even_residual_ratio": "4",
+          "claim_ceiling": "Independent numerical replay of the first-order profile in the action-derived residual; not a Rust execution."
+        }
+      },
+      "implementation": {
+        "crate": "crates/domains/symtropy-lovelock5d",
+        "type": "SlowRotationBoulwareDeser5D",
+        "reference_script": "crates/domains/symtropy-lovelock5d/benchmarks/derive_slow_rotation_reference.py",
+        "fixture": "crates/domains/symtropy-lovelock5d/benchmarks/slow_rotation_5d_reference_v1.json",
+        "rust_tests_authored": 2,
+        "action_tests_authored": 2,
+        "rust_tests_executed": false
+      },
+      "owner_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6169",
+      "claim_ceiling": "This is the published first-order slow-rotation solution and analytic angular flux. It does not provide the O(a^2) metric backreaction, prove a finite-spin nonzero-alpha solution, or claim uniform validity near extremality.",
+      "second_order_spin_expansion": {
+        "owner_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6169",
+        "script": "crates/domains/symtropy-lovelock5d/benchmarks/derive_slow_rotation_second_order.py",
+        "fixture": "crates/domains/symtropy-lovelock5d/benchmarks/slow_rotation_second_order_fixture_v1.json",
+        "derivation_doc": "crates/domains/symtropy-lovelock5d/benchmarks/slow_rotation_second_order_derivation_v1.md",
+        "ansatz": {
+          "b": "F+a^2*B2+O(a^4)",
+          "f": "F+a^2*F2+O(a^4)",
+          "h": "r^2+a^2*H2+O(a^4)",
+          "w": "a*W1+O(a^3)",
+          "g": "r^2"
+        },
+        "equation_system": {
+          "equations": [
+            "E_b^(2)",
+            "E_f^(2)",
+            "E_g^(2)",
+            "E_h^(2)"
+          ],
+          "source_split": "linear operator on B2,F2,H2 plus W1^2 source",
+          "radial_constraint_retained": "E_g^(2)",
+          "coefficient_extraction": "0.5*d^2/d(epsilon)^2 at epsilon=0 after full variation and gauge substitution"
+        },
+        "exact_mp_alpha_zero_control": {
+          "u": "r_H^2/r^2",
+          "B2": "-u*(1-u^2)/r_H^2",
+          "F2": "-u*(1-u)/r_H^2",
+          "H2": "u",
+          "residuals": {
+            "b": "0",
+            "f": "0",
+            "g": "0",
+            "h": "0"
+          },
+          "all_four_equations_passed_in_development_sympy": true
+        },
+        "equation_fingerprints": {
+          "b": "b7df661c03650bb9eb61522e6c57d3232ba3269c8a4d28c97578c13ef4745e79",
+          "f": "b93eb7ab1ac8273736dd22fda41f3f798bc78b67479c4461583c5e8110a257d8",
+          "g": "f96826babf48579e0b406199368c3e69d2fd59118164f0f5b04d43f977fe8b41",
+          "h": "d77f1a8a7c797602830c8e4479066a9f8e53650727c12b4ab1c0fcbd64b1c314"
+        },
+        "status": "O(a^2) equations derived symbolically; exact MP control passes; committed replay script pending clean checkout; finite-alpha BVP unsolved"
+      }
+    },
+    {
+      "case_id": "BH-5D-EGB-ISOTROPIC-GAUGE-001",
+      "status": "high_precision_static_BD_and_linear_spin_map_reference_executed",
+      "theory_id": "5d_einstein_gauss_bonnet",
+      "spacetime_dimension": 5,
+      "symmetry": "stationary_equal_angular_momenta_cohomogeneity_one",
+      "owner_issues": [
+        "https://github.com/Luminous-Dynamics/symtropy/issues/6181",
+        "https://github.com/Luminous-Dynamics/symtropy/issues/6202"
+      ],
+      "source": "Brihaye et al., JHEP 11 (2010) 089, arXiv:1010.0860, metric ansatz Eq. (2.8) and isotropic-gauge footnote 2",
+      "coordinates": {
+        "areal": "rho=R/r_H",
+        "isotropic": "xi=x/r_H",
+        "coupling": "lambda=alpha/r_H^2",
+        "normalization": "xi/rho -> 1 as rho -> infinity",
+        "map": "xi=rho*exp(-integral_0^(1/rho) ((F(y)^(-1/2)-1)/y) dy)",
+        "stable_BD_lapse": "F(y)=2*(1-y^2)/(1+lambda*y^2+sqrt(1+lambda*(2+lambda)*y^4))",
+        "differential_identity": "d(log xi)/d(rho)=1/(rho*sqrt(F))",
+        "reconstruction": {
+          "bar_f": "b_A",
+          "f_I": "xi^2/rho^2",
+          "m": "b_A*rho^2/xi^2",
+          "n": "b_A*h_A/xi^2",
+          "bar_w": "xi*w_A"
+        },
+        "alpha_zero_exact": "xi=(rho+sqrt(rho^2-1))/2; rho=xi+1/(4*xi)",
+        "horizon_behavior": "xi-xi_H=xi_H*sqrt(2*(1+lambda)*(rho-1))+O(rho-1)",
+        "asymptotic_behavior": "xi=rho-(2+lambda)/(8*rho)+O(rho^-3)"
+      },
+      "parameters": {
+        "dimensionless_coupling_lambda": [
+          "0",
+          "0.7",
+          "3"
+        ],
+        "validation_rho": [
+          "1.1",
+          "2",
+          "10"
+        ],
+        "tabulated_rho": "2",
+        "precision_digits": 90
+      },
+      "fixture": "crates/domains/symtropy-lovelock5d/benchmarks/isotropic_gauge_reference_v1.json",
+      "reproduction_script": "crates/domains/symtropy-lovelock5d/benchmarks/isotropic_gauge_reference.py",
+      "checks": {
+        "alpha_zero_closed_form": "passed",
+        "inverse_map_round_trip": "passed",
+        "differential_map": "passed",
+        "radial_line_element_identity": "passed",
+        "max_inverse_radius_absolute_error": "1.0129874e-90",
+        "max_dxi_differential_relative_defect": "2.4545467e-91",
+        "max_radial_metric_relative_defect": "4.9090935e-91",
+        "fail_closed_assertions": "passed",
+        "absolute_defect_tolerance": "1e-80 at 90 dps",
+        "max_isotropic_reconstruction_relative_defect": "2.4545467e-91"
+      },
+      "validation": {
+        "mpmath_script_replay": "executed at 90 dps with fail-closed positivity, inverse, derivative, radial-metric, reconstruction and alpha-zero controls; output JSON matches the frozen reference schema",
+        "interval_certification": false,
+        "independent_isotropic_EGB_residual": false,
+        "nonlinear_rotating_two_gauge_solution": false,
+        "claim_ceiling": "High-precision numerical coordinate reference for static BD and linear spin only. Not an interval certificate, independent isotropic action solver, or nonlinear rotating solution."
+      }
+    },
+    {
+      "case_id": "BH-5D-EGB-ISO-HORIZON-ASYMPTOTIC-001",
+      "status": "matched_asymptotic_derived_and_90_digit_numerical_grid_checked",
+      "theory_id": "5d_einstein_gauss_bonnet_static_boulware_deser",
+      "spacetime_dimension": 5,
+      "source": "Derived from the static Einstein-branch Boulware-Deser lapse and the areal/isotropic map convention of Brihaye et al. (2010), arXiv:1010.0860",
+      "owner_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6206",
+      "related_issues": [
+        "https://github.com/Luminous-Dynamics/symtropy/issues/6181",
+        "https://github.com/Luminous-Dynamics/symtropy/issues/6202"
+      ],
+      "dimensionless_coupling": "lambda=alpha/r_H^2",
+      "coordinate_definition": {
+        "isotropic_horizon": "xi_H=exp(-integral_0^1 ((F(y,lambda)^(-1/2)-1)/y) dy)",
+        "matched_asymptotic": "xi_H ~ A_inner*sqrt(lambda)*exp(-pi*sqrt(lambda)/2)",
+        "A_inner_exact": "exp(-C_inner)",
+        "C_inner_exact": "-1 -(2+sqrt(2))*log(1+1/sqrt(2))/4 -(2-sqrt(2))*log(1-1/sqrt(2))/4 + log(2)",
+        "A_inner_numeric": "1.792308527864158580567669561327316248563265695888601044",
+        "horizon_relative_chart": "eta=log(xi/xi_H), d eta/d rho=1/(rho*sqrt(F))",
+        "optional_compactification": "z=eta/(1+eta)"
+      },
+      "numerical_grid": {
+        "mpmath_dps": 90,
+        "lambda": [
+          "100",
+          "1000",
+          "10000",
+          "100000",
+          "1000000"
+        ],
+        "exact_to_asymptotic_ratio": [
+          "0.96422212155804617344372632739440215",
+          "0.98792373567528005144794198646264026",
+          "0.99610693679330083536580102336526216",
+          "0.99876156031649097680332847863873042",
+          "0.99960763901765176832066120929641041"
+        ],
+        "relative_error": [
+          "0.035777878442",
+          "0.0120762643247",
+          "0.0038930632067",
+          "0.00123843968351",
+          "0.000392360982348"
+        ]
+      },
+      "artifacts": [
+        "crates/domains/symtropy-lovelock5d/benchmarks/horizon_coordinate_asymptotic.py",
+        "crates/domains/symtropy-lovelock5d/benchmarks/horizon_coordinate_asymptotic_v1.json",
+        "crates/domains/symtropy-lovelock5d/benchmarks/horizon_coordinate_asymptotic_v1.md"
+      ],
+      "validation": {
+        "numerical_ratio_monotone_on_frozen_grid": true,
+        "maximum_relative_error_below_0_05": true,
+        "replayed_at_90_digit_working_precision": true,
+        "interval_remainder_bound": false,
+        "nonlinear_rotating_solution": false,
+        "physical_horizon_shrinkage": false,
+        "claim_ceiling": "Static BD isotropic-coordinate matched asymptotic and numerical checks only; coordinate compression is not physical horizon shrinkage, a curvature singularity, an extremality result or a new rotating solution."
+      }
+    }
+  ],
+  "fairness_rules": [
+    "No cross-theory numerical performance claim without identical equations and conventions.",
+    "Source-published values are not Symtropy-reproduced values.",
+    "A low collocation residual is not a full-domain enclosure.",
+    "A full-domain residual enclosure is not by itself an existence theorem.",
+    "A local existence theorem does not establish EFT validity or observational admissibility.",
+    "Inconclusive is not refuted and not verified.",
+    "Akribeia's 5D/7D Lovelock cases are not directly comparable to 4D pure-Weyl cases; compare only after action/dimension/ansatz/gauge/boundary matching.",
+    "Akribeia's reported ~1e-160 relative L2 error is a Myers-Perry GR-limit result at 300-digit precision, not a universal error on all higher-curvature branches.",
+    "Akribeia's continuous neural-field certification and quantified residuals are not to be equated automatically with an interval/radii-polynomial existence theorem.",
+    "The two static reduced Bach equations are distinct: the factorized B1+B2 equation selects the four-term profile; B1-B2 then imposes Q=0. Both must be checked.",
+    "The Akribeia 10^-160 relative L2 figure is specific to the five-dimensional Myers-Perry GR-limit control at 300 digits; it is not an EGB equation-residual bound.",
+    "The Akribeia 5D EGB equal-spin case must not be compared directly to the current 4D static pure-Weyl code. A dimension/action/symmetry/gauge/boundary matched adapter is required.",
+    "The current public symtropy-relativity metric component representation is 4x4; 5D work requires an explicit dimension-generalized or invariant-frame formulation.",
+    "The 5D equal-spin MP control is expressed in the g=r^2 radial gauge; do not confuse r_H in this gauge with the Boyer-Lindquist radial horizon coordinate.",
+    "The MP exact b,f,h,w profiles must all be checked; b,w alone are not a complete metric control.",
+    "The EGB rotational Noether flux from the 2010 reduced action is a separate exact conserved quantity; quadrature reconstruction of w requires an interval proof that its radial denominator K(r) stays away from zero.",
+    "The 2010 action and gauge-fixed ansatz are used as an independent source for the Akribeia benchmark; no raw nonzero-alpha EGB profiles have yet been reproduced.",
+    "The full time-sector Eq. (2.14) radial current includes alpha-dependent terms; the Einstein-only current r^2(h*w*w'-b') is incomplete at finite alpha.",
+    "The time-sector current is sourced: P_t'=(alpha/6)*r^2*sqrt(b*h/f)*L_GB. Its asymptotic endpoint is 2U, but it is not a conserved charge at finite alpha.",
+    "Only the angular P_w current is the conserved Noether current in this two-current discussion. Do not construct a dual-conserved-flux reduction.",
+    "A source-balanced b-prime reconstruction must use the full alpha-dependent coefficient and the local P_t(r), not the asymptotic constant 2U at every radius.",
+    "The 5D radial-action oracle must be varied before g=r² is substituted; retain E_g after gauge slicing and check all five residuals on exact MP and BD branches.",
+    "The fourth Einstein-Hilbert radial-action term is b*g'*h'/h; exact branch controls reject b*g'*h'/g.",
+    "Include the published finite-alpha 5D slow-rotation control as an intermediate validation rung between static BD and fully nonlinear rotating EGB.",
+    "For the slow-rotation background F=BD, the angular flux denominator K=r²-alpha(F-1)=r²*s is analytically positive and satisfies K>=r² for alpha>=0; this does not prove K stays nonzero for arbitrary nonlinear candidates.",
+    "The 2010 classical comparator is a Newton-Raphson BVP solver with adaptive mesh, typically 100-1000 points and reported typical relative accuracy ~1e-6; compare common observables and recomputed residual norms rather than equating this with Akribeia's residual metric.",
+    "The matched solver matrix must include the classical 2010 BVP solver, Akribeia neural-to-Chebyshev refinement, and Symtropy's action/Noether/perturbative continuation pipeline.",
+    "Symtropy is not considered superior until it reproduces 2010 observables and demonstrates a matched work-precision advantage plus independent residual/domain qualification.",
+    "Lam-Chung-Yunes 2026 arbitrary-spin spectral metrics are a methodological high-spin comparator only: their 4D leading-coupling EFT equations differ from the 5D pure EGB target.",
+    "Map the accuracy-vs-spin envelope for each perturbative order and observable; do not claim a universal slow-rotation breakdown spin.",
+    "Reproduce the 2010 two-gauge cross-check by comparing invariant physical observables and transformed field residuals.",
+    "The derived O(a^2) even-sector E_b,E_f,E_g,E_h system must recover exact Myers-Perry B2,F2,H2 at alpha=0; retain E_g as radial constraint.",
+    "Do not claim finite-alpha spin-squared backreaction until the inhomogeneous BVP is solved with independent horizon, infinity, spectral and first-law checks."
+  ]
+}

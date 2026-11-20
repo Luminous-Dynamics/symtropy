@@ -1,0 +1,305 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "exact_5d_equal_spin_myers_perry_reference_fixture",
+  "status": "independent_sympy_arithmetic_checked_rust_tests_authored_not_executed",
+  "source_basis": [
+    "Brihaye, Kleihaus, Kunz and Radu, JHEP 11 (2010) 089, arXiv:1010.0860",
+    "Agurto-Sepulveda et al., arXiv:2607.07418 (2026), Akribeia 5D EGB benchmark"
+  ],
+  "conventions": {
+    "dimension": 5,
+    "signature": "(-++++)",
+    "radial_gauge": "g(r)=r^2",
+    "coordinates": [
+      "t",
+      "r",
+      "theta",
+      "phi_1",
+      "phi_2"
+    ],
+    "action": "I=(16*pi*G)^-1 integral sqrt(-g)*(R+alpha*L_GB/4)",
+    "gb_coupling": "alpha=4*alpha_2/alpha_1",
+    "exact_metric": "ds^2=-b dt^2+dr^2/f+r^2 dtheta^2+h sin(theta)^2(dphi_1-w dt)^2+h cos(theta)^2(dphi_2-w dt)^2",
+    "coordinate_metric_2010": "ds^2=-b dt^2+dr^2/f+g dtheta^2+h sin(theta)^2(dphi_1-w dt)^2+h cos(theta)^2(dphi_2-w dt)^2+(g-h) sin(theta)^2 cos(theta)^2(dphi_1-dphi_2)^2",
+    "left_invariant_metric_2010": "ds^2=-b dt^2+dr^2/f+g/4*(sigma_1^2+sigma_2^2)+h/4*(sigma_3+2*w*dt)^2",
+    "left_invariant_one_forms": {
+      "sigma_1": "cos(psi)*d(bar_theta)+sin(psi)*sin(bar_theta)*d(phi)",
+      "sigma_2": "-sin(psi)*d(bar_theta)+cos(psi)*sin(bar_theta)*d(phi)",
+      "sigma_3": "d(psi)+cos(bar_theta)*d(phi)",
+      "coordinate_map": {
+        "bar_theta": "2*theta",
+        "phi": "phi_1-phi_2",
+        "psi": "phi_1+phi_2"
+      }
+    }
+  },
+  "exact_myers_perry": {
+    "definitions": {
+      "q": "r_H^2*Omega_H^2",
+      "u": "(r_H/r)^2",
+      "D": "1-q+q*u^2",
+      "mu": "r_H^2/(1-q)",
+      "a": "r_H^2*Omega_H"
+    },
+    "functions": {
+      "b": "1-u/D",
+      "f": "(1-u)*(1-q*(1+u))/(1-q)",
+      "g": "r^2",
+      "h": "r^2+r_H^2*q*u/(1-q)",
+      "w": "Omega_H*u^2/D"
+    },
+    "derivatives": {
+      "b_prime": "2*u*(1-q-q*u^2)/(r*D^2)",
+      "f_prime": "2*u*(1-2*q*u)/(r*(1-q))",
+      "g_prime": "2*r",
+      "h_prime": "2*r-2*r_H^2*q*u/((1-q)*r)",
+      "w_prime": "-4*Omega_H*u^2*(1-q)/(r*D^2)",
+      "b_second": "d^2/dr^2[1-u/D]",
+      "f_second": "2*(-3*u+10*q*u^2)/((1-q)*r^2)",
+      "h_second": "2+6*r_H^2*q*u/((1-q)*r^2)",
+      "w_second": "w_prime*(-5+8*q*u^2/D)/r"
+    },
+    "horizon": {
+      "domain": "0<=q<1/2",
+      "b": "0",
+      "f": "0",
+      "h": "r_H^2/(1-q)",
+      "w": "Omega_H",
+      "b_prime": "2*(1-2*q)/r_H",
+      "f_prime": "2*(1-2*q)/(r_H*(1-q))",
+      "w_prime": "4*Omega_H*(q-1)/r_H"
+    },
+    "asymptotic": {
+      "U": "-r_H^2/(1-q)",
+      "V": "r_H^6*Omega_H^2/(1-q)",
+      "W": "r_H^4*Omega_H/(1-q)",
+      "identity": "V=-W^2/U",
+      "mass_parameter": "mu=-U",
+      "physical_energy": "E=-3*(2*pi^2)*U/(16*pi*G)",
+      "angular_momentum_each_plane": "J=(2*pi^2)*W/(8*pi*G)"
+    }
+  },
+  "noether_flux": {
+    "source_equation": "P_w=w'*h*sqrt(f*h/b)*(g-alpha/4*(f*g_prime^2/g-16+12*h/g))",
+    "gauge_fixed": "P_w=w'*h*sqrt(f*h/b)*(r^2-alpha*(f-4+3*h/r^2))",
+    "asymptotic_relation": "P_w=-4*W",
+    "alpha_zero_identity": "P_w^2=16*W^2",
+    "alpha_zero_sign": "P_w=-4*W for Omega_H>0 on the nonextremal branch",
+    "quadrature": "w_prime=P_w/(h*sqrt(f*h/b)*K)",
+    "K": "r^2-alpha*(f-4+3*h/r^2)",
+    "division_gate": "Do not reconstruct w_prime by division unless an interval enclosure proves K is separated from zero."
+  },
+  "akribeia_control": {
+    "r_H": "1",
+    "Omega_H": "33/100",
+    "q": "1089/10000",
+    "mu": "10000/8911",
+    "M": "5000/8911",
+    "horizon": {
+      "b_prime": "3911/2500",
+      "f_prime": "15644/8911",
+      "h": "10000/8911",
+      "w_prime": "-294063/250000"
+    },
+    "asymptotic": {
+      "U": "-10000/8911",
+      "V": "1089/8911",
+      "W": "3300/8911",
+      "P_w": "-13200/8911"
+    },
+    "sample_r3": {
+      "radius": "3",
+      "b": "879/1004",
+      "f": "23440/26733",
+      "g": "9",
+      "h": "80320/8911",
+      "w": "55/12048",
+      "b_prime": "1000975/12096192",
+      "f_prime": "2788/34371",
+      "h_prime": "160156/26733",
+      "w_prime": "-98021/16128256",
+      "b_second": "-5993501405/72867460608",
+      "f_second": "-57580/721791",
+      "h_second": "53708/26733",
+      "w_second": "1636264553/161927690240"
+    }
+  },
+  "second_positive_control": {
+    "name": "5D static Boulware-Deser Einstein branch",
+    "b_equals_f": "1+r^2/alpha*(1-sqrt(1+alpha*(alpha+2*r_H^2)/r^4))",
+    "rationalized": "1-(alpha+2*r_H^2)/(r^2*(1+sqrt(1+alpha*(alpha+2*r_H^2)/r^4)))",
+    "h": "r^2",
+    "w": "0",
+    "alpha_zero_limit": "1-r_H^2/r^2",
+    "source_relation": "Brihaye et al. (2010), arXiv:1010.0860"
+  },
+  "independent_checks": {
+    "exact_mp_reconstruction": "passed",
+    "five_metric_functions": "passed",
+    "first_derivatives": "passed",
+    "horizon_values_and_derivatives": "passed",
+    "asymptotic_coefficients_and_identity": "passed",
+    "alpha_zero_noether_flux_squared": "passed",
+    "horizon_flux_magnitude": "passed",
+    "bd_rationalization": "passed",
+    "bd_horizon_positive_root": "passed",
+    "bd_schwarzschild_tangherlini_limit": "passed"
+  },
+  "implementation": {
+    "crate": "crates/domains/symtropy-lovelock5d",
+    "rust_tests_authored": 31,
+    "rust_tests_executed": false,
+    "sympy_script": "benchmarks/akribiea_5d_mp_exact_reference.py",
+    "sympy_script_executed_in_clean_checkout": false,
+    "reduced_action_module": {
+      "path": "crates/domains/symtropy-lovelock5d/src/reduced_action.rs",
+      "evaluator": "ReducedActionResiduals5D::evaluate",
+      "differentiation": "10-variable second-order multivariate forward jet (gradient and Hessian)",
+      "equations": [
+        "E_b",
+        "E_f",
+        "E_g",
+        "E_h",
+        "E_w"
+      ],
+      "canonical_momentum": "dL_eff/dw'=P_w",
+      "f_prime_momentum": "0",
+      "tests_authored": 6,
+      "tests_executed": false,
+      "exact_controls": {
+        "all_five_eoms_zero_on_alpha_zero_myers_perry": true,
+        "all_five_eoms_zero_on_finite_alpha_boulware_deser": true,
+        "off_shell_profile_mutation_detected": true
+      },
+      "all_five_equation_exact_controls": [
+        "alpha=0 equal-spin Myers-Perry",
+        "finite-alpha static Boulware-Deser Einstein branch"
+      ],
+      "local_hessian_jet_replay": {
+        "language": "Python development-session reimplementation of the same 10-variable second-order jet rule",
+        "executed": true,
+        "rust_code_executed": false,
+        "max_abs_residual_myers_perry_alpha_zero": "2.842170943040401e-14",
+        "sample_radii_myers_perry": [
+          "1.1",
+          "1.25",
+          "1.5",
+          "2",
+          "3",
+          "5",
+          "10"
+        ],
+        "max_abs_residual_boulware_deser_alpha_0_7": "1.2434497875801753e-14",
+        "sample_radii_boulware_deser": [
+          "1.1",
+          "1.25",
+          "1.5",
+          "2",
+          "3",
+          "5",
+          "10"
+        ],
+        "purpose": "sanity-check the AD gradient/Hessian residual formula and select conservative Rust test tolerances",
+        "slow_rotation_finite_alpha": {
+          "language": "Python development-session second-order forward-jet reimplementation",
+          "executed": true,
+          "alpha": "0.7",
+          "r_H": "1",
+          "radius": "2",
+          "spin_0_01": {
+            "residuals": [
+              "-3.2063867676512814e-05",
+              "2.4932788861536936e-05",
+              "8.7629091576335583e-06",
+              "1.0809915261589254e-05",
+              "-2.7755575615628914e-17"
+            ],
+            "max_even_residual": "3.2063867676512814e-05",
+            "P_w": "-0.054"
+          },
+          "spin_0_02": {
+            "residuals": [
+              "-0.00012825547070960397",
+              "9.9731155450422104e-05",
+              "3.505163662942401e-05",
+              "4.3239661045357813e-05",
+              "-5.5511151231257827e-17"
+            ],
+            "max_even_residual": "0.00012825547070960397",
+            "P_w": "-0.108"
+          },
+          "max_even_residual_ratio": "4",
+          "interpretation": "Even-sector residuals scale exactly as a^2 for this first-order profile; E_w is at floating-point roundoff. This validates the perturbative order, not the missing second-order backreaction."
+        }
+      }
+    },
+    "time_sector_tests_authored": 4,
+    "slow_rotation": {
+      "type": "SlowRotationBoulwareDeser5D",
+      "tests_authored": 2,
+      "action_tests_authored": 2,
+      "tests_executed": false,
+      "reference_script": "benchmarks/derive_slow_rotation_reference.py",
+      "exact_fixture": "benchmarks/slow_rotation_5d_reference_v1.json"
+    },
+    "profile_tests_authored": 18,
+    "interval_tests_authored": 7,
+    "interval_pre_screen": {
+      "path": "src/interval.rs",
+      "arithmetic": "binary64 adjacent-float outward rounding for add/subtract/multiply/divide/sqrt",
+      "api": "certify_angular_quadrature(radius,b,f,h,alpha,P_w)",
+      "output": [
+        "K interval",
+        "h*sqrt(fh/b)*K denominator interval",
+        "reconstructed w' interval"
+      ],
+      "fail_closed": [
+        "K interval contains zero",
+        "nonpositive metric interval",
+        "division interval contains zero",
+        "non-finite/overflow arithmetic"
+      ],
+      "exact_family_bound": "Boulware-Deser/linear-spin family K=r^2*sqrt(1+alpha*(alpha+2*r_H^2)/r^4)>=r^2 for alpha>=0",
+      "local_independent_arithmetic_check": {
+        "language": "Python translation with Fraction exact-rational inclusion checks",
+        "random_cases": 5000,
+        "exact_checks": 15000,
+        "executed": true,
+        "rust_module_executed": false
+      },
+      "proof_status": "pre-screen only; requires valid input function enclosures, IEEE-1788 differential tests and independent FLINT Arb replay from issue #6013; not a solution certificate"
+    }
+  },
+  "claim_ceiling": "Exact analytic MP/BD references, exact first-order slow-rotation EGB profile and action-level ODE residuals. A separate Python Hessian-jet replay gives ~1e-14 on exact MP/BD branches and confirms O(a^2) even-sector residual scaling on the slow branch. Rust has 22 authored tests, not compiled or executed. No arbitrary-coordinate 5D tensor verification, second-order spin backreaction, fully nonlinear finite-alpha rotating branch, interval enclosure, radii-polynomial proof or stability claim. The binary64 interval module is a preliminary outward-rounded quadrature screen only; no interval solution certificate or Arb replay is claimed.",
+  "time_sector_radial_identity": {
+    "source": "Brihaye et al. (2010), Eq. (2.14), full right-hand side including alpha corrections",
+    "current": "P_t(r)=sqrt(f*h/b)*(r^2*(h*w*w'-b')+alpha*((f-4+h/r^2+r*f*h'/h)*b'+(4-3*h/r^2-f)*h*w*w'+r*f*h*w'^2))",
+    "on_shell_source_balance": "dP_t/dr=(alpha/6)*r^2*sqrt(b*h/f)*L_GB",
+    "asymptotic_endpoint": "lim_{r->infinity} P_t(r)=2*U",
+    "alpha_zero_limit": "At alpha=0 the Gauss-Bonnet source vanishes and P_t is constant, P_t=2*U.",
+    "alpha_nonzero_status": "P_t is not a conserved charge at finite alpha; its radial variation is sourced by L_GB.",
+    "akribeia_control_alpha_zero": {
+      "U": "-10000/8911",
+      "P_t_at_all_r": "-20000/8911",
+      "horizon_limit": "-20000/8911",
+      "sample_r3": "-20000/8911"
+    },
+    "validation_control": {
+      "finite_alpha_case": "5D static Boulware-Deser Einstein branch",
+      "source_identity": "P_t'(r)=(alpha/6)*r^3*L_GB for b=f=F,h=r^2,w=0",
+      "gauss_bonnet_scalar": "L_GB=12/r^3*((F-1)*(r*F''+2*F')+r*(F')^2)",
+      "independent_curvature_formula": "symbolically checked against the exact Boulware-Deser profile",
+      "rust_test_authored": "corrected_time_sector_current_satisfies_b_d_source_balance",
+      "rust_test_executed": false
+    },
+    "implementation": {
+      "rust_current_api": "time_sector_radial_flux(sample,alpha)",
+      "source_api": "time_sector_current_source(sample,alpha,L_GB)",
+      "reconstruction_api": "reconstruct_b_prime_from_time_flux(sample,alpha,local_P_t)",
+      "rust_tests_authored": 14,
+      "rust_tests_executed": false,
+      "sympy_identity_checked_in_development_session": true
+    },
+    "claim_ceiling": "A source-balance identity and asymptotic endpoint, not a finite-alpha conserved charge. It does not permit the previous dual-conserved-flux reduction."
+  }
+}
