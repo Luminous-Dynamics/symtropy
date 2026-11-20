@@ -504,6 +504,20 @@ pub fn verify_policy_receipt_metadata(
     {
         return Err(RenderError::AppliedActionTickMismatch);
     }
+    if receipt.tick > 0 {
+        validate_id(
+            receipt
+                .applied_action_receipt_id
+                .as_deref()
+                .ok_or(RenderError::AppliedActionMissing)?,
+        )?;
+        validate_id(
+            receipt
+                .applied_action_command_id
+                .as_deref()
+                .ok_or(RenderError::AppliedActionMissing)?,
+        )?;
+    }
 
     if let Some(action_digest) = receipt.applied_action_receipt_sha256.as_deref() {
         if !is_sha256_hex(action_digest) {
