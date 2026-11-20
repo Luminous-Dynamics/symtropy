@@ -5,11 +5,25 @@
 //! producer's geometric expansion helpers.
 
 pub mod field_layout_acceptance;
+pub mod ifc_ids_preflight;
+pub use ifc_ids_preflight::{
+    GeometryPreflightEvaluation, IfcCoordinateContext, IfcIdsPreflightError, IfcIdsPreflightReport,
+    IfcLengthUnit,
+    IfcIdsWorkPackageInput, IfcSourceEntity, IdsRequirementEvaluation, SourceEntityBinding,
+    SUPPORTED_IDS_VERSION, SUPPORTED_IFC_SCHEMA_RELEASE, preflight_ifc_ids_work_package,
+};
+pub mod site_state_ledger;
 pub use field_layout_acceptance::{
     CrewHours, DesignIntentEntity, DesignIntentManifest, EntityAcceptanceResult, EntityScoreReason,
     FieldAcceptanceError, FieldAcceptanceProfile, FieldAcceptanceScore, FieldEntityObservation,
     FieldLayoutEntityType, HumanWaiver, MeasurementDisposition, RefereeEntityState,
     RefereeMeasurement, RobotClaimedEntityState, score_field_layout_run,
+};
+pub use site_state_ledger::{
+    RobotExecutionDisposition, SiteActorRole, SiteApplyOutcome, SiteEntityState, SiteEventEnvelope,
+    SiteLedgerTip,
+    SiteActorRegistry, SiteEventPayload, SiteLedgerError, SiteRefereeAssessment,
+    SiteRejectionReason, SiteStateLedger, SiteWorkPackage,
 };
 
 use construction_motion_envelope::{

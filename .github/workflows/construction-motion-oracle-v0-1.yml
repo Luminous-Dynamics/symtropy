@@ -2,7 +2,7 @@ name: Construction Motion Oracle v0.1
 
 on:
   pull_request:
-    branches: [research/construction-motion-envelope-v0-1, research/construction-motion-oracle-bench-v0-1, research/construction-field-independent-acceptance-scorer-v0-1, research/construction-site-state-ledger-v0-1]
+    branches: [research/construction-motion-envelope-v0-1, research/construction-motion-oracle-bench-v0-1, research/construction-field-independent-acceptance-scorer-v0-1, research/construction-site-state-ledger-v0-1, research/construction-site-state-ledger-v0-1-rebased, research/construction-stopping-reachability-v0-1, research/construction-space-time-dispatch-gate-v0-1, research/construction-dependency-scoped-invalidation-v0-1, research/construction-offline-journal-reconciliation-v0-1]
     paths:
       - "research/construction-motion-oracle-v0-1/**"
       - ".github/workflows/construction-motion-oracle-v0-1.yml"
@@ -12,6 +12,98 @@ permissions:
   contents: read
 
 jobs:
+  schema:
+    name: Draft 2020-12 construction schema and fixture validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check "jsonschema==4.26.0"
+      - name: Validate event and IFC/IDS schemas and known-answer fixtures
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/construction-motion-oracle-v0-1")
+          event_schema = json.loads((root / "schema/site-state-event-v0.1.schema.json").read_text())
+          event_fixture = json.loads((root / "examples/site-state-event-stream-synthetic-v0.1.json").read_text())
+          ifc_schema = json.loads((root / "schema/ifc-ids-preflight-input-v0.1.schema.json").read_text())
+          ifc_fixture = json.loads((root / "examples/ifc-ids-preflight-input-synthetic-v0.1.json").read_text())
+          stop_schema = json.loads((root / "schema/stopping-dynamics-qualification-v0.1.schema.json").read_text())
+          stop_fixture = json.loads((root / "examples/stopping-dynamics-qualification-synthetic-v0.1.json").read_text())
+          hazard_schema = json.loads((root / "schema/hazard-stopping-budget-v0.1.schema.json").read_text())
+          hazard_fixture = json.loads((root / "examples/hazard-stopping-budget-synthetic-v0.1.json").read_text())
+          offline_schema = json.loads((root / "schema/offline-site-journal-bundle-v0.1.schema.json").read_text())
+          offline_fixture = json.loads((root / "examples/offline-site-journal-bundle-synthetic-v0.1.json").read_text())
+
+          for schema in (event_schema, ifc_schema, stop_schema, hazard_schema, offline_schema):
+              Draft202012Validator.check_schema(schema)
+          event_validator = Draft202012Validator(event_schema)
+          ifc_validator = Draft202012Validator(ifc_schema)
+          stop_validator = Draft202012Validator(stop_schema)
+          hazard_validator = Draft202012Validator(hazard_schema)
+          offline_validator = Draft202012Validator(offline_schema)
+
+          for event in event_fixture:
+              event_validator.validate(event)
+          ifc_validator.validate(ifc_fixture)
+          stop_validator.validate(stop_fixture)
+          hazard_validator.validate(hazard_fixture)
+          offline_validator.validate(offline_fixture)
+
+          journals = offline_fixture["journals"]
+          journal_ids = [journal["journal_id"] for journal in journals]
+          assert len(journal_ids) == len(set(journal_ids)), "duplicate offline journal IDs"
+          assert all(journal["site_id"] == offline_fixture["site_id"] for journal in journals)
+          assert all(journal["base_checkpoint"] == offline_fixture["base_checkpoint"] for journal in journals)
+          for journal in journals:
+              entries = journal["entries"]
+              assert [entry["local_sequence"] for entry in entries] == list(range(1, len(entries) + 1))
+              assert all(entry["actor_id"] == journal["owner_actor_id"] for entry in entries)
+              for index, entry in enumerate(entries):
+                  expected_previous = None if index == 0 else entries[index - 1]["record_sha256"]
+                  assert entry["previous_record_sha256"] == expected_previous, "local journal chain mismatch"
+          bundle_event_ids = {
+              entry["event_id"] for journal in journals for entry in journal["entries"]
+          }
+          committed_ids = set(offline_fixture["committed_context"]["event_ids"])
+          for journal in journals:
+              for entry in journal["entries"]:
+                  for parent_id in entry["causal_parent_event_ids"]:
+                      assert parent_id in bundle_event_ids or parent_id in committed_ids, "unknown causal parent"
+          expected = offline_fixture["expected_reconciliation"]
+          assert expected["can_ingest"] is False
+          assert expected["conflict_count"] == 2
+          assert set(expected["conflict_event_ids"]) == {
+              "robot-a-observation", "robot-b-start", "referee-a-assessment"
+          }
+          robot_observation = next(
+              entry for journal in journals for entry in journal["entries"]
+              if entry["event_id"] == "robot-a-observation"
+          )
+          robot_start = next(
+              entry for journal in journals for entry in journal["entries"]
+              if entry["event_id"] == "robot-b-start"
+          )
+          assert robot_observation["payload"]["entity_id"] == robot_start["payload"]["entity_id"]
+          assert robot_observation["payload"]["package_sha256"] == robot_start["payload"]["package_sha256"]
+          assert robot_observation["payload"]["attempt_id"] != robot_start["payload"]["attempt_id"]
+
+          ids = [event["event_id"] for event in event_fixture]
+          sequences = [event["sequence"] for event in event_fixture]
+          assert len(ids) == len(set(ids)), "duplicate event IDs in fixture"
+          assert sequences == list(range(1, len(sequences) + 1)), "event sequence is not contiguous"
+          for index, event in enumerate(event_fixture):
+              expected_previous = None if index == 0 else event_fixture[index - 1]["event_sha256"]
+              assert event["previous_event_sha256"] == expected_previous, "event hash-link fixture mismatch"
+          assert any(event["payload"]["kind"] == "execution_interrupted" for event in event_fixture)
+          assert all(isinstance(item, dict) for item in event_schema["properties"]["payload"]["oneOf"])
+
+          print(f"PASS: five Draft 2020-12 schemas; {len(event_fixture)} site-state events; IFC/IDS, stopping, hazard and offline-journal fixtures")
+          print("LIMIT: fixture hashes are synthetic and this does not verify real signatures or event digests")
+          PY
   rust:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -34,3 +126,6 @@ jobs:
       - name: Differential benchmark
         if: runner.os == 'Linux'
         run: cargo run --release --manifest-path research/construction-motion-oracle-v0-1/Cargo.toml --bin differential-bench
+      - name: Stopping reachability kernel benchmark
+        if: runner.os == 'Linux'
+        run: cargo run --release --manifest-path research/construction-motion-oracle-v0-1/Cargo.toml --locked --bin stopping-reachability-bench
