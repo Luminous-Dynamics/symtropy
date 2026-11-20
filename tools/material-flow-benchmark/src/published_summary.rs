@@ -74,7 +74,7 @@ pub struct PublishedSummaryReport {
     pub delivery_count_reconciles: bool,
     pub narrative_table_truck_energy_difference_wh: u64,
     pub published_battery_feasibility_enforced: bool,
-    pub battery_feasible_claim_permitted: bool,
+    pub battery_feasibility_claim_permitted: bool,
     pub paper_milp_reexecuted: bool,
     pub raw_dataset_loaded: bool,
     pub commercial_use_permitted_by_dataset_license: bool,
@@ -254,7 +254,8 @@ pub fn verify_published_summary(
         delivery_count_reconciles,
         narrative_table_truck_energy_difference_wh: narrative_difference,
         published_battery_feasibility_enforced: input.battery_feasibility_enforced,
-        battery_feasible_claim_permitted: input.battery_feasibility_enforced,
+        // A table summary can never certify an independently reproduced physical mission.
+        battery_feasibility_claim_permitted: false,
         paper_milp_reexecuted: false,
         raw_dataset_loaded: input.raw_dataset_loaded,
         commercial_use_permitted_by_dataset_license: false,
@@ -336,6 +337,16 @@ mod tests {
         assert!(!report.battery_feasible_claim_permitted);
         assert!(!report.paper_milp_reexecuted);
         assert!(report.warnings.iter().any(|warning| warning.contains("battery_feasibility_enforced_to_zero")));
+    }
+
+    #[test]
+    fn enabling_paper_battery_parameter_does_not_turn_summary_check_into_qualification() {
+        let mut test = input();
+        test.battery_feasibility_enforced = true;
+        let report = verify_published_summary(&test).expect("valid metadata");
+        assert!(report.published_battery_feasibility_enforced);
+        assert!(!report.battery_feasibility_claim_permitted);
+        assert!(!report.paper_milp_reexecuted);
     }
 
     #[test]
