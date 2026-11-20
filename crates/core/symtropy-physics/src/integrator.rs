@@ -27,16 +27,50 @@ pub fn nan_zeroed_count() -> u64 {
     NAN_ZEROED_COUNT.load(Ordering::Relaxed)
 }
 
-/// Integrate a single rigid body forward by dt seconds.
+/// Input errors detected before a rigid-body integration step mutates state.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum IntegratorError {
+    /// The integration timestep must be finite and strictly positive.
+    InvalidTimestep,
+}
+
+/// Checked integration entry point.
 ///
-/// Semi-implicit (velocity-first) Euler: update velocity first, then position.
+/// Rejects zero, negative, NaN, and infinite timesteps before mutating body
+/// state or clearing force/torque accumulators. The existing non-finite
+/// force/torque sanitization policy remains unchanged.
 ///
+/// Semi-implicit (velocity-first) Euler updates velocity before position.
 /// For separable Hamiltonian systems, the undamped fixed-step map is
 /// symplectic. Symplecticity does **not** imply unconditional stability or
 /// timestep-independent accuracy: stability and error depend on the problem,
 /// timestep, and any damping, clamping, contacts, or constraint projections
 /// applied around this integrator.
+pub fn try_integrate<const D: usize>(
+    body: &mut RigidBody<D>,
+    gravity: &SVector<f64, D>,
+    dt: f64,
+) -> Result<(), IntegratorError> {
+    if !dt.is_finite() || dt <= 0.0 {
+        return Err(IntegratorError::InvalidTimestep);
+    }
+    integrate_validated_timestep(body, gravity, dt);
+    Ok(())
+}
+
+/// Compatibility wrapper for existing call sites.
+///
+/// Invalid timesteps are rejected without mutating the body. New code that
+/// needs to observe rejection should call try_integrate.
 pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64, D>, dt: f64) {
+    let _ = try_integrate(body, gravity, dt);
+}
+
+fn integrate_validated_timestep<const D: usize>(
+    body: &mut RigidBody<D>,
+    gravity: &SVector<f64, D>,
+    dt: f64,
+) {
     if !body.is_dynamic() {
         body.clear_accumulators();
         return;
@@ -184,6 +218,53 @@ pub fn apply_angular_impulse<const D: usize>(body: &mut RigidBody<D>, impulse: &
 mod tests {
     use super::*;
     use crate::body::BodyHandle;
+
+    #[test]
+    fn invalid_timesteps_are_rejected_without_mutating_body_or_pending_impulses() {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(69),
+            Point::new([1.0, -2.0, 0.5]),
+            0.2,
+            2.0,
+        );
+        body.linear_velocity = SVector::from([0.5, -0.25, 1.0]);
+        body.angular_velocity.set(0, 1, 0.3);
+        body.angular_velocity.set(0, 2, -0.2);
+        body.apply_force(SVector::from([3.0, 4.0, -5.0]));
+        body.apply_torque(Bivector::<3>::unit_plane(1, 2).scale(0.7));
+
+        let position_before = body.transform.translation.0;
+        let rotation_before = body.transform.rotation.to_matrix();
+        let linear_before = body.linear_velocity;
+        let angular_before = body.angular_velocity;
+        let force_before = body.force_accumulator;
+        let torque_before = body.torque_accumulator;
+
+        for dt in [0.0, -0.01, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert_eq!(
+                try_integrate(&mut body, &SVector::zeros(), dt),
+                Err(IntegratorError::InvalidTimestep),
+                "dt={dt:?} must be rejected"
+            );
+            assert_eq!(body.transform.translation.0, position_before);
+            assert_eq!(
+                (body.transform.rotation.to_matrix() - rotation_before).norm(),
+                0.0
+            );
+            assert_eq!(body.linear_velocity, linear_before);
+            assert_eq!(body.angular_velocity, angular_before);
+            assert_eq!(body.force_accumulator, force_before);
+            assert_eq!(body.torque_accumulator, torque_before);
+        }
+
+        // The legacy void-returning API shares the same fail-closed behavior.
+        integrate(&mut body, &SVector::zeros(), -0.1);
+        assert_eq!(body.transform.translation.0, position_before);
+        assert_eq!(body.linear_velocity, linear_before);
+        assert_eq!(body.angular_velocity, angular_before);
+        assert_eq!(body.force_accumulator, force_before);
+        assert_eq!(body.torque_accumulator, torque_before);
+    }
 
     #[test]
     fn semi_implicit_euler_matches_constant_acceleration_discrete_map() {
