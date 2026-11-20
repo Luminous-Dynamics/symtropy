@@ -245,6 +245,15 @@ fn summarize_evidence(units: &[ActuatorUnit]) -> EvidenceQualification {
         .collect();
 
     let required_values_incomplete = units.iter().any(|unit| {
+        let peak_duration_incomplete = unit
+            .output_torque_nm
+            .zip(unit.continuous_torque_capability_lower_nm)
+            .is_some_and(|(torque, continuous)| {
+                maximum_absolute(torque) > continuous
+                    && (unit.required_peak_duration_s.is_none()
+                        || unit.available_peak_duration_lower_s.is_none())
+            });
+
         unit.output_torque_nm.is_none()
             || unit.continuous_torque_capability_lower_nm.is_none()
             || unit.peak_torque_capability_lower_nm.is_none()
@@ -252,6 +261,7 @@ fn summarize_evidence(units: &[ActuatorUnit]) -> EvidenceQualification {
             || unit.output_speed_rad_s.is_none()
             || unit.temperature_c.is_none()
             || unit.thermal_limit_lower_c.is_none()
+            || peak_duration_incomplete
     });
 
     if classes.contains(&EvidenceClass::Unknown) || required_values_incomplete {
@@ -1100,6 +1110,25 @@ mod tests {
             a,
             unit("B", interval(5.0, 6.0), interval(41.0, 43.0)),
         ])).unwrap();
+        assert_eq!(report.evidence_qualification, EvidenceQualification::Incomplete);
+    }
+
+    #[test]
+    fn sharing_033_peak_limited_physical_inputs_require_duration_evidence() {
+        let mut a = unit("A", interval(11.0, 12.0), interval(40.0, 42.0));
+        let mut b = unit("B", interval(5.0, 6.0), interval(41.0, 43.0));
+        for unit in [&mut a, &mut b] {
+            unit.torque_evidence_class = EvidenceClass::IndependentPhysical;
+            unit.torque_source_reference = Some(format!("urn:measurement:torque:{}", unit.actuator_id));
+            unit.capability_evidence_class = EvidenceClass::IndependentPhysical;
+            unit.capability_source_reference = Some(format!("urn:measurement:capability:{}", unit.actuator_id));
+            unit.thermal_evidence_class = EvidenceClass::IndependentPhysical;
+            unit.thermal_source_reference = Some(format!("urn:measurement:thermal:{}", unit.actuator_id));
+        }
+        a.required_peak_duration_s = None;
+        a.available_peak_duration_lower_s = None;
+        let report = evaluate_joint(&input(vec![a, b])).unwrap();
+        assert_eq!(report.disposition, JointDisposition::Unknown);
         assert_eq!(report.evidence_qualification, EvidenceQualification::Incomplete);
     }
 
