@@ -103,3 +103,45 @@ These are falsifiable research goals, not promises of commercial advantage.
 ## 9. Claim ceiling
 
 The fixture can test schema, arithmetic, disposition and service-equivalence logic. It does not show real marine demand, energy efficiency, customer willingness to pay, data-centre performance, ecological safety, site suitability, grid connection, or SOTA superiority.
+
+## 10. Placement eligibility evaluator — 20 November 2026
+
+The first executable comparison slice is now present on branch `research/ocean-compute-workload-v0-1`:
+
+- `docs/research/port-energy-compute/OCEAN_COMPUTE_PLACEMENT_MATRIX_V0_1.json`: 30 synthetic placement candidates (five profiles × six strata).
+- `tools/ocean-compute-placement-verifier/`: standalone Rust crate using Serde/serde_json; no production Python dependency.
+- The verifier rejects placements that violate allowed locality, availability, source rights, egress permission, output quality, exact accepted service units, p99 latency, completion deadline, PCC peak cap, required local fallback, safety-control isolation or energy closure.
+- Eligible candidates are compared on a Pareto frontier across energy/service, carbon/service, cost/service, p99 latency and completion time. No opaque weighted score is produced.
+
+### Independent static cross-check
+
+The committed JSON was retrieved from the branch and independently re-evaluated against the profile contracts. All 30 candidate identities were unique; all candidate profile references resolved; all energy component sums closed; the fixtures remained synthetic-only; all five profiles had at least one eligible candidate.
+
+The independent cross-check found these eligible candidate counts:
+
+| Service profile | Eligible candidates | Count |
+|---|---:|---:|
+| Wave observation/QC | 3 of 6 | 3 |
+| Offshore wind condition analytics | 3 of 6 | 3 |
+| Port berth-demand forecast | 1 of 6 | 1 |
+| AUV/ROV inspection reconstruction | 4 of 6 | 4 |
+| Ocean-science hindcast ensemble | 3 of 6 | 3 |
+
+Adversarial controls rejected: missing local fallback, a synthetic PCC-cap violation, source-rights and data-egress denial, failed quality, unapproved placement strata, unavailable candidate and a deadline miss.
+
+**Verification limitation:** the independent JSON/logic cross-check was run, but the Rust crate has not been compiled or tested in this environment because `rustc` and `cargo` are unavailable. The crate includes focused unit tests; no CI result or executable Rust pass is claimed.
+
+## 11. Current external metrology and flexibility references
+
+- ISO/IEC 30134-2:2026, edition 2, published 16 January 2026, is the current PUE measurement reference. Its revised scope includes updated measurement boundaries, on-site generation accounting, mixed-use PUE and treatment of unaccounted energy. ISO lists Technical Corrigendum 1 as under publication after the 10 November 2026 stage update: https://www.iso.org/standard/30134-2 and https://www.iso.org/standard/95746.html. Pin the applicable text/corrigendum when a measured facility campaign is designed.
+- ENTSO-E's April 2026 data-centres and power-system report classifies AI/ML training and batch/data processing as higher time/geo-shift potential than inference, web/SaaS or transactional services. This is a useful workload taxonomy, not a universal measured flexibility percentage: https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Reports/2026/FINAL_ENTSO-E_Data_Centres_260430.pdf.
+- ASHRAE's grid-interactive data-centre guidance distinguishes temporal and spatial flexibility and discusses reserve/energy-arbitrage mechanisms; local electrical protection remains separate from workload orchestration: https://www.ashrae.org/technical-resources/topics-and-initiatives/ai-data-center/grid-interactive-design-demand-flexibility.
+
+## 12. Competitor status evidence note — Shanghai Lingang
+
+Keep separate fields for project capacity, commissioned phase capacity, actually delivered IT load, design PUE and measured PUE.
+
+- Shanghai municipal portal, 10 February 2026: reports the 2.3 MW first phase operating and describes 24 MW as total planned capacity across two phases: https://touch.shio.gov.cn/jsp/jjxw_detail_en.jsp?id=20260210183337707.
+- Data Center Dynamics, 20 May 2026: reports 24 MW full commercial operations: https://www.datacenterdynamics.com/en/news/hiclouds-offshore-wind-powered-underwater-data-center-up-and-running-off-coast-of-shanghai-china/.
+
+These reports can represent a later commissioning update, but the as-built phase schedule, commissioning acceptance and independently metered IT load remain unverified in this evidence set. Preserve the two claims with their dates and source classes; do not silently turn reported 24 MW project capacity into independently verified delivered IT load. Similarly, PUE ≤1.15 remains a design/project claim until measured using the pinned current standard and stated boundary.
