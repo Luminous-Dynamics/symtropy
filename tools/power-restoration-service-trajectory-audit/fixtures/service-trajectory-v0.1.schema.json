@@ -1,95 +1,365 @@
 {
-  "$schema":"https://json-schema.org/draft/2020-12/schema",
-  "$id":"https://luminousdynamics.io/schemas/power-restoration-service-trajectory-v0.1.schema.json",
-  "title":"Power restoration service trajectory v0.1",
-  "type":"object",
-  "additionalProperties":false,
-  "required":["schemaVersion","trajectoryId","artifactUri","runId","caseRef","caseSha256","streamKind","serviceId","serviceType","serviceBoundaryId","nativeUnit","timebase","producer","sourceArtifacts","samples","workMilestones","parentServiceArtifacts"],
-  "properties":{
-    "schemaVersion":{"const":"0.1.0"},
-    "trajectoryId":{"type":"string","minLength":1},
-    "artifactUri":{"type":"string","minLength":1},
-    "runId":{"type":"string","minLength":1},
-    "caseRef":{"type":"string","minLength":1},
-    "caseSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
-    "streamKind":{"enum":["planned_forecast","observed_work","modelled_service","measured_service"]},
-    "serviceId":{"type":"string","minLength":1},
-    "serviceType":{"type":"string","minLength":1},
-    "serviceBoundaryId":{"type":"string","minLength":1},
-    "nativeUnit":{"const":"kWh"},
-    "timebase":{
-      "type":"object","additionalProperties":false,
-      "required":["timezoneId","firstIntervalStartUnixMs","intervalDurationSeconds","horizonSteps"],
-      "properties":{
-        "timezoneId":{"type":"string","minLength":1},
-        "firstIntervalStartUnixMs":{"type":"integer","minimum":0},
-        "intervalDurationSeconds":{"type":"integer","minimum":1},
-        "horizonSteps":{"type":"integer","minimum":1}
-      }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/power-restoration-service-trajectory-v0.1.schema.json",
+  "title": "Power restoration service trajectory v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "trajectoryId",
+    "artifactUri",
+    "runId",
+    "caseRef",
+    "caseSha256",
+    "streamKind",
+    "serviceId",
+    "serviceType",
+    "serviceBoundaryId",
+    "nativeUnit",
+    "timebase",
+    "producer",
+    "sourceArtifacts",
+    "samples",
+    "workMilestones",
+    "parentServiceArtifacts",
+    "evidenceProviderId"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
     },
-    "producer":{
-      "type":"object","additionalProperties":false,
-      "required":["producerId","sourceCommit","configurationSha256","modelId","instrumentId","calibrationArtifactRef","calibrationArtifactSha256"],
-      "properties":{
-        "producerId":{"type":"string","minLength":1},
-        "sourceCommit":{"type":"string","pattern":"^[0-9a-f]{40}$"},
-        "configurationSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
-        "modelId":{"type":["string","null"],"minLength":1},
-        "instrumentId":{"type":["string","null"],"minLength":1},
-        "calibrationArtifactRef":{"type":["string","null"],"minLength":1},
-        "calibrationArtifactSha256":{"type":["string","null"],"pattern":"^[0-9a-f]{64}$"}
-      }
+    "trajectoryId": {
+      "type": "string",
+      "minLength": 1
     },
-    "sourceArtifacts":{"type":"array","items":{"$ref":"#/$defs/artifact"}},
-    "samples":{
-      "type":"array",
-      "items":{
-        "type":"object","additionalProperties":false,
-        "required":["sampleId","loadId","step","intervalStartUnixMs","utcOffsetMinutes","demandKwh","deliveredKwh","status","evidenceRef","evidenceSha256","uncertaintyKwh","unknownReason","conflictReason","conflictEvidence"],
-        "properties":{
-          "sampleId":{"type":"string","minLength":1},
-          "loadId":{"type":"string","minLength":1},
-          "step":{"type":"integer","minimum":0},
-          "intervalStartUnixMs":{"type":"integer","minimum":0},
-          "utcOffsetMinutes":{"type":"integer","minimum":-840,"maximum":840},
-          "demandKwh":{"type":"number","minimum":0},
-          "deliveredKwh":{"type":["number","null"],"minimum":0},
-          "status":{"enum":["known","unavailable","unknown","conflicting"]},
-          "evidenceRef":{"type":["string","null"],"minLength":1},
-          "evidenceSha256":{"type":["string","null"],"pattern":"^[0-9a-f]{64}$"},
-          "uncertaintyKwh":{"type":["number","null"],"minimum":0},
-          "unknownReason":{"type":["string","null"],"minLength":1},
-          "conflictReason":{"type":["string","null"],"minLength":1},
-          "conflictEvidence":{"type":"array","items":{"$ref":"#/$defs/artifact"}}
+    "artifactUri": {
+      "type": "string",
+      "minLength": 1
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "caseRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "caseSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "streamKind": {
+      "enum": [
+        "planned_forecast",
+        "observed_work",
+        "modelled_service",
+        "measured_service"
+      ]
+    },
+    "serviceId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "serviceType": {
+      "type": "string",
+      "minLength": 1
+    },
+    "serviceBoundaryId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nativeUnit": {
+      "const": "kWh"
+    },
+    "timebase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timezoneId",
+        "firstIntervalStartUnixMs",
+        "intervalDurationSeconds",
+        "horizonSteps"
+      ],
+      "properties": {
+        "timezoneId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "firstIntervalStartUnixMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "intervalDurationSeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "horizonSteps": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },
-    "workMilestones":{
-      "type":"array",
-      "items":{
-        "type":"object","additionalProperties":false,
-        "required":["milestoneId","kind","assetId","step","observedAtUnixMs","evidenceRef","evidenceSha256","notes"],
-        "properties":{
-          "milestoneId":{"type":"string","minLength":1},
-          "kind":{"enum":["inspection_started","inspection_completed","repair_started","repair_completed","commissioning_started","commissioning_passed","commissioning_failed","energization_observed","other"]},
-          "assetId":{"type":"string","minLength":1},
-          "step":{"type":"integer","minimum":0},
-          "observedAtUnixMs":{"type":"integer","minimum":0},
-          "evidenceRef":{"type":"string","minLength":1},
-          "evidenceSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
-          "notes":{"type":["string","null"]}
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "producerId",
+        "sourceCommit",
+        "configurationSha256",
+        "modelId",
+        "instrumentId",
+        "calibrationArtifactRef",
+        "calibrationArtifactSha256",
+        "evidenceProviderId"
+      ],
+      "properties": {
+        "producerId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceCommit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "configurationSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "modelId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "instrumentId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "calibrationArtifactRef": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "calibrationArtifactSha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "evidenceProviderId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
         }
       }
     },
-    "parentServiceArtifacts":{"type":"array","items":{"$ref":"#/$defs/artifact"}}
+    "sourceArtifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "samples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sampleId",
+          "loadId",
+          "step",
+          "intervalStartUnixMs",
+          "utcOffsetMinutes",
+          "demandKwh",
+          "deliveredKwh",
+          "status",
+          "evidenceRef",
+          "evidenceSha256",
+          "uncertaintyKwh",
+          "unknownReason",
+          "conflictReason",
+          "conflictEvidence"
+        ],
+        "properties": {
+          "sampleId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "loadId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "step": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "intervalStartUnixMs": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "utcOffsetMinutes": {
+            "type": "integer",
+            "minimum": -840,
+            "maximum": 840
+          },
+          "demandKwh": {
+            "type": "number",
+            "minimum": 0
+          },
+          "deliveredKwh": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "status": {
+            "enum": [
+              "known",
+              "unavailable",
+              "unknown",
+              "conflicting"
+            ]
+          },
+          "evidenceRef": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "evidenceSha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "uncertaintyKwh": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "unknownReason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "conflictReason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "conflictEvidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/artifact"
+            }
+          }
+        }
+      }
+    },
+    "workMilestones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "milestoneId",
+          "kind",
+          "assetId",
+          "step",
+          "observedAtUnixMs",
+          "evidenceRef",
+          "evidenceSha256",
+          "notes"
+        ],
+        "properties": {
+          "milestoneId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "inspection_started",
+              "inspection_completed",
+              "repair_started",
+              "repair_completed",
+              "commissioning_started",
+              "commissioning_passed",
+              "commissioning_failed",
+              "energization_observed",
+              "other"
+            ]
+          },
+          "assetId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "step": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "observedAtUnixMs": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "evidenceRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidenceSha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "parentServiceArtifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    }
   },
-  "$defs":{
-    "artifact":{
-      "type":"object","additionalProperties":false,
-      "required":["artifactRef","sha256"],
-      "properties":{
-        "artifactRef":{"type":"string","minLength":1},
-        "sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifactRef",
+        "sha256"
+      ],
+      "properties": {
+        "artifactRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
       }
     }
   }
