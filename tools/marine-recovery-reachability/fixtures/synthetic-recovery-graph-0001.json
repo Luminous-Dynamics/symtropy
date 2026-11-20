@@ -8,13 +8,13 @@
     "craft_configuration_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
     "occupancy_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
     "operating_envelope_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
-    "service_contract_sha256": "b1ec7a64f4b20c3cd7944c1825d287b683a5b98f38edf9fa02ef346cdc9d80b3",
+    "service_contract_sha256": "695a5fcc610f0f7d319b6a5cb1c88ed773f0754a05d3b8e7c9c3027042c266ba",
     "trigger_roster_sha256": "603293f010f1eb0606a7330364bf9f137d74f3e7705596ee9bc80b0a8a686321",
     "hard_gate_roster_sha256": "521b43cf71eb79198809c461785861142ee63da849b82c841a482f347bc0fc7b",
     "scenario_set_sha256": "85a899aa01dfe7bba0bfed17e30a869d6dfcfe3bf6bb5735b4b5ef5702c858df",
     "mission_window_start": "2026-11-20T10:00:00Z",
     "mission_window_end": "2026-11-21T10:00:00Z",
-    "mission_snapshot_sha256": "8d4f7c983220f4fdf884e053b2d8e80f1e09798b0d7d1d8e3af208f2735adf9e"
+    "mission_snapshot_sha256": "6b06d599fbda405a07a2162c2f23476cfd903da3df7a8b8e76bda3d7d64644a5"
   },
   "service_contract": [
     {
@@ -67,7 +67,7 @@
       "operator": "gte",
       "floor_value": 1,
       "minimum_coverage_fraction": 1,
-      "max_abs_rate_per_hour": 1,
+      "max_abs_rate_per_hour": 0,
       "rate_bound_method": "mission-bounded-action-envelope",
       "rate_bound_class": "synthetic",
       "rate_bound_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -76,9 +76,9 @@
       "metric": "power_service_availability",
       "unit": "fraction",
       "operator": "gte",
-      "floor_value": 1,
+      "floor_value": 0.95,
       "minimum_coverage_fraction": 1,
-      "max_abs_rate_per_hour": 1,
+      "max_abs_rate_per_hour": 0.02,
       "rate_bound_method": "mission-bounded-action-envelope",
       "rate_bound_class": "synthetic",
       "rate_bound_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -87,9 +87,9 @@
       "metric": "potable_water_service_availability",
       "unit": "fraction",
       "operator": "gte",
-      "floor_value": 1,
+      "floor_value": 0.95,
       "minimum_coverage_fraction": 1,
-      "max_abs_rate_per_hour": 1,
+      "max_abs_rate_per_hour": 0.02,
       "rate_bound_method": "mission-bounded-action-envelope",
       "rate_bound_class": "synthetic",
       "rate_bound_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -98,9 +98,9 @@
       "metric": "sanitation_service_availability",
       "unit": "fraction",
       "operator": "gte",
-      "floor_value": 1,
+      "floor_value": 0.95,
       "minimum_coverage_fraction": 1,
-      "max_abs_rate_per_hour": 1,
+      "max_abs_rate_per_hour": 0.02,
       "rate_bound_method": "mission-bounded-action-envelope",
       "rate_bound_class": "synthetic",
       "rate_bound_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -109,9 +109,9 @@
       "metric": "refrigeration_service_availability",
       "unit": "fraction",
       "operator": "gte",
-      "floor_value": 1,
+      "floor_value": 0.95,
       "minimum_coverage_fraction": 1,
-      "max_abs_rate_per_hour": 1,
+      "max_abs_rate_per_hour": 0.02,
       "rate_bound_method": "mission-bounded-action-envelope",
       "rate_bound_class": "synthetic",
       "rate_bound_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
