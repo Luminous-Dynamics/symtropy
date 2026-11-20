@@ -1,0 +1,292 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_single_spin_nheg_cartan_geometry",
+  "status": "independent_cartan_lanczos_and_all_local_egb_field_equations_verified",
+  "source": {
+    "paper": "Celik, Hajian and Kunz, An Exact Single-Rotating Near-Horizon Geometry in Einstein-Gauss-Bonnet Gravity",
+    "arxiv": "2605.15005",
+    "url": "https://arxiv.org/abs/2605.15005",
+    "equations": [
+      "(2)",
+      "(3)",
+      "(4)",
+      "(5)",
+      "(6)",
+      "(10)"
+    ]
+  },
+  "conventions": {
+    "dimension": 5,
+    "signature": "(-++++)",
+    "action_coupling_map": "alpha_sym=4*alpha_NH",
+    "rotation_parameter": "beta=2*a^2/alpha_sym",
+    "domain": "alpha_sym>0, 0<beta<1, 0<=theta<pi/2",
+    "frame_derivative": "E_2=(1/B)*d/dtheta; x_2=-x*y"
+  },
+  "coframe": {
+    "A": "sqrt(alpha_sym*(1+beta*cos(theta)^4))/(2*sqrt(2)*cos(theta))",
+    "B": "2*A*(1-beta*cos(theta)^4)/(1+beta*cos(theta)^4)",
+    "C": "a*tan(theta)",
+    "e0": "A*r*dt",
+    "e1": "A*dr/r",
+    "e2": "B*dtheta",
+    "e3": "C*dphi",
+    "e4": "2*A*dpsi+e0",
+    "line_element": "-e0^2+e1^2+e2^2+e3^2+e4^2"
+  },
+  "structure_functions": {
+    "x": "2*sqrt(2)*cos(theta)/(sqrt(alpha_sym)*sqrt(1+beta*cos(theta)^4))",
+    "y": "x*tan(theta)/2",
+    "z": "x*(1+beta*cos(theta)^4)/(2*(1-beta*cos(theta)^4)*sin(theta)*cos(theta))",
+    "x_2": "-x*y",
+    "y_2": "2*(beta*sin(theta)^4-beta-1)*cos(theta)^2/(alpha_sym*(beta^2*cos(theta)^8-1))",
+    "z_2": "2*(-3*beta^2*cos(theta)^8+2*beta^2*cos(theta)^6-6*beta*sin(theta)^4+6*beta*sin(theta)^2+1)/(alpha_sym*(beta*sin(theta)^4-2*beta*sin(theta)^2+beta-1)^3*tan(theta)^2)"
+  },
+  "structure_equations": {
+    "de0": "x*e1^e0+y*e2^e0",
+    "de1": "y*e2^e1",
+    "de2": "0",
+    "de3": "z*e2^e3",
+    "de4": "y*e2^e4+x*e1^e0"
+  },
+  "levi_civita_connection": {
+    "0,1": {
+      "0": "x",
+      "4": "-x/2"
+    },
+    "0,2": {
+      "0": "y"
+    },
+    "0,4": {
+      "1": "-x/2"
+    },
+    "1,0": {
+      "0": "x",
+      "4": "-x/2"
+    },
+    "1,2": {
+      "1": "y"
+    },
+    "1,4": {
+      "0": "-x/2"
+    },
+    "2,0": {
+      "0": "y"
+    },
+    "2,1": {
+      "1": "-y"
+    },
+    "2,3": {
+      "3": "-z"
+    },
+    "2,4": {
+      "4": "-y"
+    },
+    "3,2": {
+      "3": "z"
+    },
+    "4,0": {
+      "1": "-x/2"
+    },
+    "4,1": {
+      "0": "x/2"
+    },
+    "4,2": {
+      "4": "y"
+    }
+  },
+  "curvature_two_forms": {
+    "0,1": {
+      "0,2": "-x*y-x_2",
+      "0,1": "-(x^2+4*y^2)/4",
+      "2,4": "-(x*y+x_2)/2"
+    },
+    "0,2": {
+      "0,2": "-y^2-y_2"
+    },
+    "0,3": {
+      "0,3": "-y*z"
+    },
+    "0,4": {
+      "1,2": "(x*y+x_2)/2",
+      "0,4": "-(x^2+4*y^2)/4"
+    },
+    "1,0": {
+      "0,2": "-x*y-x_2",
+      "0,1": "-(x^2+4*y^2)/4",
+      "2,4": "-(x*y+x_2)/2"
+    },
+    "1,2": {
+      "1,2": "-y^2-y_2"
+    },
+    "1,3": {
+      "1,3": "-y*z"
+    },
+    "1,4": {
+      "0,2": "(x*y+x_2)/2",
+      "1,4": "-(x^2+4*y^2)/4"
+    },
+    "2,0": {
+      "0,2": "-y^2-y_2"
+    },
+    "2,1": {
+      "1,2": "y^2+y_2"
+    },
+    "2,3": {
+      "2,3": "-z^2-z_2"
+    },
+    "2,4": {
+      "2,4": "-y^2-y_2"
+    },
+    "3,0": {
+      "0,3": "-y*z"
+    },
+    "3,1": {
+      "1,3": "y*z"
+    },
+    "3,2": {
+      "2,3": "z^2+z_2"
+    },
+    "3,4": {
+      "3,4": "-y*z"
+    },
+    "4,0": {
+      "1,2": "(x*y+x_2)/2",
+      "0,4": "-(x^2+4*y^2)/4"
+    },
+    "4,1": {
+      "0,2": "-(x*y+x_2)/2",
+      "1,4": "(x^2+4*y^2)/4"
+    },
+    "4,2": {
+      "2,4": "y^2+y_2"
+    },
+    "4,3": {
+      "3,4": "y*z"
+    }
+  },
+  "ricci_frame_after_x2_relation": {
+    "0,0": "(x^2+6*y^2+2*y*z+2*y_2)/2",
+    "1,1": "-(x^2+6*y^2+2*y*z+2*y_2)/2",
+    "2,2": "-3*y^2-3*y_2-z^2-z_2",
+    "3,3": "-3*y*z-z^2-z_2",
+    "4,4": "-(x^2+6*y^2+2*y*z+2*y_2)/2",
+    "off_diagonal": "0"
+  },
+  "curvature_invariants": {
+    "ricci_scalar": "-(3*x^2+24*y^2+12*y*z+12*y_2+4*z^2+4*z_2)/2",
+    "kretschmann_in_structure_functions": "(3*x^4+24*x^2*y^2+96*y^4+96*y^2*y_2+48*y^2*z^2+48*y_2^2+16*z^4+32*z^2*z_2+16*z_2^2)/4",
+    "kretschmann_compact": "32*(9*beta^6*c^12+12*beta^5*c^10+75*beta^4*c^8+24*beta^3*c^6+23*beta^2*c^4-20*beta*c^2+5)/(alpha_sym^2*(beta*c^2-1)^6*(beta*c^2+1)^2), c=cos(theta)^2",
+    "source_kretschmann": "32*(9*beta^6*u^6+12*beta^5*u^5+75*beta^4*u^4+24*beta^3*u^3+23*beta^2*u^2-20*beta*u+5)/(alpha_sym^2*(beta*u-1)^6*(beta*u+1)^2), u=cos(theta)^4",
+    "pole_limit": "K(theta->pi/2)=160/alpha_sym^2"
+  },
+  "validation": {
+    "coframe_metric_reconstruction_exact": true,
+    "koszul_connection_coefficients": 16,
+    "torsion_free_exact": true,
+    "metric_compatibility_exact": true,
+    "cartan_d_squared_e_zero": true,
+    "first_bianchi_D_Omega_zero": true,
+    "curvature_two_form_pairs": 20,
+    "nonzero_riemann_components_after_x2_relation": 40,
+    "ricci_off_diagonal_zero_after_x2_relation": true,
+    "cartan_kretschmann_matches_source_exactly": true,
+    "pole_limit_K_160_over_alpha_sym_squared": true,
+    "full_EGB_field_equations_independently_replayed": true,
+    "Lanczos_tensor_formula_from_source_Eq3": true,
+    "all_25_EGB_frame_equations_exactly_zero": true,
+    "single_eta_wrong_index_raising_negative_control_rejected": true,
+    "independent_second_symbolic_EGB_contraction_crosscheck": true
+  },
+  "claim_ceiling": "The coframe-derived Levi-Civita geometry and exact local Einstein-Gauss-Bonnet frame equations are independently checked by Cartan and a second symbolic Lanczos contraction. The global asymptotically-flat completion, compact finite-area horizon, finite standard charges, strong hyperbolicity and stability remain unestablished.",
+  "gauss_bonnet": {
+    "lagrangian_scalar": "6*(x^2*y^2+x^2*y*z+x^2*y_2+x^2*z^2+x^2*z_2+4*y^4+12*y^3*z+4*y^2*y_2+4*y^2*z^2+4*y^2*z_2+8*y*y_2*z)",
+    "lanczos_tensor_nonzero_frame_components": {
+      "0,0": "x^2*z^2+x^2*z_2+8*y^3*z+4*y^2*z^2+4*y^2*z_2+8*y*y_2*z",
+      "1,1": "-x^2*z^2-x^2*z_2-8*y^3*z-4*y^2*z^2-4*y^2*z_2-8*y*y_2*z",
+      "2,2": "-3*y*z*(x^2+4*y^2)",
+      "3,3": "-3*(x^2+4*y^2)*(y^2+y_2)",
+      "4,4": "-x^2*z^2-x^2*z_2-8*y^3*z-4*y^2*z^2-4*y^2*z_2-8*y*y_2*z"
+    },
+    "field_equation": "G_ab + alpha_sym/4 * H_ab = 0",
+    "all_25_frame_residuals_after_exact_rationalization": {
+      "0,0": "0",
+      "0,1": "0",
+      "0,2": "0",
+      "0,3": "0",
+      "0,4": "0",
+      "1,0": "0",
+      "1,1": "0",
+      "1,2": "0",
+      "1,3": "0",
+      "1,4": "0",
+      "2,0": "0",
+      "2,1": "0",
+      "2,2": "0",
+      "2,3": "0",
+      "2,4": "0",
+      "3,0": "0",
+      "3,1": "0",
+      "3,2": "0",
+      "3,3": "0",
+      "3,4": "0",
+      "4,0": "0",
+      "4,1": "0",
+      "4,2": "0",
+      "4,3": "0",
+      "4,4": "0"
+    },
+    "tensor_formula": "H_ab=2*(R*R_ab-2*R_ac*R^c_b-2*R^{cd}*R_acbd+R_a^{cde}*R_bcde)-0.5*eta_ab*L_GB",
+    "index_raising_note": "R^{cd} is raised on both indices; for diagonal Ricci in an orthonormal frame R^{cc}=eta_c^2 R_cc=R_cc, so no single eta_c factor appears in that contraction."
+  },
+  "independent_crosscheck": {
+    "method": "Second SymPy 1.14.0 implementation evaluated the frozen Cartan curvature 2-forms, formed R_ab, R, L_GB, G_ab and H_ab from the tensor contractions, then rationalized with x^2,y^2,z^2,y*z,y_2,z_2.",
+    "python": "3.13.5",
+    "exact_domain": "alpha_sym>0, 0<beta<1, 0<c=cos(theta)^2<1",
+    "field_equation": "G_ab + alpha_sym/4*H_ab",
+    "all_25_components_exactly_zero": true,
+    "exact_zero_component_count": 25,
+    "negative_control": "Insert a single eta_c in R^{cc}*R_{a c b c}, incorrectly raising Ricci only once",
+    "wrong_residuals_general": {
+      "1,1": "-32/(alpha_sym*(beta*c^2-1)*(beta*c^2+1)^2)",
+      "2,2": "32/(alpha_sym*(beta*c^2-1)^2*(beta*c^2+1))",
+      "3,3": "32/(alpha_sym*(beta*c^2-1)^2*(beta*c^2+1))",
+      "4,4": "-32/(alpha_sym*(beta*c^2-1)*(beta*c^2+1)^2)"
+    },
+    "wrong_residual_count": 4,
+    "exact_sample": {
+      "alpha_sym": "1",
+      "beta": "1/2",
+      "c": "1/2"
+    },
+    "wrong_residuals_sample": {
+      "0,0": "0",
+      "0,1": "0",
+      "0,2": "0",
+      "0,3": "0",
+      "0,4": "0",
+      "1,0": "0",
+      "1,1": "16384/567",
+      "1,2": "0",
+      "1,3": "0",
+      "1,4": "0",
+      "2,0": "0",
+      "2,1": "0",
+      "2,2": "16384/441",
+      "2,3": "0",
+      "2,4": "0",
+      "3,0": "0",
+      "3,1": "0",
+      "3,2": "0",
+      "3,3": "16384/441",
+      "3,4": "0",
+      "4,0": "0",
+      "4,1": "0",
+      "4,2": "0",
+      "4,3": "0",
+      "4,4": "16384/567"
+    },
+    "index_raising_explanation": "For a diagonal covariant Ricci tensor in a Lorentzian orthonormal frame, R^{cc}=eta_c*eta_c*R_cc=R_cc. A lone eta_c is an invalid single raise.",
+    "independence_boundary": "This second calculation consumes the frozen Cartan curvature forms; it independently checks the Lanczos contractions and rationalized EGB residuals, not an independently constructed coordinate-basis Riemann tensor."
+  }
+}
