@@ -257,6 +257,12 @@ pub enum SiteEventPayload {
     CapacityReservationCommitted {
         commit: CapacityReservationCommit,
     },
+    /// Atomically consumes one readiness receipt into both an exclusive
+    /// capacity-one reservation and one or more weighted capacity-N claims.
+    CompositeResourceReservationCommitted {
+        exclusive_reservation: SpaceTimeReservation,
+        capacity_commit: CapacityReservationCommit,
+    },
     CapacityReservationReleased {
         reservation_id: String,
         site_clock_domain_id: String,
@@ -457,6 +463,9 @@ pub enum SiteLedgerError {
     CapacityAdmissionNotRobust {
         impacted_reservation_ids: Vec<String>,
     },
+    CompositeReservationBindingMismatch,
+    CompositeReservationIdCollision(String),
+    CompositeReservationClaimOutsideExclusiveWindow(String),
     CapacityReservationReleaseContextMismatch(String),
 }
 
@@ -1191,6 +1200,79 @@ impl SiteStateLedger {
                     release_receipt_sha256: release_receipt_sha256.clone(),
                 })
             }
+            SiteEventPayload::CompositeResourceReservationCommitted {
+                exclusive_reservation,
+                capacity_commit,
+            } => {
+                require_role(event.actor_role, SiteActorRole::DispatchCoordinator)?;
+                validate_space_time_reservation(self, exclusive_reservation)?;
+                validate_capacity_reservation_commit(self, capacity_commit)?;
+                validate_composite_reservation_bindings(exclusive_reservation, capacity_commit)?;
+
+                if self
+                    .space_time_reservations
+                    .contains_key(&exclusive_reservation.reservation_id)
+                {
+                    return Err(SiteLedgerError::DuplicateSpaceTimeReservation(
+                        exclusive_reservation.reservation_id.clone(),
+                    ));
+                }
+                if self
+                    .capacity_reservations
+                    .contains_key(&capacity_commit.reservation.reservation_id)
+                {
+                    return Err(SiteLedgerError::DuplicateCapacityReservation(
+                        capacity_commit.reservation.reservation_id.clone(),
+                    ));
+                }
+
+                // Validate the entire exclusive claim set without mutating
+                // the index. A conflict rejects the composite event before
+                // either reservation class can be committed.
+                for claim in &exclusive_reservation.claims {
+                    let Some(index) = self.active_resource_windows.get(&claim.resource_id) else {
+                        continue;
+                    };
+                    if let Some((_, (previous_end, previous_id))) =
+                        index.range(..claim.start_tick).next_back()
+                    {
+                        if *previous_end > claim.start_tick {
+                            return Err(SiteLedgerError::SpaceTimeReservationConflict {
+                                resource_id: claim.resource_id.clone(),
+                                conflicting_reservation_id: previous_id.clone(),
+                            });
+                        }
+                    }
+                    if let Some((next_start, (_, next_id))) =
+                        index.range(claim.start_tick..).next()
+                    {
+                        if *next_start < claim.end_tick {
+                            return Err(SiteLedgerError::SpaceTimeReservationConflict {
+                                resource_id: claim.resource_id.clone(),
+                                conflicting_reservation_id: next_id.clone(),
+                            });
+                        }
+                    }
+                }
+
+                // The existing robust weighted-capacity oracle is the
+                // independent capacity-N admission reference. It is evaluated
+                // against the same pre-append ledger head as the exclusive
+                // reservation above.
+                let preview = self.preview_capacity_reservation(capacity_commit)?;
+                if !preview.is_admissible {
+                    return Err(SiteLedgerError::CapacityAdmissionNotRobust {
+                        impacted_reservation_ids: preview.report.impacted_reservation_ids(),
+                    });
+                }
+
+                Ok(PreparedSiteMutation::CommitCompositeResourceReservations {
+                    exclusive_reservation: exclusive_reservation.clone(),
+                    capacity_commit: capacity_commit.clone(),
+                    committed_event_id: event.event_id.clone(),
+                    committed_sequence: event.sequence,
+                })
+            }
             SiteEventPayload::SpaceTimeReservationCommitted { reservation } => {
                 require_role(event.actor_role, SiteActorRole::DispatchCoordinator)?;
                 validate_space_time_reservation(self, reservation)?;
@@ -1593,6 +1675,44 @@ impl SiteStateLedger {
                     },
                 );
             }
+            PreparedSiteMutation::CommitCompositeResourceReservations {
+                exclusive_reservation,
+                capacity_commit,
+                committed_event_id,
+                committed_sequence,
+            } => {
+                for claim in &exclusive_reservation.claims {
+                    self.active_resource_windows
+                        .entry(claim.resource_id.clone())
+                        .or_default()
+                        .insert(
+                            claim.start_tick,
+                            (claim.end_tick, exclusive_reservation.reservation_id.clone()),
+                        );
+                }
+                self.space_time_reservations.insert(
+                    exclusive_reservation.reservation_id.clone(),
+                    SpaceTimeReservationRecord {
+                        reservation: exclusive_reservation,
+                        committed_event_id: committed_event_id.clone(),
+                        committed_sequence,
+                        released_event_id: None,
+                        released_at_tick: None,
+                        release_receipt_sha256: None,
+                    },
+                );
+                self.capacity_reservations.insert(
+                    capacity_commit.reservation.reservation_id.clone(),
+                    CapacityReservationRecord {
+                        commit: capacity_commit,
+                        committed_event_id,
+                        committed_sequence,
+                        released_event_id: None,
+                        released_at_tick: None,
+                        release_receipt_sha256: None,
+                    },
+                );
+            }
             PreparedSiteMutation::ReleaseCapacityReservation {
                 reservation_id,
                 released_event_id,
@@ -1887,6 +2007,12 @@ enum PreparedSiteMutation {
         committed_event_id: String,
         committed_sequence: u64,
     },
+    CommitCompositeResourceReservations {
+        exclusive_reservation: SpaceTimeReservation,
+        capacity_commit: CapacityReservationCommit,
+        committed_event_id: String,
+        committed_sequence: u64,
+    },
     ReleaseCapacityReservation {
         reservation_id: String,
         released_event_id: String,
@@ -2099,6 +2225,46 @@ fn validate_capacity_reservation_commit(
         }
     }
 
+    Ok(())
+}
+
+fn validate_composite_reservation_bindings(
+    exclusive: &SpaceTimeReservation,
+    capacity: &CapacityReservationCommit,
+) -> Result<(), SiteLedgerError> {
+    let weighted = &capacity.reservation;
+    if exclusive.reservation_id == weighted.reservation_id {
+        return Err(SiteLedgerError::CompositeReservationIdCollision(
+            exclusive.reservation_id.clone(),
+        ));
+    }
+    if exclusive.package_sha256 != capacity.package_sha256
+        || exclusive.design_revision_sha256 != capacity.design_revision_sha256
+        || exclusive.entity_id != capacity.entity_id
+        || exclusive.robot_id != capacity.robot_id
+        || exclusive.readiness_receipt_sha256 != capacity.readiness_receipt_sha256
+        || exclusive.occupancy_assessment_receipt_sha256
+            != capacity.occupancy_assessment_receipt_sha256
+        || exclusive.occupancy_engine_build_sha256 != capacity.occupancy_engine_build_sha256
+        || exclusive.clearance_policy_sha256 != capacity.clearance_policy_sha256
+        || exclusive.site_snapshot_sha256 != capacity.site_snapshot_sha256
+        || exclusive.site_ledger_sequence != capacity.site_ledger_sequence
+        || exclusive.site_ledger_event_sha256 != capacity.site_ledger_event_sha256
+        || exclusive.site_clock_domain_id != weighted.site_clock_domain_id
+        || exclusive.checked_at_tick != capacity.checked_at_tick
+        || exclusive.valid_until_tick != capacity.valid_until_tick
+        || exclusive.committed_at_tick != capacity.committed_at_tick
+        || exclusive.lease_valid_until_tick != capacity.lease_valid_until_tick
+    {
+        return Err(SiteLedgerError::CompositeReservationBindingMismatch);
+    }
+    for claim in &weighted.claims {
+        if claim.start_tick < exclusive.start_tick || claim.end_tick > exclusive.end_tick {
+            return Err(SiteLedgerError::CompositeReservationClaimOutsideExclusiveWindow(
+                weighted.reservation_id.clone(),
+            ));
+        }
+    }
     Ok(())
 }
 
