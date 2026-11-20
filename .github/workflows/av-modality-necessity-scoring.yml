@@ -60,6 +60,7 @@ jobs:
               path = "research/av-modality-necessity-v0/fixtures/agent/" + filename
               run = json.load(open(path, encoding="utf-8"))
               Draft202012Validator(schemas["arm-run-v1.schema.json"]).validate(run)
+              Draft202012Validator(schemas["policy-submission-v1.schema.json"]).validate(run["submission"])
           PY
       - name: Run adversarial evaluator tests
         run: python -m unittest discover -s tools/av-modality-necessity-evaluator -p "test_*.py" -v
