@@ -574,6 +574,7 @@ fn audit(ledger: Ledger, artifact_root: &Path) -> Result<AuditReport, String> {
     let mut event_ids = BTreeSet::new();
     let mut steps: HashMap<String, StepRecord> = HashMap::new();
     let mut successful = BTreeSet::new();
+    let mut last_successful_interval: HashMap<String, (i64, i64)> = HashMap::new();
     let mut value_records = Vec::new();
     for (index, event) in ledger.events.iter().enumerate() {
         if event.sequence != index || !event_ids.insert(event.event_id.as_str()) {
@@ -648,6 +649,16 @@ fn audit(ledger: Ledger, artifact_root: &Path) -> Result<AuditReport, String> {
                         "sample_at_interval_start", "interval_average"].contains(&interval.sampling_semantics.as_str()) {
                     return Err(format!("invalid exchange interval at {}", event.event_id));
                 }
+                if event.kind == "get_float64" {
+                    let latest = last_successful_interval.get(&event.federate_id)
+                        .ok_or_else(|| format!("output read has no successful interval for {}", event.federate_id))?;
+                    if *latest != (interval.start_master_ns, interval.end_master_ns) {
+                        return Err(format!(
+                            "getFloat64 interval does not match most recent successful lastSuccessfulTime at {}",
+                            event.event_id
+                        ));
+                    }
+                }
                 let refs = event.payload.value_references.as_ref().ok_or("missing value references")?;
                 let values = event.payload.values.as_ref().ok_or("missing exchanged values")?;
                 if refs.len() != values.len() || event.payload.n_value_references != Some(values.len())
@@ -710,6 +721,7 @@ fn audit(ledger: Ledger, artifact_root: &Path) -> Result<AuditReport, String> {
                     federate_id: event.federate_id.clone(),
                     start_master_ns: mapped_start, end_master_ns: mapped_end, status: "accepted".to_owned(),
                 });
+                last_successful_interval.insert(event.federate_id.clone(), (mapped_start, mapped_end));
                 successful.insert(event.federate_id.as_str());
                 state.do_step_seen = true;
             }
@@ -984,6 +996,15 @@ mod tests {
         let mut d=value(); d["unexpected"]="must fail".into();
         let result:Result<Ledger,_>=serde_json::from_value(d);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn rejects_output_read_from_stale_interval_after_successful_step() {
+        let mut d = value();
+        d["events"][10]["payload"]["interval"]["end_master_ns"] = 2_000_000_000_i64.into();
+        assert!(run(d).unwrap_err().contains(
+            "getFloat64 interval does not match most recent successful lastSuccessfulTime"
+        ));
     }
 
     #[test]
