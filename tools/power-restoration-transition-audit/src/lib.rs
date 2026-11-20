@@ -196,9 +196,16 @@ fn validate_state_shape(
                 .is_some_and(|source| {
                     source.permitted_connection_node_ids.iter().any(|candidate| candidate == node_id)
                 });
-            if !power_node_ids.contains(node_id.as_str()) || !permitted {
+            let at_node = state.mobile_source_road_positions
+                .get(source_id)
+                .and_then(|road_position| {
+                    case.road_network.nodes.iter()
+                        .find(|road_node| road_node.node_id == *road_position)
+                })
+                .is_some_and(|road_node| road_node.power_node_id == *node_id);
+            if !power_node_ids.contains(node_id.as_str()) || !permitted || !at_node {
                 errors.push(format!(
-                    "mobile source {source_id} is connected to an unknown or unpermitted power node {node_id}"
+                    "mobile source {source_id} is connected to an unknown/unpermitted node or is not at that connection point {node_id}"
                 ));
             }
         }
@@ -563,6 +570,18 @@ mod tests {
         after.step = 1;
         after.switch_states.insert("T56".to_string(), SwitchState::Closed);
         after.mobile_source_connections.insert("MPS-1".to_string(), Some("N5".to_string()));
+        let envelope = envelope(&case, &proposal, &before, &after, ActionExecutionOutcome::Applied);
+        assert!(audit_transition(&case, &proposal, &before, &after, &envelope).is_err());
+    }
+
+    #[test]
+    fn mobile_source_connection_must_match_its_current_road_position() {
+        let case = case();
+        let mut before = state(&case);
+        before.mobile_source_connections.insert("MPS-1".to_string(), Some("N5".to_string()));
+        before.mobile_source_road_positions.insert("MPS-1".to_string(), "R1".to_string());
+        let proposal = proposal(ActionKind::ObserveScada);
+        let after = before.clone();
         let envelope = envelope(&case, &proposal, &before, &after, ActionExecutionOutcome::Applied);
         assert!(audit_transition(&case, &proposal, &before, &after, &envelope).is_err());
     }
