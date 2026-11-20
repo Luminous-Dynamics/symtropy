@@ -19,7 +19,7 @@ This package defines an adapter-neutral API-call ledger between an instrumented 
 
 The ledger records immutable package, modelDescription, and selected platform-binary identities; FMI/model/interface versions; a frozen value-reference map; the actual order and status of FMI calls; typed Float64 set/get values with exact IEEE-754 bit patterns; exact fmi3DoStep time arguments; and successful lastSuccessfulTime outputs only when defined.
 
-Every exchanged value is bound to a named physical port, unit, carrier, boundary, source interval and (for coupling transfers) transfer identity. Each doStep is linked one-to-one to a normalized trace attempt and commit barrier. A physical balance is not recomputed here: the audit reads the already-owned energy contract fixture and checks the cross-reference.
+Every exchanged value is bound to a named physical port, unit, carrier, boundary, source interval and (for coupling transfers) transfer identity. State observations have their own per-value sampling semantics: the heat-exchanger's `storedEnergy` (VR 34, J) is sampled at the interval end and is not treated as a transfer flux. Each doStep is linked one-to-one to a normalized trace attempt and commit barrier. A physical balance is not recomputed here: the audit reads the already-owned energy contract fixture and checks the cross-reference.
 
 The schema is deliberately strict (additionalProperties=false). v0.1 is a synchronous FMI 3.0.2 Co-Simulation profile with scalar Float64 physical ports and a declared seconds-to-master-nanoseconds mapping. It is not a generic schema for every FMI interface or data type.
 
@@ -37,13 +37,14 @@ fixtures/positive-two-fmu-ledger.json demonstrates a source-to-heat-exchanger ex
 - delivered thermal service: 480,000 W;
 - declared heat loss: 10,000 W;
 - net storage charge: 10,000 W;
-- synthetic first-law residual: 0 W.
+- synthetic first-law residual: 0 W;
+- cumulative buffer stored-energy state observation: 10,000 J at the end of the declared one-second interval (VR 34, sampled at interval end).
 
-The fixture contains two federates and one normalized barrier. **All referenced FMU packages, model descriptions, platform binaries, master binary, trace and energy-contract artifacts are explicitly non-executable text/JSON stubs. They are test data, not valid FMUs, binaries or external solver results.** No FMI API was called and no model was simulated.
+The fixture contains two federates and one normalized barrier. The heat-exchanger declares all five FMI variables: input power (VR 21), service (VR 31), loss (VR 32), storage power (VR 33), and stored-energy state (VR 34, J). Power-flow values and the sampled state are kept distinct. **All referenced FMU packages, model descriptions, platform binaries, master binary, trace and energy-contract artifacts are explicitly non-executable text/JSON stubs. They are test data, not valid FMUs, binaries or external solver results.** No FMI API was called and no model was simulated.
 
 ## Run the fixture audit
 
-The Rust crate in `validator/` is the authoritative typed validator. It uses strict Serde decoding, root-confined SHA-256 artifact checks, FMI lifecycle and call-order validation, exact Float64 bit checking, exact binary64-to-rational clock conversion (fractional nanoseconds are refused), transfer identity, trace/barrier cross-checks and independent energy residual recomputation. The small Python script is secondary fixture/schema tooling, not a production runtime or adapter. It validates the JSON Schema, root-confined artifact byte length/digests, ordered call shape, exact Float64 encodings, one-to-one trace links, barrier membership and synthetic energy cross-reference.
+The Rust crate in `validator/` is the authoritative typed validator. It uses strict Serde decoding, root-confined SHA-256 artifact checks, FMI lifecycle and call-order validation, exact Float64 bit checking, exact binary64-to-rational clock conversion (fractional nanoseconds are refused), transfer identity, explicit interval-end state sampling, trace/barrier cross-checks and independent energy residual recomputation. The small Python script is secondary fixture/schema tooling, not a production runtime or adapter. It validates the JSON Schema, root-confined artifact byte length/digests, ordered call shape, exact Float64 encodings, one-to-one trace links, barrier membership and synthetic energy cross-reference.
 
 ```sh
 python3 -m pip install --requirement research/geofusion-fmi-api-ledger-v0.1/tests/requirements.txt
