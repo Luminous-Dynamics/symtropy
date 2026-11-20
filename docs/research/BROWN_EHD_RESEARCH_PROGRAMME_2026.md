@@ -226,3 +226,39 @@ Detailed source URLs:
 7. State the full uncertainty and replicate across separate builds / sessions.
 
 A meaningful next engineering target is not an unqualified “more thrust.” It is a measured Pareto improvement in thrust-to-power or payload-specific impulse while preserving low noise, acceptable emissions, thermal limits and repeatability. For flight systems, the stronger target is integrated closed-loop control with a progressively reduced external support burden—clearly reporting what remains tethered.
+
+
+## Extended-electrodynamics feasibility screen
+
+The initial theory list should not turn into a shopping list of exotic solvers. A model only earns a numerical or experimental branch if its allowed parameter region produces an observable above the actual apparatus floor.
+
+### Bopp–Podolsky / generalized electrodynamics
+
+A 2024 analysis of the Aharonov–Bohm effect in Bopp–Podolsky generalized electrodynamics summarizes a photon-mass / precision-spectroscopy bound corresponding to a characteristic length parameter of approximately (a \lesssim 0.53\times10^{-18}\,\mathrm m). That is roughly sixteen orders of magnitude below a centimetre-scale device dimension. This does not prove every generalized-electrodynamics model is equivalent to Maxwell at every scale, but it makes a centimetre-scale Brown device a poor place to seek this parameter without a new, separately justified coupling. Source: <https://doi.org/10.1016/j.nuclphysb.2024.116616>.
+
+### Euler–Heisenberg / QED vacuum nonlinearity
+
+The Schwinger critical electric-field scale is approximately (1.32\times10^{18}\,\mathrm{V/m}). For scale only, the 2025 EHD point at 13.57 kV across a 15 mm gap has a *mean-gap* field of about (9.05\times10^{5}\,\mathrm{V/m}), or (6.9\times10^{-13}) of that critical scale. The local field at a sharp emitter is higher than the mean and must be obtained from the qualified geometry / discharge model; the mean field is not a peak-field estimate. Nevertheless, weak-field Euler–Heisenberg corrections scale with the square of the field ratio (and a QED loop factor), placing this operating point far outside a plausible device-scale vacuum-nonlinearity test. Strong-field QED experiments are instead associated with intense lasers and high-energy beams, not ordinary corona lifters. Sources: <https://doi.org/10.1140/epjs/s11734-021-00249-z> and <https://doi.org/10.1103/PhysRevD.99.036008>.
+
+### Born–Infeld nonlinear electrodynamics
+
+One hydrogen-ionisation-energy analysis gives a Born–Infeld field parameter lower bound using (b>5.37\times10^{20}K\,\mathrm{V/m}), with (K=2) for its Born–Infeld convention. This is far above the mean field of the cited atmospheric EHD operating point. The bound is model- and convention-specific; do not transplant it to a different nonlinear action without translating definitions. Source: <https://doi.org/10.1140/epjc/s10052-018-5643-1>.
+
+### Axion electrodynamics
+
+Axion-like magnetoelectric responses can be studied in condensed-matter systems. A 2026 experimental report on a topologically trivial antiferromagnet is a materials-physics comparator, not evidence that a free-space capacitor produces thrust or changes gravity. An axion candidate requires its own mass/coupling bounds, source field, boundary conditions and predicted observable. Source: <https://doi.org/10.1038/s41467-026-74634-4>.
+
+### Nonminimal EM–gravity coupling
+
+The 2024 high-vacuum steady-field experiment reported no anomalous forces or torques at the nN / nN·m scale across the tested configurations. Its authors state that their work was limited to stationary conditions and that further time-dependent / geometry studies would be a future extension. This supports a bounded dynamic research question, not a positive anomaly prior. Source: <https://doi.org/10.1038/s41598-024-70286-w>.
+
+### Decision
+
+For the first campaign:
+- M0 Maxwell + EHD is the only admitted propulsion model.
+- Bopp–Podolsky, Born–Infeld and Euler–Heisenberg remain theory-screening tasks unless a device-specific calculation shows a signal above the independently measured force/field floor.
+- Axion models remain a separate parameterised magnetoelectric hypothesis, not a Brown propulsion model by default.
+- Nonminimal EM–gravity models require an explicit action and prediction that remains compatible with existing steady-field bounds.
+- Historical claims without equations remain NotEvaluable.
+
+This screen should be revisited only when the source bounds or apparatus sensitivity materially change.
