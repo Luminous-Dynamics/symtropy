@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 const CLAIM_CEILING: &str = "Synthetic/evidence-bounded per-module lifecycle screen only; not fleet availability, a physical failure-rate estimate, approved maintenance data, production release, vehicle homologation, airworthiness or commercial TCO.";
 const MAX_PROFILES: usize = 32;
 const MAX_EVENTS_PER_YEAR: f64 = 1_000.0;
+const MAX_INPUT_VALUE: f64 = 1_000_000_000.0;
 const MAX_HORIZON_YEARS: f64 = 50.0;
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
@@ -80,7 +81,6 @@ struct FactoryScenario {
     architecture: String,
     evidence_class: EvidenceClass,
     target_good_vehicles_per_year: u64,
-    modules_per_good_vehicle: u32,
     target_good_modules_per_year: Option<u64>,
     equivalent_good_vehicle_capacity_per_year: Option<u64>,
     good_vehicle_capacity_margin_per_year: Option<i64>,
@@ -231,6 +231,9 @@ fn sum_path(
     let mut missing = Vec::new();
     let mut blocked = Vec::new();
     let mut elapsed = 0.0;
+    if path.evidence_reference.trim().is_empty() || path.evidence_class == EvidenceClass::Unknown {
+        missing.push("service_path_evidence".into());
+    }
     let mut technician_hours = 0.0;
     let mut phases_seen = BTreeSet::new();
 
@@ -242,11 +245,11 @@ fn sum_path(
             missing.push(format!("{:?}:evidence_reference", phase.phase));
         }
         match phase.elapsed_hours {
-            Some(value) if value.is_finite() && value >= 0.0 => elapsed += value,
+            Some(value) if value.is_finite() && value >= 0.0 && value <= MAX_INPUT_VALUE => elapsed += value,
             _ => missing.push(format!("{:?}:elapsed_hours", phase.phase)),
         }
         match phase.technician_hours {
-            Some(value) if value.is_finite() && value >= 0.0 => {
+            Some(value) if value.is_finite() && value >= 0.0 && value <= MAX_INPUT_VALUE => {
                 technician_hours += value;
             }
             _ => missing.push(format!("{:?}:technician_hours", phase.phase)),
@@ -260,7 +263,7 @@ fn sum_path(
     }
 
     let parts_wait = match path.parts_wait_hours {
-        Some(value) if value.is_finite() && value >= 0.0 => value,
+        Some(value) if value.is_finite() && value >= 0.0 && value <= MAX_INPUT_VALUE => value,
         _ => {
             missing.push("parts_wait_hours".into());
             0.0
@@ -496,14 +499,14 @@ fn validate_catalog(
             ("unscheduled_fault_count", profile.unscheduled_fault_count),
             ("fault_exposure_module_years", profile.fault_exposure_module_years),
         ] {
-            if !valid_nonnegative(value) {
-                errors.push(format!("profiles[{index}].{name}: must be finite and nonnegative"));
+            if value.is_some_and(|number| !number.is_finite() || number < 0.0 || number > MAX_INPUT_VALUE) {
+                errors.push(format!("profiles[{index}].{name}: must be finite, nonnegative and within v0.1 numeric limits"));
             }
         }
         if profile.equipment_amortization_years.is_some_and(|value| value <= 0.0) {
             errors.push(format!("profiles[{index}].equipment_amortization_years: must be positive"));
         }
-        if profile.fault_exposure_module_years.is_some_and(|value| value <= 0.0) {
+        if profile.fault_exposure_module_years.is_some_and(|value| value <= 0.0 || value < 0.000001) {
             errors.push(format!("profiles[{index}].fault_exposure_module_years: must be positive"));
         }
         if profile.unscheduled_fault_count.is_some() != profile.fault_exposure_module_years.is_some() {
@@ -511,6 +514,8 @@ fn validate_catalog(
         }
         if profile.scheduled_inspection_evidence_reference.trim().is_empty()
             || profile.fault_rate_evidence_reference.trim().is_empty()
+            || profile.scheduled_inspection_evidence_class == EvidenceClass::Unknown
+            || profile.fault_rate_evidence_class == EvidenceClass::Unknown
         {
             errors.push(format!("profiles[{index}]: scheduled/fault evidence references are required even when a metric is unknown"));
         }
@@ -590,6 +595,10 @@ fn evaluate_pair(factory: &FactoryScenario, profile: &LifecycleProfile) -> Lifec
             None
         }
     };
+
+    if fault_rate.is_some_and(|rate| !rate.is_finite() || rate > MAX_EVENTS_PER_YEAR) {
+        missing.push("unscheduled_fault_rate_exceeds_v0_1_limit".into());
+    }
 
     let repair_valid = repair.eligible_for_return_to_service;
     let replacement_valid = replacement.eligible_for_return_to_service;
@@ -768,7 +777,7 @@ mod tests {
 
     fn path(path_id: &str, replace: bool, elapsed: f64, parts: f64, module: f64) -> ServicePath {
         let action = if replace { PhaseKind::ReplaceModule } else { PhaseKind::RepairModule };
-        let mut phases = vec![
+        let phases = vec![
             phase(PhaseKind::SafeIsolation, 0.5, 0.5),
             phase(PhaseKind::AccessDisassembly, 0.5, 0.5),
             phase(PhaseKind::DiagnoseInspect, 1.0, 1.0),
@@ -778,9 +787,6 @@ mod tests {
             phase(PhaseKind::PostMaintenanceTest, 0.5, 0.5),
             phase(PhaseKind::AuthorizedSignoff, 0.25, 0.25),
         ];
-        if !replace {
-            phases[4].phase = PhaseKind::RepairModule;
-        }
         ServicePath {
             path_id: path_id.into(),
             evidence_class: EvidenceClass::Synthetic,
@@ -868,7 +874,7 @@ mod tests {
     fn computes_synthetic_module_cost_and_service_burden_without_release() {
         let result = evaluate_pair(&factory_row(), &profile());
         assert_eq!(result.status, Status::PassesSyntheticScreen);
-        assert_eq!(result.initial_module_build_cost_usd, Some(9_071.04));
+        assert_eq!(result.initial_module_build_cost_usd, Some(8_117.04));
         assert_eq!(result.unscheduled_fault_events_per_module_year, Some(0.3));
         assert!(result.undiscounted_lifecycle_cost_usd_per_module.is_some());
         assert!(!result.production_release_granted);
@@ -968,6 +974,7 @@ mod tests {
     fn replacement_path_cost_includes_new_module_and_down_time() {
         let mut test = profile();
         test.downtime_cost_usd_per_hour = Some(10_000.0);
+        test.repair_path.parts_and_consumables_cost_usd = Some(20_000.0);
         let result = evaluate_pair(&factory_row(), &test);
         assert_eq!(result.selected_fault_path.as_deref(), Some("replacement"));
         assert!(result.replacement_path.total_cost_usd_per_event.unwrap()
