@@ -173,17 +173,49 @@ fn positive(value: f64, name: &str) -> Result<(), String> {
     if value <= 0.0 { Err(format!("{name} must be positive")) }
     else { Ok(()) }
 }
-fn valid_timestamp(value: &str) -> bool {
+fn timestamp_seconds(value: &str) -> Option<i64> {
     let b = value.as_bytes();
-    b.len() == 20
-        && b[4] == b'-' && b[7] == b'-'
-        && b[10] == b'T' && b[13] == b':'
-        && b[16] == b':' && b[19] == b'Z'
-        && [0usize,1,2,3,5,6,8,9,11,12,14,15,17,18]
-            .iter().all(|i| b[*i].is_ascii_digit())
+    if b.len() != 20
+        || b[4] != b'-' || b[7] != b'-'
+        || b[10] != b'T' || b[13] != b':'
+        || b[16] != b':' || b[19] != b'Z'
+        || ![0usize,1,2,3,5,6,8,9,11,12,14,15,17,18]
+            .iter().all(|i| b[*i].is_ascii_digit()) {
+        return None;
+    }
+    let year = value[0..4].parse::<i64>().ok()?;
+    let month = value[5..7].parse::<i64>().ok()?;
+    let day = value[8..10].parse::<i64>().ok()?;
+    let hour = value[11..13].parse::<i64>().ok()?;
+    let minute = value[14..16].parse::<i64>().ok()?;
+    let second = value[17..19].parse::<i64>().ok()?;
+    if year < 1 || !(1..=12).contains(&month) || !(0..=23).contains(&hour)
+        || !(0..=59).contains(&minute) || !(0..=59).contains(&second) {
+        return None;
+    }
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let month_days = [31, if leap {29} else {28}, 31,30,31,30,31,31,30,31,30,31];
+    if day < 1 || day > month_days[(month - 1) as usize] {
+        return None;
+    }
+    let adjusted_year = year - if month <= 2 { 1 } else { 0 };
+    let era = adjusted_year.div_euclid(400);
+    let year_of_era = adjusted_year - era * 400;
+    let month_prime = month + if month > 2 { -3 } else { 9 };
+    let day_of_year = (153 * month_prime + 2) / 5 + day - 1;
+    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+    let days = era * 146097 + day_of_era - 719468;
+    Some(days * 86400 + hour * 3600 + minute * 60 + second)
+}
+fn valid_timestamp(value: &str) -> bool {
+    timestamp_seconds(value).is_some()
 }
 fn check_window(start: &str, end: &str, bundle: &Bundle, context: &str) -> Result<(), String> {
-    if !valid_timestamp(start) || !valid_timestamp(end) || start >= end {
+    let start_seconds = timestamp_seconds(start)
+        .ok_or_else(|| format!("{context} has an invalid UTC start"))?;
+    let end_seconds = timestamp_seconds(end)
+        .ok_or_else(|| format!("{context} has an invalid UTC end"))?;
+    if end_seconds <= start_seconds {
         return Err(format!("{context} has an invalid UTC interval"));
     }
     if start != bundle.interval_start_utc || end != bundle.interval_end_utc {
@@ -330,6 +362,11 @@ fn validate(bundle: &Bundle) -> Result<Receipt, String> {
     }
     check_window(&bundle.interval_start_utc, &bundle.interval_end_utc, bundle, "bundle")?;
     positive(bundle.interval_duration_seconds as f64, "interval_duration_seconds")?;
+    let interval_start_seconds = timestamp_seconds(&bundle.interval_start_utc).ok_or("invalid bundle start")?;
+    let interval_end_seconds = timestamp_seconds(&bundle.interval_end_utc).ok_or("invalid bundle end")?;
+    if interval_end_seconds - interval_start_seconds != bundle.interval_duration_seconds as i64 {
+        return Err("interval_duration_seconds does not match the UTC window".into());
+    }
     positive(bundle.maximum_absolute_residual_z_score, "maximum_absolute_residual_z_score")?;
     if !bundle.claim_ceiling.contains("Not a field measurement")
         || bundle.interval_start_utc[11..13].parse::<u64>().unwrap_or(99) > 23 {
@@ -657,6 +694,33 @@ mod tests {
         assert!((report.global_boundary.external_outgoing_mass_flow_kg_s - 10.0).abs() < 1e-12);
         assert_eq!(report.global_boundary.residual_kg_s, 0.0);
         assert_eq!(report.site_clearance_status, "UNKNOWN_BLOCKED");
+    }
+    #[test]
+    fn utc_window_duration_is_checked_across_calendar_boundaries() {
+        let mut b = fixture();
+        b.interval_end_utc = "2026-10-12T10:06:00Z".into();
+        assert!(validate(&b).unwrap_err().contains("interval_duration_seconds does not match"));
+        assert!(timestamp_seconds("2026-02-30T10:00:00Z").is_none());
+        let start = timestamp_seconds("2026-10-12T23:58:00Z").unwrap();
+        let end = timestamp_seconds("2026-10-13T00:03:00Z").unwrap();
+        assert_eq!(end - start, 300);
+    }
+    #[test]
+    fn internal_transfer_cancels_from_global_uncertainty_account() {
+        let report = validate(&fixture()).expect("fixture should close");
+        assert_eq!(report.global_boundary.internal_transfer_count, 1);
+        // Five external metered flows plus modelled evaporation; the internal transfer
+        // is not counted twice at the external system boundary.
+        let expected_independent = (5.0 * 0.01_f64.powi(2)
+            + 0.02_f64.powi(2)
+            + 2.0 * (2.0 / 300.0_f64).powi(2)).sqrt();
+        assert!((report.global_boundary.independent_standard_uncertainty_kg_s
+            - expected_independent).abs() < 1e-12);
+    }
+    #[test]
+    fn common_scale_error_is_summed_algebraically_at_global_boundary() {
+        let report = validate(&fixture()).expect("fixture should close");
+        assert!((report.global_boundary.common_mode_standard_uncertainty_kg_s - 0.009).abs() < 1e-12);
     }
     #[test]
     fn missing_purge_port_stream_is_rejected() {
