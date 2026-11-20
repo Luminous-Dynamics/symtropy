@@ -406,6 +406,11 @@ fn validate_boundary_face(
     component_count: usize,
     tolerance: f64,
 ) -> Result<(), DomainBalanceError> {
+    if !boundary.face_measure.is_finite() || boundary.face_measure <= 0.0 {
+        return Err(DomainBalanceError::InvalidBoundaryReceipt(
+            boundary.boundary_face_id.clone(),
+        ));
+    }
     for (name, value) in [
         ("cell_state_sha256", boundary.cell_state_sha256.as_str()),
         ("boundary_state_sha256", boundary.boundary_state_sha256.as_str()),
@@ -443,7 +448,10 @@ fn validate_boundary_face(
                 boundary.boundary_face_id.clone(),
             ));
         }
-        if (cell + outward).abs() > tolerance
+        let expected_outward = boundary.outward_flux[component] * boundary.face_measure;
+        if !expected_outward.is_finite()
+            || (outward - expected_outward).abs() > tolerance
+            || (cell + outward).abs() > tolerance
             || (residual - (cell + outward)).abs() > tolerance
             || residual.abs() > tolerance
         {
