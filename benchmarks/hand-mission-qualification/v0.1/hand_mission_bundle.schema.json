@@ -24,11 +24,21 @@
     "claim_ceiling"
   ],
   "properties": {
-    "schema_version": { "const": "0.1.0" },
-    "record_kind": {
-      "enum": ["observed_physical", "numerical_simulation", "analytic_reference", "illustrative_fixture"]
+    "schema_version": {
+      "const": "0.1.0"
     },
-    "bundle_id": { "type": "string", "minLength": 1 },
+    "record_kind": {
+      "enum": [
+        "observed_physical",
+        "numerical_simulation",
+        "analytic_reference",
+        "illustrative_fixture"
+      ]
+    },
+    "bundle_id": {
+      "type": "string",
+      "minLength": 1
+    },
     "benchmark_profile": {
       "type": "object",
       "additionalProperties": false,
@@ -41,18 +51,41 @@
         "task_set_digest",
         "task_mix_digest",
         "scoring_protocol",
-        "task_catalog"
+        "planned_task_sequence"
       ],
       "properties": {
         "framework_id": {
-          "enum": ["POMDAR", "HAND_ERC_MULTI_LEVEL", "NIST_END_EFFECTOR_2020", "CUSTOM"]
+          "enum": [
+            "POMDAR",
+            "HAND_ERC_MULTI_LEVEL",
+            "NIST_END_EFFECTOR_2020",
+            "CUSTOM"
+          ]
         },
-        "profile_id": { "type": "string", "minLength": 1 },
-        "profile_version": { "type": "string", "minLength": 1 },
-        "source_snapshot_date": { "type": "string", "format": "date" },
-        "protocol_reference": { "type": "string", "format": "uri" },
-        "task_set_digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
-        "task_mix_digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_snapshot_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "protocol_reference": {
+          "type": "string",
+          "format": "uri"
+        },
+        "task_set_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "task_mix_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
         "scoring_protocol": {
           "enum": [
             "POMDAR_CORRECTNESS_0_8_SPEED_VS_HUMAN_0_2",
@@ -62,25 +95,75 @@
             "NOT_APPLICABLE"
           ]
         },
-        "human_baseline_reference": { "type": ["string", "null"] },
-        "profile_notes": { "type": "string" }
+        "human_baseline_reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "profile_notes": {
+          "type": "string"
+        },
+        "planned_task_sequence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       }
     },
     "candidate": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["candidate_id", "display_name", "embodiment_class", "evidence_origin"],
+      "required": [
+        "candidate_id",
+        "display_name",
+        "embodiment_class",
+        "evidence_origin"
+      ],
       "properties": {
-        "candidate_id": { "type": "string", "minLength": 1 },
-        "display_name": { "type": "string", "minLength": 1 },
+        "candidate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1
+        },
         "embodiment_class": {
-          "enum": ["anthropomorphic_hand", "robotic_gripper", "single_finger", "hand_and_wrist", "other"]
+          "enum": [
+            "anthropomorphic_hand",
+            "robotic_gripper",
+            "single_finger",
+            "hand_and_wrist",
+            "other"
+          ]
         },
-        "manufacturer_or_lab": { "type": ["string", "null"] },
+        "manufacturer_or_lab": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "evidence_origin": {
-          "enum": ["research_prototype", "commercial_product", "simulation_model", "analytic_reference", "internal_prototype", "illustrative_candidate", "other"]
+          "enum": [
+            "research_prototype",
+            "commercial_product",
+            "simulation_model",
+            "analytic_reference",
+            "internal_prototype",
+            "illustrative_candidate",
+            "other"
+          ]
         },
-        "unit_identifier": { "type": ["string", "null"] }
+        "unit_identifier": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
     "configuration": {
@@ -102,20 +185,82 @@
         "service_state"
       ],
       "properties": {
-        "configuration_id": { "type": "string", "minLength": 1 },
-        "configuration_digest": { "type": ["string", "null"] },
-        "hardware_revision": { "type": ["string", "null"] },
-        "software_revision": { "type": ["string", "null"] },
-        "controller_revision": { "type": ["string", "null"] },
-        "control_mode": { "enum": ["autonomous_policy", "teleoperation", "scripted", "hybrid", "manual", "unknown"] },
-        "arm_assistance": { "type": "boolean" },
-        "wrist_assistance": { "type": "boolean" },
-        "human_teleoperation": { "type": "boolean" },
-        "vision_inputs": { "type": "boolean" },
-        "tactile_inputs": { "type": "boolean" },
-        "calibration_state": { "enum": ["current", "expired", "not_disclosed", "not_applicable", "unknown"] },
-        "service_state": { "enum": ["new", "conditioned", "aged", "repaired", "remounted", "not_disclosed", "unknown"] },
-        "configuration_notes": { "type": "string" }
+        "configuration_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "software_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "controller_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "control_mode": {
+          "enum": [
+            "autonomous_policy",
+            "teleoperation",
+            "scripted",
+            "hybrid",
+            "manual",
+            "unknown"
+          ]
+        },
+        "arm_assistance": {
+          "type": "boolean"
+        },
+        "wrist_assistance": {
+          "type": "boolean"
+        },
+        "human_teleoperation": {
+          "type": "boolean"
+        },
+        "vision_inputs": {
+          "type": "boolean"
+        },
+        "tactile_inputs": {
+          "type": "boolean"
+        },
+        "calibration_state": {
+          "enum": [
+            "current",
+            "expired",
+            "not_disclosed",
+            "not_applicable",
+            "unknown"
+          ]
+        },
+        "service_state": {
+          "enum": [
+            "new",
+            "conditioned",
+            "aged",
+            "repaired",
+            "remounted",
+            "not_disclosed",
+            "unknown"
+          ]
+        },
+        "configuration_notes": {
+          "type": "string"
+        }
       }
     },
     "system_boundary": {
@@ -126,28 +271,85 @@
         "excluded_components",
         "unknown_components",
         "power_measurement_boundary",
-        "boundary_notes"
+        "boundary_notes",
+        "unknown_power_components"
       ],
       "properties": {
-        "included_components": { "type": "array", "items": { "type": "string" } },
-        "excluded_components": { "type": "array", "items": { "type": "string" } },
-        "unknown_components": { "type": "array", "items": { "type": "string" } },
-        "power_measurement_boundary": {
-          "enum": ["actuators_only", "hand_including_drivers", "arm_and_hand", "full_cell", "not_measured", "unknown"]
+        "included_components": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
-        "boundary_notes": { "type": "string", "minLength": 1 }
+        "excluded_components": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unknown_components": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "power_measurement_boundary": {
+          "enum": [
+            "actuators_only",
+            "hand_including_drivers",
+            "arm_and_hand",
+            "full_cell",
+            "not_measured",
+            "unknown"
+          ]
+        },
+        "boundary_notes": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unknown_power_components": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       }
     },
     "mission_clock": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["start_utc", "end_utc", "elapsed_s", "timebase", "clock_alignment_uncertainty_ms"],
+      "required": [
+        "start_utc",
+        "end_utc",
+        "elapsed_s",
+        "timebase",
+        "clock_alignment_uncertainty_ms"
+      ],
       "properties": {
-        "start_utc": { "type": "string", "format": "date-time" },
-        "end_utc": { "type": "string", "format": "date-time" },
-        "elapsed_s": { "type": "number", "exclusiveMinimum": 0 },
-        "timebase": { "type": "string", "minLength": 1 },
-        "clock_alignment_uncertainty_ms": { "type": ["number", "null"], "minimum": 0 }
+        "start_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "elapsed_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "timebase": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_alignment_uncertainty_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
       }
     },
     "task_catalog": {
@@ -156,16 +358,47 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["task_id", "family", "source_task_label", "difficulty_tier", "acceptance_criteria"],
+        "required": [
+          "task_id",
+          "family",
+          "source_task_label",
+          "difficulty_tier",
+          "acceptance_criteria"
+        ],
         "properties": {
-          "task_id": { "type": "string", "minLength": 1 },
-          "family": {
-            "enum": ["vertical_scaffold", "horizontal_scaffold", "continuous_rotation", "pure_grasping", "strength", "repeatability", "other"]
+          "task_id": {
+            "type": "string",
+            "minLength": 1
           },
-          "source_task_label": { "type": "string", "minLength": 1 },
-          "difficulty_tier": { "type": "string", "minLength": 1 },
-          "acceptance_criteria": { "type": "string", "minLength": 1 },
-          "fixture_or_object_revision": { "type": ["string", "null"] }
+          "family": {
+            "enum": [
+              "vertical_scaffold",
+              "horizontal_scaffold",
+              "continuous_rotation",
+              "pure_grasping",
+              "strength",
+              "repeatability",
+              "other"
+            ]
+          },
+          "source_task_label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "difficulty_tier": {
+            "type": "string",
+            "minLength": 1
+          },
+          "acceptance_criteria": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fixture_or_object_revision": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         }
       }
     },
@@ -186,27 +419,110 @@
           "outcome_reason"
         ],
         "properties": {
-          "attempt_id": { "type": "string", "minLength": 1 },
-          "task_id": { "type": "string", "minLength": 1 },
-          "repetition_index": { "type": "integer", "minimum": 1 },
-          "outcome": { "enum": ["accepted", "failed", "aborted", "censored", "excluded"] },
-          "task_success": { "type": ["boolean", "null"] },
-          "start_elapsed_s": { "type": "number", "minimum": 0 },
-          "end_elapsed_s": { "type": "number", "exclusiveMinimum": 0 },
-          "outcome_reason": { "type": ["string", "null"] }
+          "attempt_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "repetition_index": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "outcome": {
+            "enum": [
+              "accepted",
+              "failed",
+              "aborted",
+              "censored",
+              "excluded"
+            ]
+          },
+          "task_success": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "start_elapsed_s": {
+            "type": "number",
+            "minimum": 0
+          },
+          "end_elapsed_s": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "outcome_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         },
         "allOf": [
           {
-            "if": { "properties": { "outcome": { "const": "accepted" } }, "required": ["outcome"] },
-            "then": { "properties": { "task_success": { "const": true } } }
+            "if": {
+              "properties": {
+                "outcome": {
+                  "const": "accepted"
+                }
+              },
+              "required": [
+                "outcome"
+              ]
+            },
+            "then": {
+              "properties": {
+                "task_success": {
+                  "const": true
+                }
+              }
+            }
           },
           {
-            "if": { "properties": { "outcome": { "const": "failed" } }, "required": ["outcome"] },
-            "then": { "properties": { "task_success": { "const": false } } }
+            "if": {
+              "properties": {
+                "outcome": {
+                  "const": "failed"
+                }
+              },
+              "required": [
+                "outcome"
+              ]
+            },
+            "then": {
+              "properties": {
+                "task_success": {
+                  "const": false
+                }
+              }
+            }
           },
           {
-            "if": { "properties": { "outcome": { "enum": ["aborted", "censored", "excluded"] } }, "required": ["outcome"] },
-            "then": { "properties": { "outcome_reason": { "type": "string", "minLength": 1 } } }
+            "if": {
+              "properties": {
+                "outcome": {
+                  "enum": [
+                    "aborted",
+                    "censored",
+                    "excluded"
+                  ]
+                }
+              },
+              "required": [
+                "outcome"
+              ]
+            },
+            "then": {
+              "properties": {
+                "outcome_reason": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
           }
         ]
       }
@@ -217,21 +533,71 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["event_id", "event_type", "start_elapsed_s", "end_elapsed_s", "attempt_id", "notes"],
+        "required": [
+          "event_id",
+          "event_type",
+          "start_elapsed_s",
+          "end_elapsed_s",
+          "attempt_id",
+          "notes"
+        ],
         "properties": {
-          "event_id": { "type": "string", "minLength": 1 },
-          "event_type": {
-            "enum": ["task_execution", "cooldown", "thermal_derating", "fault_recovery", "service", "setup", "standby", "transport", "interruption", "other"]
+          "event_id": {
+            "type": "string",
+            "minLength": 1
           },
-          "start_elapsed_s": { "type": "number", "minimum": 0 },
-          "end_elapsed_s": { "type": "number", "exclusiveMinimum": 0 },
-          "attempt_id": { "type": ["string", "null"] },
-          "notes": { "type": "string" }
+          "event_type": {
+            "enum": [
+              "task_execution",
+              "cooldown",
+              "thermal_derating",
+              "fault_recovery",
+              "service",
+              "setup",
+              "standby",
+              "transport",
+              "interruption",
+              "other"
+            ]
+          },
+          "start_elapsed_s": {
+            "type": "number",
+            "minimum": 0
+          },
+          "end_elapsed_s": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "attempt_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notes": {
+            "type": "string"
+          }
         },
         "allOf": [
           {
-            "if": { "properties": { "event_type": { "const": "task_execution" } }, "required": ["event_type"] },
-            "then": { "properties": { "attempt_id": { "type": "string", "minLength": 1 } } }
+            "if": {
+              "properties": {
+                "event_type": {
+                  "const": "task_execution"
+                }
+              },
+              "required": [
+                "event_type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "attempt_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
           }
         ]
       }
@@ -250,15 +616,41 @@
         "sustained_mission_throughput_per_h"
       ],
       "properties": {
-        "planned_attempts": { "type": "integer", "minimum": 1 },
-        "accepted_task_completions": { "type": "integer", "minimum": 0 },
-        "failed_attempts": { "type": "integer", "minimum": 0 },
-        "aborted_attempts": { "type": "integer", "minimum": 0 },
-        "censored_attempts": { "type": "integer", "minimum": 0 },
-        "excluded_attempts": { "type": "integer", "minimum": 0 },
-        "mission_elapsed_s": { "type": "number", "exclusiveMinimum": 0 },
-        "sustained_mission_throughput_per_h": { "type": "number", "minimum": 0 },
-        "summary_notes": { "type": "string" }
+        "planned_attempts": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "accepted_task_completions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_attempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "aborted_attempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "censored_attempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "excluded_attempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mission_elapsed_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "sustained_mission_throughput_per_h": {
+          "type": "number",
+          "minimum": 0
+        },
+        "summary_notes": {
+          "type": "string"
+        }
       }
     },
     "observations": {
@@ -280,7 +672,10 @@
           "reason"
         ],
         "properties": {
-          "metric_id": { "type": "string", "minLength": 1 },
+          "metric_id": {
+            "type": "string",
+            "minLength": 1
+          },
           "category": {
             "enum": [
               "task_correctness",
@@ -300,12 +695,44 @@
               "other"
             ]
           },
-          "value_status": { "enum": ["observed", "derived", "unknown", "not_disclosed", "not_applicable"] },
-          "value": { "type": ["number", "integer", "string", "boolean", "array", "object", "null"] },
-          "unit": { "type": "string", "minLength": 1 },
-          "regime": { "type": "string", "minLength": 1 },
-          "denominator": { "type": "string", "minLength": 1 },
-          "sensor_or_channel": { "type": ["string", "null"] },
+          "value_status": {
+            "enum": [
+              "observed",
+              "derived",
+              "unknown",
+              "not_disclosed",
+              "not_applicable"
+            ]
+          },
+          "value": {
+            "type": [
+              "number",
+              "integer",
+              "string",
+              "boolean",
+              "array",
+              "object",
+              "null"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "regime": {
+            "type": "string",
+            "minLength": 1
+          },
+          "denominator": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sensor_or_channel": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "source_class": {
             "enum": [
               "manufacturer_claim",
@@ -332,19 +759,70 @@
               "independently_replicated"
             ]
           },
-          "evidence_refs": { "type": "array", "items": { "type": "string" } },
-          "reason": { "type": ["string", "null"] }
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         },
         "allOf": [
           {
-            "if": { "properties": { "value_status": { "enum": ["unknown", "not_disclosed", "not_applicable"] } }, "required": ["value_status"] },
+            "if": {
+              "properties": {
+                "value_status": {
+                  "enum": [
+                    "unknown",
+                    "not_disclosed",
+                    "not_applicable"
+                  ]
+                }
+              },
+              "required": [
+                "value_status"
+              ]
+            },
             "then": {
-              "properties": { "value": { "type": "null" }, "reason": { "type": "string", "minLength": 1 } }
+              "properties": {
+                "value": {
+                  "type": "null"
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
             }
           },
           {
-            "if": { "properties": { "value_status": { "enum": ["observed", "derived"] } }, "required": ["value_status"] },
-            "then": { "properties": { "value": { "not": { "type": "null" } } } }
+            "if": {
+              "properties": {
+                "value_status": {
+                  "enum": [
+                    "observed",
+                    "derived"
+                  ]
+                }
+              },
+              "required": [
+                "value_status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
           }
         ]
       }
@@ -354,11 +832,25 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["record_id", "relationship"],
+        "required": [
+          "record_id",
+          "relationship"
+        ],
         "properties": {
-          "record_id": { "type": "string", "minLength": 1 },
+          "record_id": {
+            "type": "string",
+            "minLength": 1
+          },
           "relationship": {
-            "enum": ["actuator", "joint", "finger", "transmission", "sensor", "hand", "other"]
+            "enum": [
+              "actuator",
+              "joint",
+              "finger",
+              "transmission",
+              "sensor",
+              "hand",
+              "other"
+            ]
           }
         }
       }
@@ -369,19 +861,57 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["evidence_id", "source_type", "uri", "locator", "digest"],
+        "required": [
+          "evidence_id",
+          "source_type",
+          "uri",
+          "locator",
+          "digest"
+        ],
         "properties": {
-          "evidence_id": { "type": "string", "minLength": 1 },
-          "source_type": {
-            "enum": ["benchmark_protocol", "raw_measurement", "simulation_output", "source_code", "calibration_certificate", "independent_report", "other"]
+          "evidence_id": {
+            "type": "string",
+            "minLength": 1
           },
-          "uri": { "type": "string", "format": "uri" },
-          "locator": { "type": ["string", "null"] },
-          "digest": { "type": ["string", "null"] },
-          "notes": { "type": ["string", "null"] }
+          "source_type": {
+            "enum": [
+              "benchmark_protocol",
+              "raw_measurement",
+              "simulation_output",
+              "source_code",
+              "calibration_certificate",
+              "independent_report",
+              "other"
+            ]
+          },
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "locator": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "digest": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         }
       }
     },
-    "claim_ceiling": { "type": "string", "minLength": 1 }
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
   }
 }
