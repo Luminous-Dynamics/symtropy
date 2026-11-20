@@ -84,6 +84,24 @@
       "role": "flight_demonstration_reference",
       "rights_status": "public_reference_page",
       "claim_limit": "On-orbit angles-only relative navigation demonstration; not a general benchmark dataset or docking qualification."
+    },
+    {
+      "reference_id": "DECLARE-2026",
+      "name": "Conflict-aware evidence fusion for robust decentralized cooperative localization",
+      "domain": "cooperative_localization",
+      "url": "https://doi.org/10.1016/j.engappai.2026.115684",
+      "role": "published_method_comparator_candidate",
+      "rights_status": "paper_reference_only_artifacts_and_dataset_review_pending",
+      "claim_limit": "Abstract describes conflict-aware evidence, Bayesian credibility, entropy and CI-compatible discounting with simulation and real multi-robot evaluation; exact reproduction requires the full protocol, code/data availability, rights and matched metrics."
+    },
+    {
+      "reference_id": "RESILIENT-DISTRIBUTED-LOCALIZATION-2026",
+      "name": "Resilient distributed localization for mobile sensor networks under malicious attacks",
+      "domain": "cooperative_localization",
+      "url": "https://doi.org/10.1016/j.ins.2025.122708",
+      "role": "published_method_comparator_candidate",
+      "rights_status": "paper_reference_only_artifacts_and_dataset_review_pending",
+      "claim_limit": "Abstract describes innovation-based saturation with covariance intersection and bounded covariance analysis; results apply only to the paper's threat model and evaluated setup."
     }
   ],
   "metric_families": [
@@ -102,7 +120,12 @@
     "common_mode_false_independence_rate",
     "abstention_and_unknown_correctness",
     "resource_and_operator_burden",
-    "deterministic_replay"
+    "deterministic_replay",
+    "innovation_consistency_nees_nis_where_assumptions_hold",
+    "conflict_detection_and_separation_from_uncertainty",
+    "false_accepted_position_exposure",
+    "active_observation_information_gain_per_cost",
+    "observability_rank_and_conditioning"
   ],
   "benchmark_targets": {
     "status": "unverified_hypotheses",
@@ -128,6 +151,9 @@
     "Qualify ground-truth/oracle independence and provenance.",
     "Complete external dataset rights, version, calibration and ground-truth audits.",
     "Pin matched classical and benchmark-native baselines.",
-    "Review the exact Symtropy model-capability path; unsupported physics stays abstract or unknown."
+    "Review the exact Symtropy model-capability path; unsupported physics stays abstract or unknown.",
+    "Reproduce or document non-reproducibility of the 2026 DECLARE and innovation-saturation-plus-CI method comparators under exact protocol and rights constraints.",
+    "Add a positive-control/negative-control ablation for conflict detection, source credibility, covariance discounting and common-mode provenance.",
+    "Compare passive fixed-rate measurement with observability-aware active sensing using matched travel/energy/time costs."
   ]
 }
