@@ -854,6 +854,12 @@ fn profile_for<'a>(
     }
 }
 
+fn canonical_parent_digests(mut parents: Vec<String>) -> Vec<String> {
+    parents.sort();
+    parents.dedup();
+    parents
+}
+
 fn add_expected_artifact(
     artifacts: &mut BTreeMap<String, String>,
     artifact_uri: &str,
@@ -1030,7 +1036,7 @@ pub fn verify_restoration_claim_evidence(
             &proposal_set_sha,
             &recorder.tool_source_commit,
             &recorder.tool_configuration_sha256,
-            vec![case_sha256.clone(), proposal_set_sha.clone()],
+            canonical_parent_digests(vec![case_sha256.clone(), proposal_set_sha.clone()]),
             &mut errors,
         );
     }
@@ -1155,7 +1161,7 @@ pub fn verify_restoration_claim_evidence(
                 &proposal_sha,
                 &recorder.tool_source_commit,
                 &recorder.tool_configuration_sha256,
-                vec![proposal_sha.clone()],
+                canonical_parent_digests(vec![proposal_sha.clone()]),
                 &mut errors,
             );
         } else {
@@ -1303,7 +1309,7 @@ pub fn verify_restoration_claim_evidence(
             &proposal_set_sha,
             &profile.tool_source_commit,
             &profile.tool_configuration_sha256,
-            parents,
+            canonical_parent_digests(parents),
             &mut errors,
         );
     }
@@ -1386,7 +1392,7 @@ pub fn verify_restoration_claim_evidence(
                     &proposal_sha,
                     &recorder.tool_source_commit,
                     &recorder.tool_configuration_sha256,
-                    observation_parents.clone(),
+                    canonical_parent_digests(observation_parents.clone()),
                     &mut errors,
                 );
             }
@@ -1422,7 +1428,7 @@ pub fn verify_restoration_claim_evidence(
                 &case_sha256,
                 step.decision_step,
                 &proposal_sha,
-                parents,
+                canonical_parent_digests(parents),
                 &mut errors,
             );
         }
@@ -1529,7 +1535,7 @@ pub fn verify_restoration_claim_evidence(
                     &proposal_set_sha,
                     &profile.tool_source_commit,
                     &profile.tool_configuration_sha256,
-                    service_trajectory_digests,
+                    canonical_parent_digests(service_trajectory_digests),
                     &mut errors,
                 ),
                 Err(error) => errors.push(error),
