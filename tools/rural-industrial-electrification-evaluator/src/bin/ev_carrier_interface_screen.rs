@@ -606,24 +606,69 @@ mod tests {
                 };
             }
         }
+        let (vehicle_port_id, module_port_id, compatibility_profile_digest) = input
+            .interface_pairs
+            .iter()
+            .find(|pair| pair.pair_id == "vehicle-pod-hv-power")
+            .map(|pair| (
+                pair.vehicle_port_id.clone(),
+                pair.module_port_id.clone(),
+                pair.compatibility_profile_digest.clone(),
+            ))
+            .expect("HV pair");
+        let vehicle_profile = input.ports.iter()
+            .find(|port| port.port_id == vehicle_port_id)
+            .expect("vehicle port").profile_digest.clone();
+        let module_profile = input.ports.iter()
+            .find(|port| port.port_id == module_port_id)
+            .expect("module port").profile_digest.clone();
         let pair = input.interface_pairs.iter_mut()
             .find(|pair| pair.pair_id == "vehicle-pod-hv-power")
             .expect("HV pair");
         pair.qualification_evidence.classification = EvidenceClass::IndependentlyQualified;
-        pair.qualification_evidence.report_digest = Some(pair.compatibility_profile_digest.clone());
+        pair.qualification_evidence.report_digest = Some(compatibility_profile_digest.clone());
         pair.qualification_evidence.valid_until = Some("2027-01-01T00:00:00Z".into());
         pair.qualification_evidence.vehicle_configuration_digest = vehicle_digest;
         pair.qualification_evidence.module_configuration_digest = module_digest;
-        let vehicle_profile = input.ports.iter().find(|port| port.port_id == pair.vehicle_port_id).expect("vehicle port").profile_digest.clone();
-        let module_profile = input.ports.iter().find(|port| port.port_id == pair.module_port_id).expect("module port").profile_digest.clone();
         pair.qualification_evidence.vehicle_profile_digest = vehicle_profile;
         pair.qualification_evidence.module_profile_digest = module_profile;
-        pair.qualification_evidence.compatibility_profile_digest = pair.compatibility_profile_digest.clone();
+        pair.qualification_evidence.compatibility_profile_digest = compatibility_profile_digest;
         let report = evaluate(&input).expect("complete current evidence");
         let hv = report.results.iter().find(|item| item.pair_id == "vehicle-pod-hv-power").expect("HV result");
         assert_eq!(hv.disposition, Disposition::Compatible);
         assert!(!report.production_release_ready);
         assert!(!report.physical_effect_authorized);
+    }
+
+    #[test]
+    fn qualification_receipt_for_an_old_profile_digest_cannot_admit_current_port() {
+        let mut input = fixture();
+        let vehicle_port = input.ports.iter_mut()
+            .find(|port| port.port_id == "vehicle-hv-output-01")
+            .expect("vehicle HV port");
+        vehicle_port.profile_digest = "sha256:abababababababababababababababababababababababababababababababab".into();
+        let report = evaluate(&input).expect("stale profile receipt is an indeterminate result");
+        let hv = report.results.iter().find(|item| item.pair_id == "vehicle-pod-hv-power").expect("HV result");
+        assert_eq!(hv.disposition, Disposition::Indeterminate);
+        assert!(hv.reason_codes.iter().any(|reason| reason.contains("PROFILE_EVIDENCE_DIGEST_MISMATCH")));
+    }
+
+    #[test]
+    fn pair_receipt_must_bind_both_port_profiles_and_pair_profile() {
+        let mut input = fixture();
+        input.interface_pairs[1].qualification_evidence.vehicle_profile_digest =
+            "sha256:abababababababababababababababababababababababababababababababab".into();
+        let report = evaluate(&input).expect("mismatched evidence digest is indeterminate");
+        let hv = report.results.iter().find(|item| item.pair_id == "vehicle-pod-hv-power").expect("HV result");
+        assert_eq!(hv.disposition, Disposition::Indeterminate);
+        assert!(hv.reason_codes.iter().any(|reason| reason == "PAIR_PROFILE_EVIDENCE_DIGEST_MISMATCH"));
+    }
+
+    #[test]
+    fn rejects_vehicle_and_module_port_side_inversion() {
+        let mut input = fixture();
+        input.ports[0].side = PortSide::Module;
+        assert!(validate_input(&input).is_err());
     }
 
     #[test]
