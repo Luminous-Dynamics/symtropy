@@ -112,12 +112,13 @@ jobs:
           jq -e '
             .benchmark_id == "EV-CARRIER-MODULE-MFG-001"
             and .base_factory_benchmark_id == "EV-FACTORY-DESIGN-001"
-            and .scenario_count == 108
-            and ([.results[].config_id] | unique | length == 3)
+            and .scenario_count == 144
+            and ([.results[].config_id] | unique | length == 4)
             and all(.results[] | select(.evidence_class == "synthetic"); .status == "passes_synthetic_screen")
             and all(.results[] | select(.evidence_class == "synthetic"); .equivalent_good_vehicle_capacity_per_year >= .target_good_vehicles_per_year)
             and all(.results[] | select(.evidence_class == "synthetic"); .module_production_release_ready == false)
             and all(.results[] | select(.config_id == "integrated-drone-bay-production-intent-unknown"); .status == "indeterminate" and .equivalent_good_vehicle_capacity_per_year == null)
+            and all(.results[] | select(.config_id == "mobile-drone-station-trailer-production-intent-unknown"); .status == "indeterminate" and .equivalent_good_vehicle_capacity_per_year == null)
             and all(.results[]; .base_factory_production_release_ready == false)
           ' ev-carrier-module-factory-report.json
           sha256sum \
