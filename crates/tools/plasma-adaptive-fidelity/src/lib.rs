@@ -179,6 +179,7 @@ pub struct CostEvidence {
     pub compatibility_sha256: String,
     pub solver_build_sha256: String,
     pub hardware_sha256: String,
+    pub workload_sha256: String,
     pub measurement_receipt_sha256: String,
     /// Absolute uncertainty bound in the same cost unit as estimated_cost.
     pub uncertainty_upper_bound: f64,
@@ -230,6 +231,8 @@ pub struct AdaptivePolicyRequest {
     pub error_units_id: String,
     /// All costs in a request must use this exact accounting unit.
     pub cost_units_id: String,
+    pub cost_hardware_sha256: String,
+    pub cost_workload_sha256: String,
     pub minimum_calibration_coverage: f64,
     pub minimum_hyperbolicity_margin: f64,
     pub maximum_eigenbasis_condition: f64,
@@ -311,6 +314,8 @@ pub struct SelectionReceipt {
     pub error_upper_bound: f64,
     pub estimated_cost: f64,
     pub cost_units_id: String,
+    pub cost_hardware_sha256: String,
+    pub cost_workload_sha256: String,
     pub cost_uncertainty_upper_bound: f64,
     pub cost_upper_bound: f64,
     pub cost_measurement_receipt_sha256: String,
@@ -525,6 +530,7 @@ pub fn evaluate_adaptive_policy(
             || !is_sha256(&cost.compatibility_sha256)
             || !is_sha256(&cost.solver_build_sha256)
             || !is_sha256(&cost.hardware_sha256)
+            || !is_sha256(&cost.workload_sha256)
             || !is_sha256(&cost.measurement_receipt_sha256)
             || !cost.estimated_cost.is_finite()
             || cost.estimated_cost <= 0.0
@@ -546,6 +552,12 @@ pub fn evaluate_adaptive_policy(
         }
         if cost.cost_units_id != request.cost_units_id {
             excluded.push(excluded(candidate, ExclusionReason::CostUnitsMismatch));
+            continue;
+        }
+        if cost.hardware_sha256 != request.cost_hardware_sha256
+            || cost.workload_sha256 != request.cost_workload_sha256
+        {
+            excluded.push(excluded(candidate, ExclusionReason::CostEvidenceIdentityMismatch));
             continue;
         }
 
@@ -833,6 +845,8 @@ fn selection_receipt(
         error_upper_bound: item.error.upper_bound,
         estimated_cost: item.cost.estimated_cost,
         cost_units_id: item.cost.cost_units_id.clone(),
+        cost_hardware_sha256: item.cost.hardware_sha256.clone(),
+        cost_workload_sha256: item.cost.workload_sha256.clone(),
         cost_uncertainty_upper_bound: item.cost.uncertainty_upper_bound,
         cost_upper_bound: item.cost.estimated_cost + item.cost.uncertainty_upper_bound,
         cost_measurement_receipt_sha256: item.cost.measurement_receipt_sha256.clone(),
@@ -907,6 +921,11 @@ fn validate_request(request: &AdaptivePolicyRequest) -> Result<(), InputError> {
     }
     if request.cost_units_id.trim().is_empty() {
         return Err(InputError::EmptyCompatibilityIdentity("cost_units_id"));
+    }
+    if !is_sha256(&request.cost_hardware_sha256)
+        || !is_sha256(&request.cost_workload_sha256)
+    {
+        return Err(InputError::InvalidCompatibilityDigest);
     }
     for candidate in &request.candidates {
         if candidate.profile_id.trim().is_empty() {
@@ -1066,6 +1085,7 @@ mod tests {
             compatibility_sha256: compatibility().compatibility_sha256,
             solver_build_sha256: compatibility().solver_build_sha256,
             hardware_sha256: digest('4'),
+            workload_sha256: digest('3'),
             measurement_receipt_sha256: digest('5'),
             uncertainty_upper_bound: 0.05,
         }
@@ -1132,6 +1152,8 @@ mod tests {
             coarsen_error_tolerance: 0.05,
             error_units_id: "normalized-moment-error".into(),
             cost_units_id: "normalized-runtime-cost-v1".into(),
+            cost_hardware_sha256: digest('4'),
+            cost_workload_sha256: digest('3'),
             minimum_calibration_coverage: 0.95,
             minimum_hyperbolicity_margin: 0.1,
             maximum_eigenbasis_condition: 20.0,
@@ -1521,6 +1543,34 @@ mod tests {
         assert_eq!(excluded[0].reason, ExclusionReason::EvidenceIdentityMismatch);
     }
 
+
+
+    #[test]
+    fn candidate_costs_must_be_measured_on_the_same_hardware_and_workload() {
+        let mut candidate = moment_candidate('a', 8, 0.01, 1.0);
+        if let Evidence::Qualified(cost) = &mut candidate.cost_evidence {
+            cost.hardware_sha256 = digest('6');
+        }
+        let decision = evaluate_adaptive_policy(&request(vec![candidate])).unwrap();
+        let PolicyDecision::Refused { excluded, .. } = decision else {
+            panic!("cross-hardware cost cannot be ranked");
+        };
+        assert_eq!(excluded[0].reason, ExclusionReason::CostEvidenceIdentityMismatch);
+    }
+
+    #[test]
+    fn robust_cost_upper_bound_can_prefer_a_higher_point_estimate() {
+        let mut cheap_mean = moment_candidate('a', 4, 0.02, 4.0);
+        let more_certain = moment_candidate('b', 8, 0.02, 5.0);
+        if let Evidence::Qualified(cost) = &mut cheap_mean.cost_evidence {
+            cost.uncertainty_upper_bound = 2.0;
+        }
+        let receipt = selected(
+            evaluate_adaptive_policy(&request(vec![cheap_mean, more_certain])).unwrap()
+        );
+        assert_eq!(receipt.profile_sha256, digest('b'));
+        assert_eq!(receipt.cost_upper_bound, 5.05);
+    }
 
     #[test]
     fn cost_receipts_must_bind_profile_model_compatibility_solver_and_hardware() {
