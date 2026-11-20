@@ -480,8 +480,19 @@ fn validate_catalog(
                     }
                 }
                 EventClass::Unscheduled => {
-                    if event.remedy.is_none() {
-                        errors.push(format!("profiles[{profile_index}].events[{event_index}]: unscheduled event must declare repair, replace, remanufacture or repurpose remedy"));
+                    if event.remedy.is_none()
+                        && (event.frequency_evidence_class != EvidenceClass::Unknown
+                            || event.observed_event_count.is_some()
+                            || event.exposure_module_years.is_some()
+                            || event.tasks.iter().any(|task| {
+                                task.evidence_class != EvidenceClass::Unknown
+                                    || task.elapsed_downtime_minutes_per_event.is_some()
+                                    || task.technician_minutes_per_event.is_some()
+                                    || task.parts_cost_per_event.is_some()
+                                    || task.crew_size.is_some()
+                            }))
+                    {
+                        errors.push(format!("profiles[{profile_index}].events[{event_index}]: remedy may be unknown only when event frequency and all task observations are explicitly unknown"));
                     }
                     if event.annual_occurrences_per_module.is_some() {
                         errors.push(format!("profiles[{profile_index}].events[{event_index}]: unscheduled rates require observed count and exposure"));
@@ -1211,6 +1222,29 @@ mod tests {
         assert_eq!(report.results[0].status, LifecycleStatus::SyntheticScreen);
         assert!(!report.results[0].full_lifecycle_ranking_eligible);
         assert!(!report.full_lifecycle_ranking_available);
+    }
+
+    #[test]
+    fn unstudied_failure_keeps_both_frequency_and_remedy_unknown() {
+        let mut catalog = catalog();
+        let unscheduled = catalog.profiles[0].events.iter_mut()
+            .find(|event| event.event_class == EventClass::Unscheduled).unwrap();
+        unscheduled.remedy = None;
+        // Keep all eight phases as explicit unknown placeholders.
+        for task in &mut unscheduled.tasks {
+            task.elapsed_downtime_minutes_per_event = None;
+            task.technician_minutes_per_event = None;
+            task.parts_cost_per_event = None;
+            task.crew_size = None;
+            task.evidence_class = EvidenceClass::Unknown;
+            task.evidence_reference = "unknown://lifecycle/task-not-studied".into();
+        }
+        let report = validate_and_evaluate(&factory(), &catalog).expect("explicitly unknown event is valid");
+        let event = report.results[0].events.iter()
+            .find(|event| event.event_class == EventClass::Unscheduled).unwrap();
+        assert_eq!(event.remedy, None);
+        assert_eq!(event.annual_event_rate_per_module, None);
+        assert!(!report.results[0].full_lifecycle_ranking_eligible);
     }
 
     #[test]
