@@ -36,6 +36,7 @@ pub enum EvidenceNodeKind {
     WorkPackage,
     TaskPlan,
     MotionEnvelope,
+    StoppingTubeEnvelope,
     ExecutionEvidence,
     InspectionEvidence,
     AcceptedOutput,
