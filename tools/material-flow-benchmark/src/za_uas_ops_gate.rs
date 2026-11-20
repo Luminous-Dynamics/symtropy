@@ -145,7 +145,7 @@ pub struct OperationConditions {
     pub over_or_within_fifty_m_of_public_road: bool,
     pub over_public_road: bool,
     pub rps_id: String,
-    pub operations_manual_revision: String,
+    pub operations_manual_revision: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -281,6 +281,11 @@ fn validate_batch(batch: &UasEligibilityBatch) -> Result<(), Vec<String>> {
         if !identifier_valid(&case.case_id) || !case_ids.insert(case.case_id.as_str()) {
             errors.push(format!("cases[{index}].case_id: unique opaque identity required"));
         }
+        if case.operator.activity_class != ActivityClass::Private
+            && case.operation.operations_manual_revision.as_deref().is_none_or(|value| !identifier_valid(value))
+        {
+            errors.push(format!("cases[{index}].operation.operations_manual_revision: required for non-private operation"));
+        }
         if case.operation.rlos_command_link_evidence_reference.trim().is_empty() {
             errors.push(format!("cases[{index}].operation.rlos_command_link_evidence_reference: required"));
         }
@@ -291,7 +296,6 @@ fn validate_batch(batch: &UasEligibilityBatch) -> Result<(), Vec<String>> {
             ("pilot.pilot_id", case.pilot.pilot_id.as_str()),
             ("operation.operation_id", case.operation.operation_id.as_str()),
             ("operation.rps_id", case.operation.rps_id.as_str()),
-            ("operation.operations_manual_revision", case.operation.operations_manual_revision.as_str()),
         ] {
             if !identifier_valid(value) {
                 errors.push(format!("cases[{index}].{field}: invalid opaque identifier"));
@@ -585,8 +589,10 @@ fn evaluate_case(case: &UasOperationCase) -> UasCaseReport {
         ));
     }
 
-    if let Some(manual_scope) = approvals.operations_manual_scope.as_ref()
-        && manual_scope.record_id != case.operation.operations_manual_revision
+    if let (Some(manual_scope), Some(manual_revision)) = (
+        approvals.operations_manual_scope.as_ref(),
+        case.operation.operations_manual_revision.as_deref(),
+    ) && manual_scope.record_id != manual_revision
     {
         findings.push(GateFinding {
             gate_id: "operations_manual_revision_match".into(),
@@ -801,6 +807,8 @@ mod tests {
         let pilot = "pilot-01";
         let rps = "rps-01";
         let scope = format!("sha256:{}", "a".repeat(64));
+        let mut manual_evidence = evidence(operator, &scope, "operations-manual");
+        manual_evidence.record_id = "om-rev-03".into();
         UasOperationCase {
             case_id: "commercial-r-vlos-delivery".into(),
             assessment_time_utc: "2026-11-20T05:00:00Z".into(),
@@ -833,7 +841,7 @@ mod tests {
                 over_or_within_fifty_m_of_public_road: false,
                 over_public_road: false,
                 rps_id: rps.into(),
-                operations_manual_revision: "om-rev-03".into(),
+                operations_manual_revision: Some("om-rev-03".into()),
             },
             approvals: ApprovalSet {
                 air_service_licence: Some(evidence(operator, &scope, "asl")),
@@ -841,7 +849,7 @@ mod tests {
                 aircraft_letter_of_approval: Some(evidence(aircraft, &scope, "rla")),
                 remote_pilot_licence: Some(evidence(pilot, &scope, "rpl")),
                 aircraft_certificate_of_registration: Some(evidence(aircraft, &scope, "cofr")),
-                operations_manual_scope: Some(evidence(operator, &scope, "operations-manual")),
+                operations_manual_scope: Some(manual_evidence),
                 director_payload_release_approval: Some(evidence(operator, &scope, "payload-release")),
                 director_bvlos_approval: None,
                 sa_cats_101_bvlos_compliance: None,
@@ -928,6 +936,15 @@ mod tests {
             format!("sha256:{}", "b".repeat(64));
         let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid envelope");
         assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::Blocked);
+    }
+
+    #[test]
+    fn mismatched_operations_manual_revision_blocks_operation() {
+        let mut case = commercial_case();
+        case.operation.operations_manual_revision = Some("om-rev-04".into());
+        let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid envelope");
+        assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::Blocked);
+        assert!(report.cases[0].findings.iter().any(|gate| gate.gate_id == "operations_manual_revision_match"));
     }
 
     #[test]
@@ -1097,6 +1114,7 @@ mod tests {
         case.approvals.operations_manual_scope = None;
         case.operation.payload_release_or_delivery = false;
         case.operation.dangerous_goods_payload = false;
+        case.operation.operations_manual_revision = None;
         let report = evaluate_za_uas_eligibility(&batch(vec![case])).expect("valid envelope");
         assert_eq!(report.cases[0].eligibility_status, EligibilityStatus::Blocked);
     }
