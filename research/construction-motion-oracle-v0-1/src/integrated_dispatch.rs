@@ -998,8 +998,6 @@ mod tests {
                     calibration_sha256: digest('8'),
                     site_clock_domain_id: "site-clock-01".into(),
                     valid_until_tick: 8_000,
-                    site_clock_domain_id: "site-clock-01".into(),
-                    valid_until_tick: 8_000,
                 },
             })
             .unwrap();
