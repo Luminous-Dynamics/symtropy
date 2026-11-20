@@ -15,6 +15,7 @@ pub enum SignerRole {
     FieldObserver,
     EvidenceProvider,
     RunRecorder,
+    ActuationWitness,
     Scorer,
 }
 
@@ -280,6 +281,232 @@ fn validate_payload_shape(payload: &AttestationPayload) -> Result<(), Vec<String
     } else {
         Err(errors)
     }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ActuationHardwareFeedback {
+    Unavailable,
+    NoMovementObserved,
+    MovementObserved,
+    Conflicting,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ActuationCommandBinding {
+    pub run_id: String,
+    pub case_sha256: String,
+    pub decision_step: u32,
+    pub proposal_sha256: String,
+    pub action_id: String,
+    pub action_kind: String,
+    pub command_id: String,
+    pub command_sha256: String,
+    pub challenge_nonce: String,
+    pub controller_id: String,
+    pub device_id: String,
+    pub witness_issuer_id: String,
+    pub witness_tool_source_commit: String,
+    pub witness_tool_configuration_sha256: String,
+    pub minimum_monotonic_sequence: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct NoActuationWitnessReceipt {
+    pub schema_version: String,
+    pub witness_id: String,
+    pub issuer_id: String,
+    pub controller_id: String,
+    pub device_id: String,
+    pub run_id: String,
+    pub case_sha256: String,
+    pub decision_step: u32,
+    pub proposal_sha256: String,
+    pub action_id: String,
+    pub action_kind: String,
+    pub command_id: String,
+    pub command_sha256: String,
+    pub challenge_nonce: String,
+    pub monotonic_sequence: u64,
+    pub rejection_boundary: String,
+    pub actuation_acquired: bool,
+    pub queue_dispatched: bool,
+    pub driver_acquired: bool,
+    pub output_transition_observed: bool,
+    pub hardware_feedback: ActuationHardwareFeedback,
+    pub observed_at_unix_ms: u64,
+    pub expires_at_unix_ms: u64,
+    pub tool_source_commit: String,
+    pub tool_configuration_sha256: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ActuationWitnessReplayState {
+    pub used_challenge_nonces: BTreeSet<String>,
+    pub last_sequence_by_controller_device: BTreeMap<String, u64>,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct VerifiedNoActuationWitness {
+    pub witness_id: String,
+    pub artifact_uri: String,
+    pub artifact_sha256: String,
+    pub command_id: String,
+    pub command_sha256: String,
+    pub challenge_nonce: String,
+    pub monotonic_sequence: u64,
+    pub verified_attestation: VerifiedAttestation,
+    pub result_status: String,
+    pub claim_boundary: String,
+}
+
+pub fn verify_no_actuation_witness(
+    receipt: &NoActuationWitnessReceipt,
+    expected: &ActuationCommandBinding,
+    envelope: &AttestationEnvelope,
+    trust_root: &TrustRoot,
+    pinned_root_sha256: &str,
+    now_unix_ms: u64,
+    max_witness_age_ms: u64,
+    replay_state: &mut ActuationWitnessReplayState,
+) -> Result<VerifiedNoActuationWitness, Vec<String>> {
+    let mut errors = Vec::new();
+
+    let artifact_uri = format!(
+        "power-fabric://actuation-witness/{}",
+        expected.command_sha256
+    );
+    let artifact_sha256 = canonical_sha256(receipt)
+        .map_err(|error| vec![format!("actuation witness canonicalization failed: {error}")])?;
+
+    if receipt.schema_version != "0.1.0"
+        || !valid_id(&receipt.witness_id)
+        || receipt.issuer_id != expected.witness_issuer_id
+        || receipt.controller_id != expected.controller_id
+        || receipt.device_id != expected.device_id
+        || receipt.run_id != expected.run_id
+        || receipt.case_sha256 != expected.case_sha256
+        || receipt.decision_step != expected.decision_step
+        || receipt.proposal_sha256 != expected.proposal_sha256
+        || receipt.action_id != expected.action_id
+        || receipt.action_kind != expected.action_kind
+        || receipt.command_id != expected.command_id
+        || receipt.command_sha256 != expected.command_sha256
+        || receipt.challenge_nonce != expected.challenge_nonce
+        || receipt.rejection_boundary != "before_actuation"
+        || receipt.actuation_acquired
+        || receipt.queue_dispatched
+        || receipt.driver_acquired
+        || receipt.output_transition_observed
+        || matches!(
+            receipt.hardware_feedback,
+            ActuationHardwareFeedback::MovementObserved
+                | ActuationHardwareFeedback::Conflicting
+        )
+        || !is_lower_hex(&receipt.case_sha256, 64)
+        || !is_lower_hex(&receipt.proposal_sha256, 64)
+        || !is_lower_hex(&receipt.command_sha256, 64)
+        || !is_lower_hex(&receipt.challenge_nonce, 64)
+        || !is_lower_hex(&receipt.tool_source_commit, 40)
+        || !is_lower_hex(&receipt.tool_configuration_sha256, 64)
+        || receipt.tool_source_commit != expected.witness_tool_source_commit
+        || receipt.tool_configuration_sha256 != expected.witness_tool_configuration_sha256
+    {
+        errors.push(
+            "actuation witness does not prove a before-actuation, not-acquired outcome for the exact command context"
+                .to_string(),
+        );
+    }
+
+    if receipt.observed_at_unix_ms > now_unix_ms
+        || receipt.expires_at_unix_ms <= receipt.observed_at_unix_ms
+        || receipt.expires_at_unix_ms < now_unix_ms
+        || now_unix_ms.saturating_sub(receipt.observed_at_unix_ms) > max_witness_age_ms
+    {
+        errors.push("actuation witness is future-dated, expired or too old".to_string());
+    }
+
+    let controller_device_key = format!("{}/{}", receipt.controller_id, receipt.device_id);
+    let last_sequence = replay_state
+        .last_sequence_by_controller_device
+        .get(&controller_device_key)
+        .copied()
+        .unwrap_or(0);
+    if receipt.monotonic_sequence <= last_sequence
+        || receipt.monotonic_sequence <= expected.minimum_monotonic_sequence
+    {
+        errors.push("actuation witness monotonic sequence is replayed or stale".to_string());
+    }
+    if replay_state
+        .used_challenge_nonces
+        .contains(&receipt.challenge_nonce)
+    {
+        errors.push("actuation witness challenge nonce has already been consumed".to_string());
+    }
+
+    if envelope.payload.issued_at_unix_ms != receipt.observed_at_unix_ms
+        || envelope.payload.expires_at_unix_ms != receipt.expires_at_unix_ms
+    {
+        errors.push("actuation witness receipt time window differs from its signed envelope".to_string());
+    }
+
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+
+    let mut parents = vec![
+        expected.command_sha256.clone(),
+        expected.proposal_sha256.clone(),
+    ];
+    parents.sort();
+    let expected_attestation = ExpectedAttestationBinding {
+        predicate_type: "power-restoration/no-actuation-witness/v1".to_string(),
+        issuer_id: expected.witness_issuer_id.clone(),
+        artifact_uri: artifact_uri.clone(),
+        artifact_sha256: artifact_sha256.clone(),
+        run_id: expected.run_id.clone(),
+        case_sha256: expected.case_sha256.clone(),
+        decision_step: expected.decision_step,
+        proposal_sha256: expected.proposal_sha256.clone(),
+        signer_role: SignerRole::ActuationWitness,
+        tool_source_commit: expected.witness_tool_source_commit.clone(),
+        tool_configuration_sha256: expected.witness_tool_configuration_sha256.clone(),
+        parent_artifact_sha256: parents,
+    };
+
+    let verified_attestation = verify_attestation(
+        envelope,
+        trust_root,
+        pinned_root_sha256,
+        now_unix_ms,
+        &expected_attestation,
+    )?;
+
+    // Consume nonce and advance device sequence only after complete cryptographic
+    // and semantic verification. Persistence/transactionality is the caller's
+    // responsibility; this in-memory state is a replay guard, not durable storage.
+    replay_state
+        .used_challenge_nonces
+        .insert(receipt.challenge_nonce.clone());
+    replay_state
+        .last_sequence_by_controller_device
+        .insert(controller_device_key, receipt.monotonic_sequence);
+
+    Ok(VerifiedNoActuationWitness {
+        witness_id: receipt.witness_id.clone(),
+        artifact_uri,
+        artifact_sha256,
+        command_id: receipt.command_id.clone(),
+        command_sha256: receipt.command_sha256.clone(),
+        challenge_nonce: receipt.challenge_nonce.clone(),
+        monotonic_sequence: receipt.monotonic_sequence,
+        verified_attestation,
+        result_status: "no_actuation_witness_signature_and_command_binding_verified".to_string(),
+        claim_boundary: "A distinct trusted actuation-witness key signed a fresh, one-time, command-bound statement that actuation was not acquired or dispatched. This does not prove physical equipment position, electrical safety or all possible alternate actuation paths; reconcile with independent device feedback and domain validators.".to_string(),
+    })
 }
 
 pub fn verify_attestation(
