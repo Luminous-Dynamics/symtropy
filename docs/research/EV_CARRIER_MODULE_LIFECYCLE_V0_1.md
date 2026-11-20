@@ -63,28 +63,21 @@ Crew-hours must not be mistaken for downtime. Concurrent crews, a spare module, 
 
 A complete annual per-good-module cost is only calculated when every input below is present:
 
-[
-egin{aligned}
-C_{mathrm{annual}} ={}&
-C_{mathrm{acquisition}}/Y_{mathrm{amortization}}
-+ C_{mathrm{allocated factory capex}}\
-&+ C_{mathrm{service parts}}
-+ H_{mathrm{technician}}cdot R_{mathrm{labour}}\
-&+ H_{mathrm{downtime}}cdot R_{mathrm{unavailable hour}}\
-&+ C_{mathrm{spares}}
-+ C_{mathrm{service logistics}}
-+ C_{mathrm{module energy}}\
-&+ C_{mathrm{warranty}}
-+ C_{mathrm{end of life}}
-end{aligned}
-]
+```text
+C_annual =
+    acquisition_cost / amortization_years
+  + allocated_factory_capex
+  + service_parts
+  + technician_hours * labour_rate
+  + downtime_hours * value_per_unavailable_hour
+  + spares_inventory
+  + service_logistics
+  + module_energy
+  + warranty
+  + end_of_life_cost
+```
 
-Every cost uses the catalog's declared currency and cost year. Every cost component has a nullable amount, evidence class and reference. An unknown amount is not a zero. A numeric amount with unknown evidence is rejected. Measured/independent evidence is required for a real lifecycle ranking.
-
-The allocated factory-capex term is a per-good-module annual allocation supplied with its own evidence and allocation basis. Do not copy the factory's whole site capex into each module, or double-count the same equipment in both the factory cost and module acquisition cost. The module acquisition cost must state whether direct material and manufacturing conversion are included. The end-of-life term is a cost only in v0.1; unsubstantiated recycling credits/residual values are not assumed.
-
-The model reports known per-event and scheduled/unscheduled subtotals separately even when the complete annual total is unavailable. It also reports the single-module downtime fraction only when total annual downtime and the annual operating-hours basis are both known. It does not claim fleet-level availability because spare pooling, concurrent repair, substitution, route recovery and service-level consequences are outside this model.
-
+This is an **annualized per-module cost boundary**, not a discounted net-present-value calculation. v0.1 does not infer a discount rate, residual value or recycling credit.
 ## Evidence and release semantics
 
 Evidence references are explicitly namespaced:
