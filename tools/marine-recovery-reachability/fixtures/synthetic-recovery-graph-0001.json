@@ -1,0 +1,2125 @@
+{
+  "schema_version": "0.1.0",
+  "scorecard_id": "MARINE-RECOVERY-REACHABILITY-SYNTHETIC-0001",
+  "record_status": "synthetic",
+  "claim_ceiling": "bounded_action_recovery_graph_audit_only",
+  "mission_snapshot": {
+    "mission_id": "SYNTHETIC-RECOVERY-MISSION-0001",
+    "craft_configuration_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "occupancy_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "operating_envelope_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "service_contract_sha256": "b1ec7a64f4b20c3cd7944c1825d287b683a5b98f38edf9fa02ef346cdc9d80b3",
+    "trigger_roster_sha256": "603293f010f1eb0606a7330364bf9f137d74f3e7705596ee9bc80b0a8a686321",
+    "hard_gate_roster_sha256": "39f4d5882c3cf249517f00e7c6ca414a4c02a4dbabedcc9f6a380153618f936c",
+    "scenario_set_sha256": "85a899aa01dfe7bba0bfed17e30a869d6dfcfe3bf6bb5735b4b5ef5702c858df",
+    "mission_window_start": "2026-11-20T10:00:00Z",
+    "mission_window_end": "2026-11-21T10:00:00Z",
+    "mission_snapshot_sha256": "e340ea16e9ee5aa483cc331bac27d08fa8e139e85d13465f6cf8a7e18f20fef5"
+  },
+  "service_contract": [
+    {
+      "metric": "energy_reserve_kwh",
+      "unit": "kWh",
+      "operator": "gte",
+      "floor_value": 10,
+      "minimum_coverage_fraction": 1,
+      "max_abs_rate_per_hour": 4,
+      "rate_bound_method": "mission-bounded-action-envelope",
+      "rate_bound_class": "synthetic",
+      "rate_bound_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "metric": "freshwater_usable_l",
+      "unit": "L",
+      "operator": "gte",
+      "floor_value": 80,
+      "minimum_coverage_fraction": 1,
+      "max_abs_rate_per_hour": 10,
+      "rate_bound_method": "mission-bounded-action-envelope",
+      "rate_bound_class": "synthetic",
+      "rate_bound_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "metric": "food_reserve_days",
+      "unit": "day",
+      "operator": "gte",
+      "floor_value": 3,
+      "minimum_coverage_fraction": 1,
+      "max_abs_rate_per_hour": 1,
+      "rate_bound_method": "mission-bounded-action-envelope",
+      "rate_bound_class": "synthetic",
+      "rate_bound_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "metric": "waste_capacity_margin_days",
+      "unit": "day",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 1,
+      "max_abs_rate_per_hour": 1,
+      "rate_bound_method": "mission-bounded-action-envelope",
+      "rate_bound_class": "synthetic",
+      "rate_bound_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "metric": "critical_spares_coverage_days",
+      "unit": "day",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 1,
+      "max_abs_rate_per_hour": 1,
+      "rate_bound_method": "mission-bounded-action-envelope",
+      "rate_bound_class": "synthetic",
+      "rate_bound_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "metric": "power_service_availability",
+      "unit": "fraction",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 1,
+      "max_abs_rate_per_hour": 1,
+      "rate_bound_method": "mission-bounded-action-envelope",
+      "rate_bound_class": "synthetic",
+      "rate_bound_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "metric": "potable_water_service_availability",
+      "unit": "fraction",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 1,
+      "max_abs_rate_per_hour": 1,
+      "rate_bound_method": "mission-bounded-action-envelope",
+      "rate_bound_class": "synthetic",
+      "rate_bound_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "metric": "sanitation_service_availability",
+      "unit": "fraction",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 1,
+      "max_abs_rate_per_hour": 1,
+      "rate_bound_method": "mission-bounded-action-envelope",
+      "rate_bound_class": "synthetic",
+      "rate_bound_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "metric": "refrigeration_service_availability",
+      "unit": "fraction",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 1,
+      "max_abs_rate_per_hour": 1,
+      "rate_bound_method": "mission-bounded-action-envelope",
+      "rate_bound_class": "synthetic",
+      "rate_bound_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "metric": "crew_workload_hours_rolling_24h",
+      "unit": "h",
+      "operator": "lte",
+      "floor_value": 12,
+      "minimum_coverage_fraction": 1,
+      "max_abs_rate_per_hour": 2,
+      "rate_bound_method": "mission-bounded-action-envelope",
+      "rate_bound_class": "synthetic",
+      "rate_bound_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "metric": "comfort_breach_minutes_rolling_24h",
+      "unit": "min",
+      "operator": "lte",
+      "floor_value": 60,
+      "minimum_coverage_fraction": 1,
+      "max_abs_rate_per_hour": 10,
+      "rate_bound_method": "mission-bounded-action-envelope",
+      "rate_bound_class": "synthetic",
+      "rate_bound_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "trigger_roster": [
+    "common_cause_generation_watermaker_trip",
+    "generator_trip",
+    "resource_margin_compressed",
+    "unverified_terminal_service",
+    "watermaker_trip"
+  ],
+  "hard_gate_roster": [
+    "stability_envelope",
+    "navigation_access",
+    "traffic_compliance"
+  ],
+  "graph_limits": {
+    "max_paths_per_scenario": 128,
+    "max_action_depth": 4
+  },
+  "scenarios": [
+    {
+      "scenario_id": "generator-trip",
+      "trigger_class": "generator_trip",
+      "scenario_class": "generator_trip",
+      "trigger_state": [
+        {
+          "metric": "energy_reserve_kwh",
+          "unit": "kWh",
+          "value": 20,
+          "lower_bound": 20,
+          "upper_bound": 20,
+          "coverage_fraction": 1,
+          "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric": "freshwater_usable_l",
+          "unit": "L",
+          "value": 120,
+          "lower_bound": 120,
+          "upper_bound": 120,
+          "coverage_fraction": 1,
+          "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "metric": "food_reserve_days",
+          "unit": "day",
+          "value": 8,
+          "lower_bound": 8,
+          "upper_bound": 8,
+          "coverage_fraction": 1,
+          "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        {
+          "metric": "waste_capacity_margin_days",
+          "unit": "day",
+          "value": 4,
+          "lower_bound": 4,
+          "upper_bound": 4,
+          "coverage_fraction": 1,
+          "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        {
+          "metric": "critical_spares_coverage_days",
+          "unit": "day",
+          "value": 4,
+          "lower_bound": 4,
+          "upper_bound": 4,
+          "coverage_fraction": 1,
+          "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        {
+          "metric": "power_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+        },
+        {
+          "metric": "potable_water_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+        },
+        {
+          "metric": "sanitation_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+        },
+        {
+          "metric": "refrigeration_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+        },
+        {
+          "metric": "crew_workload_hours_rolling_24h",
+          "unit": "h",
+          "value": 4,
+          "lower_bound": 4,
+          "upper_bound": 4,
+          "coverage_fraction": 1,
+          "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+        },
+        {
+          "metric": "comfort_breach_minutes_rolling_24h",
+          "unit": "min",
+          "value": 5,
+          "lower_bound": 5,
+          "upper_bound": 5,
+          "coverage_fraction": 1,
+          "evidence_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+        }
+      ],
+      "available_components": [
+        "battery_inverter",
+        "watermaker",
+        "shore_power",
+        "steering_actuator",
+        "propulsion_drive"
+      ],
+      "available_capabilities": [
+        "energy_management",
+        "navigation",
+        "divert_to_safe_haven",
+        "human_watch"
+      ],
+      "decision_time": "2026-11-20T10:00:00Z",
+      "intervention_deadline_hours": 6,
+      "max_action_depth": 4,
+      "required_hard_gate_ids": [
+        "stability_envelope",
+        "navigation_access",
+        "traffic_compliance"
+      ],
+      "actions": [
+        {
+          "action_id": "shed-load",
+          "from_node": "start",
+          "to_node": "reduced",
+          "action_class": "bounded_recovery",
+          "trigger_classes": [
+            "generator_trip"
+          ],
+          "duration_hours_lower": 1,
+          "duration_hours_upper": 1,
+          "requires_components": [
+            "battery_inverter"
+          ],
+          "requires_capabilities": [
+            "energy_management"
+          ],
+          "metric_deltas": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "lower_delta": -1,
+              "upper_delta": -1,
+              "evidence_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "lower_delta": 1,
+              "upper_delta": 1,
+              "evidence_sha256": "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability_envelope",
+              "status": "pass",
+              "evidence_sha256": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            },
+            {
+              "gate_id": "navigation_access",
+              "status": "pass",
+              "evidence_sha256": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+            },
+            {
+              "gate_id": "traffic_compliance",
+              "status": "pass",
+              "evidence_sha256": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            }
+          ],
+          "action_evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+          "action_sha256": "b46d747a8c76709fe096543867bd1fabf596e9581d5e5940f1251fa57dff84c0"
+        },
+        {
+          "action_id": "divert-haven",
+          "from_node": "reduced",
+          "to_node": "haven",
+          "action_class": "bounded_recovery",
+          "trigger_classes": [
+            "generator_trip"
+          ],
+          "duration_hours_lower": 2,
+          "duration_hours_upper": 2,
+          "requires_components": [
+            "steering_actuator",
+            "propulsion_drive"
+          ],
+          "requires_capabilities": [
+            "navigation",
+            "divert_to_safe_haven",
+            "human_watch"
+          ],
+          "metric_deltas": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "lower_delta": -3,
+              "upper_delta": -3,
+              "evidence_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "lower_delta": -10,
+              "upper_delta": -10,
+              "evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "lower_delta": -1,
+              "upper_delta": -1,
+              "evidence_sha256": "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "lower_delta": 1,
+              "upper_delta": 1,
+              "evidence_sha256": "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "lower_delta": 5,
+              "upper_delta": 5,
+              "evidence_sha256": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability_envelope",
+              "status": "pass",
+              "evidence_sha256": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            },
+            {
+              "gate_id": "navigation_access",
+              "status": "pass",
+              "evidence_sha256": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+            },
+            {
+              "gate_id": "traffic_compliance",
+              "status": "pass",
+              "evidence_sha256": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            }
+          ],
+          "action_evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+          "action_sha256": "879fed800fe2c9cea4443a87c55d9e3522779b20b1ba399c4c12b540c58c6ac6"
+        },
+        {
+          "action_id": "fast-divert",
+          "from_node": "start",
+          "to_node": "haven",
+          "action_class": "bounded_recovery",
+          "trigger_classes": [
+            "generator_trip"
+          ],
+          "duration_hours_lower": 1,
+          "duration_hours_upper": 1,
+          "requires_components": [
+            "steering_actuator",
+            "propulsion_drive"
+          ],
+          "requires_capabilities": [
+            "navigation"
+          ],
+          "metric_deltas": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "lower_delta": -15,
+              "upper_delta": -15,
+              "evidence_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "lower_delta": -5,
+              "upper_delta": -5,
+              "evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability_envelope",
+              "status": "pass",
+              "evidence_sha256": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            },
+            {
+              "gate_id": "navigation_access",
+              "status": "pass",
+              "evidence_sha256": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+            },
+            {
+              "gate_id": "traffic_compliance",
+              "status": "pass",
+              "evidence_sha256": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            }
+          ],
+          "action_evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+          "action_sha256": "33f62da0851540a65de4e61cb81c56e87eda8176a3c9555384af399c7a55e4df"
+        },
+        {
+          "action_id": "repair-generator",
+          "from_node": "start",
+          "to_node": "workshop",
+          "action_class": "bounded_recovery",
+          "trigger_classes": [
+            "generator_trip"
+          ],
+          "duration_hours_lower": 2,
+          "duration_hours_upper": 2,
+          "requires_components": [
+            "main_generator",
+            "repair_kit"
+          ],
+          "requires_capabilities": [
+            "engine_repair"
+          ],
+          "metric_deltas": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "lower_delta": -2,
+              "upper_delta": -2,
+              "evidence_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability_envelope",
+              "status": "pass",
+              "evidence_sha256": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            },
+            {
+              "gate_id": "navigation_access",
+              "status": "pass",
+              "evidence_sha256": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+            },
+            {
+              "gate_id": "traffic_compliance",
+              "status": "pass",
+              "evidence_sha256": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            }
+          ],
+          "action_evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+          "action_sha256": "d93f93041f4d9a21c3e1971089e5a7fc6062acac7f37f1b7d1524499a15b0d4c"
+        }
+      ],
+      "terminals": [
+        {
+          "terminal_id": "sheltered-haven",
+          "node_id": "haven",
+          "objective_class": "safe_haven",
+          "available": true,
+          "access_status": "verified",
+          "service_status": "not_required",
+          "arrival_deadline_at": "2026-11-21T10:00:00Z",
+          "receipt_valid_until": "2026-11-22T10:00:00Z",
+          "destination_location_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "access_evidence_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "service_availability_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "authority_receipt_ref": "SYNTHETIC-AUTH-sheltered-haven",
+          "authority_receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "terminal_evidence_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "receipt_sha256": "72dc9c4416698ba28ea36e91cbbfea677acc7b39bf1feff32b601b88db864394"
+        },
+        {
+          "terminal_id": "onboard-workshop",
+          "node_id": "workshop",
+          "objective_class": "repair_restoration",
+          "available": true,
+          "access_status": "verified",
+          "service_status": "verified",
+          "arrival_deadline_at": "2026-11-21T10:00:00Z",
+          "receipt_valid_until": "2026-11-22T10:00:00Z",
+          "destination_location_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "access_evidence_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "service_availability_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "authority_receipt_ref": "SYNTHETIC-AUTH-onboard-workshop",
+          "authority_receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "terminal_evidence_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "receipt_sha256": "0003533c240293d70525a2f1507ec541d72594a823bc5c30c78ac155cd15b3f1"
+        }
+      ],
+      "expected_outcome": "recoverable",
+      "trigger_state_sha256": "c567da183bad3f7a87532654b49bd39604c84b0975fad3a4c13f96be60d17946",
+      "scenario_sha256": "b1fdec6d1c6e0e2761317ce9598adf9f50e1f0ef0a4ad1c39462de133f398379"
+    },
+    {
+      "scenario_id": "watermaker-trip",
+      "trigger_class": "watermaker_trip",
+      "scenario_class": "watermaker_trip",
+      "trigger_state": [
+        {
+          "metric": "energy_reserve_kwh",
+          "unit": "kWh",
+          "value": 25,
+          "lower_bound": 25,
+          "upper_bound": 25,
+          "coverage_fraction": 1,
+          "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric": "freshwater_usable_l",
+          "unit": "L",
+          "value": 140,
+          "lower_bound": 140,
+          "upper_bound": 140,
+          "coverage_fraction": 1,
+          "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "metric": "food_reserve_days",
+          "unit": "day",
+          "value": 8,
+          "lower_bound": 8,
+          "upper_bound": 8,
+          "coverage_fraction": 1,
+          "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        {
+          "metric": "waste_capacity_margin_days",
+          "unit": "day",
+          "value": 4,
+          "lower_bound": 4,
+          "upper_bound": 4,
+          "coverage_fraction": 1,
+          "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        {
+          "metric": "critical_spares_coverage_days",
+          "unit": "day",
+          "value": 4,
+          "lower_bound": 4,
+          "upper_bound": 4,
+          "coverage_fraction": 1,
+          "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        {
+          "metric": "power_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+        },
+        {
+          "metric": "potable_water_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+        },
+        {
+          "metric": "sanitation_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+        },
+        {
+          "metric": "refrigeration_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+        },
+        {
+          "metric": "crew_workload_hours_rolling_24h",
+          "unit": "h",
+          "value": 4,
+          "lower_bound": 4,
+          "upper_bound": 4,
+          "coverage_fraction": 1,
+          "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+        },
+        {
+          "metric": "comfort_breach_minutes_rolling_24h",
+          "unit": "min",
+          "value": 5,
+          "lower_bound": 5,
+          "upper_bound": 5,
+          "coverage_fraction": 1,
+          "evidence_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+        }
+      ],
+      "available_components": [
+        "main_generator",
+        "battery_inverter",
+        "shore_power",
+        "steering_actuator",
+        "propulsion_drive"
+      ],
+      "available_capabilities": [
+        "navigation",
+        "divert_to_shore_resupply",
+        "human_watch"
+      ],
+      "decision_time": "2026-11-20T10:00:00Z",
+      "intervention_deadline_hours": 6,
+      "max_action_depth": 4,
+      "required_hard_gate_ids": [
+        "stability_envelope",
+        "navigation_access",
+        "traffic_compliance"
+      ],
+      "actions": [
+        {
+          "action_id": "divert-water-resupply",
+          "from_node": "start",
+          "to_node": "port",
+          "action_class": "bounded_recovery",
+          "trigger_classes": [
+            "watermaker_trip"
+          ],
+          "duration_hours_lower": 3,
+          "duration_hours_upper": 3,
+          "requires_components": [
+            "steering_actuator",
+            "propulsion_drive"
+          ],
+          "requires_capabilities": [
+            "navigation",
+            "divert_to_shore_resupply",
+            "human_watch"
+          ],
+          "metric_deltas": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "lower_delta": -3,
+              "upper_delta": -3,
+              "evidence_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "lower_delta": -30,
+              "upper_delta": -30,
+              "evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "lower_delta": -1,
+              "upper_delta": -1,
+              "evidence_sha256": "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "lower_delta": 2,
+              "upper_delta": 2,
+              "evidence_sha256": "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "lower_delta": 10,
+              "upper_delta": 10,
+              "evidence_sha256": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability_envelope",
+              "status": "pass",
+              "evidence_sha256": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            },
+            {
+              "gate_id": "navigation_access",
+              "status": "pass",
+              "evidence_sha256": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+            },
+            {
+              "gate_id": "traffic_compliance",
+              "status": "pass",
+              "evidence_sha256": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            }
+          ],
+          "action_evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+          "action_sha256": "3fe2484957c710db6133d6b871d6f57f92b2032cbcefc196118fa67b8f85965b"
+        },
+        {
+          "action_id": "repair-watermaker",
+          "from_node": "start",
+          "to_node": "workshop",
+          "action_class": "bounded_recovery",
+          "trigger_classes": [
+            "watermaker_trip"
+          ],
+          "duration_hours_lower": 2,
+          "duration_hours_upper": 2,
+          "requires_components": [
+            "watermaker",
+            "repair_kit"
+          ],
+          "requires_capabilities": [
+            "water_system_repair"
+          ],
+          "metric_deltas": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "lower_delta": -2,
+              "upper_delta": -2,
+              "evidence_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "lower_delta": -20,
+              "upper_delta": -20,
+              "evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability_envelope",
+              "status": "pass",
+              "evidence_sha256": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            },
+            {
+              "gate_id": "navigation_access",
+              "status": "pass",
+              "evidence_sha256": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+            },
+            {
+              "gate_id": "traffic_compliance",
+              "status": "pass",
+              "evidence_sha256": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            }
+          ],
+          "action_evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+          "action_sha256": "c2b42b4b1c040a4f55b830d4b100b1c1f2f566b36c997456d29eb70d4238ede6"
+        }
+      ],
+      "terminals": [
+        {
+          "terminal_id": "verified-resupply-port",
+          "node_id": "port",
+          "objective_class": "shore_resupply",
+          "available": true,
+          "access_status": "verified",
+          "service_status": "verified",
+          "arrival_deadline_at": "2026-11-21T10:00:00Z",
+          "receipt_valid_until": "2026-11-22T10:00:00Z",
+          "destination_location_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "access_evidence_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "service_availability_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "authority_receipt_ref": "SYNTHETIC-AUTH-verified-resupply-port",
+          "authority_receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "terminal_evidence_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "receipt_sha256": "a5da76f4d3b6d7b8c2a76baa28d873152c0d5cc140c52bd4a7894e9bab1ab97b"
+        },
+        {
+          "terminal_id": "watermaker-workshop",
+          "node_id": "workshop",
+          "objective_class": "repair_restoration",
+          "available": true,
+          "access_status": "verified",
+          "service_status": "verified",
+          "arrival_deadline_at": "2026-11-21T10:00:00Z",
+          "receipt_valid_until": "2026-11-22T10:00:00Z",
+          "destination_location_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "access_evidence_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "service_availability_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "authority_receipt_ref": "SYNTHETIC-AUTH-watermaker-workshop",
+          "authority_receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "terminal_evidence_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "receipt_sha256": "8fa36ff0c31b67eb1f14404033b69543e6e86d7df559a9de1a2043a143d260ea"
+        }
+      ],
+      "expected_outcome": "recoverable",
+      "trigger_state_sha256": "b05304b98442f1482cd351745bd30e5839e28c2370484fa6f1107ad60ff433c5",
+      "scenario_sha256": "7167d930754176f7a1e7ac7aa949246d0d89a1fc927505dee7cfb291e51b03b5"
+    },
+    {
+      "scenario_id": "common-cause-outage",
+      "trigger_class": "common_cause_generation_watermaker_trip",
+      "scenario_class": "common_cause_generation_watermaker_trip",
+      "trigger_state": [
+        {
+          "metric": "energy_reserve_kwh",
+          "unit": "kWh",
+          "value": 12,
+          "lower_bound": 12,
+          "upper_bound": 12,
+          "coverage_fraction": 1,
+          "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric": "freshwater_usable_l",
+          "unit": "L",
+          "value": 90,
+          "lower_bound": 90,
+          "upper_bound": 90,
+          "coverage_fraction": 1,
+          "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "metric": "food_reserve_days",
+          "unit": "day",
+          "value": 6,
+          "lower_bound": 6,
+          "upper_bound": 6,
+          "coverage_fraction": 1,
+          "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        {
+          "metric": "waste_capacity_margin_days",
+          "unit": "day",
+          "value": 3,
+          "lower_bound": 3,
+          "upper_bound": 3,
+          "coverage_fraction": 1,
+          "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        {
+          "metric": "critical_spares_coverage_days",
+          "unit": "day",
+          "value": 2,
+          "lower_bound": 2,
+          "upper_bound": 2,
+          "coverage_fraction": 1,
+          "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        {
+          "metric": "power_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+        },
+        {
+          "metric": "potable_water_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+        },
+        {
+          "metric": "sanitation_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+        },
+        {
+          "metric": "refrigeration_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+        },
+        {
+          "metric": "crew_workload_hours_rolling_24h",
+          "unit": "h",
+          "value": 5,
+          "lower_bound": 5,
+          "upper_bound": 5,
+          "coverage_fraction": 1,
+          "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+        },
+        {
+          "metric": "comfort_breach_minutes_rolling_24h",
+          "unit": "min",
+          "value": 10,
+          "lower_bound": 10,
+          "upper_bound": 10,
+          "coverage_fraction": 1,
+          "evidence_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+        }
+      ],
+      "available_components": [
+        "battery_inverter",
+        "shore_power",
+        "steering_actuator",
+        "propulsion_drive"
+      ],
+      "available_capabilities": [
+        "navigation",
+        "divert_to_safe_haven"
+      ],
+      "decision_time": "2026-11-20T10:00:00Z",
+      "intervention_deadline_hours": 4,
+      "max_action_depth": 4,
+      "required_hard_gate_ids": [
+        "stability_envelope",
+        "navigation_access",
+        "traffic_compliance"
+      ],
+      "actions": [
+        {
+          "action_id": "divert-common-cause",
+          "from_node": "start",
+          "to_node": "haven",
+          "action_class": "bounded_recovery",
+          "trigger_classes": [
+            "common_cause_generation_watermaker_trip"
+          ],
+          "duration_hours_lower": 2,
+          "duration_hours_upper": 2,
+          "requires_components": [
+            "steering_actuator",
+            "propulsion_drive"
+          ],
+          "requires_capabilities": [
+            "navigation",
+            "divert_to_safe_haven"
+          ],
+          "metric_deltas": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "lower_delta": -6,
+              "upper_delta": -6,
+              "evidence_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "lower_delta": -20,
+              "upper_delta": -20,
+              "evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "lower_delta": 2,
+              "upper_delta": 2,
+              "evidence_sha256": "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "lower_delta": 15,
+              "upper_delta": 15,
+              "evidence_sha256": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability_envelope",
+              "status": "pass",
+              "evidence_sha256": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            },
+            {
+              "gate_id": "navigation_access",
+              "status": "pass",
+              "evidence_sha256": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+            },
+            {
+              "gate_id": "traffic_compliance",
+              "status": "pass",
+              "evidence_sha256": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            }
+          ],
+          "action_evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+          "action_sha256": "8eb05992f19340497883039d840b3ef514e34c4c7913719f7199ee92ca8062dc"
+        },
+        {
+          "action_id": "controlled-hold",
+          "from_node": "start",
+          "to_node": "hold",
+          "action_class": "bounded_recovery",
+          "trigger_classes": [
+            "common_cause_generation_watermaker_trip"
+          ],
+          "duration_hours_lower": 1,
+          "duration_hours_upper": 1,
+          "requires_components": [
+            "main_generator"
+          ],
+          "requires_capabilities": [
+            "controlled_safe_hold"
+          ],
+          "metric_deltas": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "lower_delta": -1,
+              "upper_delta": -1,
+              "evidence_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "lower_delta": -3,
+              "upper_delta": -3,
+              "evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "lower_delta": 1,
+              "upper_delta": 1,
+              "evidence_sha256": "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability_envelope",
+              "status": "pass",
+              "evidence_sha256": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            },
+            {
+              "gate_id": "navigation_access",
+              "status": "pass",
+              "evidence_sha256": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+            },
+            {
+              "gate_id": "traffic_compliance",
+              "status": "pass",
+              "evidence_sha256": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            }
+          ],
+          "action_evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+          "action_sha256": "2b1b78a1d6a198157264543de71866c34c8a0fcbe2ef9d1f9f7e6d0eafca49ca"
+        }
+      ],
+      "terminals": [
+        {
+          "terminal_id": "closed-haven",
+          "node_id": "haven",
+          "objective_class": "safe_haven",
+          "available": false,
+          "access_status": "closed",
+          "service_status": "not_required",
+          "arrival_deadline_at": "2026-11-21T10:00:00Z",
+          "receipt_valid_until": "2026-11-22T10:00:00Z",
+          "destination_location_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "access_evidence_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "service_availability_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "authority_receipt_ref": "",
+          "authority_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "terminal_evidence_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "receipt_sha256": "1379ee28d8b7c1560dc4d57ce32a383dba70f3ff3b5c7173965b692ad2acfd43"
+        },
+        {
+          "terminal_id": "controlled-hold-terminal",
+          "node_id": "hold",
+          "objective_class": "controlled_safe_hold",
+          "available": true,
+          "access_status": "verified",
+          "service_status": "not_required",
+          "arrival_deadline_at": "2026-11-21T10:00:00Z",
+          "receipt_valid_until": "2026-11-22T10:00:00Z",
+          "destination_location_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "access_evidence_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "service_availability_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "authority_receipt_ref": "SYNTHETIC-AUTH-controlled-hold-terminal",
+          "authority_receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "terminal_evidence_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "receipt_sha256": "f84472dfe7b5dd15dcd0e38577fab45b66a5996564505c90c9e125fe51db14c8"
+        }
+      ],
+      "expected_outcome": "abstain",
+      "trigger_state_sha256": "dd8dca08147f573df6fafa755e2eb552b42bbd9c71ae1eca34b24245adafa035",
+      "scenario_sha256": "de294e0d7a930c9bf43237cb6068b6b828bd3c7c752dbaa5409484ab64204029"
+    },
+    {
+      "scenario_id": "deadline-exhausted",
+      "trigger_class": "resource_margin_compressed",
+      "scenario_class": "resource_margin_compressed",
+      "trigger_state": [
+        {
+          "metric": "energy_reserve_kwh",
+          "unit": "kWh",
+          "value": 13,
+          "lower_bound": 13,
+          "upper_bound": 13,
+          "coverage_fraction": 1,
+          "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric": "freshwater_usable_l",
+          "unit": "L",
+          "value": 100,
+          "lower_bound": 100,
+          "upper_bound": 100,
+          "coverage_fraction": 1,
+          "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "metric": "food_reserve_days",
+          "unit": "day",
+          "value": 6,
+          "lower_bound": 6,
+          "upper_bound": 6,
+          "coverage_fraction": 1,
+          "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        {
+          "metric": "waste_capacity_margin_days",
+          "unit": "day",
+          "value": 3,
+          "lower_bound": 3,
+          "upper_bound": 3,
+          "coverage_fraction": 1,
+          "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        {
+          "metric": "critical_spares_coverage_days",
+          "unit": "day",
+          "value": 2,
+          "lower_bound": 2,
+          "upper_bound": 2,
+          "coverage_fraction": 1,
+          "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        {
+          "metric": "power_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+        },
+        {
+          "metric": "potable_water_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+        },
+        {
+          "metric": "sanitation_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+        },
+        {
+          "metric": "refrigeration_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+        },
+        {
+          "metric": "crew_workload_hours_rolling_24h",
+          "unit": "h",
+          "value": 6,
+          "lower_bound": 6,
+          "upper_bound": 6,
+          "coverage_fraction": 1,
+          "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+        },
+        {
+          "metric": "comfort_breach_minutes_rolling_24h",
+          "unit": "min",
+          "value": 15,
+          "lower_bound": 15,
+          "upper_bound": 15,
+          "coverage_fraction": 1,
+          "evidence_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+        }
+      ],
+      "available_components": [
+        "main_generator",
+        "watermaker",
+        "battery_inverter",
+        "shore_power",
+        "steering_actuator",
+        "propulsion_drive"
+      ],
+      "available_capabilities": [
+        "navigation",
+        "divert_to_safe_haven"
+      ],
+      "decision_time": "2026-11-20T10:00:00Z",
+      "intervention_deadline_hours": 2,
+      "max_action_depth": 4,
+      "required_hard_gate_ids": [
+        "stability_envelope",
+        "navigation_access",
+        "traffic_compliance"
+      ],
+      "actions": [
+        {
+          "action_id": "late-diversion",
+          "from_node": "start",
+          "to_node": "haven",
+          "action_class": "bounded_recovery",
+          "trigger_classes": [
+            "resource_margin_compressed"
+          ],
+          "duration_hours_lower": 4,
+          "duration_hours_upper": 4,
+          "requires_components": [
+            "steering_actuator",
+            "propulsion_drive"
+          ],
+          "requires_capabilities": [
+            "navigation",
+            "divert_to_safe_haven"
+          ],
+          "metric_deltas": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "lower_delta": -1,
+              "upper_delta": -1,
+              "evidence_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "lower_delta": -5,
+              "upper_delta": -5,
+              "evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability_envelope",
+              "status": "pass",
+              "evidence_sha256": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            },
+            {
+              "gate_id": "navigation_access",
+              "status": "pass",
+              "evidence_sha256": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+            },
+            {
+              "gate_id": "traffic_compliance",
+              "status": "pass",
+              "evidence_sha256": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            }
+          ],
+          "action_evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+          "action_sha256": "2bd876fa961d340b8af52a18c43e43223d2132e06254e8b64272aa158e27b56f"
+        }
+      ],
+      "terminals": [
+        {
+          "terminal_id": "late-haven",
+          "node_id": "haven",
+          "objective_class": "safe_haven",
+          "available": true,
+          "access_status": "verified",
+          "service_status": "not_required",
+          "arrival_deadline_at": "2026-11-21T10:00:00Z",
+          "receipt_valid_until": "2026-11-22T10:00:00Z",
+          "destination_location_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "access_evidence_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "service_availability_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "authority_receipt_ref": "SYNTHETIC-AUTH-late-haven",
+          "authority_receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "terminal_evidence_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "receipt_sha256": "fa08a23d06ae162de4b827618e1ce90ce0ce297aa3527eb6a05cee75f566339a"
+        }
+      ],
+      "expected_outcome": "abstain",
+      "trigger_state_sha256": "829d0b6f4a493bcc91a6b2a9727e4301ada9b428fee1d69b99ff49a9e4b1f056",
+      "scenario_sha256": "fea450a97d3d35f6a299875831563cdc75a6b55d8ec00a12d582f8ce28b40a09"
+    },
+    {
+      "scenario_id": "unverified-port-service",
+      "trigger_class": "unverified_terminal_service",
+      "scenario_class": "unverified_terminal_service",
+      "trigger_state": [
+        {
+          "metric": "energy_reserve_kwh",
+          "unit": "kWh",
+          "value": 24,
+          "lower_bound": 24,
+          "upper_bound": 24,
+          "coverage_fraction": 1,
+          "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric": "freshwater_usable_l",
+          "unit": "L",
+          "value": 135,
+          "lower_bound": 135,
+          "upper_bound": 135,
+          "coverage_fraction": 1,
+          "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "metric": "food_reserve_days",
+          "unit": "day",
+          "value": 8,
+          "lower_bound": 8,
+          "upper_bound": 8,
+          "coverage_fraction": 1,
+          "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        {
+          "metric": "waste_capacity_margin_days",
+          "unit": "day",
+          "value": 4,
+          "lower_bound": 4,
+          "upper_bound": 4,
+          "coverage_fraction": 1,
+          "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        {
+          "metric": "critical_spares_coverage_days",
+          "unit": "day",
+          "value": 4,
+          "lower_bound": 4,
+          "upper_bound": 4,
+          "coverage_fraction": 1,
+          "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        {
+          "metric": "power_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+        },
+        {
+          "metric": "potable_water_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+        },
+        {
+          "metric": "sanitation_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+        },
+        {
+          "metric": "refrigeration_service_availability",
+          "unit": "fraction",
+          "value": 1,
+          "lower_bound": 1,
+          "upper_bound": 1,
+          "coverage_fraction": 1,
+          "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+        },
+        {
+          "metric": "crew_workload_hours_rolling_24h",
+          "unit": "h",
+          "value": 4,
+          "lower_bound": 4,
+          "upper_bound": 4,
+          "coverage_fraction": 1,
+          "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+        },
+        {
+          "metric": "comfort_breach_minutes_rolling_24h",
+          "unit": "min",
+          "value": 5,
+          "lower_bound": 5,
+          "upper_bound": 5,
+          "coverage_fraction": 1,
+          "evidence_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+        }
+      ],
+      "available_components": [
+        "main_generator",
+        "watermaker",
+        "battery_inverter",
+        "shore_power",
+        "steering_actuator",
+        "propulsion_drive"
+      ],
+      "available_capabilities": [
+        "navigation",
+        "divert_to_shore_resupply"
+      ],
+      "decision_time": "2026-11-20T10:00:00Z",
+      "intervention_deadline_hours": 6,
+      "max_action_depth": 4,
+      "required_hard_gate_ids": [
+        "stability_envelope",
+        "navigation_access",
+        "traffic_compliance"
+      ],
+      "actions": [
+        {
+          "action_id": "divert-unverified-port",
+          "from_node": "start",
+          "to_node": "port",
+          "action_class": "bounded_recovery",
+          "trigger_classes": [
+            "unverified_terminal_service"
+          ],
+          "duration_hours_lower": 2,
+          "duration_hours_upper": 2,
+          "requires_components": [
+            "steering_actuator",
+            "propulsion_drive"
+          ],
+          "requires_capabilities": [
+            "navigation",
+            "divert_to_shore_resupply"
+          ],
+          "metric_deltas": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "lower_delta": -2,
+              "upper_delta": -2,
+              "evidence_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "lower_delta": -15,
+              "upper_delta": -15,
+              "evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "lower_delta": 0,
+              "upper_delta": 0,
+              "evidence_sha256": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "lower_delta": 1,
+              "upper_delta": 1,
+              "evidence_sha256": "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "lower_delta": 5,
+              "upper_delta": 5,
+              "evidence_sha256": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+            }
+          ],
+          "hard_gate_checks": [
+            {
+              "gate_id": "stability_envelope",
+              "status": "pass",
+              "evidence_sha256": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            },
+            {
+              "gate_id": "navigation_access",
+              "status": "pass",
+              "evidence_sha256": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+            },
+            {
+              "gate_id": "traffic_compliance",
+              "status": "pass",
+              "evidence_sha256": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            }
+          ],
+          "action_evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+          "action_sha256": "54f2473b90d49134749be0780f12fcfc3a2550d322059fb5798337d366301a93"
+        }
+      ],
+      "terminals": [
+        {
+          "terminal_id": "unverified-port",
+          "node_id": "port",
+          "objective_class": "shore_resupply",
+          "available": true,
+          "access_status": "verified",
+          "service_status": "unverified",
+          "arrival_deadline_at": "2026-11-21T10:00:00Z",
+          "receipt_valid_until": "2026-11-22T10:00:00Z",
+          "destination_location_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "access_evidence_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "service_availability_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "authority_receipt_ref": "",
+          "authority_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "terminal_evidence_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "receipt_sha256": "d0534d59a9522e297794ae456e13409c75ad72274981247ddfc8e8e7488e2014"
+        }
+      ],
+      "expected_outcome": "abstain",
+      "trigger_state_sha256": "d43d21c94b011a4c1a9b92fdd468725cd35a3302afa220c0c87b30f94f5d74a9",
+      "scenario_sha256": "697fa163572b9295a0b5c02199e48827e89b7cc0ad7f8c32a53182c85e616541"
+    }
+  ]
+}
