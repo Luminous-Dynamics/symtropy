@@ -92,7 +92,7 @@
       ],
       "boundary": "water_consumption_and_IT_energy",
       "standard_reference": "ISO/IEC 30134-9 via ITU-T L.1312",
-      "comparison_rule": "State category 1/2/3. Compare only identical categories and periods. Report seawater intake and return separately; WUE alone does not characterise marine intake/outfall effects."
+      "comparison_rule": "State WUE category 1/2/3 and compare only identical categories and periods. Report seawater intake and return/discharge separately; WUE alone does not characterise marine intake/outfall effects."
     },
     {
       "metric_id": "ITU-P-RECLAIMED",
@@ -107,7 +107,7 @@
       ],
       "boundary": "water_sources_and_consumption",
       "standard_reference": "ITU-T L.1312 section 6.3",
-      "comparison_rule": "The recommendation's denominator excludes seawater. Do not use this metric to imply that seawater intake is negligible; account for seawater separately."
+      "comparison_rule": "The recommendation's total-water-withdrawal denominator excludes seawater. Report seawater intake and discharge separately; do not use this metric to imply that seawater intake is negligible."
     },
     {
       "metric_id": "ITU-WEEE-RR",
