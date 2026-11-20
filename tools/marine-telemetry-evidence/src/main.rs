@@ -369,23 +369,6 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             }
         }
 
-        let trust_mismatch = source.trust_status != "qualified"
-            || source.identity_status != "verified"
-            || string_at(observation,"transport") != Some(source.transport.as_str())
-            || string_at(observation,"gateway_id") != Some(source.gateway_id.as_str())
-            || string_at(observation,"device_identity_ref") != Some(source.device_identity_ref.as_str())
-            || string_at(observation,"identity_evidence_sha256") != Some(source.identity_evidence_sha256.as_str())
-            || string_at(observation,"calibration_chain_id") != Some(source.calibration_chain_id.as_str())
-            || string_at(observation,"firmware_sha256") != Some(source.firmware_sha256.as_str())
-            || string_at(observation,"decoder_id") != Some(source.decoder_id.as_str())
-            || string_at(observation,"decoder_version") != Some(source.decoder_version.as_str())
-            || string_at(observation,"decoder_sha256") != Some(source.decoder_sha256.as_str());
-        if trust_mismatch {
-            observation_issues.push(json!({"sample_id":sample_id,"signal_id":signal_id,"disposition":"UNTRUSTED","reason":"source trust, identity, gateway, firmware, transport or decoder does not match registry"}));
-            signal_issue_reasons.entry(signal_id).or_default().push("untrusted or mismatched source".to_owned());
-            continue;
-        }
-
         let Some(observed_at) = parse_time(string_at(observation,"observed_at")) else {
             errors.push(format!("sample '{sample_id}' observed_at must be RFC3339"));
             continue;
@@ -443,10 +426,32 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         }
         cursors.insert(source_id.clone(),cursor);
 
+        let trust_mismatch = source.trust_status != "qualified"
+            || source.identity_status != "verified"
+            || string_at(observation,"transport") != Some(source.transport.as_str())
+            || string_at(observation,"gateway_id") != Some(source.gateway_id.as_str())
+            || string_at(observation,"device_identity_ref") != Some(source.device_identity_ref.as_str())
+            || string_at(observation,"identity_evidence_sha256") != Some(source.identity_evidence_sha256.as_str())
+            || string_at(observation,"calibration_chain_id") != Some(source.calibration_chain_id.as_str())
+            || string_at(observation,"firmware_sha256") != Some(source.firmware_sha256.as_str())
+            || string_at(observation,"decoder_id") != Some(source.decoder_id.as_str())
+            || string_at(observation,"decoder_version") != Some(source.decoder_version.as_str())
+            || string_at(observation,"decoder_sha256") != Some(source.decoder_sha256.as_str());
+        if trust_mismatch {
+            observation_issues.push(json!({"sample_id":sample_id,"signal_id":signal_id,"disposition":"UNTRUSTED","reason":"source trust, identity, gateway, firmware, transport or decoder does not match registry"}));
+            signal_issue_reasons.entry(signal_id).or_default().push("untrusted or mismatched source".to_owned());
+            continue;
+        }
+
         let source_future_skew = seconds_between(observed_at.clone(),received_at.clone());
         if source_future_skew > contract.max_future_clock_skew_seconds {
             observation_issues.push(json!({"sample_id":sample_id,"signal_id":signal_id,"disposition":"UNTRUSTED","reason":"source timestamp exceeds permitted future clock skew"}));
             signal_issue_reasons.entry(signal_id).or_default().push("future clock skew exceeded".to_owned());
+            continue;
+        }
+        if observed_at > decision_cutoff {
+            observation_issues.push(json!({"sample_id":sample_id,"signal_id":signal_id,"disposition":"DEGRADED","reason":"source event time is after the decision cutoff"}));
+            signal_issue_reasons.entry(signal_id).or_default().push("event time is in the future at decision cutoff".to_owned());
             continue;
         }
         let age_seconds = seconds_between(decision_cutoff.clone(),observed_at.clone()).max(0.0);
@@ -773,6 +778,16 @@ mod tests {
     fn future_clock_skew_degrades_instead_of_rewriting_event_time() {
         let mut value=fixture();
         value["observations"][0]["observed_at"]=json!("2026-11-20T05:01:00Z");
+        reseal(&mut value);
+        assert_eq!(audit(&value)["disposition"],"DEGRADED/ABSTAIN");
+    }
+
+    #[test]
+    fn event_time_after_cutoff_is_not_accepted_even_within_clock_skew_limit() {
+        let mut value=fixture();
+        value["observations"][0]["observed_at"]=json!("2026-11-20T05:00:01Z");
+        value["observations"][0]["received_at"]=json!("2026-11-20T05:00:00Z");
+        value["observations"][0]["clock_offset_seconds"]=json!(1.0);
         reseal(&mut value);
         assert_eq!(audit(&value)["disposition"],"DEGRADED/ABSTAIN");
     }
