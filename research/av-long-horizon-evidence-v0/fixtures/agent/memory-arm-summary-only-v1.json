@@ -31,7 +31,6 @@
       {
         "episode_id": "lh-001-delayed-recall-10m",
         "answer": "door-impact",
-        "abstained": false,
         "confidence": 0.9,
         "cited_observation_refs": [
           "obs-door-impact"
@@ -56,7 +55,6 @@
       {
         "episode_id": "lh-002-repeated-event-dedup",
         "answer": "five_distinct_taps",
-        "abstained": false,
         "confidence": 0.9,
         "cited_observation_refs": [
           "obs-tap-1",
@@ -87,7 +85,6 @@
       {
         "episode_id": "lh-003-correction-supersession",
         "answer": "initial_machine_state",
-        "abstained": false,
         "confidence": 0.9,
         "cited_observation_refs": [
           "obs-machine-state-v1"
@@ -105,12 +102,13 @@
         "decision": "answer",
         "claimed_cross_clock_order": false,
         "claimed_distinct_event_count": null,
-        "current_observation_refs": []
+        "current_observation_refs": [
+          "obs-machine-state-v1"
+        ]
       },
       {
         "episode_id": "lh-004-common-cause-dependence",
         "answer": "independent_views",
-        "abstained": false,
         "confidence": 0.9,
         "cited_observation_refs": [
           "obs-impact-video",
@@ -137,7 +135,6 @@
       {
         "episode_id": "lh-005-nuisance-interference",
         "answer": "target-alarm",
-        "abstained": false,
         "confidence": 0.9,
         "cited_observation_refs": [
           "obs-target-alarm"
@@ -162,7 +159,6 @@
       {
         "episode_id": "lh-006-absent-event-false-memory",
         "answer": null,
-        "abstained": true,
         "confidence": 0,
         "cited_observation_refs": [],
         "evidence_as_of_tick": 900,
@@ -183,7 +179,6 @@
       {
         "episode_id": "lh-007-cross-clock-and-event-order",
         "answer": "single_global_order",
-        "abstained": false,
         "confidence": 0.9,
         "cited_observation_refs": [
           "obs-camera-action",
@@ -214,7 +209,6 @@
       {
         "episode_id": "lh-008-memory-revocation",
         "answer": "private_utterance_still_eligible",
-        "abstained": false,
         "confidence": 0.9,
         "cited_observation_refs": [
           "obs-private-utterance"
@@ -278,7 +272,6 @@
       {
         "episode_id": "lh-009-compression-retention",
         "answer": "routine_noise_6",
-        "abstained": false,
         "confidence": 0.9,
         "cited_observation_refs": [
           "obs-routine-noise-6"
