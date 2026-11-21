@@ -930,6 +930,22 @@ mod tests {
     }
 
     #[test]
+    fn compatible_interface_findings_carry_both_exact_evidence_sources() {
+        let report = evaluate_compatibility(&qualified_input()).expect("valid input");
+        let hv = report.results[0]
+            .interfaces
+            .iter()
+            .find(|interface| interface.module_port_id == "module-hv")
+            .expect("HV interface result");
+        assert!(hv.vehicle_evidence_id.as_deref().unwrap().starts_with("vehicle-hv-"));
+        assert!(hv.module_evidence_id.starts_with("module-hv-"));
+        assert!(hv.vehicle_evidence_source_reference.as_deref().unwrap().starts_with("synthetic://"));
+        assert!(hv.module_evidence_source_reference.starts_with("synthetic://"));
+        assert_eq!(hv.vehicle_evidence_report_digest_sha256.as_deref(), Some("a".repeat(64).as_str()));
+        assert_eq!(hv.module_evidence_report_digest_sha256, "a".repeat(64));
+    }
+
+    #[test]
     fn synthetic_evidence_never_produces_compatible_result() {
         let mut input = qualified_input();
         input.modules[0].ports[0].evidence[0].evidence_class = EvidenceClass::Synthetic;
