@@ -71,7 +71,7 @@ function blocked(disposition, code) {
 }
 
 function evaluateCase(c) {
-  if (!c.case_id || !validScope(c.qualified_scope) || !validScope(c.test_scope)
+  if (typeof c.case_id !== "string" || !c.case_id.trim() || !validScope(c.qualified_scope) || !validScope(c.test_scope)
       || !sha256(c.reference.reference_artifact_sha256)
       || !sha256(c.counters.counter_artifact_sha256)
       || !sha256(c.calibration.certificate_sha256)
@@ -95,7 +95,7 @@ function evaluateCase(c) {
     return blocked("out_of_envelope", "test_configuration_or_event_rate_outside_declared_envelope");
   }
 
-  if (!c.reference.available || !c.reference.system_id.trim()
+  if (!c.reference.available || typeof c.reference.system_id !== "string" || !c.reference.system_id.trim()
       || c.reference.failure_domains.length === 0
       || c.reference.acquisition_failure_domains.length === 0
       || c.reference.failure_domains.some((domain) => !domain.trim())
@@ -129,7 +129,7 @@ function evaluateCase(c) {
   let priorSeq = null;
   let priorTime = null;
   for (const event of references) {
-    if (!event.event_id || !sha256(event.payload_sha256) || !Number.isSafeInteger(event.sequence)
+    if (typeof event.event_id !== "string" || !event.event_id.trim() || !sha256(event.payload_sha256) || !Number.isSafeInteger(event.sequence)
         || !Number.isSafeInteger(event.time_ticks) || referenceById.has(event.event_id)) {
       return blocked("rejected", "independent_reference_event_stream_invalid");
     }
@@ -154,7 +154,9 @@ function evaluateCase(c) {
   let disputed = false;
 
   for (const observed of c.observed_events) {
-    if (!observed.record_id || !observed.reference_event_id || !sha256(observed.payload_sha256)
+    if (typeof observed.record_id !== "string" || !observed.record_id.trim()
+        || typeof observed.reference_event_id !== "string" || !observed.reference_event_id.trim()
+        || !sha256(observed.payload_sha256)
         || !Number.isSafeInteger(observed.time_ticks) || recordIds.has(observed.record_id)) {
       const result = blocked("disputed", "duplicate_record_identity_or_malformed_observation");
       return result;
@@ -226,7 +228,7 @@ function main() {
   let mismatches = 0;
   const counts = Object.create(null);
   for (const c of corpus.cases) {
-    if (!c.case_id || ids.has(c.case_id)) {
+    if (typeof c.case_id !== "string" || !c.case_id.trim() || ids.has(c.case_id)) {
       process.stderr.write("capture case IDs must be unique and non-empty\n");
       process.exitCode = 2;
       return;
