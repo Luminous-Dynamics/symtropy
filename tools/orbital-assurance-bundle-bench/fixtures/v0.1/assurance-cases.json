@@ -23986,7 +23986,7 @@
         },
         {
           "claim_id": "unconnected",
-          "claim_type": "model_credibility",
+          "claim_type": "defeater",
           "state": "supported",
           "scope": {
             "subject_id": "interface-assembly-07",
@@ -24069,8 +24069,8 @@
         }
       ],
       "expected": {
-        "disposition": "invalid_graph",
-        "blocker_count": 3,
+        "disposition": "incomplete_argument",
+        "blocker_count": 1,
         "authority_granted": false
       }
     },
