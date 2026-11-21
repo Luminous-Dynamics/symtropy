@@ -2575,3 +2575,33 @@ mod drag_trajectory_frame_contract_tests {
         }));
     }
 }
+
+#[cfg(test)]
+mod temporal_quadrature_contract_tests {
+    use super::*;
+
+    #[test]
+    fn temporal_quadrature_contract_passes_declared_scope() {
+        let value: Value = serde_json::from_str(EMBEDDED_TEMPORAL_QUADRATURE)
+            .expect("embedded temporal quadrature contract must be valid JSON");
+        assert!(audit_temporal_quadrature_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn temporal_quadrature_contract_requires_separate_impulse_and_heating_gates() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_TEMPORAL_QUADRATURE).unwrap();
+        value["acceptance"]["impulse_and_heating_passed_independently"] = Value::Bool(false);
+        assert!(audit_temporal_quadrature_contract(&value).iter().any(|finding| {
+            finding.starts_with("TEMPORAL_QUADRATURE_ACCEPTANCE")
+        }));
+    }
+
+    #[test]
+    fn temporal_quadrature_oracle_cannot_claim_production_source_history_validation() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_TEMPORAL_QUADRATURE).unwrap();
+        value["limitations"] = Value::Array(Vec::new());
+        assert!(audit_temporal_quadrature_contract(&value).iter().any(|finding| {
+            finding.starts_with("TEMPORAL_QUADRATURE_CLAIM_BOUNDARY")
+        }));
+    }
+}
