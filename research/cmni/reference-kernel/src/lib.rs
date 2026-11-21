@@ -9,6 +9,12 @@
 
 use std::fmt;
 
+mod measurement;
+pub use measurement::{
+    apply_depth_observation_operator,
+    DepthObservedValue,
+    DepthResponseKernel,
+};
 mod material_state;
 pub use material_state::{
     diffuse_no_flux_1d,
