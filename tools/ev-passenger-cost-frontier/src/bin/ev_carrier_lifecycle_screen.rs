@@ -10,7 +10,9 @@ use ev_passenger_cost_frontier::carrier_lifecycle::{
 fn main() -> ExitCode {
     let args: Vec<_> = env::args_os().skip(1).collect();
     if args.len() != 2 {
-        eprintln!("usage: ev_carrier_lifecycle_screen <module-factory-report.json> <lifecycle-catalog.json>");
+        eprintln!(
+            "usage: ev_carrier_lifecycle_screen <module-factory-report.json> <lifecycle-catalog.json>"
+        );
         return ExitCode::from(2);
     }
 
