@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-active-sensing-decision-value-v0",
+  "status": "author-authored finite expected policy semantics; no model run",
+  "episodes": [
+    {
+      "episode_id": "as-001-high-eig-zero-evsi",
+      "optimal_action_ids": [],
+      "optimal_final_decision": "proceed"
+    },
+    {
+      "episode_id": "as-002-low-eig-high-evsi",
+      "optimal_action_ids": [
+        "inspect-hazard-tone"
+      ],
+      "optimal_final_decision": "stop"
+    },
+    {
+      "episode_id": "as-003-audio-necessary",
+      "optimal_action_ids": [
+        "capture-machine-audio"
+      ],
+      "optimal_final_decision": "alarm"
+    },
+    {
+      "episode_id": "as-004-common-cause-duplicate",
+      "optimal_action_ids": [],
+      "optimal_final_decision": "one shared event"
+    },
+    {
+      "episode_id": "as-005-deadline-late-observation",
+      "optimal_action_ids": [],
+      "optimal_final_decision": "insufficient evidence"
+    },
+    {
+      "episode_id": "as-006-budget-allocation",
+      "optimal_action_ids": [
+        "capture-cell-b-alarm"
+      ],
+      "optimal_final_decision": "cell B"
+    },
+    {
+      "episode_id": "as-007-partial-unavailable-action",
+      "optimal_action_ids": [],
+      "optimal_final_decision": "insufficient evidence"
+    },
+    {
+      "episode_id": "as-008-sufficient-stop",
+      "optimal_action_ids": [],
+      "optimal_final_decision": "clear"
+    }
+  ]
+}
