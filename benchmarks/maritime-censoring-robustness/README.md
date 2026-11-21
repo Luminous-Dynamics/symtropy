@@ -15,7 +15,7 @@ cargo run --offline --locked
 cargo clippy --offline --locked --all-targets -- -D warnings
 ```
 
-The generator has no dependencies. Each scenario contains 60,000 seeded vessel-call episodes, split evenly across two observable strata, with a 10-tick synthetic observation horizon.
+The generator has no dependencies. Each scenario contains 60,000 seeded vessel-call episodes, split evenly across two observable strata, with a 10-tick synthetic observation horizon. Latent event generation and administrative censoring use separate deterministic SplitMix64 streams derived from each scenario seed.
 
 ## What it tests
 
@@ -49,6 +49,27 @@ When cause-dependent reporting lag makes outcome publication non-ignorable, a tr
 `observed cause share ≤ full-cohort cause incidence ≤ observed cause share + unresolved fraction`
 
 The bound assumes a complete known cohort frame and that each unresolved call can have at most one of the declared first outcomes. It is deliberately loose. It is not a confidence interval, a general sharp competing-risk bound, or a calibrated probability estimate. Tighter intervals require an explicit, independently justified dependence model.
+
+## Independent JavaScript preflight (21 November 2026)
+
+A separate implementation of the generator and estimators reproduced these fixed-seed results. The estimates below are full-cohort empirical truth versus the observed-data estimators; all durations are synthetic ticks.
+
+| Scenario | True berth CIF | Pooled A-J | Standardized A-J | Conditional IPCW | Unresolved |
+|---|---:|---:|---:|---:|---:|
+| Independent admin | 0.47135 | 0.47070 | 0.47097 | 0.47041 | 36.82% |
+| Measured stratum-dependent | 0.47125 | 0.50954 | 0.47229 | 0.47133 | 37.67% |
+| Outcome-dependent reporting lag | 0.47157 | 0.37450 | 0.37450 | Not evaluated | 25.15% |
+| Positivity failure | 0.47325 | 0.29823 | 0.29823 | Not evaluable | 33.13% |
+
+The maximum absolute cause-CIF errors against the full latent empirical truth are:
+- independent administrative: pooled A-J 0.00151; known-G IPCW 0.00160;
+- measured-stratum-dependent: pooled A-J 0.03829; standardized A-J 0.00167; known-G IPCW 0.00137;
+- outcome-dependent: pooled A-J underestimates berth CIF by 0.09707;
+- positivity failure: pooled A-J underestimates berth CIF by 0.17502, and stratum 1 has 10,501 latent berths but zero observed berth reports.
+
+The broad observed-only berth bounds contain the full latent truth in all four seeded scenarios. They are intentionally wide and are not confidence intervals.
+
+These results are a preflight produced by a separate implementation, not a Rust compilation or test result. The Rust tests pin the analytic truth, the pre-registered error thresholds, censoring counts, same-tick event priority, partial-bound coverage and deterministic replay.
 
 ## Claim ceiling
 
