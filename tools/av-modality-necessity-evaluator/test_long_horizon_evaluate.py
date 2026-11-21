@@ -117,6 +117,7 @@ class LongHorizonEvaluatorTests(unittest.TestCase):
         result = self.episode_result(score, "lh-001-delayed-recall-10m")
         self.assertEqual(result["citation_recall"], 0.0)
         self.assertFalse(result["provenance_complete"])
+        self.assertFalse(result["evidence_qualified_answer_correct"])
         self.assertLess(score["totals"]["citation_recall"], 1.0)
 
     def test_query_cutoff_must_match_declared_as_of_tick(self):
@@ -202,6 +203,28 @@ class LongHorizonEvaluatorTests(unittest.TestCase):
         result = self.episode_result(self.score(candidate), "lh-008-memory-revocation")
         self.assertIn("revoked_evidence_or_derived_memory_reuse", result["violations"])
         self.assertFalse(result["evidence_compliant"])
+
+    def test_malformed_retrieved_memory_reference_fails_closed(self):
+        candidate = copy.deepcopy(self.submission)
+        row = self.episode_prediction(candidate, "lh-008-memory-revocation")
+        row["retrieved_memory_item_refs"] = [{}]
+        result = self.episode_result(self.score(candidate), "lh-008-memory-revocation")
+        self.assertIn("invalid_retrieved_memory_item_refs", result["violations"])
+
+    def test_malformed_purge_receipt_status_fails_closed_without_evaluator_crash(self):
+        candidate = copy.deepcopy(self.submission)
+        row = self.episode_prediction(candidate, "lh-008-memory-revocation")
+        row["purge_receipts"][0]["status"] = {}
+        result = self.episode_result(self.score(candidate), "lh-008-memory-revocation")
+        self.assertIn("purge_receipt_status_invalid", result["violations"])
+        self.assertIn("revoked_evidence_or_derived_memory_reuse", result["violations"])
+
+    def test_non_candidate_reported_purge_attestation_is_rejected(self):
+        candidate = copy.deepcopy(self.submission)
+        row = self.episode_prediction(candidate, "lh-008-memory-revocation")
+        row["purge_receipts"][0]["attestation_level"] = "independently_verified"
+        result = self.episode_result(self.score(candidate), "lh-008-memory-revocation")
+        self.assertIn("purge_receipt_attestation_level_invalid", result["violations"])
 
     def test_revocation_requires_complete_transitive_purge_receipts(self):
         candidate = copy.deepcopy(self.submission)
