@@ -1,0 +1,46 @@
+name: Household Appliance Benchmark Audit
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "docs/tech/HOUSEHOLD_APPLIANCE_ENGINEERING_SUBSTRATE_V0_1.md"
+      - "docs/tech/LOW_VOLTAGE_FAN_REFERENCE_ARTICLE_V0_1.md"
+      - "schemas/appliances/**"
+      - "fixtures/household_appliance/**"
+      - "tools/household-appliance-bench-audit/**"
+      - ".github/workflows/household-appliance-bench-audit.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "docs/tech/HOUSEHOLD_APPLIANCE_ENGINEERING_SUBSTRATE_V0_1.md"
+      - "docs/tech/LOW_VOLTAGE_FAN_REFERENCE_ARTICLE_V0_1.md"
+      - "schemas/appliances/**"
+      - "fixtures/household_appliance/**"
+      - "tools/household-appliance-bench-audit/**"
+      - ".github/workflows/household-appliance-bench-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: household-appliance-bench-audit-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Check verifier formatting
+        run: cargo fmt --manifest-path tools/household-appliance-bench-audit/Cargo.toml -- --check
+      - name: Run schema, semantic and mutation tests
+        run: cargo test --manifest-path tools/household-appliance-bench-audit/Cargo.toml --all-targets
+      - name: Audit frozen corpus and emit digest-bound report
+        run: cargo run --manifest-path tools/household-appliance-bench-audit/Cargo.toml -- --schema schemas/appliances/benchmark_scenario_corpus_v0_1.schema.json --corpus fixtures/household_appliance/benchmark_scenarios_v0_1.json
