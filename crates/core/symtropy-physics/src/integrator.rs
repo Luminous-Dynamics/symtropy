@@ -172,6 +172,128 @@ pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64,
     body.clear_accumulators();
 }
 
+/// Integrate one body with strict rotational-model preflight and commit-on-success.
+///
+/// All input and rotational-response checks happen before state mutation. A
+/// rejected request leaves the body's transform, velocities and accumulators
+/// unchanged. This is a *single-body* transaction only; a multi-body world step
+/// still needs a world-level preflight/commit boundary.
+pub fn try_integrate<const D: usize>(
+    body: &mut RigidBody<D>,
+    gravity: &SVector<f64, D>,
+    dt: f64,
+) -> Result<crate::body::RotationalAcceleration<D>, crate::body::RotationalResponseError> {
+    use crate::body::{RotationalAcceleration, RotationalResponseError};
+
+    if !body.is_dynamic() {
+        body.clear_accumulators();
+        return Ok(RotationalAcceleration::StaticOrKinematic);
+    }
+    if !dt.is_finite() || dt <= 0.0 {
+        return Err(RotationalResponseError::InvalidTimeStep);
+    }
+    if !gravity.iter().all(|value| value.is_finite())
+        || !body.force_accumulator.iter().all(|value| value.is_finite())
+        || !body.linear_velocity.iter().all(|value| value.is_finite())
+        || !body.transform.translation.0.iter().all(|value| value.is_finite())
+    {
+        return Err(RotationalResponseError::NonFiniteInput);
+    }
+    if !body.inv_mass.is_finite() || body.inv_mass <= 0.0 {
+        return Err(RotationalResponseError::MassProperties(
+            crate::mass_properties::MassPropertiesError::InvalidMass,
+        ));
+    }
+    let mass_reciprocal_check = body.mass * body.inv_mass;
+    if !mass_reciprocal_check.is_finite() || (mass_reciprocal_check - 1.0).abs() > 1.0e-8 {
+        return Err(RotationalResponseError::MassProperties(
+            crate::mass_properties::MassPropertiesError::InvalidMass,
+        ));
+    }
+    if !body.transform.rotation.is_proper_rotation(1.0e-8) {
+        return Err(RotationalResponseError::InvalidRotation);
+    }
+    if !body.linear_damping.is_finite()
+        || body.linear_damping < 0.0
+        || !body.angular_damping.is_finite()
+        || body.angular_damping < 0.0
+    {
+        return Err(RotationalResponseError::InvalidDamping);
+    }
+
+    // Rotational admission is deliberately first: unsupported/stale inertia
+    // must not allow the linear state or the accumulators to advance.
+    let rotational_outcome =
+        body.try_angular_acceleration_from_torque(&body.torque_accumulator)?;
+    let angular_acceleration = match rotational_outcome {
+        RotationalAcceleration::StaticOrKinematic => Bivector::zero(),
+        RotationalAcceleration::Applied {
+            angular_acceleration,
+            ..
+        } => angular_acceleration,
+    };
+
+    let linear_acceleration = body.force_accumulator * body.inv_mass + gravity;
+    if !linear_acceleration.iter().all(|value| value.is_finite()) {
+        return Err(RotationalResponseError::NonFiniteResponse);
+    }
+    let mut next_linear_velocity = body.linear_velocity + linear_acceleration * dt;
+    if !next_linear_velocity.iter().all(|value| value.is_finite()) {
+        return Err(RotationalResponseError::NonFiniteResponse);
+    }
+    if body.linear_damping > 1.0e-15 {
+        next_linear_velocity *= (-dt * body.linear_damping).exp();
+    }
+    let linear_speed = next_linear_velocity.norm();
+    if !linear_speed.is_finite() {
+        return Err(RotationalResponseError::NonFiniteResponse);
+    }
+    if linear_speed > 1000.0 {
+        next_linear_velocity *= 1000.0 / linear_speed;
+    }
+    let next_translation = body.transform.translation.0 + next_linear_velocity * dt;
+    if !next_translation.iter().all(|value| value.is_finite()) {
+        return Err(RotationalResponseError::NonFiniteResponse);
+    }
+
+    let mut next_angular_velocity =
+        body.angular_velocity.add(&angular_acceleration.scale(dt));
+    if !next_angular_velocity.is_finite() {
+        return Err(RotationalResponseError::NonFiniteResponse);
+    }
+    if body.angular_damping > 1.0e-15 {
+        next_angular_velocity =
+            next_angular_velocity.scale((-dt * body.angular_damping).exp());
+    }
+    let angular_speed = next_angular_velocity.norm();
+    if !angular_speed.is_finite() {
+        return Err(RotationalResponseError::NonFiniteResponse);
+    }
+    if angular_speed > 100.0 {
+        next_angular_velocity = next_angular_velocity.scale(100.0 / angular_speed);
+    }
+
+    let mut next_rotation = body.transform.rotation;
+    if next_angular_velocity.norm_squared() > 1.0e-24 {
+        let generator = next_angular_velocity.scale(dt);
+        if !generator.is_finite() {
+            return Err(RotationalResponseError::NonFiniteResponse);
+        }
+        let delta_rotation = Rotor::from_bivector(&generator);
+        next_rotation = delta_rotation.compose(&next_rotation);
+    }
+    if !next_rotation.is_proper_rotation(1.0e-8) {
+        return Err(RotationalResponseError::InvalidRotation);
+    }
+
+    // Commit point: every fallible calculation above completed successfully.
+    body.linear_velocity = next_linear_velocity;
+    body.transform.translation = Point(next_translation);
+    body.angular_velocity = next_angular_velocity;
+    body.transform.rotation = next_rotation;
+    body.clear_accumulators();
+    Ok(rotational_outcome)
+}
 /// Apply a position correction to separate overlapping bodies.
 pub fn separate<const D: usize>(body: &mut RigidBody<D>, correction: &SVector<f64, D>) {
     if body.is_dynamic() {
@@ -186,6 +308,28 @@ pub fn apply_impulse<const D: usize>(body: &mut RigidBody<D>, impulse: &SVector<
     }
 }
 
+/// Apply a world-space angular impulse through the strict inertia response API.
+///
+/// The response is computed and checked before the body's angular velocity is
+/// mutated. On any error, the body angular velocity is left unchanged.
+pub fn try_apply_angular_impulse<const D: usize>(
+    body: &mut RigidBody<D>,
+    impulse: &Bivector<D>,
+) -> Result<crate::body::RotationalResponse<D>, crate::body::RotationalResponseError> {
+    let outcome = body.try_apply_inverse_angular_inertia(impulse)?;
+    if let crate::body::RotationalResponse::Applied {
+        delta_angular_velocity,
+        ..
+    } = outcome
+    {
+        let next_angular_velocity = body.angular_velocity.add(&delta_angular_velocity);
+        if !next_angular_velocity.is_finite() {
+            return Err(crate::body::RotationalResponseError::NonFiniteResponse);
+        }
+        body.angular_velocity = next_angular_velocity;
+    }
+    Ok(outcome)
+}
 /// Apply an angular impulse (as a bivector) to a body.
 /// Apply a world-space angular impulse through the body's declared
 /// rotational inertia model.
@@ -530,4 +674,225 @@ mod tests {
             body.transform.rotation.determinant()
         );
     }
+
+    #[test]
+    fn strict_angular_impulse_commits_once_after_successful_preflight() {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(30), Point::origin(), 1.0, 1.0,
+        );
+        let mut impulse = Bivector::<3>::zero();
+        impulse.set(0, 1, 0.4);
+        let before = body.angular_velocity;
+        let outcome = try_apply_angular_impulse(&mut body, &impulse).unwrap();
+        assert!(matches!(outcome, crate::body::RotationalResponse::Applied { .. }));
+        let expected_delta = match outcome {
+            crate::body::RotationalResponse::Applied { delta_angular_velocity, .. } => {
+                delta_angular_velocity
+            }
+            crate::body::RotationalResponse::StaticOrKinematic => Bivector::zero(),
+        };
+        assert!((body.angular_velocity.add(&before.scale(-1.0)).add(&expected_delta.scale(-1.0))).norm() < 1.0e-12);
+    }
+
+    #[test]
+    fn strict_angular_impulse_rejection_leaves_body_unchanged() {
+        let mut body = RigidBody::<4>::dynamic_sphere(
+            BodyHandle(31), Point::origin(), 1.0, 1.0,
+        );
+        body.angular_velocity.set(0, 1, 0.25);
+        let before = body.angular_velocity;
+        let impulse = Bivector::<4>::unit_plane(0, 1);
+        assert!(matches!(
+            try_apply_angular_impulse(&mut body, &impulse),
+            Err(crate::body::RotationalResponseError::UnsupportedModel { .. })
+        ));
+        assert_eq!(body.angular_velocity, before);
+    }
+
+    #[test]
+    fn strict_angular_impulse_overflow_does_not_partially_mutate_body() {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(32), Point::origin(), 1.0, 1.0,
+        );
+        body.angular_velocity.set(0, 1, f64::MAX * 0.75);
+        let before = body.angular_velocity;
+        let mut impulse = Bivector::<3>::zero();
+        impulse.set(0, 1, f64::MAX * 0.2);
+        assert_eq!(
+            try_apply_angular_impulse(&mut body, &impulse),
+            Err(crate::body::RotationalResponseError::NonFiniteResponse)
+        );
+        assert_eq!(body.angular_velocity, before);
+    }
+
+
+    #[test]
+    fn strict_integrator_matches_legacy_for_valid_anisotropic_3d_body() {
+        fn fixture() -> RigidBody<3> {
+            let mut body = RigidBody::<3>::dynamic_sphere(
+                BodyHandle(40), Point::new([1.0, 2.0, 3.0]), 0.5, 2.0,
+            );
+            body.inertia = nalgebra::SVector::from([2.0, 3.0, 4.0]);
+            body.inv_inertia = nalgebra::SVector::from([0.5, 1.0 / 3.0, 0.25]);
+            body.angular_velocity.set(1, 2, 0.3);
+            body.angular_velocity.set(0, 2, -0.2);
+            body.angular_velocity.set(0, 1, 0.1);
+            body.linear_velocity = nalgebra::SVector::from([0.2, -0.1, 0.3]);
+            body.force_accumulator = nalgebra::SVector::from([1.0, 2.0, -0.5]);
+            body.torque_accumulator.set(1, 2, 0.2);
+            body.torque_accumulator.set(0, 2, -0.1);
+            body.torque_accumulator.set(0, 1, 0.3);
+            body.linear_damping = 0.02;
+            body.angular_damping = 0.01;
+            body
+        }
+
+        let mut legacy = fixture();
+        let mut strict = fixture();
+        let gravity = nalgebra::SVector::from([0.0, -9.81, 0.0]);
+        integrate(&mut legacy, &gravity, 0.001);
+        let outcome = try_integrate(&mut strict, &gravity, 0.001).unwrap();
+        assert!(matches!(outcome, crate::body::RotationalAcceleration::Applied { .. }));
+        assert_eq!(legacy.transform.translation, strict.transform.translation);
+        assert_eq!(legacy.transform.rotation, strict.transform.rotation);
+        assert_eq!(legacy.linear_velocity, strict.linear_velocity);
+        assert_eq!(legacy.angular_velocity, strict.angular_velocity);
+        assert_eq!(strict.force_accumulator, nalgebra::SVector::zeros());
+        assert_eq!(strict.torque_accumulator, Bivector::zero());
+    }
+
+    #[test]
+    fn strict_integrator_rejects_unsupported_rotation_before_any_body_mutation() {
+        let mut body = RigidBody::<4>::dynamic_sphere(
+            BodyHandle(41), Point::new([1.0, 2.0, 3.0, 4.0]), 0.5, 2.0,
+        );
+        body.linear_velocity = nalgebra::SVector::from([0.1, 0.2, 0.3, 0.4]);
+        body.force_accumulator = nalgebra::SVector::from([1.0, 2.0, 3.0, 4.0]);
+        body.angular_velocity.set(0, 1, 0.5);
+        body.torque_accumulator.set(0, 1, 0.25);
+        let translation = body.transform.translation;
+        let rotation = body.transform.rotation;
+        let linear_velocity = body.linear_velocity;
+        let angular_velocity = body.angular_velocity;
+        let force = body.force_accumulator;
+        let torque = body.torque_accumulator;
+
+        assert_eq!(
+            try_integrate(&mut body, &SVector::<f64, 4>::zeros(), 0.01),
+            Err(crate::body::RotationalResponseError::UnsupportedModel {
+                model: crate::body::RotationalInertiaModel::MeanInertiaApproximation,
+            })
+        );
+        assert_eq!(body.transform.translation, translation);
+        assert_eq!(body.transform.rotation, rotation);
+        assert_eq!(body.linear_velocity, linear_velocity);
+        assert_eq!(body.angular_velocity, angular_velocity);
+        assert_eq!(body.force_accumulator, force);
+        assert_eq!(body.torque_accumulator, torque);
+    }
+
+    #[test]
+    fn strict_integrator_rejects_invalid_timestep_and_non_finite_force_without_mutation() {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(42), Point::origin(), 0.5, 2.0,
+        );
+        body.linear_velocity[0] = 0.4;
+        body.force_accumulator[1] = 2.0;
+        let before_velocity = body.linear_velocity;
+        let before_force = body.force_accumulator;
+        assert_eq!(
+            try_integrate(&mut body, &SVector::zeros(), 0.0),
+            Err(crate::body::RotationalResponseError::InvalidTimeStep)
+        );
+        assert_eq!(body.linear_velocity, before_velocity);
+        assert_eq!(body.force_accumulator, before_force);
+
+        body.force_accumulator[0] = f64::INFINITY;
+        let before_force = body.force_accumulator;
+        assert_eq!(
+            try_integrate(&mut body, &SVector::zeros(), 0.01),
+            Err(crate::body::RotationalResponseError::NonFiniteInput)
+        );
+        assert_eq!(body.linear_velocity, before_velocity);
+        assert_eq!(body.force_accumulator, before_force);
+    }
+
+    #[test]
+    fn strict_integrator_matches_legacy_for_valid_full_operator_4d_body() {
+        fn fixture() -> RigidBody<4> {
+            let operator = crate::mass_properties::RotationalInertiaOperator::<4>::isotropic(2.0).unwrap();
+            let mut body = RigidBody::<4>::dynamic_sphere(
+                BodyHandle(44), Point::new([1.0, 2.0, 3.0, 4.0]), 0.5, 2.0,
+            ).with_rotational_inertia_operator(operator);
+            body.angular_velocity.set(0, 1, 0.3);
+            body.angular_velocity.set(2, 3, -0.2);
+            body.linear_velocity = nalgebra::SVector::from([0.2, -0.1, 0.3, 0.4]);
+            body.force_accumulator = nalgebra::SVector::from([1.0, 2.0, -0.5, 0.25]);
+            body.torque_accumulator.set(0, 1, 0.2);
+            body.torque_accumulator.set(2, 3, -0.1);
+            body.linear_damping = 0.02;
+            body.angular_damping = 0.01;
+            body
+        }
+        let mut legacy = fixture();
+        let mut strict = fixture();
+        let gravity = nalgebra::SVector::from([0.0, -9.81, 0.0, 0.1]);
+        integrate(&mut legacy, &gravity, 0.001);
+        let outcome = try_integrate(&mut strict, &gravity, 0.001).unwrap();
+        assert!(matches!(outcome, crate::body::RotationalAcceleration::Applied { .. }));
+        assert_eq!(legacy.transform.translation, strict.transform.translation);
+        assert_eq!(legacy.transform.rotation, strict.transform.rotation);
+        assert_eq!(legacy.linear_velocity, strict.linear_velocity);
+        assert_eq!(legacy.angular_velocity, strict.angular_velocity);
+        assert_eq!(strict.force_accumulator, nalgebra::SVector::zeros());
+        assert_eq!(strict.torque_accumulator, Bivector::zero());
+    }
+
+    #[test]
+    fn strict_integrator_rejects_invalid_damping_without_mutation() {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(45), Point::origin(), 0.5, 2.0,
+        );
+        body.linear_velocity[0] = 0.25;
+        body.force_accumulator[1] = 2.0;
+        body.angular_velocity.set(0, 1, 0.2);
+        body.torque_accumulator.set(0, 1, 0.1);
+        body.angular_damping = -0.1;
+        let translation = body.transform.translation;
+        let rotation = body.transform.rotation;
+        let linear_velocity = body.linear_velocity;
+        let angular_velocity = body.angular_velocity;
+        let force = body.force_accumulator;
+        let torque = body.torque_accumulator;
+        assert_eq!(
+            try_integrate(&mut body, &nalgebra::SVector::zeros(), 0.01),
+            Err(crate::body::RotationalResponseError::InvalidDamping)
+        );
+        assert_eq!(body.transform.translation, translation);
+        assert_eq!(body.transform.rotation, rotation);
+        assert_eq!(body.linear_velocity, linear_velocity);
+        assert_eq!(body.angular_velocity, angular_velocity);
+        assert_eq!(body.force_accumulator, force);
+        assert_eq!(body.torque_accumulator, torque);
+    }
+
+    #[test]
+    fn strict_integrator_rejects_stale_inverse_mass_without_mutation() {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(43), Point::origin(), 0.5, 2.0,
+        );
+        body.inv_mass *= 2.0;
+        body.linear_velocity[0] = 0.25;
+        let before_velocity = body.linear_velocity;
+        let before_translation = body.transform.translation;
+        assert_eq!(
+            try_integrate(&mut body, &SVector::zeros(), 0.01),
+            Err(crate::body::RotationalResponseError::MassProperties(
+                crate::mass_properties::MassPropertiesError::InvalidMass,
+            ))
+        );
+        assert_eq!(body.linear_velocity, before_velocity);
+        assert_eq!(body.transform.translation, before_translation);
+    }
+
 }
