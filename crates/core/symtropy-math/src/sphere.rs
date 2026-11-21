@@ -59,8 +59,10 @@ impl<const D: usize> Shape<D> for Sphere<D> {
     fn mass_properties(
         &self,
         mass: f64,
-    ) -> Result<crate::mass_properties::MassProperties<D>, crate::mass_properties::MassPropertiesError>
-    {
+    ) -> Result<
+        crate::mass_properties::MassProperties<D>,
+        crate::mass_properties::MassPropertiesError,
+    > {
         use crate::mass_properties::{MassProperties, MassPropertiesError};
 
         if !self.radius.is_finite()
@@ -74,10 +76,8 @@ impl<const D: usize> Shape<D> for Sphere<D> {
         }
 
         // Uniform-density solid D-ball: E[x_i²] = r²/(D+2).
-        let coordinate_second_moment =
-            mass * self.radius * self.radius / (D as f64 + 2.0);
-        let tensor = nalgebra::SMatrix::<f64, D, D>::identity()
-            * coordinate_second_moment;
+        let coordinate_second_moment = mass * self.radius * self.radius / (D as f64 + 2.0);
+        let tensor = nalgebra::SMatrix::<f64, D, D>::identity() * coordinate_second_moment;
         MassProperties::new(mass, self.center, tensor)
     }
 }
