@@ -35,7 +35,7 @@ pub struct Mutation {
     #[serde(default)]
     pub path: Option<String>,
     #[serde(default)]
-    pub value: Option<Value>,
+    pub value: Value,
     #[serde(default)]
     pub evidence_id: Option<String>,
     #[serde(default)]
@@ -198,7 +198,7 @@ fn apply_mutation(provider: &mut Value, client: &mut Value, mutation: &Mutation)
     match mutation.operation.as_str() {
         "set" => {
             let path = mutation.path.as_deref().ok_or("set mutation requires path")?;
-            let value = mutation.value.clone().ok_or("set mutation requires value")?;
+            let value = mutation.value.clone();
             set_path(target, path, value)
         }
         "remove_evidence" => {
@@ -217,7 +217,7 @@ fn apply_mutation(provider: &mut Value, client: &mut Value, mutation: &Mutation)
         "set_evidence" => {
             let id = mutation.evidence_id.as_deref().ok_or("set_evidence requires evidence_id")?;
             let field = mutation.field.as_deref().ok_or("set_evidence requires field")?;
-            let value = mutation.value.clone().ok_or("set_evidence requires value")?;
+            let value = mutation.value.clone();
             let records = target
                 .get_mut("evidence")
                 .and_then(Value::as_array_mut)
