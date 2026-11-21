@@ -11643,8 +11643,8 @@
         "naive_success_fraction": null,
         "naive_baseline_false_assurance": false,
         "minimum_zero_failure_trials": null,
-        "naive_cycle_lower_bound": null,
-        "naive_cycle_false_assurance": false
+        "naive_cycle_lower_bound": 0.9006280202112785,
+        "naive_cycle_false_assurance": true
       }
     },
     {
