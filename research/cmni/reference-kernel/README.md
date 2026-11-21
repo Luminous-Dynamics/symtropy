@@ -160,3 +160,19 @@ See [IDENTIFIABILITY_AND_DESIGN.md](../../../docs/research/cmni/IDENTIFIABILITY_
 - Synthetic fixture: `research/cmni/fixtures/sparse-bayesian-poisson-bias-synthetic.json`. It includes planted-bias, no-bias and collinear-feature cases.
 - This is not the AIACHNE horseshoe method. It is a bounded comparator; inference is conditional on fixed physical means, a fixed design matrix and independent Poisson counts. It does not infer causality or propagate uncertainty in the physical model / feature dictionary.
 - Eight additional tests cover planted signal recovery, null controls, collinear feature ambiguity, prior and input validation, bounded enumeration, and posterior normalization. The total is now **123 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics, 7 measurement-bias, 8 sparse-bias-inference). Tests are not executed in the current environment.
+
+
+## Published-form grouped energy bias basis
+
+- `build_grouped_energy_bias_design` implements three Gaussian widths in log10 energy (0.3, 0.15, 0.05) with 10, 50 and 100 log-spaced centres, respectively: 160 functions per feature-level group.
+- Each observation can belong to multiple feature-level groups, preserving redundant candidate explanations rather than forcing a single category.
+- The resulting matrix has 160 columns per group. This is a basis-construction interface only; no horseshoe/BMC inference is included.
+- Synthetic fixture: `research/cmni/fixtures/grouped-energy-bias-basis-synthetic.json`.
+
+## Correlated Gaussian log-ratio sparse model averaging
+
+- `fit_sparse_bayesian_correlated_log_bias` supports a full positive-definite covariance matrix in log-ratio space, always-included fixed effects (such as per-experiment normalization), and sparse feature columns.
+- It exactly enumerates subsets (maximum 12 sparse columns) and analytically integrates proper Gaussian coefficient priors for each subset, then returns model probabilities, feature inclusion and mixture coefficient covariance.
+- This is a correlated-data log-Gaussian comparator, not the raw-scale AIACHNE likelihood. If transforming a raw relative covariance by the delta method, record that approximation explicitly. It does not implement BMC or the horseshoe prior.
+- Synthetic fixture: `research/cmni/fixtures/correlated-gaussian-log-bias-synthetic.json`.
+- Seven basis tests and eight correlated-Gaussian tests have been added. The total is now **153 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics, 7 measurement-bias, 8 sparse-Poisson-bias, 7 energy-bias-basis, 8 correlated-Gaussian-bias). Tests have not been executed in this environment.
