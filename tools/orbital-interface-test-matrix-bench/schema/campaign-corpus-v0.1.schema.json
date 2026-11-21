@@ -1,0 +1,300 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-interface-test-matrix-corpus-v0.1.schema.json",
+  "title": "Orbital Interface Test-Matrix Campaign Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-interface-test-matrix.corpus.v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic-test-matrix-coverage-semantics-only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "frozen_before_execution",
+          "cost_budget",
+          "cycle_count_threshold",
+          "obligations",
+          "runs",
+          "expected"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "frozen_before_execution": {
+            "type": "boolean"
+          },
+          "cost_budget": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cycle_count_threshold": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "obligations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "criticality",
+                "configuration_id",
+                "procedure_revision",
+                "service_kind",
+                "lifecycle_phase",
+                "conditions",
+                "evidence_key",
+                "minimum_independent_groups",
+                "not_applicable_reason",
+                "not_applicable_approved"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "criticality": {
+                  "enum": [
+                    "mandatory",
+                    "critical",
+                    "informational"
+                  ]
+                },
+                "configuration_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "procedure_revision": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "service_kind": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "lifecycle_phase": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "conditions": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "evidence_key": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minimum_independent_groups": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "not_applicable_reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "not_applicable_approved": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "runs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "run_id",
+                "configuration_id",
+                "procedure_revision",
+                "service_kind",
+                "lifecycle_phase",
+                "conditions",
+                "outcome",
+                "raw_artifact_sha256",
+                "calibration_valid",
+                "instrument_in_range",
+                "uncertainty_complete",
+                "clock_aligned",
+                "evidence_keys",
+                "independence_group",
+                "cost_units"
+              ],
+              "properties": {
+                "run_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "configuration_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "procedure_revision": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "service_kind": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "lifecycle_phase": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "conditions": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "outcome": {
+                  "enum": [
+                    "passed",
+                    "failed",
+                    "aborted",
+                    "invalid",
+                    "planned"
+                  ]
+                },
+                "raw_artifact_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "calibration_valid": {
+                  "type": "boolean"
+                },
+                "instrument_in_range": {
+                  "type": "boolean"
+                },
+                "uncertainty_complete": {
+                  "type": "boolean"
+                },
+                "clock_aligned": {
+                  "type": "boolean"
+                },
+                "evidence_keys": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "independence_group": {
+                  "type": "string"
+                },
+                "cost_units": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "expected": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "disposition",
+              "covered_obligations",
+              "missing_obligation_ids",
+              "eligible_runs",
+              "failed_runs",
+              "aborted_runs",
+              "invalid_runs",
+              "planned_runs",
+              "duplicate_runs",
+              "budget_exceeded",
+              "cycle_count_baseline_pass",
+              "ofat_false_coverage_count",
+              "pairwise_false_coverage_count"
+            ],
+            "properties": {
+              "disposition": {
+                "enum": [
+                  "coverage_complete",
+                  "coverage_complete_with_failures",
+                  "coverage_gap",
+                  "indeterminate",
+                  "rejected",
+                  "disputed"
+                ]
+              },
+              "covered_obligations": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "missing_obligation_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "eligible_runs": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "failed_runs": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "aborted_runs": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "invalid_runs": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "planned_runs": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "duplicate_runs": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "budget_exceeded": {
+                "type": "boolean"
+              },
+              "cycle_count_baseline_pass": {
+                "type": "boolean"
+              },
+              "ofat_false_coverage_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "pairwise_false_coverage_count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
