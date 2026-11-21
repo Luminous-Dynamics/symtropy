@@ -43,7 +43,7 @@ pub enum EvidenceClass {
     Authority,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum Relation {
     Supports,
@@ -511,7 +511,16 @@ fn evaluate_case(case: &Case) -> CaseResult {
         }
     }
 
+    let mut unique_required = HashSet::new();
     for required_type in &case.required_claim_types {
+        if !unique_required.insert(*required_type) {
+            add_blocker(
+                &mut blockers,
+                "GRAPH_INVALID",
+                None,
+                "required claim type is listed more than once",
+            );
+        }
         if *required_type == ClaimType::OrbitalReviewBundle {
             add_blocker(
                 &mut blockers,
