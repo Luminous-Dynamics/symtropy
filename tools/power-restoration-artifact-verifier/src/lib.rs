@@ -1374,19 +1374,20 @@ fn verify_final_service_trajectory_bundle(
 
     let mut missing_sources = Vec::new();
     for source in &trajectory.source_artifacts {
-        let source_bytes_verified = verified_bundle
-            .report()
-            .verified_artifacts
-            .iter()
-            .any(|artifact| {
-                artifact.artifact_uri == source.artifact_ref
-                    && artifact.sha256 == source.sha256
-            });
-        if !source_bytes_verified {
-            missing_sources.push(format!(
-                "service source artifact {} is missing from the byte-verified bundle or its digest differs",
+        let source_bytes = verified_bundle.read_verified_artifact_bytes(
+            bundle_root,
+            &source.artifact_ref,
+            max_artifact_bytes,
+        );
+        match source_bytes {
+            Ok(bytes) if sha256_hex(&bytes) == source.sha256 => {}
+            Ok(_) => missing_sources.push(format!(
+                "service source artifact {} bytes do not match the trajectory's declared digest",
                 source.artifact_ref
-            ));
+            )),
+            Err(source_errors) => missing_sources.extend(source_errors.into_iter().map(|error| {
+                format!("service source artifact {}: {error}", source.artifact_ref)
+            })),
         }
     }
     if !missing_sources.is_empty() {
@@ -3025,6 +3026,26 @@ mod tests {
         ).unwrap();
         assert_eq!(trajectory.artifact_uri, final_ref.artifact_ref);
         assert_eq!(report.result_status, "measured_service_and_score_reconciled");
+    }
+
+    #[test]
+    fn final_service_trajectory_rejects_source_bytes_changed_after_bundle_verification() {
+        let (root, bundle, case, receipt, final_ref) =
+            final_service_bundle_fixture(true);
+        fs::write(
+            root.join("artifacts/service/meter.bin"),
+            b"substituted meter capture bytes",
+        ).unwrap();
+        let errors = verify_final_service_trajectory_bundle(
+            &root,
+            &bundle,
+            &final_ref,
+            &receipt,
+            &case,
+            &service_provider_profiles(),
+            8 * 1024 * 1024,
+        ).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("changed after bundle verification")));
     }
 
     #[test]
