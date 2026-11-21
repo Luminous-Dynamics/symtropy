@@ -189,13 +189,12 @@ impl InterventionLedger {
         if let Some(resource_id) = self
             .resource_by_intervention
             .get(&assertion.intervention_id)
+            && resource_id != &assertion.evidence.resource_id
         {
-            if resource_id != &assertion.evidence.resource_id {
-                return Err(format!(
-                    "resource identity changed for intervention {:?}: {:?} -> {:?}",
-                    assertion.intervention_id, resource_id, assertion.evidence.resource_id
-                ));
-            }
+            return Err(format!(
+                "resource identity changed for intervention {:?}: {:?} -> {:?}",
+                assertion.intervention_id, resource_id, assertion.evidence.resource_id
+            ));
         }
 
         let previous = self.current_stage.get(&assertion.intervention_id).copied();
