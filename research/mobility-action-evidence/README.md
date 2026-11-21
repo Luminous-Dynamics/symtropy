@@ -75,11 +75,12 @@ The `protocol/` directory provides machine-readable v0.1 schemas:
 
 - `action_ticket.schema.json`: the M2 ticket binds the exact expected observer dependency path and policy digest.
 - `scenario_manifest.schema.json`: controller-visible scenario inputs and budgets only. It explicitly excludes evaluator truth, hidden fault identities and expected outcomes.
-- `action_ticket.schema.json`: the action commitment carries the expected observer dependency path and the policy digest; a receipt-side path cannot silently replace the ticket-side path.
 - `evaluation_plan.schema.json`: candidate/baseline build identities, frozen manifest/evaluator digests, sampling plan, cluster dimensions, metrics and mandatory early-stop rules.
 - `run_receipt.schema.json`: exact source/artifact/runtime/evaluator/scenario digests, per-episode event/evaluator receipt digests, raw numerator/denominator counts, exclusions and run status.
 
 The evaluator's private truth set must be held separately from the controller-visible manifest. A JSON Schema syntax pass is not a semantic benchmark validation; the independent evaluator must additionally enforce numerator ≤ denominator, nonzero denominators for reported rates, valid cluster analysis, and that an incomplete/aborted/invalidated run cannot be labelled a pass. No hidden evaluator labels or private test answers are checked into the public controller-facing corpus.
+
+The Rust module `protocol_semantics` now implements the contract-level cross-field checks for a typed run receipt against a preregistered `ExpectedRunBinding`: frozen plan/manifest/evaluator/build/runtime/scenario identities; independent evaluator identity and receipt digest; unique executed/excluded episode IDs; transparent exclusion reasons; planned-episode accounting; unique metrics; nonzero denominators; numerator ≤ denominator; and all executed episodes complete before the run can be marked Complete. It is a validator for already parsed data, not a JSON parser or cryptographic authenticator. Cluster-aware confidence intervals and evaluator-truth isolation remain evaluator responsibilities.
 
 ## Tests
 
