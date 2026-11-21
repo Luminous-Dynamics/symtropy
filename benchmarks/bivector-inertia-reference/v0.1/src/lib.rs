@@ -30,13 +30,27 @@ impl Display for InertiaError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidDimension => write!(formatter, "dimension must be in 2..=9"),
-            Self::DimensionMismatch => write!(formatter, "matrix or bivector dimensions do not match"),
+            Self::DimensionMismatch => {
+                write!(formatter, "matrix or bivector dimensions do not match")
+            }
             Self::NonFiniteInput => write!(formatter, "input values must be finite"),
-            Self::NonPositivePrincipalMoment => write!(formatter, "principal moments must be positive"),
-            Self::NonRealizablePrincipalMoments => write!(formatter, "principal moments do not define a nonnegative second-moment tensor"),
-            Self::SingularPlaneInertia => write!(formatter, "one or more plane inertias are non-positive"),
-            Self::InvalidRotation => write!(formatter, "rotation matrix must be a proper orthogonal matrix"),
-            Self::NonFiniteResult => write!(formatter, "inertia operator produced a non-finite result"),
+            Self::NonPositivePrincipalMoment => {
+                write!(formatter, "principal moments must be positive")
+            }
+            Self::NonRealizablePrincipalMoments => write!(
+                formatter,
+                "principal moments do not define a nonnegative second-moment tensor"
+            ),
+            Self::SingularPlaneInertia => {
+                write!(formatter, "one or more plane inertias are non-positive")
+            }
+            Self::InvalidRotation => write!(
+                formatter,
+                "rotation matrix must be a proper orthogonal matrix"
+            ),
+            Self::NonFiniteResult => {
+                write!(formatter, "inertia operator produced a non-finite result")
+            }
         }
     }
 }
@@ -59,7 +73,10 @@ impl Bivector {
         if components.iter().any(|value| !value.is_finite()) {
             return Err(InertiaError::NonFiniteInput);
         }
-        Ok(Self { dimension, components })
+        Ok(Self {
+            dimension,
+            components,
+        })
     }
 
     pub fn zero(dimension: usize) -> Result<Self, InertiaError> {
@@ -123,8 +140,11 @@ impl Bivector {
             return Err(InertiaError::DimensionMismatch);
         }
         finite_result(
-            self.components.iter().zip(&other.components)
-                .map(|(left, right)| left * right).sum::<f64>(),
+            self.components
+                .iter()
+                .zip(&other.components)
+                .map(|(left, right)| left * right)
+                .sum::<f64>(),
         )
     }
 }
@@ -393,9 +413,7 @@ fn multiply(left: &Matrix, right: &Matrix) -> Result<Matrix, InertiaError> {
     let rows = left.len();
     let inner = right.len();
     let columns = right[0].len();
-    if left.iter().any(|row| row.len() != inner)
-        || right.iter().any(|row| row.len() != columns)
-    {
+    if left.iter().any(|row| row.len() != inner) || right.iter().any(|row| row.len() != columns) {
         return Err(InertiaError::DimensionMismatch);
     }
     let mut result = vec![vec![0.0; columns]; rows];
@@ -462,7 +480,6 @@ mod tests {
             "actual {actual:.15e}, expected {expected:.15e}, tolerance {tolerance:.3e}"
         );
     }
-
 
     fn direct_transpose(matrix: &Matrix) -> Matrix {
         let n = matrix.len();
@@ -553,15 +570,16 @@ mod tests {
         close(inertia.plane_inertia(0, 2), 14.0 / 3.0, 1.0e-12);
         close(inertia.plane_inertia(2, 3), 5.0 / 3.0, 1.0e-12);
 
-        let impulse = Bivector::new(
-            4,
-            vec![17.0 / 3.0, 14.0 / 3.0, 0.0, 0.0, 0.0, 5.0 / 3.0],
-        )
-        .expect("multi-plane impulse");
+        let impulse = Bivector::new(4, vec![17.0 / 3.0, 14.0 / 3.0, 0.0, 0.0, 0.0, 5.0 / 3.0])
+            .expect("multi-plane impulse");
         let response = inertia
             .apply_inverse_world(&identity_matrix(4).expect("identity"), &impulse)
             .expect("response");
-        for (actual, expected) in response.components().iter().zip([1.0, 1.0, 0.0, 0.0, 0.0, 1.0]) {
+        for (actual, expected) in response
+            .components()
+            .iter()
+            .zip([1.0, 1.0, 0.0, 0.0, 0.0, 1.0])
+        {
             close(*actual, expected, 1.0e-12);
         }
     }
@@ -604,7 +622,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn bivector_rotation_adjoint_round_trip_preserves_plane_coordinates() {
         let rotation = rotate_3d_xz_quarter_turn();
@@ -629,7 +646,9 @@ mod tests {
         let mut omega_after = omega_before.clone();
         for i in 0..3 {
             for j in (i + 1)..3 {
-                omega_after.set(i, j, omega_before.get(i, j) + response.get(i, j)).expect("set");
+                omega_after
+                    .set(i, j, omega_before.get(i, j) + response.get(i, j))
+                    .expect("set");
             }
         }
 
@@ -644,7 +663,6 @@ mod tests {
             .expect("energy after");
         close(work, energy_after - energy_before, 1.0e-12);
     }
-
 
     #[test]
     fn kinetic_energy_is_invariant_under_body_frame_rotation() {
@@ -679,7 +697,10 @@ mod tests {
 
     #[test]
     fn invalid_and_non_realizable_principal_moments_are_rejected() {
-        assert_eq!(PrincipalInertia::new(vec![1.0]), Err(InertiaError::InvalidDimension));
+        assert_eq!(
+            PrincipalInertia::new(vec![1.0]),
+            Err(InertiaError::InvalidDimension)
+        );
         assert_eq!(
             PrincipalInertia::new(vec![1.0, f64::NAN]),
             Err(InertiaError::NonFiniteInput)
@@ -693,7 +714,6 @@ mod tests {
             Err(InertiaError::NonRealizablePrincipalMoments)
         );
     }
-
 
     #[test]
     fn world_kinetic_energy_matches_direct_rotated_second_moment_trace() {
