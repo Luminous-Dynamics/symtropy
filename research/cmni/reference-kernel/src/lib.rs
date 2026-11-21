@@ -18,6 +18,8 @@ pub use experiment_design::{
     identifiability_summary,
     poisson_fisher_information,
     IdentifiabilitySummary,
+    pairwise_poisson_kl_matrix,
+    poisson_kl_divergence,
 };
 
 mod response_uncertainty;
