@@ -46,7 +46,6 @@ pub enum PortabilityError {
     InvalidTaskId,
     InvalidSuccessCounts,
     DuplicateOutcome,
-    DuplicatePolicyId,
     InconsistentTaskContract,
     PolicyCheckpointMismatch,
     InsufficientCommonPolicies,
@@ -225,7 +224,7 @@ impl SetupEvaluation {
                 outcome.policy.checkpoint_digest.as_str(),
             ) {
                 if previous != outcome.policy.checkpoint_digest {
-                    return Err(PortabilityError::DuplicatePolicyId);
+                    return Err(PortabilityError::PolicyCheckpointMismatch);
                 }
             }
             if !outcomes.insert((outcome.task_id.as_str(), outcome.policy.policy_id.as_str())) {
