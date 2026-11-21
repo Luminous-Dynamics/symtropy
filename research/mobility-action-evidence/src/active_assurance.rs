@@ -20,6 +20,7 @@ pub struct ObservationQualification {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ObservationCandidate {
     pub candidate_id: String,
+    pub predicate_id: String,
     pub source_id: String,
     pub observer_failure_domains: Vec<String>,
     pub qualification: ObservationQualification,
@@ -47,6 +48,8 @@ pub struct ObservationBudget {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AssuranceError {
     EmptyPredicate,
+    PredicateMismatch,
+    MissingQualificationCommitment,
     InvalidCurrentRiskBound,
     InvalidMaximumRiskBound,
     EmptyFailureDomain,
@@ -66,15 +69,30 @@ pub enum HoldReason {
     NoCandidateMeetsRiskAndResourceBudgets,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BudgetGate {
+    ResidualRisk,
+    Latency,
+    Energy,
+    Cost,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FilteredObservationCandidate {
+    pub candidate_id: String,
+    pub failed_gates: Vec<BudgetGate>,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AssuranceDecision {
     AcquireObservation {
         pareto_frontier: Vec<ObservationCandidate>,
-        filtered_out_candidate_ids: Vec<String>,
+        filtered_out_candidates: Vec<FilteredObservationCandidate>,
+        dominated_candidate_ids: Vec<String>,
     },
     Hold {
         reason: HoldReason,
-        filtered_out_candidate_ids: Vec<String>,
+        filtered_out_candidates: Vec<FilteredObservationCandidate>,
     },
 }
 
@@ -136,7 +154,7 @@ pub fn select_observation_frontier(
     if candidates.is_empty() {
         return Ok(AssuranceDecision::Hold {
             reason: HoldReason::NoObservationCandidates,
-            filtered_out_candidate_ids: Vec::new(),
+            filtered_out_candidates: Vec::new(),
         });
     }
 
@@ -153,8 +171,19 @@ pub fn select_observation_frontier(
         if !nonempty(&candidate.candidate_id) {
             return Err(AssuranceError::EmptyCandidateId);
         }
+        if !nonempty(&candidate.predicate_id) || candidate.predicate_id != context.predicate_id {
+            return Err(AssuranceError::PredicateMismatch);
+        }
         if !nonempty(&candidate.source_id) {
             return Err(AssuranceError::EmptySourceId);
+        }
+        let qualification = &candidate.qualification;
+        if qualification.calibration_commitment.0 == [0; 32]
+            || qualification.risk_model_commitment.0 == [0; 32]
+            || qualification.clock_correlation_commitment.0 == [0; 32]
+            || qualification.independence_policy_commitment.0 == [0; 32]
+        {
+            return Err(AssuranceError::MissingQualificationCommitment);
         }
         if !candidate_ids.insert(candidate.candidate_id.as_str()) {
             return Err(AssuranceError::DuplicateCandidateId);
@@ -179,42 +208,60 @@ pub fn select_observation_frontier(
             return Err(AssuranceError::NoExpectedRiskReduction);
         }
 
-        let within_budgets = candidate.expected_residual_risk_upper_bound_bps
-            <= budget.maximum_residual_risk_bps
-            && candidate.latency_upper_bound_ms <= budget.maximum_latency_ms
-            && candidate.energy_upper_bound_millijoules <= budget.maximum_energy_millijoules
-            && candidate.cost_upper_bound_microcredits <= budget.maximum_cost_microcredits;
+        let mut failed_gates = Vec::new();
+        if candidate.expected_residual_risk_upper_bound_bps > budget.maximum_residual_risk_bps {
+            failed_gates.push(BudgetGate::ResidualRisk);
+        }
+        if candidate.latency_upper_bound_ms > budget.maximum_latency_ms {
+            failed_gates.push(BudgetGate::Latency);
+        }
+        if candidate.energy_upper_bound_millijoules > budget.maximum_energy_millijoules {
+            failed_gates.push(BudgetGate::Energy);
+        }
+        if candidate.cost_upper_bound_microcredits > budget.maximum_cost_microcredits {
+            failed_gates.push(BudgetGate::Cost);
+        }
 
-        if within_budgets {
+        if failed_gates.is_empty() {
             feasible.push(candidate.clone());
         } else {
-            filtered_out.push(candidate.candidate_id.clone());
+            filtered_out.push(FilteredObservationCandidate {
+                candidate_id: candidate.candidate_id.clone(),
+                failed_gates,
+            });
         }
     }
 
-    filtered_out.sort();
+    filtered_out.sort_by(|left: &FilteredObservationCandidate, right: &FilteredObservationCandidate| {
+        left.candidate_id.cmp(&right.candidate_id)
+    });
     if feasible.is_empty() {
         return Ok(AssuranceDecision::Hold {
             reason: HoldReason::NoCandidateMeetsRiskAndResourceBudgets,
-            filtered_out_candidate_ids: filtered_out,
+            filtered_out_candidates: filtered_out,
         });
     }
 
     let mut frontier = Vec::new();
+    let mut dominated_candidate_ids = Vec::new();
     for (index, candidate) in feasible.iter().enumerate() {
         let is_dominated = feasible
             .iter()
             .enumerate()
             .any(|(other_index, other)| other_index != index && dominates(other, candidate));
-        if !is_dominated {
+        if is_dominated {
+            dominated_candidate_ids.push(candidate.candidate_id.clone());
+        } else {
             frontier.push(candidate.clone());
         }
     }
     frontier.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
+    dominated_candidate_ids.sort();
 
     Ok(AssuranceDecision::AcquireObservation {
         pareto_frontier: frontier,
-        filtered_out_candidate_ids: filtered_out,
+        filtered_out_candidates: filtered_out,
+        dominated_candidate_ids,
     })
 }
 
@@ -257,6 +304,7 @@ mod tests {
     ) -> ObservationCandidate {
         ObservationCandidate {
             candidate_id: id.into(),
+            predicate_id: "predicate.object-in-gripper".into(),
             source_id: source.into(),
             observer_failure_domains: vec![
                 format!("{source}/sensor"),
@@ -283,7 +331,8 @@ mod tests {
             select_observation_frontier(&context(), budget(), &[option.clone()]),
             Ok(AssuranceDecision::AcquireObservation {
                 pareto_frontier: vec![option],
-                filtered_out_candidate_ids: vec![],
+                filtered_out_candidates: vec![],
+                dominated_candidate_ids: vec![],
             })
         );
     }
@@ -301,7 +350,8 @@ mod tests {
             ),
             Ok(AssuranceDecision::AcquireObservation {
                 pareto_frontier: vec![best, low_latency],
-                filtered_out_candidate_ids: vec![],
+                filtered_out_candidates: vec![],
+                dominated_candidate_ids: vec!["b-dominated".into()],
             })
         );
     }
@@ -345,7 +395,16 @@ mod tests {
             select_observation_frontier(&context(), budget(), &[slow, risky]),
             Ok(AssuranceDecision::Hold {
                 reason: HoldReason::NoCandidateMeetsRiskAndResourceBudgets,
-                filtered_out_candidate_ids: vec!["risk-too-high".into(), "too-slow".into()],
+                filtered_out_candidates: vec![
+                    FilteredObservationCandidate {
+                        candidate_id: "risk-too-high".into(),
+                        failed_gates: vec![BudgetGate::ResidualRisk],
+                    },
+                    FilteredObservationCandidate {
+                        candidate_id: "too-slow".into(),
+                        failed_gates: vec![BudgetGate::Latency],
+                    },
+                ],
             })
         );
     }
@@ -362,7 +421,8 @@ mod tests {
             ),
             Ok(AssuranceDecision::AcquireObservation {
                 pareto_frontier: vec![low_cost, low_risk],
-                filtered_out_candidate_ids: vec![],
+                filtered_out_candidates: vec![],
+                dominated_candidate_ids: vec![],
             })
         );
     }
@@ -373,8 +433,29 @@ mod tests {
             select_observation_frontier(&context(), budget(), &[]),
             Ok(AssuranceDecision::Hold {
                 reason: HoldReason::NoObservationCandidates,
-                filtered_out_candidate_ids: vec![],
+                filtered_out_candidates: vec![],
             })
+        );
+    }
+
+
+    #[test]
+    fn candidate_must_target_the_same_predicate() {
+        let mut option = candidate("wrong-predicate", 300, 100, 4_000, 1_000, "sensor-a");
+        option.predicate_id = "predicate.different".into();
+        assert_eq!(
+            select_observation_frontier(&context(), budget(), &[option]),
+            Err(AssuranceError::PredicateMismatch)
+        );
+    }
+
+    #[test]
+    fn zero_commitment_cannot_be_used_as_a_qualification_placeholder() {
+        let mut option = candidate("empty-qualification", 300, 100, 4_000, 1_000, "sensor-a");
+        option.qualification.clock_correlation_commitment = digest(0);
+        assert_eq!(
+            select_observation_frontier(&context(), budget(), &[option]),
+            Err(AssuranceError::MissingQualificationCommitment)
         );
     }
 
