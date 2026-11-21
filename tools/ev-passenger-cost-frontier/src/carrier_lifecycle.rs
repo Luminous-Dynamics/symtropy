@@ -4,6 +4,9 @@
 //! Carrier module lifecycle cost and serviceability adapter.
 //! Consumes the module factory screen; does not create a maintenance ledger or
 //! grant return-to-service authority.
+//!
+//! Synthetic process rates, fault counts, exposure and cost inputs remain
+//! explicit assumptions; this adapter never promotes them to measured reliability.
 
 use std::collections::{BTreeMap, BTreeSet};
 
