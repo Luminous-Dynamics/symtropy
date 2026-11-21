@@ -54,7 +54,8 @@ They are **not** DCSA actual port-call timestamps, pilot boarding, first/last li
 ## Synthetic profile
 
 The frozen default profile uses integer ticks:
-- maximum sender-event gap: 2 ticks;\n- maximum receiver-observation gap: 2 ticks;
+- maximum sender-event gap: 2 ticks;
+- maximum receiver-observation gap: 2 ticks;
 - anchorage dwell: 2 ticks, speed at most 1.5 knots;
 - approach dwell: 1 tick, speed at most 12 knots;
 - berth dwell: 3 ticks, speed at most 0.5 knots;
