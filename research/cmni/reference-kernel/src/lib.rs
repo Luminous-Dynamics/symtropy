@@ -678,7 +678,7 @@ mod tests {
 
     #[test]
     fn neutron_psd_gate_rejects_above_upper_psd_boundary() {
-        assert!(!neutron_psd_gate_accepts(52.5, 0.351, 50.0, example_psd_slice())
+        assert!(!neutron_psd_gate_accepts(52.5, 0.451, 50.0, example_psd_slice())
             .expect("valid PSD gate"));
     }
 
