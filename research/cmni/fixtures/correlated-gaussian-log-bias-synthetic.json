@@ -1,0 +1,156 @@
+{
+  "fixture_type": "synthetic_cmni_correlated_gaussian_log_bias_v1",
+  "provenance": "fully synthetic log-ratio residuals and covariance; no AIACHNE or CMNI PFNS dataset",
+  "planted_bias": {
+    "log_relative_observations": [
+      0,
+      0.6931471805599453,
+      0,
+      0.6931471805599453
+    ],
+    "fixed_effect_design": [
+      [],
+      [],
+      [],
+      []
+    ],
+    "sparse_bias_design": [
+      [
+        0
+      ],
+      [
+        1
+      ],
+      [
+        0
+      ],
+      [
+        1
+      ]
+    ],
+    "covariance": [
+      [
+        0.01,
+        0.002,
+        0,
+        0
+      ],
+      [
+        0.002,
+        0.01,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0.01,
+        0.002
+      ],
+      [
+        0,
+        0,
+        0.002,
+        0.01
+      ]
+    ],
+    "prior": {
+      "feature_inclusion_probability": 0.1,
+      "fixed_effect_sd": 2,
+      "bias_slab_sd": 1
+    },
+    "expected_model_probabilities": [
+      3.04280673e-20,
+      1
+    ],
+    "expected_feature_inclusion_probability": [
+      1
+    ],
+    "expected_bias_posterior_mean": [
+      0.68983597
+    ],
+    "expected_bias_posterior_covariance": [
+      [
+        0.00477707
+      ]
+    ],
+    "expected_map_feature_mask": 1
+  },
+  "null_control": {
+    "log_relative_observations": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sparse_bias_design": [
+      [
+        0
+      ],
+      [
+        1
+      ],
+      [
+        0
+      ],
+      [
+        1
+      ]
+    ],
+    "expected_model_probabilities": [
+      0.9923789320858,
+      0.0076210679142
+    ],
+    "expected_feature_inclusion_probability": [
+      0.0076210679142
+    ],
+    "expected_map_feature_mask": 0
+  },
+  "collinear_features": {
+    "log_relative_observations": [
+      0,
+      0.6931471805599453,
+      0,
+      0.6931471805599453
+    ],
+    "sparse_bias_design": [
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        1
+      ]
+    ],
+    "expected_feature_inclusion_probability": [
+      0.52121623,
+      0.52121623
+    ],
+    "expected_parameter_covariance": [
+      [
+        0.13990815,
+        -0.13503825
+      ],
+      [
+        -0.13503825,
+        0.13514413
+      ]
+    ],
+    "interpretation": "Posterior inclusion symmetry exposes feature non-identifiability."
+  },
+  "limitations": [
+    "Exact subset model averaging under a Gaussian log-ratio likelihood and proper Gaussian priors.",
+    "No raw-scale AIACHNE likelihood or BMC sampler.",
+    "No horseshoe / global-local prior.",
+    "No uncertainty in baseline spectrum, design metadata or covariance transform."
+  ]
+}
