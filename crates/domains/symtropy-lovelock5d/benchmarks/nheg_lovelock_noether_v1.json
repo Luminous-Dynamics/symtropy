@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_single_spin_nheg_compact_lovelock_noether_charge",
+  "status": "exact_compact_noether_charge_density_replayed_and_source_representative_difference_isolated",
+  "source": {
+    "paper": "Celik, Hajian and Kunz, An Exact Single-Rotating Near-Horizon Geometry in Einstein-Gauss-Bonnet Gravity",
+    "arxiv": "2605.15005v2",
+    "url": "https://arxiv.org/pdf/2605.15005v2",
+    "source_appendix_equations": [
+      "(27)",
+      "(28)",
+      "(29)",
+      "(30)",
+      "(31)",
+      "(32)",
+      "(33)",
+      "(34)"
+    ]
+  },
+  "conventions": {
+    "dimension": 5,
+    "signature": "(-++++)",
+    "source_action": "(R+alpha_NH*L_GB)/(16*pi*G)",
+    "symtropy_coupling": "alpha_sym=4*alpha_NH",
+    "beta": "2*a^2/alpha_sym",
+    "epsilon": "cos(theta)",
+    "generator": "xi=-partial_psi, field-independent",
+    "variation": "delta g=partial_a(g)*delta_a at fixed alpha_sym",
+    "surface": "constant t,r cross-section parameterized by epsilon,phi,psi",
+    "measure": "d epsilon d phi d psi"
+  },
+  "curvature_crosscheck": {
+    "H": "alpha_sym*p/(2*epsilon^2)",
+    "coordinate_metric": "g_tpsi=H*r/2; g_psipsi=H; g_rr=H/(4*r^2); g_eps_eps=H*q^2/(p^2*(1-epsilon^2)); g_phiphi=a^2*(1-epsilon^2)/epsilon^2",
+    "sqrt_minus_g": "a*alpha_sym^2*p*q/(16*epsilon^5)",
+    "coordinate_R_scalar": "-8*alpha_sym*(12*a^4*epsilon^8+20*a^2*alpha_sym*epsilon^4-5*alpha_sym^2)/((2*a^2*epsilon^4-alpha_sym)^3*(2*a^2*epsilon^4+alpha_sym))",
+    "cartan_R_scalar_equal_exactly": true,
+    "nonzero_christoffels": 23,
+    "nonzero_coordinate_riemann_mixed_components": 48
+  },
+  "lovelock_noether_charge": {
+    "P_EH": "1/2*(g^ac*g^bd-g^ad*g^bc)",
+    "P_GB": "2*R^abcd-2*(g^ac*R^db-g^ad*R^cb-g^bc*R^da+g^bd*R^ca)+R*(g^ac*g^bd-g^ad*g^bc)",
+    "Q_xi": "-2*P^abcd*nabla_c(xi_d)",
+    "Theta_pullback": "zero on this section because xi=-partial_psi is tangent to the epsilon,phi,psi cross-section; insertion of xi duplicates the psi tangent in the pulled-back 3-form",
+    "EH_density_variation": "alpha_sym/(16*pi*G*epsilon^3)*(1-3*T)",
+    "GB_density_variation": "alpha_sym/(16*pi*G*epsilon^3)*(-6+42*T+30*T^2-2*T^3)/(1-T)^3",
+    "total_density_variation": "alpha_sym/(16*pi*G*epsilon^3)*(3*T^4-12*T^3+42*T^2+36*T-5)/(1-T)^3",
+    "matches_local_Wald_density_variation": true,
+    "local_Wald_leading_coefficient": "-5",
+    "source_full_density_leading_coefficient": "+1600"
+  },
+  "source_representative_comparison": {
+    "source_Q": "1600-2112*T-3536*T^2+736*T^3+156*T^4+12*T^5-3*T^6",
+    "source_density_coefficient": "Q/((1-T)^3*(1+T)^2)",
+    "canonical_noether_density_coefficient": "(3*T^4-12*T^3+42*T^2+36*T-5)/(1-T)^3",
+    "difference_numerator_common_denominator": "1605-2138*T-3645*T^2+628*T^3+135*T^4+18*T^5-6*T^6",
+    "leading_ratio_source_to_canonical": "-320",
+    "interpretation": "The canonical Lovelock Noether-charge representative exactly reproduces the fixed-alpha local Wald/Jacobson-Myers density variation. The source-published charge-density representative differs; its relation to the canonical representative must be explained by the precise charge prescription, an allowed boundary ambiguity/exact form, or a source-equation issue. No attribution is made here."
+  },
+  "negative_controls": {
+    "single_ricci_index_raise_mutation_detected": true,
+    "hold_beta_fixed_is_not_used": true,
+    "action_factor_four_conversion_enforced": true,
+    "angular_measure_is_epsilon_coordinate": true
+  },
+  "validation": {
+    "coordinate_inverse_exact": true,
+    "coordinate_determinant_exact": true,
+    "coordinate_scalar_matches_cartan_exact": true,
+    "P_EH_charge_matches_source_Eq29_exact": true,
+    "P_GB_charge_exact": true,
+    "total_Noether_equals_local_Wald_variation_exact": true,
+    "source_density_difference_polynomial_exact": true,
+    "wrong_single_raise_control_fails": true,
+    "finite_integrated_charge_claimed": false,
+    "source_k31_33_equivalence_proved": false,
+    "symplectic_flux_or_boundary_ambiguity_resolved": false
+  },
+  "reference_grid": {
+    "beta_values": [
+      "1/20",
+      "1/10",
+      "3/20",
+      "1/5",
+      "1/4",
+      "3/10",
+      "7/20",
+      "2/5",
+      "9/20",
+      "1/2",
+      "11/20",
+      "3/5",
+      "13/20",
+      "7/10",
+      "3/4",
+      "4/5",
+      "17/20",
+      "9/10",
+      "19/20"
+    ],
+    "epsilon_values": [
+      "1/5",
+      "1/10",
+      "1/20",
+      "1/50",
+      "1/100"
+    ],
+    "point_count": 95,
+    "generated_by": "derive_nheg_lovelock_noether.py --output nheg_lovelock_noether_v1.json"
+  },
+  "claim_ceiling": "Exact compact Lovelock P-based Noether-charge density for the axial generator and its fixed-coupling variation. It reproduces the local Wald variation, but does not establish equivalence with the source's expanded solution-phase-space/ADT representative, a boundary ambiguity, vanishing flux, or finite charges on the noncompact section."
+}
