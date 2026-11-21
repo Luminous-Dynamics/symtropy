@@ -257,6 +257,7 @@
             "type": "object",
             "additionalProperties": false,
             "required": [
+              "required_fields_to_preserve",
               "preserved_fields",
               "unsupported_fields",
               "unknown_field_policy",
@@ -289,6 +290,14 @@
               },
               "source_values_immutable": {
                 "const": true
+              },
+              "required_fields_to_preserve": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
               }
             }
           },
