@@ -24,16 +24,32 @@ pub enum MassPropertiesError {
 impl std::fmt::Display for MassPropertiesError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::UnsupportedShape => write!(formatter, "shape has no declared analytic mass distribution"),
+            Self::UnsupportedShape => write!(
+                formatter,
+                "shape has no declared analytic mass distribution"
+            ),
             Self::InvalidMass => write!(formatter, "mass must be finite and strictly positive"),
-            Self::InvalidGeometry => write!(formatter, "shape dimensions must be finite and strictly positive"),
+            Self::InvalidGeometry => write!(
+                formatter,
+                "shape dimensions must be finite and strictly positive"
+            ),
             Self::NonFiniteCentroid => write!(formatter, "mass centroid must be finite"),
             Self::NonFiniteTensor => write!(formatter, "mass second-moment tensor must be finite"),
-            Self::AsymmetricTensor => write!(formatter, "mass second-moment tensor must be symmetric"),
-            Self::NonPositiveSemidefiniteTensor => write!(formatter, "mass second-moment tensor must be positive semidefinite"),
+            Self::AsymmetricTensor => {
+                write!(formatter, "mass second-moment tensor must be symmetric")
+            }
+            Self::NonPositiveSemidefiniteTensor => write!(
+                formatter,
+                "mass second-moment tensor must be positive semidefinite"
+            ),
             Self::EmptyComponents => write!(formatter, "at least one component is required"),
-            Self::InvalidTransform => write!(formatter, "component transform must contain a finite translation and proper rotation"),
-            Self::InvalidCombinedMass => write!(formatter, "combined mass is not finite and positive"),
+            Self::InvalidTransform => write!(
+                formatter,
+                "component transform must contain a finite translation and proper rotation"
+            ),
+            Self::InvalidCombinedMass => {
+                write!(formatter, "combined mass is not finite and positive")
+            }
         }
     }
 }
@@ -63,7 +79,10 @@ impl<const D: usize> MassProperties<D> {
         if !centroid.0.iter().all(|value| value.is_finite()) {
             return Err(MassPropertiesError::NonFiniteCentroid);
         }
-        if !centroidal_second_moment.iter().all(|value| value.is_finite()) {
+        if !centroidal_second_moment
+            .iter()
+            .all(|value| value.is_finite())
+        {
             return Err(MassPropertiesError::NonFiniteTensor);
         }
 
@@ -83,8 +102,7 @@ impl<const D: usize> MassProperties<D> {
             }
         }
 
-        let symmetric =
-            (centroidal_second_moment + centroidal_second_moment.transpose()) * 0.5;
+        let symmetric = (centroidal_second_moment + centroidal_second_moment.transpose()) * 0.5;
         let eigen = nalgebra::linalg::SymmetricEigen::new(symmetric);
         if eigen.eigenvalues.iter().any(|value| *value < -tolerance) {
             return Err(MassPropertiesError::NonPositiveSemidefiniteTensor);
@@ -98,10 +116,7 @@ impl<const D: usize> MassProperties<D> {
     }
 
     /// Rotate the centroidal tensor into the parent frame and transform its centroid.
-    pub fn transformed(
-        &self,
-        transform: &Transform<D>,
-    ) -> Result<Self, MassPropertiesError> {
+    pub fn transformed(&self, transform: &Transform<D>) -> Result<Self, MassPropertiesError> {
         validate_transform(transform)?;
         let rotation = transform.rotation.to_matrix();
         let rotated = rotation * self.centroidal_second_moment * rotation.transpose();
@@ -154,8 +169,7 @@ pub fn combine_mass_properties<const D: usize>(
             component.properties.centroidal_second_moment,
         )?;
         let rotation = component.transform.rotation.to_matrix();
-        let rotated =
-            rotation * properties.centroidal_second_moment * rotation.transpose();
+        let rotated = rotation * properties.centroidal_second_moment * rotation.transpose();
         let component_centroid = component.transform.transform_point(&properties.centroid);
         let displacement = component_centroid.0 - centroid.0;
         combined += rotated + properties.mass * (displacement * displacement.transpose());
@@ -164,10 +178,12 @@ pub fn combine_mass_properties<const D: usize>(
     MassProperties::new(total_mass, centroid, combined)
 }
 
-fn validate_transform<const D: usize>(
-    transform: &Transform<D>,
-) -> Result<(), MassPropertiesError> {
-    if !transform.translation.0.iter().all(|value| value.is_finite())
+fn validate_transform<const D: usize>(transform: &Transform<D>) -> Result<(), MassPropertiesError> {
+    if !transform
+        .translation
+        .0
+        .iter()
+        .all(|value| value.is_finite())
         || !transform
             .rotation
             .to_matrix()
@@ -229,8 +245,7 @@ mod tests {
         let properties = HyperBox::<3>::new([1.0, 2.0, 3.0])
             .mass_properties(6.0)
             .expect("hyperbox");
-        let expected =
-            SMatrix::<f64, 3, 3>::from_diagonal(&SVector::from([2.0, 8.0, 18.0]));
+        let expected = SMatrix::<f64, 3, 3>::from_diagonal(&SVector::from([2.0, 8.0, 18.0]));
         assert_matrix_near(&properties.centroidal_second_moment, &expected);
     }
 
@@ -239,8 +254,7 @@ mod tests {
         let rectangle = crate::HyperBox::<2>::new([1.0, 2.0])
             .mass_properties(6.0)
             .expect("rectangle");
-        let expected_2d =
-            SMatrix::<f64, 2, 2>::from_diagonal(&SVector::from([2.0, 8.0]));
+        let expected_2d = SMatrix::<f64, 2, 2>::from_diagonal(&SVector::from([2.0, 8.0]));
         assert_matrix_near(&rectangle.centroidal_second_moment, &expected_2d);
 
         let tesseract = crate::HyperBox::<4>::new([1.0, 2.0, 3.0, 4.0])
@@ -285,8 +299,7 @@ mod tests {
         let properties = HyperBox::<2>::new([1.0, 2.0])
             .mass_properties(3.0)
             .expect("box");
-        let rotation =
-            Rotor::from_plane_angle(&Bivector::<2>::unit_plane(0, 1), FRAC_PI_4);
+        let rotation = Rotor::from_plane_angle(&Bivector::<2>::unit_plane(0, 1), FRAC_PI_4);
         let transform = Transform {
             translation: Point::new([3.0, -2.0]),
             rotation,
