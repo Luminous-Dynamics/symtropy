@@ -361,7 +361,6 @@ fn evaluate_case(case: &CaptureCase) -> Decision {
             || !record_ids.insert(observed.record_id.as_str())
         {
             let mut decision = blocked(Disposition::Disputed, "duplicate_record_identity_or_malformed_observation");
-            decision.injected_count = case.reference_events.len();
             return decision;
         }
         let Some(reference) = reference_by_id.get(observed.reference_event_id.as_str()) else {
