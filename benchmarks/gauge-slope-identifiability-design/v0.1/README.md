@@ -35,14 +35,20 @@ This v0.1 fixture specifically models **sustained downhill sliding driven by gra
 - Fisher information for independent acceleration measurements with declared standard deviations.
 - Eigenvalues, singular values, effective rank, condition number and D-optimal log determinant.
 - Exhaustive D-optimal two-trial selection from a declared candidate set, with deterministic tie handling.
-- Rank-one and near-duplicate-angle negative controls.
+- Reduced **IDTD-style per-parameter Schur-decoupling coverage**: each parameter is credited its best segment score, `Schur(F,{i}) / F_ii^alpha`, then combined through a negative-log cost.
+- Explicit alpha information-gate behavior and ridge/log epsilon validation.
+- Rank-one, near-duplicate-angle, invalid-matrix and sustained-sliding-regime negative controls.
 - Equal-budget comparison: every candidate pair contains exactly two trials.
+
+The Schur-decoupling scorer is a small two-parameter benchmark analogue of the objective in [IDTD (arXiv:2610.10905)](https://arxiv.org/abs/2610.10905). It does **not** reproduce IDTD's robot simulator, segmented command trajectories, policy optimization, CMA-ES, parameter estimation or real-robot experiment.
 
 ## Synthetic example
 
 The analytical fixture uses `mu=0.25`, `delta=0.02 rad`, `g=9.81 m/s^2`, and acceleration standard deviation `0.05 m/s^2`.
 
 Twelve repeated measurements at 30 degrees remain rank one. A two-trial design at 20 and 75 degrees stays within the sustained-downhill-sliding regime and becomes locally full rank with a well-conditioned information matrix. Five degrees is rejected for this model because gravity cannot sustain downhill sliding against the declared friction. These values are deterministic analytic outputs, not GAUGE physical results.
+
+A separate synthetic Fisher-matrix counterexample shows why D-optimality and parameter decoupling must both be reported. The correlated matrix `[[100,99],[99,100]]` has determinant 199 and therefore beats the independent `[[10,0],[0,10]]` matrix's determinant 100 under D-optimality. But the reduced IDTD-style Schur score strongly prefers the independent matrix because each parameter is separately identifiable. Neither objective is universally superior: one rewards total information volume; the other rewards per-parameter separability.
 
 ## Important limitations
 
