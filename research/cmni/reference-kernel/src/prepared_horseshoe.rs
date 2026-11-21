@@ -6,7 +6,7 @@
 
 use crate::{GlobalScalePrior, ModelError, RawScaleHorseshoePosterior};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PreparedRawScaleHorseshoeModel {
     observed: Vec<f64>,
     baseline_mean: Vec<f64>,
