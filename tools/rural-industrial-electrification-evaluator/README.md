@@ -91,3 +91,24 @@ The first fixture intentionally has two truck-only controls with explicit zero a
 
 The screen does **not** calculate axle loads, detailed CG, restraint, braking, crashworthiness, structure, thermal runaway propagation, HV isolation, EMC, cybersecurity, aircraft performance, aerodynamic energy, flight approval or economics. Those remain with the EV / road-dynamics, cargo, battery, airworthiness, site and factory qualification owners. It does not rank architecture options or authorize physical operation.
 
+
+
+## EV-CARRIER-ICD-001 — exact-revision interface compatibility
+
+The `ev_carrier_interface_compatibility_screen` binary compares one exact vehicle interface contract against one or more module configurations. It checks reciprocal port identity, interface family/revision, mating profile, provider/consumer direction, polarity, operating envelope, capacity and independently qualified evidence scoped to both exact configuration IDs.
+
+Run:
+
+```bash
+cargo run --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml --bin ev_carrier_interface_compatibility_screen -- \
+  tools/rural-industrial-electrification-evaluator/fixtures/ev_carrier_interface_contract_v0_1.json
+```
+
+A module is:
+- `compatible` only when every required interface matches and both mating ports carry independent-test receipts for the exact vehicle configuration, module configuration and interface revision;
+- `incompatible` when a declared interface or target-vehicle mismatch is known;
+- `indeterminate` when qualification, inventories, operating ranges or required capacity data are incomplete.
+
+The synthetic fixture intentionally produces two indeterminate configurations and two incompatible negative controls. No module is production released. The evaluator does not verify evidence file contents, calibration certificates or issuer signatures; it checks digest syntax, test-result state, timestamp shape and exact references only. The evaluator uses the fixture's deterministic `evaluation_time_utc`; independent-test receipts require a future `valid_until_utc`, and expired or missing expiry prevents qualification. The report records the evaluation time used. The result includes `evaluated_at_utc` and the canonical input digest binds that instant. Failed exact-scope independent tests block compatibility; inconclusive results remain indeterminate. It does not grant electrical, mechanical, flight or vehicle authority.
+
+Detailed interface model, result semantics, negative controls, current research and standards-applicability limits: [EV Carrier Interface Compatibility Screen v0.1](../../docs/research/EV_CARRIER_INTERFACE_COMPATIBILITY_SCREEN_V0_1.md).
