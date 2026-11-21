@@ -111,7 +111,7 @@ Events at distinct ticks are applied in event-time order. All active stock-chang
 
 - **World Bank Container Terminal Performance Improvement Guide (30 October 2026):** distinguishes terminal productivity and port-call indicators, and lays out port-call stages from arrival at port limits through pilotage, berth, cargo operations and departure. Some port-call metrics involve actors outside the terminal boundary.
 - **World Bank / S&P Global CPPI 2025:** measures vessel time in port using event-level port-call data; it is an important external benchmark but does not measure end-to-end inland delivery or queue-stock conservation.
-- **DCSA Port Call 2.0.0:** provides common timestamp semantics (estimated, requested, planned, actual), port-call services and event/facility distinctions including berth and pilot boarding place. This verifier deliberately consumes already-admitted typed event records; it does not replace the DCSA adapter or conformance suite.
+- **DCSA Port Call 2.0.0:** provides common timestamp semantics (estimated, requested, planned, actual), port-call services and event/facility distinctions including berth and pilot boarding place.\n- **DCSA Operational Vessel Schedules 3.0.2:** published 12 June 2026; adds `facilityTypeCode` to timestamp objects so BRTH and PBPL can be distinguished in vessel schedules. This is a separate DCSA profile from Port Call 2.0.0 and must not be merged into one unversioned timestamp vocabulary.\n- This verifier consumes already-admitted typed event records; it does not replace either DCSA adapter or conformance suite.
 - **S&P Global Port Performance data:** proprietary call-level benchmarking coverage. Do not scrape, copy or redistribute; seek lawful access where needed.
 
 References:
