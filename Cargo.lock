@@ -11780,4 +11780,5 @@ name = "rebco-long-length-auditor"
 version = "0.1.0"
 dependencies = [
  "serde_json",
+ "sha2",
 ]
