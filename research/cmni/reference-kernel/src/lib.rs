@@ -9,6 +9,9 @@
 
 use std::fmt;
 
+mod detector;
+pub use detector::DetectorResponseMatrix;
+
 mod measurement;
 pub use measurement::{
     apply_depth_observation_operator,
