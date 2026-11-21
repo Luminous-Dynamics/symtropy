@@ -64,7 +64,7 @@ A supplier assertion or provenance signature cannot stand in for structural capa
 
 ## Frozen corpus and baselines
 
-The corpus includes 40 synthetic known-answer and adversarial pairs. It covers identity, frame/units, geometry, pose tolerance, tooling, independent engagement verification, combined load capacity, stiffness, retention, material/process lineage, environment, service life, uncertainty, inspection access, fatigue, assembled load path, common-cause labels, stale evidence, digest mutation and ordering invariance.
+The corpus includes 44 synthetic known-answer and adversarial pairs. The latest four cases additionally reject evidence bound to the wrong article/configuration/ICD revision, duplicate load-case identities, and vacuous empty client load requirements. Each evidence record binds its subject, configuration and ICD revision; material-process evidence binds to the exact material-lineage reference. It covers identity, frame/units, geometry, pose tolerance, tooling, independent engagement verification, combined load capacity, stiffness, retention, material/process lineage, environment, service life, uncertainty, inspection access, fatigue, assembled load path, common-cause labels, stale evidence, digest mutation and ordering invariance.
 
 Weak baselines to report on this same frozen corpus:
 1. connector/name label only;
