@@ -194,6 +194,16 @@ fn has_not_applicable_review_reference(obligation: &Obligation) -> bool {
             .is_some_and(|value| !value.trim().is_empty())
 }
 
+fn required_obligation_count(obligations: &[Obligation]) -> usize {
+    obligations
+        .iter()
+        .filter(|obligation| {
+            obligation.criticality != Criticality::Informational
+                && !has_not_applicable_review_reference(obligation)
+        })
+        .count()
+}
+
 fn is_completed(outcome: TestOutcome) -> bool {
     matches!(outcome, TestOutcome::Passed | TestOutcome::Failed)
 }
@@ -285,7 +295,7 @@ fn evaluate_case(case: &CampaignCase) -> Result<Decision, String> {
         return Ok(Decision {
             disposition: Disposition::Rejected,
             covered: 0,
-            missing: case.obligations.len(),
+            missing: required_obligation_count(&case.obligations),
             eligible_runs: 0,
             failed_runs: 0,
             aborted_runs: 0,
@@ -320,7 +330,7 @@ fn evaluate_case(case: &CampaignCase) -> Result<Decision, String> {
                 return Ok(Decision {
                 disposition: Disposition::Rejected,
                 covered: 0,
-                missing: case.obligations.len(),
+                missing: required_obligation_count(&case.obligations),
                 eligible_runs: 0,
                 failed_runs: 0,
                 aborted_runs: 0,
@@ -351,7 +361,7 @@ fn evaluate_case(case: &CampaignCase) -> Result<Decision, String> {
             return Ok(Decision {
                 disposition: Disposition::Disputed,
                 covered: 0,
-                missing: case.obligations.len(),
+                missing: required_obligation_count(&case.obligations),
                 eligible_runs: 0,
                 failed_runs: 0,
                 aborted_runs: 0,
