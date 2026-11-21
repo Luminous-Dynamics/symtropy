@@ -980,6 +980,32 @@ pub fn audit_exchange_contract(root: &Value) -> Vec<String> {
         "EXCHANGE_REFERENCE_KERNEL",
         "reference impulse kernel must retain its first-order, no-renormalization and no-geometry-engine limits",
     );
+    push_if_missing(
+        &mut findings,
+        reference_kernel.and_then(|value| at(value, &["geometry_backend"])).is_some_and(|value| {
+            text_at(value, &["implementation"])
+                == Some("tools/ehd-reference-audit/src/geometry.rs")
+                && text_at(value, &["geometry"]) == Some("axis_aligned_space_time_boxes")
+                && at(value, &["supported_dimensions"]).and_then(Value::as_array)
+                    .is_some_and(|dims| dims.len() == 3
+                        && dims[0].as_u64() == Some(2)
+                        && dims[1].as_u64() == Some(3)
+                        && dims[2].as_u64() == Some(4))
+                && at(value, &["checks"]).and_then(Value::as_array)
+                    .is_some_and(|checks| checks.iter().any(|v| v.as_str()
+                        == Some("pairwise_disjoint_destination_intersections_within_source"))
+                        && checks.iter().any(|v| v.as_str()
+                        == Some("complete_source_measure_coverage")))
+                && at(value, &["limitations"]).and_then(Value::as_array)
+                    .is_some_and(|limits| limits.iter().any(|v| v.as_str()
+                        == Some("axis_aligned_boxes_only"))
+                        && limits.iter().any(|v| v.as_str()
+                        == Some("not_general_unstructured_polyhedra")))
+        }),
+        "EXCHANGE_GEOMETRY_BACKEND",
+        "axis-aligned space-time intersection backend must enforce pairwise overlap and full coverage and retain its limited geometry scope",
+    );
+
     let interoperability = at(root, &["exchange_mapping", "industry_interoperability"]);
     push_if_missing(
         &mut findings,
@@ -1556,6 +1582,14 @@ mod tests {
         assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_DESIGN_FACTOR_SET"));
     }
 
+
+    #[test]
+    fn geometry_backend_scope_and_overlap_checks_are_mandatory() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_CONTRACT).unwrap();
+        value["exchange_mapping"]["reference_kernel"]["geometry_backend"]["limitations"] =
+            Value::Array(vec![Value::String("none".into())]);
+        assert!(has_code(&audit_exchange_contract(&value), "EXCHANGE_GEOMETRY_BACKEND"));
+    }
 
     #[test]
     fn exchange_reference_kernel_keeps_its_limited_first_order_scope() {
