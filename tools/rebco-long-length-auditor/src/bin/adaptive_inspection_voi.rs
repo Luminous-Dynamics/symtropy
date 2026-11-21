@@ -840,7 +840,7 @@ mod tests {
     #[test]
     fn abstains_when_no_unused_action_fits_budget() {
         let mut value = fixture();
-        value["application_profile"]["total_inspection_budget_loss_units"] = json!(0.5);
+        value["application_profile"]["total_inspection_budget_loss_units"] = json!(0.4);
         let report = audit_document(&value).expect("fixture should validate");
         assert_eq!(
             report["recommendation"]["status"],
@@ -883,8 +883,8 @@ mod tests {
     #[test]
     fn rejects_duplicate_scenario_ids() {
         let mut value = fixture();
-        value["prior_scenarios"][1]["scenario_id"] =
-            value["prior_scenarios"][0]["scenario_id"].clone();
+        let first_id = value["prior_scenarios"][0]["scenario_id"].clone();
+        value["prior_scenarios"][1]["scenario_id"] = first_id;
         assert!(
             audit_document(&value)
                 .unwrap_err()
