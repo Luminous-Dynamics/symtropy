@@ -339,6 +339,20 @@ fn find_vehicle_port<'a>(
     vehicle.ports.iter().find(|port| port.port_id == port_id)
 }
 
+fn add_interface_finding(
+    findings: &mut Vec<String>,
+    status: &mut CompatibilityStatus,
+    result: CompatibilityStatus,
+    finding: &str,
+) {
+    findings.push(finding.to_string());
+    if result == CompatibilityStatus::Incompatible
+        || *status != CompatibilityStatus::Incompatible
+    {
+        *status = result;
+    }
+}
+
 fn evaluate_interface(
     vehicle: &VehicleInterfaceContract,
     module: &ModuleInterfaceContract,
@@ -370,36 +384,27 @@ fn evaluate_interface(
         };
     };
 
-    let mut mark_incompatible = |finding: &str| {
-        findings.push(finding.to_string());
-        status = CompatibilityStatus::Incompatible;
-    };
-    let mut mark_indeterminate = |finding: &str| {
-        findings.push(finding.to_string());
-        if status != CompatibilityStatus::Incompatible {
-            status = CompatibilityStatus::Indeterminate;
-        }
-    };
+
 
     if vehicle_port.mate_port_id != module_port.port_id {
-        mark_incompatible("mate_port_identity_not_reciprocal");
+        add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "mate_port_identity_not_reciprocal");
     }
     if vehicle_port.family != module_port.family {
-        mark_incompatible("interface_family_mismatch");
+        add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "interface_family_mismatch");
     }
     if vehicle_port.interface_revision != module_port.interface_revision {
-        mark_incompatible("interface_revision_mismatch");
+        add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "interface_revision_mismatch");
     }
     if vehicle_port.profile_id != module_port.profile_id {
-        mark_incompatible("interface_profile_mismatch");
+        add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "interface_profile_mismatch");
     }
     if !directions_mate(vehicle_port.direction, module_port.direction) {
-        mark_incompatible("port_direction_mismatch");
+        add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "port_direction_mismatch");
     }
 
     match (&vehicle_port.polarity_profile, &module_port.polarity_profile) {
         (Some(left), Some(right)) if left != right => {
-            mark_incompatible("polarity_profile_mismatch");
+            add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "polarity_profile_mismatch");
         }
         (None, None) => {}
         (Some(_), None) | (None, Some(_))
@@ -408,7 +413,7 @@ fn evaluate_interface(
                 InterfaceFamily::HighVoltageDc | InterfaceFamily::LowVoltageDc
             ) =>
         {
-            mark_indeterminate("required_polarity_profile_missing");
+            add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Indeterminate, "required_polarity_profile_missing");
         }
         _ => {}
     }
@@ -416,11 +421,11 @@ fn evaluate_interface(
     match (&vehicle_port.operating_range, &module_port.operating_range) {
         (Some(provider), Some(consumer)) => {
             if provider.unit != consumer.unit {
-                mark_incompatible("operating_range_unit_mismatch");
+                add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "operating_range_unit_mismatch");
             } else if provider.minimum < consumer.minimum
                 || provider.maximum > consumer.maximum
             {
-                mark_incompatible("provider_operating_range_outside_consumer_acceptance");
+                add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "provider_operating_range_outside_consumer_acceptance");
             }
         }
         (None, None) => {
@@ -430,18 +435,18 @@ fn evaluate_interface(
                     | InterfaceFamily::LowVoltageDc
                     | InterfaceFamily::ThermalFluid
             ) {
-                mark_indeterminate("required_operating_range_missing");
+                add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Indeterminate, "required_operating_range_missing");
             }
         }
-        _ => mark_indeterminate("operating_range_incomplete"),
+        _ => add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Indeterminate, "operating_range_incomplete"),
     }
 
     match (&vehicle_port.capacity_limit, &module_port.capacity_required) {
         (Some(limit), Some(required)) => {
             if limit.unit != required.unit {
-                mark_incompatible("capacity_unit_mismatch");
+                add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "capacity_unit_mismatch");
             } else if limit.value + f64::EPSILON < required.value {
-                mark_incompatible("provider_capacity_below_module_requirement");
+                add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "provider_capacity_below_module_requirement");
             }
         }
         (None, None) => {
@@ -454,10 +459,10 @@ fn evaluate_interface(
                     | InterfaceFamily::CargoRetention
                     | InterfaceFamily::Service
             ) {
-                mark_indeterminate("required_capacity_limit_or_demand_missing");
+                add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Indeterminate, "required_capacity_limit_or_demand_missing");
             }
         }
-        _ => mark_indeterminate("capacity_limit_or_demand_incomplete"),
+        _ => add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Indeterminate, "capacity_limit_or_demand_incomplete"),
     }
 
     if !evidence_is_qualified(
@@ -471,7 +476,7 @@ fn evaluate_interface(
         module,
         &module_port.interface_revision,
     ) {
-        mark_indeterminate("independent_exact_configuration_qualification_not_present_on_both_ports");
+        add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Indeterminate, "independent_exact_configuration_qualification_not_present_on_both_ports");
     }
 
     findings.sort();
@@ -560,9 +565,10 @@ pub fn evaluate_compatibility(
             interfaces.push(evaluate_interface(&canonical.vehicle, module, port));
         }
 
-        if module.target_vehicle_family_id != canonical.vehicle.vehicle_family_id
-            || module.target_vehicle_revision != canonical.vehicle.vehicle_revision
-        {
+        let target_vehicle_mismatch =
+            module.target_vehicle_family_id != canonical.vehicle.vehicle_family_id
+                || module.target_vehicle_revision != canonical.vehicle.vehicle_revision;
+        if target_vehicle_mismatch {
             for finding in &mut interfaces {
                 if finding.status == CompatibilityStatus::Compatible {
                     finding.status = CompatibilityStatus::Incompatible;
@@ -587,7 +593,7 @@ pub fn evaluate_compatibility(
             .filter(|item| item.status == CompatibilityStatus::Indeterminate)
             .count();
 
-        let status = if incompatible > 0 {
+        let status = if target_vehicle_mismatch || incompatible > 0 {
             CompatibilityStatus::Incompatible
         } else if indeterminate > 0
             || !module.interface_inventory_complete
