@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 
 pub const CORPUS_SCHEMA: &str = "luminous.orbital-structural-interface.corpus.v0.1";
 pub const RECEIPT_SCHEMA: &str = "luminous.orbital-structural-interface.receipt.v0.1";
