@@ -35,6 +35,7 @@ fn naive_baselines_expose_nominal_cycle_and_interaction_failures() {
         .find(|item| item.case_id == "case-04-ofat-does-not-cover-required-pair")
         .expect("OFAT counterexample exists");
     assert_eq!(ofat.ofat_false_coverage_count, 1);
+    assert_eq!(ofat.pairwise_false_coverage_count, 0);
     assert_eq!(ofat.disposition, Disposition::CoverageGap);
 
     let pairwise = report
