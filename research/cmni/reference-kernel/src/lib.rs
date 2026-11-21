@@ -132,6 +132,73 @@ where
     Ok(cross_section)
 }
 
+/// One light-output slice of the source-described EJ-309 neutron PSD gate.
+///
+/// Values are source-calibrated metadata; this type does not estimate gamma
+/// distributions or detector efficiency. For the 2025 paper, slices were
+/// 5 keVee wide, the lower PSD boundary was mu_gamma + 5*sigma_gamma, the
+/// upper boundary was another 0.2 PSD units above it, and light output below
+/// 50 keVee was rejected.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PsdGateSlice {
+    pub light_output_min_kev_ee: f64,
+    pub light_output_max_kev_ee: f64,
+    pub gamma_mean_psd: f64,
+    pub gamma_sigma_psd: f64,
+    pub upper_offset_psd: f64,
+}
+
+/// Apply one calibrated neutron PSD slice to a pulse observation.
+///
+/// Returns false for observations outside the slice or below the configured
+/// light-output threshold. Returns an error for malformed calibration values.
+pub fn neutron_psd_gate_accepts(
+    light_output_kev_ee: f64,
+    psd_value: f64,
+    min_light_output_kev_ee: f64,
+    slice: PsdGateSlice,
+) -> Result<bool, ModelError> {
+    for (value, name) in [
+        (light_output_kev_ee, "light_output_keVee"),
+        (psd_value, "psd_value"),
+        (min_light_output_kev_ee, "minimum_light_output_keVee"),
+        (slice.light_output_min_kev_ee, "slice_light_output_min_keVee"),
+        (slice.light_output_max_kev_ee, "slice_light_output_max_keVee"),
+        (slice.gamma_mean_psd, "gamma_mean_psd"),
+        (slice.gamma_sigma_psd, "gamma_sigma_psd"),
+        (slice.upper_offset_psd, "upper_offset_psd"),
+    ] {
+        if !value.is_finite() {
+            return Err(ModelError::NonFiniteValue(name));
+        }
+    }
+    if slice.light_output_min_kev_ee < 0.0
+        || slice.light_output_max_kev_ee <= slice.light_output_min_kev_ee
+    {
+        return Err(ModelError::InvalidParameter("invalid_light_output_slice_bounds"));
+    }
+    if slice.gamma_sigma_psd <= 0.0 {
+        return Err(ModelError::NonPositiveValue("gamma_sigma_psd"));
+    }
+    if slice.upper_offset_psd <= 0.0 {
+        return Err(ModelError::NonPositiveValue("upper_offset_psd"));
+    }
+    if min_light_output_kev_ee < 0.0 {
+        return Err(ModelError::InvalidParameter("minimum_light_output_must_be_nonnegative"));
+    }
+
+    if light_output_kev_ee < min_light_output_kev_ee
+        || light_output_kev_ee < slice.light_output_min_kev_ee
+        || light_output_kev_ee >= slice.light_output_max_kev_ee
+    {
+        return Ok(false);
+    }
+
+    let lower = slice.gamma_mean_psd + 5.0 * slice.gamma_sigma_psd;
+    let upper = lower + slice.upper_offset_psd;
+    Ok(psd_value >= lower && psd_value <= upper)
+}
+
 /// One per-deuteron component in a prompt-dissociation beam model.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BeamEnergyComponent {
@@ -579,6 +646,54 @@ mod tests {
             |_| 1.0e8,       // synthetic stopping, keV_cm/cm
             |_| screening,   // synthetic effective screening potential, keV
         )
+    }
+
+    fn example_psd_slice() -> PsdGateSlice {
+        PsdGateSlice {
+            light_output_min_kev_ee: 50.0,
+            light_output_max_kev_ee: 55.0,
+            gamma_mean_psd: 0.15,
+            gamma_sigma_psd: 0.02,
+            upper_offset_psd: 0.2,
+        }
+    }
+
+    #[test]
+    fn neutron_psd_gate_accepts_inside_source_defined_window() {
+        assert!(neutron_psd_gate_accepts(52.5, 0.27, 50.0, example_psd_slice())
+            .expect("valid PSD gate"));
+    }
+
+    #[test]
+    fn neutron_psd_gate_rejects_light_output_below_threshold() {
+        assert!(!neutron_psd_gate_accepts(49.9, 0.27, 50.0, example_psd_slice())
+            .expect("valid PSD gate"));
+    }
+
+    #[test]
+    fn neutron_psd_gate_rejects_gamma_side_of_lower_boundary() {
+        assert!(!neutron_psd_gate_accepts(52.5, 0.249, 50.0, example_psd_slice())
+            .expect("valid PSD gate"));
+    }
+
+    #[test]
+    fn neutron_psd_gate_rejects_above_upper_psd_boundary() {
+        assert!(!neutron_psd_gate_accepts(52.5, 0.351, 50.0, example_psd_slice())
+            .expect("valid PSD gate"));
+    }
+
+    #[test]
+    fn neutron_psd_gate_rejects_nonfinite_and_invalid_calibration() {
+        assert_eq!(
+            neutron_psd_gate_accepts(f64::NAN, 0.27, 50.0, example_psd_slice()),
+            Err(ModelError::NonFiniteValue("light_output_keVee"))
+        );
+        let mut invalid = example_psd_slice();
+        invalid.gamma_sigma_psd = 0.0;
+        assert_eq!(
+            neutron_psd_gate_accepts(52.5, 0.27, 50.0, invalid),
+            Err(ModelError::NonPositiveValue("gamma_sigma_psd"))
+        );
     }
 
     #[test]
