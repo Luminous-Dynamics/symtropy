@@ -202,6 +202,7 @@ pub struct CallReport {
     pub receiver_id: String,
     pub geofence_digest: String,
     pub spatial_reference_id: String,
+    pub profile: DwellProfile,
     pub profile_version: String,
     pub initial_state: ServiceState,
     pub initial_state_evidence_id: Option<String>,
@@ -504,7 +505,6 @@ pub fn evaluate_call_with_initial_state(
             .checked_sub(current.first_tick)
             .ok_or_else(|| "candidate dwell duration overflow".to_string())?;
         if candidate_duration < required_dwell || current.supporting_fix_count < 2 {
-
             continue;
         }
 
@@ -528,6 +528,7 @@ pub fn evaluate_call_with_initial_state(
         receiver_id,
         geofence_digest,
         spatial_reference_id,
+        profile: profile.clone(),
         profile_version: profile.version.clone(),
         initial_state,
         initial_state_evidence_id: initial_state_evidence_id.map(str::to_string),
