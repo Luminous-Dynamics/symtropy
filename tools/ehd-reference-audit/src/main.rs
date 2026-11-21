@@ -186,20 +186,25 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
             .and_then(Value::as_array);
 
         let source_points_match = figure3.is_some_and(|rows| {
-            row_matches(&rows[0], &[("gap_mm", 20.0), ("pressure_pa", 100.0), ("ignition_voltage_kv", 7.29)])
-                && row_matches(&rows[44], &[("gap_mm", 60.0), ("pressure_pa", 20.0), ("ignition_voltage_kv", 5.12)])
+            rows.len() == 45
+                && rows.first().is_some_and(|row| row_matches(row, &[("gap_mm", 20.0), ("pressure_pa", 100.0), ("ignition_voltage_kv", 7.29)]))
+                && rows.get(44).is_some_and(|row| row_matches(row, &[("gap_mm", 60.0), ("pressure_pa", 20.0), ("ignition_voltage_kv", 5.12)]))
         }) && figure4.is_some_and(|rows| {
-            row_matches(&rows[0], &[("pressure_gap_pa_m", 400.0), ("breakdown_voltage_kv", 7.5395)])
-                && row_matches(&rows[29], &[("pressure_gap_pa_m", 3500.0), ("breakdown_voltage_kv", 24.7899)])
+            rows.len() == 30
+                && rows.first().is_some_and(|row| row_matches(row, &[("pressure_gap_pa_m", 400.0), ("breakdown_voltage_kv", 7.5395)]))
+                && rows.get(29).is_some_and(|row| row_matches(row, &[("pressure_gap_pa_m", 3500.0), ("breakdown_voltage_kv", 24.7899)]))
         }) && figure5.is_some_and(|rows| {
-            row_matches(&rows[0], &[("gap_mm", 20.0), ("pressure_pa", 20000.0), ("delta_voltage_kv", 4.5195)])
-                && row_matches(&rows[28], &[("gap_mm", 50.0), ("pressure_pa", 70000.0), ("delta_voltage_kv", 16.6149)])
+            rows.len() == 29
+                && rows.first().is_some_and(|row| row_matches(row, &[("gap_mm", 20.0), ("pressure_pa", 20000.0), ("delta_voltage_kv", 4.5195)]))
+                && rows.get(28).is_some_and(|row| row_matches(row, &[("gap_mm", 50.0), ("pressure_pa", 70000.0), ("delta_voltage_kv", 16.6149)]))
         }) && figure12_ta.is_some_and(|rows| {
-            row_matches(&rows[0], &[("altitude_km", 0.11090105), ("percentage_variation", 0.0)])
-                && row_matches(&rows[16], &[("altitude_km", 11.7763701), ("percentage_variation", -80.33792326)])
+            rows.len() == 17
+                && rows.first().is_some_and(|row| row_matches(row, &[("altitude_km", 0.11090105), ("percentage_variation", 0.0)]))
+                && rows.get(16).is_some_and(|row| row_matches(row, &[("altitude_km", 11.7763701), ("percentage_variation", -80.33792326)]))
         }) && figure12_tp.is_some_and(|rows| {
-            row_matches(&rows[0], &[("altitude_km", 0.11090105), ("percentage_variation", 0.0)])
-                && row_matches(&rows[16], &[("altitude_km", 11.7763701), ("percentage_variation", -78.04621025)])
+            rows.len() == 17
+                && rows.first().is_some_and(|row| row_matches(row, &[("altitude_km", 0.11090105), ("percentage_variation", 0.0)]))
+                && rows.get(16).is_some_and(|row| row_matches(row, &[("altitude_km", 11.7763701), ("percentage_variation", -78.04621025)]))
         });
         push_if_missing(
             &mut findings,
