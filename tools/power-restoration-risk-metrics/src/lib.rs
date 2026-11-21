@@ -492,13 +492,23 @@ fn maybe_distribution(values: Vec<f64>) -> Result<Option<DistributionStats>, Str
     }
 }
 
-fn summarize_operational(episodes: &[EpisodeRecord]) -> Result<OperationalMetrics, String> {
+fn summarize_operational(
+    episodes: &[EpisodeRecord],
+    actions: &[ActionAdjudicationRecord],
+) -> Result<OperationalMetrics, String> {
     Ok(OperationalMetrics {
         elapsed_ms: maybe_distribution(
             episodes
                 .iter()
                 .filter_map(|e| e.operational.elapsed_ms)
                 .map(|v| v as f64)
+                .collect(),
+        )?,
+        decision_latency_ms: maybe_distribution(
+            actions
+                .iter()
+                .filter_map(|action| action.decision_latency_ms)
+                .map(|value| value as f64)
                 .collect(),
         )?,
         token_count: maybe_distribution(
