@@ -150,7 +150,7 @@ pub fn assemble_joint_experiment_covariance(
 
     let mut joint = vec![vec![0.0; total_observations]; total_observations];
     for (experiment_index, experiment) in experiments.iter().enumerate() {
-        let (start, end) = experiment_ranges[experiment_index];
+        let (start, _) = experiment_ranges[experiment_index];
         for (row_index, row) in experiment
             .independent_observation_covariance
             .iter()
@@ -164,11 +164,9 @@ pub fn assemble_joint_experiment_covariance(
 
     // Iterate only over the upper block triangle. Mirror the off-diagonal
     // covariance block explicitly to preserve exact numerical symmetry.
-    for left_index in 0..experiments.len() {
-        let left_experiment = &experiments[left_index];
+    for (left_index, left_experiment) in experiments.iter().enumerate() {
         let (left_start, left_end) = experiment_ranges[left_index];
-        for right_index in left_index..experiments.len() {
-            let right_experiment = &experiments[right_index];
+        for (right_index, right_experiment) in experiments.iter().enumerate().skip(left_index) {
             let (right_start, right_end) = experiment_ranges[right_index];
 
             for left_source in &left_experiment.shared_sources {
@@ -237,7 +235,7 @@ fn matrices_approximately_equal(left: &[Vec<f64>], right: &[Vec<f64>]) -> bool {
         left_row
             .iter()
             .zip(right_row.iter())
-            .all(|(left, right)| (left - right).abs() <= tolerance)
+            .all(|(left, right)| (*left - *right).abs() <= tolerance)
     })
 }
 
@@ -266,19 +264,23 @@ fn validate_covariance(matrix: &[Vec<f64>], name: &'static str) -> Result<(), Mo
     // Semidefinite Cholesky validation: zero pivots are allowed only when the
     // associated residual off-diagonal terms are also numerically zero.
     let mut lower = vec![vec![0.0; dimension]; dimension];
-    for row in 0..dimension {
-        for column in 0..=row {
-            let mut value = matrix[row][column];
-            for inner in 0..column {
-                value -= lower[row][inner] * lower[column][inner];
-            }
-            if row == column {
+    for (row_index, row) in matrix.iter().enumerate() {
+        for (column_index, entry) in row.iter().enumerate().take(row_index + 1) {
+            let correction: f64 = lower[row_index][..column_index]
+                .iter()
+                .zip(lower[column_index][..column_index].iter())
+                .map(|(left, right)| *left * *right)
+                .sum();
+            let value = *entry - correction;
+            if row_index == column_index {
                 if value < -tolerance {
                     return Err(ModelError::InvalidCovariance(name));
                 }
-                lower[row][column] = if value > 0.0 { value.sqrt() } else { 0.0 };
-            } else if lower[column][column] > 0.0 {
-                lower[row][column] = value / lower[column][column];
+                lower[row_index][column_index] =
+                    if value > 0.0 { value.sqrt() } else { 0.0 };
+            } else if lower[column_index][column_index] > 0.0 {
+                lower[row_index][column_index] =
+                    value / lower[column_index][column_index];
             } else if value.abs() > tolerance {
                 return Err(ModelError::InvalidCovariance(name));
             }
@@ -307,7 +309,7 @@ fn matrix_multiply(left: &[Vec<f64>], right: &[Vec<f64>]) -> Result<Vec<Vec<f64>
             *output_value = left[row_index]
                 .iter()
                 .zip(right.iter().map(|row| row[column_index]))
-                .map(|(left, right)| left * right)
+                .map(|(left, right)| *left * right)
                 .sum();
         }
     }
