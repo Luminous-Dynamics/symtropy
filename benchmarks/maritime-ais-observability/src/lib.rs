@@ -747,18 +747,19 @@ mod tests {
         let first = fix(0, "m0", Zone::Outside, 0);
         let mut changed_receiver = fix(1, "m1", Zone::Outside, 0);
         changed_receiver.receiver_id = "RX_DURBAN_TEST_B".to_string();
-        assert!(
-            evaluate_from_baselined_outside(
-                &[first.clone(), changed_receiver],
-                &default_profile()
-            )
-            .events
-            .is_empty()
-        );
+        let receiver_error = evaluate_call_with_initial_state(
+            "563123456",
+            ServiceState::Outside,
+            Some("SYNTHETIC_OUTSIDE_BASELINE_V0_1"),
+            &[first.clone(), changed_receiver],
+            &default_profile(),
+        )
+        .expect_err("mixed receiver must reject");
+        assert!(receiver_error.contains("receiver identity changed"));
 
         let mut changed_crs = fix(1, "m1", Zone::Outside, 0);
         changed_crs.spatial_reference_id = "EPSG:3857".to_string();
-        let error = evaluate_call_with_initial_state(
+        let spatial_error = evaluate_call_with_initial_state(
             "563123456",
             ServiceState::Outside,
             Some("SYNTHETIC_OUTSIDE_BASELINE_V0_1"),
@@ -766,7 +767,7 @@ mod tests {
             &default_profile(),
         )
         .expect_err("mixed spatial reference must reject");
-        assert!(error.contains("spatial reference changed"));
+        assert!(spatial_error.contains("spatial reference changed"));
     }
 
     #[test]
