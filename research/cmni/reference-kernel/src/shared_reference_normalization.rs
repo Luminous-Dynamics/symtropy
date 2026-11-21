@@ -29,6 +29,77 @@
 
 use crate::ModelError;
 
+/// Build trapezoidal integration weights for a strictly increasing energy grid.
+pub fn trapezoidal_integration_weights(energies: &[f64]) -> Result<Vec<f64>, ModelError> {
+    if energies.len() < 2 {
+        return Err(ModelError::MismatchedDataLengths);
+    }
+    if energies.iter().any(|value| !value.is_finite()) {
+        return Err(ModelError::NonFiniteValue("trapezoid_energy_grid"));
+    }
+    if energies.windows(2).any(|pair| pair[1] <= pair[0]) {
+        return Err(ModelError::InvalidParameter(
+            "trapezoid_energy_grid_must_be_strictly_increasing",
+        ));
+    }
+
+    let mut weights = vec![0.0; energies.len()];
+    weights[0] = 0.5 * (energies[1] - energies[0]);
+    for (index, pair) in energies.windows(3).enumerate() {
+        weights[index + 1] = 0.5 * (pair[2] - pair[0]);
+    }
+    let last = energies.len() - 1;
+    weights[last] = 0.5 * (energies[last] - energies[last - 1]);
+    if weights.iter().any(|value| !value.is_finite() || *value <= 0.0) {
+        return Err(ModelError::InvalidParameter("trapezoid_weights_invalid"));
+    }
+    Ok(weights)
+}
+
+/// Construct the piecewise-linear reference-to-observation projection used by
+/// one-dimensional linear interpolation. Extrapolation is rejected explicitly.
+pub fn linear_reference_projection(
+    reference_energies: &[f64],
+    observation_energies: &[f64],
+) -> Result<Vec<Vec<f64>>, ModelError> {
+    if reference_energies.len() < 2 || observation_energies.is_empty() {
+        return Err(ModelError::MismatchedDataLengths);
+    }
+    for grid in [reference_energies, observation_energies] {
+        if grid.iter().any(|value| !value.is_finite()) {
+            return Err(ModelError::NonFiniteValue("linear_projection_energy_grid"));
+        }
+        if grid.windows(2).any(|pair| pair[1] <= pair[0]) {
+            return Err(ModelError::InvalidParameter(
+                "linear_projection_energy_grid_must_be_strictly_increasing",
+            ));
+        }
+    }
+
+    let mut projection =
+        vec![vec![0.0; reference_energies.len()]; observation_energies.len()];
+    for (row_index, energy) in observation_energies.iter().enumerate() {
+        if *energy < reference_energies[0]
+            || *energy > reference_energies[reference_energies.len() - 1]
+        {
+            return Err(ModelError::InvalidParameter(
+                "linear_reference_projection_would_extrapolate",
+            ));
+        }
+        match reference_energies.binary_search_by(|probe| probe.total_cmp(energy)) {
+            Ok(exact_index) => projection[row_index][exact_index] = 1.0,
+            Err(upper_index) => {
+                let lower_index = upper_index - 1;
+                let fraction = (energy - reference_energies[lower_index])
+                    / (reference_energies[upper_index] - reference_energies[lower_index]);
+                projection[row_index][lower_index] = 1.0 - fraction;
+                projection[row_index][upper_index] = fraction;
+            }
+        }
+    }
+    Ok(projection)
+}
+
 /// Inputs for one experiment normalized against a shared reference.
 pub struct SharedReferenceNormalizationInput<'a> {
     /// Raw, unnormalized observations on this experiment's energy grid.
@@ -282,6 +353,49 @@ fn validate_symmetric_finite_covariance(
             }
         }
     }
+    validate_positive_semidefinite(matrix, name)?;
+    Ok(())
+}
+
+fn validate_positive_semidefinite(
+    matrix: &[Vec<f64>],
+    name: &'static str,
+) -> Result<(), ModelError> {
+    let dimension = matrix.len();
+    let scale = matrix
+        .iter()
+        .flatten()
+        .map(|value| value.abs())
+        .fold(0.0_f64, f64::max);
+    let tolerance = 1.0e-12 * scale.max(f64::MIN_POSITIVE);
+    let mut lower = vec![vec![0.0; dimension]; dimension];
+    for (row_index, row) in matrix.iter().enumerate() {
+        for (column_index, entry) in row.iter().enumerate().take(row_index + 1) {
+            let correction: f64 = lower[row_index][..column_index]
+                .iter()
+                .zip(lower[column_index][..column_index].iter())
+                .map(|(left, right)| left * right)
+                .sum();
+            let value = *entry - correction;
+            if row_index == column_index {
+                if value < -tolerance {
+                    return Err(ModelError::InvalidCovariance(name));
+                }
+                lower[row_index][column_index] = if value > 0.0 {
+                    value.sqrt()
+                } else {
+                    0.0
+                };
+            } else {
+                let pivot = lower[column_index][column_index];
+                if pivot > 0.0 {
+                    lower[row_index][column_index] = value / pivot;
+                } else if value.abs() > tolerance {
+                    return Err(ModelError::InvalidCovariance(name));
+                }
+            }
+        }
+    }
     Ok(())
 }
 
@@ -408,6 +522,116 @@ fn dot(left: &[f64], right: &[f64]) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn trapezoid_weights_match_nonuniform_grid_integral() {
+        let weights = trapezoidal_integration_weights(&[1.0, 2.0, 4.0]).expect("weights");
+        assert_eq!(weights, vec![0.5, 1.5, 1.0]);
+        let integral = dot(&[2.0, 4.0, 8.0], &weights);
+        assert_eq!(integral, 13.0);
+    }
+
+    #[test]
+    fn linear_reference_projection_matches_piecewise_linear_interpolation() {
+        let projection = linear_reference_projection(
+            &[1.0, 2.0, 4.0],
+            &[1.5, 3.0, 4.0],
+        )
+        .expect("projection");
+        assert_eq!(
+            projection,
+            vec![
+                vec![0.5, 0.5, 0.0],
+                vec![0.0, 0.5, 0.5],
+                vec![0.0, 0.0, 1.0],
+            ]
+        );
+    }
+
+    #[test]
+    fn linear_reference_projection_rejects_extrapolation_and_bad_grids() {
+        assert_eq!(
+            linear_reference_projection(&[1.0, 2.0], &[0.5]),
+            Err(ModelError::InvalidParameter(
+                "linear_reference_projection_would_extrapolate",
+            ))
+        );
+        assert_eq!(
+            trapezoidal_integration_weights(&[1.0, 1.0]),
+            Err(ModelError::InvalidParameter(
+                "trapezoid_energy_grid_must_be_strictly_increasing",
+            ))
+        );
+    }
+
+    #[test]
+    fn covariance_validation_rejects_indefinite_reference_or_observation_covariance() {
+        assert_eq!(
+            validate_symmetric_finite_covariance(
+                &[vec![1.0, 2.0], vec![2.0, 1.0]],
+                "test_covariance"
+            ),
+            Err(ModelError::InvalidCovariance("test_covariance"))
+        );
+    }
+
+    #[test]
+    fn normalization_jacobians_match_finite_differences() {
+        let observed = [2.0, 4.0];
+        let reference = [3.0, 5.0];
+        let weights = [0.5, 0.5];
+        let projection = [vec![1.0, 0.0], vec![0.0, 1.0]];
+        let identity_covariance = [vec![1.0, 0.0], vec![0.0, 1.0]];
+        let baseline = normalize_spectrum_with_shared_reference(
+            SharedReferenceNormalizationInput {
+                observations: &observed,
+                observation_covariance: &identity_covariance,
+                reference_values: &reference,
+                reference_covariance: &identity_covariance,
+                reference_projection: &projection,
+                integration_weights: &weights,
+            },
+        )
+        .expect("baseline normalization");
+        let epsilon = 1.0e-6;
+        let perturbed_observations = [observed[0] + epsilon, observed[1]];
+        let observation_perturbation = normalize_spectrum_with_shared_reference(
+            SharedReferenceNormalizationInput {
+                observations: &perturbed_observations,
+                observation_covariance: &identity_covariance,
+                reference_values: &reference,
+                reference_covariance: &identity_covariance,
+                reference_projection: &projection,
+                integration_weights: &weights,
+            },
+        )
+        .expect("observation perturbation");
+        let observed_derivative = (observation_perturbation.normalized_values[0]
+            - baseline.normalized_values[0])
+            / epsilon;
+        assert!(
+            (observed_derivative - baseline.observation_jacobian[0][0]).abs() < 1.0e-6
+        );
+
+        let perturbed_reference = [reference[0] + epsilon, reference[1]];
+        let reference_perturbation = normalize_spectrum_with_shared_reference(
+            SharedReferenceNormalizationInput {
+                observations: &observed,
+                observation_covariance: &identity_covariance,
+                reference_values: &perturbed_reference,
+                reference_covariance: &identity_covariance,
+                reference_projection: &projection,
+                integration_weights: &weights,
+            },
+        )
+        .expect("reference perturbation");
+        let reference_derivative = (reference_perturbation.normalized_values[0]
+            - baseline.normalized_values[0])
+            / epsilon;
+        assert!(
+            (reference_derivative - baseline.reference_jacobian[0][0]).abs() < 1.0e-6
+        );
+    }
 
     #[test]
     fn normalization_integral_matches_shared_reference_integral() {
