@@ -1223,18 +1223,18 @@ mod tests {
                 branch_id: branch.branch_id.clone(),
                 equipment_kind: BranchEquipmentKind::OverheadLine,
                 conductors: conductors.clone(),
-                primitive_impedance: PrimitiveImpedanceMatrix {
+                primitive_impedance: Some(PrimitiveImpedanceMatrix {
                     unit: PrimitiveMatrixUnit::OhmPerKm,
                     conductor_order: conductors.clone(),
                     resistance_ohm_per_km_or_base: r,
                     reactance_ohm_per_km_or_base: x,
-                },
-                sequence_impedance: SequenceImpedance {
+                }),
+                sequence_impedance: Some(SequenceImpedance {
                     positive: ComplexValue { real: 0.2, imaginary: 0.4 },
                     negative: ComplexValue { real: 0.21, imaginary: 0.41 },
                     zero: ComplexValue { real: 0.5, imaginary: 1.2 },
                     unit: "ohm".to_string(),
-                },
+                }),
                 current_ratings: conductors.iter().map(|conductor| ConductorCurrentRating {
                     conductor: *conductor,
                     continuous_ampacity_a: 400.0,
@@ -1261,12 +1261,12 @@ mod tests {
                 PhaseVoltage { phase: Conductor::B, line_neutral_kv: 7.2, angle_degrees: -120.0 },
                 PhaseVoltage { phase: Conductor::C, line_neutral_kv: 7.2, angle_degrees: 120.0 },
             ],
-            sequence_impedance: SequenceImpedance {
+            sequence_impedance: Some(SequenceImpedance {
                 positive: ComplexValue { real: 0.05, imaginary: 0.4 },
                 negative: ComplexValue { real: 0.05, imaginary: 0.4 },
                 zero: ComplexValue { real: 0.15, imaginary: 0.9 },
                 unit: "ohm".to_string(),
-            },
+            }),
             short_circuit_power_mva: 250.0,
             x_over_r_ratio: 8.0,
             evidence: evidence(&format!("source-{}", source.source_id)),
