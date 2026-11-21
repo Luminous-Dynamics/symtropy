@@ -284,11 +284,11 @@ fn path_labels(relative_path: &str) -> (String, Option<String>, Option<String>, 
     let mut subtask = None;
     let mut rest = directories_after_json.as_slice();
 
-    if let Some(first) = rest.first().copied() {
-        if ["wood", "plastic", "metal"].contains(&first) {
-            material = Some(first.to_owned());
-            rest = &rest[1..];
-        }
+    if let Some(first) = rest.first().copied()
+        && ["wood", "plastic", "metal"].contains(&first)
+    {
+        material = Some(first.to_owned());
+        rest = &rest[1..];
     }
     if !rest.is_empty() {
         subtask = Some(rest.join("/"));
