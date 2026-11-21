@@ -113,6 +113,27 @@ def main() -> None:
     expected_compat = (fp-2*lam*hh/(3*(lam+1)**2)
                       +hp/(3*(lam+1))+2*(lam+2)**2/(3*(lam+1)**2))
     require_zero(compatibility-expected_compat, "first horizon compatibility")
+
+    # Generic triangular Taylor reconstruction of Fhat2 from the analytic row.
+    b0, b1, b2, h0, h1, h2, f0 = sp.symbols("b0 b1 b2 h0 h1 h2 f0")
+    aF0, aF1 = vals["F2"], slopes["F2"]
+    aB0, aB1 = vals["B2"], slopes["B2"]
+    aBp0, aBp1 = vals["B2_prime"], slopes["B2_prime"]
+    aH0, aH1 = vals["H2"], slopes["H2"]
+    aHp0, aHp1 = vals["H2_prime"], slopes["H2_prime"]
+    f0_reconstructed = sp.factor(-(aB0*b0+aBp0*b1+aH0*h0+aHp0*h1+src0)/aF0)
+    require_zero(f0_reconstructed-b0, "order-zero algebraic reconstruction")
+    f1_reconstructed = sp.factor(-(aF1*f0+aB0*b1+aB1*b0
+        +2*aBp0*b2+aBp1*b1+aH0*h1+aH1*h0
+        +2*aHp0*h2+aHp1*h1+src1)/aF0)
+    f1_expected = (2*lam*h0/(3*(lam+1)**2)
+        -h1/(3*(lam+1))-2*(lam+2)**2/(3*(lam+1)**2))
+    fixed_horizon_f1 = sp.factor(f1_reconstructed.subs({b0:0,f0:0}))
+    require_zero(f1_reconstructed.subs({b0:0,f0:0})-f1_expected,
+                 "order-one triangular reconstruction")
+    require_zero(sp.diff(f1_reconstructed.subs({b0:0,f0:0}),b1),
+                 "order-one Bhat2-prime cancellation")
+
     mp_horizon = {lam: sp.Integer(0), fp: sp.Integer(-2),
                   hh: sp.Integer(1), hp: sp.Integer(-2)}
     mp_compatibility = sp.factor(expected_compat.subs(mp_horizon))
@@ -153,13 +174,19 @@ def main() -> None:
           "passed":True},
         "negative_control_wrong_sign_Hhat2_prime":{"mutated_Hhat2_prime":2,
           "compatibility_residual":sp.sstr(wrong_sign_mp),"rejected":True},
+        "triangular_reconstruction":{"order_zero":"f0=b0",
+          "order_one_fixed_horizon":"f1=2*lambda*h0/(3*(lambda+1)^2)-h1/(3*(lambda+1))-2*(lambda+2)^2/(3*(lambda+1)^2)",
+          "b1_cancels_at_order_one":True,"recurrence_denominator":"3*(lambda+2)^2"},
         "interpretation":"One horizon compatibility condition from E_f only; E_b/E_h recurrence and independent E_g constraint remain open."},
       "validation":{"python":platform.python_version(),"sympy":sp.__version__,
         "generator_equation_fingerprint_matches_pinned_source":True,
         "equation_text_sha256":text_sha,"full_scaled_row_decomposition_exact":True,
         "all_denominators_exact_and_positive":True,"all_horizon_values_exact":True,
         "all_horizon_slopes_exact":True,"first_order_horizon_compatibility_exact":True,
-        "myers_perry_horizon_control_exact":True,"wrong_sign_horizon_negative_control_rejected":True},
+        "myers_perry_horizon_control_exact":True,"wrong_sign_horizon_negative_control_rejected":True,
+        "triangular_Fhat2_order_zero_reconstruction_exact":True,
+        "triangular_Fhat2_order_one_reconstruction_exact":True,
+        "order_one_Bhat2_prime_cancellation_exact":True},
       "claim_ceiling":"The complete scaled algebraic E_f^(2) row is analytically regular at the horizon and its first nontrivial horizon compatibility condition is derived. This is not the coupled Frobenius recurrence, a finite-alpha BVP solution, an interval enclosure, or an existence/uniqueness theorem."
     }
     rendered=json.dumps(fixture,indent=2,sort_keys=True)+"\n"
