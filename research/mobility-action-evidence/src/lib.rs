@@ -294,9 +294,7 @@ pub fn validate_ticket_applicability(
     if live.navigation_observed_at_ticks > live.now_ticks {
         return Err(AdmissionError::NavigationObservationFromFuture);
     }
-    if live.now_ticks - live.navigation_observed_at_ticks
-        > ticket.navigation.maximum_age_ticks
-    {
+    if live.now_ticks - live.navigation_observed_at_ticks > ticket.navigation.maximum_age_ticks {
         return Err(AdmissionError::NavigationObservationStale);
     }
 
@@ -465,8 +463,7 @@ pub fn validate_physical_outcome(
     if evidence.effect_predicate_digest != ticket.expected_effect_digest {
         return Err(OutcomeError::PredicateMismatch);
     }
-    if evidence.confidence_basis_points > 10_000
-        || policy.minimum_confidence_basis_points > 10_000
+    if evidence.confidence_basis_points > 10_000 || policy.minimum_confidence_basis_points > 10_000
     {
         return Err(OutcomeError::InvalidConfidence);
     }
