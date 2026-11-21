@@ -1,6 +1,7 @@
 use nav_observation_toy_fim::decision_value::{
-    select_action, select_action_with_loss, ActionCost, BinaryBelief, DecisionLoss,
-    DiagnosticAction, ObservationOutcome, ResourceBudget, SelectionCriterion,
+    evaluate_action_with_acquisition_model, select_action, select_action_with_loss,
+    AcquisitionSuccessModel, ActionCost, BinaryBelief, DecisionLoss, DiagnosticAction,
+    ObservationOutcome, ResourceBudget, SelectionCriterion,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -91,6 +92,39 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             result.expected_mutual_information_bits
         );
     }
+    // A deliberately uninformative measurement can still be preceded by
+    // an informative acquisition failure when dropout is state-dependent.
+    let missingness_action = DiagnosticAction {
+        id: "state_dependent_dropout".to_owned(),
+        cost: ActionCost::default(),
+        acquisition_success_probability: 0.5,
+        outcomes: vec![
+            ObservationOutcome {
+                id: "measurement_zero".to_owned(),
+                likelihood_state_zero: 0.5,
+                likelihood_state_one: 0.5,
+            },
+            ObservationOutcome {
+                id: "measurement_one".to_owned(),
+                likelihood_state_zero: 0.5,
+                likelihood_state_one: 0.5,
+            },
+        ],
+    };
+    let missingness_belief = BinaryBelief::new(0.6)?;
+    let missingness = evaluate_action_with_acquisition_model(
+        &missingness_action,
+        missingness_belief,
+        ResourceBudget::default(),
+        AcquisitionSuccessModel::new(0.2, 0.8)?,
+    )?;
+    println!(
+        "model=state_dependent_missingness q_state_zero=0.2 q_state_one=0.8 success_probability={:.3} information_on_success={:.6} total_information_bits={:.6} decision_value={:.6}",
+        missingness.acquisition_success_probability_under_prior,
+        missingness.mutual_information_bits_on_success,
+        missingness.expected_mutual_information_bits,
+        missingness.expected_decision_value
+    );
     println!("scope=finite_one_step_synthetic_oracle_not_navigation_qualification");
     Ok(())
 }
