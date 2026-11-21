@@ -53,7 +53,7 @@ E_R[\operatorname{diag}(\lambda(R))]
 +\operatorname{Cov}_R(\lambda(R)).
 \]
 
-The implemented ensemble reference uses the average conditional Poisson variance plus the sample covariance of conditional means. Background is fixed within this first implementation; background calibration uncertainty, live-time/dead-time uncertainty, pileup, threshold and PSD uncertainty remain separate required model dimensions.
+The implemented ensemble reference uses the average conditional Poisson variance plus the sample covariance of conditional means. It also computes the finite-ensemble log predictive probability as a log-sum-exp over conditional Poisson likelihoods, with equal fixed weights for the supplied response realizations. This preserves more of the mixture structure than a Gaussian moment approximation, but it is not a general continuous hierarchical model. Background is fixed; background calibration uncertainty, live-time/dead-time uncertainty, pileup, threshold and PSD uncertainty remain separate required model dimensions.
 
 This is a forward uncertainty primitive, not detector calibration, Geant4, scintillation simulation, PSD reconstruction or a source-spectrum inversion.
 
@@ -145,7 +145,8 @@ Implemented in this research-only Rust crate:
 - combination of Fisher contributions from independent candidate runs;
 - exact pairwise directed KL divergence for fixed independent-Poisson predictions from candidate discrete hypotheses;
 - symmetric Jacobi eigenvalue decomposition and local effective-rank / logdet / condition diagnostics;
-- equal-weight detector response ensemble and predictive mean/count covariance using the law of total covariance.
+- equal-weight detector response ensemble and predictive mean/count covariance using the law of total covariance;
+- finite equal-weight response-ensemble Poisson mixture log predictive probability for observed integer counts, evaluated in log space.
 
 Not implemented yet:
 
@@ -153,9 +154,9 @@ Not implemented yet:
 - global profile-likelihood identifiability, Bayesian model comparison or expected information gain;
 - a design-space optimizer, cost model or Pareto frontier;
 - a nuisance-integrated or posterior-predictive model-discrimination score;
-- a correlated/hierarchical Poisson likelihood for uncertain response matrices;
+- a general nuisance-aware hierarchical likelihood for response, background, live time, PSD and other calibration dimensions;
 - bootstrap/calibration-data ingestion and covariance provenance;
 - Geant4, GRAVEL, or the cited 2026 Bayesian method;
 - real 2025/2026 waveform or source-dataset reconstruction.
 
-The code has authored tests only; they require a Rust-capable execution environment before being described as passing. These synthetic and algebraic primitives do not validate an underlying nuclear mechanism or provide experimental evidence.
+The finite response-mixture likelihood assumes equal weights over the supplied finite calibration ensemble and fixed background. The code has authored tests only; they require a Rust-capable execution environment before being described as passing. These synthetic and algebraic primitives do not validate an underlying nuclear mechanism or provide experimental evidence.
