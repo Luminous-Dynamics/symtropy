@@ -663,7 +663,14 @@ mod tests {
         mappings.push(revoked);
 
         assert_eq!(
-            resolve_identity(&mappings, EntityKind::ContainerBox, "SRC_DGT", "DGT-BOX-A", 6, 200),
+            resolve_identity(
+                &mappings,
+                EntityKind::ContainerBox,
+                "SRC_DGT",
+                "DGT-BOX-A",
+                6,
+                200
+            ),
             Err(IdentityError::Revoked)
         );
         assert_eq!(
@@ -687,7 +694,14 @@ mod tests {
         mappings.push(conflict);
 
         assert_eq!(
-            resolve_identity(&mappings, EntityKind::ContainerBox, "SRC_DGT", "DGT-BOX-A", 6, 200),
+            resolve_identity(
+                &mappings,
+                EntityKind::ContainerBox,
+                "SRC_DGT",
+                "DGT-BOX-A",
+                6,
+                200
+            ),
             Err(IdentityError::ConflictingMappingRevision(
                 "M-001".to_string()
             ))
