@@ -1,0 +1,467 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/black-hole-solution-certificate-v1.schema.json",
+  "title": "Black-hole numerical solution certificate",
+  "description": "Evidence record for a candidate stationary black-hole solution. A schema-valid record is not itself a physical qualification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "record_id",
+    "status",
+    "theory",
+    "solution",
+    "method",
+    "domain",
+    "equation_residuals",
+    "boundary_residuals",
+    "convergence",
+    "null_tests",
+    "independent_replication",
+    "claims"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.black_hole_solution_certificate.v1"
+    },
+    "record_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "candidate",
+        "refined",
+        "qualified",
+        "rejected",
+        "abstained"
+      ]
+    },
+    "theory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_digest",
+        "field_equation_revision",
+        "spacetime_dimension",
+        "matter_action_digest",
+        "units",
+        "gauge",
+        "boundary_conditions_digest"
+      ],
+      "properties": {
+        "action_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "field_equation_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "spacetime_dimension": {
+          "type": "integer",
+          "minimum": 3
+        },
+        "matter_action_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "units": {
+          "type": "string",
+          "minLength": 1
+        },
+        "gauge": {
+          "type": "string",
+          "minLength": 1
+        },
+        "boundary_conditions_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "conformal_frame": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "solution_branch": {
+          "type": "string"
+        }
+      }
+    },
+    "solution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "representation",
+        "coefficient_digest",
+        "coordinate_chart",
+        "source_revision"
+      ],
+      "properties": {
+        "representation": {
+          "enum": [
+            "spectral_chebyshev",
+            "finite_element",
+            "finite_difference",
+            "neural_field",
+            "analytic",
+            "other"
+          ]
+        },
+        "coefficient_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "coordinate_chart": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_revision": {
+          "$ref": "#/$defs/gitRevision"
+        },
+        "candidate_generator": {
+          "type": "string"
+        },
+        "refinement_solver": {
+          "type": "string"
+        }
+      }
+    },
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "discovery_method",
+        "refinement_method",
+        "independent_evaluator_revision",
+        "arithmetic_precision_digits"
+      ],
+      "properties": {
+        "discovery_method": {
+          "type": "string"
+        },
+        "refinement_method": {
+          "type": "string"
+        },
+        "independent_evaluator_revision": {
+          "$ref": "#/$defs/gitRevision"
+        },
+        "arithmetic_precision_digits": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "optimizer": {
+          "type": "string"
+        },
+        "collocation_strategy": {
+          "type": "string"
+        },
+        "held_out_sampling_strategy": {
+          "type": "string"
+        }
+      }
+    },
+    "domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "radial_domain",
+        "angular_domain",
+        "horizon_treatment",
+        "asymptotic_treatment",
+        "held_out_point_count"
+      ],
+      "properties": {
+        "radial_domain": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "angular_domain": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "horizon_treatment": {
+          "type": "string"
+        },
+        "asymptotic_treatment": {
+          "type": "string"
+        },
+        "held_out_point_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "excluded_regions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "equation_residuals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evaluator",
+        "l2",
+        "linf",
+        "weighted_l2",
+        "sample_count",
+        "held_out"
+      ],
+      "properties": {
+        "evaluator": {
+          "type": "string"
+        },
+        "l2": {
+          "$ref": "#/$defs/nonnegativeNumber"
+        },
+        "linf": {
+          "$ref": "#/$defs/nonnegativeNumber"
+        },
+        "weighted_l2": {
+          "$ref": "#/$defs/nonnegativeNumber"
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "held_out": {
+          "type": "boolean"
+        },
+        "units_or_scaling": {
+          "type": "string"
+        }
+      }
+    },
+    "boundary_residuals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "boundary",
+          "norm",
+          "value",
+          "evaluator"
+        ],
+        "properties": {
+          "boundary": {
+            "type": "string"
+          },
+          "norm": {
+            "enum": [
+              "absolute",
+              "relative",
+              "l2",
+              "linf",
+              "other"
+            ]
+          },
+          "value": {
+            "$ref": "#/$defs/nonnegativeNumber"
+          },
+          "evaluator": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "convergence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "resolution",
+          "precision_digits",
+          "equation_linf",
+          "invariant_digest"
+        ],
+        "properties": {
+          "resolution": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "precision_digits": {
+            "type": "integer",
+            "minimum": 2
+          },
+          "equation_linf": {
+            "$ref": "#/$defs/nonnegativeNumber"
+          },
+          "invariant_digest": {
+            "$ref": "#/$defs/digest"
+          },
+          "solution_difference_from_previous": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "null_tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "status",
+          "evidence_digest"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pass",
+              "fail",
+              "not_run",
+              "not_applicable"
+            ]
+          },
+          "evidence_digest": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^([a-fA-F0-9]{64})?$"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "independent_replication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "implementation_digest",
+        "comparison_metric"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "not_attempted",
+            "in_progress",
+            "agrees",
+            "disagrees"
+          ]
+        },
+        "implementation_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([a-fA-F0-9]{64})?$"
+        },
+        "comparison_metric": {
+          "type": "string"
+        },
+        "comparison_value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "source_inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "uri",
+          "digest",
+          "role"
+        ],
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "digest": {
+            "$ref": "#/$defs/digest"
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "compute_cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "wall_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "cpu_core_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "gpu_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "peak_memory_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "energy_joules": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string"
+    },
+    "created_utc": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "gitRevision": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{40,64}$"
+    },
+    "nonnegativeNumber": {
+      "type": "number",
+      "minimum": 0
+    }
+  }
+}

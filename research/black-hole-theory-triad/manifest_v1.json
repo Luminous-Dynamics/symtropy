@@ -1,0 +1,138 @@
+{
+  "schema": "luminous.black_hole_theory_comparison.v1",
+  "id": "BH-THEORY-TRIAD-001",
+  "status": "protocol_only",
+  "created_utc": "2026-11-17",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5811",
+  "source_branch": "research/bh-theory-triad-2026-11-17",
+  "claim_ceiling": "No model ranking or physical validation is implied by this manifest.",
+  "model_families": [
+    {
+      "id": "GR",
+      "kind": "continuum_dynamics",
+      "action": "Einstein-Hilbert",
+      "role": "mandatory_control"
+    },
+    {
+      "id": "GR_EFT",
+      "kind": "continuum_effective_theory",
+      "action": "Einstein-Hilbert plus declared higher-curvature operators and power counting",
+      "role": "low_energy_quantum_gravity_control"
+    },
+    {
+      "id": "WEYL_PURE",
+      "kind": "continuum_dynamics",
+      "action": "pure Weyl-squared; fourth-order Bach equations",
+      "role": "primary_comparator"
+    },
+    {
+      "id": "WEYL_SCALAR",
+      "kind": "continuum_dynamics",
+      "action": "local conformal metric-scalar-matter model; pin scalar potential and matter coupling",
+      "role": "separate_primary_comparator"
+    },
+    {
+      "id": "QUADRATIC_SCALAR_TENSOR",
+      "kind": "continuum_dynamics",
+      "action": "one named action per model; e.g. scalar Gauss-Bonnet or dynamical Chern-Simons",
+      "role": "algorithmic_and_physics_comparator"
+    },
+    {
+      "id": "CHAIN_THEORY",
+      "kind": "discrete_quantum_information_foundation",
+      "action": null,
+      "metric_status": "no_qualified_continuum_metric",
+      "role": "bridge_candidate_only"
+    }
+  ],
+  "required_run_identity": [
+    "action_and_field_equation_revision",
+    "matter_action_and_coupling",
+    "conformal_frame",
+    "parameter_values_and_units",
+    "coordinate_chart_and_domain",
+    "gauge_and_boundary_conditions",
+    "solution_branch",
+    "observer_worldline_and_tetrad",
+    "perturbation_sector",
+    "numerical_method_and_tolerances",
+    "source_data_digests",
+    "code_revision"
+  ],
+  "stages": [
+    {
+      "id": "P0",
+      "name": "model_contract_and_source_freeze",
+      "gate": "all assumptions, equations, units, frames and source identities pinned"
+    },
+    {
+      "id": "P1",
+      "name": "static_mannheim_kazanas",
+      "gate": "independent Bach residual plus exact limits, curvature and horizon fixtures"
+    },
+    {
+      "id": "P2",
+      "name": "rotating_weyl_reproduction",
+      "gate": "published horizons, ergoregion, extremality and thermodynamics independently reproduced"
+    },
+    {
+      "id": "P3",
+      "name": "model_correct_motion_and_optics",
+      "gate": "null and massive matter trajectories use the correct action, conformal frame and observer normalization"
+    },
+    {
+      "id": "P4",
+      "name": "perturbation_and_retarded_response",
+      "gate": "test-scalar results separated from actual gravitational perturbations; poles/residues and stability checked"
+    },
+    {
+      "id": "P5",
+      "name": "wald_thermodynamics",
+      "gate": "entropy functional, charges and first-law residual independently checked"
+    },
+    {
+      "id": "P6",
+      "name": "held_out_observation_discrimination",
+      "gate": "same data, nuisance model, measurement pipeline, prior sensitivity and calibrated uncertainty"
+    }
+  ],
+  "controls": [
+    "Schwarzschild_limit",
+    "zero_spin_and_extremal_limits_where_defined",
+    "independent_Bach_tensor_evaluation",
+    "finite_radius_observer_tetrad",
+    "asymptotic_flatness_classification",
+    "conformal_frame_and_mass_coupling_negative_control",
+    "test_scalar_vs_gravitational_spin2_separation",
+    "null_model_and_model_class_abstention",
+    "sealed_holdout_and_no_post_hoc_parameter_tuning"
+  ],
+  "prospective_metrics": [
+    "field_equation_residual_with_conditioning_metadata",
+    "horizon_and_extremality_root_discrepancy",
+    "curvature_invariant_and_chart_invariance_error",
+    "geodesic_invariant_drift_and_convergence_order",
+    "ray_bundle_map_and_caustic_refinement_stability",
+    "QNM_pole_residue_and_retarded_response_discrepancy",
+    "Wald_entropy_and_first_law_residual",
+    "posterior_coverage_and_proper_predictive_scores",
+    "OOD_false_acceptance_and_abstention",
+    "time_memory_energy_to_verified_accuracy"
+  ],
+  "external_baselines": [
+    "AART_Kerr_ray_tracing",
+    "BHPT_Teukolsky_and_MST",
+    "SXS_SpEC_multi_resolution_waveforms",
+    "Einstein_Toolkit_and_SpECTRE_where_methodologically_matched",
+    "LVK_Bilby_pyRing_reference_inference",
+    "published_rotating_Weyl_geometry_thermodynamics_and_shadow_studies"
+  ],
+  "stop_rules": [
+    "Do_not_claim_asymptotic_flatness_if_linear_or_quadratic_terms_remain",
+    "Do_not_assume_scalar_coupled_massive_particles_follow_vacuum_metric_timelike_geodesics",
+    "Do_not_call_test_scalar_QNMs_gravitational_ringdown",
+    "Do_not_apply_EHT_GR_calibration_as_if_model_independent",
+    "Do_not_rank_models_on_in_sample_fit_without_predictive_validation",
+    "Do_not_promote_chain_graph_to_metric_without_controlled_continuum_limit"
+  ]
+}
