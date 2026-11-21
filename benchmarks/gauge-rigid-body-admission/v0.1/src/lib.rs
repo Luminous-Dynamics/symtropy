@@ -169,7 +169,11 @@ mod tests {
     fn abbreviated_hub_revision_cannot_satisfy_immutable_pin() {
         let mut evidence = complete_evidence();
         evidence.immutable_revision = Some("f95bb06".to_owned());
-        assert!(evidence.blockers().contains(&AdmissionGate::ImmutableRevision));
+        assert!(
+            evidence
+                .blockers()
+                .contains(&AdmissionGate::ImmutableRevision)
+        );
         assert!(!evidence.is_eligible_for_review());
     }
 
@@ -177,14 +181,22 @@ mod tests {
     fn malformed_artifact_digest_blocks_admission() {
         let mut evidence = complete_evidence();
         evidence.artifact_sha256 = vec!["not-a-sha256".to_owned()];
-        assert!(evidence.blockers().contains(&AdmissionGate::ArtifactDigestCoverage));
+        assert!(
+            evidence
+                .blockers()
+                .contains(&AdmissionGate::ArtifactDigestCoverage)
+        );
     }
 
     #[test]
     fn missing_license_scope_review_blocks_even_with_mit_label() {
         let mut evidence = complete_evidence();
         evidence.license_scope_reviewed = false;
-        assert!(evidence.blockers().contains(&AdmissionGate::ReviewedLicenseScope));
+        assert!(
+            evidence
+                .blockers()
+                .contains(&AdmissionGate::ReviewedLicenseScope)
+        );
     }
 
     #[test]
