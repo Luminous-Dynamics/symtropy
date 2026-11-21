@@ -165,8 +165,7 @@ fn saddle_node_fixture_pins_fixed_points_and_bifurcation_parameter() {
     assert!(saddle_node_multiplier(stable).abs() < 1.0);
     assert!(saddle_node_multiplier(unstable).abs() > 1.0);
 
-    let critical_parameter = 0.0_f64;
-    assert_eq!(critical_parameter, 0.0);
+    assert_eq!(saddle_node_map(0.0, 0.0), 0.0);
     assert!((saddle_node_multiplier(0.0) - 1.0).abs() < 1.0e-12);
     assert!(4.0 * -0.01 < 0.0, "negative mu has no real fixed-point pair");
     assert!(4.0 * mu > 0.0, "positive mu has two distinct fixed points");
@@ -209,10 +208,6 @@ fn transcritical_fixture_exchanges_fixed_point_stability_at_zero() {
     assert!(transcritical_multiplier(0.0, positive_mu).abs() > 1.0);
     assert!(transcritical_multiplier(positive_mu, positive_mu).abs() < 1.0);
 
+    assert_eq!(transcritical_map(0.0, 0.0), 0.0);
     assert!((transcritical_multiplier(0.0, 0.0) - 1.0).abs() < 1.0e-12);
-    assert!((transcritical_multiplier(0.0, 0.0) - transcritical_multiplier(
-        0.0, 0.0
-    ))
-    .abs()
-        < 1.0e-12);
 }
