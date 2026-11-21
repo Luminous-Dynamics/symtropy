@@ -1,0 +1,14 @@
+[package]
+name = "orbital-event-capture-observability-bench"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "AGPL-3.0-or-later"
+description = "Evidence-gated event-capture reconciliation and observability benchmark"
+
+[dependencies]
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+sha2 = "0.10.9"
+
+[workspace]
