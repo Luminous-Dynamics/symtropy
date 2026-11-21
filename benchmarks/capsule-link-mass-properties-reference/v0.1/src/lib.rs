@@ -222,10 +222,10 @@ fn validate_rotation(rotation: Mat3) -> Result<(), CapsuleMassError> {
         return Err(CapsuleMassError::NonFiniteInput);
     }
     let product = multiply(&transpose(rotation), &rotation);
-    for row in 0..3 {
-        for column in 0..3 {
-            let expected = if row == column { 1.0 } else { 0.0 };
-            if (product[row][column] - expected).abs() > 1.0e-10 {
+    for (row_index, row_values) in product.iter().enumerate() {
+        for (column_index, value) in row_values.iter().enumerate() {
+            let expected = if row_index == column_index { 1.0 } else { 0.0 };
+            if (value - expected).abs() > 1.0e-10 {
                 return Err(CapsuleMassError::InvalidRotation);
             }
         }
@@ -249,10 +249,6 @@ mod tests {
             (actual - expected).abs() <= tolerance,
             "actual {actual:.15e}, expected {expected:.15e}, tolerance {tolerance:.3e}"
         );
-    }
-
-    fn identity() -> Mat3 {
-        [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
     }
 
     #[test]
