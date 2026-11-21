@@ -1,0 +1,18 @@
+{
+  "schema_version": "0.1",
+  "benchmark_id": "MARITIME-DGT-INTERVENTION-EFFECT-001",
+  "fixture": "dgt-package-announcements.csv",
+  "fixture_sha256": "e43192d4d8d54cf3c084f2729256b149a603c90db84ccc0998b6c0a3df869b07",
+  "fixture_class": "public-announcement-claims",
+  "source_id": "TRANSNET_STATEMENT_2026_11_18",
+  "source_url": "https://www.transnet.net/getFile.ashx?id=34389",
+  "source_publication_date": "2026-11-18",
+  "source_artifact_bytes_independently_acquired": false,
+  "source_artifact_sha256": null,
+  "claim_ceiling": "ANNOUNCED",
+  "notes": [
+    "The fixture records what the public statement says, not activation or realized outcomes.",
+    "A public media statement does not prove commissioning, handover, vessel service, train departure, container movement or delivery.",
+    "The fixture digest covers only this CSV; it is not the digest of the Transnet PDF."
+  ]
+}
