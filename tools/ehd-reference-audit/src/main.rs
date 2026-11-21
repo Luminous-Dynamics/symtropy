@@ -1487,9 +1487,10 @@ pub fn audit_polynomial_moments_contract(root: &Value) -> Vec<String> {
     let tests = at(root, &["test_families"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        tests.is_some_and(|rows| rows.len() == 9
+        tests.is_some_and(|rows| rows.len() == 10
             && rows.iter().any(|item| item.as_str() == Some("p1_linear_exact_destination_integrals"))
             && rows.iter().any(|item| item.as_str() == Some("p2_quadratic_exact_destination_integrals"))
+            && rows.iter().any(|item| item.as_str() == Some("reject_requested_maximum_degree_above_p2_scope"))
             && rows.iter().any(|item| item.as_str() == Some("reject_geometry_gap_before_transfer"))),
         "POLY_MOMENT_TEST_MATRIX",
         "nine P0/P1/P2 analytic and adversarial tests must remain declared",
