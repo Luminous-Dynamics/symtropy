@@ -68,7 +68,7 @@ The Mendeley code/data package became available on 1 November 2026; its journal 
 
 **Critical limitation:** Merlino2D is a discharge solver. It does not, by itself, close neutral-fluid Navier–Stokes, aerodynamic drag and complete thrust. It must be coupled to a separately qualified flow solver with conservative charge-force / ion-neutral momentum exchange.
 
-Zapdos is also a credible open FEM plasma solver, but its published V&V is for 1D/2D RF capacitively coupled plasma at 0.1–1 Torr; that does not automatically qualify atmospheric corona EHD or flight DBD. [Zapdos V&V](https://doi.org/10.1016/j.cpc.2023.108837).
+Zapdos is a credible open FEM plasma solver. Its 2023 published V&V focuses on 1D/2D RF capacitively coupled plasma at 0.1–1 Torr; a 2019 meeting abstract also reports atmospheric-device comparisons such as the COST plasma jet. Neither establishes a validated atmospheric corona EHD thruster or complete neutral-flow/thrust model. [2023 Zapdos V&V](https://doi.org/10.1016/j.cpc.2023.108837), [2019 GEC abstract](https://meetings-archive.aps.org/gec/2019/rr3/7/).
 
 Symtropy owns scenario identity, orchestration, replay, receipts and evidence boundaries. It is not to be represented as a plasma solver.
 
@@ -144,3 +144,18 @@ High thrust density must not compensate for bad T/P, poor flight drag, breakdown
 ## 9. Claim ceiling
 
 This atlas is source transcription and benchmark design. The data have not been independently reproduced by Luminous; Merlino2D has not been run in this workspace. No new Rust solver, complete EHD twin, physical experiment, new physical interaction, antigravity effect, vacuum thrust, engineering superiority, certification or independent SOTA result is claimed.
+
+
+## 10. Offline audit command
+
+The branch now includes a small Rust workspace member that checks the atlas schema, metric-unit ontology, source IDs, figure row counts, evidence-class boundaries, configuration-specific extrema, mass/power boundaries, and specialist-solver scope. It has mutation tests for common comparison errors.
+
+From the repository root:
+
+```bash
+cargo run -p ehd-reference-audit
+cargo run -p ehd-reference-audit -- data/research/ehd_reference_atlas_v0_1.json
+cargo test -p ehd-reference-audit
+```
+
+The audit is structural/comparability QA only. It does not hash/download upstream Zenodo files, reproduce solver outputs, verify physical measurements, or grant physical-validation status. The authored Rust tests have not been executed in this environment because the Rust toolchain is unavailable here.
