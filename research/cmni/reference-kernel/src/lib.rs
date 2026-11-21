@@ -1170,7 +1170,7 @@ mod tests {
     }
 
     #[test]
-    fn arbitrary_spectrum_rejects_un-normalized_weights() {
+    fn arbitrary_spectrum_rejects_unnormalized_weights() {
         let spectrum = [
             BeamEnergyComponent { energy_cm_kev: 0.25, deuteron_flux_fraction: 0.25 },
             BeamEnergyComponent { energy_cm_kev: 0.50, deuteron_flux_fraction: 0.50 },
