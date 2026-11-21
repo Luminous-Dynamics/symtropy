@@ -43,6 +43,9 @@ impl std::fmt::Display for MassPropertiesError {
                 formatter,
                 "mass second-moment tensor must be positive semidefinite"
             ),
+            Self::TensorValidationDidNotConverge => {
+                write!(formatter, "mass second-moment tensor PSD validation did not converge")
+            }
             Self::EmptyComponents => write!(formatter, "at least one component is required"),
             Self::InvalidTransform => write!(
                 formatter,
