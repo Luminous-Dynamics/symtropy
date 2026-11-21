@@ -33,5 +33,8 @@
   },
   "rights": "All observations are original synthetic values; no vessel, carrier, operator, terminal or source-provider records are included.",
   "claim_ceiling": "Synthetic estimator/cutoff conformance only; no port-performance or causal claim.",
-  "censoring_assumption": "Aalen-Johansen requires non-informative censoring conditional on cohort/strata. Reporting-lag censoring is separately identified but not modeled; real-data probabilities require reporting-delay diagnostics and sensitivity analysis."
+  "censoring_assumption": "Aalen-Johansen requires non-informative censoring conditional on cohort/strata. Reporting-lag censoring is separately identified but not modeled; real-data probabilities require reporting-delay diagnostics and sensitivity analysis.",
+  "fixture_sha256": {
+    "cohorts.csv": "a2a43646a3cd87569dc466a67a6b5af63e160a4a0d40f53de2ef620b5984bb68"
+  }
 }
