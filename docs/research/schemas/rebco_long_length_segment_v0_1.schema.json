@@ -322,6 +322,7 @@
         "property",
         "evidence_state",
         "authority",
+        "measurement_basis",
         "coordinate_footprint",
         "source"
       ],
@@ -580,6 +581,15 @@
               "format": "date-time"
             }
           }
+        },
+        "measurement_basis": {
+          "enum": [
+            "direct_transport",
+            "noncontact_magnetization_proxy",
+            "structural_inspection",
+            "model_inference",
+            "other"
+          ]
         }
       },
       "allOf": [
