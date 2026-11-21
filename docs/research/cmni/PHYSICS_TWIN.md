@@ -186,3 +186,29 @@ No laboratory control loop is in scope. Ion-beam and deuterium/electrochemical e
 - Chen et al. (2025): https://doi.org/10.1038/s41586-025-09042-7
 - Karahadian et al. (2026): https://doi.org/10.1038/s41467-026-74421-1
 - Zenodo data record (embargoed until 2026-12-01): https://zenodo.org/records/20435774
+
+
+## 10. Beam species and per-deuteron energy distribution
+
+The 2026 source paper reports a typical beam mixture of approximately 85% D⁺ and 15% D₂⁺ and computes deuteron flux as (I/ecdot(0.85+2cdot0.15)/A). This is important: **ion-current fractions are not deuteron-flux fractions**.
+
+For singly charged ions accelerated through (V) kV:
+- D⁺: (E_{lab}approx V) keV per deuteron, so (E_{cm}approx V/2) keV for D on stationary D.
+- D₂⁺: total molecular kinetic energy (approx V) keV. Under prompt symmetric dissociation with fragment velocity inherited from the molecular ion, each D fragment carries (approx V/2) keV, so (E_{cm}approx V/4) keV.
+
+Under the conditional 85/15 ion-current mixture:
+[
+f_{D^+} = rac{0.85}{0.85+2(0.15)}approx0.7391,qquad
+f_{D_2^+ightarrow2D}=rac{2(0.15)}{0.85+2(0.15)}approx0.2609.
+]
+
+This is a **prompt-dissociation limiting model**, not a claim about actual fragmentation in the experiment. The model must retain alternatives for molecular survival and dissociation depth. Weight component yields by deuteron flux, not by ion-current percentage.
+
+The published Methods report an approximately 5% energy spread based on a retarding-potential analyzer. The accessible methods do not establish that the quoted spread is a species-resolved per-deuteron energy distribution. Therefore:
+- retain D⁺ and D₂⁺ components separately;
+- preserve the measured source fraction and its uncertainty, per operating point if available;
+- convolve each species with its own measured energy distribution;
+- use suitable species-resolved beam diagnostics or documented external source characterization;
+- propagate uncertainty in molecular fraction, fragmentation, and energy into the reaction-yield prediction.
+
+The Rust reference kernel includes a first-order prompt-dissociation component mapper. It uses the same S-factor/stopping functions for both fragment populations as a synthetic sensitivity scaffold; it does not yet model mass-dependent molecular stopping, dissociation depth, or experimental fragmentation data. Never represent it as a validated species-resolved beam transport model.
