@@ -95,3 +95,10 @@ Compose with Symthaea #5686/#5074/#5763/#6224, Symtropy #5818/#4263/#4165, and M
 This crate deliberately does not parse STEP/AP242, QIF, MTConnect or native CAD. Consume semantic identity and quality records from the existing [Symthaea MBD-INTEROP #10595](https://github.com/Luminous-Dynamics/symthaea/issues/10595), [Mycelix AP242-to-QIF semantic benchmark #6348](https://github.com/Luminous-Dynamics/mycelix/issues/6348), and [AeroCommons component packet #6345](https://github.com/Luminous-Dynamics/mycelix/issues/6345). Compose them with Symtropy #4165 inspection observability and #4263 as-built structural acceptance. NIST STEP File Analyzer and CAx-IF AP242/QIF cases are external comparison references, not code to fork or replace.
 
 The composition path is: product definition / semantic PMI → exact characteristic and component identity → manufacturing process and serialized article → QIF inspection evidence → structural-interface profile → as-built assembly acceptance. Every transition needs a declared supported semantic subset and explicit loss/Unknown behavior. A parser pass, a structurally complete packet or a signed trace alone does not establish physical conformance.
+
+
+## Serialized physical-unit binding
+
+The provider profile's `article_subject_ref` denotes the exact serialized physical article (for example, a qualification specimen or as-built joint), not merely a reusable component definition or part-family number. Structural, inspection, engagement-verification, fatigue and assembled-path evidence must bind to that subject, exact configuration and ICD revision. Material/process evidence binds instead to the exact `material_lineage_ref`, while retaining the same configuration/ICD scope. The client profile's article subject is the target/design subject and is not treated as the provider's physical test article.
+
+This follows the component-definition / serialized-unit distinction in Mycelix AeroCommons #6345. It is a strict identity join only; it does not prove that evidence on a qualification specimen transfers to a production unit or assembled structure. That transfer remains a separate, explicit assessment.
