@@ -136,8 +136,8 @@ fn reference(
                 duplicates,
             );
         }
-        let event_latest = event_tick
-            .saturating_add(e["time_uncertainty_ticks"].as_u64().unwrap_or(0));
+        let event_latest =
+            event_tick.saturating_add(e["time_uncertainty_ticks"].as_u64().unwrap_or(0));
         if event_latest > at_tick || observation_tick > at_tick || ingestion_tick > at_tick {
             return (
                 ReplayStatus::Indeterminate,
@@ -314,8 +314,7 @@ fn reference(
                         );
                     }
                     let event_tick = e["event_tick"].as_u64().unwrap_or(0);
-                    let time_uncertainty =
-                        e["time_uncertainty_ticks"].as_u64().unwrap_or(0);
+                    let time_uncertainty = e["time_uncertainty_ticks"].as_u64().unwrap_or(0);
                     let event_earliest = event_tick.saturating_sub(time_uncertainty);
                     let event_latest = event_tick.saturating_add(time_uncertainty);
                     if event_earliest > expiry {
