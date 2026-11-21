@@ -138,12 +138,7 @@ def _episode_state(
 def _revoked_derived_item_ticks(
     episode: dict[str, Any], as_of_tick: int
 ) -> dict[str, int]:
-    """Return derived memory items invalidated by an effective source revocation.
-
-    Revocation propagates transitively from source observation references through
-    derived-memory item dependencies. The earliest invalidating revocation tick
-    is retained for each item.
-    """
+    """Return derived items invalidated by source revocation, after validating their DAG."""
     source_revocations: dict[str, int] = {}
     for event in episode.get("stream_events", []):
         if event.get("kind") == "revocation" and event.get("availability_tick", as_of_tick + 1) <= as_of_tick:
@@ -154,6 +149,7 @@ def _revoked_derived_item_ticks(
                     event["availability_tick"],
                 )
 
+    observations, _, _ = _episode_state(episode, as_of_tick)
     items = episode.get("derived_memory_items", [])
     if not isinstance(items, list):
         raise EvaluationError(f"{episode.get('episode_id')}: derived_memory_items must be an array")
@@ -162,40 +158,72 @@ def _revoked_derived_item_ticks(
         if not isinstance(item, dict):
             raise EvaluationError("derived memory item must be an object")
         ref = item.get("item_ref")
+        created_tick = item.get("created_tick")
         if not isinstance(ref, str) or not ref or ref in by_ref:
             raise EvaluationError(f"invalid or duplicate derived memory item ref: {ref!r}")
+        if isinstance(created_tick, bool) or not isinstance(created_tick, int) or created_tick < 0:
+            raise EvaluationError(f"{ref}: invalid derived-memory creation tick")
+        source_refs = item.get("derived_from_observation_refs", [])
+        parent_refs = item.get("derived_from_item_refs", [])
+        if (
+            not isinstance(source_refs, list)
+            or any(not isinstance(source, str) or not source for source in source_refs)
+            or len(source_refs) != len(set(source_refs))
+            or not isinstance(parent_refs, list)
+            or any(not isinstance(parent, str) or not parent for parent in parent_refs)
+            or len(parent_refs) != len(set(parent_refs))
+        ):
+            raise EvaluationError(f"{ref}: malformed or duplicate derived-memory dependencies")
         by_ref[ref] = item
 
-    invalidated: dict[str, int] = {}
-    for _ in range(len(by_ref) + 1):
-        changed = False
-        for ref, item in by_ref.items():
-            source_refs = item.get("derived_from_observation_refs", [])
-            parent_refs = item.get("derived_from_item_refs", [])
-            if not isinstance(source_refs, list) or not isinstance(parent_refs, list):
-                raise EvaluationError(f"{ref}: derived-memory dependency lists must be arrays")
-            ticks = [
-                source_revocations[source]
-                for source in source_refs
-                if source in source_revocations
-            ]
-            ticks.extend(
-                invalidated[parent]
-                for parent in parent_refs
-                if parent in invalidated
-            )
-            if ticks:
-                tick = min(ticks)
-                if ref not in invalidated or tick < invalidated[ref]:
-                    invalidated[ref] = tick
-                    changed = True
-            for parent in parent_refs:
-                if parent not in by_ref:
-                    raise EvaluationError(f"{ref}: unknown derived-memory parent {parent!r}")
-        if not changed:
-            break
-    return invalidated
+    # Validate all dependencies and establish a topological order. A cyclic
+    # derived-memory graph cannot be given deterministic revocation lineage.
+    indegree = {ref: 0 for ref in by_ref}
+    children: dict[str, list[str]] = defaultdict(list)
+    for ref, item in by_ref.items():
+        created_tick = item["created_tick"]
+        for source in item["derived_from_observation_refs"]:
+            if source not in observations:
+                raise EvaluationError(f"{ref}: unknown source observation dependency {source!r}")
+            if observations[source] > created_tick:
+                raise EvaluationError(f"{ref}: derived item predates its source observation")
+        for parent in item["derived_from_item_refs"]:
+            if parent not in by_ref:
+                raise EvaluationError(f"{ref}: unknown derived-memory parent {parent!r}")
+            if by_ref[parent]["created_tick"] > created_tick:
+                raise EvaluationError(f"{ref}: derived item predates its parent")
+            indegree[ref] += 1
+            children[parent].append(ref)
 
+    ready = sorted(ref for ref, degree in indegree.items() if degree == 0)
+    topological: list[str] = []
+    while ready:
+        parent = ready.pop(0)
+        topological.append(parent)
+        for child in sorted(children[parent]):
+            indegree[child] -= 1
+            if indegree[child] == 0:
+                ready.append(child)
+        ready.sort()
+    if len(topological) != len(by_ref):
+        raise EvaluationError(f"{episode.get('episode_id')}: cyclic derived-memory dependency graph")
+
+    invalidated: dict[str, int] = {}
+    for ref in topological:
+        item = by_ref[ref]
+        ticks = [
+            source_revocations[source]
+            for source in item["derived_from_observation_refs"]
+            if source in source_revocations
+        ]
+        ticks.extend(
+            invalidated[parent]
+            for parent in item["derived_from_item_refs"]
+            if parent in invalidated
+        )
+        if ticks:
+            invalidated[ref] = min(ticks)
+    return invalidated
 
 def _score_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
     answered = [row for row in rows if not row["abstained"]]
