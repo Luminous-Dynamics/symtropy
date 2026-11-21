@@ -1,0 +1,45 @@
+{
+  "bin_count": 4,
+  "observations": [
+    {
+      "sample_id": "normal-01",
+      "actual_positive": false,
+      "predicted_probability": 0.05
+    },
+    {
+      "sample_id": "normal-02",
+      "actual_positive": false,
+      "predicted_probability": 0.1
+    },
+    {
+      "sample_id": "fault-01",
+      "actual_positive": true,
+      "predicted_probability": 0.9
+    },
+    {
+      "sample_id": "fault-02",
+      "actual_positive": true,
+      "predicted_probability": 0.95
+    },
+    {
+      "sample_id": "normal-03",
+      "actual_positive": false,
+      "predicted_probability": 0.05
+    },
+    {
+      "sample_id": "normal-04",
+      "actual_positive": false,
+      "predicted_probability": 0.1
+    },
+    {
+      "sample_id": "fault-03",
+      "actual_positive": true,
+      "predicted_probability": 0.9
+    },
+    {
+      "sample_id": "fault-04",
+      "actual_positive": true,
+      "predicted_probability": 0.95
+    }
+  ]
+}
