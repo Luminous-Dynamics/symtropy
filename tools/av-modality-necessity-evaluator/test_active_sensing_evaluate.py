@@ -163,3 +163,5 @@ class ActiveSensingEvaluatorTests(unittest.TestCase):
         ]
         result = self.result(self.score(candidate), "as-002-low-eig-high-evsi")
         self.assertIn("action_max_uses_exceeded", result["evidence_violations"])
+        self.assertEqual(result["realized_evsi"], 6)
+        self.assertEqual(result["wasted_acquisition_count"], 1)
