@@ -56,5 +56,6 @@ pub use mass_properties::{
 };
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
 pub use world::{
-    ConstraintVelocityEvent, NoOpCallback, PhysicsCallback, PhysicsStepReport, PhysicsWorld,
+    ConstraintPositionEvent, ConstraintVelocityEvent, NoOpCallback, PhysicsCallback,
+    PhysicsStepReport, PhysicsWorld,
 };
