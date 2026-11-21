@@ -465,22 +465,32 @@ impl<const D: usize> PhysicsWorld<D> {
             return Err(PhysicsStepPreflightError::InvalidTimeStep);
         }
 
-        let mut prepared = Vec::with_capacity(self.bodies.len());
+        // First evaluate every awake body's force callback exactly once, in
+        // body order. This completes all callback modulation before any
+        // integration candidate is prepared or any world state is mutated.
+        let mut effective_forces = Vec::with_capacity(self.bodies.len());
         for body in &self.bodies {
             if body.sleeping {
-                prepared.push(None);
+                effective_forces.push(None);
                 continue;
             }
-
             let mut force = body.force_accumulator;
             #[cfg(feature = "deterministic-net")]
             for component in force.iter_mut() {
                 *component = quantize_q16_16(*component);
             }
-            // Match the ordinary path: one force-modulation call for every
-            // awake body, including static/kinematic bodies.
-            let force = callback.modulate_force(body.handle, &force);
+            effective_forces.push(Some(callback.modulate_force(body.handle, &force)));
+        }
 
+        // Then prepare every awake dynamic body. A failure here leaves the
+        // PhysicsWorld unchanged, regardless of which body fails first.
+        let mut prepared = Vec::with_capacity(self.bodies.len());
+        for (body, force) in self.bodies.iter().zip(effective_forces.into_iter()) {
+            if body.sleeping {
+                prepared.push(None);
+                continue;
+            }
+            let force = force.expect("awake bodies have a modulated force");
             if body.is_dynamic() {
                 let candidate = integrator::prepare_integrate_with_force(
                     body, &self.gravity, &force, dt,
@@ -494,7 +504,6 @@ impl<const D: usize> PhysicsWorld<D> {
                 prepared.push(None);
             }
         }
-
         self.step_internal_with_prepared_integrations(dt, callback, Some(prepared));
         Ok(())
     }
@@ -2739,7 +2748,6 @@ mod anisotropic_contact_inertia_tests {
 #[cfg(test)]
 mod staged_world_integration_tests {
     use super::*;
-    use crate::body::BodyType;
     use crate::mass_properties::RotationalInertiaOperator;
     use std::cell::Cell;
 
@@ -2801,15 +2809,6 @@ mod staged_world_integration_tests {
         body.torque_accumulator.set(0, 1, 0.1);
         body.force_accumulator = SVector::from([-1.0, 0.5, 0.25, -0.75]);
         body
-    }
-
-    fn assert_body_unchanged(before: &RigidBody<4>, after: &RigidBody<4>) {
-        assert_eq!(before.transform.translation, after.transform.translation);
-        assert_eq!(before.transform.rotation, after.transform.rotation);
-        assert_eq!(before.linear_velocity, after.linear_velocity);
-        assert_eq!(before.angular_velocity, after.angular_velocity);
-        assert_eq!(before.force_accumulator, after.force_accumulator);
-        assert_eq!(before.torque_accumulator, after.torque_accumulator);
     }
 
     #[test]
