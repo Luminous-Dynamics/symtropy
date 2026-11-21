@@ -283,7 +283,7 @@ fn condition_profile(
         }
     }
     let profile_identity = json!({
-        "measurement_unit": measurement_unit,
+        "measurement_unit": measurement_unit.clone(),
         "operating_conditions": operating_conditions
     });
     let encoded = serde_json::to_vec(&profile_identity)
@@ -919,6 +919,15 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
         if property == "ic" && fully_width_covered {
             match state.as_str() {
                 "measured" => {
+                    if !matches!(
+                        measurement_basis.as_str(),
+                        "direct_transport" | "noncontact_magnetization_proxy"
+                    ) {
+                        return Err(fail(
+                            &path,
+                            "measured Ic requires direct_transport or noncontact_magnetization_proxy basis",
+                        ));
+                    }
                     let (profile_id, operating_conditions, measurement_unit) =
                         condition_profile(observation, &path)?;
                     let profile =
@@ -957,6 +966,12 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
                     }
                 }
                 "inferred" => {
+                    if measurement_basis != "model_inference" {
+                        return Err(fail(
+                            &path,
+                            "inferred Ic requires model_inference measurement basis",
+                        ));
+                    }
                     let (profile_id, operating_conditions, measurement_unit) =
                         condition_profile(observation, &path)?;
                     let profile =
@@ -1300,6 +1315,17 @@ mod tests {
             validate_document(&value)
                 .unwrap_err()
                 .contains("requires field_magnitude_t or field_vector_t")
+        );
+    }
+
+    #[test]
+    fn refuses_structural_inspection_as_measured_ic() {
+        let mut value = fixture();
+        value["observations"][0]["measurement_basis"] = json!("structural_inspection");
+        assert!(
+            validate_document(&value)
+                .unwrap_err()
+                .contains("measured Ic requires direct_transport")
         );
     }
 
