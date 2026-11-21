@@ -19,6 +19,9 @@ pub struct HmcDiagnosticSummary {
     pub maximum_rhat: f64,
     pub bulk_ess: f64,
     pub tail_ess: f64,
+    /// Effective sample size for the raw coefficient mean.
+    pub mean_ess: f64,
+    /// MCSE of the raw coefficient mean, expressed in coefficient units.
     pub mcse_mean: f64,
     pub energy_bfmi_by_chain: Vec<f64>,
     pub minimum_energy_bfmi: f64,
@@ -89,9 +92,13 @@ pub fn diagnose_horseshoe_coefficient(
     let tail_ess = effective_sample_size(&lower_indicator)?
         .min(effective_sample_size(&upper_indicator)?);
 
-    let variance_plus = variance_plus(&rank_normalized)?;
-    let mcse_mean = if bulk_ess > 0.0 && variance_plus >= 0.0 {
-        (variance_plus / bulk_ess).sqrt()
+    // Mean MCSE must remain in the original coefficient units. Bulk ESS
+    // is based on rank-normalized draws and is intentionally reported apart
+    // from the raw-scale mean ESS used for this standard error.
+    let mean_ess = effective_sample_size(&split_raw)?;
+    let raw_variance_plus = variance_plus(&split_raw)?;
+    let mcse_mean = if mean_ess > 0.0 && raw_variance_plus >= 0.0 {
+        (raw_variance_plus / mean_ess).sqrt()
     } else {
         f64::INFINITY
     };
@@ -121,6 +128,7 @@ pub fn diagnose_horseshoe_coefficient(
         maximum_rhat,
         bulk_ess,
         tail_ess,
+        mean_ess,
         mcse_mean,
         energy_bfmi_by_chain,
         minimum_energy_bfmi,
@@ -466,6 +474,32 @@ mod tests {
         let summary = diagnose_horseshoe_coefficient(&chains, 0).expect("diagnostics");
         assert_eq!(summary.minimum_energy_bfmi, 0.0);
         assert!(!summary.meets_proposed_thresholds);
+    }
+
+    #[test]
+    fn raw_mean_mcse_scales_with_original_coefficient_units() {
+        let mut chains = Vec::new();
+        for chain_index in 0..4 {
+            let values: Vec<f64> = (0..80)
+                .map(|index| ((index * 17 + chain_index * 13) as f64 * 0.37).sin())
+                .collect();
+            let energies: Vec<f64> = (0..80)
+                .map(|index| 2.0 + ((index * 11 + chain_index) as f64 * 0.19).cos())
+                .collect();
+            chains.push(synthetic_chain(&values, &energies));
+        }
+        let base = diagnose_horseshoe_coefficient(&chains, 0).expect("base diagnostics");
+        let scaled_chains: Vec<HorseshoeHmcChain> = chains.iter().map(|chain| {
+            let mut result = chain.clone();
+            for draw in &mut result.draws {
+                draw.coefficients[0] *= 10.0;
+            }
+            result
+        }).collect();
+        let scaled = diagnose_horseshoe_coefficient(&scaled_chains, 0)
+            .expect("scaled diagnostics");
+        assert!((scaled.mcse_mean / base.mcse_mean - 10.0).abs() < 1.0e-8);
+        assert!((scaled.mean_ess - base.mean_ess).abs() < 1.0e-8);
     }
 
     #[test]
