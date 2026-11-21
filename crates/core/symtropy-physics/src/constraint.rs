@@ -21,8 +21,8 @@ pub enum ConstraintSolveOutcome {
         code: &'static str,
         body_state_mutated_before_rejection: bool,
     },
-    /// A legacy implementation ran through the compatibility method and did
-    /// not provide a typed outcome.
+    /// The compatibility adapter ran the existing positional or velocity method
+    /// without an explicit typed outcome.
     Unreported,
 }
 
