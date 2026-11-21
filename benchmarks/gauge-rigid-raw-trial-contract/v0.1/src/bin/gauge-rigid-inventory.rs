@@ -443,6 +443,7 @@ fn summary_json(
 
     let mut valid_count = 0usize;
     let mut invalid_count = 0usize;
+    let mut not_evaluable_count = 0usize;
     let mut unknown_family_count = 0usize;
     for record in records {
         let entry = family_counts
@@ -452,9 +453,11 @@ fn summary_json(
         if record.disposition == "VALID_OBSERVED_PROFILE" {
             valid_count += 1;
             entry.1 += 1;
-        } else {
+        } else if record.disposition == "INVALID_OR_UNSUPPORTED_PROFILE" {
             invalid_count += 1;
             entry.2 += 1;
+        } else {
+            not_evaluable_count += 1;
         }
         if !REQUIRED_FAMILIES.contains(&record.family.as_str()) {
             unknown_family_count += 1;
@@ -479,13 +482,19 @@ fn summary_json(
         .map(|name| json_string(name))
         .collect::<Vec<_>>()
         .join(",");
-    let passed = invalid_count == 0 && issues.is_empty() && missing_families.is_empty();
+    let passed = invalid_count == 0
+        && not_evaluable_count == 0
+        && unknown_family_count == 0
+        && issues.is_empty()
+        && missing_families.is_empty()
+        && !records.is_empty();
 
     format!(
-        "{{\"record_type\":\"summary\",\"json_file_count\":{},\"valid_count\":{},\"invalid_or_unsupported_count\":{},\"unknown_family_file_count\":{},\"scan_issue_count\":{},\"missing_required_families\":[{}],\"required_family_coverage\":[{}],\"structure_only_disposition\":\"{}\",\"file_count_is_not_physical_trial_count\":true,\"physical_trial_count\":\"NOT_COMPUTED\",\"session_article_grouping\":\"UNKNOWN\"}}",
+        "{{\"record_type\":\"summary\",\"json_file_count\":{},\"valid_count\":{},\"invalid_or_unsupported_count\":{},\"not_evaluable_count\":{},\"unknown_family_file_count\":{},\"scan_issue_count\":{},\"missing_required_families\":[{}],\"required_family_coverage\":[{}],\"structure_only_disposition\":\"{}\",\"file_count_is_not_physical_trial_count\":true,\"physical_trial_count\":\"NOT_COMPUTED\",\"session_article_grouping\":\"UNKNOWN\"}}",
         records.len(),
         valid_count,
         invalid_count,
+        not_evaluable_count,
         unknown_family_count,
         issues.len(),
         missing,
@@ -609,9 +618,10 @@ fn run(arguments: Arguments) -> Result<bool, String> {
         && issues.is_empty()
         && missing.is_empty()
         && !records.is_empty()
-        && records
-            .iter()
-            .all(|record| record.disposition == "VALID_OBSERVED_PROFILE");
+        && records.iter().all(|record| {
+            record.disposition == "VALID_OBSERVED_PROFILE"
+                && REQUIRED_FAMILIES.contains(&record.family.as_str())
+        });
     Ok(passed)
 }
 
@@ -640,9 +650,18 @@ mod tests {
 
     #[test]
     fn json_string_escapes_quotes_control_characters_and_unicode_safely() {
-        let input = "trail \"quote\" \\\n\t\u{0001} / café";
-        let escaped = json_string(input);
-        assert_eq!(escaped, "\"trail \\\"quote\\\" \\\\\\n\\t\\u0001 / café\"");
+        let input = format!(
+            "trail \"quote\" {}{}{}{} / café",
+            '\\',
+            '\n',
+            '\t',
+            '\u{0001}'
+        );
+        let escaped = json_string(&input);
+        assert!(escaped.contains(r#"\"quote\""#));
+        assert!(escaped.contains(r#"\\\n"#));
+        assert!(escaped.contains(r#"\t\u0001"#));
+        assert!(escaped.ends_with("café\\\""));
     }
 
     #[test]
