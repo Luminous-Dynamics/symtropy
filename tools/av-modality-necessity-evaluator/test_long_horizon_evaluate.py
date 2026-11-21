@@ -170,13 +170,20 @@ class LongHorizonEvaluatorTests(unittest.TestCase):
         by_ref = {item["item_ref"]: item for item in episode["derived_memory_items"]}
         by_ref["mem-private-summary"]["derived_from_item_refs"] = ["mem-private-response-cache"]
         by_ref["mem-private-summary"]["derived_from_observation_refs"] = []
+        by_ref["mem-private-working-context"]["created_tick"] = 600
+        by_ref["mem-private-response-cache"]["created_tick"] = 600
         with self.assertRaises(evaluator.EvaluationError):
             self.score(workload=workload)
 
     def test_derived_memory_cannot_precede_source_observation(self):
         workload = copy.deepcopy(self.workload)
         episode = next(x for x in workload["episodes"] if x["episode_id"] == "lh-008-memory-revocation")
-        episode["derived_memory_items"][0]["created_tick"] = 0
+        private_source = next(
+            event for event in episode["stream_events"]
+            if event.get("observation_ref") == "obs-private-utterance"
+        )
+        private_source["availability_tick"] = 100
+        episode["derived_memory_items"][0]["created_tick"] = 50
         with self.assertRaises(evaluator.EvaluationError):
             self.score(workload=workload)
 
