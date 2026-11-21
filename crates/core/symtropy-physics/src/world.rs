@@ -140,7 +140,8 @@ pub struct ConstraintVelocityEvent {
 /// bodies and resolved contacts before positional and velocity-level constraint
 /// outcomes are collected. Therefore a rejection can occur after prior world mutations.
 /// Rejection reporting is observational and non-interrupting: the existing
-/// velocity-constraint iteration schedule continues, and no rollback is tried.
+/// positional and velocity-constraint iteration schedules continue, and no
+/// rollback is tried.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PhysicsStepReport {
     pub constraint_position_events: Vec<ConstraintPositionEvent>,
@@ -3063,7 +3064,6 @@ mod constraint_outcome_report_tests {
         assert!(report.constraint_position_events.is_empty());
         assert!(report.constraint_velocity_events.is_empty());
     }
-
 
     struct CountingLegacyPositionConstraint {
         body_a: BodyHandle,
