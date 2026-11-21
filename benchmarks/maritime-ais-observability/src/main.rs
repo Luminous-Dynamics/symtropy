@@ -46,7 +46,8 @@ fn main() {
     println!("Maritime edge-AIS observability verifier v0.1");
     println!("Synthetic ticks only; no physical or civil-time interpretation.");
     println!(
-        "receiver={} source={} geofence={} spatial_ref={} profile={}",
+        "call_ref={} receiver={} source={} geofence={} spatial_ref={} profile={}",
+        qualified.call_reference_id,
         qualified.receiver_id,
         qualified.source_id,
         qualified.geofence_digest,
@@ -87,12 +88,14 @@ fn main() {
         std::process::exit(2);
     });
     println!(
-        "Synthetic event score: TP={} FP={} FN={} precision={:?} recall={:?}",
+        "Synthetic event score: TP={} FP={} FN={} precision={:?} recall={:?} mean_interval_error={:?} mean_interval_width={:?}",
         score.overall.true_positive,
         score.overall.false_positive,
         score.overall.false_negative,
         score.overall.precision,
-        score.overall.recall
+        score.overall.recall,
+        score.overall.mean_interval_distance_ticks,
+        score.overall.mean_matched_interval_width_ticks
     );
 
     let late_start = [
