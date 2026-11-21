@@ -290,7 +290,9 @@ fn graph_has_cycle(claim_ids: &HashSet<&str>, edges: &[Edge]) -> bool {
     }
 
     let mut marks = HashMap::new();
-    claim_ids.iter().any(|node| visit(node, &adjacency, &mut marks))
+    claim_ids
+        .iter()
+        .any(|node| visit(node, &adjacency, &mut marks))
 }
 
 fn disposition_for_blockers(blockers: &[Blocker]) -> Disposition {
@@ -480,7 +482,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
                     }
                     ClaimType::ExternalAuthorityDecision => {
                         evidence.evidence_class == EvidenceClass::Authority
-                    },
+                    }
                     _ => true,
                 };
                 if !class_matches {
