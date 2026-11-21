@@ -122,6 +122,8 @@ jobs:
           ' ev-carrier-module-factory-report.json
           jq empty tools/ev-passenger-cost-frontier/schemas/ev_carrier_lifecycle_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_carrier_lifecycle_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/schemas/battery_service_network_v0_1.schema.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/battery_service_network_v0_1.json
           cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_carrier_lifecycle_screen -- \
             ev-carrier-module-factory-report.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_carrier_lifecycle_v0_1.json \
@@ -138,6 +140,27 @@ jobs:
             and all(.results[]; .production_release_granted == false)
           ' ev-carrier-module-lifecycle-report.json
           cat ev-carrier-module-lifecycle-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin battery_service_network_screen -- \
+            tools/ev-passenger-cost-frontier/fixtures/battery_service_network_v0_1.json \
+            > battery-service-network-report.json
+          jq -e '
+            .benchmark_id == "BATTERY-SERVICE-NETWORK-001"
+            and .dispatch_epoch_id == "synthetic-common-epoch-001"
+            and .pack_count == 4
+            and .mission_count == 4
+            and .serviceable_mission_count == 3
+            and .status == "partial_service"
+            and (.assignments | length) == 3
+            and ([.assignments[].pack_id] | unique | length) == 3
+            and ([.assignments[].mission_id] | unique | length) == 3
+            and (.unserved_missions == ["mission-4"])
+            and (all(.assignments[]; .pack_id != "pack-d"))
+            and (all(.assignments[]; .energy_margin_wh >= 0))
+            and .all_pack_evidence_synthetic == true
+            and .dispatch_authority_granted == false
+            and .return_to_service_authority_granted == false
+          ' battery-service-network-report.json
+          cat battery-service-network-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
@@ -156,6 +179,10 @@ jobs:
             tools/ev-passenger-cost-frontier/src/bin/ev_carrier_lifecycle_screen.rs \
             tools/ev-passenger-cost-frontier/src/lib.rs \
             tools/ev-passenger-cost-frontier/src/bin/ev_carrier_module_factory_screen.rs \
+            tools/ev-passenger-cost-frontier/src/battery_service_network.rs \
+            tools/ev-passenger-cost-frontier/src/bin/battery_service_network_screen.rs \
+            tools/ev-passenger-cost-frontier/schemas/battery_service_network_v0_1.schema.json \
+            tools/ev-passenger-cost-frontier/fixtures/battery_service_network_v0_1.json \
             tools/ev-passenger-cost-frontier/README.md \
             docs/research/EV_CARRIER_LIFECYCLE_AND_SERVICEABILITY_V0_1.md \
             ev-passenger-cost-report.json ev-localization-cost-report.json ev-factory-design-report.json ev-carrier-module-factory-report.json ev-carrier-module-lifecycle-report.json > ev-passenger-cost-report.sha256
@@ -168,6 +195,9 @@ jobs:
             ev-factory-design-report.json
             ev-carrier-module-factory-report.json
             ev-carrier-module-lifecycle-report.json
+            battery-service-network-report.json
+            tools/ev-passenger-cost-frontier/fixtures/battery_service_network_v0_1.json
+            tools/ev-passenger-cost-frontier/schemas/battery_service_network_v0_1.schema.json
             tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_processes_v0_1.json
             tools/ev-passenger-cost-frontier/fixtures/ev_carrier_lifecycle_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/ev_carrier_lifecycle_v0_1.schema.json
