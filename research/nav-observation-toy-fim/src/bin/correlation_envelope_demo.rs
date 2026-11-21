@@ -1,7 +1,7 @@
 use nav_observation_toy_fim::correlated::CorrelatedRangeAction;
 use nav_observation_toy_fim::correlation_envelope::{
-    correlation_scenario_fisher, evaluate_correlation_envelope, CorrelationScenario,
-    PairwiseCorrelation,
+    correlation_scenario_fisher, evaluate_correlation_envelope,
+    robust_select_correlation_envelope, CorrelationScenario, PairwiseCorrelation,
 };
 
 fn pair(rho: f64) -> Vec<PairwiseCorrelation> {
@@ -50,6 +50,50 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         result.worst_case_minimum_eigenvalue,
         result.worst_case_determinant,
         result.worst_case_rank
+    );
+
+    let candidate_actions = vec![
+        CorrelatedRangeAction::independent("a-east", 0.0, 1.0, 1),
+        CorrelatedRangeAction::independent("b-east-copy", 0.0, 1.0, 1),
+        CorrelatedRangeAction::independent("c-north", std::f64::consts::FRAC_PI_2, 1.0, 1),
+        CorrelatedRangeAction::independent("d-diagonal", std::f64::consts::FRAC_PI_4, 1.0, 1),
+    ];
+    let ids = ["a-east", "b-east-copy", "c-north", "d-diagonal"];
+    let make_complete_scenario = |scenario_id: &str, correlated_pair: Option<(&str, &str, f64)>| {
+        let mut pairs = Vec::new();
+        for i in 0..ids.len() {
+            for j in (i + 1)..ids.len() {
+                let rho = correlated_pair
+                    .filter(|(a, b, _)| {
+                        (*a == ids[i] && *b == ids[j]) || (*a == ids[j] && *b == ids[i])
+                    })
+                    .map(|(_, _, value)| value)
+                    .unwrap_or(0.0);
+                pairs.push(PairwiseCorrelation {
+                    action_a: ids[i].to_owned(),
+                    action_b: ids[j].to_owned(),
+                    rho,
+                });
+            }
+        }
+        CorrelationScenario {
+            scenario_id: scenario_id.to_owned(),
+            pairs,
+        }
+    };
+    let candidate_scenarios = vec![
+        make_complete_scenario("all-independent", None),
+        make_complete_scenario("shared-clock", Some(("a-east", "b-east-copy", 0.9))),
+    ];
+    let selected =
+        robust_select_correlation_envelope(&candidate_actions, &candidate_scenarios, 2)?;
+    println!("ROBUST_SENSOR_SUBSET_UNDER_CORRELATION_UNCERTAINTY");
+    println!(
+        "  selected={:?}, cost={}, rank={}, worst_lambda_min={:.9}",
+        selected.action_ids,
+        selected.total_cost_units,
+        selected.envelope.worst_case_rank,
+        selected.envelope.worst_case_minimum_eigenvalue
     );
     Ok(())
 }
