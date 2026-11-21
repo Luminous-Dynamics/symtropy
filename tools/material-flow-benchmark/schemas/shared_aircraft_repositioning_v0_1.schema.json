@@ -20,7 +20,8 @@
     "aircraft_idle_cost_per_period",
     "regions",
     "reposition_links",
-    "scenarios"
+    "scenarios",
+    "stress_scenarios"
   ],
   "properties": {
     "schema_version": {
@@ -285,6 +286,92 @@
           "type": "null"
         }
       ]
+    },
+    "stress_scenarios": {
+      "type": "array",
+      "maxItems": 8,
+      "description": "Unweighted adversarial/stress trajectories. They do not enter probability sums, expected-cost or CVaR calculations; they affect only worst-case and service-robust objectives.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "periods"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "periods": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 6,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "observations"
+              ],
+              "properties": {
+                "observations": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "region_id",
+                      "demand_units",
+                      "weather",
+                      "weather_evidence_reference",
+                      "permission",
+                      "permission_evidence_reference"
+                    ],
+                    "properties": {
+                      "region_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "demand_units": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000000
+                      },
+                      "weather": {
+                        "enum": [
+                          "clear_fresh",
+                          "blocked_fresh",
+                          "unknown",
+                          "stale"
+                        ]
+                      },
+                      "permission": {
+                        "enum": [
+                          "approved_fresh",
+                          "not_approved_fresh",
+                          "unknown",
+                          "stale",
+                          "revoked"
+                        ]
+                      },
+                      "weather_evidence_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "permission_evidence_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "allOf": [
