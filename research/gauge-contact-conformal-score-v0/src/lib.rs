@@ -569,6 +569,7 @@ mod tests {
             &expected(),
             &original,
             normalization(),
+        score_identity(),
         )
         .unwrap();
         let b = score_complete_trial(
@@ -577,6 +578,7 @@ mod tests {
             &expected(),
             &permuted,
             normalization(),
+        score_identity(),
         )
         .unwrap();
         assert_eq!(a.maximum_nonconformity_score, b.maximum_nonconformity_score);
@@ -593,6 +595,7 @@ mod tests {
                 &expected(),
                 &rows,
                 normalization(),
+            score_identity(),
             ),
             Err(PoseScoreError::MissingExpectedSamples)
         );
@@ -608,6 +611,7 @@ mod tests {
                 &expected(),
                 &rows,
                 normalization(),
+            score_identity(),
             ),
             Err(PoseScoreError::DuplicateBodyFrame)
         );
@@ -627,6 +631,7 @@ mod tests {
                 &expected(),
                 &rows,
                 normalization(),
+            score_identity(),
             ),
             Err(PoseScoreError::UnexpectedBody)
         );
@@ -646,6 +651,7 @@ mod tests {
                 &expected(),
                 &rows,
                 normalization(),
+            score_identity(),
             ),
             Err(PoseScoreError::InvalidPoseError)
         );
@@ -660,6 +666,7 @@ mod tests {
                 &expected(),
                 &rows,
                 normalization(),
+            score_identity(),
             ),
             Err(PoseScoreError::InvalidPoseError)
         );
@@ -675,7 +682,8 @@ mod tests {
                 EpisodeOutcome::Completed,
                 &expected(),
                 &samples(),
-                scale
+                scale,
+            score_identity(),
             ),
             Err(PoseScoreError::InvalidNormalizationScale)
         );
@@ -687,7 +695,8 @@ mod tests {
                 EpisodeOutcome::Completed,
                 &expected(),
                 &samples(),
-                scale
+                scale,
+            score_identity(),
             ),
             Err(PoseScoreError::InvalidScoreDefinitionDigest)
         );
@@ -721,6 +730,7 @@ mod tests {
             &expected(),
             &samples(),
             normalization(),
+        score_identity(),
         )
         .unwrap();
         let mut lower = samples();
@@ -734,6 +744,7 @@ mod tests {
             &expected(),
             &lower,
             normalization(),
+        score_identity(),
         )
         .unwrap();
         let block =
@@ -750,6 +761,7 @@ mod tests {
             &expected(),
             &samples(),
             normalization(),
+        score_identity(),
         )
         .unwrap();
         assert_eq!(
