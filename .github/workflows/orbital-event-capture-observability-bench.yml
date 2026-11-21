@@ -64,7 +64,7 @@ jobs:
             and .result == "pass"
             and .report.evidence_class == "synthetic"
             and .report.claim_ceiling == "synthetic-capture-reconciliation-only"
-            and .report.summary.case_count == 20
+            and .report.summary.case_count == 22
             and .report.summary.expected_result_mismatches == 0
             and .report.summary.fit_acceptances == 0
             and .report.summary.reliability_claims == 0
