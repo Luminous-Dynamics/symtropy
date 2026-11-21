@@ -17,11 +17,11 @@ References:
 
 ## Evaluator semantics
 
-An obligation binds its exact configuration, procedure, service kind, lifecycle phase, factor-level conditions and required evidence key. A completed run can cover an obligation only when those fields match and the measurement evidence declares valid calibration, instrument range, uncertainty, clock alignment, raw-artifact digest shape and an independent-run group.
+An obligation binds its exact configuration, procedure, service kind, lifecycle phase, factor-level conditions and required evidence key. A completed run can cover an obligation only when those fields match and the measurement evidence declares valid calibration, instrument range, uncertainty, clock alignment, raw-artifact digest shape and an declared run group.
 
 - A **completed failed** test covers the tested condition but remains a visible failure; coverage is not a pass.
 - Planned, aborted, invalid or evidence-incomplete runs do not cover an obligation.
-- Two samples from the same independence group do not count as independent replicates.
+- Two samples from the same independence group do not count as statistically independent replicates.
 - Conflicting records under one run ID are Disputed; byte-identical repeated records are DuplicateNoOp.
 - Configuration, procedure, function, lifecycle phase and evidence key remain distinct.
 - A campaign that exceeds its cost budget can still have complete coverage; cost and adequacy are reported separately.
@@ -41,7 +41,7 @@ The metrics report false OFAT and pairwise coverage counts when those shortcuts 
 
 ## Frozen corpus
 
-The v0.1 corpus contains 35 synthetic campaigns. It covers missing low/high energy, OFAT/pairwise interaction traps, non-frozen criteria, unsupported NotApplicable, planned/aborted/failed runs, duplicate/conflicting run IDs, stale configurations/procedures, calibration/range/uncertainty/clock invalidity, post-environment and post-maintenance checks, service/function separation, independent-run grouping, budget overruns and permutation positive controls.
+The v0.1 corpus contains 35 synthetic campaigns. It covers missing low/high energy, OFAT/pairwise interaction traps, non-frozen criteria, unsupported NotApplicable, planned/aborted/failed runs, duplicate/conflicting run IDs, stale configurations/procedures, calibration/range/uncertainty/clock invalidity, post-environment and post-maintenance checks, service/function separation, declared run grouping, budget overruns and permutation positive controls.
 
 Run locally:
 
@@ -66,3 +66,5 @@ node tools/orbital-interface-test-matrix-bench/tests/reference_oracle.mjs \
 - A campaign with complete synthetic coverage is not thereby physically qualified, safe or flight-ready.
 
 Composes with #6256/#6303, #6484/#6485 and #6515/#6516; consumes their evidence/applicability boundaries without replacing their owners.
+
+**Independence boundary:** v0.1 counts distinct declared run-group identifiers only. It does not authenticate their provenance, prove statistical independence, or detect shared fixture, instrument, calibration, operator, laboratory, DAQ or processing common causes. A physical campaign must document those dependencies and justify the confirmatory statistical unit under the relevant measurement/qualification plan.
