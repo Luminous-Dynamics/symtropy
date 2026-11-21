@@ -1096,5 +1096,213 @@
         "allowed_comparison": "same-class integrated microrobot control and payload/trajectory demonstrations under matched support and power conditions"
       }
     }
+  ],
+  "solver_reference_cases": [
+    {
+      "case_id": "MERLINO2D_WIRE_CYLINDER_KIOUSIS_2014_IV",
+      "solver_id": "MERLINO2D",
+      "purpose": "source-pinned discharge I-V reproduction case; not a thrust/flow validation",
+      "upstream": {
+        "repository": "PTL-Unibo/Merlino2D",
+        "commit": "08f70dbeba5c9a8cccacbd21f5511896110581f8",
+        "license": "GPL-3.0",
+        "language": "MATLAB",
+        "data_doi": "10.17632/4cvdr57t2n.1",
+        "upstream_article_doi": "10.1016/j.cpc.2026.110463",
+        "article_issue_date": "2027-01",
+        "repository_snapshot_date": "2026-11-21"
+      },
+      "linked_experiment": {
+        "paper": "Kiousis, Moronis & Fruh, Electro-Hydrodynamic (EHD) Thrust Analysis in Wire-Cylinder Electrode Arrangement",
+        "citation": "Plasma Science and Technology 16(4), 363–369 (2014)",
+        "doi": "10.1088/1009-0630/16/4/11",
+        "relation": "The Merlino2D repository README and plotting script state that this case's I-V comparator is the Kiousis et al. experiment. The primary article metadata independently confirms the paper concerns wire-cylinder DC EHD and reports thrust/current and geometry trends; this exact CSV-to-paper data provenance has not yet been reconciled against the paper's full tables/figures.",
+        "primary_source_url": "https://doi.org/10.1088/1009-0630/16/4/11"
+      },
+      "pinned_files": {
+        "case_input": {
+          "path": "cases/CoronaWireCylinder_i.m",
+          "git_blob_sha": "ea79c71c93d14ab43b188b6b3afa5a56a9c2a03b"
+        },
+        "geometry": {
+          "path": "geo/WireCyl_50u_5m_30m.geo",
+          "git_blob_sha": "e02a77a117b4109a1693cc6733fc6cec8bb5456e"
+        },
+        "experimental_csv": {
+          "path": "data/Experimental_Results_50u_5m_30m.csv",
+          "git_blob_sha": "00d64d517ce18c1779477eb3a02ee8c55c4080d2"
+        },
+        "plotting_script": {
+          "path": "cases/CoronaWireCylinder_plot.m",
+          "git_blob_sha": "0eab870d227b3df46ab97a635309dcfb921b8fd2"
+        },
+        "default_parameters": {
+          "path": "+src/+run/DefaultMerlino2Dinput.m",
+          "git_blob_sha": "1fc79554d948d1df165e3d4d5158aff933dd7889"
+        },
+        "chemistry": {
+          "path": "kinetic/s_Parent.m",
+          "git_blob_sha": "f3e62c125ad4c90ce7c7152522ca8cf669765198"
+        },
+        "electron_temperature_table": {
+          "path": "data/Te_Air.csv",
+          "git_blob_sha": "a9e212511c0421a6a43cf5b7ebf2b901c91d6573"
+        },
+        "initialization": {
+          "path": "+src/+run/M2DInit.m",
+          "git_blob_sha": "bc0fd4b81b89d501c758ab26d6e093886a0757ca"
+        },
+        "dae_rhs": {
+          "path": "+src/+run/DaeFunc2D.m",
+          "git_blob_sha": "309037d90e2b1aabc78f268f3ed905649ddfe62d"
+        }
+      },
+      "geometry": {
+        "dimension": "2D Cartesian cross-section, half-domain represented above the symmetry plane",
+        "emitter_radius_um": 50,
+        "collector_radius_mm": 5,
+        "geo_distance_parameter_mm": 30,
+        "derived_minimum_electrode_surface_clearance_mm": 29.95,
+        "domain_width_mm": 100,
+        "domain_height_mm": 30,
+        "note": "The .geo file places the emitter centre at x=0 and collector near surface at x=30 mm; with a 50 µm emitter radius, the derived metal-surface clearance is 29.95 mm. The README describes the spacing as 30 mm. Preserve both the source parameter and geometric clearance; do not silently substitute one."
+      },
+      "operating_conditions": {
+        "pressure_pa": 101325,
+        "temperature_k": 300,
+        "gas": "air",
+        "nitrogen_mole_fraction": 0.7884,
+        "oxygen_mole_fraction": 0.2116,
+        "provenance": "DefaultMerlino2Dinput.m defaults; case input does not override PRESSURE or TEMPERATURE."
+      },
+      "model": {
+        "formulation": "2D drift-diffusion species equations coupled to electrostatic Poisson; DAE",
+        "species": [
+          "e",
+          "N2+",
+          "O2+",
+          "O2-"
+        ],
+        "chemistry_model": "s_Parent",
+        "electron_temperature": "Te_Air lookup table",
+        "transport": "case-specific analytic mobility expressions and diffusion coefficients",
+        "photoionization": "not configured in this input case",
+        "coordinates": "Cartesian",
+        "electrode_current_boundary": "external circuit includes R=0.001 ohm; this is the simulation's series resistance, not a measured thruster power boundary",
+        "resistor_ohms": 0.001,
+        "length_default_m": 1,
+        "anode_ids": [
+          1
+        ],
+        "applied_voltage_ramp_kv": [
+          7,
+          9,
+          11,
+          13,
+          15,
+          17,
+          19,
+          21
+        ],
+        "ode_solver": "IDAS",
+        "solver_note": "The Merlino2D paper states the IDAS MATLAB wrapper is available with MATLAB R2024a; its general solver also supports ode15s, but changing integrators is a separate controlled comparison.",
+        "default_abs_tolerance": 0.000001,
+        "default_rel_tolerance": 0.001
+      },
+      "experimental_comparator": {
+        "evidence_class": "repository_supplied_experimental_csv_linked_by_upstream_plot_script_to_Kiousis_2014",
+        "raw_columns": [
+          "voltage_kv",
+          "current_ma"
+        ],
+        "row_count": 10,
+        "plot_conversion": {
+          "experimental_current_ma_to_microamp": "multiply by 1000",
+          "simulated_integrated_current_to_microamp": "multiply by 2e6 because upstream plot script doubles the half-domain model current",
+          "voltage": "both model and experimental plotted in kV"
+        },
+        "source_rows": [
+          {
+            "voltage_kv": 10.99520219328307,
+            "current_ma": 0.04150943396226414,
+            "current_ua": 41.50943396226414
+          },
+          {
+            "voltage_kv": 12.002741603838246,
+            "current_ma": 0.06301886792452838,
+            "current_ua": 63.01886792452838
+          },
+          {
+            "voltage_kv": 12.996572995202197,
+            "current_ma": 0.08415094339622631,
+            "current_ua": 84.15094339622631
+          },
+          {
+            "voltage_kv": 14.004112405757368,
+            "current_ma": 0.11018867924528297,
+            "current_ua": 110.18867924528297
+          },
+          {
+            "voltage_kv": 15.011651816312543,
+            "current_ma": 0.14037735849056598,
+            "current_ua": 140.377358490566
+          },
+          {
+            "voltage_kv": 16.00548320767649,
+            "current_ma": 0.17924528301886788,
+            "current_ua": 179.2452830188679
+          },
+          {
+            "voltage_kv": 17.013022618231666,
+            "current_ma": 0.22339622641509432,
+            "current_ua": 223.39622641509433
+          },
+          {
+            "voltage_kv": 18.006854009595614,
+            "current_ma": 0.2852830188679245,
+            "current_ua": 285.2830188679245
+          },
+          {
+            "voltage_kv": 19.01439342015079,
+            "current_ma": 0.33886792452830183,
+            "current_ua": 338.86792452830184
+          },
+          {
+            "voltage_kv": 20.021932830705964,
+            "current_ma": 0.40452830188679245,
+            "current_ua": 404.52830188679246
+          }
+        ],
+        "endpoint_expectations": {
+          "first": {
+            "voltage_kv": 10.99520219328307,
+            "current_ma": 0.04150943396226414
+          },
+          "last": {
+            "voltage_kv": 20.021932830705964,
+            "current_ma": 0.40452830188679245
+          }
+        },
+        "derived_descriptive_fit": {
+          "equation": "I_uA = -430.09834486751816 + 39.79796994772902 * V_kV",
+          "r_squared": 0.9610442828504613,
+          "claim_ceiling": "Descriptive fit of the 10 repository CSV rows only; not a physical law, not a solver result, and not an independent replication."
+        },
+        "limitations": [
+          "The CSV is bundled in the Merlino2D repository, not independently traced row-by-row to the primary article's raw measurement files.",
+          "No measurement uncertainty, instrument calibration, exact pressure/humidity or raw time-series are present in the CSV.",
+          "This benchmark checks discharge I-V response only; it contains no thrust, gas velocity, neutral momentum or energy-efficiency measurement.",
+          "The model comparison's factor-of-two current scaling must be preserved and explicitly justified by the half-domain symmetry before reporting error."
+        ]
+      },
+      "qualification_gates": {
+        "preflight": "Pin source commit, license, MATLAB version, Gmsh version, IDAS availability, Te_Air.csv, s_Parent chemistry, exact .geo and case input.",
+        "first_reproduction": "Run exact upstream input unchanged, retain raw output and solver statistics, and reproduce the repository's plotted model curve from out.yout.",
+        "data_gate": "Verify the 10 experimental CSV points, units and factor-of-two model-current convention; obtain the primary article's full table/figure or author data to reconcile provenance and uncertainty.",
+        "numerical_gate": "Mesh refinement of .geo scales and DAE tolerance sweeps; report I-V changes, mesh counts, IDAS steps/failures and runtime.",
+        "transfer_gate": "Only after exact reproduction, compare against one changed geometry or pressure as an out-of-cohort test; do not treat it as validated."
+      },
+      "claim_boundary": "Source-pinned candidate for reproducing a published/repository-linked atmospheric corona discharge I-V curve. No Merlino2D run has been executed by Luminous; no solver accuracy, thrust prediction, EHD flow coupling or SOTA claim is established."
+    }
   ]
 }
