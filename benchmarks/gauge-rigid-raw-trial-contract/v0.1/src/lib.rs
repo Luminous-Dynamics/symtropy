@@ -267,7 +267,7 @@ impl<'a> JsonParser<'a> {
     }
 
     fn skip_whitespace(&mut self) {
-        while matches!(self.peek_byte(), Some(b' ' | b'\\n' | b'\\r' | b'\\t')) {
+        while matches!(self.peek_byte(), Some(b' ' | 0x0a | 0x0d | 0x09)) {
             self.cursor += 1;
         }
     }
