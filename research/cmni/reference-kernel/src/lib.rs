@@ -9,6 +9,13 @@
 
 use std::fmt;
 
+mod material_state;
+pub use material_state::{
+    diffuse_no_flux_1d,
+    diffusion_stability_limit_s,
+    source_loss_step,
+};
+
 const BARN_TO_CM2: f64 = 1.0e-24;
 
 #[derive(Debug, Clone, PartialEq)]
