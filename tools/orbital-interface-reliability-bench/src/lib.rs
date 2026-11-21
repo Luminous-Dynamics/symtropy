@@ -311,8 +311,11 @@ fn empty_decision(disposition: Disposition, duplicate_trials: usize) -> Decision
 }
 
 fn evaluate_case(case: &ReliabilityCase) -> Result<Decision, String> {
-    if case.case_id.is_empty() || case.trials.is_empty() {
-        return Err("case ID and trial records must be non-empty".to_owned());
+    if case.case_id.is_empty() {
+        return Err("case ID must be non-empty".to_owned());
+    }
+    if case.trials.is_empty() {
+        return Ok(empty_decision(Disposition::Indeterminate, 0));
     }
     if !case.reliability_target.is_finite()
         || !(0.0 < case.reliability_target && case.reliability_target < 1.0)
@@ -539,18 +542,28 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
             return Err("reliability case IDs must be unique".to_owned());
         }
         let mut decision = evaluate_case(case)?;
-        if case.reported_cycle_successes + case.reported_cycle_failures > 0 {
-            let cycle_trials = case.reported_cycle_successes + case.reported_cycle_failures;
-            if cycle_trials <= MAX_TRIALS {
-                let cycle_lower = mission_reliability_lower_bound(
-                    cycle_trials,
-                    case.reported_cycle_failures,
-                    case.confidence,
-                )?;
-                decision.naive_cycle_lower_bound = Some(cycle_lower);
-                decision.naive_cycle_false_assurance = cycle_lower >= case.reliability_target
-                    && decision.disposition != Disposition::ReliabilityDemonstrated;
-            }
+        if let Some(cycle_trials) = case
+            .reported_cycle_successes
+            .checked_add(case.reported_cycle_failures)
+            .filter(|count| {
+                *count > 0
+                    && *count <= MAX_TRIALS
+                    && case.reliability_target.is_finite()
+                    && 0.0 < case.reliability_target
+                    && case.reliability_target < 1.0
+                    && case.confidence.is_finite()
+                    && 0.0 < case.confidence
+                    && case.confidence < 1.0
+            })
+        {
+            let cycle_lower = mission_reliability_lower_bound(
+                cycle_trials,
+                case.reported_cycle_failures,
+                case.confidence,
+            )?;
+            decision.naive_cycle_lower_bound = Some(cycle_lower);
+            decision.naive_cycle_false_assurance = cycle_lower >= case.reliability_target
+                && decision.disposition != Disposition::ReliabilityDemonstrated;
         }
         match decision.disposition {
             Disposition::ReliabilityDemonstrated => summary.reliability_demonstrated += 1,
