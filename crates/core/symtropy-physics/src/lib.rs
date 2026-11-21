@@ -39,7 +39,7 @@ pub use body::{
     RigidBody, RotationalInertiaModel,
 };
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
-pub use constraint::Constraint;
+pub use constraint::{Constraint, ConstraintSolveOutcome};
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
 pub use diagnostics::{InvariantDrift, InvariantSnapshot};
 pub use epa::EpaResult;
@@ -55,4 +55,6 @@ pub use mass_properties::{
     SpatialRotationalInertiaView, rotational_dof_count,
 };
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
-pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
+pub use world::{
+    ConstraintVelocityEvent, NoOpCallback, PhysicsCallback, PhysicsStepReport, PhysicsWorld,
+};

@@ -13,7 +13,7 @@ use symtropy_math::{Bivector, Capsule, HalfSpace, HyperBox, Point, Sphere, Trans
 use crate::body::{BodyHandle, NetId, RigidBody};
 use crate::broadphase;
 use crate::ccd;
-use crate::constraint::Constraint;
+use crate::constraint::{Constraint, ConstraintSolveOutcome};
 use crate::contact::{CollisionEvent, ContactCache, ContactManifold};
 use crate::gjk;
 use crate::integrator;
@@ -110,6 +110,65 @@ pub trait PhysicsCallback<const D: usize> {
 
 /// No-op callback for physics-only usage (no consciousness coupling).
 pub struct NoOpCallback;
+
+/// One velocity-level constraint invocation observed during a report-enabled
+/// world step. Constraint indices and iteration numbers are zero-based.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ConstraintVelocityEvent {
+    pub constraint_index: usize,
+    pub body_a: BodyHandle,
+    pub body_b: BodyHandle,
+    pub iteration: usize,
+    pub outcome: ConstraintSolveOutcome,
+}
+
+/// Execution diagnostics returned by the additive report-enabled step APIs.
+///
+/// This is not a rollback mechanism, a physical-validity verdict, or an
+/// independent simulation certificate. The world has already integrated
+/// bodies and resolved contacts before velocity-level constraint outcomes are
+/// collected. Therefore a rejection can occur after prior world mutations.
+/// Rejection reporting is observational and non-interrupting: the existing
+/// velocity-constraint iteration schedule continues, and no rollback is tried.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PhysicsStepReport {
+    pub constraint_velocity_events: Vec<ConstraintVelocityEvent>,
+    /// True when at least one constraint rejected after earlier world phases
+    /// had already executed. The world step does not roll those phases back.
+    pub world_state_may_have_mutated_before_rejection: bool,
+}
+
+impl PhysicsStepReport {
+    fn with_capacity(capacity: usize) -> Self {
+        Self {
+            constraint_velocity_events: Vec::with_capacity(capacity),
+            world_state_may_have_mutated_before_rejection: false,
+        }
+    }
+
+    fn record_constraint_event(&mut self, event: ConstraintVelocityEvent) {
+        if matches!(event.outcome, ConstraintSolveOutcome::Rejected { .. }) {
+            self.world_state_may_have_mutated_before_rejection = true;
+        }
+        self.constraint_velocity_events.push(event);
+    }
+
+    /// Count typed constraint rejections in this step.
+    pub fn rejected_constraint_count(&self) -> usize {
+        self.constraint_velocity_events
+            .iter()
+            .filter(|event| matches!(event.outcome, ConstraintSolveOutcome::Rejected { .. }))
+            .count()
+    }
+
+    /// Count legacy constraint invocations whose outcomes were not reported.
+    pub fn unreported_constraint_count(&self) -> usize {
+        self.constraint_velocity_events
+            .iter()
+            .filter(|event| event.outcome == ConstraintSolveOutcome::Unreported)
+            .count()
+    }
+}
 
 impl<const D: usize> PhysicsCallback<D> for NoOpCallback {
     fn modulate_force(&self, _: BodyHandle, force: &SVector<f64, D>) -> SVector<f64, D> {
@@ -425,16 +484,49 @@ impl<const D: usize> PhysicsWorld<D> {
     /// The callback modulates forces, impulses, and friction based on
     /// consciousness state, closing the consciousness-physics loop.
     pub fn step_with_callback(&mut self, dt: f64, callback: &mut dyn PhysicsCallback<D>) {
-        self.step_internal(dt, callback);
+        self.step_internal(dt, callback, None);
     }
 
     /// Step without consciousness coupling (pure physics).
     pub fn step(&mut self, dt: f64) {
         let mut noop = NoOpCallback;
-        self.step_internal(dt, &mut noop);
+        self.step_internal(dt, &mut noop, None);
     }
 
-    fn step_internal(&mut self, dt: f64, callback: &mut dyn PhysicsCallback<D>) {
+    /// Step the world and return typed velocity-constraint execution outcomes.
+    ///
+    /// This is an additive diagnostics API. Legacy constraints remain
+    /// source-compatible and appear as Unreported; no success is inferred
+    /// from missing reporting. Rejection does not roll back earlier world
+    /// phases or mutations.
+    pub fn step_with_report(&mut self, dt: f64) -> PhysicsStepReport {
+        let mut noop = NoOpCallback;
+        let mut report = PhysicsStepReport::with_capacity(
+            self.constraints.len().saturating_mul(self.solver_iterations),
+        );
+        self.step_internal(dt, &mut noop, Some(&mut report));
+        report
+    }
+
+    /// Callback-enabled counterpart to step_with_report.
+    pub fn step_with_callback_report(
+        &mut self,
+        dt: f64,
+        callback: &mut dyn PhysicsCallback<D>,
+    ) -> PhysicsStepReport {
+        let mut report = PhysicsStepReport::with_capacity(
+            self.constraints.len().saturating_mul(self.solver_iterations),
+        );
+        self.step_internal(dt, callback, Some(&mut report));
+        report
+    }
+
+    fn step_internal(
+        &mut self,
+        dt: f64,
+        callback: &mut dyn PhysicsCallback<D>,
+        mut report: Option<&mut PhysicsStepReport>,
+    ) {
         // 0. Clear events from previous step
         self.collision_events.clear();
         self.sensor_events.clear();
@@ -712,7 +804,7 @@ impl<const D: usize> PhysicsWorld<D> {
         }
 
         // 6b. Velocity-level constraint solve (active islands only)
-        for _ in 0..self.solver_iterations {
+        for iteration in 0..self.solver_iterations {
             for &ci in &active_constraint_indices {
                 if ci >= self.constraints.len() {
                     continue;
@@ -720,7 +812,32 @@ impl<const D: usize> PhysicsWorld<D> {
                 let (ha, hb) = self.constraints[ci].bodies();
                 let (idx_a, idx_b) = self.find_body_indices(ha, hb);
                 if let (Some(a), Some(b)) = (idx_a, idx_b) {
-                    if a < b {
+                    if let Some(step_report) = report.as_deref_mut() {
+                        let outcome = if a < b {
+                            let (left, right) = self.bodies.split_at_mut(b);
+                            self.constraints[ci].solve_velocity_with_outcome(
+                                &mut left[a],
+                                &mut right[0],
+                                dt,
+                                Some(callback),
+                            )
+                        } else {
+                            let (left, right) = self.bodies.split_at_mut(a);
+                            self.constraints[ci].solve_velocity_with_outcome(
+                                &mut right[0],
+                                &mut left[b],
+                                dt,
+                                Some(callback),
+                            )
+                        };
+                        step_report.record_constraint_event(ConstraintVelocityEvent {
+                            constraint_index: ci,
+                            body_a: ha,
+                            body_b: hb,
+                            iteration,
+                            outcome,
+                        });
+                    } else if a < b {
                         let (left, right) = self.bodies.split_at_mut(b);
                         self.constraints[ci].solve_velocity(
                             &mut left[a],
@@ -2636,3 +2753,132 @@ mod anisotropic_contact_inertia_tests {
     }
 }
 
+#[cfg(test)]
+mod constraint_outcome_report_tests {
+    use super::*;
+    use crate::body::BodyType;
+    use crate::constraint::DistanceConstraint;
+    use symtropy_math::Point;
+
+    #[test]
+    fn report_enabled_step_surfaces_prismatic_rejection_after_prior_phases() {
+        let mut world = PhysicsWorld::<4>::new(SVector::zeros());
+        let base = world.add_body(RigidBody::<4>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(Sphere::new(Point::origin(), 0.1)),
+        ));
+        let dynamic = world.add_body(RigidBody::<4>::new(
+            BodyHandle(1),
+            BodyType::Dynamic,
+            Transform::from_translation(Point::new([0.0, 0.0, 0.0, 2.0])),
+            Box::new(Sphere::new(Point::origin(), 0.1)),
+            1.0,
+            SVector::from_element(1.0),
+        ));
+        {
+            let body = world.body_mut(dynamic).expect("dynamic link is present");
+            body.angular_velocity.set(0, 1, 0.5);
+            // The linear prismatic correction will mutate this velocity
+            // before the unsupported 4D angular response is rejected.
+            body.linear_velocity[0] = 0.25;
+        }
+        world.add_constraint(Box::new(crate::joints::PrismaticJoint::new(
+            base, dynamic, 3,
+        )));
+        world.solver_iterations = 1;
+
+        let report = world.step_with_report(0.016);
+
+        assert_eq!(report.constraint_velocity_events.len(), 1);
+        let event = &report.constraint_velocity_events[0];
+        assert_eq!(event.constraint_index, 0);
+        assert_eq!(event.body_a, base);
+        assert_eq!(event.body_b, dynamic);
+        assert_eq!(event.iteration, 0);
+        assert_eq!(
+            event.outcome,
+            ConstraintSolveOutcome::Rejected {
+                code: "prismatic.unsupported_inertia_model",
+                body_state_mutated_before_rejection: true,
+            }
+        );
+        assert_eq!(report.rejected_constraint_count(), 1);
+        assert!(report.world_state_may_have_mutated_before_rejection);
+    }
+
+    fn world_with_prismatic_velocity_constraint() -> (PhysicsWorld<3>, BodyHandle) {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let base = world.add_body(RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(Sphere::new(Point::origin(), 0.1)),
+        ));
+        let dynamic = world.add_sphere(Point::new([2.0, 0.0, 0.0]), 0.2, 1.0);
+        {
+            let body = world.body_mut(dynamic).expect("dynamic body is present");
+            body.linear_velocity = SVector::from([0.0, 0.4, -0.2]);
+            body.angular_velocity.set(0, 1, 0.5);
+            body.angular_velocity.set(0, 2, -0.3);
+            body.angular_velocity.set(1, 2, 0.2);
+        }
+        world.add_constraint(Box::new(crate::joints::PrismaticJoint::new(
+            base, dynamic, 0,
+        )));
+        world.solver_iterations = 1;
+        (world, dynamic)
+    }
+
+    #[test]
+    fn report_path_invokes_prismatic_solver_once_without_changing_physics() {
+        let (mut ordinary_world, ordinary_body) = world_with_prismatic_velocity_constraint();
+        let (mut report_world, report_body) = world_with_prismatic_velocity_constraint();
+
+        ordinary_world.step(0.016);
+        let report = report_world.step_with_report(0.016);
+
+        assert_eq!(report.constraint_velocity_events.len(), 1);
+        assert!(matches!(
+            report.constraint_velocity_events[0].outcome,
+            ConstraintSolveOutcome::Applied {
+                residual_inf: Some(_)
+            }
+        ));
+        assert_eq!(report.rejected_constraint_count(), 0);
+
+        let ordinary = ordinary_world.body(ordinary_body).expect("ordinary body remains");
+        let reported = report_world.body(report_body).expect("reported body remains");
+        assert_eq!(ordinary.transform.translation, reported.transform.translation);
+        assert_eq!(ordinary.linear_velocity, reported.linear_velocity);
+        assert_eq!(ordinary.angular_velocity, reported.angular_velocity);
+    }
+
+    #[test]
+    fn legacy_constraint_is_called_once_per_iteration_and_marked_unreported() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let a = world.add_sphere(Point::new([0.0, 0.0, 0.0]), 0.1, 1.0);
+        let b = world.add_sphere(Point::new([5.0, 0.0, 0.0]), 0.1, 1.0);
+        world
+            .body_mut(a)
+            .expect("body A is present")
+            .linear_velocity[0] = 1.0;
+        world.add_constraint(Box::new(DistanceConstraint {
+            body_a: a,
+            body_b: b,
+            rest_length: 5.0,
+            stiffness: 1.0,
+        }));
+        world.solver_iterations = 2;
+
+        let report = world.step_with_report(0.016);
+
+        assert_eq!(report.constraint_velocity_events.len(), 2);
+        assert_eq!(report.unreported_constraint_count(), 2);
+        assert_eq!(report.constraint_velocity_events[0].iteration, 0);
+        assert_eq!(report.constraint_velocity_events[1].iteration, 1);
+        assert!(report
+            .constraint_velocity_events
+            .iter()
+            .all(|event| event.outcome == ConstraintSolveOutcome::Unreported));
+    }
+}

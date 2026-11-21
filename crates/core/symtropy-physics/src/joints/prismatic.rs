@@ -10,7 +10,7 @@
 use nalgebra::SVector;
 
 use crate::body::{BodyHandle, RigidBody, RotationalInertiaModel};
-use crate::constraint::Constraint;
+use crate::constraint::{Constraint, ConstraintSolveOutcome};
 use symtropy_math::Bivector;
 
 const MAX_PRISMATIC_ROTATIONAL_DOF: usize = 36;
@@ -27,6 +27,23 @@ pub enum PrismaticAngularLockRejection {
     IllConditionedDelassus,
     SolveResidualTooLarge,
     UnrepresentableResult,
+}
+
+impl PrismaticAngularLockRejection {
+    /// Stable, allocation-free diagnostic code for world-step reporting.
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::InvalidStiffness => "prismatic.invalid_stiffness",
+            Self::NonFiniteState => "prismatic.non_finite_state",
+            Self::UnsupportedInertiaModel => "prismatic.unsupported_inertia_model",
+            Self::NonFiniteResponse => "prismatic.non_finite_response",
+            Self::NonSymmetricResponse => "prismatic.non_symmetric_response",
+            Self::SingularDelassus => "prismatic.singular_delassus",
+            Self::IllConditionedDelassus => "prismatic.ill_conditioned_delassus",
+            Self::SolveResidualTooLarge => "prismatic.solve_residual_too_large",
+            Self::UnrepresentableResult => "prismatic.unrepresentable_result",
+        }
+    }
 }
 
 /// Observable result of the passive prismatic angular-lock solve.
@@ -340,6 +357,97 @@ impl<const D: usize> PrismaticJoint<D> {
             }
         }
     }
+
+    /// Run the complete velocity-level prismatic operation once and preserve
+    /// whether a linear/motor mutation preceded an angular-lock rejection.
+    fn solve_velocity_inner(
+        &self,
+        body_a: &mut RigidBody<D>,
+        body_b: &mut RigidBody<D>,
+        dt: f64,
+        mut callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
+    ) -> ConstraintSolveOutcome {
+        let total_inv = body_a.inv_mass + body_b.inv_mass;
+        if total_inv < 1e-15 {
+            return ConstraintSolveOutcome::NoOp;
+        }
+
+        let mut body_state_mutated = false;
+
+        // Damp velocity on non-slide axes.
+        for i in 0..D {
+            if i == self.axis {
+                continue;
+            }
+            let rel_vel = body_b.linear_velocity[i] - body_a.linear_velocity[i];
+            if rel_vel.abs() < 1e-15 {
+                continue;
+            }
+            let impulse = -rel_vel * self.stiffness / total_inv;
+            if body_a.is_dynamic() {
+                let before = body_a.linear_velocity[i];
+                let delta = -impulse * body_a.inv_mass;
+                body_a.linear_velocity[i] += delta;
+                body_state_mutated |= body_a.linear_velocity[i] != before;
+            }
+            if body_b.is_dynamic() {
+                let before = body_b.linear_velocity[i];
+                let delta = impulse * body_b.inv_mass;
+                body_b.linear_velocity[i] += delta;
+                body_state_mutated |= body_b.linear_velocity[i] != before;
+            }
+        }
+
+        // Motor drive on slide axis.
+        if let Some(ref motor) = self.motor {
+            let displacement = body_b.transform.translation.0[self.axis]
+                - body_a.transform.translation.0[self.axis];
+            let rel_vel = body_b.linear_velocity[self.axis] - body_a.linear_velocity[self.axis];
+            let impulse = motor.calculate_impulse(displacement, rel_vel, dt);
+
+            // METABOLIC HEARTBEAT: Calculate Work and Energy Recovery.
+            // Work = Impulse * Velocity.
+            let work_joules = impulse * rel_vel;
+            if let Some(ref mut cb) = callback {
+                cb.record_work(self.body_b, work_joules);
+            }
+
+            if body_a.is_dynamic() {
+                let before = body_a.linear_velocity[self.axis];
+                let delta = -impulse * body_a.inv_mass;
+                body_a.linear_velocity[self.axis] += delta;
+                body_state_mutated |= body_a.linear_velocity[self.axis] != before;
+            }
+            if body_b.is_dynamic() {
+                let before = body_b.linear_velocity[self.axis];
+                let delta = impulse * body_b.inv_mass;
+                body_b.linear_velocity[self.axis] += delta;
+                body_state_mutated |= body_b.linear_velocity[self.axis] != before;
+            }
+        }
+
+        // Passive rotational lock uses the combined kinetic metric.
+        match self.solve_angular_velocity_lock(body_a, body_b) {
+            PrismaticAngularLockOutcome::NoOp => {
+                if body_state_mutated {
+                    ConstraintSolveOutcome::Applied { residual_inf: None }
+                } else {
+                    ConstraintSolveOutcome::NoOp
+                }
+            }
+            PrismaticAngularLockOutcome::Applied {
+                predicted_residual_inf,
+            } => ConstraintSolveOutcome::Applied {
+                residual_inf: Some(predicted_residual_inf),
+            },
+            PrismaticAngularLockOutcome::Rejected(reason) => {
+                ConstraintSolveOutcome::Rejected {
+                    code: reason.code(),
+                    body_state_mutated_before_rejection: body_state_mutated,
+                }
+            }
+        }
+    }
 }
 
 impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
@@ -413,58 +521,19 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
         body_a: &mut RigidBody<D>,
         body_b: &mut RigidBody<D>,
         dt: f64,
-        mut callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
+        callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
     ) {
-        let total_inv = body_a.inv_mass + body_b.inv_mass;
-        if total_inv < 1e-15 {
-            return;
-        }
+        let _ = self.solve_velocity_inner(body_a, body_b, dt, callback);
+    }
 
-        // Damp velocity on non-slide axes
-        for i in 0..D {
-            if i == self.axis {
-                continue;
-            }
-            let rel_vel = body_b.linear_velocity[i] - body_a.linear_velocity[i];
-            if rel_vel.abs() < 1e-15 {
-                continue;
-            }
-            let impulse = -rel_vel * self.stiffness / total_inv;
-            if body_a.is_dynamic() {
-                body_a.linear_velocity[i] -= impulse * body_a.inv_mass;
-            }
-            if body_b.is_dynamic() {
-                body_b.linear_velocity[i] += impulse * body_b.inv_mass;
-            }
-        }
-
-        // Motor drive on slide axis
-        if let Some(ref motor) = self.motor {
-            let displacement = body_b.transform.translation.0[self.axis]
-                - body_a.transform.translation.0[self.axis];
-            let rel_vel = body_b.linear_velocity[self.axis] - body_a.linear_velocity[self.axis];
-
-            // PD controller: impulse = (kp * (target - pos) + kd * (target_vel - vel)) * dt
-            let impulse = motor.calculate_impulse(displacement, rel_vel, dt);
-
-            // METABOLIC HEARTBEAT: Calculate Work and Energy Recovery
-            // Work = Impulse * Velocity
-            let work_joules = impulse * rel_vel;
-            if let Some(ref mut cb) = callback {
-                cb.record_work(self.body_b, work_joules);
-            }
-
-            if body_a.is_dynamic() {
-                body_a.linear_velocity[self.axis] -= impulse * body_a.inv_mass;
-            }
-            if body_b.is_dynamic() {
-                body_b.linear_velocity[self.axis] += impulse * body_b.inv_mass;
-            }
-        }
-
-        // Passive rotational lock uses the combined inertia metric rather than
-        // editing angular-velocity coordinates independently.
-        let _lock_outcome = self.solve_angular_velocity_lock(body_a, body_b);
+    fn solve_velocity_with_outcome(
+        &self,
+        body_a: &mut RigidBody<D>,
+        body_b: &mut RigidBody<D>,
+        dt: f64,
+        callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
+    ) -> ConstraintSolveOutcome {
+        self.solve_velocity_inner(body_a, body_b, dt, callback)
     }
 }
 
