@@ -439,7 +439,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
             );
         }
         if claim.claim_type == ClaimType::ModelCredibility
-            && claim.validation_domain.as_deref().is_none_or(|domain| domain.trim().is_empty())
+            && claim
+                .validation_domain
+                .as_deref()
+                .is_none_or(|domain| domain.trim().is_empty())
         {
             add_blocker(
                 &mut blockers,
