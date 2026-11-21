@@ -20,3 +20,11 @@ These are authored synthetic known-answer checks. They do not measure memory ret
 The evaluator checks query-time cutoffs, source availability, duplicate observation identity, correction/supersession, revocation, common-cause dependence, cross-clock claims, exact answer and source citation. A citation to a future, superseded or revoked observation is not admissible provenance.
 
 The expected summary is an oracle for this finite evaluator fixture, not a blind test set.
+
+## Evidence-qualified answer and lineage constraints
+
+The scorecard reports `evidence_qualified_answer_correct_count` and `evidence_qualified_answer_accuracy` in addition to raw answer accuracy. A prediction qualifies only when it is answer-correct, source-complete and has no evidence-contract violations. A correct guess without required source lineage is not a qualified evidence retrieval.
+
+Replay identity is fail-closed: repeated delivery may reuse an observation reference only when modalities, content digest, capture tick, source dependency group, clock-domain ID and generation remain identical. Event availability order must be monotonic. Derived memory items are checked for known source references, parent existence, causal creation order and cycles before revocation propagation.
+
+Purge receipt records are constrained to `candidate_self_reported`; they validate a claimed purge workflow only. They do not prove deletion from physical storage, indexes, snapshots, backups, provider-side retention or external processors. A future blind qualification must add independently attested storage/provider receipts and post-revocation residual-query challenges.
