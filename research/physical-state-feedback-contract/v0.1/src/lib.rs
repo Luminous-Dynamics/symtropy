@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 //! Evidence-aware physical state feedback types.
 //!
 //! This dependency-free crate defines a minimal contract for queryable physical
