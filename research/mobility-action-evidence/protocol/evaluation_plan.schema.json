@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/cdaab/evaluation-plan/v0.1",
+  "title": "CDAAB preregistered evaluation plan v0.1",
+  "description": "Freeze sampling, baselines, metrics, cluster analysis and stopping rules before running a candidate. No post-hoc metric or split substitutions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "benchmark_id",
+    "version",
+    "plan_id",
+    "candidate",
+    "baselines",
+    "manifest_digest",
+    "evaluator_digest",
+    "sampling",
+    "metrics",
+    "stopping_rule"
+  ],
+  "properties": {
+    "benchmark_id": {
+      "const": "CDAAB"
+    },
+    "version": {
+      "const": "0.1"
+    },
+    "plan_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidate": {
+      "$ref": "#/$defs/build"
+    },
+    "baselines": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/build"
+      }
+    },
+    "manifest_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "evaluator_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "sampling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_episodes_per_stratum",
+        "confidence_level_basis_points",
+        "cluster_dimensions",
+        "randomization_commitment"
+      ],
+      "properties": {
+        "minimum_episodes_per_stratum": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "confidence_level_basis_points": {
+          "type": "integer",
+          "minimum": 9000,
+          "maximum": 9999
+        },
+        "cluster_dimensions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "randomization_commitment": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "stopping_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_episodes",
+        "early_stop_on_safety_violation",
+        "early_stop_on_integrity_failure"
+      ],
+      "properties": {
+        "max_episodes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "early_stop_on_safety_violation": {
+          "const": true
+        },
+        "early_stop_on_integrity_failure": {
+          "const": true
+        }
+      }
+    },
+    "declared_hardware": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "declared_runtime": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "$defs": {
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "source_commit",
+        "artifact_digest",
+        "runtime_digest"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "artifact_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "runtime_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}
