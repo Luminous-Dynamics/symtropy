@@ -46,7 +46,10 @@ pub use epa::EpaResult;
 pub use integrator::{
     angular_impulse_from_point, angular_point_velocity, nan_zeroed_count,
 };
-pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
+pub use joints::{
+    BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticAngularLockOutcome,
+    PrismaticAngularLockRejection, PrismaticJoint,
+};
 pub use mass_properties::{
     MassProperties, MassPropertiesError, RotationalInertiaOperator,
     SpatialRotationalInertiaView, rotational_dof_count,
