@@ -194,7 +194,7 @@ function evaluateCase(c) {
   return {
     disposition, injected_count: references.length, captured_count: capturedCount,
     missed_count: missedCount, duplicate_count: duplicateCount, unexpected_count: unexpectedCount,
-    upper_miss_probability_95: duplicateCount === 0 && unexpectedCount === 0 && !disputed
+    upper_miss_probability_95: !loss && duplicateCount === 0 && unexpectedCount === 0 && !disputed
       ? missUpper95(missedCount, references.length) : null,
     blockers
   };
