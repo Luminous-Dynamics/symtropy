@@ -1384,6 +1384,18 @@ mod tests {
                     ],
                 },
             ],
+            stress_scenarios: Vec::new(),
+        }
+    }
+
+    fn stress_scenario() -> SharedFleetStressScenario {
+        SharedFleetStressScenario {
+            scenario_id: "unweighted-severe-rural-weather-stress".into(),
+            periods: vec![
+                period(4, 2, WeatherState::ClearFresh, WeatherState::ClearFresh),
+                period(2, 12, WeatherState::ClearFresh, WeatherState::BlockedFresh),
+                period(2, 12, WeatherState::ClearFresh, WeatherState::ClearFresh),
+            ],
         }
     }
 
@@ -1445,6 +1457,53 @@ mod tests {
         );
         assert_eq!(report.truck_only_baseline.expected_total_cost_units, 1_980);
         assert!(!report.physical_dispatch_authorized);
+    }
+
+    #[test]
+    fn unweighted_stress_scenarios_affect_minimax_but_not_expectation_or_cvar() {
+        let probabilistic_only = evaluate_shared_fleet(&input()).expect("probabilistic fixture");
+        let mut with_stress = input();
+        with_stress.stress_scenarios.push(stress_scenario());
+        let stress_report = evaluate_shared_fleet(&with_stress).expect("stress fixture");
+
+        assert_eq!(stress_report.scenario_count, 2);
+        assert_eq!(stress_report.stress_scenario_count, 1);
+        assert_eq!(stress_report.nonanticipative_policy_node_count, 7);
+        assert_eq!(stress_report.exact_policy_count_evaluated, 16_384);
+
+        assert_eq!(
+            stress_report.optimized_policy.expected_total_cost_units,
+            probabilistic_only.optimized_policy.expected_total_cost_units
+        );
+        assert_eq!(
+            stress_report.optimized_policy.cvar90_total_cost_units,
+            probabilistic_only.optimized_policy.cvar90_total_cost_units
+        );
+        assert!(stress_report
+            .optimized_policy
+            .worst_stress_case_total_cost_units
+            .is_some());
+        assert!(stress_report
+            .optimized_policy
+            .worst_stress_case_unserved_units
+            .is_some());
+        assert!(stress_report
+            .worst_case_optimal_policy
+            .worst_stress_case_total_cost_units
+            .is_some());
+        assert!(!stress_report.physical_dispatch_authorized);
+    }
+
+    #[test]
+    fn stress_scenario_names_cannot_collide_with_probabilistic_scenario_names() {
+        let mut test = input();
+        let mut stress = stress_scenario();
+        stress.scenario_id = test.scenarios[0].scenario_id.clone();
+        test.stress_scenarios.push(stress);
+        let errors = validate_input(&test).expect_err("scenario identities share one namespace");
+        assert!(errors.iter().any(|error| {
+            error.contains("unique identity across probabilistic and stress scenarios")
+        }));
     }
 
     #[test]
