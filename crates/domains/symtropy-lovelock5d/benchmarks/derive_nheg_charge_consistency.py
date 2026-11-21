@@ -270,6 +270,14 @@ def main() -> None:
     source_minus_axial=sp.factor(source_norm_tau-axial_norm_tau)
     source_minus_wald=sp.factor(source_norm_tau-wald_norm_tau)
     axial_minus_wald=sp.factor(axial_norm_tau-wald_norm_tau)
+    exact_zero("Wald variation equals axial Lovelock variation",
+               axial_minus_wald)
+    expected_source_minus_axial=(
+        1605-2138*tau-3645*tau**2+628*tau**3
+        +135*tau**4+18*tau**5-6*tau**6
+    )/((1-tau)**3*(1+tau)**2)
+    exact_zero("source-vs-Wald/axial residual polynomial",
+               source_minus_axial-expected_source_minus_axial)
     exact_zero("Einstein coefficient is +1",
                sp.limit(tau_form(k_e_density*16*sp.pi*G*eps**3/(alpha_sym*sine)),
                         tau,0)-1)
@@ -286,7 +294,7 @@ def main() -> None:
     fixture={
       "schema_version":1,
       "artifact_kind":"5d_egb_single_spin_nheg_wald_vs_lovelock_charge_density_consistency",
-      "status":"exact_local_three_way_discrepancy_reproduced_unresolved",
+      "status":"exact_local_wald_axial_identity_and_source_density_discrepancy_reproduced_unresolved",
       "source":{
         "paper":"Celik, Hajian and Kunz, An Exact Single-Rotating Near-Horizon Geometry in Einstein-Gauss-Bonnet Gravity",
         "arxiv":"2605.15005v2",
@@ -356,6 +364,7 @@ def main() -> None:
         "Wald_variation_exact":True,
         "source_density_conversion_exact":True,
         "wald_variation_equals_axial_lovelock_charge_exactly":True,
+        "source_minus_axial_residual_polynomial_exact":True,
         "source_density_disagrees_with_both_exactly":True,
         "three_way_discrepancy_exact":True,
         "source_charge_formula_term_by_term_replayed":False,
@@ -363,7 +372,7 @@ def main() -> None:
         "symplectic_flux_and_integrability_established":False,
         "finite_entropy_or_angular_momentum_claimed":False
       },
-      "claim_ceiling":"Exact local comparison of the Einstein-calibrated Lovelock Noether-charge route, local Wald/Jacobson-Myers variation, and source Eq. (24) density. The mismatch is unresolved and does not establish that the source paper is wrong."
+      "claim_ceiling":"Exact local identity between the Einstein-calibrated Lovelock axial Noether-charge variation and the full local Wald/Jacobson-Myers density variation. The convention-converted source Eq. (24) density remains different by an exact rational polynomial; its origin is unresolved and this does not establish that the source paper is wrong."
     }
 
     # Compact machine reference grid (alpha_sym=G=1, beta in [0.05,0.95],
