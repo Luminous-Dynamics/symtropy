@@ -514,13 +514,17 @@ mod tests {
             id,
             "pick_place",
             horizon,
-            shift,
             baseline
                 .iter()
                 .zip(candidate)
                 .enumerate()
                 .map(|(index, (base, candidate))| {
-                    EpisodePair::new(format!("{id}-{index}"), *base, *candidate)
+                    EpisodePair::new(
+                        format!("{id}-{index}"),
+                        shift,
+                        *base,
+                        *candidate,
+                    )
                 })
                 .collect(),
         )
@@ -707,10 +711,9 @@ mod tests {
             "task-a",
             "pick_place",
             1,
-            "in_distribution",
             vec![
-                EpisodePair::new("episode-1", false, true),
-                EpisodePair::new("episode-1", false, true),
+                EpisodePair::new("episode-1", "in_distribution", false, true),
+                EpisodePair::new("episode-1", "in_distribution", false, true),
             ],
         );
         assert_eq!(
@@ -721,6 +724,50 @@ mod tests {
             ),
             Err(ScorecardError::DuplicateEpisodeId)
         );
+    }
+
+    #[test]
+    fn task_cluster_bootstrap_keeps_multiple_shift_families_together() {
+        let mut tasks = vec![TaskCluster::new(
+            "task-mixed",
+            "ordered",
+            2,
+            vec![
+                EpisodePair::new("task-mixed-id", "in_distribution", false, true),
+                EpisodePair::new("task-mixed-shift", "held_out_layout", false, false),
+            ],
+        )];
+        for index in 0..9 {
+            tasks.push(task(
+                &format!("task-{index}"),
+                2,
+                "in_distribution",
+                &[false],
+                &[true],
+            ));
+        }
+        let result = evaluate_paired_comparison(
+            identity(),
+            &tasks,
+            BootstrapConfig {
+                replicates: 2_000,
+                seed: 991,
+            },
+        )
+        .expect("task-cluster comparison");
+        assert_eq!(result.task_cluster_count, 10);
+        let in_distribution = result
+            .by_shift_family
+            .iter()
+            .find(|group| group.group == "in_distribution")
+            .expect("in-distribution");
+        let shifted = result
+            .by_shift_family
+            .iter()
+            .find(|group| group.group == "held_out_layout")
+            .expect("held-out layout");
+        assert_eq!(in_distribution.candidate.rate, 1.0);
+        assert_eq!(shifted.candidate.rate, 0.0);
     }
 
     #[test]
