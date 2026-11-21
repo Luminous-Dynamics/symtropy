@@ -431,6 +431,11 @@
             "registration_uncertainty_mm": {
               "type": "number",
               "minimum": 0
+            },
+            "sampling_spacing_mm": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Distance between observation centers; distinct from the physical measurement footprint and not evidence that the gap was measured."
             }
           }
         },
