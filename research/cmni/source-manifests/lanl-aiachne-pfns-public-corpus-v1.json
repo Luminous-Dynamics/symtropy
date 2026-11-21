@@ -538,6 +538,18 @@
     "maximum_absolute_correlation_asymmetry_observed": 4.440892098500626e-16,
     "minimum_unpivoted_cholesky_diagonal_pivot": 0.000018866578059021635,
     "minimum_pivot_file": "PFNS_Boldeman1986highEout.json",
-    "caveat": "Structural numerical checks only. Cholesky pivots are not eigenvalues or condition numbers; scientific validity and uncertainty completeness remain unqualified."
+    "caveat": "Structural numerical checks only. Cholesky pivots are not eigenvalues or condition numbers; scientific validity and uncertainty completeness remain unqualified.",
+    "energy_limits_strictly_increasing_all_experiments": true,
+    "pointwise_reference_grid_points": 72,
+    "pointwise_reference_energy_min_mev": 0.0005,
+    "pointwise_reference_energy_max_mev": 25.01,
+    "experiments_below_reference_lower_boundary": [
+      "PFNS_Blinov1980002.json"
+    ],
+    "experiment_bins_below_reference_lower_boundary": 3,
+    "skipped_left_out_of_domain_trapezoids": 2,
+    "upper_endpoint_nan_trapezoids": 0,
+    "normalization_candidate_fixture": "research/cmni/fixtures/aiachne-reference-normalization-v1.json",
+    "normalization_fixture_status": "candidate_values_from_in_memory_reimplementation_pending_independent_scipy_cross_check"
   }
 }
