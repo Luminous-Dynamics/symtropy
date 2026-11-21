@@ -291,3 +291,50 @@ v0.1 does not implement or claim:
 4. Are all synthetic cases independently oracle-checkable and are expected dispositions justified?
 5. Does the proposed 20% integration-hours target have a fair, preregistered manual baseline and held-out profiles?
 6. Are all claims kept within the stated synthetic/ground-test/flight evidence boundaries?
+
+
+## 13. Industry and research comparator map
+
+The field already has mature commercial lifecycle and discipline tools. The programme must be evaluated as an **open conformance/evidence-composition layer**, not as an attempt to replace established CAD, PLM, CAE, MES, metrology or certification systems.
+
+| Ecosystem | Documented strength | Fair comparison boundary |
+|---|---|---|
+| Siemens Teamcenter / NX / Simcenter | Product lifecycle/configuration management, requirements and engineering linkage, simulation/test data management, model-based design/manufacturing and sustainment continuity | Compare exact cross-tool identity, semantics, evidence scope and change-propagation across exported interfaces; do not claim to replace NX/Simcenter/Teamcenter analysis or PLM functionality |
+| Dassault 3DEXPERIENCE / CATIA / SIMULIA / DELMIA / ENOVIA | Integrated design, simulation, manufacturing operations and PLM/product-data continuity for aerospace | Compare vendor-neutral profile exchange, independent evidence checking and held-out provider/client interoperability; do not claim superiority in CATIA/Abaqus/DELMIA-native workflows |
+| Ansys Twin Builder / MBSE and solver portfolio | Multiphysics engineering analysis, reduced-order/system models, co-simulation and simulation-based digital twins | Compare reproducibility, model applicability and exact artifact linkage; do not claim to beat domain solvers on their native physics |
+| Hexagon metrology / PC-DMIS | Coordinate measurement, dimensional inspection and CAD-to-CMM traceability; PC-DMIS 2026.2 added specialised-geometry inspection and strengthened STEP/QIF digital-thread workflows | Compare measurement evidence semantics, calibration/currentness, datum and feature correspondence, and independent as-built acceptance; do not recreate the CMM/metrology engine |
+| NIST model-based enterprise / digital-thread work | Open standards and conformance research across product definition, manufacturing, inspection and spatial data | Reuse STEP/PMI/QIF and relevant standards; test semantic loss, GUID continuity and inspection-to-requirement traceability instead of inventing another incompatible exchange format |
+
+Primary comparator sources:
+- Siemens aerospace PLM and lifecycle continuity: https://blogs.sw.siemens.com/teamcenter/aerospace-and-defense-plm/
+- Siemens simulation process and data management: https://www.siemens.com/en-us/products/teamcenter/solutions/simulation-process-data-management-spdm/
+- Dassault 3DEXPERIENCE product lifecycle portfolio: https://www.3ds.com/technologies
+- Dassault aerospace design/analysis context: https://www.3ds.com/products/simulia/aerospace-defense/commercial-aircraft-design
+- Ansys MBSE: https://www.ansys.com/applications/mbse
+- Ansys Twin Builder: https://www.ansys.com/products/digital-twin/ansys-twin-builder
+- Hexagon PC-DMIS 2026.2 (29 October 2026): https://hexagon.com/about/news-media/media-alerts/2026/pc-dmis
+- NIST Extended Digital Thread: https://www.nist.gov/programs-projects/extended-digital-thread
+- NIST Digital Thread for Manufacturing: https://www.nist.gov/programs-projects/digital-thread-manufacturing
+- NIST design/manufacturing/inspection integration study: https://www.nist.gov/publications/defining-requirements-integrating-information-between-design-manufacturing-and
+
+NIST reports that one standards-based experiment could not fully link all required information across design, manufacturing and inspection. Its current research programmes continue to target interoperability gaps, product/analysis/spatial-data integration and conformance testing. This supports the relevance of the problem; it does not prove that every commercial deployment is fragmented or defective.
+
+### Required fair-comparison experiment
+
+Where accessible, test the same neutral structural-interface package through:
+1. native PLM/CAE/metrology workflow;
+2. standards-based exchange (e.g., STEP product definition/PMI and QIF inspection information where applicable);
+3. the proposed structural-interface contract and adapter.
+
+Compare:
+- identity and configuration preservation across export/import;
+- geometry, datum, unit, feature and load-case semantic preservation;
+- evidence links, authority scope, validity and supersession preservation;
+- detection of stale geometry, process/batch, inspection and solver revisions;
+- round-trip information loss and unresolved mappings;
+- engineering labor-hours, elapsed time and manual mapping steps;
+- false-compatible, false-incompatible and indeterminate results on the same frozen corpus.
+
+Do not infer that a vendor tool failed because an unsupported export omitted data. Record the exact product/version, module, format, configuration, mapping, permissions and source evidence. A commercial system may keep semantics internally that a neutral export does not carry; test both the native workflow and the exchange boundary when possible.
+
+**Competitive objective:** deliver the best open, reproducible cross-vendor structural-interface conformance suite and evidence handoff—not a universal replacement for established engineering software.
