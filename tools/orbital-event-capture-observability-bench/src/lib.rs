@@ -779,6 +779,38 @@ mod tests {
     }
 
     #[test]
+    fn receipt_preserves_declared_observation_and_metrology_bindings() {
+        let corpus: Corpus = serde_json::from_str(include_str!(
+            "../fixtures/v0.1/capture-cases.json"
+        ))
+        .expect("frozen capture corpus parses");
+        let report = evaluate(&corpus).expect("frozen capture corpus evaluates");
+        let first = report.cases.first().expect("first case exists");
+        let bindings = &first.declared_evidence_bindings;
+
+        assert_eq!(
+            bindings.qualified_scope.sensor_id,
+            "sensor-qualification-coupon-01"
+        );
+        assert_eq!(bindings.test_scope, bindings.qualified_scope);
+        assert_eq!(bindings.reference_event_count, 5);
+        assert_eq!(
+            bindings.derived_reference_event_rate_per_second,
+            Some(1.0)
+        );
+        assert_eq!(
+            bindings.reference.system_id,
+            "independent-pulse-reference-01"
+        );
+        assert_eq!(bindings.counters.overflow_count, Some(0));
+        assert!(bindings.calibration.valid_at_test_time);
+        assert!(bindings.calibration.scope_matches);
+        assert!(bindings.clock.synchronized);
+        assert!(bindings.clock.monotonic);
+        assert_eq!(bindings.clock.measured_max_error_ticks, Some(1));
+    }
+
+    #[test]
     fn shared_failure_domain_is_not_independent_reference() {
         assert!(shared_failure_domain(
             &["power".to_owned(), "reference_clock".to_owned()],
