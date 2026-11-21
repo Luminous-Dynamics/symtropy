@@ -112,6 +112,7 @@ def evaluate(
         total_audio = total_video = 0
         total_energy = 0.0
         requested_outcomes: list[tuple[dict[str, Any], dict[str, Any], int, bool]] = []
+        evsi_estimation_errors: list[float] = []
         for request in requests:
             if not isinstance(request, dict):
                 violations.append("invalid_action_request")
@@ -160,6 +161,12 @@ def evaluate(
             if outcome["arrival_tick"] != expected_arrival:
                 raise EvaluationError(f"{episode_id}: outcome arrival does not match action latency")
             requested_outcomes.append((action, outcome, request_tick, within_use_limit))
+            estimated_evsi = request.get("estimated_evsi")
+            realized_evsi_label = outcome.get("evsi", 0.0)
+            if not finite_number(realized_evsi_label):
+                raise EvaluationError(f"{episode_id}: truth EVSI must be finite")
+            if finite_number(estimated_evsi):
+                evsi_estimation_errors.append(float(estimated_evsi) - float(realized_evsi_label))
 
             for estimate_field in ("estimated_eig_nats", "estimated_evsi", "estimated_cost_joules"):
                 estimate = request.get(estimate_field)
@@ -308,6 +315,15 @@ def evaluate(
             "budget_violations": sorted(set(budget_violations)),
             "evidence_violations": sorted(set(evidence_violations)),
             "realized_evsi": realized_evsi,
+            "estimated_evsi_count": len(evsi_estimation_errors),
+            "estimated_evsi_mae": (
+                sum(abs(error) for error in evsi_estimation_errors) / len(evsi_estimation_errors)
+                if evsi_estimation_errors else None
+            ),
+            "estimated_evsi_bias": (
+                sum(evsi_estimation_errors) / len(evsi_estimation_errors)
+                if evsi_estimation_errors else None
+            ),
             "budget_use": {
                 "audio_bytes": total_audio,
                 "video_frames": total_video,
@@ -328,6 +344,15 @@ def evaluate(
     total_video_frames = sum(row["budget_use"]["video_frames"] for row in results)
     total_energy_cost = sum(row["budget_use"]["energy_joules"] for row in results)
     realized_mean = sum(row["realized_evsi"] for row in results) / count if count else None
+    evsi_error_count = sum(row["estimated_evsi_count"] for row in results)
+    evsi_error_abs_total = sum(
+        row["estimated_evsi_mae"] * row["estimated_evsi_count"]
+        for row in results if row["estimated_evsi_count"] > 0
+    )
+    evsi_error_signed_total = sum(
+        row["estimated_evsi_bias"] * row["estimated_evsi_count"]
+        for row in results if row["estimated_evsi_count"] > 0
+    )
     return {
         "schema_version": 1,
         "benchmark_id": BENCHMARK_ID,
@@ -357,7 +382,14 @@ def evaluate(
             "mean_realized_evsi": realized_mean,
             "catalogue_audio_bytes_total": total_audio_bytes,
             "catalogue_video_frames_total": total_video_frames,
-            "catalogue_energy_cost_total": total_energy_cost
+            "catalogue_energy_cost_total": total_energy_cost,
+            "estimated_evsi_count": evsi_error_count,
+            "mean_estimated_evsi_mae": (
+                evsi_error_abs_total / evsi_error_count if evsi_error_count else None
+            ),
+            "mean_estimated_evsi_bias": (
+                evsi_error_signed_total / evsi_error_count if evsi_error_count else None
+            )
         },
         "per_episode": results
     }
