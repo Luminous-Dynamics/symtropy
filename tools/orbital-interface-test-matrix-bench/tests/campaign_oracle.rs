@@ -61,7 +61,7 @@ fn completed_failure_is_coverage_but_never_a_pass() {
 }
 
 #[test]
-fn duplicates_and_independence_groups_are_not_double_counted() {
+fn duplicates_and_run_group_ids_are_not_double_counted() {
     let corpus: Corpus = serde_json::from_str(fixture()).expect("campaign corpus parses");
     let report = evaluate(&corpus).expect("campaign corpus evaluates");
 
