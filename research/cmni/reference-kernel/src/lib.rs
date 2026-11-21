@@ -38,7 +38,10 @@ pub use raw_scale_bias_likelihood::{
 };
 
 mod grouped_horseshoe_hmc;
-pub use grouped_horseshoe_hmc::{run_grouped_horseshoe_hmc_chain, GroupedHmcChain, GroupedHmcDraw};
+pub use grouped_horseshoe_hmc::{
+    run_grouped_horseshoe_hmc_chain, run_grouped_horseshoe_hmc_chains,
+    GroupedHmcChain, GroupedHmcDraw, GroupedHmcInitialization,
+};
 
 mod horseshoe_posterior;
 pub use horseshoe_posterior::{
