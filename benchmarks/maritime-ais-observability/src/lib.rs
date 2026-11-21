@@ -175,6 +175,7 @@ impl DwellProfile {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AisFix {
+    pub call_reference_id: String,
     pub mmsi: String,
     pub message_id: String,
     pub source_id: String,
@@ -202,8 +203,245 @@ pub struct InferredEvent {
     pub profile_version: String,
 }
 
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum ScoredEventKind {
+    AnchorageEntry,
+    ApproachEntry,
+    BerthEntry,
+    BerthExit,
+    PortExit,
+}
+
+impl ScoredEventKind {
+    fn from_inferred(kind: EventKind) -> Option<Self> {
+        match kind {
+            EventKind::AnchorageZoneEntry => Some(Self::AnchorageEntry),
+            EventKind::ApproachZoneEntry => Some(Self::ApproachEntry),
+            EventKind::BerthZoneEntry => Some(Self::BerthEntry),
+            EventKind::BerthExitDetected => Some(Self::BerthExit),
+            EventKind::PortExitDetected => Some(Self::PortExit),
+            EventKind::ZoneReacquired
+            | EventKind::ObservabilityGap
+            | EventKind::InvalidPosition
+            | EventKind::SpeedZoneConflict => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GroundTruthEvent {
+    pub call_reference_id: String,
+    pub kind: ScoredEventKind,
+    pub event_tick: i64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ScoredPrediction {
+    pub call_reference_id: String,
+    pub kind: ScoredEventKind,
+    pub lower_tick: i64,
+    pub upper_tick: i64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct EventMetrics {
+    pub true_positive: usize,
+    pub false_positive: usize,
+    pub false_negative: usize,
+    pub precision: Option<f64>,
+    pub recall: Option<f64>,
+    pub mean_interval_distance_ticks: Option<f64>,
+    pub mean_matched_interval_width_ticks: Option<f64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct EventScorecard {
+    pub by_kind: BTreeMap<ScoredEventKind, EventMetrics>,
+    pub overall: EventMetrics,
+}
+
+#[derive(Clone, Debug, Default)]
+struct MutableEventMetrics {
+    true_positive: usize,
+    false_positive: usize,
+    false_negative: usize,
+    total_interval_distance: u128,
+    total_interval_width: u128,
+}
+
+impl MutableEventMetrics {
+    fn finalize(self) -> EventMetrics {
+        let predicted = self.true_positive + self.false_positive;
+        let actual = self.true_positive + self.false_negative;
+        EventMetrics {
+            true_positive: self.true_positive,
+            false_positive: self.false_positive,
+            false_negative: self.false_negative,
+            precision: (predicted > 0)
+                .then_some(self.true_positive as f64 / predicted as f64),
+            recall: (actual > 0)
+                .then_some(self.true_positive as f64 / actual as f64),
+            mean_interval_distance_ticks: (self.true_positive > 0)
+                .then_some(self.total_interval_distance as f64 / self.true_positive as f64),
+            mean_matched_interval_width_ticks: (self.true_positive > 0)
+                .then_some(self.total_interval_width as f64 / self.true_positive as f64),
+        }
+    }
+}
+
+pub fn predictions_from_report(report: &CallReport) -> Vec<ScoredPrediction> {
+    report
+        .events
+        .iter()
+        .filter_map(|event| {
+            ScoredEventKind::from_inferred(event.kind).map(|kind| ScoredPrediction {
+                call_reference_id: report.call_reference_id.clone(),
+                kind,
+                lower_tick: event.lower_tick,
+                upper_tick: event.upper_tick,
+            })
+        })
+        .collect()
+}
+
+fn interval_distance(event_tick: i64, lower_tick: i64, upper_tick: i64) -> Result<u64, String> {
+    if lower_tick > upper_tick {
+        return Err("predicted event interval lower bound exceeds upper bound".to_string());
+    }
+    let distance = if event_tick < lower_tick {
+        lower_tick
+            .checked_sub(event_tick)
+            .ok_or_else(|| "event interval distance overflow".to_string())?
+    } else if event_tick > upper_tick {
+        event_tick
+            .checked_sub(upper_tick)
+            .ok_or_else(|| "event interval distance overflow".to_string())?
+    } else {
+        0
+    };
+    u64::try_from(distance).map_err(|_| "negative event interval distance".to_string())
+}
+
+/// Match inferred transition intervals to independently adjudicated event times.
+///
+/// Matching is one-to-one by source-local call reference and event kind.
+— predictions outside the tolerance become false positives; unmatched
+/// ground-truth events become false negatives. An event inside the predicted
+/// interval has zero interval-distance error.
+pub fn score_events(
+    ground_truth: &[GroundTruthEvent],
+    predictions: &[ScoredPrediction],
+    tolerance_ticks: u64,
+) -> Result<EventScorecard, String> {
+    if ground_truth
+        .iter()
+        .any(|event| event.call_reference_id.trim().is_empty())
+        || predictions
+            .iter()
+            .any(|event| event.call_reference_id.trim().is_empty())
+    {
+        return Err("call reference IDs must be non-empty".to_string());
+    }
+
+    for prediction in predictions {
+        if prediction.lower_tick > prediction.upper_tick {
+            return Err("predicted event interval lower bound exceeds upper bound".to_string());
+        }
+    }
+
+    let mut candidates = Vec::new();
+    for (truth_index, truth) in ground_truth.iter().enumerate() {
+        for (prediction_index, prediction) in predictions.iter().enumerate() {
+            if truth.call_reference_id != prediction.call_reference_id
+                || truth.kind != prediction.kind
+            {
+                continue;
+            }
+            let distance = interval_distance(
+                truth.event_tick,
+                prediction.lower_tick,
+                prediction.upper_tick,
+            )?;
+            if distance <= tolerance_ticks {
+                candidates.push((distance, truth_index, prediction_index));
+            }
+        }
+    }
+
+    // Deterministic global minimum-distance one-to-one matching.
+    candidates.sort_unstable();
+
+    let mut matched_truth = vec![false; ground_truth.len()];
+    let mut matched_prediction = vec![false; predictions.len()];
+    let mut by_kind: BTreeMap<ScoredEventKind, MutableEventMetrics> = BTreeMap::new();
+
+    for (distance, truth_index, prediction_index) in candidates {
+        if matched_truth[truth_index] || matched_prediction[prediction_index] {
+            continue;
+        }
+        matched_truth[truth_index] = true;
+        matched_prediction[prediction_index] = true;
+
+        let truth = &ground_truth[truth_index];
+        let prediction = &predictions[prediction_index];
+        let width = prediction
+            .upper_tick
+            .checked_sub(prediction.lower_tick)
+            .ok_or_else(|| "predicted interval width overflow".to_string())?;
+
+        let metrics = by_kind.entry(truth.kind).or_default();
+        metrics.true_positive += 1;
+        metrics.total_interval_distance = metrics
+            .total_interval_distance
+            .checked_add(u128::from(distance))
+            .ok_or_else(|| "interval distance total overflow".to_string())?;
+        metrics.total_interval_width = metrics
+            .total_interval_width
+            .checked_add(u128::try_from(width).map_err(|_| "negative interval width".to_string())?)
+            .ok_or_else(|| "interval width total overflow".to_string())?;
+    }
+
+    for (index, truth) in ground_truth.iter().enumerate() {
+        if !matched_truth[index] {
+            by_kind.entry(truth.kind).or_default().false_negative += 1;
+        }
+    }
+    for (index, prediction) in predictions.iter().enumerate() {
+        if !matched_prediction[index] {
+            by_kind.entry(prediction.kind).or_default().false_positive += 1;
+        }
+    }
+
+    let per_kind: BTreeMap<ScoredEventKind, EventMetrics> = by_kind
+        .into_iter()
+        .map(|(kind, metrics)| (kind, metrics.finalize()))
+        .collect();
+
+    let mut overall = MutableEventMetrics::default();
+    for metrics in per_kind.values() {
+        overall.true_positive += metrics.true_positive;
+        overall.false_positive += metrics.false_positive;
+        overall.false_negative += metrics.false_negative;
+        if let Some(distance) = metrics.mean_interval_distance_ticks {
+            overall.total_interval_distance +=
+                (distance * metrics.true_positive as f64).round() as u128;
+        }
+        if let Some(width) = metrics.mean_matched_interval_width_ticks {
+            overall.total_interval_width +=
+                (width * metrics.true_positive as f64).round() as u128;
+        }
+    }
+
+    Ok(EventScorecard {
+        by_kind: per_kind,
+        overall: overall.finalize(),
+    })
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CallReport {
+    pub call_reference_id: String,
     pub mmsi: String,
     pub source_id: String,
     pub receiver_id: String,
@@ -309,6 +547,9 @@ pub fn evaluate_call_with_initial_state(
     if first.mmsi != expected_mmsi {
         return Err("first fix MMSI does not match expected trajectory identity".to_string());
     }
+    if first.call_reference_id.trim().is_empty() {
+        return Err("call reference ID must be non-empty".to_string());
+    }
     if first.source_id.trim().is_empty() {
         return Err("source ID must be non-empty".to_string());
     }
@@ -319,6 +560,7 @@ pub fn evaluate_call_with_initial_state(
         return Err("spatial reference ID must be non-empty".to_string());
     }
 
+    let call_reference_id = first.call_reference_id.clone();
     let source_id = first.source_id.clone();
     let receiver_id = first.receiver_id.clone();
     let spatial_reference_id = first.spatial_reference_id.clone();
@@ -340,6 +582,12 @@ pub fn evaluate_call_with_initial_state(
     let mut events = Vec::new();
 
     for fix in fixes {
+        if fix.call_reference_id != call_reference_id {
+            return Err(format!(
+                "call reference ID changed from {call_reference_id:?} to {:?}",
+                fix.call_reference_id
+            ));
+        }
         if fix.mmsi != expected_mmsi {
             return Err(format!(
                 "trajectory identity changed from {expected_mmsi:?} to {:?}",
@@ -570,6 +818,7 @@ pub fn evaluate_call_with_initial_state(
     }
 
     Ok(CallReport {
+        call_reference_id,
         mmsi: expected_mmsi.to_string(),
         source_id,
         receiver_id,
@@ -601,6 +850,7 @@ mod tests {
         speed_milli_knots: u32,
     ) -> AisFix {
         AisFix {
+            call_reference_id: "SYNTH_CALL_001".to_string(),
             mmsi: "563123456".to_string(),
             message_id: message_id.to_string(),
             source_id: "AIS_FIXTURE_SOURCE_A".to_string(),
