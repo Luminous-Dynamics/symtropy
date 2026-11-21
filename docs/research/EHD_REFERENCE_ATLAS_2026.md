@@ -283,12 +283,12 @@ cargo run -p ehd-reference-audit -- data/research/ehd_reference_atlas_v0_1.json
 cargo test -p ehd-reference-audit
 ```
 
-The audit is structural/comparability QA only. It does not hash/download upstream Zenodo files, reproduce solver outputs, verify physical measurements, or grant physical-validation status. There are now 65 authored Rust unit tests across the source atlas, frontier records, plasma-neutral exchange contract, array-interaction benchmark and integrated-impulse remap kernel. They have not been compiled or executed in this environment because the Rust toolchain is unavailable here.
+The audit is structural/comparability QA only. It does not hash/download upstream Zenodo files, reproduce solver outputs, verify physical measurements, or grant physical-validation status. There are now 79 authored Rust unit tests across the source atlas, frontier records, plasma-neutral exchange contract, array-interaction benchmark, integrated-impulse remap kernel and axis-aligned space-time geometry backend. They have not been compiled or executed in this environment because the Rust toolchain is unavailable here.
 
 
 
 
-The reference kernel at `tools/ehd-reference-audit/src/exchange.rs` maps extensive vector impulse in N·s from source cell × time slabs using explicit space-time overlap fractions. It uses deterministic ordering and compensated summation, rejects incomplete per-source coverage, and checks a componentwise global balance using case-specific absolute-plus-relative tolerances. It assumes piecewise-constant impulse density on each source space-time element. It is not a geometric intersection engine and does not validate intersection topology.
+The reference kernel at `tools/ehd-reference-audit/src/exchange.rs` maps extensive vector impulse in N·s from source cell × time slabs using explicit space-time overlap fractions. It uses deterministic ordering and compensated summation, rejects incomplete per-source coverage, and checks a componentwise global balance using case-specific absolute-plus-relative tolerances. It assumes piecewise-constant impulse density on each source space-time element. The separate `tools/ehd-reference-audit/src/geometry.rs` backend now computes and validates axis-aligned 1D/2D/3D space × time box intersections: it checks both pairwise overlap and complete source coverage, including an equal-measure overlap-plus-gap adversary. Curved, rotated and general unstructured cells remain out of scope; compare this reference path with preCICE rather than claiming it replaces a production coupling library.
 
 ## 13. Array interaction benchmark
 
