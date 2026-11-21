@@ -449,9 +449,38 @@ fn observation_for_region<'a>(
         .ok_or_else(|| format!("missing observation for region {region_id}"))
 }
 
+/// Only information available to the policy may define a nonanticipative
+/// decision node. Evidence references are provenance metadata, not observations:
+/// scenario-specific source identifiers must not reveal which hidden scenario is
+/// unfolding before the underlying demand/weather/permission state differs.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+struct SharedDecisionObservation {
+    region_id: String,
+    demand_units: u32,
+    prequalified_aerial_service_capacity_units: u32,
+    coavailability_evidence_status: SharedEvidenceStatus,
+    aerial_energy_units_per_delivery_upper_bound: u64,
+    weather: WeatherState,
+    permission: PermissionState,
+}
+
+fn decision_observation(observation: &SharedFleetObservation) -> SharedDecisionObservation {
+    SharedDecisionObservation {
+        region_id: observation.region_id.clone(),
+        demand_units: observation.demand_units,
+        prequalified_aerial_service_capacity_units: observation
+            .prequalified_aerial_service_capacity_units,
+        coavailability_evidence_status: observation.coavailability_evidence_status,
+        aerial_energy_units_per_delivery_upper_bound: observation
+            .aerial_energy_units_per_delivery_upper_bound,
+        weather: observation.weather,
+        permission: observation.permission,
+    }
+}
+
 fn decision_key(
     period_index: usize,
-    history: &[Vec<SharedFleetObservation>],
+    history: &[Vec<SharedDecisionObservation>],
 ) -> Result<SharedDecisionKey, String> {
     let encoded = serde_json::to_vec(history)
         .map_err(|error| format!("cannot serialize shared-fleet observed history: {error}"))?;
@@ -467,9 +496,13 @@ fn build_decision_nodes(
 ) -> Result<(Vec<SharedDecisionNode>, BTreeMap<SharedDecisionKey, usize>), String> {
     let mut nodes = BTreeMap::<SharedDecisionKey, ()>::new();
     for scenario in &input.scenarios {
-        let mut history: Vec<Vec<SharedFleetObservation>> = Vec::new();
+        let mut history: Vec<Vec<SharedDecisionObservation>> = Vec::new();
         for (period_index, period) in scenario.periods.iter().enumerate() {
-            let mut observations = period.observations.clone();
+            let mut observations: Vec<SharedDecisionObservation> = period
+                .observations
+                .iter()
+                .map(decision_observation)
+                .collect();
             observations.sort_by(|left, right| left.region_id.cmp(&right.region_id));
             history.push(observations);
             let key = decision_key(period_index, &history)?;
@@ -538,10 +571,14 @@ fn simulate_scenario(
     let mut metrics = ScenarioMetrics::default();
     let mut aircraft_region = input.initial_aircraft_region_id.clone();
     let mut energy = input.initial_aircraft_energy_units;
-    let mut history: Vec<Vec<SharedFleetObservation>> = Vec::new();
+    let mut history: Vec<Vec<SharedDecisionObservation>> = Vec::new();
 
     for (period_index, period) in scenario.periods.iter().enumerate() {
-        let mut observations = period.observations.clone();
+        let mut observations: Vec<SharedDecisionObservation> = period
+            .observations
+            .iter()
+            .map(decision_observation)
+            .collect();
         observations.sort_by(|left, right| left.region_id.cmp(&right.region_id));
         history.push(observations);
         let key = decision_key(period_index, &history)?;
@@ -1470,6 +1507,44 @@ mod tests {
         assert_eq!(report.exact_policy_count_evaluated, 243);
         assert_eq!(report.optimized_policy.unauthorized_aerial_dispatches, 0);
         assert!(!report.physical_dispatch_authorized);
+    }
+
+    #[test]
+    fn provenance_reference_changes_do_not_split_nonanticipative_decision_nodes() {
+        let fixture: SharedFleetInput = serde_json::from_str(include_str!(
+            "../fixtures/synthetic-two-region-shared-aircraft.json"
+        ))
+        .expect("shared-fleet fixture must deserialize");
+        let baseline = evaluate_shared_fleet(&fixture).expect("fixture must evaluate");
+        assert_eq!(baseline.nonanticipative_policy_node_count, 5);
+        assert_eq!(baseline.exact_policy_count_evaluated, 243);
+
+        let mut provenance_variant = fixture.clone();
+        for (scenario_index, scenario) in provenance_variant.scenarios.iter_mut().enumerate() {
+            for (period_index, period) in scenario.periods.iter_mut().enumerate() {
+                for observation in &mut period.observations {
+                    observation.coavailability_evidence_reference = format!(
+                        "synthetic://audit/scenario-{scenario_index}/period-{period_index}/coavailability/{}",
+                        observation.region_id
+                    );
+                    observation.weather_evidence_reference = format!(
+                        "synthetic://audit/scenario-{scenario_index}/period-{period_index}/weather/{}",
+                        observation.region_id
+                    );
+                    observation.permission_evidence_reference = format!(
+                        "synthetic://audit/scenario-{scenario_index}/period-{period_index}/permission/{}",
+                        observation.region_id
+                    );
+                }
+            }
+        }
+
+        let changed = evaluate_shared_fleet(&provenance_variant)
+            .expect("provenance-only changes must remain evaluable");
+        assert_eq!(changed.nonanticipative_policy_node_count, 5);
+        assert_eq!(changed.exact_policy_count_evaluated, 243);
+        assert_eq!(changed.optimized_decisions, baseline.optimized_decisions);
+        assert_ne!(changed.input_digest_sha256, baseline.input_digest_sha256);
     }
 
     #[test]
