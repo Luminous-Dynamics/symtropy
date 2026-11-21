@@ -98,3 +98,16 @@ No SOTA claim should be made until the richer model beats depth-only and bulk-av
 ## 7. Scope boundary
 
 Symtropy orchestrates and qualifies solver outputs. It does not replace SRIM/TRIM-class ion stopping, DFT, molecular dynamics, defect-kinetics or validated nuclear-data calculations. Physical experiments and beam diagnostics must be performed by appropriately qualified facilities. No lab actuation is included.
+
+
+## 8. Current isolated transport implementation
+
+A standalone research module, research/cmni/reference-kernel/src/material_state.rs, now provides:
+- explicit 1-D cell-centred finite-volume diffusion with zero-flux boundaries;
+- a conservative inventory update and a timestep bound dt <= dx²/(2D);
+- fail-closed validation for unstable steps, negative/non-finite concentration, and invalid coefficients;
+- an exact local constant-source / first-order-loss update.
+
+This is a numerical kernel, not a complete hydride model. It has no calibrated Pd/Ti diffusion coefficients, no beam implantation source profile, no surface Robin boundary, no defect-trapping constitutive law, and no coupled thermal/phase solver. The current manufactured tests cover a uniform invariant, inventory conservation, smoothing, a discrete Neumann cosine mode, stability rejection and exact source/loss limits.
+
+There are 8 additional Rust tests in this module. The combined crate currently has 42 authored tests, still unexecuted in this environment because the Rust toolchain is absent.
