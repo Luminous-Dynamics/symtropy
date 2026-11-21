@@ -1314,6 +1314,44 @@ mod rotational_inertia_tests {
     }
 
     #[test]
+    fn fallible_principal_response_matches_legacy_3d_response() {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(17), Point::origin(), 0.5, 2.0,
+        );
+        body.inertia = SVector::from([2.0, 3.0, 4.0]);
+        body.inv_inertia = SVector::from([0.5, 1.0 / 3.0, 0.25]);
+        body.transform.rotation = Rotor::<3>::from_plane_angle(
+            &Bivector::<3>::unit_plane(0, 1), 0.37,
+        );
+        let mut impulse = Bivector::<3>::zero();
+        impulse.set(1, 2, 0.7);
+        impulse.set(0, 2, -0.4);
+        impulse.set(0, 1, 0.2);
+
+        let typed = body.try_apply_inverse_angular_inertia(&impulse).unwrap();
+        let legacy = body.apply_inverse_angular_inertia(&impulse);
+        assert!(matches!(
+            typed,
+            RotationalResponse::Applied {
+                delta_angular_velocity,
+                model: RotationalInertiaModel::PrincipalAxesWorldSpace3D,
+            } if (delta_angular_velocity.add(&legacy.scale(-1.0))).norm() < 1.0e-12
+        ));
+    }
+
+    #[test]
+    fn fallible_response_detects_operator_revision_mismatch() {
+        let operator = RotationalInertiaOperator::<4>::isotropic(2.0).unwrap();
+        let mut body = RigidBody::<4>::dynamic_sphere(
+            BodyHandle(18), Point::origin(), 0.5, 2.0,
+        ).with_rotational_inertia_operator(operator);
+        body.rotational_inertia_operator_mass_bits = Some((body.mass + 1.0).to_bits());
+        assert_eq!(
+            body.try_apply_inverse_angular_inertia(&Bivector::<4>::unit_plane(0, 1)),
+            Err(RotationalResponseError::StaleMassProperties)
+        );
+    }
+    #[test]
     fn fallible_response_uses_validated_full_bivector_operator() {
         let operator = RotationalInertiaOperator::<4>::isotropic(2.0).unwrap();
         let body = RigidBody::<4>::dynamic_sphere(
