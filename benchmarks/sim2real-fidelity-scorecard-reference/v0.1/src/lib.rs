@@ -329,11 +329,13 @@ impl EvaluationManifest {
                     return Err(FidelityError::DuplicateSignalSeries);
                 }
             }
-            if let Some(expected) = &expected_series {
-                if expected != &series_keys {
-                    return Err(FidelityError::InconsistentSignalSeries);
-                }
-            } else {
+            if expected_series
+                .as_ref()
+                .is_some_and(|expected| expected != &series_keys)
+            {
+                return Err(FidelityError::InconsistentSignalSeries);
+            }
+            if expected_series.is_none() {
                 expected_series = Some(series_keys);
             }
         }
@@ -778,6 +780,11 @@ mod tests {
                 },
             });
         }
+        let mut repeated_trial = holdout[0].clone();
+        repeated_trial.trial_id = "trial-0-repeat".to_owned();
+        repeated_trial.source_recording_id = "blind-recording-0-repeat".to_owned();
+        holdout.push(repeated_trial);
+
         EvaluationManifest {
             protocol: protocol(),
             training_recording_ids: vec!["training-recording-01".to_owned()],
@@ -906,7 +913,7 @@ mod tests {
     #[test]
     fn requires_ten_independent_blind_recordings() {
         let mut input = manifest();
-        input.blind_holdout_trials.pop();
+        input.blind_holdout_trials.truncate(MIN_BLIND_HOLDOUT_TRIALS - 1);
         assert_eq!(
             input.validate(),
             Err(FidelityError::InsufficientBlindHoldoutTrials)
@@ -923,9 +930,11 @@ mod tests {
             },
         )
         .expect("scorecard");
-        assert_eq!(report.independent_blind_trials, 10);
+        assert_eq!(report.independent_blind_trials, 11);
         assert_eq!(report.task_agreement.independent_task_clusters, 10);
         assert_eq!(report.channel_summaries.len(), 2);
+        assert_eq!(report.channel_summaries[0].physical_trial_count, 11);
+        assert_eq!(report.channel_summaries[0].independent_task_clusters, 10);
         assert_ne!(
             report.channel_summaries[0].signal,
             report.channel_summaries[1].signal
