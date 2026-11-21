@@ -164,18 +164,11 @@ fn validate_symmetric_psd3(matrix: &[[f64; 3]; 3], path: &str) -> Result<(), Val
 }
 
 /// Validate the rigid-body inertia tensor's principal-moment triangle inequality.
-fn validate_physical_inertia3(
-    matrix: &[[f64; 3]; 3],
-    path: &str,
-) -> Result<(), ValidationError> {
+fn validate_physical_inertia3(matrix: &[[f64; 3]; 3], path: &str) -> Result<(), ValidationError> {
     validate_symmetric_psd3(matrix, path)?;
     let mut diagonalized = *matrix;
     for _ in 0..24 {
-        let candidates = [
-            (0usize, 1usize),
-            (0usize, 2usize),
-            (1usize, 2usize),
-        ];
+        let candidates = [(0usize, 1usize), (0usize, 2usize), (1usize, 2usize)];
         let (p, q) = candidates
             .into_iter()
             .max_by(|(p1, q1), (p2, q2)| {
@@ -214,11 +207,7 @@ fn validate_physical_inertia3(
         }
     }
 
-    let mut principal = [
-        diagonalized[0][0],
-        diagonalized[1][1],
-        diagonalized[2][2],
-    ];
+    let mut principal = [diagonalized[0][0], diagonalized[1][1], diagonalized[2][2]];
     principal.sort_by(f64::total_cmp);
     let largest = principal[2].max(0.0);
     let lower_two_sum = principal[0].max(0.0) + principal[1].max(0.0);
@@ -984,7 +973,11 @@ impl StateQuery {
             .map(|entity| (entity.entity_id.as_str(), entity))
             .collect::<BTreeMap<_, _>>();
         let mut allowed = BTreeSet::<&str>::new();
-        let mut pending = self.entity_ids.iter().map(String::as_str).collect::<Vec<_>>();
+        let mut pending = self
+            .entity_ids
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>();
         while let Some(entity_id) = pending.pop() {
             if !allowed.insert(entity_id) {
                 continue;
@@ -998,13 +991,7 @@ impl StateQuery {
             if let Some(parent) = entity.parent_entity_id.as_deref() {
                 pending.push(parent);
             }
-            pending.extend(
-                entity
-                    .contact
-                    .partner_entity_ids
-                    .iter()
-                    .map(String::as_str),
-            );
+            pending.extend(entity.contact.partner_entity_ids.iter().map(String::as_str));
         }
         let returned = entity_by_id.keys().copied().collect::<BTreeSet<_>>();
         if returned != allowed {
