@@ -522,6 +522,66 @@ fn energy_bfmi(energies: &[f64]) -> f64 {
 }
 
 #[cfg(test)]
+mod grouped_hmc_tests {
+    use super::*;
+
+    fn synthetic_grouped_chains() -> Vec<GroupedHmcChain> {
+        (0..4)
+            .map(|chain_index| {
+                let draws = (0..32)
+                    .map(|draw_index| {
+                        let phase = draw_index as f64 * 0.11 + chain_index as f64 * 0.07;
+                        GroupedHmcDraw {
+                            coefficients: vec![phase.sin(), phase.cos()],
+                            log_local_scales: vec![0.1 + phase.sin() * 0.01],
+                            log_global_scales: vec![-1.0 + phase.cos() * 0.02, -0.5],
+                            log_experiment_scales: vec![0.0 + phase.sin() * 0.001],
+                            log_posterior: -0.5 * phase * phase,
+                            hamiltonian_energy: 1.0 + phase.cos() * 0.1,
+                        }
+                    })
+                    .collect();
+                GroupedHmcChain {
+                    seed: 1000 + chain_index as u64,
+                    draws,
+                    transitions: 32,
+                    accepted_transitions: 30,
+                    divergences: 0,
+                    acceptance_rate: 30.0 / 32.0,
+                }
+            })
+            .collect()
+    }
+
+    #[test]
+    fn grouped_hmc_diagnostics_support_all_parameter_families() {
+        let chains = synthetic_grouped_chains();
+        for quantity in [
+            GroupedHmcQuantity::Coefficient(0),
+            GroupedHmcQuantity::LocalScale(0),
+            GroupedHmcQuantity::GlobalScale(1),
+            GroupedHmcQuantity::ExperimentScale(0),
+        ] {
+            let summary =
+                diagnose_grouped_hmc_quantity(&chains, quantity).expect("grouped diagnostics");
+            assert_eq!(summary.chain_count, 4);
+            assert_eq!(summary.draws_per_chain, 32);
+            assert_eq!(summary.divergence_count, 0);
+            assert!(summary.maximum_rhat.is_finite());
+        }
+    }
+
+    #[test]
+    fn grouped_hmc_diagnostics_reject_missing_parameter_indices() {
+        let chains = synthetic_grouped_chains();
+        assert_eq!(
+            diagnose_grouped_hmc_quantity(&chains, GroupedHmcQuantity::GlobalScale(9)),
+            Err(ModelError::MismatchedDataLengths)
+        );
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
