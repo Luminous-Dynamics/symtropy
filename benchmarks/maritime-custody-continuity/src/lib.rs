@@ -708,6 +708,16 @@ mod tests {
     }
 
     #[test]
+    fn reverse_ingestion_order_produces_identical_reconstruction() {
+        let (expectations, events) = fixtures();
+        let forward = evaluate(&expectations, &events, 200).unwrap();
+        let mut reversed_events = events;
+        reversed_events.reverse();
+        let reversed = evaluate(&expectations, &reversed_events, 200).unwrap();
+        assert_eq!(forward, reversed);
+    }
+
+    #[test]
     fn exact_replay_is_idempotent() {
         let (expectations, mut events) = fixtures();
         events.push(events[0].clone());
