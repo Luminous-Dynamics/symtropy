@@ -206,6 +206,8 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
     let mut namespace_uris = Vec::new();
     let mut models = Vec::new();
     let mut current_model: Option<NodeSetModel> = None;
+    let mut collecting_reference = false;
+    let mut current_reference = String::new();
     let mut checked_node_id_references = 0usize;
 
     loop {
@@ -235,6 +237,23 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                             return Err("nested Model elements are not permitted".to_owned());
                         }
                         current_model = Some(parse_model(&attr_map(&element)?)?);
+                    }
+                    "Reference" => {
+                        if collecting_reference {
+                            return Err("nested Reference elements are not permitted".to_owned());
+                        }
+                        let attributes = attr_map(&element)?;
+                        if let Some(reference_type) = attributes.get("ReferenceType") {
+                            check_nodeset_namespace_index(
+                                reference_type,
+                                &namespace_uris,
+                                "ReferenceType",
+                            )?;
+                            checked_node_id_references +=
+                                if reference_type.starts_with("ns=") { 1 } else { 0 };
+                        }
+                        collecting_reference = true;
+                        current_reference.clear();
                     }
                     "RequiredModel" => {
                         let required = parse_required_model(&attr_map(&element)?)?;
@@ -274,6 +293,10 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                 let value = text.xml_content(XmlVersion::Implicit1_0);
                 current_uri.push_str(value.as_ref());
             }
+            Ok(Event::Text(text)) if collecting_reference => {
+                let value = text.xml_content(XmlVersion::Implicit1_0);
+                current_reference.push_str(value.as_ref());
+            }
             Ok(Event::End(element)) => match element.local_name().as_ref() {
                 "Uri" if collecting_uri => {
                     let uri = current_uri.trim().to_owned();
@@ -284,6 +307,16 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                     collecting_uri = false;
                 }
                 "NamespaceUris" => in_namespace_uris = false,
+                "Reference" if collecting_reference => {
+                    let target = current_reference.trim();
+                    if target.is_empty() {
+                        return Err("Reference element has no target NodeId".to_owned());
+                    }
+                    check_nodeset_namespace_index(target, &namespace_uris, "Reference target")?;
+                    checked_node_id_references +=
+                        if target.starts_with("ns=") { 1 } else { 0 };
+                    collecting_reference = false;
+                }
                 "Model" => {
                     let model = current_model
                         .take()
@@ -1072,6 +1105,25 @@ mod tests {
     fn nodeset_namespace_index_zero_resolves_to_opc_ua_core_namespace() {
         let xml = SYNTHETIC_XML.replace("NodeId=\"ns=1;i=1003\"", "NodeId=\"ns=0;i=1003\"");
         assert!(parse_nodeset_xml(xml.as_bytes()).is_ok());
+    }
+
+    #[test]
+    fn reference_type_and_target_namespace_indexes_are_checked() {
+        let xml = SYNTHETIC_XML.replace(
+            "<UAObject NodeId=\"ns=1;i=1003\" BrowseName=\"1:MachineryEquipment\" />",
+            "<UAObject NodeId=\"ns=1;i=1003\" BrowseName=\"1:MachineryEquipment\"><References><Reference ReferenceType=\"ns=0;i=40\">ns=3;i=85</Reference></References></UAObject>",
+        );
+        assert!(parse_nodeset_xml(xml.as_bytes()).is_ok());
+
+        let invalid_target = xml.replace("ns=3;i=85", "ns=4;i=85");
+        assert!(parse_nodeset_xml(invalid_target.as_bytes())
+            .unwrap_err()
+            .contains("Reference target"));
+
+        let invalid_type = xml.replace("ReferenceType=\"ns=0;i=40\"", "ReferenceType=\"ns=4;i=40\"");
+        assert!(parse_nodeset_xml(invalid_type.as_bytes())
+            .unwrap_err()
+            .contains("ReferenceType"));
     }
 
     #[test]
