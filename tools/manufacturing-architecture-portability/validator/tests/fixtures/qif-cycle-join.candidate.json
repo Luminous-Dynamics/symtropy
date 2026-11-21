@@ -74,5 +74,7 @@
   "uncertainty_characteristic_id": null,
   "uncertainty_original_unit": null,
   "uncertainty_valid_from_ns": null,
-  "uncertainty_valid_until_ns": null
+  "uncertainty_valid_until_ns": null,
+  "calibration_validity_clock_id": null,
+  "uncertainty_validity_clock_id": null
 }
