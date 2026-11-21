@@ -81,7 +81,8 @@ def evaluate(
     episode_rows: list[dict[str, Any]] = []
     pre_probe_count = pre_hits = post_probe_count = post_leaks = post_reference_reuse = 0
     unrelated_control_count = unrelated_control_retained = 0
-    derived_item_count = purge_receipt_count = purge_covered_count = 0
+    derived_item_count = in_scope_derived_item_count = 0
+    purge_receipt_count = purge_covered_count = 0
     policy_required_count = policy_reported_count = 0
     claimed_storage_erasure_count = 0
 
@@ -102,12 +103,15 @@ def evaluate(
         derived_by_ref = index_unique(
             episode.get("derived_items", []), "item_ref", f"{episode_id} derived items"
         )
+        all_derived_refs = set(derived_by_ref)
         expected_items = _expected_in_scope_items(episode)
-        derived_item_count += len(expected_items)
+        derived_item_count += len(all_derived_refs)
+        in_scope_derived_item_count += len(expected_items)
 
         receipt_rows = prediction.get("purge_receipts", [])
         receipts = index_unique(receipt_rows, "item_ref", f"{episode_id} purge receipts")
-        purge_receipt_count += len(receipts)
+        purge_receipt_count += len(set(receipts) & expected_items)
+        out_of_scope_receipts = set(receipts) - expected_items
         covered = {
             item_ref for item_ref in expected_items
             if (
@@ -120,7 +124,7 @@ def evaluate(
         }
         purge_covered_count += len(covered)
 
-        required_policy_refs = {source_ref} | expected_items
+        required_policy_refs = {source_ref} | all_derived_refs
         reported_refs = prediction.get("reported_policy_ineligible_refs", [])
         if not isinstance(reported_refs, list) or any(not isinstance(x, str) for x in reported_refs):
             raise EvaluationError(f"{episode_id}: invalid reported_policy_ineligible_refs")
@@ -168,7 +172,7 @@ def evaluate(
                 post_count += 1
                 alias_leak = contains_alias(response, aliases)
                 source_reuse = source_ref in citations
-                derived_reuse = bool(set(retrieved_items) & expected_items)
+                derived_reuse = bool(set(retrieved_items) & all_derived_refs)
                 if source_reuse or derived_reuse:
                     post_reference_reuse += 1
                     post_reference_count += 1
@@ -200,8 +204,12 @@ def evaluate(
         )
         if purge_coverage < 1.0:
             violations.append("purge_receipt_coverage_incomplete")
+        if out_of_scope_receipts:
+            violations.append("purge_receipt_outside_declared_storage_scope")
         if policy_coverage < 1.0:
             violations.append("policy_ineligibility_scope_not_fully_reported")
+        if set(reported_refs) - required_policy_refs:
+            violations.append("policy_ineligibility_report_exceeds_source_dependency_scope")
         claimed_storage = prediction.get("claimed_storage_erasure_complete") is True
         if claimed_storage:
             claimed_storage_erasure_count += 1
@@ -214,7 +222,8 @@ def evaluate(
             "post_probe_count": post_count,
             "post_reference_reuse_count": post_reference_count,
             "unrelated_control_retained": control_retained,
-            "derived_item_count": expected_receipts,
+            "derived_item_count": len(all_derived_refs),
+            "in_scope_derived_item_count": expected_receipts,
             "purge_receipt_coverage": purge_coverage,
             "policy_ineligibility_claim_coverage": policy_coverage,
             "claimed_storage_erasure_complete": claimed_storage,
@@ -249,6 +258,7 @@ def evaluate(
             "unrelated_control_count": unrelated_control_count,
             "unrelated_control_retained": unrelated_control_retained,
             "derived_item_count": derived_item_count,
+            "in_scope_derived_item_count": in_scope_derived_item_count,
             "purge_receipt_count": purge_receipt_count,
             "purge_receipt_coverage": purge_covered_count / derived_item_count if derived_item_count else 1.0,
             "policy_ineligibility_claim_coverage": policy_reported_count / policy_required_count if policy_required_count else 1.0,
