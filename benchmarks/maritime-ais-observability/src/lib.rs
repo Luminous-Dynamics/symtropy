@@ -203,7 +203,6 @@ pub struct InferredEvent {
     pub profile_version: String,
 }
 
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ScoredEventKind {
     AnchorageEntry,
@@ -282,10 +281,8 @@ impl MutableEventMetrics {
             false_negative: self.false_negative,
             total_interval_distance_ticks: self.total_interval_distance,
             total_matched_interval_width_ticks: self.total_interval_width,
-            precision: (predicted > 0)
-                .then_some(self.true_positive as f64 / predicted as f64),
-            recall: (actual > 0)
-                .then_some(self.true_positive as f64 / actual as f64),
+            precision: (predicted > 0).then_some(self.true_positive as f64 / predicted as f64),
+            recall: (actual > 0).then_some(self.true_positive as f64 / actual as f64),
             mean_interval_distance_ticks: (self.true_positive > 0)
                 .then_some(self.total_interval_distance as f64 / self.true_positive as f64),
             mean_matched_interval_width_ticks: (self.true_positive > 0)
@@ -341,12 +338,7 @@ struct ResidualEdge {
     cost: i128,
 }
 
-fn add_residual_edge(
-    graph: &mut [Vec<ResidualEdge>],
-    from: usize,
-    to: usize,
-    cost: i128,
-) -> usize {
+fn add_residual_edge(graph: &mut [Vec<ResidualEdge>], from: usize, to: usize, cost: i128) -> usize {
     let forward_index = graph[from].len();
     let reverse_index = graph[to].len();
     graph[from].push(ResidualEdge {
@@ -449,24 +441,13 @@ pub fn score_events(
     let truth_base = 1;
     let prediction_base = truth_base + ground_truth.len();
     let sink_node = prediction_base + predictions.len();
-    let mut graph: Vec<Vec<ResidualEdge>> =
-        (0..=sink_node).map(|_| Vec::new()).collect();
+    let mut graph: Vec<Vec<ResidualEdge>> = (0..=sink_node).map(|_| Vec::new()).collect();
 
     for truth_index in 0..ground_truth.len() {
-        add_residual_edge(
-            &mut graph,
-            source_node,
-            truth_base + truth_index,
-            0,
-        );
+        add_residual_edge(&mut graph, source_node, truth_base + truth_index, 0);
     }
     for prediction_index in 0..predictions.len() {
-        add_residual_edge(
-            &mut graph,
-            prediction_base + prediction_index,
-            sink_node,
-            0,
-        );
+        add_residual_edge(&mut graph, prediction_base + prediction_index, sink_node, 0);
     }
 
     let mut match_edges = Vec::new();
@@ -613,11 +594,7 @@ fn nav_status_conflicts_with_zone(status: Option<&str>, zone: Zone) -> bool {
     }
 }
 
-fn transition_kind(
-    previous: ServiceState,
-    next: ServiceState,
-    zone: Zone,
-) -> EventKind {
+fn transition_kind(previous: ServiceState, next: ServiceState, zone: Zone) -> EventKind {
     match (previous, next) {
         (ServiceState::Berth, ServiceState::Departure) => EventKind::BerthExitDetected,
         (ServiceState::Departure, ServiceState::Outside) => EventKind::PortExitDetected,
@@ -659,12 +636,12 @@ pub fn evaluate_call_with_initial_state(
     if initial_state != ServiceState::Indeterminate
         && initial_state_evidence_id.is_none_or(|evidence_id| evidence_id.trim().is_empty())
     {
-        return Err(
-            "a non-indeterminate initial state requires an evidence reference".to_string(),
-        );
+        return Err("a non-indeterminate initial state requires an evidence reference".to_string());
     }
     if !valid_mmsi(expected_mmsi) {
-        return Err(format!("invalid MMSI {expected_mmsi:?}: expected nine digits"));
+        return Err(format!(
+            "invalid MMSI {expected_mmsi:?}: expected nine digits"
+        ));
     }
     if fixes.is_empty() {
         return Err("trajectory contains no AIS fixes".to_string());
@@ -797,10 +774,10 @@ pub fn evaluate_call_with_initial_state(
             None
         };
 
-        let event_gap_exceeded = event_gap_ticks
-            .is_some_and(|gap| gap > profile.max_observation_gap_ticks);
-        let receive_gap_exceeded = receive_gap_ticks
-            .is_some_and(|gap| gap > profile.max_receive_gap_ticks);
+        let event_gap_exceeded =
+            event_gap_ticks.is_some_and(|gap| gap > profile.max_observation_gap_ticks);
+        let receive_gap_exceeded =
+            receive_gap_ticks.is_some_and(|gap| gap > profile.max_receive_gap_ticks);
         if event_gap_exceeded || receive_gap_exceeded {
             observability_gap_count += 1;
             candidate = None;
@@ -844,8 +821,7 @@ pub fn evaluate_call_with_initial_state(
             nav_status_conflict_count += 1;
         }
 
-        let speed_is_plausible =
-            fix.speed_milli_knots <= fix.zone.max_speed_milli_knots(profile);
+        let speed_is_plausible = fix.speed_milli_knots <= fix.zone.max_speed_milli_knots(profile);
 
         if state.is_stable_for(fix.zone) {
             candidate = None;
@@ -898,9 +874,8 @@ pub fn evaluate_call_with_initial_state(
         match candidate.as_mut() {
             Some(current)
                 if current.zone == fix.zone
-                    && candidate_gap.is_some_and(|gap| {
-                        gap <= profile.max_observation_gap_ticks
-                    }) =>
+                    && candidate_gap
+                        .is_some_and(|gap| gap <= profile.max_observation_gap_ticks) =>
             {
                 current.last_tick = fix.tick;
                 current.supporting_fix_count += 1;
@@ -970,12 +945,7 @@ pub fn evaluate_call_with_initial_state(
 mod tests {
     use super::*;
 
-    fn fix(
-        tick: i64,
-        message_id: &str,
-        zone: Zone,
-        speed_milli_knots: u32,
-    ) -> AisFix {
+    fn fix(tick: i64, message_id: &str, zone: Zone, speed_milli_knots: u32) -> AisFix {
         AisFix {
             call_reference_id: "SYNTH_CALL_001".to_string(),
             mmsi: "563123456".to_string(),
@@ -997,10 +967,7 @@ mod tests {
         DwellProfile::default()
     }
 
-    fn evaluate_from_baselined_outside(
-        fixes: &[AisFix],
-        profile: &DwellProfile,
-    ) -> CallReport {
+    fn evaluate_from_baselined_outside(fixes: &[AisFix], profile: &DwellProfile) -> CallReport {
         evaluate_call_with_initial_state(
             "563123456",
             ServiceState::Outside,
@@ -1051,8 +1018,7 @@ mod tests {
             lower_tick: 9,
             upper_tick: 11,
         };
-        let score = score_events(&truth, &[prediction.clone(), prediction], 0)
-            .expect("scorecard");
+        let score = score_events(&truth, &[prediction.clone(), prediction], 0).expect("scorecard");
 
         assert_eq!(score.overall.true_positive, 1);
         assert_eq!(score.overall.false_positive, 1);
@@ -1076,8 +1042,14 @@ mod tests {
         };
         let score = score_events(&truth, &[prediction], 0).expect("scorecard");
 
-        let berth = score.by_kind.get(&ScoredEventKind::BerthEntry).expect("berth metric");
-        let exit = score.by_kind.get(&ScoredEventKind::PortExit).expect("exit metric");
+        let berth = score
+            .by_kind
+            .get(&ScoredEventKind::BerthEntry)
+            .expect("berth metric");
+        let exit = score
+            .by_kind
+            .get(&ScoredEventKind::PortExit)
+            .expect("exit metric");
         assert_eq!(berth.false_negative, 1);
         assert_eq!(berth.recall, Some(0.0));
         assert_eq!(exit.false_positive, 1);
@@ -1181,11 +1153,8 @@ mod tests {
         let first = fix(0, "m0", Zone::Outside, 0);
         let mut second = fix(1, "m1", Zone::Outside, 0);
         second.call_reference_id = "SYNTH_CALL_002".to_string();
-        let error = evaluate_from_baselined_outside(
-            &[first, second],
-            &default_profile(),
-        )
-        .expect_err("call reference change must reject");
+        let error = evaluate_from_baselined_outside(&[first, second], &default_profile())
+            .expect_err("call reference change must reject");
         assert!(error.contains("call reference ID changed"));
     }
 
@@ -1270,12 +1239,8 @@ mod tests {
     fn conflicting_message_id_reuse_rejects() {
         let first = fix(1, "reused", Zone::Berth, 100);
         let second = fix(1, "reused", Zone::Approach, 5_000);
-        let error = evaluate_call(
-            "563123456",
-            &[first, second],
-            &default_profile(),
-        )
-        .expect_err("conflicting replay must reject");
+        let error = evaluate_call("563123456", &[first, second], &default_profile())
+            .expect_err("conflicting replay must reject");
 
         assert!(error.contains("conflicting content"));
     }
@@ -1307,7 +1272,12 @@ mod tests {
             .expect("receiver gap recorded");
         assert_eq!(gap.event_gap_ticks, Some(1));
         assert_eq!(gap.receive_gap_ticks, Some(18));
-        assert!(report.events.iter().any(|event| event.kind == EventKind::ZoneReacquired));
+        assert!(
+            report
+                .events
+                .iter()
+                .any(|event| event.kind == EventKind::ZoneReacquired)
+        );
     }
 
     #[test]
@@ -1339,10 +1309,7 @@ mod tests {
         let mut first = fix(0, "m0", Zone::Outside, 0);
         first.nav_status_raw = Some("moored".to_string());
         let second = fix(1, "m1", Zone::Outside, 0);
-        let report = evaluate_from_baselined_outside(
-            &[first, second],
-            &default_profile(),
-        );
+        let report = evaluate_from_baselined_outside(&[first, second], &default_profile());
 
         assert_eq!(report.nav_status_conflict_count, 1);
         assert_ne!(report.final_state, ServiceState::Berth);
@@ -1370,9 +1337,12 @@ mod tests {
                 && event.confirmation_tick == 6
         }));
         assert_eq!(report.final_state, ServiceState::Outside);
-        assert!(!report.events.iter().any(|event| {
-            event.kind.label().contains("LINES_UNTIED")
-        }));
+        assert!(
+            !report
+                .events
+                .iter()
+                .any(|event| { event.kind.label().contains("LINES_UNTIED") })
+        );
     }
 
     #[test]
@@ -1479,8 +1449,18 @@ mod tests {
 
         assert_eq!(report.observability_gap_count, 1);
         assert_eq!(report.final_state, ServiceState::Berth);
-        assert!(report.events.iter().any(|event| event.kind == EventKind::ObservabilityGap));
-        assert!(report.events.iter().any(|event| event.kind == EventKind::ZoneReacquired));
+        assert!(
+            report
+                .events
+                .iter()
+                .any(|event| event.kind == EventKind::ObservabilityGap)
+        );
+        assert!(
+            report
+                .events
+                .iter()
+                .any(|event| event.kind == EventKind::ZoneReacquired)
+        );
         assert_eq!(
             report
                 .events
@@ -1521,7 +1501,12 @@ mod tests {
         assert_eq!(report.initial_state, ServiceState::Indeterminate);
         assert!(report.initial_state_evidence_id.is_none());
         assert_eq!(report.final_state, ServiceState::Berth);
-        assert!(report.events.iter().any(|event| event.kind == EventKind::ZoneReacquired));
+        assert!(
+            report
+                .events
+                .iter()
+                .any(|event| event.kind == EventKind::ZoneReacquired)
+        );
         assert!(
             !report
                 .events
@@ -1547,23 +1532,13 @@ mod tests {
     #[test]
     fn mmsi_and_profile_fail_closed() {
         assert!(
-            evaluate_call(
-                "bad",
-                &[fix(0, "m0", Zone::Outside, 0)],
-                &default_profile()
-            )
-            .is_err()
+            evaluate_call("bad", &[fix(0, "m0", Zone::Outside, 0)], &default_profile()).is_err()
         );
 
         let mut bad_profile = default_profile();
         bad_profile.berth_dwell_ticks = 0;
         assert!(
-            evaluate_call(
-                "563123456",
-                &[fix(0, "m0", Zone::Outside, 0)],
-                &bad_profile
-            )
-            .is_err()
+            evaluate_call("563123456", &[fix(0, "m0", Zone::Outside, 0)], &bad_profile).is_err()
         );
     }
 }
