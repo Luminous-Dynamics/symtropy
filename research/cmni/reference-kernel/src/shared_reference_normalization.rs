@@ -818,6 +818,49 @@ mod tests {
     }
 
     #[test]
+    fn independent_normalized_experiments_share_reference_induced_cross_covariance() {
+        let reference = [3.0, 5.0];
+        let reference_covariance = [vec![0.04, 0.01], vec![0.01, 0.09]];
+        let identity = [vec![0.1, 0.0], vec![0.0, 0.1]];
+        let projection = [vec![1.0, 0.0], vec![0.0, 1.0]];
+        let weights = [0.5, 0.5];
+        let left_observations = [2.0, 4.0];
+        let right_observations = [1.0, 6.0];
+        let left = normalize_spectrum_with_shared_reference(
+            SharedReferenceNormalizationInput {
+                observations: &left_observations,
+                observation_covariance: &identity,
+                reference_values: &reference,
+                reference_covariance: &reference_covariance,
+                reference_projection: &projection,
+                integration_weights: &weights,
+            },
+        )
+        .expect("left normalization");
+        let right = normalize_spectrum_with_shared_reference(
+            SharedReferenceNormalizationInput {
+                observations: &right_observations,
+                observation_covariance: &identity,
+                reference_values: &reference,
+                reference_covariance: &reference_covariance,
+                reference_projection: &projection,
+                integration_weights: &weights,
+            },
+        )
+        .expect("right normalization");
+
+        let cross = shared_reference_cross_covariance(
+            &left.reference_jacobian,
+            &reference_covariance,
+            &right.reference_jacobian,
+        )
+        .expect("shared-reference cross covariance");
+        assert_eq!(cross.len(), 2);
+        assert_eq!(cross[0].len(), 2);
+        assert!(cross.iter().flatten().any(|value| value.abs() > 1.0e-12));
+    }
+
+    #[test]
     fn rejects_bad_projection_dimensions_and_nonfinite_covariance() {
         let observed = [2.0, 4.0];
         let reference = [3.0, 5.0];
