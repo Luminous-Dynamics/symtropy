@@ -64,7 +64,7 @@ jobs:
             .receipt_schema == "luminous.orbital-interface-reliability.receipt.v0.1"
             and .source_commit == $commit
             and .result == "pass"
-            and .cases == 35
+            and .cases == 36
             and .report.summary.expected_result_mismatches == 0
             and .authority_granted == false
           ' orbital-interface-reliability-receipt.json
