@@ -86,8 +86,7 @@ pub fn verify_mk0_bootstrapper_report(report: &Mk0ScenarioReport) -> Mk0Verifica
         violations.push(Mk0VerificationViolation::InvalidMaterialRequirement);
     }
 
-    let expected_energy_allowed =
-        reserve_valid && config.initial_energy_reserve >= 0.25;
+    let expected_energy_allowed = reserve_valid && config.initial_energy_reserve >= 0.25;
 
     let mut seen_record_ids = HashSet::new();
     let mut previous_tick: Option<u32> = None;
@@ -234,12 +233,9 @@ pub fn verify_mk0_bootstrapper_report(report: &Mk0ScenarioReport) -> Mk0Verifica
     } else if !should_print && !print_claims.is_empty() {
         violations.push(Mk0VerificationViolation::UnexpectedPrintClaim);
     }
-    if print_claims
-        .iter()
-        .any(|claim| {
-            claim.work_order_id != config.work_order_id || claim.recipe_version.trim().is_empty()
-        })
-    {
+    if print_claims.iter().any(|claim| {
+        claim.work_order_id != config.work_order_id || claim.recipe_version.trim().is_empty()
+    }) {
         violations.push(Mk0VerificationViolation::PrintWorkOrderMismatch);
     }
 
@@ -265,9 +261,10 @@ pub fn verify_mk0_bootstrapper_report(report: &Mk0ScenarioReport) -> Mk0Verifica
     } else if !should_deliver && !deliveries.is_empty() {
         violations.push(Mk0VerificationViolation::UnexpectedDelivery);
     }
-    if deliveries.iter().any(|delivery| {
-        delivery.work_order_id != config.work_order_id
-    }) {
+    if deliveries
+        .iter()
+        .any(|delivery| delivery.work_order_id != config.work_order_id)
+    {
         violations.push(Mk0VerificationViolation::DeliveryWorkOrderMismatch);
     }
     if deliveries.iter().any(|delivery| {
@@ -372,12 +369,27 @@ fn payload_matches_kind(event: &Mk0ScenarioEvent) -> bool {
     matches!(
         (&event.record_kind, &event.payload),
         (Mk0RecordKind::WorkOrder, Mk0RecordPayload::WorkOrder(_))
-            | (Mk0RecordKind::MaterialBatch, Mk0RecordPayload::MaterialBatch(_))
+            | (
+                Mk0RecordKind::MaterialBatch,
+                Mk0RecordPayload::MaterialBatch(_)
+            )
             | (Mk0RecordKind::PrintClaim, Mk0RecordPayload::PrintClaim(_))
-            | (Mk0RecordKind::DeliveryTask, Mk0RecordPayload::DeliveryTask(_))
-            | (Mk0RecordKind::HandoffReceipt, Mk0RecordPayload::HandoffReceipt(_))
-            | (Mk0RecordKind::EnergyWindow, Mk0RecordPayload::EnergyWindow(_))
-            | (Mk0RecordKind::MaintenanceFlag, Mk0RecordPayload::MaintenanceFlag(_))
+            | (
+                Mk0RecordKind::DeliveryTask,
+                Mk0RecordPayload::DeliveryTask(_)
+            )
+            | (
+                Mk0RecordKind::HandoffReceipt,
+                Mk0RecordPayload::HandoffReceipt(_)
+            )
+            | (
+                Mk0RecordKind::EnergyWindow,
+                Mk0RecordPayload::EnergyWindow(_)
+            )
+            | (
+                Mk0RecordKind::MaintenanceFlag,
+                Mk0RecordPayload::MaintenanceFlag(_)
+            )
     )
 }
 
@@ -412,7 +424,7 @@ fn first_position(events: &[Mk0ScenarioEvent], kind: Mk0RecordKind) -> Option<us
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mk0::{run_mk0_bootstrapper_scenario, Mk0ScenarioConfig};
+    use crate::mk0::{Mk0ScenarioConfig, run_mk0_bootstrapper_scenario};
 
     #[test]
     fn verifies_the_default_synthetic_loop() {
@@ -436,7 +448,10 @@ mod tests {
 
         assert!(!report.success);
         assert!(
-            !report.events.iter().any(|event| event.record_kind == Mk0RecordKind::PrintClaim),
+            !report
+                .events
+                .iter()
+                .any(|event| event.record_kind == Mk0RecordKind::PrintClaim),
             "the simulator must not claim a print when feedstock is insufficient"
         );
         assert!(verified.contract_valid, "{:?}", verified.violations);
@@ -460,8 +475,16 @@ mod tests {
 
         let verified = verify_mk0_bootstrapper_report(&report);
         assert!(!verified.contract_valid);
-        assert!(verified.violations.contains(&Mk0VerificationViolation::EventTimeRegressed));
-        assert!(verified.violations.contains(&Mk0VerificationViolation::CausalOrderViolation));
+        assert!(
+            verified
+                .violations
+                .contains(&Mk0VerificationViolation::EventTimeRegressed)
+        );
+        assert!(
+            verified
+                .violations
+                .contains(&Mk0VerificationViolation::CausalOrderViolation)
+        );
     }
 
     #[test]
@@ -473,9 +496,21 @@ mod tests {
 
         let verified = verify_mk0_bootstrapper_report(&report);
         assert!(!verified.contract_valid);
-        assert!(verified.violations.contains(&Mk0VerificationViolation::MaterialTotalMismatch));
-        assert!(verified.violations.contains(&Mk0VerificationViolation::UnexpectedPrintClaim));
-        assert!(verified.violations.contains(&Mk0VerificationViolation::SuccessClaimMismatch));
+        assert!(
+            verified
+                .violations
+                .contains(&Mk0VerificationViolation::MaterialTotalMismatch)
+        );
+        assert!(
+            verified
+                .violations
+                .contains(&Mk0VerificationViolation::UnexpectedPrintClaim)
+        );
+        assert!(
+            verified
+                .violations
+                .contains(&Mk0VerificationViolation::SuccessClaimMismatch)
+        );
     }
 
     #[test]
@@ -485,8 +520,16 @@ mod tests {
 
         let verified = verify_mk0_bootstrapper_report(&report);
         assert!(!verified.contract_valid);
-        assert!(verified.violations.contains(&Mk0VerificationViolation::DuplicateRecordId));
-        assert!(verified.violations.contains(&Mk0VerificationViolation::PayloadIdMismatch));
+        assert!(
+            verified
+                .violations
+                .contains(&Mk0VerificationViolation::DuplicateRecordId)
+        );
+        assert!(
+            verified
+                .violations
+                .contains(&Mk0VerificationViolation::PayloadIdMismatch)
+        );
     }
 
     #[test]
@@ -496,7 +539,11 @@ mod tests {
 
         let verified = verify_mk0_bootstrapper_report(&report);
         assert!(!verified.contract_valid);
-        assert!(verified.violations.contains(&Mk0VerificationViolation::PayloadKindMismatch));
+        assert!(
+            verified
+                .violations
+                .contains(&Mk0VerificationViolation::PayloadKindMismatch)
+        );
     }
 
     #[test]
@@ -507,7 +554,11 @@ mod tests {
 
         let verified = verify_mk0_bootstrapper_report(&report);
         assert!(!verified.contract_valid);
-        assert!(verified.violations.contains(&Mk0VerificationViolation::ReportCountersMismatch));
+        assert!(
+            verified
+                .violations
+                .contains(&Mk0VerificationViolation::ReportCountersMismatch)
+        );
     }
 } 
     #[test]
