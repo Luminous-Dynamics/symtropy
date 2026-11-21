@@ -211,7 +211,11 @@ pub fn score_linear_vs_quadratic_speed_models(
     // stationary point is the origin, handled above. Minimize both pairs of
     // opposing edges analytically, clamping each edge's stationary point.
     for linear in [bounds.linear_speed.minimum, bounds.linear_speed.maximum] {
-        let quadratic = (xz * linear / zz).clamp(
+        let unconstrained_quadratic = xz * linear / zz;
+        if !unconstrained_quadratic.is_finite() {
+            return Err(ModelDiscriminationError::NonFiniteArithmetic);
+        }
+        let quadratic = unconstrained_quadratic.clamp(
             bounds.quadratic_speed.minimum,
             bounds.quadratic_speed.maximum,
         );
@@ -229,8 +233,12 @@ pub fn score_linear_vs_quadratic_speed_models(
         bounds.quadratic_speed.minimum,
         bounds.quadratic_speed.maximum,
     ] {
+        let unconstrained_linear = xz * quadratic / xx;
+        if !unconstrained_linear.is_finite() {
+            return Err(ModelDiscriminationError::NonFiniteArithmetic);
+        }
         let linear =
-            (xz * quadratic / xx).clamp(bounds.linear_speed.minimum, bounds.linear_speed.maximum);
+            unconstrained_linear.clamp(bounds.linear_speed.minimum, bounds.linear_speed.maximum);
         consider_candidate(
             &mut best,
             &centered_speed,
