@@ -1182,8 +1182,10 @@ mod tests {
         assert_eq!(result.status, Status::PassesSyntheticScreen);
         assert_eq!(result.required_supplemental_cells, Some(0));
         assert_eq!(result.supplemental_cells_used, Some(0));
-        assert!(result.base_station_residual_minutes_per_year.unwrap()
-            >= result.total_module_work_minutes_per_year.unwrap());
+        assert!(
+            result.base_station_residual_minutes_per_year.unwrap()
+                >= result.total_module_work_minutes_per_year.unwrap()
+        );
         assert_eq!(result.module_production_release_ready, false);
     }
 
@@ -1205,7 +1207,12 @@ mod tests {
         let result = &report.results[0];
         assert_eq!(result.status, Status::Blocked);
         assert_eq!(result.supplemental_cells_used, Some(0));
-        assert!(result.base_vehicle_attempts_displaced_if_shortfall_is_forced.unwrap() > 0);
+        assert!(
+            result
+                .base_vehicle_attempts_displaced_if_shortfall_is_forced
+                .unwrap()
+                > 0
+        );
         assert!(result.shared_capacity_margin_minutes_per_year.unwrap() < 0.0);
     }
 
@@ -1222,11 +1229,23 @@ mod tests {
         let report = evaluate_shared_cells(&factory, &modules, &shared_catalog(mapping))
             .expect("valid unknown evidence fixture");
         assert_eq!(report.results[0].status, Status::Indeterminate);
-        assert!(report.results[0].shared_capacity_margin_minutes_per_year.is_none());
+        assert!(
+            report.results[0]
+                .shared_capacity_margin_minutes_per_year
+                .is_none()
+        );
         assert!(report.results[0].required_supplemental_cells.is_none());
-        assert!(report.results[0].module_work_minutes_fitted_to_residual.is_none());
+        assert!(
+            report.results[0]
+                .module_work_minutes_fitted_to_residual
+                .is_none()
+        );
         assert!(report.results[0].supplemental_cells_used.is_none());
-        assert!(report.results[0].missing_fields.contains(&"shared_station_compatibility_evidence".into()));
+        assert!(
+            report.results[0]
+                .missing_fields
+                .contains(&"shared_station_compatibility_evidence".into())
+        );
     }
 
     #[test]
@@ -1242,8 +1261,17 @@ mod tests {
         let report = evaluate_shared_cells(&factory, &modules, &shared_catalog(mapping))
             .expect("valid incompatible fixture");
         assert_eq!(report.results[0].status, Status::Blocked);
-        assert!(report.results[0].shared_capacity_margin_minutes_per_year.is_none());
-        assert!(report.results[0].findings.iter().any(|finding| finding.contains("not qualified")));
+        assert!(
+            report.results[0]
+                .shared_capacity_margin_minutes_per_year
+                .is_none()
+        );
+        assert!(
+            report.results[0]
+                .findings
+                .iter()
+                .any(|finding| finding.contains("not qualified"))
+        );
     }
 
     #[test]
@@ -1274,8 +1302,12 @@ mod tests {
             claim_ceiling: "synthetic".into(),
         };
         let mapping = shared_mapping(SharedCellCompatibility::VerifiedCompatible);
-        assert!(validate_shared_cell_catalog(&factory, &modules, &shared_catalog(mapping))
-            .unwrap_err().iter().any(|error| error.contains("verified compatibility requires")));
+        assert!(
+            validate_shared_cell_catalog(&factory, &modules, &shared_catalog(mapping))
+                .unwrap_err()
+                .iter()
+                .any(|error| error.contains("verified compatibility requires"))
+        );
     }
 
     #[test]
