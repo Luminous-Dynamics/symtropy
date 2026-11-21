@@ -1,3 +1,5 @@
+pub mod model_set_design;
+
 //! GAUGE-specific model-discrimination reference for fixed-angle slope sliding.
 //!
 //! M0 is a constant-acceleration model (constant Coulomb friction plus an
@@ -26,6 +28,7 @@ pub enum ModelDiscriminationError {
     InsufficientSpeedExcitation,
     NonFiniteArithmetic,
     InvalidGeometry,
+    InvalidCoefficientBounds,
 }
 
 impl Display for ModelDiscriminationError {
@@ -45,6 +48,9 @@ impl Display for ModelDiscriminationError {
             Self::NonFiniteArithmetic => "weighted regression produced a non-finite result",
             Self::InvalidGeometry => {
                 "qualified geometry requires finite positive gravity, an admitted incline angle, and a non-zero evidence digest"
+            }
+            Self::InvalidCoefficientBounds => {
+                "model coefficient bounds must be finite and ordered"
             }
         };
         formatter.write_str(message)
