@@ -11,7 +11,10 @@ fn main() -> ExitCode {
     let mut args = env::args_os();
     let program = args.next().unwrap_or_default();
     let Some(path) = args.next() else {
-        eprintln!("usage: {} <scenario-calibration-corpus.json>", program.to_string_lossy());
+        eprintln!(
+            "usage: {} <scenario-calibration-corpus.json>",
+            program.to_string_lossy()
+        );
         return ExitCode::from(2);
     };
     if args.next().is_some() {
