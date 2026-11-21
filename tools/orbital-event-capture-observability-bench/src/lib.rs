@@ -105,7 +105,7 @@ pub struct CaptureCase {
     pub test_scope: Scope,
     pub minimum_event_rate_per_second: f64,
     pub maximum_event_rate_per_second: f64,
-    pub test_event_rate_per_second: f64,
+    pub test_window_seconds: f64,
     pub reference: ReferenceEvidence,
     pub reference_events: Vec<ReferenceEvent>,
     pub observed_events: Vec<ObservedEvent>,
@@ -277,19 +277,21 @@ fn evaluate_case(case: &CaptureCase) -> Decision {
         || !valid_hex(&case.clock.synchronization_artifact_sha256, 64)
         || !case.minimum_event_rate_per_second.is_finite()
         || !case.maximum_event_rate_per_second.is_finite()
-        || !case.test_event_rate_per_second.is_finite()
+        || !case.test_window_seconds.is_finite()
+        || case.test_window_seconds <= 0.0
         || case.minimum_event_rate_per_second < 0.0
         || case.maximum_event_rate_per_second < case.minimum_event_rate_per_second
         || case.maximum_event_rate_per_second > MAX_RATE
-        || case.test_event_rate_per_second < 0.0
-        || case.test_event_rate_per_second > MAX_RATE
     {
         return blocked(Disposition::Rejected, "malformed_scope_rate_or_evidence_digest");
     }
 
-    if case.test_scope != case.qualified_scope
-        || case.test_event_rate_per_second < case.minimum_event_rate_per_second
-        || case.test_event_rate_per_second > case.maximum_event_rate_per_second
+    let reference_event_rate = case.reference_events.len() as f64 / case.test_window_seconds;
+    if !reference_event_rate.is_finite()
+        || reference_event_rate > MAX_RATE
+        || case.test_scope != case.qualified_scope
+        || reference_event_rate < case.minimum_event_rate_per_second
+        || reference_event_rate > case.maximum_event_rate_per_second
     {
         return blocked(Disposition::OutOfEnvelope, "test_configuration_or_event_rate_outside_declared_envelope");
     }
