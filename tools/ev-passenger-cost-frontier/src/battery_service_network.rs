@@ -890,6 +890,27 @@ mod tests {
     }
 
     #[test]
+    fn unknown_evidence_class_is_indeterminate() {
+        let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
+        battery.usable_energy.evidence.evidence_class = EvidenceClass::Unknown;
+        assert_eq!(
+            pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
+            EligibilityStatus::Indeterminate
+        );
+    }
+
+    #[test]
+    fn malformed_evidence_window_is_blocked() {
+        let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
+        battery.thermal.evidence.valid_from_unix_ms =
+            Some(DISPATCH_TIME_MS + 5_000);
+        assert_eq!(
+            pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
+            EligibilityStatus::Blocked
+        );
+    }
+
+    #[test]
     fn mismatched_evidence_asset_identity_is_blocked() {
         let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
         battery.usable_energy.evidence.asset_id = "different-pack".to_string();
