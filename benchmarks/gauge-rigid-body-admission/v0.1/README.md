@@ -37,7 +37,13 @@ Two public raw records were inspected directly:
 
 The inspected records declare `FPS: 30`, `translation unit: mm` and `euler order: ZYX`. Per-body streams include position arrays `x/y/z`, quaternion arrays `qx/qy/qz/qw` and Euler arrays `ex/ey/ez`. The Newton's-cradle file contains multiple named body streams (for example `ball_passive`). This proves the release includes structured rigid-body pose trajectories, not only rendered videos.
 
-It does **not** yet settle quaternion handedness/algebra, transform direction, frame identity, Euler units and active/passive convention, clock origin, timestamp reconstruction, per-sample uncertainty/covariance, missing-frame/outlier policy or recording-level group semantics. Only representative files were inspected; all eight families and material branches remain to be audited.
+### Acquisition rate versus export rate
+
+The GAUGE paper states that its 16-camera motion-capture system acquires rigid-body observations at **180 Hz**, then truncates each recording to the valid experimental interval and downsamples the exported JSON trajectory to **30 FPS**. It also states that rigid-body and textile simulations run at 180 Hz while the exported simulator states are recorded at 30 Hz. The dataset's `FPS: 30` field therefore identifies the trajectory export cadence, not the original camera acquisition rate. The downsampling filter, phase/anchor convention and uncertainty propagation are not established by the inspected raw records or paper.
+
+This matters for contact mechanics: a 30 Hz export has a 15 Hz Nyquist frequency and 33.3 ms sample spacing. It cannot by itself establish a short-duration impact peak or sub-frame contact timing. GAUGE's momentum-transfer efficiency is a task-level momentum metric, not a direct high-rate contact-force measurement. The 180 Hz source may support more detailed analysis only if those source-rate trajectories, timestamps and processing lineage are available; they must not be reconstructed by interpolating the 30 Hz export.
+
+It does **not** yet settle quaternion handedness/algebra, transform direction, frame identity, Euler units and active/passive convention, exact downsampling/filter/phase, absolute clock origin, timestamp reconstruction, per-sample uncertainty/covariance, missing-frame/outlier policy or recording-level group semantics. Only representative files were inspected; all eight families and material branches remain to be audited.
 
 The dataset preview is currently a video/trajectory pipeline-status record (3,249 videos and 3,249 trajectories), not the raw physical-trial schema. It cannot establish complete trial-record semantics.
 
