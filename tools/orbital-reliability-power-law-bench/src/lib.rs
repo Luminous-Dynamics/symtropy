@@ -299,10 +299,16 @@ fn evaluate_case(case: &PowerLawCase) -> Result<Decision, String> {
         || !present(&case.event_capture_assessment_ref)
         || !present(&case.clock_calibration_ref)
     {
-        add_blocker(&mut decision, "missing_preregistration_or_admissibility_reference");
+        add_blocker(
+            &mut decision,
+            "missing_preregistration_or_admissibility_reference",
+        );
     }
     if !case.diagnostics_predeclared || !case.thresholds_frozen_before_holdout {
-        add_blocker(&mut decision, "analysis_protocol_or_thresholds_not_predeclared");
+        add_blocker(
+            &mut decision,
+            "analysis_protocol_or_thresholds_not_predeclared",
+        );
     }
     if case.knowledge_cutoff < case.effective_cutoff {
         add_blocker(&mut decision, "knowledge_cutoff_precedes_effective_cutoff");
@@ -338,13 +344,19 @@ fn evaluate_case(case: &PowerLawCase) -> Result<Decision, String> {
         || !series.data_loss_counter_verified
         || !series.maintenance_history_complete
     {
-        add_blocker(&mut decision, "incomplete_clock_capture_maintenance_or_artifact_evidence");
+        add_blocker(
+            &mut decision,
+            "incomplete_clock_capture_maintenance_or_artifact_evidence",
+        );
     }
     if matches!(
         series.censoring,
         Censoring::Intervention | Censoring::InformativeWithdrawal | Censoring::Unknown
     ) {
-        add_blocker(&mut decision, "intervention_or_unresolved_informative_censoring");
+        add_blocker(
+            &mut decision,
+            "intervention_or_unresolved_informative_censoring",
+        );
     }
 
     if series.events.len() > MAX_EVENTS {
@@ -379,22 +391,30 @@ fn evaluate_case(case: &PowerLawCase) -> Result<Decision, String> {
             || event.operating_time_seconds == 0
             || event.operating_time_seconds >= series.exposure_end_seconds
             || (index > 0
-                && unique_events[index - 1].operating_time_seconds
-                    >= event.operating_time_seconds)
+                && unique_events[index - 1].operating_time_seconds >= event.operating_time_seconds)
         {
-            add_blocker(&mut decision, "event_time_order_window_or_failure_definition_invalid");
+            add_blocker(
+                &mut decision,
+                "event_time_order_window_or_failure_definition_invalid",
+            );
         }
         if event.effective_at > case.effective_cutoff || event.recorded_at > case.knowledge_cutoff {
             add_blocker(&mut decision, "event_not_known_at_declared_cutoff");
         }
         if event.restoration_state != RestorationState::MinimalRepair {
-            add_blocker(&mut decision, "restoration_state_is_not_supported_by_v0_1_profile");
+            add_blocker(
+                &mut decision,
+                "restoration_state_is_not_supported_by_v0_1_profile",
+            );
             decision.disposition = Some(Disposition::ModelNotSupported);
         }
     }
 
     if unique_events.len() < 2 {
-        add_blocker(&mut decision, "fewer_than_two_unique_events_for_power_law_mle");
+        add_blocker(
+            &mut decision,
+            "fewer_than_two_unique_events_for_power_law_mle",
+        );
     }
 
     if series.exposure_end_seconds > 0 && unique_events.len() >= 2 {
@@ -490,15 +510,14 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         summary.total_unique_events += decision.unique_events;
         summary.total_duplicate_events += decision.duplicate_events;
 
-        let close = |actual: Option<f64>, expected: Option<f64>, tolerance: f64| {
-            match (actual, expected) {
+        let close =
+            |actual: Option<f64>, expected: Option<f64>, tolerance: f64| match (actual, expected) {
                 (Some(left), Some(right)) => {
                     (left - right).abs() <= tolerance * left.abs().max(1.0)
                 }
                 (None, None) => true,
                 _ => false,
-            }
-        };
+            };
         let expected = &case.expected;
         let matched = disposition == expected.disposition
             && decision.unique_events == expected.unique_events
