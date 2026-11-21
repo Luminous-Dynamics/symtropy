@@ -610,6 +610,23 @@ mod tests {
     }
 
     #[test]
+    fn splitmix64_sequence_and_open_uniform_mapping_are_pinned() {
+        let mut generator = SplitMix64::new(0);
+        assert_eq!(generator.next_u64(), 0xe220_a839_7b1d_cdaf);
+        assert_eq!(generator.next_u64(), 0x6e78_9e6a_a1b9_65f4);
+        assert_eq!(generator.next_u64(), 0x06c4_5d18_8009_454f);
+        assert_eq!(generator.next_u64(), 0xf88b_b8a8_724c_81ec);
+
+        for seed in 0..128 {
+            let mut generator = SplitMix64::new(seed);
+            for _ in 0..64 {
+                let uniform = generator.uniform_open();
+                assert!(uniform > 0.0 && uniform < 1.0);
+            }
+        }
+    }
+
+    #[test]
     fn conditional_reference_replays_for_fixed_seed() {
         let mut first = SplitMix64::new(42);
         let mut second = SplitMix64::new(42);
