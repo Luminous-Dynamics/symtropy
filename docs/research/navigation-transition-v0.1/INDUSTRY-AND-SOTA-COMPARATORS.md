@@ -119,3 +119,29 @@ The source review refined three rights entries:
 - **SubT-MRS:** the public dataset listing describes synchronized RGB/LiDAR/thermal/IMU and downloadable bags, extracted folders and separate ground truth; the rights field is not clearly established by that listing. It remains rights-unknown and not admitted until payload-specific permission/licence is found. Source: [AirLab dataset listing](https://superodometry.com/datasets).
 
 The machine-readable register at `datasets.v0.1.json` records these facts without treating a public page as a completed data snapshot. All four datasets remain `candidate_not_admitted`: the next gate is exact payload acquisition, immutable release/commit pinning, file hashes, calibration/time/frame audit and non-overlapping route/session/experiment splits. No dataset binaries are included in the repository.
+
+
+## New 2026 comparator update (21 November 2026)
+
+### Overlapping Covariance Intersection (OCI)
+
+**Pedroso, Batista and Heemels, “Overlapping Covariance Intersection: Fusion with Partial Structural Knowledge of Correlation from Multiple Sources,” IEEE Transactions on Automatic Control, early access 28 August 2026, DOI 10.1109/TAC.2026.3728727.** Its abstract introduces OCI to use overlapping structural knowledge of cross-correlation where tracking every covariance is infeasible, derives feasibility conditions and a family-optimal solution via semidefinite programming. A companion 2026 paper unifies family-optimal CI variants via SDP: DOI 10.1109/LCSYS.2026.3698437.
+
+This is a direct comparator for Mycelix's next fusion evolution. Mycelix's current correction is deterministic diagonal CI for one pair and a sequential pairwise approximation for larger collections; it is not OCI. The research track is tracked in [Mycelix issue #6440](https://github.com/Luminous-Dynamics/mycelix/issues/6440). Do not implement a supposed OCI algorithm from the abstract alone: first reproduce the paper's structural input model, feasibility conditions and objective.
+
+The proposed opportunity is to map Mycelix's typed failure-domain/lineage references into a *partial dependency-overlap structure*. Such references can show known overlap, but do not numerically determine cross-covariance; labels are not authentication and absent dependencies remain UNKNOWN. Evaluate ordinary CI, Split CI where applicable, OCI and the current sequential CI approximation on identical state dimensions, common priors and held-out scenarios. Report covariance coverage/consistency, NEES where valid, overconfidence, computation, memory and communications.
+
+### Goal-directed cross-scenario fusion navigation
+
+Tang et al., “Goal-directed synergistic fusion navigation for robust localization under cross-scenario spatial uncertainty,” *Satellite Navigation*, published 11 August 2026, reports a modular pipeline with online Degree of Sufficiency (DoS), adaptive IEKF / Levenberg–Marquardt estimation, Degree of Observability (DoO)-driven credibility analysis, opinion dynamics and factor-graph optimization. Its paper abstract reports RMS errors 0.32–0.97 m across trajectories of 419.91–1429.80 m. This is an important direct comparator for active observation and regime adaptation, not a score that can be compared without matching platforms, routes, sensors, reference truth, and error definitions. The paper already demonstrates that adaptive sensing-availability and observability ideas are established; Luminous must go beyond naming DoS/DoO by auditing correlation-model correctness, held-out calibration, profile-specific integrity and the cost/benefit of active sensing.
+
+### Updated dataset candidates
+
+| Dataset | New verified facts | Admission status |
+|---|---|---|
+| **TWR-CLOUD-Bern v6** | 40 Qorvo DWM3001C nodes; 12 scans; >500 m²; four measurement/statistics tables; 11 training/model-development scans and one independent held-out scan; anchor-free cooperative, anchor-aided cooperative and anchor-only modes; official scorer; 148,260-scenario evaluation archive; 386,033 evaluation rows. v6 corrected three device-to-survey-position assignments in training scans while leaving the evaluation archive unchanged. DOI 10.5281/zenodo.23434390; dataset article DOI 10.1109/IEEEDATA.2026.3701019. | **Strong task match, rights unresolved.** Zenodo record marks the dataset open, but its displayed explicit license field is empty. Do not use it in commercial distribution or redistribute its payloads until authors/publisher confirm rights. Freeze v6, not v5. |
+| **MILUV v1** | 217 minutes; 36 experiments; three quadcopters; up to 12 UWB transceivers; raw UWB timestamps and CIR; stereo and downward monocular cameras; IMUs, laser height, magnetometer and motion-capture truth. Its development kit includes VIO, UWB-EKF and CIR classification baselines. DOI 10.25452/figshare.plus.28386041.v1; article DOI 10.1177/02783649251405898. | **High-priority candidate.** NLM dataset catalogue reports CC BY 4.0. Preserve attribution and verify direct payload terms and dependencies before packaging. |
+| **HYMN** | Time-synchronized indoor/outdoor industrial hall measurements across UWB, BLE, Wi-Fi, 5G and GNSS. DOI 10.1109/IEEEDATA.2026.3691044. | **Promising transition dataset; licence/payload audit pending.** |
+| **imec-IDLab UWB collections** | 15-anchor / 72 PHY configurations, industrial ADS-TWR captures six months apart, and TDoA full-CIR LOS/NLOS data. | **Strong NLOS and temporal-generalization candidate; exact repository/payload terms and release hashes pending.** |
+
+The direct source records should be rechecked when a dataset release is admitted. An open catalogue entry or open-access paper is not by itself sufficient evidence that every embedded asset may be redistributed commercially.
