@@ -132,6 +132,54 @@ class LongHorizonEvaluatorTests(unittest.TestCase):
             self.score(workload=workload)
 
 
+    def test_duplicate_observation_reference_with_changed_digest_is_rejected(self):
+        workload = copy.deepcopy(self.workload)
+        episode = next(x for x in workload["episodes"] if x["episode_id"] == "lh-002-repeated-event-dedup")
+        replay = next(x for x in episode["stream_events"] if x["event_id"] == "ev-tap-2-replay")
+        replay["artifact_sha256"] = "f" * 64
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(workload=workload)
+
+    def test_duplicate_observation_reference_with_changed_clock_generation_is_rejected(self):
+        workload = copy.deepcopy(self.workload)
+        episode = next(x for x in workload["episodes"] if x["episode_id"] == "lh-002-repeated-event-dedup")
+        replay = next(x for x in episode["stream_events"] if x["event_id"] == "ev-tap-2-replay")
+        replay["clock_generation"] = 1
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(workload=workload)
+
+    def test_stream_delivery_order_must_be_monotonic(self):
+        workload = copy.deepcopy(self.workload)
+        episode = next(x for x in workload["episodes"] if x["episode_id"] == "lh-002-repeated-event-dedup")
+        episode["stream_events"][1], episode["stream_events"][2] = (
+            episode["stream_events"][2], episode["stream_events"][1]
+        )
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(workload=workload)
+
+    def test_derived_memory_unknown_source_dependency_is_rejected(self):
+        workload = copy.deepcopy(self.workload)
+        episode = next(x for x in workload["episodes"] if x["episode_id"] == "lh-008-memory-revocation")
+        episode["derived_memory_items"][0]["derived_from_observation_refs"] = ["obs-not-in-stream"]
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(workload=workload)
+
+    def test_derived_memory_dependency_cycle_is_rejected(self):
+        workload = copy.deepcopy(self.workload)
+        episode = next(x for x in workload["episodes"] if x["episode_id"] == "lh-008-memory-revocation")
+        by_ref = {item["item_ref"]: item for item in episode["derived_memory_items"]}
+        by_ref["mem-private-summary"]["derived_from_item_refs"] = ["mem-private-response-cache"]
+        by_ref["mem-private-summary"]["derived_from_observation_refs"] = []
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(workload=workload)
+
+    def test_derived_memory_cannot_precede_source_observation(self):
+        workload = copy.deepcopy(self.workload)
+        episode = next(x for x in workload["episodes"] if x["episode_id"] == "lh-008-memory-revocation")
+        episode["derived_memory_items"][0]["created_tick"] = 0
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(workload=workload)
+
     def test_superseded_observation_is_allowed_as_history_but_not_current_state(self):
         score = self.score()
         result = self.episode_result(score, "lh-003-correction-supersession")
