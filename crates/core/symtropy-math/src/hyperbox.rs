@@ -71,6 +71,33 @@ impl<const D: usize> Shape<D> for HyperBox<D> {
     fn clone_box(&self) -> Box<dyn Shape<D>> {
         Box::new(*self)
     }
+
+    fn mass_properties(
+        &self,
+        mass: f64,
+    ) -> Result<crate::mass_properties::MassProperties<D>, crate::mass_properties::MassPropertiesError>
+    {
+        use crate::mass_properties::{MassProperties, MassPropertiesError};
+
+        if !self
+            .half_extents
+            .iter()
+            .all(|extent| extent.is_finite() && *extent > 0.0)
+        {
+            return Err(MassPropertiesError::InvalidGeometry);
+        }
+        if !mass.is_finite() || mass <= 0.0 {
+            return Err(MassPropertiesError::InvalidMass);
+        }
+
+        // Uniform-density axis-aligned solid hyperbox:
+        // C_ii = m h_i²/3 and all cross terms are zero.
+        let mut tensor = nalgebra::SMatrix::<f64, D, D>::zeros();
+        for axis in 0..D {
+            tensor[(axis, axis)] = mass * self.half_extents[axis].powi(2) / 3.0;
+        }
+        MassProperties::new(mass, Point::origin(), tensor)
+    }
 }
 
 #[cfg(test)]
