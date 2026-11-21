@@ -539,9 +539,9 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
     let records = at(root, &["records"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        records.is_some_and(|rows| rows.len() == 4),
+        records.is_some_and(|rows| rows.len() == 10),
         "FRONTIER_RECORD_COUNT",
-        "frontier cohort must retain five separately qualified source records",
+        "frontier cohort must retain ten separately qualified source records",
     );
 
     let mut ids = std::collections::BTreeSet::new();
@@ -718,6 +718,118 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
         );
     }
 
+    let wakimoto = find_record(records, "wakimoto-2025-booster-electrode");
+    push_if_missing(
+        &mut findings,
+        wakimoto.is_some(),
+        "FRONTIER_WAKIMOTO_RECORD",
+        "missing experimentally validated booster-electrode comparator",
+    );
+    if let Some(row) = wakimoto {
+        push_if_missing(
+            &mut findings,
+            at(row, &["method", "experimental_validation"]).and_then(Value::as_bool) == Some(true)
+                && number_at(row, &["reported_values", "thrust_density_gain_vs_no_booster_at_15_kv_approx_factor"]) == Some(4.46)
+                && number_at(row, &["reported_values", "thrust_density_gain_vs_no_booster_at_20_kv_approx_factor"]) == Some(2.22)
+                && number_at(row, &["reported_values", "thrust_density_gain_vs_no_booster_at_25_kv_approx_factor"]) == Some(1.84)
+                && at(row, &["reported_values", "metric_unit"]).is_some_and(Value::is_null),
+            "FRONTIER_WAKIMOTO_SOURCE_SCOPE",
+            "booster-electrode voltage-specific gains and unknown metric unit must remain source-local",
+        );
+    }
+
+    let anemone = find_record(records, "shibata-2025-anemone-3d");
+    push_if_missing(
+        &mut findings,
+        anemone.is_some(),
+        "FRONTIER_ANEMONE_RECORD",
+        "missing 3D ANEMONE solver comparator",
+    );
+    if let Some(row) = anemone {
+        push_if_missing(
+            &mut findings,
+            text_at(row, &["method", "language"]) == Some("C++")
+                && text_at(row, &["method", "license"]) == Some("MIT")
+                && at(row, &["method", "charged_species"]).and_then(Value::as_array)
+                    .is_some_and(|species| species.len() == 3)
+                && at(row, &["method", "claimed_outputs"]).and_then(Value::as_array)
+                    .is_some_and(|outputs| outputs.len() == 2
+                        && outputs.iter().any(|v| v.as_str() == Some("corona inception voltage"))
+                        && outputs.iter().any(|v| v.as_str() == Some("energy conversion efficiency")))
+                && text_at(row, &["validation_boundary"]).is_some_and(|value| {
+                    value.contains("does not claim independent validation")
+                        && value.contains("net thrust")
+                }),
+            "FRONTIER_ANEMONE_SCOPE",
+            "ANEMONE must remain a 3D three-species C++/MIT solver with a limited output/validation boundary",
+        );
+    }
+
+    let integral = find_record(records, "shibata-2025-integral-three-component-plasma");
+    push_if_missing(
+        &mut findings,
+        integral.is_some(),
+        "FRONTIER_INTEGRAL_MODEL_RECORD",
+        "missing integral three-component plasma-fluid model comparator",
+    );
+    if let Some(row) = integral {
+        push_if_missing(
+            &mut findings,
+            at(row, &["method", "experimental_comparison_geometries"]).and_then(Value::as_array)
+                .is_some_and(|geometries| geometries.len() == 3
+                    && geometries.iter().any(|v| v.as_str().is_some_and(|s| s.contains("coaxial cylinder")))
+                    && geometries.iter().any(|v| v.as_str().is_some_and(|s| s.contains("point-to-plate")))
+                    && geometries.iter().any(|v| v.as_str().is_some_and(|s| s.contains("single-stage thruster"))))
+                && text_at(row, &["validation_boundary"]).is_some_and(|value| value.contains("full neutral-flow")),
+            "FRONTIER_INTEGRAL_MODEL_SCOPE",
+            "integral plasma-fluid validation geometries and neutral-flow claim boundary must remain explicit",
+        );
+    }
+
+    let array = find_record(records, "kitamura-2023-multianode-force-vector");
+    push_if_missing(
+        &mut findings,
+        array.is_some(),
+        "FRONTIER_ARRAY_RECORD",
+        "missing paired-anode force-vector interaction experiment",
+    );
+    if let Some(row) = array {
+        push_if_missing(
+            &mut findings,
+            at(row, &["reported_values", "orthogonal_anodes_force_superposition"])
+                .and_then(Value::as_bool) == Some(false)
+                && number_at(row, &["reported_values", "orthogonal_anodes_resultant_direction_degrees_approx"]) == Some(45.0)
+                && at(row, &["reported_values", "horizontal_anodes_force_superposition"])
+                    .and_then(Value::as_bool) == Some(true)
+                && text_at(row, &["comparability"]).is_some_and(|value| value.contains("not a universal")),
+            "FRONTIER_ARRAY_NONADDITIVITY",
+            "paired-anode superposition must remain geometry-dependent, not a universal array assumption",
+        );
+    }
+
+    let switching = find_record(records, "yashita-2025-switched-corona-thrust-control");
+    push_if_missing(
+        &mut findings,
+        switching.is_some(),
+        "FRONTIER_SWITCHING_RECORD",
+        "missing switched-corona thrust control comparator",
+    );
+    if let Some(row) = switching {
+        push_if_missing(
+            &mut findings,
+            number_at(row, &["method", "experiments_reported"]) == Some(2.0)
+                && text_at(row, &["method", "circuit_topology"]).is_some_and(|value| {
+                    value.contains("series") && value.contains("parallel")
+                })
+                && text_at(row, &["method", "demonstrated_control"]).is_some_and(|value| {
+                    value.contains("duty ratio")
+                })
+                && contains_any(row, &["missing_or_unverified"], "switching loss"),
+            "FRONTIER_SWITCHING_SCOPE",
+            "duty-ratio thrust control must retain its circuit topology, two-experiment evidence and unresolved switching-loss boundary",
+        );
+    }
+
     let factors = at(root, &["proposed_design_factors"]).and_then(Value::as_array);
     let required_factors = [
         "guide_electrode",
@@ -726,6 +838,9 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
         "collector_topology",
         "drive_architecture",
         "multistage_duct_geometry",
+        "booster_electrode",
+        "array_orientation_and_spacing",
+        "switching_duty_ratio",
     ];
     let factors_match = factors.is_some_and(|items| {
         items.len() == required_factors.len()
@@ -1299,6 +1414,42 @@ mod tests {
         value["records"][4]["thrust_estimation"]["physical_force_measurement_performed"] =
             Value::Bool(true);
         assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_SHIBATA_MODEL_SCOPE"));
+    }
+
+
+    #[test]
+    fn booster_electrode_gains_retain_experimental_source_boundary() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
+        value["records"][5]["method"]["experimental_validation"] = Value::Bool(false);
+        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_WAKIMOTO_SOURCE_SCOPE"));
+    }
+
+    #[test]
+    fn anemone_three_dimensional_solver_scope_cannot_be_promoted_to_net_thrust() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
+        value["records"][6]["validation_boundary"] = Value::String("Complete neutral-flow and net-thrust validation".into());
+        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_ANEMONE_SCOPE"));
+    }
+
+    #[test]
+    fn integral_model_experimental_geometry_cohort_is_required() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
+        value["records"][7]["method"]["experimental_comparison_geometries"] = Value::Array(Vec::new());
+        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_INTEGRAL_MODEL_SCOPE"));
+    }
+
+    #[test]
+    fn multi_anode_interaction_cannot_be_assumed_additive_for_all_geometries() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
+        value["records"][8]["reported_values"]["orthogonal_anodes_force_superposition"] = Value::Bool(true);
+        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_ARRAY_NONADDITIVITY"));
+    }
+
+    #[test]
+    fn switched_thrust_comparator_must_retain_switching_loss_unknowns() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
+        value["records"][9]["missing_or_unverified"] = Value::Array(Vec::new());
+        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_SWITCHING_SCOPE"));
     }
 
 }
