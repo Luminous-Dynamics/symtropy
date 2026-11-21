@@ -280,6 +280,23 @@ A seeded fixed-step HMC comparator is also present. It uses the analytic gradien
 
 This is not NUTS and not yet a qualified sampler: there is no step-size or mass-matrix adaptation, no rank-normalized / folded Rhat, no ESS / MCSE, no posterior predictive check and no tau0-sweep stability analysis. The HMC implementation should be compared against an independent mature sampler on tractable low-dimensional oracles before any posterior claim is made. The AIACHNE BMC sampler reproduction remains a separate comparison target, not something this HMC implementation is claimed to equal.
 
+### Layer M — fixed-step HMC comparator and sampler qualification
+
+The prepared raw-scale horseshoe target caches the observation covariance factorization so it can be evaluated repeatedly without rebuilding the same matrix factorization. A seeded fixed-step HMC comparator now uses that target, with caller-supplied step size and leapfrog count, a Metropolis accept/reject step, momentum reversal, discarded initial transitions, and acceptance / divergence accounting.
+
+The current sampler has important limitations: no step-size adaptation, no mass-matrix adaptation, no NUTS, no rank-normalized or folded Rhat, no ESS / MCSE, no E-BFMI, and no posterior predictive diagnostics. It is an exploratory HMC comparator, not the AIACHNE BMC implementation or a qualified posterior sampler.
+
+A defensible sampler qualification gate should follow the current Stan diagnostic guidance as an external reference:
+- at least four independently seeded chains with overdispersed initial states;
+- rank-normalized split and folded Rhat < 1.01 before trusting final inferences;
+- bulk-ESS preferably > 100 × number of chains and adequate tail-ESS for the reported tail quantities;
+- inspect divergent transitions, tree-depth / integration limits and energy behavior (E-BFMI);
+- report MCSE relative to the precision required by the actual inferential decision;
+- run prior / tau0 sensitivity and posterior predictive checks;
+- validate the sampler against analytic low-dimensional targets and an independently implemented mature sampler before fitting the full PFNS basis.
+
+Stan cites E-BFMI below approximately 0.3 as a warning sign for poor energy exploration. These are proposed CMNI qualification gates based on published sampler diagnostics, not results achieved by the current fixed-step implementation.
+
 ## Current implementation and limits
 
 Implemented in this research-only Rust crate:
@@ -309,7 +326,7 @@ Not implemented yet:
 - a full Bayesian expected-information-gain estimator, multifidelity sample-allocation optimizer or ACV coefficient learner;
 - a continuous robust-design optimizer, uncertainty-set calibration or Pareto frontier;
 - a nuisance-integrated or posterior-predictive model-discrimination score;
-- qualified sampling: step-size / mass-matrix adaptation, NUTS or validated BMC comparison, rank-normalized and folded Rhat, bulk/tail ESS, MCSE, posterior predictive checks, energy diagnostics and tau0 stability sweeps;
+- sampler qualification: step-size / mass-matrix adaptation, NUTS or validated BMC comparison, rank-normalized and folded Rhat, bulk/tail ESS, MCSE, E-BFMI, posterior predictive checks and tau0 stability sweeps;
 - inference over the complete 160-basis-per-group design and global τ hyperprior;
 - τ_0 sensitivity sweeps, redundant feature-level grouping analysis, correlated-feature robustness, and campaign-held-out validation;
 - a general nuisance-aware hierarchical likelihood for response, background, live time, PSD and other calibration dimensions;
