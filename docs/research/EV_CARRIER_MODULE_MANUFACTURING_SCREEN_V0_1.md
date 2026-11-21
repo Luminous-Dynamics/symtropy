@@ -141,3 +141,27 @@ A detachable pod is not automatically more modular or cheaper: it must earn that
 ## Non-claims
 
 The fixture does not demonstrate actual factory throughput, supplier access, local production cost, plant layout, process capability, module yield, physical product quality, vehicle homologation, airworthiness, battery/fire safety, commercial competitiveness or production readiness. No SOTA performance or cost superiority is claimed.
+
+
+## Updated external benchmark: mobile drone modules must earn their production economics
+
+A mobile drone-station trailer is not a new category by itself: the September 2026 TSP-MDST paper is already a published architecture comparator (DOI https://doi.org/10.1016/j.tre.2026.104975). A further August 2026 study jointly sizes and routes multi-truck/multi-drone fleets and identifies multi-visit delivery and cross-vehicle retrieval as major flexibility/cost mechanisms; it reports average 15.4–15.5% cost savings against four simplified fleet-sizing strategies on its own medium/large test instances (Xie et al., https://doi.org/10.3390/drones10090658). These figures are not our baseline and must not be transferred to our concept.
+
+A major operational benchmark has also moved: Walmart announced on 5 November 2026 that its Zipline programme had completed more than **2 million deliveries** and would add **300 sites** under a multi-year agreement; the company describes eligible delivery in as fast as 30 minutes where available. This is a fixed retail-network deployment tied to nearby Walmart stores—not evidence that truck-mounted pods, shared aircraft or mobile trailers are already solved. Source: https://corporate.walmart.com/news/2026/11/walmart-expands-drone-delivery-network-with-zipline.
+
+For the carrier module manufacturing benchmark, therefore compare:
+- integrated enclosed bay installed in vehicle body;
+- detachable pod transferable between vehicles and depot fixtures;
+- mobile drone-station trailer with its own axle, coupling, restraint and utility boundary;
+- ground-only AMR handoff module;
+- no-module fixed-hub/truck-only controls.
+
+Evaluate module removal/install time, cross-carrier compatibility, repair vs replace, good-module yield, line bottleneck, supplier lead time, module-specific EOL test cost, lifecycle downtime and additional site energy. The trailer or pod should not win merely because it transports aircraft.
+
+## Local manufacturing and traceability update
+
+InvestSA reports seven local vehicle OEMs and more than 500 automotive component manufacturers across Gauteng, the Eastern Cape and KwaZulu-Natal. It also describes APDP2, AIS and a NEV production investment allowance. This provides a route to investigate a local supplier and manufacturing ecosystem, not proof that the precise drone, battery, HV or safety-critical module supply chain is ready. Validate supplier process capability and regulatory applicability at part-number level. Source: https://www.investsa.gov.za/key-sectors/automotive-and-components/.
+
+The European Commission's Battery Passport guidance says the passport obligation begins on **18 February 2027** for each EV battery, each LMT battery and each industrial battery over 2 kWh placed on the EU market or put into service. Not every data point is mandatory for every category or from day one. Dynamic data are expected to apply from the start, and a new passport is required on repurposing/remanufacture, with lineage to the previous passport. Do not presume that every UAV battery falls within EV/LMT/industrial categories; classify each pack and intended use against the Regulation and the relevant guidance. Sources: https://single-market-economy.ec.europa.eu/news/guidance-support-preparations-digital-batteries-passport-2026-08-21_en and https://single-market-economy.ec.europa.eu/single-market/digital-product-passport/eu-digital-product-passport-faq-batteries_en.
+
+For Luminous, the product thread should keep the engineering configuration, serialized physical pod, aircraft, traction battery, UAV battery and installed vehicle configuration distinct, then bind each manufacturing/test/service event to the right artifact. Mycelix remains the identity/lineage/passport projection owner; Symtropy owns engineering qualification meaning. The passport operator remains legally responsible.
