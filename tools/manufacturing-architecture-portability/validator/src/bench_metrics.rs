@@ -242,6 +242,129 @@ pub fn inspect_run_partition_leakage(
     Ok(leakage)
 }
 
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BinaryCalibrationObservation {
+    pub sample_id: String,
+    pub actual_positive: bool,
+    pub predicted_probability: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CalibrationBin {
+    pub lower_bound: f64,
+    pub upper_bound: f64,
+    pub sample_count: usize,
+    pub mean_predicted_probability: Option<f64>,
+    pub observed_positive_rate: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BinaryCalibrationReport {
+    pub observation_count: usize,
+    pub brier_score: f64,
+    pub expected_calibration_error: f64,
+    pub maximum_calibration_error: f64,
+    pub bins: Vec<CalibrationBin>,
+}
+
+/// Compute Brier score, fixed-width expected calibration error and reliability bins.
+///
+/// Labels must be independently adjudicated. Probabilities must already correspond
+/// to the exact event being scored; this function does not select thresholds or
+/// interpret an uncalibrated score as a probability.
+pub fn evaluate_binary_calibration(
+    observations: &[BinaryCalibrationObservation],
+    bin_count: usize,
+) -> Result<BinaryCalibrationReport, String> {
+    if observations.is_empty() {
+        return Err("calibration observations must not be empty".to_owned());
+    }
+    if !(2..=100).contains(&bin_count) {
+        return Err("calibration bin count must be between 2 and 100".to_owned());
+    }
+
+    let mut sample_ids = BTreeSet::new();
+    let mut bin_count_values = vec![0usize; bin_count];
+    let mut bin_probability_sums = vec![0.0f64; bin_count];
+    let mut bin_positive_counts = vec![0usize; bin_count];
+    let mut brier_sum = 0.0f64;
+
+    for observation in observations {
+        if observation.sample_id.trim().is_empty()
+            || observation.sample_id.trim() != observation.sample_id
+        {
+            return Err("calibration sample ID must be non-empty and canonical".to_owned());
+        }
+        if !sample_ids.insert(observation.sample_id.clone()) {
+            return Err(format!(
+                "duplicate calibration sample ID {:?}",
+                observation.sample_id
+            ));
+        }
+        let probability = observation.predicted_probability;
+        if !probability.is_finite() || !(0.0..=1.0).contains(&probability) {
+            return Err(format!(
+                "sample {:?} probability must be finite and in [0, 1]",
+                observation.sample_id
+            ));
+        }
+
+        let target = if observation.actual_positive { 1.0 } else { 0.0 };
+        brier_sum += (probability - target).powi(2);
+
+        let index = if probability == 1.0 {
+            bin_count - 1
+        } else {
+            (probability * bin_count as f64).floor() as usize
+        };
+        bin_count_values[index] += 1;
+        bin_probability_sums[index] += probability;
+        bin_positive_counts[index] += usize::from(observation.actual_positive);
+    }
+
+    let observation_count = observations.len();
+    let mut ece = 0.0f64;
+    let mut mce = 0.0f64;
+    let mut bins = Vec::with_capacity(bin_count);
+    for index in 0..bin_count {
+        let count = bin_count_values[index];
+        let lower = index as f64 / bin_count as f64;
+        let upper = (index + 1) as f64 / bin_count as f64;
+        if count == 0 {
+            bins.push(CalibrationBin {
+                lower_bound: lower,
+                upper_bound: upper,
+                sample_count: 0,
+                mean_predicted_probability: None,
+                observed_positive_rate: None,
+            });
+            continue;
+        }
+
+        let mean_probability = bin_probability_sums[index] / count as f64;
+        let observed_rate = bin_positive_counts[index] as f64 / count as f64;
+        let error = (mean_probability - observed_rate).abs();
+        ece += count as f64 / observation_count as f64 * error;
+        mce = mce.max(error);
+        bins.push(CalibrationBin {
+            lower_bound: lower,
+            upper_bound: upper,
+            sample_count: count,
+            mean_predicted_probability: Some(mean_probability),
+            observed_positive_rate: Some(observed_rate),
+        });
+    }
+
+    Ok(BinaryCalibrationReport {
+        observation_count,
+        brier_score: brier_sum / observation_count as f64,
+        expected_calibration_error: ece,
+        maximum_calibration_error: mce,
+        bins,
+    })
+}
+
 pub const TEP_SCENARIO_IDS: [u8; 21] = [
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
 ];
@@ -511,6 +634,129 @@ mod tests {
         }
     }
 
+
+
+    #[test]
+    fn perfectly_calibrated_binary_predictions_have_zero_brier_and_ece() {
+        let observations = vec![
+            BinaryCalibrationObservation {
+                sample_id: "s1".to_owned(),
+                actual_positive: false,
+                predicted_probability: 0.0,
+            },
+            BinaryCalibrationObservation {
+                sample_id: "s2".to_owned(),
+                actual_positive: false,
+                predicted_probability: 0.1,
+            },
+            BinaryCalibrationObservation {
+                sample_id: "s3".to_owned(),
+                actual_positive: true,
+                predicted_probability: 0.9,
+            },
+            BinaryCalibrationObservation {
+                sample_id: "s4".to_owned(),
+                actual_positive: true,
+                predicted_probability: 1.0,
+            },
+        ];
+        let report = evaluate_binary_calibration(&observations, 10).unwrap();
+        assert_eq!(report.observation_count, 4);
+        assert!(report.brier_score <= 0.01);
+        assert!(report.expected_calibration_error <= 0.05);
+        assert_eq!(report.bins.len(), 10);
+        assert_eq!(report.bins[4].sample_count, 0);
+        assert_eq!(report.bins[4].mean_predicted_probability, None);
+    }
+
+    #[test]
+    fn overconfident_wrong_predictions_increase_brier_and_calibration_error() {
+        let observations = vec![
+            BinaryCalibrationObservation {
+                sample_id: "wrong-positive".to_owned(),
+                actual_positive: false,
+                predicted_probability: 0.99,
+            },
+            BinaryCalibrationObservation {
+                sample_id: "wrong-negative".to_owned(),
+                actual_positive: true,
+                predicted_probability: 0.01,
+            },
+        ];
+        let report = evaluate_binary_calibration(&observations, 10).unwrap();
+        assert!(report.brier_score > 0.95);
+        assert!(report.expected_calibration_error > 0.95);
+        assert!(report.maximum_calibration_error > 0.95);
+    }
+
+    #[test]
+    fn calibration_rejects_invalid_probabilities_and_duplicate_sample_ids() {
+        let duplicate = vec![
+            BinaryCalibrationObservation {
+                sample_id: "same".to_owned(),
+                actual_positive: false,
+                predicted_probability: 0.2,
+            },
+            BinaryCalibrationObservation {
+                sample_id: "same".to_owned(),
+                actual_positive: true,
+                predicted_probability: 0.8,
+            },
+        ];
+        assert!(
+            evaluate_binary_calibration(&duplicate, 10)
+                .unwrap_err()
+                .contains("duplicate calibration sample ID")
+        );
+
+        let invalid = vec![
+            BinaryCalibrationObservation {
+                sample_id: "out-of-range".to_owned(),
+                actual_positive: false,
+                predicted_probability: 1.1,
+            },
+        ];
+        assert!(
+            evaluate_binary_calibration(&invalid, 10)
+                .unwrap_err()
+                .contains("finite and in [0, 1]")
+        );
+
+        let not_finite = vec![
+            BinaryCalibrationObservation {
+                sample_id: "nan".to_owned(),
+                actual_positive: false,
+                predicted_probability: f64::NAN,
+            },
+        ];
+        assert!(evaluate_binary_calibration(&not_finite, 10).is_err());
+    }
+
+    #[test]
+    fn calibration_rejects_empty_noncanonical_samples_and_invalid_bin_count() {
+        assert!(evaluate_binary_calibration(&[], 10).is_err());
+        let padded = vec![
+            BinaryCalibrationObservation {
+                sample_id: " sample-1 ".to_owned(),
+                actual_positive: true,
+                predicted_probability: 0.5,
+            },
+        ];
+        assert!(
+            evaluate_binary_calibration(&padded, 10)
+                .unwrap_err()
+                .contains("canonical")
+        );
+        let valid = vec![
+            BinaryCalibrationObservation {
+                sample_id: "sample-1".to_owned(),
+                actual_positive: true,
+                predicted_probability: 0.5,
+            },
+        ];
+        assert!(evaluate_binary_calibration(&valid, 1).is_err());
+        assert!(evaluate_binary_calibration(&valid, 101).is_err());
+    }
 
     fn tep_records() -> Vec<TepOnsetRecord> {
         let mut records = Vec::new();
