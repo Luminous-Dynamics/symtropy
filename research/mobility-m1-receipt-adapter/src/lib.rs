@@ -4,13 +4,14 @@ pub mod m1;
 #[path = "../../../m2-src/research/mobility-action-evidence/src/lib.rs"]
 pub mod m2;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+/// The exact Mycelix Position time-correlation owner pinned by the adapter CI.
+pub use positioning::time_correlation_v2 as mycelix_time;
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum QualifiedReceiptTime {
     Qualified {
-        source_clock: m2::ClockBinding,
-        comparison_clock: m2::ClockBinding,
-        normalized_observed_at_ms: u64,
-        normalization_commitment: Option<m2::Digest>,
+        correlation: mycelix_time::ClockCorrelationV2,
+        normalized: mycelix_time::NormalizedInstantV2,
     },
     Unqualified,
     Unknown,
@@ -22,7 +23,10 @@ pub enum AdapterError {
     TimeUnknown,
     TimeUnqualified,
     TimeSourceClockMismatch,
-    TimeNormalizationCommitmentMissing,
+    TimeDestinationUnitMismatch,
+    TimeValueNotExactMilliseconds,
+    TimeCommitmentEncoding,
+    MycelixTime(mycelix_time::TimeCorrelationError),
     OutcomeDispositionMismatch,
     Admission(m2::AdmissionError),
     Outcome(m2::OutcomeError),
@@ -42,6 +46,110 @@ impl From<m1::SupervisorError> for AdapterError {
     fn from(value: m1::SupervisorError) -> Self {
         Self::Supervisor(value)
     }
+}
+
+fn digest_from_mycelix_commitment(
+    commitment: &mycelix_time::TimeCommitmentV2,
+) -> Result<m1::Digest, AdapterError> {
+    if commitment.algorithm != "sha256" || commitment.digest.len() != 64 {
+        return Err(AdapterError::TimeCommitmentEncoding);
+    }
+    let mut bytes = [0u8; 32];
+    for (index, byte) in bytes.iter_mut().enumerate() {
+        let start = index * 2;
+        *byte = u8::from_str_radix(&commitment.digest[start..start + 2], 16)
+            .map_err(|_| AdapterError::TimeCommitmentEncoding)?;
+    }
+    Ok(m1::Digest(bytes))
+}
+
+fn canonical_time_scale_id(scale: &mycelix_time::TimeScaleIdV2) -> String {
+    match scale {
+        mycelix_time::TimeScaleIdV2::Tai => "tai".into(),
+        mycelix_time::TimeScaleIdV2::Tt => "tt".into(),
+        mycelix_time::TimeScaleIdV2::Tdb => "tdb".into(),
+        mycelix_time::TimeScaleIdV2::Gps => "gps".into(),
+        mycelix_time::TimeScaleIdV2::UnixTime { profile_version } => {
+            format!("unix-time@{profile_version}")
+        }
+        mycelix_time::TimeScaleIdV2::Named {
+            authority,
+            code,
+            version,
+        } => format!("named({authority}:{code}:{version})"),
+    }
+}
+
+/// Validate the Mycelix correlation and preserve its source, profile and
+/// normalized-output commitments in M1. M1 currently accepts integer
+/// milliseconds, so every other output unit or fractional value is rejected.
+fn qualify_receipt_time(
+    receipt_time: &QualifiedReceiptTime,
+    evidence_clock: &m2::ClockBinding,
+    expected_subject_ref: &str,
+) -> Result<(u64, m1::ReceiptTimeQualification), AdapterError> {
+    let (correlation, normalized) = match receipt_time {
+        QualifiedReceiptTime::Unknown => return Err(AdapterError::TimeUnknown),
+        QualifiedReceiptTime::Unqualified => return Err(AdapterError::TimeUnqualified),
+        QualifiedReceiptTime::Qualified {
+            correlation,
+            normalized,
+        } => (correlation, normalized),
+    };
+
+    normalized
+        .validate_against(correlation)
+        .map_err(AdapterError::MycelixTime)?;
+
+    let (subject_ref, source_clock_id, source_boot_epoch_id) =
+        match &normalized.source_reading.basis {
+            mycelix_time::TimeBasisV2::Clock(mycelix_time::ClockDomainV2::Monotonic {
+                subject_ref,
+                clock_id,
+                boot_epoch_id,
+            }) => (subject_ref, clock_id, boot_epoch_id),
+            _ => return Err(AdapterError::TimeSourceClockMismatch),
+        };
+    if subject_ref != expected_subject_ref
+        || source_clock_id != &evidence_clock.clock_id
+        || source_boot_epoch_id != &evidence_clock.boot_epoch_id
+    {
+        return Err(AdapterError::TimeSourceClockMismatch);
+    }
+
+    let (scale, epoch_id) = match &normalized.normalized_reading.basis {
+        mycelix_time::TimeBasisV2::Scale { scale, epoch_id } => (scale, epoch_id),
+        mycelix_time::TimeBasisV2::Clock(_) => {
+            return Err(AdapterError::TimeDestinationUnitMismatch);
+        }
+    };
+    if correlation.destination_unit != mycelix_time::TimeUnitV2::Milliseconds
+        || normalized.normalized_reading.unit != mycelix_time::TimeUnitV2::Milliseconds
+    {
+        return Err(AdapterError::TimeDestinationUnitMismatch);
+    }
+
+    let value = normalized.normalized_reading.value;
+    if !value.is_finite() || value < 0.0 || value.fract() != 0.0 || value >= u64::MAX as f64 {
+        return Err(AdapterError::TimeValueNotExactMilliseconds);
+    }
+
+    let time_qualification = m1::ReceiptTimeQualification {
+        source_clock_id: format!("{subject_ref}/{source_clock_id}"),
+        source_boot_epoch_id: source_boot_epoch_id.clone(),
+        comparison_basis_id: canonical_time_scale_id(scale),
+        comparison_epoch_id: epoch_id.clone(),
+        source_time_commitment: digest_from_mycelix_commitment(
+            &normalized.source_reading.content_commitment,
+        )?,
+        correlation_commitment: digest_from_mycelix_commitment(
+            &correlation.correlation_commitment,
+        )?,
+        normalized_time_commitment: digest_from_mycelix_commitment(
+            &normalized.normalized_reading.content_commitment,
+        )?,
+    };
+    Ok((value as u64, time_qualification))
 }
 
 /// Validate M2 admission and physical outcome, require a Mycelix-qualified
@@ -66,29 +174,11 @@ pub fn apply_outcome_to_m1(
     m2::validate_ticket_applicability(m2_ticket, live)?;
     let disposition = m2::validate_physical_outcome(m2_ticket, evidence, policy)?;
 
-    let observed_at_ms = match receipt_time {
-        QualifiedReceiptTime::Unknown => return Err(AdapterError::TimeUnknown),
-        QualifiedReceiptTime::Unqualified => return Err(AdapterError::TimeUnqualified),
-        QualifiedReceiptTime::Qualified {
-            source_clock,
-            comparison_clock,
-            normalized_observed_at_ms,
-            normalization_commitment,
-        } => {
-            if source_clock != &evidence.clock {
-                return Err(AdapterError::TimeSourceClockMismatch);
-            }
-            if comparison_clock.clock_id.trim().is_empty()
-                || comparison_clock.boot_epoch_id.trim().is_empty()
-            {
-                return Err(AdapterError::TimeNormalizationCommitmentMissing);
-            }
-            let _ = normalization_commitment
-                .as_ref()
-                .ok_or(AdapterError::TimeNormalizationCommitmentMissing)?;
-            *normalized_observed_at_ms
-        }
-    };
+    let (observed_at_ms, time_qualification) = qualify_receipt_time(
+        receipt_time,
+        &evidence.clock,
+        &m2_ticket.platform.platform_id,
+    )?;
 
     let verdict = match (&evidence.outcome, disposition) {
         (m2::PhysicalOutcome::Satisfied, m2::OutcomeDisposition::Accepted) => {
@@ -110,40 +200,7 @@ pub fn apply_outcome_to_m1(
             source_id: evidence.source_id.clone(),
             source_sequence: evidence.source_sequence,
             observed_at_ms,
-            time_qualification: m1::ReceiptTimeQualification {
-                source_clock_id: evidence.clock.clock_id.clone(),
-                source_boot_epoch_id: evidence.clock.boot_epoch_id.clone(),
-                comparison_clock_id: match receipt_time {
-                    QualifiedReceiptTime::Qualified {
-                        comparison_clock, ..
-                    } => comparison_clock.clock_id.clone(),
-                    QualifiedReceiptTime::Unqualified | QualifiedReceiptTime::Unknown => {
-                        unreachable!("time qualification was checked above")
-                    }
-                },
-                comparison_boot_epoch_id: match receipt_time {
-                    QualifiedReceiptTime::Qualified {
-                        comparison_clock, ..
-                    } => comparison_clock.boot_epoch_id.clone(),
-                    QualifiedReceiptTime::Unqualified | QualifiedReceiptTime::Unknown => {
-                        unreachable!("time qualification was checked above")
-                    }
-                },
-                normalization_commitment: match receipt_time {
-                    QualifiedReceiptTime::Qualified {
-                        normalization_commitment: Some(commitment),
-                        ..
-                    } => m1::Digest(commitment.0),
-                    QualifiedReceiptTime::Qualified {
-                        normalization_commitment: None,
-                        ..
-                    }
-                    | QualifiedReceiptTime::Unqualified
-                    | QualifiedReceiptTime::Unknown => {
-                        unreachable!("normalization commitment was checked above")
-                    }
-                },
-            },
+            time_qualification,
             observer_role: match evidence.observer_role {
                 m2::ObserverRole::AgentSelfReport => m1::ObserverRole::AgentSelfReport,
                 m2::ObserverRole::IndependentSensor => m1::ObserverRole::IndependentSensor,
