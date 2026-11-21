@@ -198,13 +198,13 @@ impl InterventionLedger {
         }
 
         let previous = self.current_stage.get(&assertion.intervention_id).copied();
-        if let Some(previous_stage) = previous {
-            if assertion.stage.rank() < previous_stage.rank() {
-                return Err(format!(
-                    "lifecycle regression for {:?}: {} -> {}",
-                    assertion.intervention_id, previous_stage, assertion.stage
-                ));
-            }
+        if let Some(previous_stage) = previous
+            && assertion.stage.rank() < previous_stage.rank()
+        {
+            return Err(format!(
+                "lifecycle regression for {:?}: {} -> {}",
+                assertion.intervention_id, previous_stage, assertion.stage
+            ));
         }
 
         let result = match previous {
