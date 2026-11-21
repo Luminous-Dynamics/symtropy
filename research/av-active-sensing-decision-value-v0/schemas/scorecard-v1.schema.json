@@ -72,7 +72,10 @@
         "mean_realized_evsi",
         "catalogue_audio_bytes_total",
         "catalogue_video_frames_total",
-        "catalogue_energy_cost_total"
+        "catalogue_energy_cost_total",
+        "estimated_evsi_count",
+        "mean_estimated_evsi_mae",
+        "mean_estimated_evsi_bias"
       ],
       "properties": {
         "episode_count": {
@@ -144,6 +147,23 @@
         "catalogue_energy_cost_total": {
           "type": "number",
           "minimum": 0
+        },
+        "estimated_evsi_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mean_estimated_evsi_mae": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "mean_estimated_evsi_bias": {
+          "type": [
+            "number",
+            "null"
+          ]
         }
       }
     },
@@ -164,7 +184,10 @@
         "action_policy_correct",
         "answered",
         "realized_evsi",
-        "budget_use"
+        "budget_use",
+        "estimated_evsi_count",
+        "estimated_evsi_mae",
+        "estimated_evsi_bias"
       ],
       "properties": {
         "episode_id": {
@@ -239,6 +262,23 @@
               "minimum": 0
             }
           }
+        },
+        "estimated_evsi_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "estimated_evsi_mae": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "estimated_evsi_bias": {
+          "type": [
+            "number",
+            "null"
+          ]
         }
       }
     }
