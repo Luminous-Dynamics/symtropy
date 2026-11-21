@@ -137,3 +137,18 @@ Report:
 Use the 2026 study's Qs metric for comparability, but do not rely on one metric alone. Keep response-matrix uncertainty and unfolding instability explicit.
 
 The Rust kernel now includes a source-neutral forward response-matrix operator. It does not implement GRAVEL or Geant4 and makes no detector-performance claim.
+
+
+## 12. Poisson EM comparator (research baseline)
+
+The detector response module now includes a nonnegative Poisson expectation-maximization / Richardson-Lucy-style update using the same forward response matrix and fixed background counts. It is an independent comparator, not a GRAVEL implementation.
+
+The iteration count is explicitly an early-stopping regularization parameter. More iterations can overfit noisy, ill-conditioned data; no automatic convergence or universal stopping threshold is claimed. The method fails closed if a true-energy bin has zero response efficiency, because that bin cannot be inferred from the measured pulse-height data.
+
+A synthetic two-bin deterministic fixture demonstrates the forward/inverse chain. This is a software validation case, not an experimental spectrum or benchmark victory.
+
+The 2026 EJ-309/EJ-276D comparison paper and 2026 *Nature Protocols* EJ-309 tutorial are added as external reference points:
+- https://doi.org/10.1016/j.net.2026.104376
+- https://doi.org/10.1038/s41596-026-01372-8
+
+Benchmark against GRAVEL and other regularized methods on blinded known-truth spectra, including response-matrix mismatch, Poisson noise, background uncertainty and interval coverage.
