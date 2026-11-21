@@ -1564,8 +1564,16 @@ mod tests {
         let mut receipt: RunReceipt = serde_json::from_str(include_str!(
             "../../power-restoration-run-receipt/fixtures/synthetic-restoration-run-receipt-v0.1.json"
         )).unwrap();
-        receipt.case.case_sha256 = canonical_case_sha256(case).unwrap();
-        receipt.case.case_ref = format!("power-restoration-case://{}", case.case_id);
+        let case_sha256 = canonical_case_sha256(case).unwrap();
+        let case_ref = format!("power-restoration-case://{}", case.case_id);
+        receipt.case.case_sha256 = case_sha256.clone();
+        receipt.case.case_ref = case_ref.clone();
+        for step in &mut receipt.decision_steps {
+            if let Some(proposal) = &mut step.proposal {
+                proposal.case_sha256 = case_sha256.clone();
+                proposal.case_ref = case_ref.clone();
+            }
+        }
         receipt
     }
 
