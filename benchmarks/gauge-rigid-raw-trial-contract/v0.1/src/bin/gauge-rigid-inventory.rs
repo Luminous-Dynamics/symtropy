@@ -110,7 +110,8 @@ fn json_string(value: &str) -> String {
             '\t' => output.push_str("\\t"),
             value if value <= '\u{001f}' => {
                 use std::fmt::Write as FmtWrite;
-                let _ = write!(output, "\\u{:04x}", value as u32);
+                write!(output, "\\u{:04x}", value as u32)
+                    .expect("formatting into a String cannot fail");
             }
             value => output.push(value),
         }
@@ -443,11 +444,11 @@ fn issue_record_json(issue: &ScanIssue) -> String {
     )
 }
 
-fn header_json(revision: &str, root: &Path) -> String {
+fn header_json(revision: &str) -> String {
     format!(
         "{{\"record_type\":\"header\",\"dataset_revision\":{},\"root\":{},\"inventory_schema\":\"gauge-rigid-source-inventory-v0.1\",\"digest\":\"SHA-256 of exact raw file bytes\",\"parser\":\"gauge-rigid-raw-trial-contract/v0.1\",\"file_count_is_not_physical_trial_count\":true,\"trial_grouping\":\"UNKNOWN_UNLESS_SEPARATELY_SOURCED\"}}",
         json_string(revision),
-        json_string(&root.display().to_string()),
+        json_string("data/rigid"),
     )
 }
 
@@ -456,9 +457,9 @@ fn summary_json(
     issues: &[ScanIssue],
     missing_families: &[String],
 ) -> String {
-    let mut family_counts = BTreeMap::<String, (usize, usize, usize)>::new();
+    let mut family_counts = BTreeMap::<String, (usize, usize, usize, usize)>::new();
     for family in REQUIRED_FAMILIES {
-        family_counts.insert(family.to_owned(), (0, 0, 0));
+        family_counts.insert(family.to_owned(), (0, 0, 0, 0));
     }
 
     let mut valid_count = 0usize;
@@ -468,7 +469,7 @@ fn summary_json(
     for record in records {
         let entry = family_counts
             .entry(record.family.clone())
-            .or_insert((0, 0, 0));
+            .or_insert((0, 0, 0, 0));
         entry.0 += 1;
         if record.disposition == "VALID_OBSERVED_PROFILE" {
             valid_count += 1;
@@ -478,6 +479,7 @@ fn summary_json(
             entry.2 += 1;
         } else {
             not_evaluable_count += 1;
+            entry.3 += 1;
         }
         if !REQUIRED_FAMILIES.contains(&record.family.as_str()) {
             unknown_family_count += 1;
@@ -486,13 +488,14 @@ fn summary_json(
 
     let families = family_counts
         .iter()
-        .map(|(name, (total, valid, invalid))| {
+        .map(|(name, (total, valid, invalid, not_evaluable))| {
             format!(
-                "{{\"family_path_label\":{},\"json_file_count\":{},\"valid_count\":{},\"invalid_count\":{}}}",
+                "{{\"family_path_label\":{},\"json_file_count\":{},\"valid_count\":{},\"invalid_count\":{},\"not_evaluable_count\":{}}}",
                 json_string(name),
                 total,
                 valid,
                 invalid,
+                not_evaluable,
             )
         })
         .collect::<Vec<_>>()
