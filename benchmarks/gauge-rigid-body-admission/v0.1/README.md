@@ -25,11 +25,21 @@ The code repository's MIT license was read at the pinned commit. This is a code-
 
 ### GAUGE dataset repository
 
-The Hub page declares `mit` in dataset metadata and lists a 13.2 GB repository with 51 commits and top-level `assets/`, `data/`, `input/`, `media/`, `metadata/` and `world_models/` directories. The inspected root page displayed abbreviated revision `f95bb06`; that short identifier is not an immutable dataset pin.
+The Hub page resolves to immutable repository revision `f95bb06e7d11142f88ffd3b6b56c7258deb8fff6`. The repository UI lists 13.2 GB, 51 commits and top-level `assets/`, `data/`, `input/`, `media/`, `metadata/` and `world_models/` directories.
 
-The `assets/usd/` page exposes the eight rigid-body scene assets. Its page shows a separate abbreviated subtree commit `34ffeaf`; it must not be confused with the whole-dataset revision.
+The `data/` tree reports 9.87 GB; `data/rigid/` reports 3.83 GB and contains all eight rigid-body task directories. `metadata/rigid/` contains eight task metadata JSON files (111 kB). Trial data is separated into `json/` and `video/` subdirectories; the bouncing-ball JSON subset is 280 kB and the Newton's-cradle JSON subset is 9.19 MB. No multi-gigabyte payload was downloaded.
 
-The dataset viewer is currently unavailable. The single preview row is a pipeline-status record, not a physical-trial schema. It cannot establish the shape or completeness of the underlying motion-capture records.
+### Representative raw-trial structure
+
+Two public raw records were inspected directly:
+- `data/rigid/bouncing ball/json/1.json` (12.3 kB)
+- `data/rigid/newton's cradle/json/1.json` (416 kB)
+
+The inspected records declare `FPS: 30`, `translation unit: mm` and `euler order: ZYX`. Per-body streams include position arrays `x/y/z`, quaternion arrays `qx/qy/qz/qw` and Euler arrays `ex/ey/ez`. The Newton's-cradle file contains multiple named body streams (for example `ball_passive`). This proves the release includes structured rigid-body pose trajectories, not only rendered videos.
+
+It does **not** yet settle quaternion handedness/algebra, transform direction, frame identity, Euler units and active/passive convention, clock origin, timestamp reconstruction, per-sample uncertainty/covariance, missing-frame/outlier policy or recording-level group semantics. Only representative files were inspected; all eight families and material branches remain to be audited.
+
+The dataset preview is currently a video/trajectory pipeline-status record (3,249 videos and 3,249 trajectories), not the raw physical-trial schema. It cannot establish complete trial-record semantics.
 
 The Hub's MIT metadata is recorded as a **declared license**, not as an independent legal review of every data artifact, derived file, embedded asset or external dependency. No dataset files were copied.
 
