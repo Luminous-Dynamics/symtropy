@@ -1313,6 +1313,216 @@ mod tests {
         assert_ne!(first.action_id, second.action_id);
     }
 
+
+    #[test]
+    fn delayed_goal_evidence_from_prior_action_attempt_is_rejected() {
+        let mut supervisor = MissionSupervisor::new(plan());
+        let first = supervisor
+            .dispatch_action("pick", "pick-action-1")
+            .expect("first dispatch");
+        supervisor
+            .report_execution(&first, ExecutionDisposition::KnownNoEffect)
+            .expect("first attempt had no effect");
+        supervisor
+            .authorize_recovery(RecoveryPermit {
+                envelope: envelope(
+                    "recovery-1",
+                    "safety-monitor",
+                    1,
+                    10,
+                    9_900,
+                    ObserverRole::IndependentSensor,
+                ),
+                subgoal_id: "pick".to_owned(),
+                action_id: first.action_id.clone(),
+                attempt: first.attempt,
+                recovery_plan_digest: digest(90),
+                safe_to_mutate: true,
+            })
+            .expect("first attempt recovery");
+        let second = supervisor
+            .dispatch_action("pick", "pick-action-2")
+            .expect("second dispatch");
+        supervisor
+            .report_execution(&second, ExecutionDisposition::Acknowledged)
+            .expect("second acknowledgement");
+
+        let stale_action = GoalEvidence {
+            envelope: envelope(
+                "late-old-action",
+                "late-observer",
+                1,
+                11,
+                9_900,
+                ObserverRole::IndependentSensor,
+            ),
+            subgoal_id: "pick".to_owned(),
+            action_id: first.action_id.clone(),
+            attempt: first.attempt,
+            predicate_id: "object-in-gripper".to_owned(),
+            verdict: GoalVerdict::Satisfied,
+        };
+        assert_eq!(
+            supervisor.observe_goal(stale_action),
+            Err(SupervisorError::ActionIdMismatch)
+        );
+
+        let stale_attempt = GoalEvidence {
+            envelope: envelope(
+                "late-old-attempt",
+                "late-observer",
+                2,
+                12,
+                9_900,
+                ObserverRole::IndependentSensor,
+            ),
+            subgoal_id: "pick".to_owned(),
+            action_id: second.action_id.clone(),
+            attempt: first.attempt,
+            predicate_id: "object-in-gripper".to_owned(),
+            verdict: GoalVerdict::Satisfied,
+        };
+        assert_eq!(
+            supervisor.observe_goal(stale_attempt),
+            Err(SupervisorError::ActionAttemptMismatch)
+        );
+        assert_eq!(
+            supervisor.phase("pick"),
+            Ok(SubgoalPhase::AwaitingEvidence)
+        );
+        assert_eq!(supervisor.active_subgoal(), Some("pick"));
+    }
+
+    #[test]
+    fn delayed_reconciliation_from_prior_attempt_is_rejected() {
+        let mut supervisor = MissionSupervisor::new(plan());
+        let first = supervisor
+            .dispatch_action("pick", "pick-action-1")
+            .expect("first dispatch");
+        supervisor
+            .report_execution(&first, ExecutionDisposition::OutcomeUnknown)
+            .expect("unknown first outcome");
+        supervisor
+            .reconcile(ReconciliationEvidence {
+                envelope: envelope(
+                    "first-reconcile",
+                    "scene-evaluator",
+                    1,
+                    13,
+                    9_900,
+                    ObserverRole::IndependentEvaluator,
+                ),
+                subgoal_id: "pick".to_owned(),
+                action_id: first.action_id.clone(),
+                attempt: first.attempt,
+                verdict: ReconciliationVerdict::NoEffect,
+            })
+            .expect("first reconciliation");
+        supervisor
+            .authorize_recovery(RecoveryPermit {
+                envelope: envelope(
+                    "first-recovery",
+                    "safety-monitor",
+                    1,
+                    14,
+                    9_900,
+                    ObserverRole::IndependentSensor,
+                ),
+                subgoal_id: "pick".to_owned(),
+                action_id: first.action_id.clone(),
+                attempt: first.attempt,
+                recovery_plan_digest: digest(90),
+                safe_to_mutate: true,
+            })
+            .expect("recover first attempt");
+        let second = supervisor
+            .dispatch_action("pick", "pick-action-2")
+            .expect("second dispatch");
+        supervisor
+            .report_execution(&second, ExecutionDisposition::OutcomeUnknown)
+            .expect("unknown second outcome");
+
+        let stale = ReconciliationEvidence {
+            envelope: envelope(
+                "late-reconcile-old",
+                "late-evaluator",
+                1,
+                15,
+                9_900,
+                ObserverRole::IndependentEvaluator,
+            ),
+            subgoal_id: "pick".to_owned(),
+            action_id: first.action_id,
+            attempt: 1,
+            verdict: ReconciliationVerdict::GoalSatisfied,
+        };
+        assert_eq!(
+            supervisor.reconcile(stale),
+            Err(SupervisorError::ActionIdMismatch)
+        );
+        assert_eq!(
+            supervisor.phase("pick"),
+            Ok(SubgoalPhase::ReconciliationRequired)
+        );
+    }
+
+    #[test]
+    fn recovery_permit_must_match_exact_failed_action_attempt() {
+        let mut supervisor = MissionSupervisor::new(plan());
+        let first = supervisor
+            .dispatch_action("pick", "pick-action-1")
+            .expect("first dispatch");
+        supervisor
+            .report_execution(&first, ExecutionDisposition::KnownNoEffect)
+            .expect("first no effect");
+        supervisor
+            .authorize_recovery(RecoveryPermit {
+                envelope: envelope(
+                    "recovery-1",
+                    "safety-monitor",
+                    1,
+                    16,
+                    9_900,
+                    ObserverRole::IndependentSensor,
+                ),
+                subgoal_id: "pick".to_owned(),
+                action_id: first.action_id.clone(),
+                attempt: first.attempt,
+                recovery_plan_digest: digest(90),
+                safe_to_mutate: true,
+            })
+            .expect("recover first");
+        let second = supervisor
+            .dispatch_action("pick", "pick-action-2")
+            .expect("second dispatch");
+        supervisor
+            .report_execution(&second, ExecutionDisposition::KnownNoEffect)
+            .expect("second no effect");
+
+        assert_eq!(
+            supervisor.authorize_recovery(RecoveryPermit {
+                envelope: envelope(
+                    "stale-recovery-permit",
+                    "safety-monitor",
+                    2,
+                    17,
+                    9_900,
+                    ObserverRole::IndependentSensor,
+                ),
+                subgoal_id: "pick".to_owned(),
+                action_id: first.action_id,
+                attempt: 1,
+                recovery_plan_digest: digest(90),
+                safe_to_mutate: true,
+            }),
+            Err(SupervisorError::ActionIdMismatch)
+        );
+        assert_eq!(
+            supervisor.phase("pick"),
+            Ok(SubgoalPhase::RecoveryRequired)
+        );
+    }
+
     #[test]
     fn not_satisfied_observation_never_retries_automatically() {
         let (mut supervisor, _) = started_supervisor();
@@ -1327,6 +1537,8 @@ mod tests {
                     ObserverRole::IndependentSensor,
                 ),
                 subgoal_id: "pick".to_owned(),
+                action_id: "pick-action-1".to_owned(),
+                attempt: 1,
                 predicate_id: "object-in-gripper".to_owned(),
                 verdict: GoalVerdict::NotSatisfied,
             })
@@ -1371,6 +1583,8 @@ mod tests {
                     ObserverRole::IndependentSensor,
                 ),
                 subgoal_id: "place".to_owned(),
+                action_id: "place-action-1".to_owned(),
+                attempt: 1,
                 predicate_id: "object-on-target".to_owned(),
                 verdict: GoalVerdict::Satisfied,
             })
