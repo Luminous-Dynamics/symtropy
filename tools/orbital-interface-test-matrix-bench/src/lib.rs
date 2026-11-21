@@ -46,7 +46,7 @@ pub struct Obligation {
     pub evidence_key: String,
     pub minimum_independent_groups: usize,
     pub not_applicable_reason: Option<String>,
-    pub not_applicable_approved: bool,
+    pub not_applicable_review_ref: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -91,7 +91,7 @@ pub struct Expected {
 #[serde(deny_unknown_fields)]
 pub struct CampaignCase {
     pub case_id: String,
-    pub frozen_before_execution: bool,
+    pub preregistration_ref: Option<String>,
     pub cost_budget: u64,
     pub cycle_count_threshold: usize,
     pub obligations: Vec<Obligation>,
@@ -183,6 +183,17 @@ fn valid_digest(value: &str) -> bool {
             .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
 }
 
+fn has_not_applicable_review_reference(obligation: &Obligation) -> bool {
+    obligation
+        .not_applicable_reason
+        .as_deref()
+        .is_some_and(|value| !value.trim().is_empty())
+        && obligation
+            .not_applicable_review_ref
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+}
+
 fn is_completed(outcome: TestOutcome) -> bool {
     matches!(outcome, TestOutcome::Passed | TestOutcome::Failed)
 }
@@ -266,7 +277,11 @@ fn evaluate_case(case: &CampaignCase) -> Result<Decision, String> {
     if case.case_id.is_empty() || case.obligations.is_empty() {
         return Err("case ID and obligation set must be non-empty".to_owned());
     }
-    if !case.frozen_before_execution {
+    if case
+        .preregistration_ref
+        .as_deref()
+        .is_none_or(|reference| reference.trim().is_empty())
+    {
         return Ok(Decision {
             disposition: Disposition::Rejected,
             covered: 0,
@@ -299,13 +314,10 @@ fn evaluate_case(case: &CampaignCase) -> Result<Decision, String> {
             return Err(format!("obligation {} has incomplete scope", obligation.id));
         }
         if obligation.not_applicable_reason.is_some()
-            && (!obligation.not_applicable_approved
-                || obligation
-                    .not_applicable_reason
-                    .as_deref()
-                    .is_none_or(str::is_empty))
+            || obligation.not_applicable_review_ref.is_some()
         {
-            return Ok(Decision {
+            if !has_not_applicable_review_reference(obligation) {
+                return Ok(Decision {
                 disposition: Disposition::Rejected,
                 covered: 0,
                 missing: case.obligations.len(),
@@ -318,10 +330,13 @@ fn evaluate_case(case: &CampaignCase) -> Result<Decision, String> {
                 budget_exceeded: false,
                 cycle_count_baseline_pass: false,
                 ofat_false_coverage_count: 0,
-                pairwise_false_coverage_count: 0,
-            });
+                    pairwise_false_coverage_count: 0,
+                });
+            }
         }
-        if obligation.not_applicable_approved && obligation.not_applicable_reason.is_none() {
+        if obligation.not_applicable_review_ref.is_some()
+            && obligation.not_applicable_reason.is_none()
+        {
             return Ok(Decision {
                 disposition: Disposition::Rejected,
                 covered: 0,
@@ -414,7 +429,7 @@ fn evaluate_case(case: &CampaignCase) -> Result<Decision, String> {
     let mut failure_in_covered = false;
 
     for obligation in &case.obligations {
-        if obligation.not_applicable_approved && obligation.not_applicable_reason.is_some() {
+        if has_not_applicable_review_reference(obligation) {
             covered += 1;
             continue;
         }
