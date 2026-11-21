@@ -27,7 +27,7 @@ function matchesHex(value, count) {
 }
 function evaluate(scenario) {
   const blockers = [];
-  const add = (code, claimId, detail) => blockers.push({ code, claimId: claimId ?? null, detail });
+  const add = (code, claimId, detail) => blockers.push({ code, claim_id: claimId ?? null, detail });
 
   if (!scenario.case_id || !scenario.root_claim_id) add("GRAPH_INVALID", null, "case and root IDs must be non-empty");
   const scope = scenario.scope;
