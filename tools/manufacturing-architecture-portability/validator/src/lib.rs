@@ -337,6 +337,13 @@ mod tests {
     }
 
     #[test]
+    fn rejects_undeclared_intelligence_scope() {
+        let mut profile = parse_profile(MQTT);
+        profile["layers"][0]["intelligence_scope"] = json!("global_factory_superintelligence");
+        assert_invalid(&profile, "intelligence_scope");
+    }
+
+    #[test]
     fn rejects_profile_write_access() {
         let mut profile = parse_profile(MQTT);
         profile["access_contract"]["write"] = json!(true);
