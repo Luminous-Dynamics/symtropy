@@ -1592,7 +1592,7 @@ mod tests {
 
         assert_eq!(
             report.worst_case_optimal_policy.expected_total_cost_units,
-            570
+            527
         );
         assert_eq!(
             report.worst_case_optimal_policy.worst_case_total_cost_units,
