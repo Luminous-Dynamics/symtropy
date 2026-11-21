@@ -177,3 +177,13 @@ Two NIST assets should be separate benchmark strata, not pooled into one synthet
 - **NIST Smart Manufacturing Systems (SMS) Test Bed:** its CAx Lab spans CAD/CAM/CAI/PDM/V&V, while its Manufacturing Lab includes CNC milling/turning and inspection equipment, with machine data collected using MTConnect. This is the more directly relevant source candidate for a future physical/equipment information-architecture stratum. External data admission, schema/release pinning, data rights and source digests remain prerequisites.
 
 NIST's TIDAL benchmark plan emphasizes accuracy, latency, cost and grounding, and weights fault-detection recall ahead of precision. Foundry should publish recall and precision together with false-alarm burden, abstention, decision cost and per-fault-family results. NIST's benchmark environment, agent harness and evaluation toolkit are future programme deliverables (FY28 in its current plan), not a released harness that this PR has run.
+
+## Industrial intelligence scope (TIDAL stratification)
+
+Every profile layer now declares one of:
+- `asset` — machine, instrument, sensor or individual equipment context;
+- `site_area` — line, cell, work area, facility or site-level context;
+- `enterprise` — cross-site/organizational context;
+- `cross_layer` — an API/transport layer that can expose or connect multiple scopes.
+
+This lets the benchmark stratify identity, freshness, grounding and decision tasks by industrial context level, aligned conceptually with NIST's TIDAL asset/site-area/enterprise layering. It is a benchmark taxonomy only; it does not declare ISA-95 conformance or a TIDAL implementation. Actual scope is determined by admitted object relationships and source evidence, not by a profile label alone.
