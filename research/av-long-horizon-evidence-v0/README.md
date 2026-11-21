@@ -139,7 +139,7 @@ The finite reference submission produces eight correct event answers and one cor
 
 ### Four-condition memory tournament known-answer correction
 
-The exact-head Actions run on 20 November 2026 completed workload/schema checks, all 16 long-horizon evaluator tests, all 7 matched-memory tournament tests, both score-generation steps and scorecard schema validation. Its final comparison exposed that the frozen summary-only expected row understated the stricter evaluator's result. The expected fixture has now been corrected to the computed known answer:
+The exact-head Actions run on 20 November 2026 completed workload/schema checks, all 16 then-current long-horizon evaluator tests, all 7 matched-memory tournament tests, both score-generation steps and scorecard schema validation. The 21 November evaluator hardening adds nine more long-horizon adversarial tests; these are being checked on the latest exact head. Its final comparison exposed that the frozen summary-only expected row understated the stricter evaluator's result. The expected fixture has now been corrected to the computed known answer:
 
 - summary-only answer accuracy: 2/9 (0.2222);
 - safe-decision accuracy: 3/9 (0.3333);
