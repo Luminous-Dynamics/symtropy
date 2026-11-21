@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_spin2_mp_horizon_indicial_local_replay_receipt",
+  "status": "local_development_source_replayed_exactly",
+  "command": "python3 derive_spin2_mp_horizon_indicial.py --equations slow_rotation_second_order_equations_v1.json --output spin2_mp_horizon_indicial_replay_local.json",
+  "source": {
+    "local_development_script_sha256": "02482fa91a6e429771e6a6a16884b9d847ee0f3c9eb1495c9bbb681f03285b37",
+    "public_committed_script_git_blob_sha1": "99fbd2df408e2a25e13883adaf19d89ae3d38329",
+    "public_committed_script_exact_blob_replay": "not performed; local development copy differs from the committed public script"
+  },
+  "input": {
+    "path": "slow_rotation_second_order_equations_v1.json",
+    "sha256": "b4b9d891c47e91d1e1e2541a1be39c005ed77b840b1f02874c599085f1200dba",
+    "provenance": "local SymPy reconstruction with all four equation lengths, symbolic fingerprints and emitted-text SHA-256 values matching the public generator metadata; not a clean-checkout generator replay"
+  },
+  "output": {
+    "path": "spin2_mp_horizon_indicial_replay_local.json",
+    "sha256": "6a5961d771549228164d5d69c65e76de6696bdb63981ace6d8f9799e6b613cc5",
+    "indicial_polynomial": "s**3*(s+1)",
+    "status": "exact_lambda_zero_reduced_horizon_residue_derived"
+  },
+  "execution": {
+    "python": "3.13.5",
+    "sympy": "1.14.0",
+    "elapsed_seconds": 2.167199,
+    "arithmetic": "exact rational Taylor-jet algebra"
+  },
+  "claim_ceiling": "This receipt proves a repeatable local run of the recorded development script and input bytes. It is not a replay receipt for the public committed verifier, a clean repository checkout, or CI."
+}
