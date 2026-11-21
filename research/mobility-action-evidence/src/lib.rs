@@ -86,6 +86,30 @@ pub struct NavigationRequirement {
     pub maximum_age_ticks: u64,
 }
 
+/// Navigation acquisition time qualified into a comparison clock domain by
+/// the upstream time/correlation owner (Mycelix Position #435).
+///
+/// The normalized reading is comparable with the live platform clock only
+/// after the upstream owner has established this mapping. A raw source
+/// timestamp, local receipt time, or unqualified device tick is not enough.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum NavigationTimeEvidence {
+    Qualified {
+        source_clock: ClockBinding,
+        comparison_clock: ClockBinding,
+        normalized_observed_at_ticks: Option<u64>,
+        /// Required when source and comparison clock/boot epochs differ.
+        normalization_commitment: Option<Digest>,
+    },
+    /// A source timestamp exists but has no qualified time basis/correlation,
+    /// or its semantics do not permit a safe comparison.
+    Unqualified {
+        source_clock: Option<ClockBinding>,
+    },
+    /// The provider supplied no usable source-time qualification.
+    Unknown,
+}
+
 /// An immutable proposal commitment intended for a single bounded dispatch.
 ///
 /// The caller computes and authenticates ticket_commitment outside this crate.
@@ -131,7 +155,7 @@ pub struct LiveContext {
     pub navigation_frame_id: String,
     pub navigation_source_id: String,
     pub navigation_source_sequence: u64,
-    pub navigation_observed_at_ticks: u64,
+    pub navigation_time: NavigationTimeEvidence,
 }
 
 /// The reason why a ticket cannot be admitted for dispatch.
@@ -160,6 +184,11 @@ pub enum AdmissionError {
     NavigationFrameMismatch,
     NavigationSourceMismatch,
     NavigationSequenceStale,
+    NavigationTimeUnknown,
+    NavigationTimeUnqualified,
+    NavigationTimeMissing,
+    NavigationTimeComparisonClockMismatch,
+    NavigationTimeCorrelationMissing,
     NavigationObservationFromFuture,
     NavigationObservationStale,
 }
@@ -291,11 +320,45 @@ pub fn validate_ticket_applicability(
     if live.navigation_source_sequence < ticket.navigation.minimum_source_sequence {
         return Err(AdmissionError::NavigationSequenceStale);
     }
-    if live.navigation_observed_at_ticks > live.now_ticks {
-        return Err(AdmissionError::NavigationObservationFromFuture);
-    }
-    if live.now_ticks - live.navigation_observed_at_ticks > ticket.navigation.maximum_age_ticks {
-        return Err(AdmissionError::NavigationObservationStale);
+
+    // Never compare an unqualified provider timestamp (or a local receipt
+    // tick) with the platform monotonic clock. Mycelix Position #435 must
+    // establish a qualified mapping into this exact clock/boot epoch first.
+    match &live.navigation_time {
+        NavigationTimeEvidence::Unknown => {
+            return Err(AdmissionError::NavigationTimeUnknown);
+        }
+        NavigationTimeEvidence::Unqualified { .. } => {
+            return Err(AdmissionError::NavigationTimeUnqualified);
+        }
+        NavigationTimeEvidence::Qualified {
+            source_clock,
+            comparison_clock,
+            normalized_observed_at_ticks,
+            normalization_commitment,
+        } => {
+            if !is_nonempty(&source_clock.clock_id)
+                || !is_nonempty(&source_clock.boot_epoch_id)
+                || !is_nonempty(&comparison_clock.clock_id)
+                || !is_nonempty(&comparison_clock.boot_epoch_id)
+            {
+                return Err(AdmissionError::EmptyRequiredReference);
+            }
+            if comparison_clock != &live.clock {
+                return Err(AdmissionError::NavigationTimeComparisonClockMismatch);
+            }
+            if source_clock != comparison_clock && normalization_commitment.is_none() {
+                return Err(AdmissionError::NavigationTimeCorrelationMissing);
+            }
+            let observed_at = normalized_observed_at_ticks
+                .ok_or(AdmissionError::NavigationTimeMissing)?;
+            if observed_at > live.now_ticks {
+                return Err(AdmissionError::NavigationObservationFromFuture);
+            }
+            if live.now_ticks - observed_at > ticket.navigation.maximum_age_ticks {
+                return Err(AdmissionError::NavigationObservationStale);
+            }
+        }
     }
 
     Ok(())
@@ -549,7 +612,12 @@ mod tests {
             navigation_frame_id: action.navigation.spatial_frame_id.clone(),
             navigation_source_id: action.navigation.source_id.clone(),
             navigation_source_sequence: 22,
-            navigation_observed_at_ticks: 1_090,
+            navigation_time: NavigationTimeEvidence::Qualified {
+                source_clock: action.clock.clone(),
+                comparison_clock: action.clock.clone(),
+                normalized_observed_at_ticks: Some(1_090),
+                normalization_commitment: None,
+            },
         }
     }
 
@@ -709,7 +777,12 @@ mod tests {
     #[test]
     fn navigation_freshness_sequence_and_future_time_are_checked() {
         let mut live = live_context();
-        live.navigation_observed_at_ticks = 900;
+        live.navigation_time = NavigationTimeEvidence::Qualified {
+            source_clock: ticket().clock.clone(),
+            comparison_clock: ticket().clock.clone(),
+            normalized_observed_at_ticks: Some(900),
+            normalization_commitment: None,
+        };
         assert_eq!(
             validate_ticket_applicability(&ticket(), &live),
             Err(AdmissionError::NavigationObservationStale)
@@ -730,11 +803,93 @@ mod tests {
         );
 
         let mut live = live_context();
-        live.navigation_observed_at_ticks = live.now_ticks + 1;
+        live.navigation_time = NavigationTimeEvidence::Qualified {
+            source_clock: ticket().clock.clone(),
+            comparison_clock: ticket().clock.clone(),
+            normalized_observed_at_ticks: Some(live.now_ticks + 1),
+            normalization_commitment: None,
+        };
         assert_eq!(
             validate_ticket_applicability(&ticket(), &live),
             Err(AdmissionError::NavigationObservationFromFuture)
         );
+    }
+
+
+    #[test]
+    fn navigation_freshness_requires_upstream_qualified_time_and_clock_correlation() {
+        let mut live = live_context();
+        live.navigation_time = NavigationTimeEvidence::Unqualified {
+            source_clock: Some(ticket().clock.clone()),
+        };
+        assert_eq!(
+            validate_ticket_applicability(&ticket(), &live),
+            Err(AdmissionError::NavigationTimeUnqualified)
+        );
+
+        let mut live = live_context();
+        live.navigation_time = NavigationTimeEvidence::Unknown;
+        assert_eq!(
+            validate_ticket_applicability(&ticket(), &live),
+            Err(AdmissionError::NavigationTimeUnknown)
+        );
+
+        let mut live = live_context();
+        live.navigation_time = NavigationTimeEvidence::Qualified {
+            source_clock: ticket().clock.clone(),
+            comparison_clock: ticket().clock.clone(),
+            normalized_observed_at_ticks: None,
+            normalization_commitment: None,
+        };
+        assert_eq!(
+            validate_ticket_applicability(&ticket(), &live),
+            Err(AdmissionError::NavigationTimeMissing)
+        );
+
+        let mut live = live_context();
+        let other_clock = ClockBinding {
+            clock_id: "phone-clock".into(),
+            boot_epoch_id: "phone-boot-1".into(),
+        };
+        live.navigation_time = NavigationTimeEvidence::Qualified {
+            source_clock: other_clock.clone(),
+            comparison_clock: other_clock,
+            normalized_observed_at_ticks: Some(1_090),
+            normalization_commitment: Some(digest(44)),
+        };
+        assert_eq!(
+            validate_ticket_applicability(&ticket(), &live),
+            Err(AdmissionError::NavigationTimeComparisonClockMismatch)
+        );
+
+        let mut live = live_context();
+        let source_clock = ClockBinding {
+            clock_id: "sensor-clock".into(),
+            boot_epoch_id: "sensor-boot-3".into(),
+        };
+        live.navigation_time = NavigationTimeEvidence::Qualified {
+            source_clock,
+            comparison_clock: ticket().clock.clone(),
+            normalized_observed_at_ticks: Some(1_090),
+            normalization_commitment: None,
+        };
+        assert_eq!(
+            validate_ticket_applicability(&ticket(), &live),
+            Err(AdmissionError::NavigationTimeCorrelationMissing)
+        );
+
+        let mut live = live_context();
+        let source_clock = ClockBinding {
+            clock_id: "sensor-clock".into(),
+            boot_epoch_id: "sensor-boot-3".into(),
+        };
+        live.navigation_time = NavigationTimeEvidence::Qualified {
+            source_clock,
+            comparison_clock: ticket().clock.clone(),
+            normalized_observed_at_ticks: Some(1_090),
+            normalization_commitment: Some(digest(44)),
+        };
+        assert_eq!(validate_ticket_applicability(&ticket(), &live), Ok(()));
     }
 
     #[test]
