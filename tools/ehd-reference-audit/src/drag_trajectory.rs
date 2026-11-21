@@ -39,6 +39,9 @@ pub struct DragTrajectoryEvent {
     pub event_id: u64,
     /// Identity of the temporal/spatial quadrature rule used by the solver.
     pub quadrature_rule_id: u64,
+    /// Charged and neutral coordinate frames for the paired impulse vectors.
+    pub charged_frame_id: u64,
+    pub neutral_frame_id: u64,
     pub samples: Vec<DragQuadratureSample>,
     /// Integrated impulse delivered to neutral species [N*s].
     pub neutral_impulse_ns: [f64; 3],
@@ -64,6 +67,8 @@ pub struct DragTrajectoryReceipt {
     pub sample_count: usize,
     /// Per-event quadrature rule identities retained for downstream evidence.
     pub quadrature_rule_ids: BTreeMap<u64, u64>,
+    /// Shared coordinate-frame identity retained for each event.
+    pub coordinate_frame_ids: BTreeMap<u64, u64>,
     pub total_integrated_drag_weight_kg: f64,
     pub total_neutral_impulse_ns: [f64; 3],
     pub total_charged_reaction_impulse_ns: [f64; 3],
@@ -82,6 +87,11 @@ pub enum DragTrajectoryError {
     InvalidTolerance,
     DuplicateEventId(u64),
     DuplicateSampleId { event_id: u64, sample_id: u64 },
+    CoordinateFrameMismatch {
+        event_id: u64,
+        charged_frame_id: u64,
+        neutral_frame_id: u64,
+    },
     InvalidTimeFraction { event_id: u64, sample_id: u64 },
     InvalidIntegratedDragWeight { event_id: u64, sample_id: u64 },
     NonFiniteVelocity { event_id: u64, sample_id: u64 },
@@ -132,6 +142,9 @@ impl fmt::Display for DragTrajectoryError {
             Self::DuplicateEventId(id) => write!(f, "duplicate drag trajectory event id: {id}"),
             Self::DuplicateSampleId { event_id, sample_id } => write!(
                 f, "drag event {event_id} has duplicate quadrature sample id {sample_id}"
+            ),
+            Self::CoordinateFrameMismatch { event_id, charged_frame_id, neutral_frame_id } => write!(
+                f, "drag event {event_id} mixes charged frame {charged_frame_id} and neutral frame {neutral_frame_id}"
             ),
             Self::InvalidTimeFraction { event_id, sample_id } => write!(
                 f, "drag event {event_id} sample {sample_id} has time fraction outside [0, 1] or non-finite"
@@ -218,6 +231,7 @@ pub fn validate_drag_trajectory(
     ordered_events.sort_by_key(|event| event.event_id);
     let mut seen_event_ids = BTreeSet::new();
     let mut quadrature_rule_ids = BTreeMap::new();
+    let mut coordinate_frame_ids = BTreeMap::new();
 
     let mut total_neutral = [CompensatedSum::default(); 3];
     let mut total_charged = [CompensatedSum::default(); 3];
@@ -237,7 +251,15 @@ pub fn validate_drag_trajectory(
         if event.samples.is_empty() {
             return Err(DragTrajectoryError::EmptyEvent(event.event_id));
         }
+        if event.charged_frame_id != event.neutral_frame_id {
+            return Err(DragTrajectoryError::CoordinateFrameMismatch {
+                event_id: event.event_id,
+                charged_frame_id: event.charged_frame_id,
+                neutral_frame_id: event.neutral_frame_id,
+            });
+        }
         quadrature_rule_ids.insert(event.event_id, event.quadrature_rule_id);
+        coordinate_frame_ids.insert(event.event_id, event.charged_frame_id);
         if !event.reported_frictional_heating_j.is_finite()
             || !event.neutral_impulse_ns.iter().all(|value| value.is_finite())
             || !event.charged_reaction_impulse_ns.iter().all(|value| value.is_finite())
@@ -450,6 +472,7 @@ pub fn validate_drag_trajectory(
         event_count: ordered_events.len(),
         sample_count,
         quadrature_rule_ids,
+        coordinate_frame_ids,
         total_integrated_drag_weight_kg: total_drag_weight.value(),
         total_neutral_impulse_ns,
         total_charged_reaction_impulse_ns,
@@ -468,6 +491,8 @@ pub fn reference_self_check() -> Result<(), DragTrajectoryError> {
     let event = DragTrajectoryEvent {
         event_id: 1,
         quadrature_rule_id: 3,
+        charged_frame_id: 7,
+        neutral_frame_id: 7,
         samples: vec![
             DragQuadratureSample {
                 sample_id: 1,
@@ -568,6 +593,8 @@ mod tests {
         let event = DragTrajectoryEvent {
             event_id: 2,
             quadrature_rule_id: 1,
+            charged_frame_id: 7,
+            neutral_frame_id: 7,
             samples: vec![
                 sample(1, 0.0, 0.25, [3.0, -1.0, 2.0]),
                 sample(2, 1.0, 0.75, [3.0, -1.0, 2.0]),
@@ -647,6 +674,20 @@ mod tests {
         assert_eq!(
             validate_drag_trajectory(&[event], tolerance()).unwrap_err(),
             DragTrajectoryError::DuplicateSampleId { event_id: 1, sample_id: 2 }
+        );
+    }
+
+    #[test]
+    fn rejects_implicit_coordinate_frame_mismatch() {
+        let mut event = simpson_event();
+        event.neutral_frame_id = 8;
+        assert_eq!(
+            validate_drag_trajectory(&[event], tolerance()).unwrap_err(),
+            DragTrajectoryError::CoordinateFrameMismatch {
+                event_id: 1,
+                charged_frame_id: 7,
+                neutral_frame_id: 8
+            }
         );
     }
 
