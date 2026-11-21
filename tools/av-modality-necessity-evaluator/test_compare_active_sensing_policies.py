@@ -33,6 +33,10 @@ class ActiveSensingPolicyComparisonTests(unittest.TestCase):
         self.assertEqual(eig["late_acquisition_count"], 1)
         self.assertEqual(dv["decision_regret_total"], 0)
         self.assertEqual(eig["decision_regret_total"], 11.5)
+        self.assertEqual(dv["estimated_evsi_count"], 3)
+        self.assertEqual(dv["mean_estimated_evsi_mae"], 0)
+        self.assertEqual(eig["estimated_evsi_count"], 8)
+        self.assertEqual(eig["mean_estimated_evsi_mae"], 0)
         self.assertEqual(report["deltas_decision_value_minus_max_eig"]["decision_regret_reduction"], 11.5)
         self.assertEqual(report["paired"]["safe_decision_correctness"]["candidate_wins"], 6)
 
