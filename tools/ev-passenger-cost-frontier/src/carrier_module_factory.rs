@@ -953,8 +953,10 @@ fn evaluate_shared_cell_pair(
     });
     let supplemental_capacity = mapping.maximum_supplemental_cells
         .map(|cells| cells as f64 * base.productive_minutes_per_cell_year);
-    let shared_capacity_margin = excess.zip(supplemental_capacity)
-        .map(|(work, capacity)| capacity - work);
+    let shared_capacity_margin = base_station_residual_minutes
+        .zip(supplemental_capacity)
+        .zip(total_module_work_minutes)
+        .map(|((residual, supplemental), work)| residual + supplemental - work);
     let dedicated_station = module_result.stations.iter()
         .find(|station| station.process_id == mapping.module_process_id);
     let dedicated_cells = dedicated_station.and_then(|station| station.parallel_cells_required);
