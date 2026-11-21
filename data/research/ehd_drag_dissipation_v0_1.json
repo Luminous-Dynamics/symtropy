@@ -1,0 +1,67 @@
+{
+  "schema": "luminous.ehd_drag_dissipation",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-DRAG-DISSIPATION-001",
+  "as_of": "2026-11-21",
+  "status": "constant_drift_analytic_reference_authored_tests_rust_execution_pending",
+  "units": {
+    "integrated_drag_coefficient": "kg",
+    "relative_velocity": "m/s",
+    "impulse": "N*s",
+    "frictional_heating": "J"
+  },
+  "physical_closure": {
+    "momentum_transfer_density": "R_s_to_n = m_s*n_s*nu_sn*(u_s-u_n)",
+    "integrated_coefficient": "Gamma = integral(m_s*n_s*nu_sn dV dt)",
+    "neutral_impulse": "I_n = Gamma * relative_velocity",
+    "charged_reaction_impulse": "I_c = -I_n",
+    "bulk_kinetic_power": "u_n dot R + u_s dot (-R) = -k*|u_s-u_n|^2",
+    "integrated_frictional_heating": "E_fric = Gamma*|relative_velocity|^2 = I_n dot relative_velocity >= 0"
+  },
+  "reference_implementation": {
+    "path": "tools/ehd-reference-audit/src/drag_dissipation.rs",
+    "motion": "constant_relative_velocity_over_event_space_time_slab",
+    "checks": [
+      "neutral_impulse_matches_integrated_drag_coefficient_times_relative_velocity",
+      "charged_reaction_is_equal_and_opposite",
+      "impulse_work_is_nonnegative",
+      "impulse_work_matches_predicted_frictional_heating",
+      "aggregate_momentum_balance",
+      "aggregate_energy_identity"
+    ],
+    "summation": "event_id_ordered_compensated_summation"
+  },
+  "test_families": [
+    "constant_drift_exact_identity",
+    "zero_drift_limit",
+    "negative_drag_coefficient_rejected",
+    "anti_drag_impulse_rejected",
+    "equal_opposite_wrong_magnitude_rejected",
+    "duplicate_event_id_rejected",
+    "non_finite_drift_and_invalid_tolerance_rejected",
+    "event_permutation_determinism",
+    "offline_reference_self_check"
+  ],
+  "acceptance": {
+    "universal_numeric_tolerance": null,
+    "case_specific_impulse_tolerance_required": true,
+    "case_specific_energy_tolerance_required": true,
+    "per_event_momentum_and_energy_checks_required": true,
+    "aggregate_checks_required": true,
+    "relative_velocity_constant_within_event_required": true
+  },
+  "limitations": [
+    "constant_relative_velocity_only",
+    "no_time_varying_collision_quadrature",
+    "no_thermal_partition_between_species",
+    "no_temperature_equilibration_model",
+    "no_ionization_recombination_or_charge_exchange_energy",
+    "no_full_fluid_or_plasma_equations",
+    "no_reduced_coulomb_deposition_qualification"
+  ],
+  "literature": [
+    "https://doi.org/10.3389/fspas.2022.789083",
+    "https://doi.org/10.3389/fspas.2024.1466909"
+  ],
+  "claim_ceiling": "This is a constant-drift analytic drag/dissipation oracle only. No general time-varying collisional heating, coupled solver, physical validation or SOTA superiority is claimed."
+}
