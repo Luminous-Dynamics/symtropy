@@ -1040,9 +1040,9 @@ mod tests {
         };
         let receipt = output_jsonl(&args, &rows, &format!("{}:{}", "e".repeat(64), "f".repeat(64)))
             .unwrap();
-        assert!(receipt.contains("\\\"source_backed_rows\\\":3"));
-        assert!(receipt.contains("\\\"unknown_group_rows\\\":1"));
-        assert!(receipt.contains("\\\"cross_split_dependence_components\\\":1"));
+        assert!(receipt.contains("\"source_backed_rows\":3"));
+        assert!(receipt.contains("\"unknown_group_rows\":1"));
+        assert!(receipt.contains("\"cross_split_dependence_components\":1"));
         assert!(receipt.contains("FAIL_CROSS_SPLIT_DEPENDENCE"));
         assert!(receipt.contains("UNBOUNDED_REQUIRED_BELOW_19_INDEPENDENT_UNITS"));
     }
