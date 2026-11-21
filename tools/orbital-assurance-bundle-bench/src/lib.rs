@@ -690,23 +690,21 @@ fn evaluate_case(case: &Case) -> CaseResult {
         );
     }
 
-    if case.claims.iter().any(|claim| {
+    if (case.claims.iter().any(|claim| {
         claim.claim_type == ClaimType::ExternalAuthorityDecision
             && claim.mandatory
             && claim.state != ClaimState::Supported
-    }) || missing_authority
-    {
-        if !blockers
+    }) || missing_authority)
+        && !blockers
             .iter()
             .any(|blocker| blocker.code == "MISSING_AUTHORITY")
-        {
-            add_blocker(
-                &mut blockers,
-                "MISSING_AUTHORITY",
-                None,
-                "required external authority decision is absent or not current",
-            );
-        }
+    {
+        add_blocker(
+            &mut blockers,
+            "MISSING_AUTHORITY",
+            None,
+            "required external authority decision is absent or not current",
+        );
     }
 
     blockers.sort_by(|left, right| {
