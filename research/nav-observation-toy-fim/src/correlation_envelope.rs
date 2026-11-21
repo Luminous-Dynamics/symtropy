@@ -594,7 +594,7 @@ mod tests {
 
         let nominal = robust_select_correlation_envelope(
             &actions,
-            &[independence_assumption.clone()],
+            std::slice::from_ref(&independence_assumption),
             2,
         )
         .unwrap();
