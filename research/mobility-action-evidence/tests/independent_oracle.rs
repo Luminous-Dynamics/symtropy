@@ -480,12 +480,20 @@ fn physical_outcome_validator_matches_independent_oracle_under_fault_mutations()
     let mut x = e.clone();
     x.observer_failure_domains.push("vehicle-power".into());
     let mut policy = p.clone();
-    policy.expected_observer_failure_domains.push("vehicle-power".into());
+    policy
+        .expected_observer_failure_domains
+        .push("vehicle-power".into());
     cases.push(("common-cause-domain-overlap", x, policy));
 
     let mut policy = p.clone();
-    policy.expected_observer_failure_domains.push("unbound-domain".into());
-    cases.push(("ticket-observer-dependency-path-mismatch", e.clone(), policy));
+    policy
+        .expected_observer_failure_domains
+        .push("unbound-domain".into());
+    cases.push((
+        "ticket-observer-dependency-path-mismatch",
+        e.clone(),
+        policy,
+    ));
 
     let mut x = e.clone();
     x.observer_failure_domains.push("unknown-domain".into());
