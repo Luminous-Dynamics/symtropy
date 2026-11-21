@@ -61,6 +61,33 @@ jobs:
         working-directory: tools/manufacturing-architecture-portability/validator
         run: cargo run --locked --bin validate-inspection-join -- ../inspection-join.schema.json tests/fixtures/qif-cycle-join.candidate.json
 
+      - name: Fetch exact commit-pinned OPC UA NodeSet artifacts
+        run: |
+          set -euo pipefail
+          NODESET_COMMIT="ed0b821f6a6f1f0c440c442ed95a9146ae8b7f8d"
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error \\
+            "https://raw.githubusercontent.com/OPCFoundation/UA-Nodeset/${NODESET_COMMIT}/Machinery/Opc.Ua.Machinery.NodeSet2.xml" \\
+            -o /tmp/Opc.Ua.Machinery.NodeSet2.xml
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error \\
+            "https://raw.githubusercontent.com/OPCFoundation/UA-Nodeset/${NODESET_COMMIT}/Robotics/Opc.Ua.Robotics.NodeSet2.xml" \\
+            -o /tmp/Opc.Ua.Robotics.NodeSet2.xml
+          echo "7b0e4132b83c8c8bdbf9d1a0d09ed67adc7c8aa9e97a4beac1622664b3096376  /tmp/Opc.Ua.Machinery.NodeSet2.xml" | sha256sum --check
+          echo "487243c1ec85e0b747c087ed96c0e1d824629789055e74854f07d19099c08803  /tmp/Opc.Ua.Robotics.NodeSet2.xml" | sha256sum --check
+
+      - name: Admit pinned Machinery and Robotics NodeSets
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: |
+          cargo run --locked --bin opcua-nodeset-admission -- verify ../nodesets/opcua-machinery-1.04.2.nodeset.json /tmp/Opc.Ua.Machinery.NodeSet2.xml
+          cargo run --locked --bin opcua-nodeset-admission -- verify ../nodesets/opcua-robotics-1.02.nodeset.json /tmp/Opc.Ua.Robotics.NodeSet2.xml
+          cargo run --locked --bin opcua-nodeset-admission -- server ../nodesets/opcua-machinery-1.04.2.nodeset.json ../nodesets/opcua-machinery-namespace-metadata.synthetic.json
+
+      - name: Expose cross-profile RequiredModel version skew
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: |
+          cargo run --locked --bin opcua-nodeset-admission -- bundle ../nodesets/opcua-machinery-1.04.2.nodeset.json ../nodesets/opcua-robotics-1.02.nodeset.json > /tmp/opcua-node-bundle.json
+          grep -F '"status": "requires_explicit_dependency_resolution"' /tmp/opcua-node-bundle.json
+          grep -F '"model_uri": "http://opcfoundation.org/UA/"' /tmp/opcua-node-bundle.json
+
       - name: Clippy
         working-directory: tools/manufacturing-architecture-portability/validator
         run: cargo clippy --locked --all-targets -- -D warnings
