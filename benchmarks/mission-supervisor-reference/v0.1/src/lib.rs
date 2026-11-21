@@ -1166,7 +1166,7 @@ mod tests {
                 action_id: ticket.action_id.clone(),
                 attempt: ticket.attempt,
                 predicate_id: "object-in-gripper".to_owned(),
-                verdict: GoalVerdict::NotSatisfied,
+                verdict: GoalVerdict::Ambiguous,
             })
             .expect("first receipt");
 
@@ -1192,7 +1192,7 @@ mod tests {
         );
         assert_eq!(
             supervisor.phase("pick"),
-            Ok(SubgoalPhase::AwaitingEvidence)
+            Ok(SubgoalPhase::ReconciliationRequired)
         );
     }
 
