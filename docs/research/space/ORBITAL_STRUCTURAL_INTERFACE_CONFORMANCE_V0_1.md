@@ -457,3 +457,17 @@ NASA Langley's Design for Inspection research makes inspectability an early desi
 NIST's digital-thread work identifies persistent gaps around geometry, globally unique identifiers, semantic product/manufacturing information and composite-structure representation; it is a reason to test real interoperation, not a claim that every commercial deployment fails: [NIST Digital Thread for Manufacturing](https://www.nist.gov/programs-projects/digital-thread-manufacturing). NIST's experiment on design/manufacturing/inspection integration also documents that a standards-based prototype did not fully link all required lifecycle information: [Defining requirements for integrating information between design, manufacturing, and inspection](https://www.nist.gov/publications/defining-requirements-integrating-information-between-design-manufacturing-and).
 
 The intended differentiation is therefore not a new universal digital twin. It is a portable, independently replayable decision contract that states exactly what transfers, to which scale and configuration, under which evidence and uncertainty, and what remains unknown.
+
+
+### Site, facility and logistics context (Sol-Atlas)
+
+Compose Sol-Atlas [SOUTH-AFRICAN-SPACE-ECOSYSTEM-001 #405](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/405) and [SPACEPORT-GEOGRAPHY-001 #393](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/393) as read-only geographic and facility-context sources. They can help identify candidate sites, logistics chains, transport constraints, regional utilities, environmental context and the status of named aerospace assets.
+
+The current South African pathway is a distributed ecosystem hypothesis, not a claim that one site can perform every aerospace manufacturing or qualification task:
+- Overberg is a suborbital sounding-rocket range; national orbital launch capability remains in feasibility/pilot work, not an operational orbital launch service.
+- Houwteq's assembly, integration and test capability is being operationalised in phases; each chamber, instrument and support capability needs an asset-level status and acceptance record.
+- Matjiesfontein's deep-space ground-station project has been reported under construction; do not count future or ambiguous capacity as operational.
+
+A mapped site, geospatial polygon, legacy brochure, announced facility or project milestone is not evidence that a specific machine, chamber, test fixture, metrology system or production process is qualified and available. Before using a facility in a transfer or test plan, require the exact asset identity, owner/operator, permitted scope, current operational state, capacity, calibration/maintenance currentness, environment, safety approvals, access window and supporting evidence. Keep facility-context uncertainty visible.
+
+The geographic system may recommend a site or logistics alternative. It cannot grant test authorization, facility qualification, range clearance, production capability or airworthiness authority.
