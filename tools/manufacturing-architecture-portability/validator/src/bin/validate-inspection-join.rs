@@ -5,9 +5,9 @@
 
 use mfg_architecture_profile_validator::inspection_evaluator::evaluate_inspection_join;
 use serde_json::{json, Value};
-use std::{env, fs, path::PathBuf, process::ExitCode};
+use std::{env, fs, path::{Path, PathBuf}, process::ExitCode};
 
-fn read_json(path: &PathBuf) -> Result<Value, String> {
+fn read_json(path: &Path) -> Result<Value, String> {
     let bytes = fs::read(path).map_err(|error| format!("{}: {error}", path.display()))?;
     serde_json::from_slice(&bytes)
         .map_err(|error| format!("{}: invalid JSON: {error}", path.display()))
