@@ -339,17 +339,32 @@ fn find_stop(input: &CoAvailabilityInput, stop_id: &str) -> Option<StopWindow> {
         })
 }
 
-fn find_first_available_launch(
-    reservations: &[ResourceReservation],
-    launch_pad_id: &str,
-    aircraft_id: &str,
-    recovery_pad_id: &str,
+struct LaunchReservationRequest<'a> {
+    reservations: &'a [ResourceReservation],
+    launch_pad_id: &'a str,
+    aircraft_id: &'a str,
+    recovery_pad_id: &'a str,
     earliest_launch_ms: u64,
     latest_launch_ms: u64,
     launch_service_ms: u64,
     launch_to_recovery_offset_ms: u64,
     recovery_service_ms: u64,
+}
+
+fn find_first_available_launch(
+    request: LaunchReservationRequest<'_>,
 ) -> Result<Option<(u64, u64)>, String> {
+    let LaunchReservationRequest {
+        reservations,
+        launch_pad_id,
+        aircraft_id,
+        recovery_pad_id,
+        earliest_launch_ms,
+        latest_launch_ms,
+        launch_service_ms,
+        launch_to_recovery_offset_ms,
+        recovery_service_ms,
+    } = request;
     let mut candidate = earliest_launch_ms;
 
     // Every conflict advances the candidate beyond at least one finite
@@ -601,17 +616,17 @@ pub fn evaluate_coavailability(
                             let feasible_launch_lo = launch_lo.max(recovery_launch_lo);
                             let feasible_launch_hi = launch_hi.min(recovery_launch_hi);
                             if feasible_launch_lo <= feasible_launch_hi {
-                                match find_first_available_launch(
-                                    &input.existing_reservations,
-                                    &sortie.launch_pad_resource_id,
-                                    &aircraft.aircraft_id,
-                                    &sortie.recovery_pad_resource_id,
-                                    feasible_launch_lo,
-                                    feasible_launch_hi,
-                                    sortie.launch_service_ms,
-                                    launch_to_recovery_offset,
-                                    sortie.recovery_service_ms,
-                                ) {
+                                match find_first_available_launch(LaunchReservationRequest {
+                                    reservations: &input.existing_reservations,
+                                    launch_pad_id: &sortie.launch_pad_resource_id,
+                                    aircraft_id: &aircraft.aircraft_id,
+                                    recovery_pad_id: &sortie.recovery_pad_resource_id,
+                                    earliest_launch_ms: feasible_launch_lo,
+                                    latest_launch_ms: feasible_launch_hi,
+                                    launch_service_ms: sortie.launch_service_ms,
+                                    launch_to_recovery_offset_ms: launch_to_recovery_offset,
+                                    recovery_service_ms: sortie.recovery_service_ms,
+                                }) {
                                     Ok(Some((launch_time, recovery_time))) => {
                                         selected_launch = Some(launch_time);
                                         selected_recovery = Some(recovery_time);
