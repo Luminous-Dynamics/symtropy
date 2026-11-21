@@ -529,7 +529,10 @@ fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
                 }
             }
             for region_id in &region_ids {
-                if !seen.iter().any(|seen_region| *seen_region == region_id.as_str()) {
+                if !seen
+                    .iter()
+                    .any(|seen_region| *seen_region == region_id.as_str())
+                {
                     errors.push(format!(
                         "stress_scenarios[{stress_index}].periods[{period_index}]: missing region {region_id}"
                     ));
@@ -1019,7 +1022,9 @@ fn worst_case_cost(
         .map(|(cost, _)| *cost)
         .chain(stress_scenario_costs.iter().copied())
         .max()
-        .ok_or_else(|| "worst-case cost requires at least one probabilistic or stress scenario".into())
+        .ok_or_else(|| {
+            "worst-case cost requires at least one probabilistic or stress scenario".into()
+        })
 }
 
 fn worst_stress_case_cost(stress_scenario_costs: &[u128]) -> Option<u128> {
@@ -1160,18 +1165,16 @@ pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetRepo
     let mut best_service_robust = best_expected.clone();
     let mut best_cvar90_value =
         upper_tail_cvar90(&best_cvar90.scenario_costs).map_err(|error| vec![error])?;
-    let mut best_worst_case_value =
-        worst_case_cost(
-            &best_worst_case.scenario_costs,
-            &best_worst_case.stress_scenario_costs,
-        )
-        .map_err(|error| vec![error])?;
-    let mut best_service_robust_value =
-        worst_case_cost(
-            &best_service_robust.scenario_unserved,
-            &best_service_robust.stress_scenario_unserved,
-        )
-        .map_err(|error| vec![error])?;
+    let mut best_worst_case_value = worst_case_cost(
+        &best_worst_case.scenario_costs,
+        &best_worst_case.stress_scenario_costs,
+    )
+    .map_err(|error| vec![error])?;
+    let mut best_service_robust_value = worst_case_cost(
+        &best_service_robust.scenario_unserved,
+        &best_service_robust.stress_scenario_unserved,
+    )
+    .map_err(|error| vec![error])?;
 
     for mask in 1..policy_count {
         let evaluation =
@@ -1186,9 +1189,11 @@ pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetRepo
             best_cvar90_value = cvar90;
             best_cvar90 = evaluation.clone();
         }
-        let worst_case =
-            worst_case_cost(&evaluation.scenario_costs, &evaluation.stress_scenario_costs)
-                .map_err(|error| vec![error])?;
+        let worst_case = worst_case_cost(
+            &evaluation.scenario_costs,
+            &evaluation.stress_scenario_costs,
+        )
+        .map_err(|error| vec![error])?;
         if worst_case < best_worst_case_value
             || (worst_case == best_worst_case_value
                 && evaluation.weighted.total_cost < best_worst_case.weighted.total_cost)
@@ -1197,12 +1202,11 @@ pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetRepo
             best_worst_case_value = worst_case;
             best_worst_case = evaluation.clone();
         }
-        let worst_unserved =
-            worst_case_cost(
-                &evaluation.scenario_unserved,
-                &evaluation.stress_scenario_unserved,
-            )
-            .map_err(|error| vec![error])?;
+        let worst_unserved = worst_case_cost(
+            &evaluation.scenario_unserved,
+            &evaluation.stress_scenario_unserved,
+        )
+        .map_err(|error| vec![error])?;
         if worst_unserved < best_service_robust_value
             || (worst_unserved == best_service_robust_value
                 && evaluation.weighted.total_cost < best_service_robust.weighted.total_cost)
@@ -1472,14 +1476,18 @@ mod tests {
         assert_eq!(report.exact_policy_count_evaluated, 2_187);
         assert_eq!(report.optimized_policy.expected_total_cost_units, 524);
         assert_eq!(report.optimized_policy.cvar90_total_cost_units, 866);
-        assert!(report
-            .optimized_policy
-            .worst_stress_case_total_cost_units
-            .is_some());
-        assert!(report
-            .worst_case_optimal_policy
-            .worst_stress_case_unserved_units
-            .is_some());
+        assert!(
+            report
+                .optimized_policy
+                .worst_stress_case_total_cost_units
+                .is_some()
+        );
+        assert!(
+            report
+                .worst_case_optimal_policy
+                .worst_stress_case_unserved_units
+                .is_some()
+        );
         assert!(!report.physical_dispatch_authorized);
         assert!(!report.dispatch_commands_emitted);
     }
@@ -1498,24 +1506,32 @@ mod tests {
 
         assert_eq!(
             stress_report.optimized_policy.expected_total_cost_units,
-            probabilistic_only.optimized_policy.expected_total_cost_units
+            probabilistic_only
+                .optimized_policy
+                .expected_total_cost_units
         );
         assert_eq!(
             stress_report.optimized_policy.cvar90_total_cost_units,
             probabilistic_only.optimized_policy.cvar90_total_cost_units
         );
-        assert!(stress_report
-            .optimized_policy
-            .worst_stress_case_total_cost_units
-            .is_some());
-        assert!(stress_report
-            .optimized_policy
-            .worst_stress_case_unserved_units
-            .is_some());
-        assert!(stress_report
-            .worst_case_optimal_policy
-            .worst_stress_case_total_cost_units
-            .is_some());
+        assert!(
+            stress_report
+                .optimized_policy
+                .worst_stress_case_total_cost_units
+                .is_some()
+        );
+        assert!(
+            stress_report
+                .optimized_policy
+                .worst_stress_case_unserved_units
+                .is_some()
+        );
+        assert!(
+            stress_report
+                .worst_case_optimal_policy
+                .worst_stress_case_total_cost_units
+                .is_some()
+        );
         assert!(!stress_report.physical_dispatch_authorized);
     }
 
