@@ -73,7 +73,7 @@ The module provides `predictions_from_report` and `score_events` for independent
 - mean distance from the true event tick to the predicted interval;
 - mean width of matched event intervals.
 
-A prediction matches only one truth label, and a truth label matches only one prediction. Exact duplicates therefore count as additional false positives rather than additional detections. Matching is restricted to the same source-local call reference and event type. Predictions outside the declared interval-distance tolerance are false positives; unmatched truths are false negatives. Reacquisition, observability gaps, invalid positions and kinematic conflicts are not scored as berth or port-call events.
+A prediction matches only one truth label, and a truth label matches only one prediction. The solver maximizes match count first, then minimizes total interval distance; it is not a greedy nearest-pair shortcut. Exact duplicates therefore count as additional false positives rather than additional detections. Matching is restricted to the same source-local call reference and event type. Predictions outside the declared interval-distance tolerance are false positives; unmatched truths are false negatives. Reacquisition, observability gaps, invalid positions and kinematic conflicts are not scored as berth or port-call events.
 
 The ground-truth call reference must be independently adjudicated; MMSI alone is not a visit identity. The tolerance and clock domain are part of the benchmark protocol and are not automatically converted to hours.
 
