@@ -176,7 +176,7 @@ A separate `synthetic-two-region-shared-aircraft-tail-risk.json` fixture has a 5
 |---|---:|---:|---:|---:|
 | Expected-cost optimal | 524 | 866 | 1,246 | 22 |
 | CVaR90 optimal | 527 | 825 | 1,156 | 21 |
-| Worst-case cost optimal | 570 | 848 | 1,156 | 21 |
+| Worst-case cost optimal (lexicographic tie-break: expected cost after minimax) | 527 | 825 | 1,156 | 21 |
 | Service-robust | 526 | 825 | 1,156 | 21 |
 | Fixed initial-region baseline | 531 | 873 | 1,253 | 23 |
 | Truck-only baseline | 591 | 933 | 1,313 | 25 |
@@ -186,3 +186,24 @@ This makes the trade-offs explicit rather than hiding them in a weighted objecti
 A unit test separately pins fractional-tail arithmetic: a 5% scenario costing 100 and a 95% scenario costing 20 produces CVaR90 of 60, not 100 or 20. Another test ensures the stress fixture yields distinct expected-cost, CVaR90, minimax-cost and service-robust policies. Hard safety/permission constraints remain outside all four objectives.
 
 Next steps are distributionally robust ambiguity sets, chance constraints for explicit service-level requirements, probability-source provenance, held-out stress scenarios and out-of-sample calibration. CVaR over supplied scenarios is not a calibrated guarantee against distribution shift.
+
+
+## 2026 SOTA and commercial deployment update
+
+An August 2026 *Drones* paper jointly optimizes fleet sizing and routing for multiple trucks and drones. Its two-stage framework adjusts the initial fleet configuration after route-feasibility and utilization are assessed; multi-visit delivery is identified as the primary mechanism in its ablation, while cross-vehicle retrieval adds scheduling flexibility. The authors report average cost savings of 15.4–15.5% against four simplified fleet-sizing strategies on their own medium- and large-scale numerical instances. This should be a required reproduction target, not an external number to compare directly with the two-region synthetic fixture. DOI: https://doi.org/10.3390/drones10090658.
+
+Walmart's 5 November 2026 announcement says its Zipline programme had completed more than 2 million deliveries and would add 300 sites; eligible products are described as deliverable in as fast as 30 minutes where available. This is a successful fixed-network deployment backed by retail locations and high-density customer reach. It sets a real operating-scale comparator for utilisation, successful delivery rate, reliability, service time and manufacturing ramp—but it does not establish commercial performance for mobile truck-mounted aircraft pods. Source: https://corporate.walmart.com/news/2026/11/walmart-expands-drone-delivery-network-with-zipline.
+
+### Required matched benchmark protocol
+
+For the Xie et al. paper, reproduce its published problem family and baselines where the instance/data permit, then extend the tournament with shared movable aircraft, explicit reposition energy/time, permission freshness, EV site-meter energy, fallback modes and manufacturing/lifecycle costs. For Walmart/Zipline comparisons, separate fixed-node network metrics from truck-mobile deployment metrics. Report:
+- on-time / successful / failed / cancelled deliveries and service radius;
+- deliveries per aircraft-hour and per carrier-shift;
+- payload and route eligibility rejection causes;
+- aircraft utilisation, idle/charge/reposition/maintenance share;
+- empty reposition distance and energy;
+- delivery cost per successful on-time parcel, including fleet capex, depot, battery replacement, operators and failed missions;
+- weather and permission closure rate, recovery/safe-state performance and customer handoff;
+- out-of-sample CVaR/worst-case service loss only when probability weights are calibrated.
+
+A synthetic exact-policy cost improvement is not evidence of superiority to a published algorithm or an operational drone network. First match published feasibility/objective values and compute budget; then compare Pareto frontiers on held-out instances.
