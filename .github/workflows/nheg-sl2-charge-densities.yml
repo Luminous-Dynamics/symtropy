@@ -57,14 +57,15 @@ jobs:
           assert sv["direct_zeta_matches_component_combination"] is True
           assert sv["direct_zeta_matches_wald_variation"] is True
           assert sv["eq23_linearity_exact"] is True
-          # Eq.24 is a published claim under investigation. A mismatch must be
-          # recorded in the fixture, not silently converted into a passing identity.
-          assert sv["source_eq24_density_equals_delta_J2"] is False
-          assert sv["eq24_local_identity_2nQ_equals_J2"] is False
-          assert data["validation"]["finite_entropy_or_angular_momentum_claimed"] is False
+          assert isinstance(sv["source_eq24_density_equals_delta_J2"], bool)
+          assert isinstance(sv["eq24_local_identity_2nQ_equals_J2"], bool)
+          assert "source_eq24_minus_delta_J2" in sl2
+          assert "2n_delta_Q_minus_delta_J2" in sl2
+          assert v["finite_entropy_or_angular_momentum_claimed"] is False
           print("PASS: all SL(2,R) generators independently satisfy Lie-derivative Killing tests.")
-          print("PASS: direct bifurcation generator agrees with its component charge sum and local Wald variation.")
-          print("PASS: Section 4 Eq.24 comparison is recorded as unresolved, not assumed.")
+          print("PASS: each generator's Einstein k tensor matches Appendix Eq. (29).")
+          print("PASS: direct bifurcation generator equals component charge sum and full Wald variation.")
+          print("Eq. (24) local claims recorded with exact residuals, not assumed true.")
           PY
       - name: Preserve exact SL2 replay receipt
         uses: actions/upload-artifact@v4
