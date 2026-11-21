@@ -224,7 +224,10 @@ fn run_matches_scope(run: &TestRun, obligation: &Obligation) -> bool {
         && run.procedure_revision == obligation.procedure_revision
         && run.service_kind == obligation.service_kind
         && run.lifecycle_phase == obligation.lifecycle_phase
-        && run.evidence_keys.iter().any(|key| key == &obligation.evidence_key)
+        && run
+            .evidence_keys
+            .iter()
+            .any(|key| key == &obligation.evidence_key)
 }
 
 fn exact_conditions_match(run: &TestRun, obligation: &Obligation) -> bool {
