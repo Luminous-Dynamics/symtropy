@@ -934,6 +934,8 @@ pub enum StateField {
 pub struct StateQuery {
     pub snapshot_sha256: String,
     pub entity_ids: Vec<String>,
+    /// Required evidence focus. v0.1 returns complete stable EntityState
+    /// records (including explicitly unavailable fields), not a sparse schema.
     pub fields: Vec<StateField>,
 }
 
