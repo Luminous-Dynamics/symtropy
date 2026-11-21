@@ -374,6 +374,17 @@ fn find_first_available_launch(
     // reservations and candidate time is strictly increasing.
     for _ in 0..=reservations.len() {
         if candidate > latest_launch_ms {
+            if aircraft_conflict_observed {
+                return Err(
+                    "aircraft is reserved during the proposed flight or turnaround interval".into(),
+                );
+            }
+            if launch_pad_conflict_observed {
+                return Err("launch pad is reserved throughout the feasible launch window".into());
+            }
+            if recovery_pad_conflict_observed {
+                return Err("recovery pad is reserved throughout the feasible recovery window".into());
+            }
             return Ok(None);
         }
         let launch_end = candidate
