@@ -67,6 +67,18 @@ The M1 mission supervisor remains the owner of subgoal transitions, ambiguity ho
 
 The action ticket now carries the exact M1 subgoal ID, action ID, attempt and expected predicate ID, and the live context must match the active M1 ticket at dispatch. The observer receipt also carries its caller-computed canonical content digest so it can be projected into M1's receipt envelope without substituting the ticket commitment for the observation digest. A future adapter must not cast `observed_at_ticks` to M1's `observed_at_ms`: it must obtain a qualified unit/basis conversion from Mycelix Position #435, and preserve unknown/unqualified source time rather than fabricating a timestamp.
 
+## Benchmark protocol artefacts
+
+`BENCHMARK_PROTOCOL_v0.1.md` defines the L0–L5 CDAAB assurance ladder, matched baselines, non-compensatory metrics, statistical rules, version-pinned external comparators and claim ceiling.
+
+The `protocol/` directory provides machine-readable v0.1 schemas:
+
+- `scenario_manifest.schema.json`: controller-visible scenario inputs and budgets only. It explicitly excludes evaluator truth, hidden fault identities and expected outcomes.
+- `evaluation_plan.schema.json`: candidate/baseline build identities, frozen manifest/evaluator digests, sampling plan, cluster dimensions, metrics and mandatory early-stop rules.
+- `run_receipt.schema.json`: exact source/artifact/runtime/evaluator/scenario digests, per-episode event/evaluator receipt digests, raw numerator/denominator counts, exclusions and run status.
+
+The evaluator's private truth set must be held separately from the controller-visible manifest. A JSON Schema syntax pass is not a semantic benchmark validation; the independent evaluator must additionally enforce numerator ≤ denominator, nonzero denominators for reported rates, valid cluster analysis, and that an incomplete/aborted/invalidated run cannot be labelled a pass. No hidden evaluator labels or private test answers are checked into the public controller-facing corpus.
+
 ## Tests
 
 The unit-test corpus contains positive controls and table-driven negative controls for:
