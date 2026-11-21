@@ -209,6 +209,72 @@ fn symmetric_eigenvalues(matrix: &[Vec<f64>]) -> Result<Vec<f64>, ModelError> {
     Ok(eigenvalues)
 }
 
+
+/// Exact directed KL divergence between independent Poisson count models.
+///
+/// Each vector contains strictly positive expected counts for the same
+/// measured channels. This is an expected log-likelihood ratio under the
+/// reference model, not a symmetric distance or a posterior model probability.
+pub fn poisson_kl_divergence(
+    reference_expected_counts: &[f64],
+    alternative_expected_counts: &[f64],
+) -> Result<f64, ModelError> {
+    if reference_expected_counts.is_empty()
+        || reference_expected_counts.len() != alternative_expected_counts.len()
+    {
+        return Err(ModelError::MismatchedDataLengths);
+    }
+    let mut divergence = 0.0;
+    for (reference, alternative) in reference_expected_counts.iter().zip(alternative_expected_counts) {
+        for (value, name) in [
+            (*reference, "reference_model_expected_count"),
+            (*alternative, "alternative_model_expected_count"),
+        ] {
+            if !value.is_finite() {
+                return Err(ModelError::NonFiniteValue(name));
+            }
+            if value <= 0.0 {
+                return Err(ModelError::NonPositiveValue(name));
+            }
+        }
+        divergence += reference * (reference / alternative).ln() + alternative - reference;
+    }
+    if !divergence.is_finite() {
+        return Err(ModelError::InvalidParameter("poisson_kl_divergence_overflowed"));
+    }
+    // Roundoff can make an analytically nonnegative KL sum very slightly negative.
+    Ok(divergence.max(0.0))
+}
+
+/// Directed pairwise Poisson KL matrix for candidate discrete hypotheses.
+///
+/// Entry [i][j] is D_KL(model_i || model_j), i.e. expected evidence under
+/// hypothesis i against hypothesis j for the declared design and fixed
+/// observation model. Rows are references; columns are alternatives.
+pub fn pairwise_poisson_kl_matrix(
+    model_expected_counts: &[Vec<f64>],
+) -> Result<Vec<Vec<f64>>, ModelError> {
+    if model_expected_counts.is_empty() {
+        return Err(ModelError::MismatchedDataLengths);
+    }
+    let channels = model_expected_counts[0].len();
+    if channels == 0 || model_expected_counts.iter().any(|model| model.len() != channels) {
+        return Err(ModelError::MismatchedDataLengths);
+    }
+    let mut matrix = vec![vec![0.0; model_expected_counts.len()]; model_expected_counts.len()];
+    for row in 0..model_expected_counts.len() {
+        for column in 0..model_expected_counts.len() {
+            if row != column {
+                matrix[row][column] = poisson_kl_divergence(
+                    &model_expected_counts[row],
+                    &model_expected_counts[column],
+                )?;
+            }
+        }
+    }
+    Ok(matrix)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -271,5 +337,52 @@ mod tests {
         assert_eq!(summary.effective_rank, 1);
         assert!((summary.log_determinant.expect("logdet") - 7.0_f64.ln()).abs() < 1.0e-12);
         assert_eq!(summary.condition_number, Some(1.0));
+    }
+
+    #[test]
+    fn poisson_kl_is_zero_for_identical_predictions() {
+        assert_eq!(poisson_kl_divergence(&[10.0, 20.0], &[10.0, 20.0]), Ok(0.0));
+    }
+
+    #[test]
+    fn poisson_kl_matches_closed_form_and_is_directed() {
+        let forward = poisson_kl_divergence(&[10.0], &[20.0]).expect("forward KL");
+        let reverse = poisson_kl_divergence(&[20.0], &[10.0]).expect("reverse KL");
+        assert!((forward - (10.0 * (0.5_f64).ln() + 10.0)).abs() < 1.0e-12);
+        assert!((reverse - (20.0 * 2.0_f64.ln() - 10.0)).abs() < 1.0e-12);
+        assert_ne!(forward, reverse);
+    }
+
+    #[test]
+    fn pairwise_model_kl_matrix_matches_synthetic_oracle() {
+        let matrix = pairwise_poisson_kl_matrix(&[
+            vec![10.0, 20.0],
+            vec![20.0, 10.0],
+            vec![10.0, 10.0],
+        ]).expect("pairwise model KL");
+        assert!((matrix[0][1] - 6.931471805599453).abs() < 1.0e-12);
+        assert!((matrix[0][2] - 3.862943611198906).abs() < 1.0e-12);
+        assert!((matrix[2][0] - 3.068528194400547).abs() < 1.0e-12);
+        assert_eq!(matrix[0][0], 0.0);
+    }
+
+    #[test]
+    fn pairwise_model_kl_rejects_incompatible_channels() {
+        assert_eq!(
+            pairwise_poisson_kl_matrix(&[vec![1.0, 2.0], vec![1.0]]),
+            Err(ModelError::MismatchedDataLengths)
+        );
+    }
+
+    #[test]
+    fn poisson_kl_rejects_zero_and_nonfinite_expected_counts() {
+        assert_eq!(
+            poisson_kl_divergence(&[1.0], &[0.0]),
+            Err(ModelError::NonPositiveValue("alternative_model_expected_count"))
+        );
+        assert_eq!(
+            poisson_kl_divergence(&[f64::NAN], &[1.0]),
+            Err(ModelError::NonFiniteValue("reference_model_expected_count"))
+        );
     }
 }
