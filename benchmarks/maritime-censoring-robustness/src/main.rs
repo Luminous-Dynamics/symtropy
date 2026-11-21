@@ -36,7 +36,8 @@ fn main() {
             scenario.pooled_aj_error
         );
         println!(
-            "  standardized A-J: berth={:.6} diversion={:.6} cancellation={:.6} max_abs_error={:.6}",
+            "  standardized A-J: berth={:.6} diversion={:.6} \
+             cancellation={:.6} max_abs_error={:.6}",
             scenario.standardized_stratum_aalen_johansen.berth,
             scenario.standardized_stratum_aalen_johansen.diversion,
             scenario.standardized_stratum_aalen_johansen.cancellation,
@@ -45,7 +46,8 @@ fn main() {
 
         match scenario.known_g_conditional_ipcw {
             Some(incidence) => println!(
-                "  known-G conditional IPCW: berth={:.6} diversion={:.6} cancellation={:.6} max_abs_error={:.6}",
+                "  known-G conditional IPCW: berth={:.6} diversion={:.6} \
+                 cancellation={:.6} max_abs_error={:.6}",
                 incidence.berth,
                 incidence.diversion,
                 incidence.cancellation,
