@@ -44,7 +44,7 @@ jobs:
       - name: Validate all committed profiles
         working-directory: tools/manufacturing-architecture-portability/validator
         run: |
-          cargo run --locked -- ../profile.schema.json \
+          cargo run --locked --bin mfg-architecture-profile-validator -- ../profile.schema.json \
             ../profiles/uns-mqtt.synthetic.json \
             ../profiles/i3x-1.0.reference.json \
             ../profiles/opcua-machinery-1.04.2.reference.json \
