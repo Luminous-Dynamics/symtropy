@@ -324,3 +324,36 @@ The 15-span synthetic episode validates only one finite sequence contract. Offic
 - **SPOT-Bench (NeurIPS 2026 E&D):** proactive streaming benchmark at 1Hz with a posted Ctrl-SPOT T-F1@5 overall baseline of 20.9; every prediction is evaluated, including non-response dead-time. https://dibschat.github.io/SPOT-Bench/
 
 These results suggest two distinct research priorities: query-conditioned evidence access rather than query-independent frame sampling, and exact evidence retention rather than lossy summary recall. But our benchmark must preserve the negative SEW-Bench ablation result: test verbatim-only and compression-only controls. The objective is not "build a sophisticated memory stack"; it is to establish which components earn their memory and compute costs under matched budgets.
+
+
+## Expanded long-horizon industry comparison set (checked 21 November 2026)
+
+The benchmark should compare against complementary memory cohorts:
+
+| Benchmark / system | Published scale or result | Comparison target |
+|---|---|---|
+| StreamArena | 243 full-length videos averaging 88.8 minutes and 3,646 questions across real-time perception, retrospection, proactive interaction and tools | Long-stream recall, online causal memory and retrospective provenance |
+| 4DMemory | About 900 hours of long-video material and 5,000+ manually reviewed questions | Multi-hour evidence retrieval with traceable source segments |
+| EgoMemReason | 500 week-long memory questions across six challenges; best listed accuracy 39.6% | Week-scale episodic identity and exact source-span recall |
+| SEW-Bench | At a 4,096-token decision budget, access-structured perception reports 75–94% retrieval vs 3–19% for equal-budget query-independent sampling; the complete stack nevertheless did not beat the verbatim-only baseline | Compare query-conditioned retrieval, verbatim-only, summary-only and memory-ledger arms under equal budgets |
+| OmniInteract | 1,430 response slots across 250 videos; continuous 1QnA IA-QTF1 best reported at 0.052 | Persistent monitoring and useful response timing, not only retrospective QA |
+
+Sources:
+- StreamArena: https://arxiv.org/abs/2608.05703
+- 4DMemory: https://arxiv.org/abs/2610.20537
+- EgoMemReason: https://github.com/SibylResearchGroup/EgoMemReason
+- SEW-Bench: https://arxiv.org/abs/2608.22975
+- OmniInteract: https://aclanthology.org/2026.emnlp-main.490/
+
+### The important negative control
+
+The SEW-Bench result is a useful warning: the full multi-component system did not outperform the verbatim-only memory baseline in its own ablation. We should therefore treat the following as mandatory arms in every memory paper or deployment comparison:
+
+- raw/verbatim evidence under the same memory budget;
+- recent-window only;
+- summary-only;
+- summary plus retrieval;
+- episodic memory;
+- source-linked evidence ledger.
+
+A memory architecture earns its complexity only if it beats simpler controls on a preregistered measure, or reaches non-inferior event/citation recall at materially lower storage and retrieval cost. Report degradation curves by retention horizon and query type. Never infer compression benefit from a synthetic fixture.
