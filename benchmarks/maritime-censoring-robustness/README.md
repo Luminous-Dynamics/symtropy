@@ -71,6 +71,24 @@ The broad observed-only berth bounds contain the full latent truth in all four s
 
 These results are a preflight produced by a separate implementation, not a Rust compilation or test result. The Rust tests pin the analytic truth, the pre-registered error thresholds, censoring counts, same-tick event priority, partial-bound coverage and deterministic replay.
 
+## Same-latent-cohort reporting-delay sweep
+
+The benchmark also reuses one fixed latent cohort and varies only berth publication delay. This isolates the effect of observation lag from Monte Carlo cohort-composition changes.
+
+| Berth reporting delay | True berth CIF | Observed pooled A-J | Underestimation | Unresolved |
+|---:|---:|---:|---:|---:|
+| 0 ticks | 0.47157 | 0.47157 | 0.00000 | 15.45% |
+| 1 tick | 0.47157 | 0.45358 | 0.01798 | 17.24% |
+| 2 ticks | 0.47157 | 0.43190 | 0.03967 | 19.41% |
+| 3 ticks | 0.47157 | 0.40523 | 0.06633 | 22.08% |
+| 4 ticks | 0.47157 | 0.37450 | 0.09707 | 25.15% |
+| 5 ticks | 0.47157 | 0.33730 | 0.13427 | 28.87% |
+| 6 ticks | 0.47157 | 0.29147 | 0.18010 | 33.46% |
+| 8 ticks | 0.47157 | 0.17267 | 0.29890 | 45.34% |
+| 10 ticks | 0.47157 | 0.00000 | 0.47157 | 62.60% |
+
+The sweep does not assume that a real source has a fixed publication lag. It demonstrates sensitivity under a controlled mechanism, using the same latent events at every delay.
+
 ## Claim ceiling
 
 A passing synthetic challenge demonstrates only that the simulator and diagnostics reproduce their declared assumptions and expose the tested biases. It does not prove source-data validity, the real censoring mechanism, actual Durban waiting-time distributions, causality or operational superiority.
