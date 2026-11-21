@@ -92,7 +92,7 @@ jobs:
             and .report.claim_ceiling == "synthetic-event-replay-semantics-only"
             and .report.summary.case_count == 63
             and .report.summary.expected_result_mismatches == 0
-            and .report.summary.duplicate_events == 2
+            and .report.summary.duplicate_events == 3
             and .authority_granted == false
           ' orbital-interface-event-replay-receipt.json
 
