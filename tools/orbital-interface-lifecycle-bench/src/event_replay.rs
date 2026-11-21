@@ -296,6 +296,20 @@ fn decide(case: &EventCase) -> Decision {
                 duplicate_count,
             );
         }
+        let event_latest = event
+            .event_tick
+            .saturating_add(event.time_uncertainty_ticks);
+        if event_latest > case.at_tick
+            || event.observation_tick > case.at_tick
+            || event.ingestion_tick > case.at_tick
+        {
+            return Decision::new(
+                ReplayStatus::Indeterminate,
+                "event_not_known_at_evaluation_cutoff",
+                0,
+                duplicate_count,
+            );
+        }
     }
 
     let mut ordered = BTreeMap::new();
@@ -465,6 +479,45 @@ fn decide(case: &EventCase) -> Decision {
                             duplicate_count,
                         );
                     }
+                    let event_earliest = event
+                        .event_tick
+                        .saturating_sub(event.time_uncertainty_ticks);
+                    let event_latest = event
+                        .event_tick
+                        .saturating_add(event.time_uncertainty_ticks);
+                    if event_earliest > valid_until {
+                        return Decision::new(
+                            ReplayStatus::RequalificationRequired,
+                            "cycle_after_qualification_expiry",
+                            cycle_count,
+                            duplicate_count,
+                        );
+                    }
+                    if event_latest > valid_until {
+                        return Decision::new(
+                            ReplayStatus::Indeterminate,
+                            "cycle_time_uncertainty_crosses_qualification_expiry",
+                            cycle_count,
+                            duplicate_count,
+                        );
+                    }
+                    let inspection_due = last_inspection_tick.saturating_add(inspection_interval);
+                    if event_earliest > inspection_due {
+                        return Decision::new(
+                            ReplayStatus::RequalificationRequired,
+                            "cycle_after_inspection_interval",
+                            cycle_count,
+                            duplicate_count,
+                        );
+                    }
+                    if event_latest > inspection_due {
+                        return Decision::new(
+                            ReplayStatus::Indeterminate,
+                            "cycle_time_uncertainty_crosses_inspection_interval",
+                            cycle_count,
+                            duplicate_count,
+                        );
+                    }
                     cycle_count = match cycle_count.checked_add(1) {
                         Some(value) => value,
                         None => {
@@ -484,28 +537,55 @@ fn decide(case: &EventCase) -> Decision {
                     }
                 }
                 EventKind::InspectionRecorded => {
-                    if event.wear_within_limit == Some(false) {
-                        status = ReplayStatus::Withdrawn;
-                        reason = "wear_exceeds_declared_limit";
-                    } else if event.calibration_valid != Some(true)
-                        || event.measurement_in_range != Some(true)
-                        || event.inspection_coverage_complete != Some(true)
-                        || event.wear_within_limit != Some(true)
-                        || event.uncertainty_clears_margin != Some(true)
-                        || event
+                    let evidence_valid = event.calibration_valid == Some(true)
+                        && event.measurement_in_range == Some(true)
+                        && event.inspection_coverage_complete == Some(true)
+                        && event.uncertainty_clears_margin == Some(true)
+                        && event
                             .raw_artifact_sha256
                             .as_deref()
-                            .is_none_or(|value| !valid_digest(value))
-                    {
+                            .is_some_and(valid_digest);
+                    if !evidence_valid {
                         return Decision::new(
                             ReplayStatus::Indeterminate,
                             "inspection_evidence_incomplete_or_invalid",
                             cycle_count,
                             duplicate_count,
                         );
+                    }
+                    if event.wear_within_limit == Some(false) {
+                        status = ReplayStatus::Withdrawn;
+                        reason = "wear_exceeds_declared_limit";
+                    } else if event.wear_within_limit != Some(true) {
+                        return Decision::new(
+                            ReplayStatus::Indeterminate,
+                            "inspection_wear_observation_missing",
+                            cycle_count,
+                            duplicate_count,
+                        );
                     } else if status == ReplayStatus::Qualified {
-                        last_inspection_tick = event.event_tick;
-                        reason = "inspection_evidence_admitted";
+                        let inspection_due =
+                            last_inspection_tick.saturating_add(inspection_interval);
+                        let event_earliest = event
+                            .event_tick
+                            .saturating_sub(event.time_uncertainty_ticks);
+                        let event_latest = event
+                            .event_tick
+                            .saturating_add(event.time_uncertainty_ticks);
+                        if event_earliest > inspection_due {
+                            status = ReplayStatus::RequalificationRequired;
+                            reason = "inspection_after_interval_requires_requalification";
+                        } else if event_latest > inspection_due {
+                            return Decision::new(
+                                ReplayStatus::Indeterminate,
+                                "inspection_time_uncertainty_crosses_interval",
+                                cycle_count,
+                                duplicate_count,
+                            );
+                        } else {
+                            last_inspection_tick = event.event_tick;
+                            reason = "inspection_evidence_admitted";
+                        }
                     }
                 }
                 EventKind::MaintenancePerformed => {
@@ -585,19 +665,36 @@ fn decide(case: &EventCase) -> Decision {
                         duplicate_count,
                     );
                 }
-                EventKind::EnvironmentExposure => match event.environment_within_envelope {
-                    Some(false) => {
-                        status = ReplayStatus::RequalificationRequired;
-                        reason = "environment_exceeds_qualified_envelope";
-                    }
-                    Some(true) => reason = "environment_within_declared_envelope",
-                    None => {
+                EventKind::EnvironmentExposure => {
+                    let evidence_valid = event.calibration_valid == Some(true)
+                        && event.measurement_in_range == Some(true)
+                        && event.uncertainty_clears_margin == Some(true)
+                        && event
+                            .raw_artifact_sha256
+                            .as_deref()
+                            .is_some_and(valid_digest);
+                    if !evidence_valid {
                         return Decision::new(
                             ReplayStatus::Indeterminate,
-                            "environment_observation_missing",
+                            "environment_evidence_incomplete_or_invalid",
                             cycle_count,
                             duplicate_count,
                         );
+                    }
+                    match event.environment_within_envelope {
+                        Some(false) => {
+                            status = ReplayStatus::RequalificationRequired;
+                            reason = "environment_exceeds_qualified_envelope";
+                        }
+                        Some(true) => reason = "environment_within_declared_envelope",
+                        None => {
+                            return Decision::new(
+                                ReplayStatus::Indeterminate,
+                                "environment_observation_missing",
+                                cycle_count,
+                                duplicate_count,
+                            );
+                        }
                     }
                 },
             }
