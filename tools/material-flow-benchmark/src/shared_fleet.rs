@@ -17,9 +17,18 @@ pub const SHARED_FLEET_PROBABILITY_BPS: u32 = 10_000;
 pub const MAX_SHARED_REGIONS: usize = 3;
 pub const MAX_SHARED_PERIODS: usize = 6;
 pub const MAX_SHARED_SCENARIOS: usize = 8;
+pub const MAX_SHARED_STRESS_SCENARIOS: usize = 8;
 pub const MAX_SHARED_POLICY_NODES: usize = 10;
 pub const MAX_SHARED_POLICY_COUNT: u64 = 1_048_576;
 pub const SHARED_CVAR_TAIL_PROBABILITY_BPS: u32 = 1_000;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SharedFleetStressScenario {
+    /// Stress scenarios have no probability weight by design.
+    pub scenario_id: String,
+    pub periods: Vec<SharedFleetPeriod>,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -108,7 +117,10 @@ pub struct SharedFleetInput {
     pub aircraft_idle_cost_per_period: u64,
     pub regions: Vec<SharedFleetRegion>,
     pub reposition_links: Vec<SharedRepositionLink>,
+    /// Probabilistic scenarios; probabilities must sum to 10,000 basis points.
     pub scenarios: Vec<SharedFleetScenario>,
+    /// Unweighted adversarial/stress trajectories; excluded from expectation and CVaR.
+    pub stress_scenarios: Vec<SharedFleetStressScenario>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -120,6 +132,22 @@ struct SharedDecisionKey {
 #[derive(Debug, Clone)]
 struct SharedDecisionNode {
     key: SharedDecisionKey,
+}
+
+trait SharedFleetScenarioPath {
+    fn periods(&self) -> &[SharedFleetPeriod];
+}
+
+impl SharedFleetScenarioPath for SharedFleetScenario {
+    fn periods(&self) -> &[SharedFleetPeriod] {
+        &self.periods
+    }
+}
+
+impl SharedFleetScenarioPath for SharedFleetStressScenario {
+    fn periods(&self) -> &[SharedFleetPeriod] {
+        &self.periods
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -165,6 +193,8 @@ pub struct SharedFleetOutcome {
     pub worst_case_total_cost_units: u64,
     pub cvar90_unserved_units: u64,
     pub worst_case_unserved_units: u64,
+    pub worst_stress_case_total_cost_units: Option<u64>,
+    pub worst_stress_case_unserved_units: Option<u64>,
     pub expected_road_deliveries: u64,
     pub expected_aerial_deliveries: u64,
     pub expected_unserved_units: u64,
@@ -202,6 +232,7 @@ pub struct SharedFleetReport {
     pub region_count: usize,
     pub period_count: usize,
     pub scenario_count: usize,
+    pub stress_scenario_count: usize,
     pub nonanticipative_policy_node_count: usize,
     pub exact_policy_count_evaluated: u64,
     /// Policy minimizing expected total cost.
