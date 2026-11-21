@@ -454,8 +454,11 @@ impl<const D: usize> PhysicsWorld<D> {
     /// The supplied callback's `modulate_force` method is invoked during
     /// preflight; any external interior side effects in that callback cannot
     /// be rolled back. After successful integration commit, later CCD/contact/
-    /// constraint/sleep phases retain the ordinary step semantics. This is an
-    /// integration-phase transaction, not a whole-world rollback guarantee.
+    /// constraint/sleep phases retain ordinary step semantics. `Ok(())` means
+    /// preflight succeeded and the ordinary step path returned; it does not
+    /// prove constraint solvers reported success or independently qualify the
+    /// physical result. This is an integration-phase transaction, not a full
+    /// world-step rollback or physics certificate.
     pub fn try_step_with_callback(
         &mut self,
         dt: f64,
