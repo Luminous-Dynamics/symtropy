@@ -100,7 +100,52 @@ A 2024 ion-wind DBD study used a time-resolved 2D plasma-fluid model (nonPDPSIM)
 
 The realistic competitive objective is not to claim that a small Rust tool has more plasma physics than COMSOL. It is to build a more transparent, reproducible and solver-neutral **qualification and decision layer**: exact equation cohorts, data lineage, held-out geometry/session tests, conservation audits, complete cost accounting, and abstention when the solver or data are outside scope. Raw solver accuracy and runtime must still be measured head-to-head.
 
-## 5. Paradigm shifts
+## 5. First pinned discharge-validation case: Merlino2D wire–cylinder I–V
+
+A concrete first run is already present upstream, including the experimental CSV that the project's plotting script compares against.
+
+**Upstream pin:** `PTL-Unibo/Merlino2D` commit `08f70dbeba5c9a8cccacbd21f5511896110581f8`, GPL-3.0.
+
+Source files are individually pinned in the JSON atlas:
+- `cases/CoronaWireCylinder_i.m` — model input.
+- `geo/WireCyl_50u_5m_30m.geo` — electrode/domain geometry.
+- `data/Experimental_Results_50u_5m_30m.csv` — ten I–V comparator points.
+- `cases/CoronaWireCylinder_plot.m` — published upstream comparison/scaling.
+- `kinetic/s_Parent.m`, `data/Te_Air.csv`, `+src/+run/M2DInit.m` — chemistry, electron-temperature lookup and solver initialization.
+
+### Model identity and declared conditions
+
+- 2D Cartesian cross-section; upper half-domain is represented.
+- Wire emitter radius 50 µm; cylindrical collector radius 5 mm.
+- Geometry's `DISTANCE` parameter is 30 mm from emitter centreline to the near collector surface. Because the emitter has a 50 µm radius, the derived metal-surface clearance is 29.95 mm. The upstream README describes the spacing as 30 mm; preserve both rather than silently conflating them.
+- Domain dimensions in the mesh source: 100 mm width × 30 mm height.
+- Air composition in the input: 0.7884 N₂ / 0.2116 O₂.
+- Pressure 101,325 Pa and temperature 300 K are inherited from the pinned solver defaults; the case input does not override them.
+- The case input sets a 7→21 kV staircase ramp in 2 kV increments, an external circuit resistance of 0.001 Ω, Parent chemistry, the `Te_Air` electron-temperature lookup and IDAS.
+- The case does not configure photoionization.
+- The external circuit current is integrated in the model. The upstream plotting script multiplies model current by two to reconstruct the symmetric full-domain current, while experimental CSV current is converted from mA to µA. This factor-of-two must be kept explicit and independently justified from the half-domain geometry.
+
+### Repository-supplied experiment comparator
+
+The ten source CSV points run from 10.9952 kV / 41.509 µA to 20.0219 kV / 404.528 µA. They are stored in the atlas in original voltage-kV/current-mA units, with a derived µA view.
+
+The Merlino2D plot script links the CSV to Kiousis, Moronis & Fruh (2014), *Electro-Hydrodynamic (EHD) Thrust Analysis in Wire-Cylinder Electrode Arrangement*, Plasma Science and Technology 16(4), 363–369, DOI 10.1088/1009-0630/16/4/11. The paper metadata confirms a DC wire-cylinder EHD study and a measured thrust/current relationship. However, the CSV-to-primary-paper raw-data lineage has not yet been independently reconstructed from the full article or original acquisition. The atlas therefore labels the points as **repository-supplied experimental CSV linked by the upstream plot script**, not independently authenticated raw acquisition.
+
+A descriptive linear fit to the ten CSV rows gives approximately (I_{\mu A}=-430.10+39.80 V_{kV}), (R^2=0.961). This is only a compact description of these ten points; it is not a physical law or an independent validation result.
+
+### Exact first-run procedure to qualify
+
+Run only in an appropriately equipped, qualified laboratory/software environment. This is a solver reproduction, not physical high-voltage operation:
+1. Pin the upstream Merlino2D commit and confirm the GPL-3.0 license is acceptable for the intended use.
+2. Record MATLAB version (IDAS path requires the native wrapper documented from R2024a), Gmsh version/path and whether any generated mesh artifact is reused.
+3. Run the exact `CoronaWireCylinder_i.m` input unchanged and retain complete solver output/statistics.
+4. Reproduce the upstream I–V plot, including the factor-of-two model-current scaling, and verify all ten comparator inputs.
+5. Perform independent mesh-size and DAE-tolerance sweeps; report I–V curve changes, mesh cells, accepted/rejected IDAS steps and runtime.
+6. Only after the exact baseline is reproduced, change one variable (geometry, pressure or transport model) in a new, separately identified cohort.
+
+**Critical claim boundary:** this first case validates the discharge/current path only. It does not validate thrust, neutral-gas flow, force, total electrical efficiency, flight behaviour, or the EHD momentum-transfer closure. A later thrust comparison needs a separately qualified neutral-flow model and physical force measurement.
+
+## 6. Paradigm shifts
 
 ### A. Co-design field geometry and aerodynamic drag
 
@@ -139,7 +184,7 @@ Use within-cohort matched experiments, not a universal leaderboard:
 
 A valid SOTA claim is a matched, held-out, replicated improvement on a declared service metric—not a cross-paper comparison between different maxima.
 
-## 7. Benchmarks and go/no-go gates
+## 8. Benchmarks and go/no-go gates
 
 **Prospective targets, not achieved results.**
 
@@ -158,7 +203,7 @@ A valid SOTA claim is a matched, held-out, replicated improvement on a declared 
 
 High thrust density must not compensate for bad T/P, poor flight drag, breakdown instability, emissions, or incomplete mass/power boundaries.
 
-## 8. Immediate implementation sequence
+## 9. Immediate implementation sequence
 
 1. Audit the JSON atlas against public Zenodo preview values.
 2. Build a Rust offline cohort/normalization auditor with negative controls for mixed units, power/mass boundaries, gases, pressures and figure-vs-raw-data evidence.
@@ -169,7 +214,7 @@ High thrust density must not compensate for bad T/P, poor flight drag, breakdown
 7. Use Symthaea's existing UAP-OED/OLI owners to choose physical follow-up actions across the grid/auxiliary-electrode operating envelope.
 8. Only then optimize geometry and control.
 
-## 9. Claim ceiling
+## 10. Claim ceiling
 
 This atlas is source transcription and benchmark design. The data have not been independently reproduced by Luminous; Merlino2D has not been run in this workspace. No new Rust solver, complete EHD twin, physical experiment, new physical interaction, antigravity effect, vacuum thrust, engineering superiority, certification or independent SOTA result is claimed.
 
@@ -226,7 +271,7 @@ Proposed targets, not achieved results:
 
 This benchmark is intentionally kept separate from bare-thruster T/A and T/P comparisons. A high T/W based on thruster or collector mass alone is not an integrated aircraft result.
 
-## 11. Offline audit command
+## 12. Offline audit command
 
 The branch now includes a small Rust workspace member that checks the atlas schema, metric-unit ontology, source IDs, figure row counts, evidence-class boundaries, configuration-specific extrema, mass/power boundaries, and specialist-solver scope. It has mutation tests for common comparison errors.
 
