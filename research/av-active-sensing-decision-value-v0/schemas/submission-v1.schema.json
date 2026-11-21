@@ -134,29 +134,6 @@
               "minLength": 1
             }
           },
-          "resource_usage": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "audio_bytes",
-              "video_frames",
-              "energy_joules"
-            ],
-            "properties": {
-              "audio_bytes": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "video_frames": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "energy_joules": {
-                "type": "number",
-                "minimum": 0
-              }
-            }
-          },
           "claimed_independent_corroboration": {
             "type": "boolean"
           }
