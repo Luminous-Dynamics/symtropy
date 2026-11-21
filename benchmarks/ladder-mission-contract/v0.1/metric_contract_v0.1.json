@@ -1,0 +1,50 @@
+{
+  "schema_version": "0.1.0",
+  "official_fields_to_preserve": [
+    "suite",
+    "task",
+    "success",
+    "subgoals_completed",
+    "steps"
+  ],
+  "official_scores_to_reproduce": [
+    "per_suite_task_success",
+    "pooled_overall",
+    "unweighted_suite_mean",
+    "wilson_95_interval",
+    "subgoal_progress",
+    "by_horizon",
+    "by_category"
+  ],
+  "symtropy_extensions_separate": [
+    "accepted_subgoal_evidence_coverage",
+    "false_completion_rate",
+    "recovery_success_given_fault",
+    "retry_count",
+    "reset_count",
+    "collision_count",
+    "drop_count",
+    "energy_wh_at_declared_boundary",
+    "thermal_cooldown_time_s",
+    "wall_clock_mission_time_s",
+    "api_cost_usd",
+    "gpu_simulator_cost_usd",
+    "physical_robot_energy_wh"
+  ],
+  "hard_rules": [
+    "Do not alter official task success definition.",
+    "Do not combine LADDER-Lite and full benchmark results.",
+    "Do not combine privileged and non-privileged scores.",
+    "Do not omit failed episodes or select best reruns.",
+    "Do not use per-task prompts/settings.",
+    "Set tuned_on_ladder=true when system components or thresholds were tuned on benchmark tasks/scenes.",
+    "Physical robot runs and simulator runs are reported separately.",
+    "Luminous evidence extensions never substitute for LADDER's official episode log."
+  ],
+  "target_gate": {
+    "reproduce_official_baseline_before_claiming_comparison": true,
+    "require_full_task_coverage_for_full_benchmark_claim": true,
+    "require_default_episode_counts_for_leaderboard_claim": true,
+    "require_independent_rerun_for_verified_claim": true
+  }
+}
