@@ -848,7 +848,6 @@ struct PolicyEvaluation {
 
 fn evaluate_mask(
     input: &SharedFleetInput,
-    nodes: &[SharedDecisionNode],
     indices: &BTreeMap<SharedDecisionKey, usize>,
     mask: u64,
     aircraft_enabled: bool,
@@ -874,7 +873,7 @@ fn upper_tail_cvar90(scenario_costs: &[(u128, u16)]) -> Result<u128, String> {
         return Err("CVaR requires at least one scenario".into());
     }
     let mut ordered = scenario_costs.to_vec();
-    ordered.sort_by(|left, right| right.0.cmp(&left.0));
+    ordered.sort_by_key(|entry| std::cmp::Reverse(entry.0));
     let mut remaining = SHARED_CVAR_TAIL_PROBABILITY_BPS;
     let mut weighted_tail_cost = 0_u128;
     for (cost, probability_bps) in ordered {
@@ -1022,7 +1021,7 @@ pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetRepo
     let mut best_worst_case_mask = 0_u64;
     let mut best_service_robust_mask = 0_u64;
     let mut best_expected =
-        evaluate_mask(&canonical, &nodes, &indices, 0, true).map_err(|error| vec![error])?;
+        evaluate_mask(&canonical, &indices, 0, true).map_err(|error| vec![error])?;
     let mut best_cvar90 = best_expected.clone();
     let mut best_worst_case = best_expected.clone();
     let mut best_service_robust = best_expected.clone();
