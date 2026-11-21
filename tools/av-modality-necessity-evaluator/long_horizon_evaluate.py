@@ -234,6 +234,10 @@ def _score_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
     fp = sum(row["citation_fp"] for row in rows)
     fn = sum(row["citation_fn"] for row in rows)
     provenance = sum(row["provenance_complete"] for row in rows)
+    evidence_qualified = sum(
+        row["answer_correct"] and row["provenance_complete"] and row["evidence_compliant"]
+        for row in rows
+    )
     compliant = sum(row["evidence_compliant"] for row in rows)
     false_memory = sum(row["false_memory"] for row in rows)
     violations = sum(len(row["violations"]) for row in rows)
@@ -250,6 +254,8 @@ def _score_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "citation_recall": ratio(tp, tp + fn),
         "provenance_complete_count": provenance,
         "provenance_complete_rate": ratio(provenance, count),
+        "evidence_qualified_answer_correct_count": evidence_qualified,
+        "evidence_qualified_answer_accuracy": ratio(evidence_qualified, count),
         "evidence_compliant_count": compliant,
         "evidence_compliance_rate": ratio(compliant, count),
         "false_memory_count": false_memory,
@@ -497,6 +503,7 @@ def evaluate(
             "citation_precision": citation_precision,
             "citation_recall": citation_recall,
             "provenance_complete": bool(provenance_complete),
+            "evidence_qualified_answer_correct": bool(answer_correct and provenance_complete and not violations),
             "evidence_compliant": not violations,
             "violations": sorted(set(violations)),
             "false_memory": bool(false_memory),
