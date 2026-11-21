@@ -85,8 +85,10 @@ fn parse_arguments() -> Result<Option<Arguments>, String> {
     let root = root.ok_or_else(|| format!("--root is required\n{}", usage()))?;
     let dataset_revision =
         revision.ok_or_else(|| format!("--dataset-revision is required\n{}", usage()))?;
-    if dataset_revision.trim().is_empty() {
-        return Err("--dataset-revision must not be empty".to_owned());
+    if dataset_revision.len() != 40
+        || !dataset_revision.bytes().all(|byte| byte.is_ascii_hexdigit())
+    {
+        return Err("--dataset-revision must be an immutable 40-character hexadecimal commit".to_owned());
     }
 
     Ok(Some(Arguments {
@@ -569,6 +571,9 @@ fn run(arguments: Arguments) -> Result<bool, String> {
         .map_err(|error| format!("cannot resolve root directory: {error}"))?;
     if !root.is_dir() {
         return Err("--root must identify a directory".to_owned());
+    }
+    if root.file_name() != Some(OsStr::new("rigid")) {
+        return Err("--root must be the GAUGE data/rigid subtree".to_owned());
     }
 
     let (paths, issues) = sorted_json_files(&root);
