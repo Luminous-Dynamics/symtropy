@@ -1764,6 +1764,86 @@ mod tests {
     }
 
     #[test]
+    fn sparse_hub_and_spoke_network_supports_two_step_repositioning() {
+        let mut test = input();
+        test.regions.push(SharedFleetRegion {
+            region_id: "transfer-yard".into(),
+            road_capacity_units: 2,
+            aerial_service_capacity_units: 0,
+            road_cost_per_unit: 8,
+            aerial_cost_per_unit: 0,
+            unserved_penalty_per_unit: 100,
+        });
+        for scenario in &mut test.scenarios {
+            for period in &mut scenario.periods {
+                period.observations.push(SharedFleetObservation {
+                    region_id: "transfer-yard".into(),
+                    demand_units: 0,
+                    weather: WeatherState::ClearFresh,
+                    weather_evidence_reference: format!(
+                        "synthetic://weather/{}/transfer-yard",
+                        scenario.scenario_id
+                    ),
+                    permission: PermissionState::ApprovedFresh,
+                    permission_evidence_reference: format!(
+                        "synthetic://permission/{}/transfer-yard",
+                        scenario.scenario_id
+                    ),
+                });
+            }
+        }
+        test.reposition_links = vec![
+            SharedRepositionLink {
+                from_region_id: "urban".into(),
+                to_region_id: "transfer-yard".into(),
+                travel_periods: 1,
+                energy_units: 4,
+                cost_units: 1,
+                evidence_status: SharedEvidenceStatus::FreshInDomain,
+                evidence_reference: "synthetic://reposition/urban-transfer-yard".into(),
+            },
+            SharedRepositionLink {
+                from_region_id: "transfer-yard".into(),
+                to_region_id: "rural".into(),
+                travel_periods: 1,
+                energy_units: 4,
+                cost_units: 1,
+                evidence_status: SharedEvidenceStatus::FreshInDomain,
+                evidence_reference: "synthetic://reposition/transfer-yard-rural".into(),
+            },
+        ];
+        let canonical = canonicalize(&test);
+        let (nodes, indices) = build_decision_nodes(&canonical).expect("three-region policy tree");
+        let radix = canonical.regions.len() as u64 + 1;
+        let mut mask = 0_u64;
+        for (node_index, node) in nodes.iter().enumerate() {
+            let target = match node.key.period_index {
+                0 => "transfer-yard",
+                1 | 2 => "rural",
+                _ => unreachable!("three-period fixture"),
+            };
+            let action = canonical.regions.iter()
+                .position(|region| region.region_id == target)
+                .expect("target region exists") as u64;
+            mask = mask
+                .checked_add(action * radix.pow(node_index as u32))
+                .expect("policy mask fits v0.1 search budget");
+        }
+        let metrics = simulate_scenario(
+            &canonical,
+            &canonical.scenarios[0],
+            &indices,
+            mask,
+            true,
+        )
+        .expect("two-hop policy");
+        assert_eq!(metrics.repositioning_events, 2);
+        assert_eq!(metrics.repositioning_periods, 2);
+        assert_eq!(metrics.reposition_energy_units, 8);
+        assert!(metrics.aerial_deliveries > 0);
+    }
+
+    #[test]
     fn region_without_aerial_capacity_is_valid_ground_only_region() {
         let mut test = input();
         test.regions[1].aerial_service_capacity_units = 0;
