@@ -48,6 +48,7 @@ struct AuditReport {
     evidence_state_counts: BTreeMap<String, usize>,
     ic_measured_full_width_length_mm: f64,
     ic_inferred_full_width_length_mm: f64,
+    ic_measured_unqualified_full_width_length_mm: f64,
     ic_explicitly_unmeasured_full_width_length_mm: f64,
     ic_measured_full_width_coverage_fraction: f64,
     ic_not_directly_measured_length_mm: f64,
@@ -463,6 +464,7 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
     let mut state_counts = BTreeMap::<String, usize>::new();
     let mut ic_measured = Vec::<Interval>::new();
     let mut ic_inferred = Vec::<Interval>::new();
+    let mut ic_measured_unqualified = Vec::<Interval>::new();
     let mut ic_unmeasured = Vec::<Interval>::new();
 
     for (index, observation) in observation_values.iter().enumerate() {
@@ -561,17 +563,6 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
             }
         }
 
-        let fully_width_covered = (width_start - 0.0).abs() <= f64::EPSILON
-            && (width_end - reel.width_mm).abs() <= f64::EPSILON;
-        if property == "ic" && fully_width_covered {
-            match state.as_str() {
-                "measured" => ic_measured.push(footprint_interval),
-                "inferred" => ic_inferred.push(footprint_interval),
-                "unmeasured" => ic_unmeasured.push(footprint_interval),
-                _ => {}
-            }
-        }
-
         match state.as_str() {
             "measured" | "inferred" => {
                 if !object(observation, &path)?.contains_key("value") {
@@ -608,6 +599,32 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
                 }
             }
             _ => unreachable!(),
+        }
+
+        // Missing or invalid calibration never contributes to qualified coverage.
+        // Keep the observation, but account for its length separately.
+        let fully_width_covered = (width_start - 0.0).abs() <= f64::EPSILON
+            && (width_end - reel.width_mm).abs() <= f64::EPSILON;
+        if property == "ic" && fully_width_covered {
+            match state.as_str() {
+                "measured" => {
+                    let calibration_valid = object(
+                        field(observation, "measurement_system", &path)?,
+                        &format!("{path}.measurement_system"),
+                    )?
+                    .get("calibration_valid_at_measurement")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false);
+                    if calibration_valid {
+                        ic_measured.push(footprint_interval);
+                    } else {
+                        ic_measured_unqualified.push(footprint_interval);
+                    }
+                }
+                "inferred" => ic_inferred.push(footprint_interval),
+                "unmeasured" => ic_unmeasured.push(footprint_interval),
+                _ => {}
+            }
         }
 
         let source = field(observation, "source", &path)?;
@@ -667,6 +684,7 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
 
     let measured_length = interval_union_length(ic_measured);
     let inferred_length = interval_union_length(ic_inferred);
+    let unqualified_measured_length = interval_union_length(ic_measured_unqualified);
     let explicit_unmeasured_length = interval_union_length(ic_unmeasured);
     let coverage_fraction = (measured_length / reel.total_length_mm).clamp(0.0, 1.0);
     let not_directly_measured = (reel.total_length_mm - measured_length).max(0.0);
@@ -677,6 +695,7 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
         evidence_state_counts: state_counts,
         ic_measured_full_width_length_mm: measured_length,
         ic_inferred_full_width_length_mm: inferred_length,
+        ic_measured_unqualified_full_width_length_mm: unqualified_measured_length,
         ic_explicitly_unmeasured_full_width_length_mm: explicit_unmeasured_length,
         ic_measured_full_width_coverage_fraction: coverage_fraction,
         ic_not_directly_measured_length_mm: not_directly_measured,
@@ -694,6 +713,7 @@ fn report_value(report: AuditReport) -> Value {
         "critical_current_coverage": {
             "measured_full_width_length_mm": report.ic_measured_full_width_length_mm,
             "inferred_full_width_length_mm": report.ic_inferred_full_width_length_mm,
+            "measured_unqualified_full_width_length_mm": report.ic_measured_unqualified_full_width_length_mm,
             "explicitly_unmeasured_full_width_length_mm": report.ic_explicitly_unmeasured_full_width_length_mm,
             "measured_full_width_coverage_fraction": report.ic_measured_full_width_coverage_fraction,
             "not_directly_measured_length_mm": report.ic_not_directly_measured_length_mm
@@ -813,6 +833,27 @@ mod tests {
         let first_id = value["observations"][0]["observation_id"].clone();
         value["observations"][1]["observation_id"] = first_id;
         assert!(validate_document(&value).unwrap_err().contains("duplicate observation_id"));
+    }
+
+    #[test]
+    fn missing_calibration_status_does_not_count_as_qualified_coverage() {
+        let mut value = fixture();
+        value["observations"][0]["measurement_system"]
+            .as_object_mut()
+            .expect("measurement system object")
+            .remove("calibration_valid_at_measurement");
+        let report = validate_document(&value).expect("record remains inspectable");
+        assert_eq!(report.ic_measured_full_width_length_mm, 0.0);
+        assert_eq!(report.ic_measured_unqualified_full_width_length_mm, 400.0);
+    }
+
+    #[test]
+    fn invalid_calibration_does_not_count_as_qualified_coverage() {
+        let mut value = fixture();
+        value["observations"][0]["measurement_system"]["calibration_valid_at_measurement"] = json!(false);
+        let report = validate_document(&value).expect("record remains inspectable");
+        assert_eq!(report.ic_measured_full_width_length_mm, 0.0);
+        assert_eq!(report.ic_measured_unqualified_full_width_length_mm, 400.0);
     }
 
     #[test]
