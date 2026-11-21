@@ -1,0 +1,25 @@
+name: Physical State Feedback Contract
+
+on:
+  pull_request:
+    paths:
+      - 'research/physical-state-feedback-contract/v0.1/**'
+      - '.github/workflows/physical-state-feedback-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/physical-state-feedback-contract/v0.1/Cargo.toml -- --check
+      - name: Run contract tests
+        run: cargo test --manifest-path research/physical-state-feedback-contract/v0.1/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/physical-state-feedback-contract/v0.1/Cargo.toml --all-targets --locked -- -D warnings
