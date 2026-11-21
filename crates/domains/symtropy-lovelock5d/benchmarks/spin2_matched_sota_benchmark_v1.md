@@ -10,13 +10,12 @@ r_H=1,\qquad \Omega_H=0.33,\qquad \alpha\in[0,3],
 \]
 as well as additional parameter examples. Reproduce the paper's conventions, branch, boundary conditions, and definition of residual before comparing results.
 
-Required cases:
+Required cases (the paper-specific secondary point is omitted until its exact convention is frozen from the final source):
 
 | Case | Parameters | Purpose |
 |---|---|---|
 | MP-0 | \(\alpha=0\) | Exact equal-spin Myers–Perry control |
 | EGB-sweep | \(r_H=1,\ \Omega_H=0.33,\ \alpha\in\{0.1,0.7,2,3\}\) | Matched discovery/refinement sequence |
-| EGB-extra | \(\alpha=2,\ \Omega_H=0.68\), with the paper's horizon normalization | Secondary matched point |
 | Static-BD | \(\Omega_H=0\), Einstein branch | Exact Boulware–Deser control |
 | Spin-2 | \(\lambda\in\{0.1,0.7,3,10\}\) | Slow-rotation perturbative BVP target |
 
