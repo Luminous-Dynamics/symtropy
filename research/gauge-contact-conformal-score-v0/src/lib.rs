@@ -771,6 +771,42 @@ mod tests {
     }
 
     #[test]
+    fn block_rejects_mixed_model_domain_or_score_definition_identities() {
+        let mut trial = score_complete_trial(
+            "trial-01",
+            EpisodeOutcome::Completed,
+            &expected(),
+            &samples(),
+            normalization(),
+            score_identity(),
+        )
+        .unwrap();
+        trial.identity.model_digest = "9999999999999999999999999999999999999999999999999999999999999999".to_owned();
+        assert_eq!(
+            build_calibration_block("session-01", &[trial], &block_identity()),
+            Err(PoseScoreError::MixedBlockIdentity)
+        );
+    }
+
+    #[test]
+    fn block_receipt_preserves_raw_and_forecast_digests() {
+        let trial = score_complete_trial(
+            "trial-01",
+            EpisodeOutcome::Completed,
+            &expected(),
+            &samples(),
+            normalization(),
+            score_identity(),
+        )
+        .unwrap();
+        let receipt = build_calibration_block("session-01", &[trial], &block_identity()).unwrap();
+        assert_eq!(receipt.trial_score_records.len(), 1);
+        assert_eq!(receipt.trial_score_records[0].identity.raw_trial_sha256, RAW_DIGEST);
+        assert_eq!(receipt.trial_score_records[0].identity.prediction_sha256, FORECAST_DIGEST);
+        assert_eq!(receipt.trial_score_records[0].identity.dataset_revision, DATASET_REVISION);
+    }
+
+    #[test]
     fn sentinel_threshold_becomes_unbounded_pose_set() {
         let receipt = CalibrationReceipt {
             model_digest: MODEL_DIGEST.to_owned(),
