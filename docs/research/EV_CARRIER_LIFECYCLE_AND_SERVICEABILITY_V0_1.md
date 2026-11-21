@@ -221,6 +221,39 @@ Wang et al., *Drones* 10(8), 627 (17 August 2026), DOI [10.3390/drones10080627](
 
 These are benchmark requirements, not evidence that a battery model, cell dataset, aircraft pack, or physical qualification campaign already exists in this repository.
 
+## Battery service network extension (November 2026)
+
+The module lifecycle screen must distinguish **a pack's serviceability** from **the network's ability to provide a qualified pack at the needed place and time**. This separation is now tracked by [BATTERY-SERVICE-NETWORK-001 #6674](https://github.com/Luminous-Dynamics/symtropy/issues/6674).
+
+The new owner composes the v0.1 lifecycle output with finite, serialized battery inventory, charger/rack queues, fixed exchange points, mobile battery-service units, grid import limits, crew slots and weather/demand scenarios. It consumes lifecycle task evidence from this issue; it must not recreate inspection/repair events or infer that a pack is available merely because a replacement path is cheaper.
+
+### New research baselines
+
+- Xu et al., *Transportation Research Part D* 158 (September 2026), Article 105458, DOI [10.1016/j.trd.2026.105458](https://doi.org/10.1016/j.trd.2026.105458), model a closed-loop mobile battery swapping and charging network. Their three-level stochastic formulation jointly sizes the service network, allocates mobile swapping vehicles and jurisdictions, and allocates batteries and charging racks under demand/service/charging uncertainty.
+- Xu et al., *Transportation Research Part C* (November 2026), Article 105855, DOI [10.1016/j.trc.2026.105855](https://doi.org/10.1016/j.trc.2026.105855), model a fixed/mobile swapping network and inventory with data-driven distributionally robust optimization, worst-case mean-CVaR and a joint chance constraint. Their abstract highlights that near-absolute reliability has a nonlinear infrastructure cost premium and that a flexible-only asset-light network may fail under extreme demand shocks.
+- Ai et al., *Transportation Research Part E* 214 (October 2026), Article 104897, DOI [10.1016/j.tre.2026.104897](https://doi.org/10.1016/j.tre.2026.104897), integrate charging/swap locations, battery inventory and grid constraints.
+
+These are road-EV infrastructure papers, not direct evidence about a UAV battery network. They supply optimization structures and failure modes to reproduce, not performance improvements that can be imported into our system.
+
+### Product and operating references
+
+- DJI's 14 October 2026 Dock 4 announcement claims a fully automatic 25-second battery swap for the Matrice 5TD and contrasts this with a 30-minute recharge. This is a manufacturer-announced **swap mechanism time**, not a measured end-to-end dock-to-ready distribution. A comparable physical test must freeze the exact start/end timestamps and include configuration, access, connection validation and launch readiness separately. Source: [DJI Dock 4 release](https://www.dji.com/media-center/announcements/dji-release-dock-4).
+- NIO reported an average three-minute battery swap and 100 million cumulative swaps on 6 February 2026, with 3,790 stations at that date and centralized battery-health monitoring. These are company-reported road-EV network figures, not direct UAV benchmarks. Source: [NIO 100-million-swap announcement](https://www.nio.io/news/20260206001).
+- Gogoro's 11 November 2026 Q3 results filed with the SEC report 684,000 subscribers, $37.1 million quarterly battery-swap service revenue and 24.4% gross margin. This demonstrates that subscription utilization and pack-service economics matter alongside physical swap time. These are company-reported ePTW results. Source: [Gogoro Q3 2026 SEC filing](https://www.sec.gov/Archives/edgar/data/1886190/000188619026000034/q32026earningsrelease.htm).
+
+Do not compare the 25-second aircraft swap time, three-minute car swap time and ePTW network scale as if they were the same metric. Keep pack size, machine class, time boundary, site, service staffing and reliability denominator explicit.
+
+### Lifecycle adapter contract
+
+- This issue reports task-level safe isolation, inspection, removal, repair/replacement, reinstallation, post-test and sign-off burden.
+- #6674 consumes these observations to model time-indexed pack states: installed, reserved, depleted, charging, cooling/balancing, inspection, quarantined, in repair, in transit, available or retired.
+- A swap transaction does not make the removed pack immediately available. It becomes depleted/inspection/cooling/charging/quarantine according to confirmed events and evidence.
+- An unconfirmed swap outcome requires reconciliation of physical custody and pack state before a second mutation. A timeout is not a completed swap.
+- Network inventory cannot make an unqualified pack eligible; #6083 independently evaluates mission capability and permission.
+- Simple repair, replacement, repurposing and remanufacturing remain distinct interventions. Passport status/lineage remains with Mycelix #6062/#6076 and must follow the finished-battery category/date rule.
+
+The network target is lower wait and stockout risk at a lower full-lifecycle cost while preserving hard safety/evidence gates—not maximum swap count or maximum charger utilization.
+
 ## Non-claims
 
 The current fixture does not establish real module failures, warranty cost, maintenance intervals, technician rates, factory cost, reliability, fleet availability, vehicle homologation, airworthiness, battery/fire safety, regulatory compliance or commercial TCO.
