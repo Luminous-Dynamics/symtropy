@@ -85,11 +85,13 @@
         },
         "sequence": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 9007199254740991
         },
         "time_ticks": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 9007199254740991
         },
         "payload_sha256": {
           "$ref": "#/$defs/sha256"
@@ -116,7 +118,8 @@
         },
         "time_ticks": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 9007199254740991
         },
         "payload_sha256": {
           "$ref": "#/$defs/sha256"
@@ -225,35 +228,40 @@
                 "integer",
                 "null"
               ],
-              "minimum": 0
+              "minimum": 0,
+              "maximum": 9007199254740991
             },
             "dropped_event_count": {
               "type": [
                 "integer",
                 "null"
               ],
-              "minimum": 0
+              "minimum": 0,
+              "maximum": 9007199254740991
             },
             "dropped_packet_count": {
               "type": [
                 "integer",
                 "null"
               ],
-              "minimum": 0
+              "minimum": 0,
+              "maximum": 9007199254740991
             },
             "reset_count": {
               "type": [
                 "integer",
                 "null"
               ],
-              "minimum": 0
+              "minimum": 0,
+              "maximum": 9007199254740991
             },
             "sequence_gap_count": {
               "type": [
                 "integer",
                 "null"
               ],
-              "minimum": 0
+              "minimum": 0,
+              "maximum": 9007199254740991
             },
             "counter_artifact_sha256": {
               "$ref": "#/$defs/sha256"
@@ -302,11 +310,13 @@
                 "integer",
                 "null"
               ],
-              "minimum": 0
+              "minimum": 0,
+              "maximum": 9007199254740991
             },
             "allowed_max_error_ticks": {
               "type": "integer",
-              "minimum": 0
+              "minimum": 0,
+              "maximum": 9007199254740991
             },
             "synchronization_artifact_sha256": {
               "$ref": "#/$defs/sha256"
