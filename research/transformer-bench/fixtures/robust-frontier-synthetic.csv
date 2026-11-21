@@ -1,0 +1,6 @@
+candidate_id,profile_id,currency_code,price_year,price_basis,carbon_boundary_id,lifecycle_cost_lower,lifecycle_cost_upper,no_load_loss_w_lower,no_load_loss_w_upper,load_loss_w_lower,load_loss_w_upper,max_hotspot_temp_c_lower,max_hotspot_temp_c_upper,mass_kg_lower,mass_kg_upper,embodied_carbon_kgco2e_lower,embodied_carbon_kgco2e_upper
+A,SA-MUNI-11KV-50HZ,ZAR,2026,REAL,CRADLE-TO-GATE-V1,990,1010,990,1010,4900,5100,89,91,495,505,1990,2010
+B,SA-MUNI-11KV-50HZ,ZAR,2026,REAL,CRADLE-TO-GATE-V1,1190,1210,690,710,3900,4100,84,86,515,525,2080,2120
+C,SA-MUNI-11KV-50HZ,ZAR,2026,REAL,CRADLE-TO-GATE-V1,1490,1510,1190,1210,5900,6100,99,101,595,605,2190,2210
+D,SA-MUNI-11KV-50HZ,ZAR,2026,REAL,CRADLE-TO-GATE-V1,950,1150,950,1150,4800,5400,88,92,480,520,1900,2100
+E,SA-MUNI-11KV-50HZ,ZAR,2026,REAL,CRADLE-TO-GATE-V1,1140,1160,890,910,4600,4800,81,83,475,485,1890,1910

@@ -1,0 +1,67 @@
+{
+  "schema_version": "1.0.0",
+  "profile_id": "us-doe-distribution-transformer-draft",
+  "status": "DRAFT",
+  "jurisdiction": {
+    "country_code": "US",
+    "region_name": "United States",
+    "subdivision_code": null,
+    "local_timezone": null
+  },
+  "owner": {
+    "owner_type": "REGULATOR",
+    "name": "U.S. Department of Energy; utility or procuring owner must be supplied for a real project",
+    "asset_or_tender_reference": null
+  },
+  "applicability": {
+    "transformer_classes": [
+      "U.S. DOE distribution-transformer product scope; verify exclusions in 10 CFR 431.192"
+    ],
+    "technologies": [
+      "LIQUID_IMMERSED",
+      "DRY_TYPE"
+    ],
+    "frequency_hz": [
+      60
+    ],
+    "voltage_scope_v": "DOE distribution-transformer definition cited on its page uses input <= 34.5 kV and output <= 600 V for covered products; check exclusions and exact rule text.",
+    "rated_power_scope_va": "DOE page describes 10-2500 kVA liquid-immersed and 15-2500 kVA dry-type classes; verify exact definitions and exclusions.",
+    "environmental_conditions": [],
+    "excluded_cases": [
+      "Autotransformers, regulating/special-impedance types and other exclusions need exact regulatory review."
+    ]
+  },
+  "documents": [
+    {
+      "document_id": "US-DOE-DT",
+      "title": "U.S. DOE Distribution Transformers standards and technical scope page",
+      "authority": "U.S. Department of Energy",
+      "canonical_url": "https://www.energy.gov/cmei/buildings/distribution-transformers",
+      "edition": "DOE final rule published April 22, 2024; confirm exact CFR text and amendments",
+      "publication_date": "2024-04-22",
+      "effective_from": "2029-04-23",
+      "checked_at": "2026-10-29",
+      "verification_status": "UNVERIFIED",
+      "source_sha256": null,
+      "applicability_notes": "DOE states compliance with the amended standards is required beginning April 23, 2029. This profile still requires exact CFR scope, exclusions, rating and test-convention review."
+    }
+  ],
+  "loss_evaluation": {
+    "method_id": "US_DOE_DISTRIBUTION_EFFICIENCY_TO_BE_VERIFIED",
+    "load_point_convention": "Check exact rule tables and definitions; do not substitute the EU loss-table or PEI method.",
+    "reference_conditions": "Bind the correct U.S. test standard and reference temperature/conditions to the individual unit.",
+    "notes": "Regulatory efficiency compliance and lifetime-cost optimization are separate analyses."
+  },
+  "economic_basis": {
+    "currency_code": "USD",
+    "price_basis": "UNKNOWN",
+    "price_year": null,
+    "fx_policy": "Keep U.S. tender values in declared USD price year; bind tax and real/nominal basis before lifecycle comparisons."
+  },
+  "reviewers": [],
+  "limitations": [
+    "DRAFT: not a DOE compliance determination.",
+    "The DOE product definition includes exclusions; the high-level page is not sufficient for final product classification.",
+    "The U.S. 60 Hz product scope must not be transferred to a 50 Hz domain without an independently applicable specification."
+  ]
+}

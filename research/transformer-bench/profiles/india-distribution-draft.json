@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.0.0",
+  "profile_id": "india-bis-bee-distribution-draft",
+  "status": "DRAFT",
+  "jurisdiction": {
+    "country_code": "IN",
+    "region_name": "India",
+    "subdivision_code": null,
+    "local_timezone": null
+  },
+  "owner": {
+    "owner_type": "REGULATOR",
+    "name": "Bureau of Indian Standards / Bureau of Energy Efficiency; owner/utility requirements must also be supplied",
+    "asset_or_tender_reference": null
+  },
+  "applicability": {
+    "transformer_classes": [
+      "Distribution transformer; exact IS 1180 part, rating, and regulatory scope to be verified"
+    ],
+    "technologies": [
+      "LIQUID_IMMERSED",
+      "DRY_TYPE"
+    ],
+    "frequency_hz": [
+      50
+    ],
+    "voltage_scope_v": "Confirm applicable IS 1180 part and rating-specific voltage class.",
+    "rated_power_scope_va": "Confirm current standard ratings, phase, capacity range and exemptions.",
+    "environmental_conditions": [],
+    "excluded_cases": [
+      "Do not infer current star-rating or procurement requirements from historical summaries alone."
+    ]
+  },
+  "documents": [
+    {
+      "document_id": "IN-BIS-IS1180",
+      "title": "BIS publication containing distribution-transformer ratings and energy-loss context",
+      "authority": "Bureau of Indian Standards (BIS)",
+      "canonical_url": "https://www.bis.gov.in/wp-content/uploads/2025/03/news_2024-10-24_11.pdf",
+      "edition": "Publication is a source lead; current applicable IS 1180 edition/amendments require verification",
+      "publication_date": null,
+      "effective_from": null,
+      "checked_at": "2026-10-29",
+      "verification_status": "UNVERIFIED",
+      "source_sha256": null,
+      "applicability_notes": "Source discusses IS 1180 losses at different loading points and BEE levels. Verify current normative standard, amendments, mandatory labeling, and product scope from official current documents."
+    },
+    {
+      "document_id": "IN-BEE-HIST",
+      "title": "IndiaCode entry describing star-labelled distribution-transformer requirements",
+      "authority": "IndiaCode mirror; verify against the current Gazette/BEE source",
+      "canonical_url": "https://indiacode.ecourtsindia.com/rules/specification-of-energy-consumption-standards-for-star-labelled-e284ff7e/",
+      "edition": "Historical entry; current status not verified",
+      "publication_date": null,
+      "effective_from": null,
+      "checked_at": "2026-10-29",
+      "verification_status": "UNVERIFIED",
+      "source_sha256": null,
+      "applicability_notes": "Do not treat this mirror as proof of current legal requirements; obtain current primary regulation and applicable IS 1180 edition."
+    }
+  ],
+  "loss_evaluation": {
+    "method_id": "IN_IS1180_LOSS_CONVENTION_TO_BE_VERIFIED",
+    "load_point_convention": "Confirm whether the applicable class evaluates total loss at specified 50% or 100% loading and exact limits.",
+    "reference_conditions": "Pin current IS 2026/IS 1180 test methods, measurement uncertainty and reference temperature.",
+    "notes": "A star-rating category, procurement specification and lifecycle optimization criterion are not interchangeable."
+  },
+  "economic_basis": {
+    "currency_code": "INR",
+    "price_basis": "UNKNOWN",
+    "price_year": null,
+    "fx_policy": "Keep INR price year and tariff basis explicit; do not convert to another region without dated FX and inflation assumptions."
+  },
+  "reviewers": [],
+  "limitations": [
+    "DRAFT: not a BIS/BEE compliance determination.",
+    "Primary current editions/amendments and mandatory regulatory applicability must be verified.",
+    "Do not treat a secondary or historical summary as the current normative source."
+  ]
+}

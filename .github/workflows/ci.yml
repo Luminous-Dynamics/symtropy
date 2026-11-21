@@ -57,6 +57,9 @@ jobs:
     - name: Check Formatting
       run: cargo fmt --all -- --check
 
+    - name: Test standalone transformer research harness
+      run: cargo test --manifest-path research/transformer-bench/Cargo.toml --locked
+
     # Repo-invariant guards. These scripts existed since at least June but were
     # wired into nothing, so both of them silently failed against the tree for
     # weeks: check-workspace.sh still asserted `Bevy 0.18.1` (the workspace has

@@ -1,0 +1,2 @@
+calibration_id,instrument_id,calibration_class,valid_from_utc,valid_to_utc,status,certificate_artifact_id,certificate_sha256
+CAL-DIM-01,DIM-01,LENGTH_GAUGE,2025-01-01T00:00:00Z,2025-12-31T23:59:59Z,EXPIRED,CERT-DIM-01,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb

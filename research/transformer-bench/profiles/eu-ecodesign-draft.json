@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.0.0",
+  "profile_id": "eu-power-transformer-ecodesign-draft",
+  "status": "DRAFT",
+  "jurisdiction": {
+    "country_code": "EU",
+    "region_name": "European Union",
+    "subdivision_code": null,
+    "local_timezone": null
+  },
+  "owner": {
+    "owner_type": "REGULATOR",
+    "name": "European Commission / applicable EU market requirements",
+    "asset_or_tender_reference": null
+  },
+  "applicability": {
+    "transformer_classes": [
+      "Power transformers within Regulation (EU) 548/2014 scope"
+    ],
+    "technologies": [
+      "LIQUID_IMMERSED",
+      "DRY_TYPE"
+    ],
+    "frequency_hz": [
+      50
+    ],
+    "voltage_scope_v": "Requires classification against the consolidated applicable regulation and product type.",
+    "rated_power_scope_va": "Regulation page states scope from 1 kVA for covered transformer classes; exemptions and class-specific limits require review.",
+    "environmental_conditions": [],
+    "excluded_cases": [
+      "Regulatory exemptions must be checked per exact product and installation."
+    ]
+  },
+  "documents": [
+    {
+      "document_id": "EU-548-2014",
+      "title": "Commission Regulation (EU) No 548/2014 on ecodesign requirements for power transformers",
+      "authority": "European Commission / EUR-Lex",
+      "canonical_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=celex%3A32014R0548",
+      "edition": "2014 base regulation; check consolidated text",
+      "publication_date": "2014-05-21",
+      "effective_from": null,
+      "checked_at": "2026-10-29",
+      "verification_status": "UNVERIFIED",
+      "source_sha256": null,
+      "applicability_notes": "Draft source pointer only; check Regulation (EU) 2019/1783 amendments, consolidated legal text, product scope, exemptions and market-surveillance guidance."
+    },
+    {
+      "document_id": "EU-2019-1783",
+      "title": "Commission Regulation (EU) 2019/1783 amending Regulation (EU) No 548/2014",
+      "authority": "European Commission / EUR-Lex",
+      "canonical_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32019R1783",
+      "edition": "2019 amending regulation",
+      "publication_date": "2019-10-01",
+      "effective_from": null,
+      "checked_at": "2026-10-29",
+      "verification_status": "UNVERIFIED",
+      "source_sha256": null,
+      "applicability_notes": "Confirm the consolidated in-force text, any subsequent legal updates, product tier, applicability date and exemptions before use."
+    }
+  ],
+  "loss_evaluation": {
+    "method_id": "EU_ECODESIGN_LOSS_OR_PEI_TO_BE_VERIFIED",
+    "load_point_convention": "Depends on transformer class and applicable annex: verify loss table or peak-efficiency-index method.",
+    "reference_conditions": "Must be bound to the applicable IEC/EN test standard and product-specific rating.",
+    "notes": "No legal compliance conclusion is made by this draft profile."
+  },
+  "economic_basis": {
+    "currency_code": "EUR",
+    "price_basis": "UNKNOWN",
+    "price_year": null,
+    "fx_policy": "Use local tender currency and an explicit real/nominal price basis; no cross-currency conversion is implemented."
+  },
+  "reviewers": [],
+  "limitations": [
+    "DRAFT: not a compliance determination.",
+    "Current consolidated legal text, exact applicability and exemptions are not independently verified.",
+    "A regional profile must never be selected automatically as the least restrictive profile."
+  ]
+}

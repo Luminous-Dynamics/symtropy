@@ -1,0 +1,5 @@
+scenario_id,weight,period_start_utc,period_end_utc,source_timezone,interval_id,start_utc,end_utc,current_pu_mean,mean_square_current_pu2,price_per_kwh,currency_code,price_year,price_basis
+typical_demo,0.7,2025-01-01T00:00:00Z,2026-01-01T00:00:00Z,Africa/Johannesburg,off_peak,2025-01-01T00:00:00Z,2025-10-01T18:00:00Z,0.25,0.0625,3.00,ZAR,2026,REAL
+typical_demo,0.7,2025-01-01T00:00:00Z,2026-01-01T00:00:00Z,Africa/Johannesburg,peak,2025-10-01T18:00:00Z,2026-01-01T00:00:00Z,0.80,0.6400,4.00,ZAR,2026,REAL
+stress_demo,0.3,2025-01-01T00:00:00Z,2026-01-01T00:00:00Z,Africa/Johannesburg,first_half,2025-01-01T00:00:00Z,2025-07-02T12:00:00Z,0.35,0.1225,3.20,ZAR,2026,REAL
+stress_demo,0.3,2025-01-01T00:00:00Z,2026-01-01T00:00:00Z,Africa/Johannesburg,second_half,2025-07-02T12:00:00Z,2026-01-01T00:00:00Z,1.05,1.1025,4.20,ZAR,2026,REAL

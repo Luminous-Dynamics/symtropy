@@ -1,0 +1,10 @@
+candidate_id,geometry_family,material_id,frequency_hz,excitation_class,reference_core_loss_w,predicted_core_loss_w,prediction_lower_w,prediction_upper_w,model_fea_queries
+s50_a,core_family_A,GOES_M5,50,SINUSOIDAL,100,101,96,106,8
+s50_b,core_family_B,GOES_M5,50,SINUSOIDAL,120,118,114,124,8
+s50_c,core_family_C,GOES_M5,50,SINUSOIDAL,140,145,138,150,8
+s60_a,core_family_A,GOES_M5,60,SINUSOIDAL,130,132,125,138,8
+s60_b,core_family_B,GOES_M5,60,SINUSOIDAL,155,153,148,160,8
+s60_c,core_family_C,GOES_M5,60,SINUSOIDAL,180,184,176,190,8
+s50d_a,core_family_A,GOES_M5,50,DISTORTED,125,127,119,134,8
+s50d_b,core_family_B,GOES_M5,50,DISTORTED,150,148,142,156,8
+s50d_c,core_family_C,GOES_M5,50,DISTORTED,185,190,180,200,8
