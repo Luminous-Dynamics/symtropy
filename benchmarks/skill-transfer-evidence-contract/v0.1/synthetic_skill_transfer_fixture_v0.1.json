@@ -1,0 +1,145 @@
+{
+  "schema_version": "0.1.0",
+  "claim_scope": "Illustrative schema fixture only. No task outcome or robot evaluation is asserted.",
+  "records": [
+    {
+      "schema_version": "0.1.0",
+      "benchmark": {
+        "benchmark_id": "MANIUNIT",
+        "benchmark_commit": "1111111111111111111111111111111111111111",
+        "protocol_digest_hex": "2222222222222222222222222222222222222222222222222222222222222222",
+        "embodiment": "mobile_manipulator",
+        "evaluation_split": "local_skill_example",
+        "simulator_revision": "illustrative",
+        "asset_manifest_digest": "3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "task_activity_id": "activity-001",
+      "episode_id": "episode-local-001",
+      "evaluation_seed": 17,
+      "skill_id": "open-cabinet",
+      "evaluation_mode": "local_restored",
+      "start_state": {
+        "state_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "source": "standardized_restoration",
+        "restored_precondition_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+        "deviation": null
+      },
+      "precondition": {
+        "predicate_id": "cabinet-closed-and-reachable",
+        "verdict": "satisfied",
+        "evidence": {
+          "event_id": "pre-local-1",
+          "content_digest": "6666666666666666666666666666666666666666666666666666666666666666",
+          "source_id": "scene-evaluator",
+          "source_sequence": 1,
+          "observed_at_ms": 1000,
+          "observer_role": "independent_evaluator",
+          "confidence_basis_points": 9900
+        }
+      },
+      "postcondition": {
+        "predicate_id": "cabinet-open",
+        "verdict": "satisfied",
+        "evidence": {
+          "event_id": "post-local-1",
+          "content_digest": "7777777777777777777777777777777777777777777777777777777777777777",
+          "source_id": "scene-evaluator",
+          "source_sequence": 2,
+          "observed_at_ms": 2000,
+          "observer_role": "independent_evaluator",
+          "confidence_basis_points": 9950
+        }
+      },
+      "skill_outcome": "success",
+      "attempts": 1,
+      "retries": 0,
+      "wall_clock_duration_ms": 3200,
+      "energy_wh": null,
+      "predecessor_transition_id": null
+    },
+    {
+      "schema_version": "0.1.0",
+      "benchmark": {
+        "benchmark_id": "MANIUNIT",
+        "benchmark_commit": "1111111111111111111111111111111111111111",
+        "protocol_digest_hex": "2222222222222222222222222222222222222222222222222222222222222222",
+        "embodiment": "mobile_manipulator",
+        "evaluation_split": "handoff_example",
+        "simulator_revision": "illustrative",
+        "asset_manifest_digest": "3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "task_activity_id": "activity-001",
+      "episode_id": "episode-handoff-001",
+      "evaluation_seed": 17,
+      "skill_id": "place-object-in-cabinet",
+      "predecessor_skill_id": "pick-object",
+      "predecessor_transition_id": "transition-001",
+      "evaluation_mode": "handoff_inherited",
+      "start_state": {
+        "state_digest": "8888888888888888888888888888888888888888888888888888888888888888",
+        "source": "predecessor_terminal_state",
+        "predecessor_terminal_state_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+        "deviation": {
+          "robot_base_translation_mm": [
+            12,
+            -3,
+            0
+          ],
+          "end_effector_translation_mm": [
+            5,
+            2,
+            -1
+          ],
+          "joint_configuration_deviation_mdeg": [
+            180,
+            90,
+            -45
+          ],
+          "gripper_state_deviation_bp": 100,
+          "object_translation_mm": [
+            4,
+            0,
+            2
+          ],
+          "object_rotation_deviation_mdeg": [
+            0,
+            0,
+            50
+          ],
+          "measurement_frame": "benchmark_robot_base_and_object_local"
+        }
+      },
+      "precondition": {
+        "predicate_id": "object-held-and-cabinet-open",
+        "verdict": "satisfied",
+        "evidence": {
+          "event_id": "pre-handoff-1",
+          "content_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_id": "scene-evaluator",
+          "source_sequence": 3,
+          "observed_at_ms": 3000,
+          "observer_role": "independent_evaluator",
+          "confidence_basis_points": 9850
+        }
+      },
+      "postcondition": {
+        "predicate_id": "object-inside-cabinet",
+        "verdict": "ambiguous",
+        "evidence": {
+          "event_id": "post-handoff-1",
+          "content_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_id": "scene-evaluator",
+          "source_sequence": 4,
+          "observed_at_ms": 4000,
+          "observer_role": "independent_evaluator",
+          "confidence_basis_points": 6000
+        }
+      },
+      "skill_outcome": "ambiguous",
+      "attempts": 1,
+      "retries": 0,
+      "wall_clock_duration_ms": 4100,
+      "energy_wh": null
+    }
+  ]
+}

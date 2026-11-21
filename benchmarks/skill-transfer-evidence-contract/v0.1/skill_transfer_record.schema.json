@@ -1,0 +1,487 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/symtropy/skill-transfer-evidence/v0.1",
+  "title": "Skill transfer evaluation evidence record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark",
+    "task_activity_id",
+    "episode_id",
+    "evaluation_seed",
+    "skill_id",
+    "evaluation_mode",
+    "start_state",
+    "precondition",
+    "postcondition",
+    "skill_outcome",
+    "attempts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "benchmark_id",
+        "benchmark_commit",
+        "protocol_digest_hex",
+        "embodiment",
+        "evaluation_split"
+      ],
+      "properties": {
+        "benchmark_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "benchmark_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "protocol_digest_hex": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "embodiment": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evaluation_split": {
+          "type": "string",
+          "minLength": 1
+        },
+        "simulator_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "asset_manifest_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([0-9a-f]{64})?$"
+        }
+      }
+    },
+    "task_activity_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "episode_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evaluation_seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "skill_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "predecessor_skill_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "evaluation_mode": {
+      "enum": [
+        "local_restored",
+        "handoff_inherited"
+      ]
+    },
+    "start_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state_digest",
+        "source"
+      ],
+      "properties": {
+        "state_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source": {
+          "enum": [
+            "standardized_restoration",
+            "predecessor_terminal_state"
+          ]
+        },
+        "restored_precondition_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([0-9a-f]{64})?$"
+        },
+        "predecessor_terminal_state_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([0-9a-f]{64})?$"
+        },
+        "deviation": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "robot_base_translation_mm": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "number"
+              }
+            },
+            "end_effector_translation_mm": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "number"
+              }
+            },
+            "joint_configuration_deviation_mdeg": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "gripper_state_deviation_bp": {
+              "type": "integer"
+            },
+            "object_translation_mm": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "number"
+              }
+            },
+            "object_rotation_deviation_mdeg": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "integer"
+              }
+            },
+            "measurement_frame": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "precondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "predicate_id",
+        "verdict",
+        "evidence"
+      ],
+      "properties": {
+        "predicate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verdict": {
+          "enum": [
+            "satisfied",
+            "not_satisfied",
+            "ambiguous"
+          ]
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "postcondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "predicate_id",
+        "verdict",
+        "evidence"
+      ],
+      "properties": {
+        "predicate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verdict": {
+          "enum": [
+            "satisfied",
+            "not_satisfied",
+            "ambiguous",
+            "not_assessed"
+          ]
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "skill_outcome": {
+      "enum": [
+        "success",
+        "failure",
+        "ambiguous",
+        "not_attempted"
+      ]
+    },
+    "attempts": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "retries": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "wall_clock_duration_ms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "energy_wh": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "predecessor_transition_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "evaluation_mode": {
+            "const": "local_restored"
+          }
+        },
+        "required": [
+          "evaluation_mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "start_state": {
+            "properties": {
+              "source": {
+                "const": "standardized_restoration"
+              },
+              "restored_precondition_digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "not": {
+          "required": [
+            "predecessor_skill_id"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evaluation_mode": {
+            "const": "handoff_inherited"
+          }
+        },
+        "required": [
+          "evaluation_mode"
+        ]
+      },
+      "then": {
+        "required": [
+          "predecessor_skill_id"
+        ],
+        "properties": {
+          "start_state": {
+            "properties": {
+              "source": {
+                "const": "predecessor_terminal_state"
+              },
+              "predecessor_terminal_state_digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          },
+          "predecessor_skill_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "skill_outcome": {
+            "const": "success"
+          }
+        },
+        "required": [
+          "skill_outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "attempts": {
+            "minimum": 1
+          },
+          "precondition": {
+            "properties": {
+              "verdict": {
+                "const": "satisfied"
+              }
+            }
+          },
+          "postcondition": {
+            "properties": {
+              "verdict": {
+                "const": "satisfied"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "skill_outcome": {
+            "const": "not_attempted"
+          }
+        },
+        "required": [
+          "skill_outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "attempts": {
+            "const": 0
+          },
+          "postcondition": {
+            "properties": {
+              "verdict": {
+                "const": "not_assessed"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "precondition": {
+            "properties": {
+              "verdict": {
+                "const": "not_satisfied"
+              }
+            }
+          }
+        },
+        "required": [
+          "precondition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "skill_outcome": {
+            "enum": [
+              "failure",
+              "ambiguous",
+              "not_attempted"
+            ]
+          },
+          "postcondition": {
+            "properties": {
+              "verdict": {
+                "const": "not_assessed"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "content_digest",
+        "source_id",
+        "source_sequence",
+        "observed_at_ms",
+        "observer_role",
+        "confidence_basis_points"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observed_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observer_role": {
+          "enum": [
+            "independent_sensor",
+            "independent_evaluator"
+          ]
+        },
+        "confidence_basis_points": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        }
+      }
+    }
+  }
+}
