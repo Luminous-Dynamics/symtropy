@@ -243,8 +243,8 @@ fn validate_reference_events(events: &[ReferenceEvent]) -> Result<(), String> {
         return Err("reference event count is empty or exceeds the v0.1 limit".to_owned());
     }
     let mut ids = HashSet::with_capacity(events.len());
-    let mut previous_sequence = None;
-    let mut previous_time = None;
+    let mut previous_sequence: Option<u64> = None;
+    let mut previous_time: Option<u64> = None;
     for event in events {
         if event.event_id.trim().is_empty()
             || event.sequence > MAX_SAFE_INTEGER
@@ -401,7 +401,7 @@ fn evaluate_case(case: &CaptureCase) -> Decision {
             || !valid_hex(&observed.payload_sha256, 64)
             || !record_ids.insert(observed.record_id.as_str())
         {
-            let mut decision = blocked(
+            let decision = blocked(
                 Disposition::Disputed,
                 "duplicate_record_identity_or_malformed_observation",
             );
