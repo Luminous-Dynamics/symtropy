@@ -117,3 +117,34 @@ with \(\widehat F_2\) reconstructed algebraically from the analytic \(E_f\) row.
 The independent checks remain the original unscaled four equations on the open exterior, the radial Noether identity, the exact Myers–Perry limit, the first-order angular equation, asymptotic data, and (eventually) cross-gauge observables.
 
 **Claim ceiling:** all four even rows now have analytic horizon-regular representations and exact controls. The full coupled Frobenius recurrence, finite-\(\alpha\) BVP, full-domain interval enclosure, validated continuation, and existence/uniqueness theorem remain open. No Rust, Lean, or CI pass is claimed.
+
+
+### Refined horizon valuations: E_b and E_g
+
+The directional Taylor calculation has now been carried one order further for E_b and one further order for E_g.
+
+For E_b, every coefficient/source and its first two directional derivatives vanish at the horizon. The first nonzero row coefficient is cubic:
+
+\[
+[\mathcal R_b]_{y^3}
+=-\frac{4(\lambda+2)^2}{(\lambda+1)^4}
+\left[
+3(\lambda+1)^2\widehat F_2'(1)
+-2\lambda\widehat H_2(1)
++(\lambda+1)\widehat H_2'(1)
++2(\lambda+2)^2
+\right],
+\]
+
+after imposing the fixed-horizon values \(\widehat B_2(1)=\widehat F_2(1)=0\). The bracket is exactly three times \((\lambda+1)^2\) times the E_f compatibility relation. Thus the first usable E_b horizon equation duplicates the E_f compatibility condition rather than adding a new independent boundary datum. At \(\lambda=0\), the Myers–Perry data \(\widehat F_2'(1)=-2,\widehat H_2(1)=1,\widehat H_2'(1)=-2\) make the bracket exactly zero.
+
+For E_g, the order-y coefficient is
+
+\[
+\frac{4(\lambda+2)}{(\lambda+1)^2}
+(\widehat F_2(1)-\widehat B_2(1)),
+\]
+
+and vanishes under fixed-horizon data. The complete order-y-squared coefficient then cancels identically once the field-jet relations \(\widehat B_2'=\partial_\rho\widehat B_2\) and \(\widehat F_2'=\partial_\rho\widehat F_2\) are used. Hence \(\mathcal R_g=O(y^3)\) under the fixed-horizon expansion. Its cubic coefficient remains to be derived.
+
+These are initial valuations and compatibility relations, not a substitute for the E_g constraint on the open exterior. The first nonzero E_h horizon valuation remains unknown.
