@@ -1,0 +1,15 @@
+[package]
+name = "symtropy-physical-transformation-bench"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Deterministic synthetic benchmark for structural state transitions and material accounting"
+
+# Keep this first research kernel independent of the large Symtropy workspace.
+[workspace]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
