@@ -292,7 +292,8 @@ fn validate_producer(trajectory: &ServiceTrajectoryRecord, errors: &mut Vec<Stri
                     .is_none_or(|hash| !is_lower_hex(hash, 64))
                 || producer.calibration_valid_from_unix_ms.is_none()
                 || producer.calibration_valid_until_unix_ms.is_none()
-                || producer.calibration_valid_from_unix_ms >= producer.calibration_valid_until_unix_ms
+                || producer.calibration_valid_from_unix_ms
+                    >= producer.calibration_valid_until_unix_ms
             {
                 errors.push(
                     "measured service requires an instrument ID and calibration artifact/digest"
@@ -748,7 +749,9 @@ fn validate_common(
                     }
                 }
             } else {
-                errors.push("measured service requires an explicit calibration validity window".to_string());
+                errors.push(
+                    "measured service requires an explicit calibration validity window".to_string(),
+                );
             }
         }
     }
@@ -2191,13 +2194,11 @@ mod tests {
         let case = case();
         let receipt = receipt(&case);
         let mut trajectory = fully_served_trajectory(&case, &receipt);
-        trajectory.producer.calibration_valid_until_unix_ms =
-            Some(1_800_000_000_000);
+        trajectory.producer.calibration_valid_until_unix_ms = Some(1_800_000_000_000);
         assert!(audit_service_trajectory(&trajectory, &receipt, &case).is_err());
 
         let mut trajectory = fully_served_trajectory(&case, &receipt);
-        trajectory.producer.calibration_valid_from_unix_ms =
-            Some(1_800_000_060_000);
+        trajectory.producer.calibration_valid_from_unix_ms = Some(1_800_000_060_000);
         assert!(audit_service_trajectory(&trajectory, &receipt, &case).is_err());
     }
 
