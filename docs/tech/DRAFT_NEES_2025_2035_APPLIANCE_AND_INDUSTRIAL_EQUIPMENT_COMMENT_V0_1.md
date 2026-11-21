@@ -2,7 +2,7 @@
 
 **Status:** consultation draft for internal review; not submitted.  
 **Prepared:** 21 November 2026  
-**Comment deadline:** 30 December 2026 (Government notice GeN 4221).  
+**Comment deadline:** 30 December 2026 at 12:00 (Government public-comment listing for General Notice 4221).  
 **Potential contributor:** Luminous Dynamics, LLC — confirm legal entity name, authority and any contact details before submission.  
 **Scope:** household appliances, industrial equipment, testing infrastructure, measurement and verification, product data and manufacturing capability.
 
