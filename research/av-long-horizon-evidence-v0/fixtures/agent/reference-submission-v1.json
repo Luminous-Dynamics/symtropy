@@ -281,6 +281,54 @@
       ],
       "purge_receipts": [],
       "claimed_distinct_event_count": null
+    },
+    {
+      "episode_id": "lh-012-multisegment-15-source-chain",
+      "decision": "answer",
+      "answer": "ordered_15_span_chain",
+      "confidence": 0.95,
+      "cited_observation_refs": [
+        "obs-chain-01",
+        "obs-chain-02",
+        "obs-chain-03",
+        "obs-chain-04",
+        "obs-chain-05",
+        "obs-chain-06",
+        "obs-chain-07",
+        "obs-chain-08",
+        "obs-chain-09",
+        "obs-chain-10",
+        "obs-chain-11",
+        "obs-chain-12",
+        "obs-chain-13",
+        "obs-chain-14",
+        "obs-chain-15"
+      ],
+      "current_observation_refs": [
+        "obs-chain-01",
+        "obs-chain-02",
+        "obs-chain-03",
+        "obs-chain-04",
+        "obs-chain-05",
+        "obs-chain-06",
+        "obs-chain-07",
+        "obs-chain-08",
+        "obs-chain-09",
+        "obs-chain-10",
+        "obs-chain-11",
+        "obs-chain-12",
+        "obs-chain-13",
+        "obs-chain-14",
+        "obs-chain-15"
+      ],
+      "claimed_independent_corroboration": false,
+      "claimed_cross_clock_order": false,
+      "evidence_as_of_tick": 7200,
+      "response_tick": 7201,
+      "retrieved_memory_item_refs": [],
+      "retained_memory_item_refs": [],
+      "purge_receipts": [],
+      "claimed_distinct_event_count": null
     }
   ]
 }
