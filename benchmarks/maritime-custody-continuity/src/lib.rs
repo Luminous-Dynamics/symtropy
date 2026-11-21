@@ -678,7 +678,10 @@ mod tests {
         (expectations, events)
     }
 
-    fn event_mut<'a>(events: &'a mut [CustodyEvent], source_event_id: &str) -> &'a mut CustodyEvent {
+    fn event_mut<'a>(
+        events: &'a mut [CustodyEvent],
+        source_event_id: &str,
+    ) -> &'a mut CustodyEvent {
         events
             .iter_mut()
             .find(|event| event.source_event_id == source_event_id)
