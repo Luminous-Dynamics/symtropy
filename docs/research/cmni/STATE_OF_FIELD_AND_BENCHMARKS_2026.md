@@ -286,7 +286,9 @@ This addendum supersedes any earlier status wording in this document where it co
 - The logged test steps themselves reported 212/212 passing on Ubuntu, 114/114 on macOS and 142 passing / 1 ignored on Windows. These results do not turn the failed workflow into a passing qualification.
 - Commit `368c39ae7a204071c6bc3a0ab5b5fd436162dc88` applies the formatter's expected changes to those nine files without changing logic, tests or gates.
 - The common-cause oracle documentation and fixture were then committed at `ad1c7aa87e54fbab45cae7031cd7a38a23ec258d`.
-- At the time of this addendum, the three new-head workflow jobs for `ad1c7aa87e54fbab45cae7031cd7a38a23ec258d` were in progress. Their conclusions are therefore **pending**, not green. Clippy, exact-head test, formatting and all-target build qualification must be recorded against a final immutable head before claiming a pass.
+- On `ad1c7aa87e54fbab45cae7031cd7a38a23ec258d`, Ubuntu and macOS completed the workspace formatting and workspace-invariant steps successfully. All three platform jobs were subsequently cancelled before the Clippy and CMNI-specific format/test steps completed; Windows did not complete its formatting step.
+- The status-ledger-only commit that followed is `7da231999b4460a5b7a4a23e2d99e53fc9af4394`. Its comparison against `ad1c7aa87e54fbab45cae7031cd7a38a23ec258d` shows only this Markdown file changed. The latest head has no check-runs, so the branch's exact-head CI qualification remains **pending**.
+- Do not treat cancelled jobs, skipped steps, or earlier test-step successes as an exact-head pass. Clippy, CMNI-specific formatting/tests and an all-target build remain unqualified on the latest head.
 
 The research branch is currently unprotected. A commit on this branch is a public research artifact, not a protected release.
 
