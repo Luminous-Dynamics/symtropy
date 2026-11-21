@@ -1,0 +1,372 @@
+{
+  "schema": "luminous.port_city.grid_interactivity_envelope",
+  "schema_version": "0.1.0",
+  "fixture_id": "port-city-grid-fast-slow-envelope-v0-1",
+  "snapshot_date": "2026-11-19",
+  "evidence_class": "synthetic_contract_and_aliasing_fixture",
+  "claim_ceiling": "Cross-timescale envelope composition and synthetic signal-observability test only. No grid-code, transient stability, protection, inverter, islanding or real-world connection claim.",
+  "owner_contracts": {
+    "symtropy": {
+      "port_power_energy_verifier": "#4582",
+      "compute_flex_and_rebound": "#6211",
+      "grid_forming_islanding": "#3418",
+      "energy_system_contract": "#3400",
+      "shore_connection_readiness": "#4448",
+      "event_trigger": "#6255"
+    },
+    "symthaea": {
+      "vessel_side_transient_and_power_quality": "#11028",
+      "shore_service": "#11572"
+    },
+    "mycelix": {
+      "authority_provenance_and_service_equivalence": "#5974/#6343"
+    },
+    "sol_atlas": {
+      "site_and_source_evidence": "#654/#948"
+    }
+  },
+  "time_hierarchy": {
+    "strategic_connection_and_capacity": "years_to_months",
+    "day_ahead_operations": "hours_to_days",
+    "intraday_replanning": "15_minutes_to_seconds_where_supported",
+    "equipment_and_protection": "equipment_defined_milliseconds_or_faster",
+    "note": "Coordination categories only. Actual control bandwidth, sample rate and protection settings must come from the qualified owner/OEM/grid operator."
+  },
+  "synthetic_waveform": {
+    "waveform_id": "synthetic-pcc-two-second-load-event",
+    "sample_interval_ms": 1,
+    "sample_count": 2000,
+    "duration_seconds": 2,
+    "power_unit": "MW",
+    "baseline_mw": 5,
+    "traces": [
+      {
+        "trace_id": "steady-control",
+        "representation": "piecewise_constant",
+        "segments": [
+          {
+            "start_sample": 0,
+            "end_sample_exclusive": 2000,
+            "start_mw": 5,
+            "end_mw": 5
+          }
+        ],
+        "expected": {
+          "peak_mw": 5,
+          "two_second_energy_mw_seconds": 10,
+          "two_second_average_mw": 5,
+          "embedded_15_minute_average_mw": 5,
+          "maximum_absolute_excursion_mw": 0,
+          "maximum_ramp_mw_per_s": 0
+        }
+      },
+      {
+        "trace_id": "fast-load-event",
+        "representation": "piecewise_linear_between_endpoints",
+        "segments": [
+          {
+            "start_sample": 0,
+            "end_sample_exclusive": 500,
+            "start_mw": 5,
+            "end_mw": 5
+          },
+          {
+            "start_sample": 500,
+            "end_sample_exclusive": 600,
+            "start_mw": 5,
+            "end_mw": 5.8
+          },
+          {
+            "start_sample": 600,
+            "end_sample_exclusive": 1000,
+            "start_mw": 5.8,
+            "end_mw": 5.8
+          },
+          {
+            "start_sample": 1000,
+            "end_sample_exclusive": 1100,
+            "start_mw": 5.8,
+            "end_mw": 5
+          },
+          {
+            "start_sample": 1100,
+            "end_sample_exclusive": 2000,
+            "start_mw": 5,
+            "end_mw": 5
+          }
+        ],
+        "expected": {
+          "peak_mw": 5.8,
+          "two_second_energy_mw_seconds": 10.4,
+          "two_second_average_mw": 5.2,
+          "embedded_15_minute_average_mw": 5.000444444444445,
+          "maximum_absolute_excursion_mw": 0.8,
+          "maximum_ramp_mw_per_s": 8
+        }
+      }
+    ],
+    "synthetic_test_envelope_only": {
+      "max_absolute_excursion_mw": 0.5,
+      "max_ramp_mw_per_s": 5,
+      "purpose": "Demonstrate that average-load equality does not establish transient-envelope equivalence.",
+      "normative_status": "synthetic_test_values_not_grid_code_or_equipment_limits"
+    },
+    "aliasing_calculation": {
+      "baseline_embedded_15_minute_energy_mwh": 1.25,
+      "event_embedded_15_minute_energy_mwh": 1.2501111111111112,
+      "event_extra_energy_kwh": 0.11111111111111112,
+      "average_difference_kw": 0.4444444444444444,
+      "interpretation": "The 0.8 MW peak excursion and 8 MW/s ramp are compressed into a 0.444 kW difference in a 15-minute average; that average cannot qualify fast electrical behavior."
+    }
+  },
+  "connection_envelope_examples": {
+    "firm_import_mw": 5,
+    "conditional_import_mw": 6,
+    "conditional_right": {
+      "right_id": "synthetic-flex-connection-right-01",
+      "owner": "synthetic-grid-operator",
+      "valid_from": "2026-11-19T09:00:00Z",
+      "valid_until": "2026-11-19T10:00:00Z",
+      "maximum_duration_minutes": 15,
+      "maximum_calls_per_day": 2,
+      "response_notice_seconds": 30,
+      "required_reduction_mw": 1,
+      "response_deadline_seconds": 10,
+      "evidence_class": "synthetic",
+      "note": "Illustrative conditional import grant only. Not firm capacity or a real grid agreement."
+    },
+    "rules": [
+      "Conditional import is not firm import.",
+      "A conditional right must be current, exact-resource-bound and authorized.",
+      "The measured response must meet the event's declared response deadline and rebound/service constraints.",
+      "A flexible-load response is demand response, not inverter-based grid support.",
+      "Grid-support or islanding claims require #3418/grid-owner evidence and applicable interconnection tests."
+    ]
+  },
+  "cases": [
+    {
+      "case_id": "steady-control-positive",
+      "category": "Positive",
+      "mutation": "Run steady 5.0 MW waveform with valid configuration and complete 1 ms samples.",
+      "expected_disposition": "PASS_SYNTHETIC_OBSERVABILITY_ONLY"
+    },
+    {
+      "case_id": "same-average-fast-event",
+      "category": "Negative",
+      "mutation": "Compare the steady and fast-event traces only by embedded 15-minute average.",
+      "expected_disposition": "REJECT_TRANSIENT_EQUIVALENCE_CLAIM"
+    },
+    {
+      "case_id": "fast-event-exceeds-synthetic-envelope",
+      "category": "Negative",
+      "mutation": "Evaluate 5.8 MW peak and 8 MW/s ramp against fixture-only 0.5 MW / 5 MW/s event envelope.",
+      "expected_disposition": "REJECT_SYNTHETIC_EVENT_ENVELOPE"
+    },
+    {
+      "case_id": "downsampled-event-erased",
+      "category": "Unknown",
+      "mutation": "Replace 1 ms source trace with 15-minute average only.",
+      "expected_disposition": "DATA_INCOMPLETE_FAST_EVENT_NOT_OBSERVED"
+    },
+    {
+      "case_id": "sample-gap-in-event-window",
+      "category": "Unknown",
+      "mutation": "Remove samples 600–650 during event hold.",
+      "expected_disposition": "DATA_INCOMPLETE"
+    },
+    {
+      "case_id": "clock-uncertainty-exceeds-event-window",
+      "category": "Unknown",
+      "mutation": "Set time alignment uncertainty greater than event edge duration.",
+      "expected_disposition": "TIME_ALIGNMENT_INCOMPLETE"
+    },
+    {
+      "case_id": "conditional-capacity-without-grant",
+      "category": "Negative",
+      "mutation": "Use 5.8 MW import against 5.0 MW firm limit without valid conditional grant.",
+      "expected_disposition": "REJECT_FIRM_CAPACITY_EXCEEDED"
+    },
+    {
+      "case_id": "expired-conditional-grant",
+      "category": "Negative",
+      "mutation": "Use the grant after valid_until.",
+      "expected_disposition": "REJECT_EXPIRED_CAPACITY_RIGHT"
+    },
+    {
+      "case_id": "conditional-response-too-slow",
+      "category": "Negative",
+      "mutation": "Grant requires 1 MW curtailment in 10 seconds but candidate response arrives after 12 seconds.",
+      "expected_disposition": "REJECT_CONDITIONAL_SERVICE_MISS"
+    },
+    {
+      "case_id": "demand-response-mislabeled-grid-support",
+      "category": "Negative",
+      "mutation": "Present compute workload reduction as inverter frequency/voltage support.",
+      "expected_disposition": "REJECT_SERVICE_CATEGORY_MISMATCH"
+    },
+    {
+      "case_id": "grid-support-without-inverter-evidence",
+      "category": "Unknown",
+      "mutation": "Claim voltage/frequency support without exact inverter, grid-owner and #3418 qualification report.",
+      "expected_disposition": "NOT_EVALUABLE_GRID_SUPPORT"
+    },
+    {
+      "case_id": "shore-connection-not-commissioned",
+      "category": "Unknown",
+      "mutation": "A shore-power schedule exists but #4448 commissioning/readiness evidence is absent.",
+      "expected_disposition": "BLOCK_CONNECTION_READINESS_CLAIM"
+    },
+    {
+      "case_id": "local-protection-independent-cloud-loss",
+      "category": "Positive",
+      "mutation": "Remove cloud/optimizer/federation while preserving local protection and operator control.",
+      "expected_disposition": "LOCAL_PROTECTION_REMAINS_INDEPENDENT"
+    },
+    {
+      "case_id": "unknown-electrical-limit",
+      "category": "Unknown",
+      "mutation": "No grid-owner or OEM dynamic limit is supplied for exact configuration.",
+      "expected_disposition": "NOT_EVALUABLE_NO_INVENTED_LIMIT"
+    },
+    {
+      "case_id": "eskom_idr_six_second_response_met",
+      "category": "Positive",
+      "mutation": "Declared contracted 10 MW resource responds fully within 6 seconds and sustains the declared reduction for 10 minutes, with special metering evidence.",
+      "expected_disposition": "PASS_PROGRAM_PROFILE_ONLY"
+    },
+    {
+      "case_id": "eskom_idr_response_late",
+      "category": "Negative",
+      "mutation": "Candidate response completes after 6 seconds for the Eskom IDR profile.",
+      "expected_disposition": "REJECT_IDR_RESPONSE_DEADLINE"
+    },
+    {
+      "case_id": "sawem_instantaneous_reserve_ten_second_response",
+      "category": "Positive",
+      "mutation": "Declared demand-side reserve resource meets the published SAWEM 10-second full-response definition and 10-minute sustain duration, with Trading Unit/registration evidence.",
+      "expected_disposition": "PASS_DRAFT_PROFILE_ONLY_NOT_MARKET_PARTICIPATION"
+    },
+    {
+      "case_id": "six_second_idr_confused_with_sawem_ten_second_definition",
+      "category": "Negative",
+      "mutation": "Treat the Eskom six-second programme and the SAWEM ten-second definition as the same contract/profile.",
+      "expected_disposition": "REJECT_PROGRAM_PROFILE_MISMATCH"
+    },
+    {
+      "case_id": "supplemental_dr_two_hour_sustain_missed",
+      "category": "Negative",
+      "mutation": "A resource meets a 30-minute notice but can sustain only 90 minutes where the programme requires at least two hours.",
+      "expected_disposition": "REJECT_SUPPLEMENTAL_DURATION"
+    },
+    {
+      "case_id": "thirty_minute_meter_used_for_six_second_idr",
+      "category": "Unknown",
+      "mutation": "Use 30-minute interval metering as the sole evidence for a six-second IDR response.",
+      "expected_disposition": "METERING_NOT_EVIDENT_FOR_FAST_PRODUCT"
+    },
+    {
+      "case_id": "port_spare_capacity_claimed_as_flexible_load",
+      "category": "Negative",
+      "mutation": "Promote published pre-feasibility spare substation capacity into contracted, qualified and available demand-response MW.",
+      "expected_disposition": "REJECT_CAPACITY_EVIDENCE_CATEGORY"
+    },
+    {
+      "case_id": "emergency_load_reduction_mislabeled_voluntary_dr",
+      "category": "Negative",
+      "mutation": "Treat mandatory emergency load reduction under NRS 048-9 as a voluntary contracted DR product.",
+      "expected_disposition": "REJECT_AUTHORITY_AND_PRODUCT_CATEGORY"
+    }
+  ],
+  "target_hypotheses": {
+    "zero_fast_envelope_false_passes": true,
+    "zero_firm_vs_conditional_capacity_confusion": true,
+    "zero_demand_response_vs_inverter_support_confusion": true,
+    "zero_event_observability_loss_without_incomplete_disposition": true,
+    "one_hundred_percent_replay_of_identical_synthetic_sample_bytes": true,
+    "caveat": "Synthetic corpus targets only. Not measured performance, grid-code compliance or equipment qualification."
+  },
+  "south_africa_reference_programmes": [
+    {
+      "program_id": "eskom-instantaneous-demand-response",
+      "provider": "Eskom Distribution",
+      "source": "https://www.eskom.co.za/distribution/instantaneous-demand-response-programme/",
+      "evidence_class": "published_programme_description_current_page",
+      "declared_terms": {
+        "minimum_entry_mw": 10,
+        "full_response_deadline_seconds": 6,
+        "minimum_sustain_seconds": 600,
+        "maximum_events_per_day": 3,
+        "scheduling": "scheduled day-ahead; dispatched on day when frequency reaches a preset level",
+        "metering": "special metering requirements",
+        "payment": "standby payment; no energy payment"
+      },
+      "limitations": [
+        "Eligibility, connection, aggregation, telemetry, contractual availability and current procurement must be confirmed directly with Eskom.",
+        "10 MW programme minimum is not inferred from a port's reported spare grid headroom.",
+        "Do not treat the six-second response programme as the same product as the SAWEM instantaneous reserve definition."
+      ]
+    },
+    {
+      "program_id": "sawem-instantaneous-reserve-demand-side",
+      "provider": "NTCSA / SAWEM Market Code",
+      "source": "https://www.ntcsa.co.za/wp-content/uploads/2026/02/Market-Code-v2.3.pdf",
+      "evidence_class": "published_NTCSA_submitted_Market_Code_Rev2_3_under_regulatory_finalization",
+      "declared_terms": {
+        "full_response_deadline_seconds": 10,
+        "minimum_sustain_seconds": 600,
+        "resource_type": "generating capacity or demand-side managed load",
+        "scheduling": "day-ahead reserve category and real-time dispatch framework",
+        "payment": "capacity qualifying and performance adjustment provisions exist in the code",
+        "market_product_activation": "not_verified",
+        "external_participant_eligibility": "not_verified"
+      },
+      "limitations": [
+        "Market Code Rev2.3 publication does not by itself establish that a particular port participant is registered, qualified or currently eligible.",
+        "NERSA's September 2026 regulatory tracker listed the Market Code approval workstream as finalisation with a target completion of 31 October 2026; the tracker snapshot is not evidence of the subsequent final regulatory decision.",
+        "The 10-second definition is distinct from Eskom Distribution's published 6-second IDR product."
+      ],
+      "regulatory_status_as_of_2026_11_19": {
+        "status": "not_established_as_finally_approved_or_open_for_external_participation",
+        "evidence": "NERSA 2025/26 Annual Report (published Oct 2026) states that finalisation of the Market Code and Trading Rules remains work underway.",
+        "source": "https://www.nersa.org.za/files/files/2026/10/NERSAAnnualReportfor2025-26.pdf",
+        "note": "The 10-second/10-minute Instantaneous Reserve wording is present in the published NTCSA Rev2.3 document, but must not be treated as an approved market product or participant eligibility."
+      }
+    },
+    {
+      "program_id": "ntcsa-supplemental-demand-response",
+      "provider": "NTCSA / Eskom programme page",
+      "source": "https://www.ntcsa.co.za/supplemental-demand-response-programme-2/",
+      "evidence_class": "published_programme_description_current_page",
+      "declared_terms": {
+        "notice_period_minutes": [
+          30,
+          360
+        ],
+        "minimum_entry_rule": "max(500 kW, 15% of average plant demand)",
+        "minimum_response_duration_minutes": 120,
+        "maximum_frequency": "once per day under the published description",
+        "metering": "30-minute interval remote metering prerequisite",
+        "payment": "standby payment plus energy payment"
+      },
+      "limitations": [
+        "Participant-specific contracted duration, activation, telemetry, settlement, aggregation and current availability must be confirmed with NTCSA/Eskom.",
+        "A 30-minute interval meter cannot alone demonstrate the separate six-second IDR performance requirement.",
+        "This is a slower supplemental product, not instantaneous reserve."
+      ]
+    },
+    {
+      "program_id": "nrs-048-9-emergency-load-reduction",
+      "provider": "NERSA-approved NRS 048-9 code of practice",
+      "source": "https://www.kaya959.co.za/wp-content/uploads/2024/04/NERSA-Approved-Version-of-NRS-048-9-2023-Edition-3.pdf",
+      "evidence_class": "published_code_of_practice",
+      "declared_terms": {
+        "subject": "emergency load reduction, load shedding, load curtailment and restoration"
+      },
+      "limitations": [
+        "Emergency mandatory load reduction is not the same as a voluntary/contracted demand-response service.",
+        "Emergency instructions and authority remain with the relevant System Operator/utility; a scheduler cannot self-declare or override an emergency."
+      ]
+    }
+  ],
+  "case_count": 22
+}
