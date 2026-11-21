@@ -136,11 +136,11 @@ fn parse_u32(value: &str, name: &str, line: usize) -> Result<u32, String> {
         .map_err(|_| format!("line {line}: {name} must be a non-negative integer, got {value:?}"))
 }
 
-fn split_row<'a>(
-    line: &'a str,
+fn split_row(
+    line: &str,
     expected_fields: usize,
     line_number: usize,
-) -> Result<Vec<&'a str>, String> {
+) -> Result<Vec<&str>, String> {
     let fields: Vec<&str> = line.split(',').map(str::trim).collect();
     if fields.len() != expected_fields {
         return Err(format!(
