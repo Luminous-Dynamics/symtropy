@@ -1180,16 +1180,57 @@ mod tests {
         .expect("synthetic fixture must parse")
     }
 
+    fn profile_at_temperature<'a>(report: &'a AuditReport, temperature_k: f64) -> &'a Value {
+        report
+            .coverage_profiles
+            .iter()
+            .find(|profile| {
+                profile["operating_conditions"]["temperature_k"].as_f64()
+                    == Some(temperature_k)
+            })
+            .expect("condition profile must exist")
+    }
+
     #[test]
     fn synthetic_fixture_reports_coverage_without_promoting_acceptance() {
         let report = validate_document(&fixture()).expect("fixture should validate");
         assert_eq!(report.segment_count, 3);
         assert_eq!(report.observation_count, 4);
-        assert!((report.ic_direct_transport_qualified_length_mm - 400.0).abs() < 1e-9);
-        assert!((report.ic_calibrated_proxy_length_mm - 300.0).abs() < 1e-9);
-        assert!((report.ic_direct_transport_coverage_fraction - 0.4).abs() < 1e-9);
-        assert!((report.ic_explicitly_unmeasured_full_width_length_mm - 300.0).abs() < 1e-9);
-        assert!((report.ic_not_directly_measured_length_mm - 600.0).abs() < 1e-9);
+        assert_eq!(report.coverage_profiles.len(), 1);
+        let profile = profile_at_temperature(&report, 77.0);
+        assert!(
+            (profile["direct_transport_qualified_length_mm"]
+                .as_f64()
+                .expect("direct coverage is numeric")
+                - 400.0)
+                .abs()
+                < 1e-9
+        );
+        assert!(
+            (profile["calibrated_noncontact_proxy_length_mm"]
+                .as_f64()
+                .expect("proxy coverage is numeric")
+                - 300.0)
+                .abs()
+                < 1e-9
+        );
+        assert!(
+            (profile["direct_transport_coverage_fraction"]
+                .as_f64()
+                .expect("coverage fraction is numeric")
+                - 0.4)
+                .abs()
+                < 1e-9
+        );
+        assert!((report.explicitly_unmeasured_spatial_length_mm - 300.0).abs() < 1e-9);
+        assert!(
+            (profile["not_directly_measured_length_mm"]
+                .as_f64()
+                .expect("not-directly-measured length is numeric")
+                - 600.0)
+                .abs()
+                < 1e-9
+        );
         assert_eq!(
             report.acceptance_disposition,
             "NOT_EVALUATED_NO_QUALIFIED_APPLICATION_TEST"
@@ -1202,8 +1243,9 @@ mod tests {
         value["observations"][3]["measurement_system"]["calibration_valid_at_measurement"] =
             json!(false);
         let report = validate_document(&value).expect("record remains inspectable");
-        assert_eq!(report.ic_calibrated_proxy_length_mm, 0.0);
-        assert_eq!(report.ic_proxy_unqualified_length_mm, 300.0);
+        let profile = profile_at_temperature(&report, 77.0);
+        assert_eq!(profile["calibrated_noncontact_proxy_length_mm"], 0.0);
+        assert_eq!(profile["proxy_unqualified_length_mm"], 300.0);
     }
 
     #[test]
@@ -1211,8 +1253,54 @@ mod tests {
         let mut value = fixture();
         value["observations"][0]["measurement_basis"] = json!("noncontact_magnetization_proxy");
         let report = validate_document(&value).expect("record remains inspectable");
-        assert_eq!(report.ic_direct_transport_qualified_length_mm, 0.0);
-        assert_eq!(report.ic_calibrated_proxy_length_mm, 700.0);
+        let profile = profile_at_temperature(&report, 77.0);
+        assert_eq!(profile["direct_transport_qualified_length_mm"], 0.0);
+        assert_eq!(profile["calibrated_noncontact_proxy_length_mm"], 700.0);
+    }
+
+    #[test]
+    fn same_spatial_footprint_at_different_temperatures_is_not_unionable() {
+        let mut value = fixture();
+        let mut second_measurement = value["observations"][0].clone();
+        second_measurement["observation_id"] = json!("SYNTH-OBS-005");
+        second_measurement["conditions"]["temperature_k"] = json!(20.0);
+        second_measurement["source"]["artifact_sha256"] =
+            json!("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        value["observations"]
+            .as_array_mut()
+            .expect("observations is an array")
+            .push(second_measurement);
+        let report = validate_document(&value).expect("condition-separated fixture validates");
+        assert_eq!(report.coverage_profiles.len(), 2);
+        let at_77k = profile_at_temperature(&report, 77.0);
+        let at_20k = profile_at_temperature(&report, 20.0);
+        assert_eq!(at_77k["direct_transport_qualified_length_mm"], 400.0);
+        assert_eq!(at_20k["direct_transport_qualified_length_mm"], 400.0);
+        assert_eq!(at_77k["calibrated_noncontact_proxy_length_mm"], 300.0);
+        assert_eq!(at_20k["calibrated_noncontact_proxy_length_mm"], 0.0);
+    }
+
+    #[test]
+    fn different_current_criteria_produce_distinct_condition_profiles() {
+        let mut value = fixture();
+        value["observations"][0]["conditions"]["current_criterion"] =
+            json!("different current criterion");
+        let report = validate_document(&value).expect("condition-separated fixture validates");
+        assert_eq!(report.coverage_profiles.len(), 2);
+    }
+
+    #[test]
+    fn ic_coverage_requires_temperature_field_orientation_and_criterion() {
+        let mut value = fixture();
+        value["observations"][0]["conditions"]
+            .as_object_mut()
+            .expect("conditions is an object")
+            .remove("field_magnitude_t");
+        assert!(
+            validate_document(&value)
+                .unwrap_err()
+                .contains("requires field_magnitude_t or field_vector_t")
+        );
     }
 
     #[test]
