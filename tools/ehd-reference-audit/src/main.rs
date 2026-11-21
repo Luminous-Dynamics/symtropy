@@ -190,7 +190,7 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
             .and_then(Value::as_array);
 
         let source_points_match = figure3.is_some_and(|rows| {
-            rows.len() == 45
+            rows.len() == 55
                 && rows.first().is_some_and(|row| row_matches(row, &[("gap_mm", 20.0), ("pressure_pa", 100.0), ("ignition_voltage_kv", 7.29)]))
                 && rows.get(44).is_some_and(|row| row_matches(row, &[("gap_mm", 60.0), ("pressure_pa", 20.0), ("ignition_voltage_kv", 5.12)]))
         }) && figure4.is_some_and(|rows| {
@@ -537,7 +537,7 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
         &mut findings,
         records.is_some_and(|rows| rows.len() == 4),
         "FRONTIER_RECORD_COUNT",
-        "frontier cohort must retain four separately qualified source records",
+        "frontier cohort must retain five separately qualified source records",
     );
 
     let mut ids = std::collections::BTreeSet::new();
@@ -652,6 +652,44 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
                 && text_at(row, &["system_boundary"]).is_some_and(|value| value.contains("tethered")),
             "FRONTIER_TAO_BOUNDARY",
             "microrobot one-hour hover must remain tethered and separate from onboard-energy flight",
+        );
+    }
+
+    let shibata = record("shibata-2026-multistage-ducted-optimization");
+    push_if_missing(
+        &mut findings,
+        shibata.is_some(),
+        "FRONTIER_SHIBATA_RECORD",
+        "missing 2026 automated multistage ducted-thruster optimisation comparator",
+    );
+    if let Some(row) = shibata {
+        push_if_missing(
+            &mut findings,
+            number_at(row, &["reported_values", "thrust_per_span_gain_vs_initial_design_approx_factor"]) == Some(6.0)
+                && number_at(row, &["reported_values", "thrust_to_power_ratio_vs_initial_design_approx_factor"]) == Some(0.5)
+                && text_at(row, &["reported_values", "metric_unit_n_per_m"]) == Some("N/m"),
+            "FRONTIER_SHIBATA_METRICS",
+            "Shibata approximate relative gains and per-span N/m unit must remain distinct",
+        );
+        push_if_missing(
+            &mut findings,
+            text_at(row, &["method", "operating_regime"]) == Some("stationary zero-freestream")
+                && number_at(row, &["method", "latent_design_variables"]) == Some(4.0)
+                && number_at(row, &["method", "population_per_generation"]) == Some(7.0)
+                && at(row, &["thrust_estimation", "physical_force_measurement_performed"])
+                    .and_then(Value::as_bool) == Some(false),
+            "FRONTIER_SHIBATA_MODEL_SCOPE",
+            "the 2D stationary optimiser comparator must not be promoted to physical or flight validation",
+        );
+        push_if_missing(
+            &mut findings,
+            at(row, &["thrust_estimation", "excluded"]).and_then(Value::as_array)
+                .is_some_and(|items| items.iter().any(|value| value.as_str()
+                    .is_some_and(|value| value.contains("friction drag on electrodes")))
+                    && items.iter().any(|value| value.as_str()
+                    .is_some_and(|value| value.contains("friction drag on duct")))),
+            "FRONTIER_SHIBATA_DRAG_BOUNDARY",
+            "omitted electrode and duct friction drag must remain explicit",
         );
     }
 
@@ -1244,6 +1282,22 @@ mod tests {
         let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_CONTRACT).unwrap();
         value["acceptance_policy"]["universal_numeric_tolerance"] = Value::from(1e-6);
         assert!(has_code(&audit_exchange_contract(&value), "EXCHANGE_TOLERANCE_POLICY"));
+    }
+
+
+    #[test]
+    fn multistage_optimizer_per_span_metric_cannot_be_relabelled_as_area_density() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
+        value["records"][4]["reported_values"]["metric_unit_n_per_m"] = Value::String("N/m^2".into());
+        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_SHIBATA_METRICS"));
+    }
+
+    #[test]
+    fn multistage_optimizer_is_not_physical_validation() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
+        value["records"][4]["thrust_estimation"]["physical_force_measurement_performed"] =
+            Value::Bool(true);
+        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_SHIBATA_MODEL_SCOPE"));
     }
 
 }
