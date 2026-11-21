@@ -27,7 +27,7 @@ jobs:
       - name: Checkout exact M1 reference
         uses: actions/checkout@v4
         with:
-          ref: 4d4b9b2632648f403145a543ba8ded81e743b73e
+          ref: 9d9b8b223e711d6bc76dd60b9563950ab2a16702
           path: m1-src
       - name: Checkout exact M2 contract
         uses: actions/checkout@v4
