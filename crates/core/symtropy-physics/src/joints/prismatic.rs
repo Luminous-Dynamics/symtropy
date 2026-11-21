@@ -676,6 +676,97 @@ mod tests {
         );
     }
 
+    fn rotate_bivector_3(
+        rotation: &symtropy_math::Rotor<3>,
+        value: &Bivector<3>,
+    ) -> Bivector<3> {
+        let mut rotated = Bivector::<3>::zero();
+        for i in 0..3 {
+            for j in (i + 1)..3 {
+                let mut basis_i = nalgebra::SVector::<f64, 3>::zeros();
+                let mut basis_j = nalgebra::SVector::<f64, 3>::zeros();
+                basis_i[i] = 1.0;
+                basis_j[j] = 1.0;
+                let plane = Bivector::<3>::from_wedge(
+                    &rotation.rotate_vector(&basis_i),
+                    &rotation.rotate_vector(&basis_j),
+                );
+                for row in 0..3 {
+                    for column in (row + 1)..3 {
+                        rotated.set(
+                            row,
+                            column,
+                            rotated.get(row, column)
+                                + value.get(i, j) * plane.get(row, column),
+                        );
+                    }
+                }
+            }
+        }
+        rotated
+    }
+
+    #[test]
+    fn anisotropic_prismatic_lock_is_covariant_under_common_world_rotation() {
+        let matrix_a = vec![4.0, 0.8, 0.0, 0.8, 3.0, 0.35, 0.0, 0.35, 2.0];
+        let matrix_b = vec![2.5, -0.3, 0.1, -0.3, 5.0, 0.6, 0.1, 0.6, 3.5];
+        let mut reference_a = dynamic_with_full_inertia(0, matrix_a.clone());
+        let mut reference_b = dynamic_with_full_inertia(1, matrix_b.clone());
+        reference_a.angular_velocity.set(0, 1, -0.1);
+        reference_a.angular_velocity.set(0, 2, 0.2);
+        reference_a.angular_velocity.set(1, 2, -0.3);
+        reference_b.angular_velocity.set(0, 1, 0.6);
+        reference_b.angular_velocity.set(0, 2, -0.4);
+        reference_b.angular_velocity.set(1, 2, 0.5);
+
+        let mut generator = Bivector::<3>::zero();
+        generator.set(0, 1, 0.31);
+        generator.set(0, 2, -0.47);
+        generator.set(1, 2, 0.22);
+        let global_rotation = symtropy_math::Rotor::from_bivector(&generator);
+
+        let mut rotated_a = dynamic_with_full_inertia(0, matrix_a);
+        let mut rotated_b = dynamic_with_full_inertia(1, matrix_b);
+        for (rotated, reference) in [
+            (&mut rotated_a, &reference_a),
+            (&mut rotated_b, &reference_b),
+        ] {
+            rotated.transform.rotation = global_rotation.compose(&reference.transform.rotation);
+            rotated.angular_velocity =
+                rotate_bivector_3(&global_rotation, &reference.angular_velocity);
+        }
+
+        let mut joint = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0);
+        joint.stiffness = 0.5;
+        let reference_outcome =
+            joint.solve_angular_velocity_lock(&mut reference_a, &mut reference_b);
+        let rotated_outcome =
+            joint.solve_angular_velocity_lock(&mut rotated_a, &mut rotated_b);
+        assert!(matches!(
+            reference_outcome,
+            PrismaticAngularLockOutcome::Applied { .. }
+        ));
+        assert!(matches!(
+            rotated_outcome,
+            PrismaticAngularLockOutcome::Applied { .. }
+        ));
+
+        for (reference, rotated) in [
+            (&reference_a.angular_velocity, &rotated_a.angular_velocity),
+            (&reference_b.angular_velocity, &rotated_b.angular_velocity),
+        ] {
+            let expected = rotate_bivector_3(&global_rotation, reference);
+            for i in 0..3 {
+                for j in (i + 1)..3 {
+                    assert!(
+                        (rotated.get(i, j) - expected.get(i, j)).abs() < 1.0e-9,
+                        "common world rotation changed anisotropic joint response in plane ({i},{j})"
+                    );
+                }
+            }
+        }
+    }
+
     #[test]
     fn ill_conditioned_delassus_rejects_without_mutation() {
         let matrix = vec![
