@@ -457,6 +457,30 @@ mod tests {
     }
 
     #[test]
+    fn incomplete_lineage_coverage_is_not_reported_as_independence() {
+        let result = assemble_joint_experiment_covariance(&[
+            ExperimentNoiseModel {
+                experiment_id: "exp-a".to_owned(),
+                independent_observation_covariance: vec![vec![1.0]],
+                shared_sources: Vec::new(),
+                lineage_coverage_complete: false,
+            },
+            ExperimentNoiseModel {
+                experiment_id: "exp-b".to_owned(),
+                independent_observation_covariance: vec![vec![1.0]],
+                shared_sources: Vec::new(),
+                lineage_coverage_complete: true,
+            },
+        ])
+        .expect("partial-lineage portfolio");
+        assert_eq!(
+            result.covariance,
+            vec![vec![1.0, 0.0], vec![0.0, 1.0]]
+        );
+        assert!(!result.lineage_coverage_complete);
+    }
+
+    #[test]
     fn duplicate_experiment_or_source_ids_are_rejected() {
         let result = assemble_joint_experiment_covariance(&[
             ExperimentNoiseModel {
