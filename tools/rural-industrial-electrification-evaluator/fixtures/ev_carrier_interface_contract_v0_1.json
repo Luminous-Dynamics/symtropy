@@ -1,0 +1,570 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "EV-CARRIER-ICD-001",
+  "vehicle": {
+    "vehicle_configuration_id": "carrier-ref-01-r1",
+    "vehicle_family_id": "EV-CARRIER-REF-01",
+    "vehicle_revision": "R1",
+    "interface_inventory_complete": true,
+    "ports": [
+      {
+        "port_id": "vehicle-hv",
+        "mate_port_id": "module-hv",
+        "family": "high_voltage_dc",
+        "interface_revision": "ICD-001-0.1",
+        "profile_id": "HV-400V-DC-KEY-A",
+        "direction": "provider",
+        "polarity_profile": "DC_POS_NEG",
+        "operating_range": {
+          "unit": "V_DC",
+          "minimum": 350,
+          "maximum": 450
+        },
+        "capacity_limit": {
+          "unit": "kW",
+          "value": 120
+        },
+        "capacity_required": null,
+        "required": true,
+        "evidence": [
+          {
+            "evidence_id": "vehicle-hv-detachable-uav-pod-synthetic",
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://EV-CARRIER-ICD-001/detachable-uav-pod-synthetic/vehicle-hv",
+            "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+            "tested_module_configuration_id": "detachable-uav-pod-synthetic",
+            "interface_revision": "ICD-001-0.1",
+            "acceptance_criteria_id": "ICD-AC-001"
+          },
+          {
+            "evidence_id": "vehicle-hv-integrated-drone-bay-polarity-negative-control",
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://EV-CARRIER-ICD-001/integrated-drone-bay-polarity-negative-control/vehicle-hv",
+            "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+            "tested_module_configuration_id": "integrated-drone-bay-polarity-negative-control",
+            "interface_revision": "ICD-001-0.1",
+            "acceptance_criteria_id": "ICD-AC-001"
+          },
+          {
+            "evidence_id": "vehicle-hv-mobile-drone-trailer-revision-negative-control",
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://EV-CARRIER-ICD-001/mobile-drone-trailer-revision-negative-control/vehicle-hv",
+            "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+            "tested_module_configuration_id": "mobile-drone-trailer-revision-negative-control",
+            "interface_revision": "ICD-001-0.1",
+            "acceptance_criteria_id": "ICD-AC-001"
+          },
+          {
+            "evidence_id": "vehicle-hv-amr-handoff-unqualified",
+            "evidence_class": "unknown",
+            "source_reference": "synthetic://EV-CARRIER-ICD-001/amr-handoff-unqualified/vehicle-hv",
+            "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+            "tested_module_configuration_id": "amr-handoff-unqualified",
+            "interface_revision": "ICD-001-0.1",
+            "acceptance_criteria_id": "ICD-AC-001"
+          }
+        ]
+      },
+      {
+        "port_id": "vehicle-mount",
+        "mate_port_id": "module-mount",
+        "family": "mechanical_structure",
+        "interface_revision": "ICD-001-0.1",
+        "profile_id": "MOUNT-DATUM-A",
+        "direction": "provider",
+        "polarity_profile": null,
+        "operating_range": null,
+        "capacity_limit": {
+          "unit": "kg",
+          "value": 1200
+        },
+        "capacity_required": null,
+        "required": true,
+        "evidence": [
+          {
+            "evidence_id": "vehicle-mount-detachable-uav-pod-synthetic",
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://EV-CARRIER-ICD-001/detachable-uav-pod-synthetic/vehicle-mount",
+            "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+            "tested_module_configuration_id": "detachable-uav-pod-synthetic",
+            "interface_revision": "ICD-001-0.1",
+            "acceptance_criteria_id": "ICD-AC-001"
+          },
+          {
+            "evidence_id": "vehicle-mount-integrated-drone-bay-polarity-negative-control",
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://EV-CARRIER-ICD-001/integrated-drone-bay-polarity-negative-control/vehicle-mount",
+            "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+            "tested_module_configuration_id": "integrated-drone-bay-polarity-negative-control",
+            "interface_revision": "ICD-001-0.1",
+            "acceptance_criteria_id": "ICD-AC-001"
+          },
+          {
+            "evidence_id": "vehicle-mount-mobile-drone-trailer-revision-negative-control",
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://EV-CARRIER-ICD-001/mobile-drone-trailer-revision-negative-control/vehicle-mount",
+            "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+            "tested_module_configuration_id": "mobile-drone-trailer-revision-negative-control",
+            "interface_revision": "ICD-001-0.1",
+            "acceptance_criteria_id": "ICD-AC-001"
+          },
+          {
+            "evidence_id": "vehicle-mount-amr-handoff-unqualified",
+            "evidence_class": "unknown",
+            "source_reference": "synthetic://EV-CARRIER-ICD-001/amr-handoff-unqualified/vehicle-mount",
+            "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+            "tested_module_configuration_id": "amr-handoff-unqualified",
+            "interface_revision": "ICD-001-0.1",
+            "acceptance_criteria_id": "ICD-AC-001"
+          }
+        ]
+      },
+      {
+        "port_id": "vehicle-data",
+        "mate_port_id": "module-data",
+        "family": "data_control",
+        "interface_revision": "ICD-001-0.1",
+        "profile_id": "CAN-FD-ICD-001",
+        "direction": "bidirectional",
+        "polarity_profile": null,
+        "operating_range": null,
+        "capacity_limit": null,
+        "capacity_required": null,
+        "required": true,
+        "evidence": [
+          {
+            "evidence_id": "vehicle-data-detachable-uav-pod-synthetic",
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://EV-CARRIER-ICD-001/detachable-uav-pod-synthetic/vehicle-data",
+            "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+            "tested_module_configuration_id": "detachable-uav-pod-synthetic",
+            "interface_revision": "ICD-001-0.1",
+            "acceptance_criteria_id": "ICD-AC-001"
+          },
+          {
+            "evidence_id": "vehicle-data-integrated-drone-bay-polarity-negative-control",
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://EV-CARRIER-ICD-001/integrated-drone-bay-polarity-negative-control/vehicle-data",
+            "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+            "tested_module_configuration_id": "integrated-drone-bay-polarity-negative-control",
+            "interface_revision": "ICD-001-0.1",
+            "acceptance_criteria_id": "ICD-AC-001"
+          },
+          {
+            "evidence_id": "vehicle-data-mobile-drone-trailer-revision-negative-control",
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://EV-CARRIER-ICD-001/mobile-drone-trailer-revision-negative-control/vehicle-data",
+            "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+            "tested_module_configuration_id": "mobile-drone-trailer-revision-negative-control",
+            "interface_revision": "ICD-001-0.1",
+            "acceptance_criteria_id": "ICD-AC-001"
+          },
+          {
+            "evidence_id": "vehicle-data-amr-handoff-unqualified",
+            "evidence_class": "unknown",
+            "source_reference": "synthetic://EV-CARRIER-ICD-001/amr-handoff-unqualified/vehicle-data",
+            "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+            "tested_module_configuration_id": "amr-handoff-unqualified",
+            "interface_revision": "ICD-001-0.1",
+            "acceptance_criteria_id": "ICD-AC-001"
+          }
+        ]
+      }
+    ]
+  },
+  "modules": [
+    {
+      "module_configuration_id": "detachable-uav-pod-synthetic",
+      "module_family_id": "UAV-POD",
+      "module_revision": "R1",
+      "target_vehicle_family_id": "EV-CARRIER-REF-01",
+      "target_vehicle_revision": "R1",
+      "interface_inventory_complete": true,
+      "ports": [
+        {
+          "port_id": "module-hv",
+          "mate_port_id": "vehicle-hv",
+          "family": "high_voltage_dc",
+          "interface_revision": "ICD-001-0.1",
+          "profile_id": "HV-400V-DC-KEY-A",
+          "direction": "consumer",
+          "polarity_profile": "DC_POS_NEG",
+          "operating_range": {
+            "unit": "V_DC",
+            "minimum": 300,
+            "maximum": 500
+          },
+          "capacity_limit": null,
+          "capacity_required": {
+            "unit": "kW",
+            "value": 60
+          },
+          "required": true,
+          "evidence": [
+            {
+              "evidence_id": "module-hv-detachable-uav-pod-synthetic",
+              "evidence_class": "synthetic",
+              "source_reference": "synthetic://EV-CARRIER-ICD-001/detachable-uav-pod-synthetic/module-hv",
+              "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+              "tested_module_configuration_id": "detachable-uav-pod-synthetic",
+              "interface_revision": "ICD-001-0.1",
+              "acceptance_criteria_id": "ICD-AC-001"
+            }
+          ]
+        },
+        {
+          "port_id": "module-mount",
+          "mate_port_id": "vehicle-mount",
+          "family": "mechanical_structure",
+          "interface_revision": "ICD-001-0.1",
+          "profile_id": "MOUNT-DATUM-A",
+          "direction": "consumer",
+          "polarity_profile": null,
+          "operating_range": null,
+          "capacity_limit": null,
+          "capacity_required": {
+            "unit": "kg",
+            "value": 700
+          },
+          "required": true,
+          "evidence": [
+            {
+              "evidence_id": "module-mount-detachable-uav-pod-synthetic",
+              "evidence_class": "synthetic",
+              "source_reference": "synthetic://EV-CARRIER-ICD-001/detachable-uav-pod-synthetic/module-mount",
+              "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+              "tested_module_configuration_id": "detachable-uav-pod-synthetic",
+              "interface_revision": "ICD-001-0.1",
+              "acceptance_criteria_id": "ICD-AC-001"
+            }
+          ]
+        },
+        {
+          "port_id": "module-data",
+          "mate_port_id": "vehicle-data",
+          "family": "data_control",
+          "interface_revision": "ICD-001-0.1",
+          "profile_id": "CAN-FD-ICD-001",
+          "direction": "bidirectional",
+          "polarity_profile": null,
+          "operating_range": null,
+          "capacity_limit": null,
+          "capacity_required": null,
+          "required": true,
+          "evidence": [
+            {
+              "evidence_id": "module-data-detachable-uav-pod-synthetic",
+              "evidence_class": "synthetic",
+              "source_reference": "synthetic://EV-CARRIER-ICD-001/detachable-uav-pod-synthetic/module-data",
+              "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+              "tested_module_configuration_id": "detachable-uav-pod-synthetic",
+              "interface_revision": "ICD-001-0.1",
+              "acceptance_criteria_id": "ICD-AC-001"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "module_configuration_id": "integrated-drone-bay-polarity-negative-control",
+      "module_family_id": "INTEGRATED-DRONE-BAY",
+      "module_revision": "R1",
+      "target_vehicle_family_id": "EV-CARRIER-REF-01",
+      "target_vehicle_revision": "R1",
+      "interface_inventory_complete": true,
+      "ports": [
+        {
+          "port_id": "module-hv",
+          "mate_port_id": "vehicle-hv",
+          "family": "high_voltage_dc",
+          "interface_revision": "ICD-001-0.1",
+          "profile_id": "HV-400V-DC-KEY-A",
+          "direction": "consumer",
+          "polarity_profile": "DC_NEG_POS",
+          "operating_range": {
+            "unit": "V_DC",
+            "minimum": 300,
+            "maximum": 500
+          },
+          "capacity_limit": null,
+          "capacity_required": {
+            "unit": "kW",
+            "value": 60
+          },
+          "required": true,
+          "evidence": [
+            {
+              "evidence_id": "module-hv-integrated-drone-bay-polarity-negative-control",
+              "evidence_class": "synthetic",
+              "source_reference": "synthetic://EV-CARRIER-ICD-001/integrated-drone-bay-polarity-negative-control/module-hv",
+              "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+              "tested_module_configuration_id": "integrated-drone-bay-polarity-negative-control",
+              "interface_revision": "ICD-001-0.1",
+              "acceptance_criteria_id": "ICD-AC-001"
+            }
+          ]
+        },
+        {
+          "port_id": "module-mount",
+          "mate_port_id": "vehicle-mount",
+          "family": "mechanical_structure",
+          "interface_revision": "ICD-001-0.1",
+          "profile_id": "MOUNT-DATUM-A",
+          "direction": "consumer",
+          "polarity_profile": null,
+          "operating_range": null,
+          "capacity_limit": null,
+          "capacity_required": {
+            "unit": "kg",
+            "value": 700
+          },
+          "required": true,
+          "evidence": [
+            {
+              "evidence_id": "module-mount-integrated-drone-bay-polarity-negative-control",
+              "evidence_class": "synthetic",
+              "source_reference": "synthetic://EV-CARRIER-ICD-001/integrated-drone-bay-polarity-negative-control/module-mount",
+              "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+              "tested_module_configuration_id": "integrated-drone-bay-polarity-negative-control",
+              "interface_revision": "ICD-001-0.1",
+              "acceptance_criteria_id": "ICD-AC-001"
+            }
+          ]
+        },
+        {
+          "port_id": "module-data",
+          "mate_port_id": "vehicle-data",
+          "family": "data_control",
+          "interface_revision": "ICD-001-0.1",
+          "profile_id": "CAN-FD-ICD-001",
+          "direction": "bidirectional",
+          "polarity_profile": null,
+          "operating_range": null,
+          "capacity_limit": null,
+          "capacity_required": null,
+          "required": true,
+          "evidence": [
+            {
+              "evidence_id": "module-data-integrated-drone-bay-polarity-negative-control",
+              "evidence_class": "synthetic",
+              "source_reference": "synthetic://EV-CARRIER-ICD-001/integrated-drone-bay-polarity-negative-control/module-data",
+              "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+              "tested_module_configuration_id": "integrated-drone-bay-polarity-negative-control",
+              "interface_revision": "ICD-001-0.1",
+              "acceptance_criteria_id": "ICD-AC-001"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "module_configuration_id": "mobile-drone-trailer-revision-negative-control",
+      "module_family_id": "MOBILE-DRONE-TRAILER",
+      "module_revision": "R1",
+      "target_vehicle_family_id": "EV-CARRIER-REF-01",
+      "target_vehicle_revision": "R2",
+      "interface_inventory_complete": true,
+      "ports": [
+        {
+          "port_id": "module-hv",
+          "mate_port_id": "vehicle-hv",
+          "family": "high_voltage_dc",
+          "interface_revision": "ICD-001-0.1",
+          "profile_id": "HV-400V-DC-KEY-A",
+          "direction": "consumer",
+          "polarity_profile": "DC_POS_NEG",
+          "operating_range": {
+            "unit": "V_DC",
+            "minimum": 300,
+            "maximum": 500
+          },
+          "capacity_limit": null,
+          "capacity_required": {
+            "unit": "kW",
+            "value": 60
+          },
+          "required": true,
+          "evidence": [
+            {
+              "evidence_id": "module-hv-mobile-drone-trailer-revision-negative-control",
+              "evidence_class": "synthetic",
+              "source_reference": "synthetic://EV-CARRIER-ICD-001/mobile-drone-trailer-revision-negative-control/module-hv",
+              "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+              "tested_module_configuration_id": "mobile-drone-trailer-revision-negative-control",
+              "interface_revision": "ICD-001-0.1",
+              "acceptance_criteria_id": "ICD-AC-001"
+            }
+          ]
+        },
+        {
+          "port_id": "module-mount",
+          "mate_port_id": "vehicle-mount",
+          "family": "mechanical_structure",
+          "interface_revision": "ICD-001-0.1",
+          "profile_id": "MOUNT-DATUM-B",
+          "direction": "consumer",
+          "polarity_profile": null,
+          "operating_range": null,
+          "capacity_limit": null,
+          "capacity_required": {
+            "unit": "kg",
+            "value": 700
+          },
+          "required": true,
+          "evidence": [
+            {
+              "evidence_id": "module-mount-mobile-drone-trailer-revision-negative-control",
+              "evidence_class": "synthetic",
+              "source_reference": "synthetic://EV-CARRIER-ICD-001/mobile-drone-trailer-revision-negative-control/module-mount",
+              "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+              "tested_module_configuration_id": "mobile-drone-trailer-revision-negative-control",
+              "interface_revision": "ICD-001-0.1",
+              "acceptance_criteria_id": "ICD-AC-001"
+            }
+          ]
+        },
+        {
+          "port_id": "module-data",
+          "mate_port_id": "vehicle-data",
+          "family": "data_control",
+          "interface_revision": "ICD-001-0.1",
+          "profile_id": "CAN-FD-ICD-001",
+          "direction": "bidirectional",
+          "polarity_profile": null,
+          "operating_range": null,
+          "capacity_limit": null,
+          "capacity_required": null,
+          "required": true,
+          "evidence": [
+            {
+              "evidence_id": "module-data-mobile-drone-trailer-revision-negative-control",
+              "evidence_class": "synthetic",
+              "source_reference": "synthetic://EV-CARRIER-ICD-001/mobile-drone-trailer-revision-negative-control/module-data",
+              "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+              "tested_module_configuration_id": "mobile-drone-trailer-revision-negative-control",
+              "interface_revision": "ICD-001-0.1",
+              "acceptance_criteria_id": "ICD-AC-001"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "module_configuration_id": "amr-handoff-unqualified",
+      "module_family_id": "AMR-HANDOFF",
+      "module_revision": "R1",
+      "target_vehicle_family_id": "EV-CARRIER-REF-01",
+      "target_vehicle_revision": "R1",
+      "interface_inventory_complete": false,
+      "ports": [
+        {
+          "port_id": "module-hv",
+          "mate_port_id": "vehicle-hv",
+          "family": "high_voltage_dc",
+          "interface_revision": "ICD-001-0.1",
+          "profile_id": "HV-400V-DC-KEY-A",
+          "direction": "consumer",
+          "polarity_profile": "DC_POS_NEG",
+          "operating_range": {
+            "unit": "V_DC",
+            "minimum": 300,
+            "maximum": 500
+          },
+          "capacity_limit": null,
+          "capacity_required": {
+            "unit": "kW",
+            "value": 60
+          },
+          "required": true,
+          "evidence": [
+            {
+              "evidence_id": "module-hv-amr-handoff-unqualified",
+              "evidence_class": "unknown",
+              "source_reference": "synthetic://EV-CARRIER-ICD-001/amr-handoff-unqualified/module-hv",
+              "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+              "tested_module_configuration_id": "amr-handoff-unqualified",
+              "interface_revision": "ICD-001-0.1",
+              "acceptance_criteria_id": "ICD-AC-001"
+            }
+          ]
+        },
+        {
+          "port_id": "module-mount",
+          "mate_port_id": "vehicle-mount",
+          "family": "mechanical_structure",
+          "interface_revision": "ICD-001-0.1",
+          "profile_id": "MOUNT-DATUM-A",
+          "direction": "consumer",
+          "polarity_profile": null,
+          "operating_range": null,
+          "capacity_limit": null,
+          "capacity_required": {
+            "unit": "kg",
+            "value": 700
+          },
+          "required": true,
+          "evidence": [
+            {
+              "evidence_id": "module-mount-amr-handoff-unqualified",
+              "evidence_class": "unknown",
+              "source_reference": "synthetic://EV-CARRIER-ICD-001/amr-handoff-unqualified/module-mount",
+              "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+              "tested_module_configuration_id": "amr-handoff-unqualified",
+              "interface_revision": "ICD-001-0.1",
+              "acceptance_criteria_id": "ICD-AC-001"
+            }
+          ]
+        },
+        {
+          "port_id": "module-data",
+          "mate_port_id": "vehicle-data",
+          "family": "data_control",
+          "interface_revision": "ICD-001-0.1",
+          "profile_id": "CAN-FD-ICD-001",
+          "direction": "bidirectional",
+          "polarity_profile": null,
+          "operating_range": null,
+          "capacity_limit": null,
+          "capacity_required": null,
+          "required": true,
+          "evidence": [
+            {
+              "evidence_id": "module-data-amr-handoff-unqualified",
+              "evidence_class": "unknown",
+              "source_reference": "synthetic://EV-CARRIER-ICD-001/amr-handoff-unqualified/module-data",
+              "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "tested_vehicle_configuration_id": "carrier-ref-01-r1",
+              "tested_module_configuration_id": "amr-handoff-unqualified",
+              "interface_revision": "ICD-001-0.1",
+              "acceptance_criteria_id": "ICD-AC-001"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "claim_ceiling": "Synthetic exact-interface examples only. No physical interface has been qualified and no module is production released."
+}
