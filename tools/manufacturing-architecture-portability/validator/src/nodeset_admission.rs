@@ -448,15 +448,22 @@ pub fn git_blob_sha1_hex(input: &[u8]) -> String {
     }
     data.extend_from_slice(&bit_len.to_be_bytes());
 
-    let mut h = [0x67452301u32, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0];
+    let mut h = [
+        0x67452301u32,
+        0xefcdab89,
+        0x98badcfe,
+        0x10325476,
+        0xc3d2e1f0,
+    ];
     for chunk in data.chunks_exact(64) {
         let mut words = [0u32; 80];
         for (index, word) in chunk.chunks_exact(4).take(16).enumerate() {
             words[index] = u32::from_be_bytes([word[0], word[1], word[2], word[3]]);
         }
         for index in 16..80 {
-            words[index] = (words[index - 3] ^ words[index - 8]
-                ^ words[index - 14] ^ words[index - 16]).rotate_left(1);
+            words[index] =
+                (words[index - 3] ^ words[index - 8] ^ words[index - 14] ^ words[index - 16])
+                    .rotate_left(1);
         }
         let [mut a, mut b, mut c, mut d, mut e] = h;
         for (index, word) in words.iter().enumerate() {
@@ -466,7 +473,8 @@ pub fn git_blob_sha1_hex(input: &[u8]) -> String {
                 40..=59 => ((b & c) | (b & d) | (c & d), 0x8f1bbcdc),
                 _ => (b ^ c ^ d, 0xca62c1d6),
             };
-            let temp = a.rotate_left(5)
+            let temp = a
+                .rotate_left(5)
                 .wrapping_add(function)
                 .wrapping_add(e)
                 .wrapping_add(constant)
