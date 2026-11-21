@@ -3,8 +3,8 @@ use std::collections::{BTreeMap, BTreeSet};
 pub const CASES_CSV: &str = include_str!("../data/cases.csv");
 pub const EVENTS_CSV: &str = include_str!("../data/events.csv");
 
-const CASES_HEADER: &str = "case_id,ledger_kind,terminal_id,window_start_tick,as_of_tick,opening_stock,reported_closing_stock,expected_outcome";
-const EVENTS_HEADER: &str = "case_id,event_id,source_record_id,source_id,revision,observed_tick,event_tick,classification,state,event_kind,quantity,terminal_id";
+const CASES_HEADER: &str = "case_id,ledger_kind,stock_unit,terminal_id,window_start_tick,as_of_tick,opening_stock,reported_closing_stock,expected_outcome";
+const EVENTS_HEADER: &str = "case_id,event_id,source_record_id,source_id,revision,observed_tick,event_tick,classification,state,event_kind,quantity_unit,quantity,terminal_id";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LedgerKind {
@@ -155,7 +155,7 @@ pub fn parse_cases(csv: &str) -> Result<Vec<CaseDefinition>, String> {
 
     for (index, line) in lines.enumerate() {
         let line_number = index + 2;
-        let f = split_row(line, 8, line_number)?;
+        let f = split_row(line, 9, line_number)?;
         let case_id = f[0].to_string();
         if !seen.insert(case_id.clone()) {
             return Err(format!("line {line_number}: duplicate case ID {case_id:?}"));
@@ -206,7 +206,7 @@ pub fn parse_events(csv: &str) -> Result<Vec<SourceEvent>, String> {
     let mut events = Vec::new();
     for (index, line) in lines.enumerate() {
         let line_number = index + 2;
-        let f = split_row(line, 12, line_number)?;
+        let f = split_row(line, 13, line_number)?;
         let event = SourceEvent {
             case_id: f[0].to_string(),
             event_id: f[1].to_string(),
@@ -290,7 +290,7 @@ fn verify_case(case: &CaseDefinition, input_events: &[SourceEvent]) -> Result<u6
         let source_id = revisions[0].source_id.as_str();
         let terminal_id = revisions[0].terminal_id.as_str();
 
-        if revisions.iter().any(|event| event.source_id != source_id || event.terminal_id != terminal_id) {
+        if revisions.iter().any(|event| {\n            event.source_id != source_id\n                || event.terminal_id != terminal_id\n                || event.quantity_unit != case.stock_unit\n        }) {
             return Err(format!("event {event_id:?} changed source or terminal identity across revisions"));
         }
 
