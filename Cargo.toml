@@ -124,6 +124,7 @@ exclude = [
 ]
 members = [
     ".",
+    "tools/rebco-long-length-auditor",
     "crates/apps/symtropy-cli",
     "crates/bridges/symtropy-bevy",
     "crates/core/symtropy-bevy-core",
