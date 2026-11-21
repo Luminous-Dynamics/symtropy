@@ -563,7 +563,11 @@ impl MissionSupervisor {
         self.ensure_active_subgoal(&subgoal_id)?;
         evidence.envelope.validate()?;
         if !matches!(
-            self.states.get(&subgoal_id).ok_or(SupervisorError::UnknownSubgoal)?.state,
+            &self
+                .states
+                .get(&subgoal_id)
+                .ok_or(SupervisorError::UnknownSubgoal)?
+                .state,
             RuntimeState::ReconciliationRequired(_)
         ) {
             return Err(SupervisorError::InvalidStateTransition);
@@ -638,7 +642,7 @@ impl MissionSupervisor {
             .states
             .get(&subgoal_id)
             .ok_or(SupervisorError::UnknownSubgoal)?;
-        if !matches!(runtime.state, RuntimeState::RecoveryRequired(_)) {
+        if !matches!(&runtime.state, RuntimeState::RecoveryRequired(_)) {
             return Err(SupervisorError::InvalidStateTransition);
         }
         if !runtime
@@ -697,7 +701,7 @@ impl MissionSupervisor {
     pub fn is_complete(&self) -> bool {
         self.states
             .values()
-            .all(|runtime| matches!(runtime.state, RuntimeState::Complete { .. }))
+            .all(|runtime| matches!(&runtime.state, RuntimeState::Complete { .. }))
     }
 
     pub fn is_halted(&self) -> bool {
@@ -985,9 +989,9 @@ mod tests {
     #[test]
     fn stale_source_sequence_is_rejected() {
         let (mut supervisor, _) = started_supervisor();
-        supervisor
-            .observe_goal(satisfied_pick("event-1", 2, 1))
-            .expect("first receipt");
+        let mut first = satisfied_pick("event-1", 2, 1);
+        first.verdict = GoalVerdict::Ambiguous;
+        supervisor.observe_goal(first).expect("first receipt");
         let duplicate_sequence = GoalEvidence {
             envelope: envelope(
                 "event-2",
@@ -1001,10 +1005,13 @@ mod tests {
             predicate_id: "object-in-gripper".to_owned(),
             verdict: GoalVerdict::Satisfied,
         };
-        // The goal is already complete, so state validation happens before cursor validation.
         assert_eq!(
             supervisor.observe_goal(duplicate_sequence),
-            Err(SupervisorError::WrongActiveSubgoal)
+            Err(SupervisorError::StaleSourceSequence)
+        );
+        assert_eq!(
+            supervisor.phase("pick"),
+            Ok(SubgoalPhase::ReconciliationRequired)
         );
     }
 
