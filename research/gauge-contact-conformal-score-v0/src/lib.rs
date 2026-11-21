@@ -805,12 +805,8 @@ mod tests {
                     DIGEST,
                 )
                 .unwrap();
-                build_calibration_block(
-                    &format!("session-{index:02}"),
-                    &[trial],
-                    &block_identity(),
-                )
-                .unwrap()
+                build_calibration_block(&format!("session-{index:02}"), &[trial], &block_identity())
+                    .unwrap()
             })
             .collect()
     }
@@ -1144,13 +1140,8 @@ mod tests {
             ConformalThreshold::Finite(INCOMPLETE_HORIZON_SCORE)
         );
         assert_eq!(conformal.rank_1based, 19);
-        let receipt = bind_pose_calibration_receipt(
-            conformal,
-            &blocks,
-            RAW_DIGEST,
-            FORECAST_DIGEST,
-        )
-        .unwrap();
+        let receipt =
+            bind_pose_calibration_receipt(conformal, &blocks, RAW_DIGEST, FORECAST_DIGEST).unwrap();
         let identity = PoseSetApplicationIdentity {
             dataset_revision: DATASET_REVISION,
             source_manifest_sha256: RAW_DIGEST,
@@ -1174,13 +1165,8 @@ mod tests {
     fn pose_calibration_receipt_refuses_a_different_dataset_or_source_manifest() {
         let blocks = incomplete_blocks(1);
         let conformal = calibration_receipt_for_blocks(&blocks, 50_000);
-        let receipt = bind_pose_calibration_receipt(
-            conformal,
-            &blocks,
-            RAW_DIGEST,
-            FORECAST_DIGEST,
-        )
-        .unwrap();
+        let receipt =
+            bind_pose_calibration_receipt(conformal, &blocks, RAW_DIGEST, FORECAST_DIGEST).unwrap();
         let base = PoseSetApplicationIdentity {
             dataset_revision: DATASET_REVISION,
             source_manifest_sha256: RAW_DIGEST,
