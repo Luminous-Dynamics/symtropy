@@ -1,0 +1,105 @@
+{
+  "schema_version": "0.1.0",
+  "dataset_id": "maritime-censoring-robustness-synthetic-v0.1",
+  "dataset_status": "seeded_known_truth_simulation",
+  "generated_on": "2026-11-21",
+  "implementation_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6557",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6525",
+  "horizon_ticks": 10,
+  "calls_per_scenario": 60000,
+  "strata": {
+    "0": {
+      "population_share": 0.5,
+      "berth_hazard_per_tick": 0.12,
+      "diversion_hazard_per_tick": 0.03,
+      "cancellation_hazard_per_tick": 0.02,
+      "administrative_censor_probability_per_tick": 0.03
+    },
+    "1": {
+      "population_share": 0.5,
+      "berth_hazard_per_tick": 0.07,
+      "diversion_hazard_per_tick": 0.06,
+      "cancellation_hazard_per_tick": 0.04,
+      "administrative_censor_probability_per_tick": 0.22
+    }
+  },
+  "scenario_seeds": {
+    "INDEPENDENT_ADMIN": "0x123456789",
+    "MEASURED_STRATUM_DEPENDENT": "0x23456789ab",
+    "OUTCOME_DEPENDENT_REPORTING_LAG": "0x3456789abc",
+    "POSITIVITY_FAILURE": "0x456789abcd"
+  },
+  "reporting_delay_ticks": {
+    "independent": 0,
+    "berth_outcome_dependent": 4,
+    "diversion": 0,
+    "cancellation": 0,
+    "positivity_failure_stratum_1_berth": 11
+  },
+  "time_semantics": {
+    "unit": "synthetic integer simulation tick",
+    "utc": false,
+    "hours": false
+  },
+  "oracle_boundary": "Latent event cause/time are accessible only to the known-truth oracle. The observed-data estimator receives only stratum, observed outcome/censor status, and observed duration.",
+  "censoring_methods": [
+    "pooled Aalen-Johansen",
+    "stratum-specific Aalen-Johansen with predeclared population standardization",
+    "conditional inverse-probability-of-censoring Horvitz-Thompson incidence reference using the known synthetic G(t|X)"
+  ],
+  "non_identification_outputs": [
+    "SENSITIVITY_REQUIRED_NOT_IDENTIFIED",
+    "NOT_EVALUABLE"
+  ],
+  "claim_ceiling": "The simulator falsifies estimator assumptions against synthetic known truth only. It does not authenticate port data or estimate real maritime waiting times.",
+  "scenario_parameters": {
+    "INDEPENDENT_ADMIN": {
+      "administrative_censor_probability_per_tick": 0.1,
+      "independent_of_event_time": true,
+      "independent_of_event_cause": true
+    },
+    "MEASURED_STRATUM_DEPENDENT": {
+      "administrative_censor_probability_by_stratum": {
+        "0": 0.03,
+        "1": 0.22
+      },
+      "independent_of_event_time_and_cause_conditional_on_stratum": true
+    },
+    "OUTCOME_DEPENDENT_REPORTING_LAG": {
+      "berth_publication_delay_ticks": 4,
+      "diversion_publication_delay_ticks": 0,
+      "cancellation_publication_delay_ticks": 0,
+      "delay_depends_on_latent_cause": true
+    },
+    "POSITIVITY_FAILURE": {
+      "stratum": "1",
+      "berth_publication_delay_ticks": 11,
+      "diversion_publication_delay_ticks": 0,
+      "cancellation_publication_delay_ticks": 0,
+      "berth_observation_support_within_horizon": 0
+    }
+  },
+  "tie_convention": "If event time and administrative censor time are equal, the event is observed before censoring.",
+  "bounds_note": "Lower cause incidence is observed cause share; upper is observed cause share plus the unresolved fraction. This is a broad finite-cohort bound, not a confidence interval or a certified sharp bound.",
+  "random_streams": {
+    "latent_event_seed": "scenario_seed XOR 0xA0761D6478BD642F",
+    "administrative_censor_seed": "scenario_seed XOR 0xE7037ED1A0B428DB",
+    "note": "Separate deterministic SplitMix64 streams prevent variable latent-event draw counts from coupling event-time and administrative-censor sequences."
+  },
+  "reporting_delay_sweep": {
+    "delays_ticks": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      8,
+      10
+    ],
+    "fixed_latent_cohort": true,
+    "latent_stream": "same SplitMix64 latent-event stream as OUTCOME_DEPENDENT_REPORTING_LAG",
+    "purpose": "Quantify Aalen-Johansen berth-CIF bias as berth-publication latency grows, without changing latent event composition."
+  }
+}
