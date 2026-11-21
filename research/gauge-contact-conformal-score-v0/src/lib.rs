@@ -866,8 +866,7 @@ mod tests {
             score_identity(),
         )
         .unwrap();
-        trial.identity.dataset_revision =
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned();
+        trial.identity.dataset_revision = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned();
         assert_eq!(
             build_calibration_block("session-01", &[trial], &block_identity()),
             Err(PoseScoreError::MixedBlockIdentity)
