@@ -5,13 +5,295 @@
 //! quaternion algebra, transform direction, Euler units, absolute timestamps,
 //! calibration, uncertainty, or physical truth.
 
-use serde_json::Value;
+use std::collections::BTreeMap;
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 const RESERVED_ROOT_KEYS: [&str; 3] = ["FPS", "translation unit", "euler order"];
 const REQUIRED_CHANNELS: [&str; 10] = ["x", "y", "z", "qx", "qy", "qz", "qw", "ex", "ey", "ez"];
+
+#[derive(Clone, Debug, PartialEq)]
+enum JsonValue {
+    Object(BTreeMap<String, JsonValue>),
+    Array(Vec<JsonValue>),
+    Number(f64),
+    String(String),
+    Other,
+}
+
+impl JsonValue {
+    fn as_object(&self) -> Option<&BTreeMap<String, JsonValue>> {
+        match self {
+            Self::Object(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    fn as_array(&self) -> Option<&[JsonValue]> {
+        match self {
+            Self::Array(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    fn as_f64(&self) -> Option<f64> {
+        match self {
+            Self::Number(value) => Some(*value),
+            _ => None,
+        }
+    }
+
+    fn as_str(&self) -> Option<&str> {
+        match self {
+            Self::String(value) => Some(value),
+            _ => None,
+        }
+    }
+}
+
+/// Small standard-library JSON reader for this focused raw-trial contract.
+/// It parses complete JSON rather than searching text for matching keys.
+struct JsonParser<'a> {
+    input: &'a str,
+    cursor: usize,
+}
+
+impl<'a> JsonParser<'a> {
+    fn new(input: &'a str) -> Self {
+        Self { input, cursor: 0 }
+    }
+
+    fn parse(mut self) -> Result<JsonValue, ()> {
+        let value = self.parse_value(0)?;
+        self.skip_whitespace();
+        if self.cursor == self.input.len() {
+            Ok(value)
+        } else {
+            Err(())
+        }
+    }
+
+    fn parse_value(&mut self, depth: usize) -> Result<JsonValue, ()> {
+        if depth > 128 {
+            return Err(());
+        }
+        self.skip_whitespace();
+        match self.peek_byte() {
+            Some(b'{') => self.parse_object(depth + 1),
+            Some(b'[') => self.parse_array(depth + 1),
+            Some(b'"') => self.parse_string().map(JsonValue::String),
+            Some(b't') => self.parse_literal("true").map(|_| JsonValue::Other),
+            Some(b'f') => self.parse_literal("false").map(|_| JsonValue::Other),
+            Some(b'n') => self.parse_literal("null").map(|_| JsonValue::Other),
+            Some(b'-' | b'0'..=b'9') => self.parse_number().map(JsonValue::Number),
+            _ => Err(()),
+        }
+    }
+
+    fn parse_object(&mut self, depth: usize) -> Result<JsonValue, ()> {
+        self.expect_byte(b'{')?;
+        self.skip_whitespace();
+        let mut entries = BTreeMap::new();
+        if self.consume_byte(b'}') {
+            return Ok(JsonValue::Object(entries));
+        }
+
+        loop {
+            self.skip_whitespace();
+            let key = self.parse_string()?;
+            self.skip_whitespace();
+            self.expect_byte(b':')?;
+            let value = self.parse_value(depth)?;
+            if entries.insert(key, value).is_some() {
+                // Duplicate keys make the source semantics ambiguous.
+                return Err(());
+            }
+            self.skip_whitespace();
+            if self.consume_byte(b'}') {
+                break;
+            }
+            self.expect_byte(b',')?;
+        }
+        Ok(JsonValue::Object(entries))
+    }
+
+    fn parse_array(&mut self, depth: usize) -> Result<JsonValue, ()> {
+        self.expect_byte(b'[')?;
+        self.skip_whitespace();
+        let mut values = Vec::new();
+        if self.consume_byte(b']') {
+            return Ok(JsonValue::Array(values));
+        }
+
+        loop {
+            values.push(self.parse_value(depth)?);
+            self.skip_whitespace();
+            if self.consume_byte(b']') {
+                break;
+            }
+            self.expect_byte(b',')?;
+        }
+        Ok(JsonValue::Array(values))
+    }
+
+    fn parse_string(&mut self) -> Result<String, ()> {
+        self.expect_byte(b'"')?;
+        let mut output = String::new();
+
+        loop {
+            let byte = self.peek_byte().ok_or(())?;
+            match byte {
+                b'"' => {
+                    self.cursor += 1;
+                    return Ok(output);
+                }
+                b'\\' => {
+                    self.cursor += 1;
+                    let escaped = self.peek_byte().ok_or(())?;
+                    self.cursor += 1;
+                    match escaped {
+                        b'"' => output.push('"'),
+                        b'\\' => output.push('\\'),
+                        b'/' => output.push('/'),
+                        b'b' => output.push('\u{0008}'),
+                        b'f' => output.push('\u{000c}'),
+                        b'n' => output.push('\n'),
+                        b'r' => output.push('\r'),
+                        b't' => output.push('\t'),
+                        b'u' => {
+                            let first = self.parse_hex_u16()?;
+                            let scalar = if (0xd800..=0xdbff).contains(&first) {
+                                self.expect_byte(b'\\')?;
+                                self.expect_byte(b'u')?;
+                                let second = self.parse_hex_u16()?;
+                                if !(0xdc00..=0xdfff).contains(&second) {
+                                    return Err(());
+                                }
+                                0x10000
+                                    + (((first as u32 - 0xd800) << 10)
+                                        | (second as u32 - 0xdc00))
+                            } else if (0xdc00..=0xdfff).contains(&first) {
+                                return Err(());
+                            } else {
+                                first as u32
+                            };
+                            output.push(char::from_u32(scalar).ok_or(())?);
+                        }
+                        _ => return Err(()),
+                    }
+                }
+                0x00..=0x1f => return Err(()),
+                _ => {
+                    let remaining = self.input.get(self.cursor..).ok_or(())?;
+                    let character = remaining.chars().next().ok_or(())?;
+                    output.push(character);
+                    self.cursor += character.len_utf8();
+                }
+            }
+        }
+    }
+
+    fn parse_hex_u16(&mut self) -> Result<u16, ()> {
+        let end = self.cursor.checked_add(4).ok_or(())?;
+        let digits = self.input.get(self.cursor..end).ok_or(())?;
+        if !digits.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            return Err(());
+        }
+        self.cursor = end;
+        u16::from_str_radix(digits, 16).map_err(|_| ())
+    }
+
+    fn parse_number(&mut self) -> Result<f64, ()> {
+        let start = self.cursor;
+        self.consume_byte(b'-');
+
+        match self.peek_byte() {
+            Some(b'0') => {
+                self.cursor += 1;
+                if matches!(self.peek_byte(), Some(b'0'..=b'9')) {
+                    return Err(());
+                }
+            }
+            Some(b'1'..=b'9') => {
+                self.cursor += 1;
+                while matches!(self.peek_byte(), Some(b'0'..=b'9')) {
+                    self.cursor += 1;
+                }
+            }
+            _ => return Err(()),
+        }
+
+        if self.consume_byte(b'.') {
+            let fraction_start = self.cursor;
+            while matches!(self.peek_byte(), Some(b'0'..=b'9')) {
+                self.cursor += 1;
+            }
+            if self.cursor == fraction_start {
+                return Err(());
+            }
+        }
+
+        if matches!(self.peek_byte(), Some(b'e' | b'E')) {
+            self.cursor += 1;
+            if matches!(self.peek_byte(), Some(b'+' | b'-')) {
+                self.cursor += 1;
+            }
+            let exponent_start = self.cursor;
+            while matches!(self.peek_byte(), Some(b'0'..=b'9')) {
+                self.cursor += 1;
+            }
+            if self.cursor == exponent_start {
+                return Err(());
+            }
+        }
+
+        let token = self.input.get(start..self.cursor).ok_or(())?;
+        let value = token.parse::<f64>().map_err(|_| ())?;
+        if value.is_finite() {
+            Ok(value)
+        } else {
+            Err(())
+        }
+    }
+
+    fn parse_literal(&mut self, literal: &str) -> Result<(), ()> {
+        let end = self.cursor.checked_add(literal.len()).ok_or(())?;
+        if self.input.get(self.cursor..end) == Some(literal) {
+            self.cursor = end;
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
+
+    fn skip_whitespace(&mut self) {
+        while matches!(self.peek_byte(), Some(b' ' | b'\\n' | b'\\r' | b'\\t')) {
+            self.cursor += 1;
+        }
+    }
+
+    fn peek_byte(&self) -> Option<u8> {
+        self.input.as_bytes().get(self.cursor).copied()
+    }
+
+    fn consume_byte(&mut self, expected: u8) -> bool {
+        if self.peek_byte() == Some(expected) {
+            self.cursor += 1;
+            true
+        } else {
+            false
+        }
+    }
+
+    fn expect_byte(&mut self, expected: u8) -> Result<(), ()> {
+        if self.consume_byte(expected) {
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TrialError {
@@ -194,7 +476,7 @@ impl TrialReport {
 /// 4 quaternion-component and 3 Euler-component arrays per body, all finite
 /// and sample-aligned. Other quaternion/frame/Euler semantics remain unresolved.
 pub fn validate_trial_json(input: &str) -> Result<TrialReport, TrialError> {
-    let root: Value = serde_json::from_str(input).map_err(|_| TrialError::InvalidJson)?;
+    let root = JsonParser::new(input).parse().map_err(|_| TrialError::InvalidJson)?;
     let root_object = root.as_object().ok_or(TrialError::RootNotObject)?;
 
     let fps = root_object
