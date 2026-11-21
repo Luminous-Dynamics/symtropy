@@ -680,6 +680,36 @@ mod tests {
     }
 
     #[test]
+    fn clopper_pearson_upper_bound_inverts_the_exact_binomial_tail() {
+        let log_alpha = 0.05_f64.ln();
+        for trials in 1..=40 {
+            for misses in 0..trials {
+                let upper = miss_probability_upper_bound_95(misses, trials)
+                    .expect("valid miss/trial counts");
+                let log_tail = log_binomial_cdf_at_most(misses, trials, upper);
+                assert!(
+                    (log_tail - log_alpha).abs() < 1.0e-10,
+                    "tail inversion failed for {misses}/{trials}: {log_tail}"
+                );
+                assert!((0.0..=1.0).contains(&upper));
+            }
+            assert_eq!(miss_probability_upper_bound_95(trials, trials).unwrap(), 1.0);
+        }
+    }
+
+    #[test]
+    fn miss_bound_is_monotone_in_misses_and_sample_size() {
+        let zero_of_five = miss_probability_upper_bound_95(0, 5).unwrap();
+        let one_of_five = miss_probability_upper_bound_95(1, 5).unwrap();
+        let two_of_five = miss_probability_upper_bound_95(2, 5).unwrap();
+        let zero_of_ten = miss_probability_upper_bound_95(0, 10).unwrap();
+        assert!(zero_of_five < one_of_five);
+        assert!(one_of_five < two_of_five);
+        assert!(zero_of_ten < zero_of_five);
+        assert!((zero_of_five - zero_miss_upper_bound_95(5).unwrap()).abs() < 1.0e-12);
+    }
+
+    #[test]
     fn shared_failure_domain_is_not_independent_reference() {
         assert!(shared_failure_domain(
             &["power".to_owned(), "reference_clock".to_owned()],
