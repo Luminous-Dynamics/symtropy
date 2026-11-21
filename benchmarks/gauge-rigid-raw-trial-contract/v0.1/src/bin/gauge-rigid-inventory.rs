@@ -529,7 +529,7 @@ fn summary_json(
 fn write_manifest<W: Write>(
     writer: &mut W,
     revision: &str,
-    root: &Path,
+    _root: &Path,
     records: &[FileResult],
     issues: &[ScanIssue],
 ) -> io::Result<()> {
