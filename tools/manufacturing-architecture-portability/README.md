@@ -282,3 +282,25 @@ The adversarial unit test `equal_subset_size_can_hide_identity_instability` prov
 The follow-on workstream [MFG-ARCH-OPCUA-ADDRESS-SPACE-001 #6615](https://github.com/Luminous-Dynamics/symtropy/issues/6615) addresses a remaining boundary: exact NodeSet provenance and matching NamespaceMetadata do not establish that the actual server address space contains the expected Nodes, attributes and references. It will use OPC Foundation UACTT Lite/CTT as external comparators rather than duplicating them, then add canonical NodeId and manufacturing semantic checks under a read-only snapshot contract.
 
 The same module exposes `evaluate_tep_onset_horizon`. It accepts one record per fault or normal run at a fixed post-onset horizon, requires all 21 standard fault scenarios plus normal-operation exposure, and validates detection/diagnosis consistency. It reports recall, confident wrong labels, safe deferrals, diagnosis coverage/selective accuracy, detection delay and false alarms per normal-operation hour. Diagnosis correctness is an independent input label; the evaluator does not infer it from model output. Current tests use synthetic known-answer records only.
+
+### FoundryBench CLI
+
+From `tools/manufacturing-architecture-portability/validator`, run the offline metrics over strict JSON manifests:
+
+```sh
+cargo run --locked --bin foundrybench-metrics -- feature-stability \
+  ../benchmarks/feature-stability-input.schema.json \
+  ../benchmarks/feature-stability.synthetic.json
+
+cargo run --locked --bin foundrybench-metrics -- tep-onset \
+  ../benchmarks/tep-onset-input.schema.json \
+  ../benchmarks/tep-onset.synthetic.json
+
+cargo run --locked --bin foundrybench-metrics -- run-partitions \
+  ../benchmarks/run-partition-input.schema.json \
+  ../benchmarks/run-partitions.synthetic.json
+```
+
+The feature-stability command reports Jaccard/Kuncheva overlap and subset-size variance; the supplied synthetic fixture intentionally has zero subset-size variance with non-identical feature subsets. The TEP onset command requires all 21 fault scenario IDs plus normal-operation exposure, and reports the separate detection/diagnosis/deferral metrics. The partition command returns non-zero when any complete run ID appears in more than one partition.
+
+All three committed manifests are synthetic known-answer fixtures; they contain no real TEP measurements, fitted feature selector or model-performance result.
