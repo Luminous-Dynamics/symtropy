@@ -133,3 +133,16 @@ NIST's TIDAL direction layers intelligence across asset, site/area and enterpris
 ## i3X conformance policy
 
 The i3X 1.0 upstream suite covers 60 MUST and declared MAY behaviors, including transport, `/info`, object/relationship exploration, current/historical queries and subscription lifecycle. Update (write-back) tests run when a server declares update capability. For Foundry read-only profiles, the conformance command must include `--no-writes`; update functionality remains unverified and must not be advertised. The official suite is a protocol/API conformance referee, not a manufacturing semantic/identity or physical-quality oracle.
+
+## Inspection metrology evidence boundary
+
+The QIF join projection also carries:
+- measurement evidence class (`synthetic`, `recorded`, `physical_observation`);
+- instrument calibration disposition and an optional exact calibration reference ID/digest;
+- measurement-uncertainty disposition and an optional exact uncertainty/MSA reference ID/digest.
+
+A `qualified_reference` status requires a non-empty reference ID and 64-character digest. This is only a structurally present reference; the evaluator does not authenticate the issuer, resolve the canonical source, or establish that the calibration/uncertainty evidence is applicable to the exact instrument, range, time, method, lot and characteristic.
+
+The current QIF join fixture deliberately declares both calibration and measurement uncertainty as `unknown`, with no reference. It is still admissible as an internally coherent **synthetic identity/time join**, but the CLI reports `metrology_reference_state=unknown_or_unqualified` and `physical_metrology_qualified=false`. Supplying both qualified-reference fields changes the report to `references_present_not_authenticated`, never to physically qualified.
+
+The first fixture evaluator accepts only `measurement_evidence_class=synthetic`. Recorded/physical evidence requires a distinct owner-admitted profile, source-rights and signature/authority checks, and the canonical calibration/metrology owners; it cannot pass through the synthetic lane.
