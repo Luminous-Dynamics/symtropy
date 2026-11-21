@@ -11,6 +11,8 @@ const EMBEDDED_ATLAS: &str =
     include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
 const EMBEDDED_FRONTIER_PATTERNS: &str =
     include_str!("../../../data/research/ehd_frontier_design_patterns_v0_1.json");
+const EMBEDDED_EXCHANGE_CONTRACT: &str =
+    include_str!("../../../data/research/ehd_plasma_neutral_exchange_contract_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -726,6 +728,186 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
     findings
 }
 
+
+/// Audit the conservative plasma-neutral exchange interface contract. This
+/// validates only the manifest specification, not a coupled solver result.
+pub fn audit_exchange_contract(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_plasma_neutral_exchange")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["contract_id"]) == Some("EHD-PLASMA-NEUTRAL-EXCHANGE-001")
+            && text_at(root, &["status"]) == Some("protocol_only_not_implemented_or_validated"),
+        "EXCHANGE_IDENTITY",
+        "exchange contract identity, version or protocol-only status changed",
+    );
+
+    let methods = at(root, &["force_transfer_methods"]).and_then(Value::as_array);
+    let explicit = methods.and_then(|rows| rows.iter().find(|row| {
+        text_at(row, &["method_id"]) == Some("explicit_species_collision_drag")
+    }));
+    let reduced = methods.and_then(|rows| rows.iter().find(|row| {
+        text_at(row, &["method_id"]) == Some("reduced_coulomb_deposition")
+    }));
+    push_if_missing(
+        &mut findings,
+        methods.is_some_and(|rows| rows.len() == 2) && explicit.is_some() && reduced.is_some(),
+        "EXCHANGE_METHOD_SET",
+        "exactly two distinct alternative force-transfer methods must be declared",
+    );
+    if let Some(row) = explicit {
+        push_if_missing(
+            &mut findings,
+            text_at(row, &["forbidden_combination"])
+                .is_some_and(|value| value.contains("Do not also apply rho_c*E")),
+            "EXCHANGE_EXPLICIT_DOUBLE_COUNT_GUARD",
+            "explicit species drag must prohibit a second direct Coulomb neutral source",
+        );
+        push_if_missing(
+            &mut findings,
+            text_at(row, &["plasma_reaction"])
+                .is_some_and(|value| value.contains("equal-and-opposite")),
+            "EXCHANGE_EXPLICIT_REACTION",
+            "explicit species drag must account for its equal-and-opposite plasma reaction",
+        );
+    }
+    if let Some(row) = reduced {
+        push_if_missing(
+            &mut findings,
+            text_at(row, &["forbidden_combination"])
+                .is_some_and(|value| value.contains("Do not also apply explicit species drag")),
+            "EXCHANGE_REDUCED_DOUBLE_COUNT_GUARD",
+            "reduced Coulomb deposition must prohibit explicit drag for the same transfer",
+        );
+        push_if_missing(
+            &mut findings,
+            at(row, &["required_coefficients"]).and_then(Value::as_array)
+                .is_some_and(|fields| fields.iter().any(|v| v.as_str() == Some("omitted_term_bounds"))
+                    && fields.iter().any(|v| v.as_str() == Some("closure_validation_receipt"))),
+            "EXCHANGE_REDUCED_QUALIFICATION",
+            "reduced Coulomb closure must include omitted-term bounds and validation receipt",
+        );
+    }
+
+    push_if_missing(
+        &mut findings,
+        at(root, &["exchange_mapping", "interpolation_only_is_sufficient"])
+            .and_then(Value::as_bool) == Some(false)
+            && at(root, &["exchange_mapping", "spatial_meshes_may_differ"])
+                .and_then(Value::as_bool) == Some(true)
+            && at(root, &["exchange_mapping", "temporal_grids_may_differ"])
+                .and_then(Value::as_bool) == Some(true),
+        "EXCHANGE_MAPPING_POLICY",
+        "different meshes/time grids are permitted, but simple interpolation alone is not a conservative exchange contract",
+    );
+    let mapping_fields = at(root, &["exchange_mapping", "record"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        mapping_fields.is_some_and(|fields| {
+            ["source_mesh_hash", "destination_mesh_hash", "operator_identity",
+             "mapped_impulse_ns", "source_impulse_ns", "mapping_residual_ns"]
+            .iter().all(|wanted| fields.iter().any(|field| field.as_str() == Some(*wanted)))
+        }),
+        "EXCHANGE_MAPPING_RECEIPT",
+        "mesh mapping receipt lacks source/destination identity or integral residual",
+    );
+
+    let required_invariants = [
+        "equal_opposite_momentum",
+        "exclusive_force_closure",
+        "global_charge_conservation",
+        "space_time_mapping_conservation",
+        "dissipative_collision_sign",
+        "independent_thrust_observables",
+        "force_boundary_completeness",
+        "unknown_is_not_zero",
+    ];
+    let invariants = at(root, &["invariants"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        invariants.is_some_and(|rows| {
+            rows.len() == required_invariants.len()
+                && required_invariants.iter().all(|wanted| {
+                    rows.iter().any(|row| text_at(row, &["id"]) == Some(*wanted))
+                })
+        }),
+        "EXCHANGE_INVARIANTS",
+        "the eight declared charge/momentum/energy and claim-boundary invariants must remain present",
+    );
+
+    let manifest = at(root, &["run_manifest_required_fields"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        manifest.is_some_and(|rows| {
+            ["selected_method_id", "chemistry_and_transport_hashes", "plasma_mesh_identity",
+             "neutral_mesh_identity", "plasma_time_grid_identity", "neutral_time_grid_identity",
+             "space_time_transfer_operator", "charge_ledger", "energy_ledger",
+             "uncertainty_budget", "qualification_disposition"]
+            .iter().all(|wanted| rows.iter().any(|field| field.as_str() == Some(*wanted)))
+        }),
+        "EXCHANGE_RUN_MANIFEST",
+        "required run manifest is missing solver, mesh/time, exchange, ledger or uncertainty identity",
+    );
+
+    for (ledger, required) in [
+        ("charge_ledger", &["initial_total_charge_c", "final_total_charge_c",
+            "integrated_boundary_current_c", "charge_closure_residual_c", "uncertainty_c"][..]),
+        ("momentum_ledger", &["initial_charged_momentum_ns", "final_neutral_momentum_ns",
+            "boundary_momentum_flux_ns", "interphase_exchange_impulse_ns",
+            "closure_residual_ns", "uncertainty_ns"][..]),
+        ("energy_ledger", &["terminal_electrical_input_j", "change_neutral_kinetic_energy_j",
+            "joule_and_collisional_heating_j", "electrode_wall_heat_j",
+            "closure_residual_j", "uncertainty_j"][..]),
+    ] {
+        let fields = at(root, &[ledger, "required_fields"]).and_then(Value::as_array);
+        push_if_missing(
+            &mut findings,
+            fields.is_some_and(|rows| required.iter().all(|wanted| {
+                rows.iter().any(|field| field.as_str() == Some(*wanted))
+            })),
+            "EXCHANGE_LEDGER_FIELDS",
+            &format!("{ledger} is missing required accounting fields"),
+        );
+    }
+
+    let verification = at(root, &["verification_matrix"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        verification.is_some_and(|rows| rows.len() == 10
+            && rows.iter().any(|v| v.as_str() == Some("reject_double_counted_force_closure"))
+            && rows.iter().any(|v| v.as_str() == Some("space_time_mapping_partition_invariance"))
+            && rows.iter().any(|v| v.as_str() == Some("nonnegative_dissipative_collision_heating"))),
+        "EXCHANGE_VERIFICATION_MATRIX",
+        "ten analytic, conservation, mapping and negative-control tests must remain declared",
+    );
+
+    push_if_missing(
+        &mut findings,
+        at(root, &["acceptance_policy", "universal_numeric_tolerance"]).is_some_and(Value::is_null)
+            && at(root, &["acceptance_policy", "case_specific_tolerance_required"])
+                .and_then(Value::as_bool) == Some(true)
+            && at(root, &["acceptance_policy", "thresholds_must_be_predeclared"])
+                .and_then(Value::as_bool) == Some(true),
+        "EXCHANGE_TOLERANCE_POLICY",
+        "do not impose a universal residual threshold; require predeclared case-specific tolerances",
+    );
+
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["claim_ceiling"]).is_some_and(|value| {
+            value.contains("No plasma-neutral solver coupling")
+                && value.contains("physical measurement")
+                && value.contains("SOTA improvement")
+        }),
+        "EXCHANGE_CLAIM_CEILING",
+        "contract must state that implementation, physical validation and SOTA improvement are not yet claimed",
+    );
+
+    findings
+}
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -760,8 +942,16 @@ fn main() {
             process::exit(2);
         }
     };
+    let exchange: Value = match serde_json::from_str(EMBEDDED_EXCHANGE_CONTRACT) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid embedded exchange contract JSON: {error}");
+            process::exit(2);
+        }
+    };
     let mut findings = audit_atlas(&atlas);
     findings.extend(audit_frontier_patterns(&frontier));
+    findings.extend(audit_exchange_contract(&exchange));
     if findings.is_empty() {
         let count = len_at(&atlas, &["source_records"]).unwrap_or(0);
         let system_count = len_at(&atlas, &["system_integration_references"]).unwrap_or(0);
@@ -770,6 +960,7 @@ fn main() {
         println!("integrated-system references: {system_count}");
         let frontier_count = len_at(&frontier, &["records"]).unwrap_or(0);
         println!("frontier design-pattern references: {frontier_count}");
+        println!("plasma-neutral exchange contract: audited");
         println!("scope: source structure and cohort comparability only; no physical V&V claim");
     } else {
         eprintln!("FAIL: {label} ({} finding(s))", findings.len());
@@ -1009,6 +1200,50 @@ mod tests {
             item["id"].as_str() != Some("guide_electrode")
         });
         assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_DESIGN_FACTOR_SET"));
+    }
+
+
+    #[test]
+    fn plasma_neutral_exchange_contract_passes_declared_contract() {
+        let value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_CONTRACT)
+            .expect("embedded exchange contract must be valid JSON");
+        assert!(audit_exchange_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn explicit_drag_cannot_be_combined_with_direct_coulomb_deposition() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_CONTRACT).unwrap();
+        value["force_transfer_methods"][0]["forbidden_combination"] =
+            Value::String("no restrictions".into());
+        assert!(has_code(&audit_exchange_contract(&value), "EXCHANGE_EXPLICIT_DOUBLE_COUNT_GUARD"));
+    }
+
+    #[test]
+    fn reduced_coulomb_closure_requires_omitted_term_bounds() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_CONTRACT).unwrap();
+        value["force_transfer_methods"][1]["required_coefficients"] = Value::Array(Vec::new());
+        assert!(has_code(&audit_exchange_contract(&value), "EXCHANGE_REDUCED_QUALIFICATION"));
+    }
+
+    #[test]
+    fn interpolation_only_mesh_transfer_is_rejected() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_CONTRACT).unwrap();
+        value["exchange_mapping"]["interpolation_only_is_sufficient"] = Value::Bool(true);
+        assert!(has_code(&audit_exchange_contract(&value), "EXCHANGE_MAPPING_POLICY"));
+    }
+
+    #[test]
+    fn charge_momentum_and_energy_ledgers_are_mandatory() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_CONTRACT).unwrap();
+        value["energy_ledger"]["required_fields"] = Value::Array(Vec::new());
+        assert!(has_code(&audit_exchange_contract(&value), "EXCHANGE_LEDGER_FIELDS"));
+    }
+
+    #[test]
+    fn universal_tolerance_cannot_replace_case_specific_gates() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_CONTRACT).unwrap();
+        value["acceptance_policy"]["universal_numeric_tolerance"] = Value::from(1e-6);
+        assert!(has_code(&audit_exchange_contract(&value), "EXCHANGE_TOLERANCE_POLICY"));
     }
 
 }
