@@ -259,9 +259,7 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                 }
             }
             Ok(Event::Text(text)) if collecting_uri => {
-                let value = text
-                    .xml_content()
-                    .map_err(|error| format!("invalid NamespaceUris text: {error}"))?;
+                let value = text.xml_content(XmlVersion::Implicit1_0);
                 current_uri.push_str(value.as_ref());
             }
             Ok(Event::End(element)) => match element.local_name().as_ref() {
