@@ -38,7 +38,10 @@ Each receipt binds:
 - confidence in basis points;
 - target subgoal and predicate (for goal evidence).
 
-The caller must authenticate the source and canonicalize/hash the receipt before passing it to the supervisor. This reference checks replay ordering and event identity but does not cryptographically authenticate devices or observers. A fixed-size digest type is an integrity handle, not a signature.
+The caller must authenticate the source and canonicalize/hash the receipt before passing it to the supervisor.
+
+The wire contract is split into `receipt_envelope.schema.json` for receipt metadata and `mission_evidence.schema.json` for the full GoalEvidence, ReconciliationEvidence and RecoveryPermit wrappers, including required `action_id` and `attempt` fields. JSON Schema validity does not authenticate the receipt or prove it is current; the supervisor still enforces the live action attempt.
+ This reference checks replay ordering and event identity but does not cryptographically authenticate devices or observers. A fixed-size digest type is an integrity handle, not a signature.
 
 Identical duplicate event IDs with the same digest are idempotent. Reuse of an event ID with a different digest halts the supervisor. A source sequence or timestamp regression is rejected. A delayed receipt or recovery permit from a prior action attempt is rejected even when it refers to the same mission, subgoal and predicate; the active action identity and attempt must match exactly.
 
