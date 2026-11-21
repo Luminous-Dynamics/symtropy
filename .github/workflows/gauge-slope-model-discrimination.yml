@@ -1,0 +1,38 @@
+name: GAUGE Slope Model Discrimination
+
+on:
+  pull_request:
+    paths:
+      - 'benchmarks/gauge-slope-model-discrimination/v0.1/**'
+      - '.github/workflows/gauge-slope-model-discrimination.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'benchmarks/gauge-slope-model-discrimination/v0.1/**'
+      - '.github/workflows/gauge-slope-model-discrimination.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gauge-slope-model-discrimination-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_NET_OFFLINE: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/gauge-slope-model-discrimination/v0.1/Cargo.toml -- --check
+      - name: Run model-discrimination tests
+        run: cargo test --offline --manifest-path benchmarks/gauge-slope-model-discrimination/v0.1/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --offline --manifest-path benchmarks/gauge-slope-model-discrimination/v0.1/Cargo.toml --all-targets --locked -- -D warnings
