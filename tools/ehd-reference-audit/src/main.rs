@@ -15,6 +15,7 @@ mod polynomial_moments;
 mod drag_dissipation;
 mod drag_trajectory;
 mod control_volume;
+mod identifiability;
 
 const EMBEDDED_ATLAS: &str =
     include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
@@ -38,6 +39,8 @@ const EMBEDDED_THRUST_OBSERVABILITY: &str =
     include_str!("../../../data/research/ehd_thrust_observability_v0_1.json");
 const EMBEDDED_CONTROL_VOLUME: &str =
     include_str!("../../../data/research/ehd_control_volume_v0_1.json");
+const EMBEDDED_IDENTIFIABILITY: &str =
+    include_str!("../../../data/research/ehd_experiment_identifiability_kernel_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -1931,6 +1934,167 @@ pub fn audit_control_volume_contract(root: &Value) -> Vec<String> {
 }
 
 
+/// Audit the two-parameter manufactured identifiability benchmark contract.
+/// This is a contract check for the reference fixture, not a physical EHD model.
+pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_experiment_identifiability")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["benchmark_id"]) == Some("EHD-OED-001")
+            && text_at(root, &["status"])
+                == Some("two_parameter_manufactured_reference_kernel_authored_tests_rust_execution_pending"),
+        "IDENTIFIABILITY_IDENTITY",
+        "identifiability kernel benchmark identity/version/status changed",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["parameter_contract", "parameter_order"]).and_then(Value::as_array)
+            .is_some_and(|rows| rows.len() == 2
+                && rows[0].as_str() == Some("a")
+                && rows[1].as_str() == Some("b"))
+            && at(root, &["parameter_contract", "correlated_covariance_supported"])
+                .and_then(Value::as_bool) == Some(false),
+        "IDENTIFIABILITY_PARAMETER_CONTRACT",
+        "two-parameter order and diagonal-covariance limitation must remain explicit",
+    );
+    let policy = at(root, &["numerical_policy"]);
+    push_if_missing(
+        &mut findings,
+        policy.is_some_and(|value| {
+            text_at(value, &["singular_value_rank_rule"])
+                == Some("singular_value_i > relative_tolerance * largest_singular_value")
+                && number_at(value, &["relative_rank_tolerance"]) == Some(1.0e-12)
+                && at(value, &["rank_tolerance_is_input_and_receipt_field"])
+                    .and_then(Value::as_bool) == Some(true)
+                && text_at(value, &["parameter_estimate_policy"])
+                    == Some("emit_only_when_numerical_rank_equals_two")
+        }),
+        "IDENTIFIABILITY_RANK_POLICY",
+        "rank threshold, input provenance and no-estimate-on-rank-deficiency policy changed",
+    );
+    let cases = at(root, &["manufactured_cases"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        cases.is_some_and(|rows| rows.len() == 3),
+        "IDENTIFIABILITY_CASE_COUNT",
+        "exactly one rank-deficient and one full-rank manufactured case are required",
+    );
+    let repeated = cases.and_then(|rows| rows.iter().find(|row| {
+        text_at(row, &["case_id"]) == Some("E0-REPEATED-CONDITION-RANK-1")
+    }));
+    let balanced = cases.and_then(|rows| rows.iter().find(|row| {
+        text_at(row, &["case_id"]) == Some("E0-BALANCED-CONDITION-RANK-2")
+    }));
+    push_if_missing(
+        &mut findings,
+        repeated.is_some(),
+        "IDENTIFIABILITY_REPEATED_CASE",
+        "missing repeated-condition rank-deficiency control",
+    );
+    if let Some(case) = repeated {
+        let design = at(case, &["design_matrix"]).and_then(Value::as_array);
+        let design_matches = design.is_some_and(|rows| rows.len() == 3 && rows.iter().all(|row| {
+            row.as_array().is_some_and(|cols| cols.len() == 2
+                && cols[0].as_f64() == Some(1.0)
+                && cols[1].as_f64() == Some(1.0))
+        }));
+        push_if_missing(
+            &mut findings,
+            design_matches
+                && at(case, &["expected_information_matrix"]).and_then(Value::as_array)
+                    .is_some_and(|rows| rows.len() == 2
+                        && rows[0].as_array().is_some_and(|cols| cols.len() == 2
+                            && cols[0].as_f64() == Some(3.0) && cols[1].as_f64() == Some(3.0))
+                        && rows[1].as_array().is_some_and(|cols| cols.len() == 2
+                            && cols[0].as_f64() == Some(3.0) && cols[1].as_f64() == Some(3.0)))
+                && at(case, &["expected_rank"]).and_then(Value::as_u64) == Some(1)
+                && text_at(case, &["expected_disposition"]) == Some("not_identifiable")
+                && at(case, &["expected_parameter_estimate"]).is_some_and(Value::is_null),
+            "IDENTIFIABILITY_REPEATED_EXPECTATION",
+            "repeated identical conditions must remain rank one and must not emit parameters",
+        );
+    }
+    push_if_missing(
+        &mut findings,
+        balanced.is_some(),
+        "IDENTIFIABILITY_BALANCED_CASE",
+        "missing balanced full-rank positive control",
+    );
+    if let Some(case) = balanced {
+        let design = at(case, &["design_matrix"]).and_then(Value::as_array);
+        let design_matches = design.is_some_and(|rows| rows.len() == 3
+            && rows[0].as_array().is_some_and(|cols| cols.len() == 2
+                && cols[0].as_f64() == Some(-1.0) && cols[1].as_f64() == Some(1.0))
+            && rows[1].as_array().is_some_and(|cols| cols.len() == 2
+                && cols[0].as_f64() == Some(0.0) && cols[1].as_f64() == Some(1.0))
+            && rows[2].as_array().is_some_and(|cols| cols.len() == 2
+                && cols[0].as_f64() == Some(1.0) && cols[1].as_f64() == Some(1.0)));
+        push_if_missing(
+            &mut findings,
+            design_matches
+                && at(case, &["expected_rank"]).and_then(Value::as_u64) == Some(2)
+                && text_at(case, &["expected_disposition"]) == Some("identifiable")
+                && at(case, &["expected_parameter_estimate"]).and_then(Value::as_array)
+                    .is_some_and(|rows| rows.len() == 2
+                        && rows[0].as_f64() == Some(2.0)
+                        && rows[1].as_f64() == Some(0.5)),
+            "IDENTIFIABILITY_BALANCED_EXPECTATION",
+            "balanced design must retain its full-rank expected parameter recovery",
+        );
+    }
+    let near_collinear = cases.and_then(|rows| rows.iter().find(|row| {
+        text_at(row, &["case_id"]) == Some("E0-NEAR-COLLINEAR-RANK-2")
+    }));
+    push_if_missing(
+        &mut findings,
+        near_collinear.is_some(),
+        "IDENTIFIABILITY_NEAR_COLLINEAR_CASE",
+        "missing near-collinear full-rank numerical-stability control",
+    );
+    if let Some(case) = near_collinear {
+        push_if_missing(
+            &mut findings,
+            at(case, &["expected_rank"]).and_then(Value::as_u64) == Some(2)
+                && text_at(case, &["expected_disposition"]) == Some("identifiable")
+                && number_at(case, &["expected_condition_number_approx"])
+                    .is_some_and(|value| (value - 2.0e9).abs() / 2.0e9 < 1.0e-6)
+                && at(case, &["practical_warning_required"])
+                    .and_then(Value::as_bool) == Some(true),
+            "IDENTIFIABILITY_NEAR_COLLINEAR_EXPECTATION",
+            "near-collinear fixture must remain numerically full-rank while exposing severe conditioning",
+        );
+    }
+    push_if_missing(
+        &mut findings,
+        at(root, &["test_families"]).and_then(Value::as_array)
+            .is_some_and(|rows| rows.len() == 9
+                && rows.iter().any(|row| row.as_str() == Some("repeated_identical_conditions_do_not_repair_rank_deficiency"))
+                && rows.iter().any(|row| row.as_str() == Some("independent_variance_weights_are_applied"))
+                && rows.iter().any(|row| row.as_str() == Some("jacobi_spectrum_retains_a_small_but_resolvable_singular_direction"))
+                && rows.iter().any(|row| row.as_str() == Some("offline_reference_self_check"))),
+        "IDENTIFIABILITY_TEST_MATRIX",
+        "identifiability benchmark must retain the eight authored test families",
+    );
+    let limits = at(root, &["limitations"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        limits.is_some_and(|rows| rows.iter().any(|row| row.as_str() == Some("two_parameters_only"))
+            && rows.iter().any(|row| row.as_str() == Some("diagonal_observation_covariance_only"))
+            && rows.iter().any(|row| row.as_str() == Some("no_nonlinear_profile_likelihood"))
+            && rows.iter().any(|row| row.as_str() == Some("no_physical_ehd_parameter_estimation")))
+            && text_at(root, &["claim_ceiling"]).is_some_and(|claim| {
+                claim.contains("not an EHD physical parameter estimator")
+                    && claim.contains("not an experiment authorization")
+            }),
+        "IDENTIFIABILITY_CLAIM_BOUNDARY",
+        "manufactured linear kernel must retain explicit covariance, nonlinear and physical claim limits",
+    );
+    findings
+}
+
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -2039,6 +2203,14 @@ fn main() {
         }
     };
     findings.extend(audit_control_volume_contract(&control_volume_contract));
+    let identifiability_contract: Value = match serde_json::from_str(EMBEDDED_IDENTIFIABILITY) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid embedded experiment-identifiability JSON: {error}");
+            process::exit(2);
+        }
+    };
+    findings.extend(audit_identifiability_contract(&identifiability_contract));
     let exchange_kernel_ok = match exchange::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -2095,6 +2267,13 @@ fn main() {
             false
         }
     };
+    let identifiability_ok = match identifiability::reference_self_check() {
+        Ok(()) => true,
+        Err(error) => {
+            findings.push(format!("IDENTIFIABILITY_SELF_CHECK: {error}"));
+            false
+        }
+    };
     if findings.is_empty() {
         let count = len_at(&atlas, &["source_records"]).unwrap_or(0);
         let system_count = len_at(&atlas, &["system_integration_references"]).unwrap_or(0);
@@ -2130,7 +2309,10 @@ fn main() {
         if control_volume_ok {
             println!("control-volume momentum and force-balance reducer self-check: passed");
         }
-        println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), full collisional-energy closure or durable exactly-once claim");
+        if identifiability_ok {
+            println!("two-parameter experiment-identifiability reference self-check: passed");
+        }
+        println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), nonlinear profile likelihood, complete collisional-energy closure or durable exactly-once claim");
     } else {
         eprintln!("FAIL: {label} ({} finding(s))", findings.len());
         for finding in findings {
@@ -2764,6 +2946,38 @@ mod control_volume_contract_tests {
         value["uncertainty_policy"]["rss_allowed_by_default"] = Value::Bool(true);
         assert!(audit_control_volume_contract(&value).iter().any(|finding| {
             finding.starts_with("CONTROL_VOLUME_UNCERTAINTY_POLICY")
+        }));
+    }
+}
+
+
+#[cfg(test)]
+mod identifiability_contract_tests {
+    use super::*;
+
+    #[test]
+    fn identifiability_contract_passes() {
+        let value: Value = serde_json::from_str(EMBEDDED_IDENTIFIABILITY)
+            .expect("embedded identifiability benchmark must be valid JSON");
+        assert!(audit_identifiability_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn identifiability_contract_rejects_parameter_estimate_for_rank_deficient_case() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_IDENTIFIABILITY).unwrap();
+        value["manufactured_cases"][0]["expected_parameter_estimate"] =
+            serde_json::json!([2.0, 0.5]);
+        assert!(audit_identifiability_contract(&value).iter().any(|finding| {
+            finding.starts_with("IDENTIFIABILITY_REPEATED_EXPECTATION")
+        }));
+    }
+
+    #[test]
+    fn identifiability_contract_requires_diagonal_covariance_boundary() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_IDENTIFIABILITY).unwrap();
+        value["parameter_contract"]["correlated_covariance_supported"] = Value::Bool(true);
+        assert!(audit_identifiability_contract(&value).iter().any(|finding| {
+            finding.starts_with("IDENTIFIABILITY_PARAMETER_CONTRACT")
         }));
     }
 }

@@ -1,0 +1,239 @@
+{
+  "schema": "luminous.ehd_experiment_identifiability",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-OED-001",
+  "as_of": "2026-11-22",
+  "status": "two_parameter_manufactured_reference_kernel_authored_tests_rust_execution_pending",
+  "claim_ceiling": "The executable kernel qualifies only two-parameter linear design rank and weighted least-squares recovery under diagonal observation covariance. It is not an EHD physical parameter estimator, nonlinear identifiability engine, model discriminator, or experiment authorization.",
+  "parameter_contract": {
+    "parameter_order": [
+      "a",
+      "b"
+    ],
+    "parameter_scales": [
+      1,
+      1
+    ],
+    "rank_analysis_coordinates": "design_columns_multiplied_by_declared_parameter_scales",
+    "noise_model": "independent_normal_zero_mean_diagonal_variance",
+    "correlated_covariance_supported": false
+  },
+  "numerical_policy": {
+    "information_matrix": "X_scaled_transpose * diag(1/observation_variance) * X_scaled",
+    "singular_value_rank_rule": "singular_value_i > relative_tolerance * largest_singular_value",
+    "relative_rank_tolerance": 1e-12,
+    "rank_tolerance_is_input_and_receipt_field": true,
+    "weakest_parameter_direction": "smallest_eigenvalue_eigenvector_in_scaled_parameter_coordinates",
+    "parameter_estimate_policy": "emit_only_when_numerical_rank_equals_two",
+    "otherwise": "not_identifiable_no_parameter_estimate"
+  },
+  "reference_implementation": {
+    "path": "tools/ehd-reference-audit/src/identifiability.rs",
+    "scope": "two_parameter_weighted_linear_design_with_diagonal_observation_covariance",
+    "outputs": [
+      "information_matrix",
+      "eigenvalues_descending",
+      "singular_values_descending",
+      "numerical_rank",
+      "relative_rank_tolerance",
+      "condition_number_when_full_rank",
+      "weakest_parameter_direction_scaled",
+      "identification_disposition",
+      "parameter_estimate_only_when_full_rank",
+      "weighted_residual_sum_squares"
+    ],
+    "checks": [
+      "weighted_information_matrix",
+      "exact_rank_deficiency",
+      "repetition_does_not_repair_rank",
+      "full_rank_parameter_recovery",
+      "scale_aware_rank_coordinates",
+      "positive_variance_validation",
+      "finite_input_validation"
+    ]
+  },
+  "manufactured_cases": [
+    {
+      "case_id": "E0-REPEATED-CONDITION-RANK-1",
+      "design_matrix": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "observations": [
+        2.5,
+        2.5,
+        2.5
+      ],
+      "observation_variances": [
+        1,
+        1,
+        1
+      ],
+      "expected_information_matrix": [
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "expected_eigenvalues_descending": [
+        6,
+        0
+      ],
+      "expected_singular_values_descending": [
+        2.449489742783178,
+        0
+      ],
+      "expected_rank": 1,
+      "expected_disposition": "not_identifiable",
+      "expected_parameter_estimate": null,
+      "expected_weakest_direction_absolute_components": [
+        0.7071067811865476,
+        0.7071067811865476
+      ],
+      "invariant": "repeated_observations_at_one_identical_design_condition_never_increase_design_rank"
+    },
+    {
+      "case_id": "E0-BALANCED-CONDITION-RANK-2",
+      "design_matrix": [
+        [
+          -1,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "observations": [
+        -1.5,
+        0.5,
+        2.5
+      ],
+      "observation_variances": [
+        1,
+        1,
+        1
+      ],
+      "expected_information_matrix": [
+        [
+          2,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "expected_eigenvalues_descending": [
+        3,
+        2
+      ],
+      "expected_singular_values_descending": [
+        1.7320508075688772,
+        1.4142135623730951
+      ],
+      "expected_rank": 2,
+      "expected_disposition": "identifiable",
+      "expected_parameter_estimate": [
+        2,
+        0.5
+      ],
+      "expected_weighted_residual_sum_squares": 0
+    },
+    {
+      "case_id": "E0-NEAR-COLLINEAR-RANK-2",
+      "design_matrix": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1e-9
+        ]
+      ],
+      "observations": [
+        1,
+        1
+      ],
+      "observation_variances": [
+        1,
+        1
+      ],
+      "expected_information_matrix": [
+        [
+          2,
+          1e-9
+        ],
+        [
+          1e-9,
+          1e-18
+        ]
+      ],
+      "expected_eigenvalues_descending": [
+        2,
+        5e-19
+      ],
+      "expected_singular_values_descending": [
+        1.4142135623730951,
+        7.071067811865476e-10
+      ],
+      "expected_rank": 2,
+      "expected_disposition": "identifiable",
+      "expected_condition_number_approx": 2000000000,
+      "practical_warning_required": true,
+      "purpose": "verify_direct_jacobi_spectrum_retains_small_singular_value_without_gram_eigenvalue_cancellation"
+    }
+  ],
+  "test_families": [
+    "repeated_identical_conditions_do_not_repair_rank_deficiency",
+    "balanced_conditions_identify_both_manufactured_parameters",
+    "zero_or_negative_variance_is_rejected",
+    "invalid_rank_tolerance_is_rejected",
+    "non_finite_input_is_rejected",
+    "parameter_scaling_changes_information_in_declared_coordinates",
+    "independent_variance_weights_are_applied",
+    "jacobi_spectrum_retains_a_small_but_resolvable_singular_direction",
+    "offline_reference_self_check"
+  ],
+  "limitations": [
+    "two_parameters_only",
+    "linear_manufactured_model_only",
+    "diagonal_observation_covariance_only",
+    "no_correlated_noise_whitening",
+    "no_nonlinear_profile_likelihood",
+    "no_nuisance_parameter_projection",
+    "no_model_discrimination",
+    "no_sequential_design_optimizer",
+    "no_physical_ehd_parameter_estimation",
+    "no_physical_experiment"
+  ],
+  "prospective_targets": {
+    "nominal_95_percent_interval_empirical_coverage_range": [
+      0.9,
+      0.98
+    ],
+    "minimum_normalized_information_eigenvalue_improvement_vs_random_factor": 2,
+    "profile_likelihood_interval_width_reduction_fraction": 0.3,
+    "artifact_false_positive_rate_maximum": 0.01,
+    "status": "targets_not_results"
+  }
+}
