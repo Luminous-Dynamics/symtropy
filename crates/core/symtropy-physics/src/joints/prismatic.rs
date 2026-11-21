@@ -10,7 +10,7 @@
 use nalgebra::SVector;
 
 use crate::body::{BodyHandle, RigidBody};
-use crate::constraint::Constraint;
+use crate::constraint::{Constraint, MotorStepState};
 
 /// Prismatic joint: body B slides along one axis relative to body A.
 pub struct PrismaticJoint<const D: usize> {
@@ -124,14 +124,43 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
         body_a: &mut RigidBody<D>,
         body_b: &mut RigidBody<D>,
         dt: f64,
-        mut callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
+        callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
     ) {
-        let total_inv = body_a.inv_mass + body_b.inv_mass;
-        if total_inv < 1e-15 {
+        // Preserve the direct one-call API while using the same step-scoped
+        // accumulator as PhysicsWorld.
+        let mut motor_state = MotorStepState::default();
+        self.solve_velocity_with_state(body_a, body_b, dt, None, &mut motor_state);
+        if let Some(work_joules) = motor_state.take_work_receipt()
+            && let Some(cb) = callback
+        {
+            cb.record_work(self.body_b, work_joules);
+        }
+    }
+
+    fn solve_velocity_with_state(
+        &self,
+        body_a: &mut RigidBody<D>,
+        body_b: &mut RigidBody<D>,
+        dt: f64,
+        _callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
+        motor_state: &mut MotorStepState,
+    ) {
+        let inv_mass_a = if body_a.is_dynamic() {
+            body_a.inv_mass
+        } else {
+            0.0
+        };
+        let inv_mass_b = if body_b.is_dynamic() {
+            body_b.inv_mass
+        } else {
+            0.0
+        };
+        let total_inv = inv_mass_a + inv_mass_b;
+        if !total_inv.is_finite() || total_inv <= 1e-15 {
             return;
         }
 
-        // Damp velocity on non-slide axes
+        // Damp velocity on non-slide axes.
         for i in 0..D {
             if i == self.axis {
                 continue;
@@ -142,38 +171,60 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
             }
             let impulse = -rel_vel * self.stiffness / total_inv;
             if body_a.is_dynamic() {
-                body_a.linear_velocity[i] -= impulse * body_a.inv_mass;
+                body_a.linear_velocity[i] -= impulse * inv_mass_a;
             }
             if body_b.is_dynamic() {
-                body_b.linear_velocity[i] += impulse * body_b.inv_mass;
+                body_b.linear_velocity[i] += impulse * inv_mass_b;
             }
         }
 
-        // Motor drive on slide axis
-        if let Some(ref motor) = self.motor {
+        // One accumulated motor impulse budget spans every solver iteration.
+        if let Some(motor) = self.motor.as_ref() {
             let displacement = body_b.transform.translation.0[self.axis]
                 - body_a.transform.translation.0[self.axis];
             let rel_vel = body_b.linear_velocity[self.axis] - body_a.linear_velocity[self.axis];
+            let motor_inputs_valid = dt.is_finite()
+                && dt > 0.0
+                && displacement.is_finite()
+                && rel_vel.is_finite()
+                && motor.target_pos.is_finite()
+                && motor.target_vel.is_finite()
+                && motor.kp.is_finite()
+                && motor.kd.is_finite()
+                && motor.max_force.is_finite()
+                && motor.max_force >= 0.0;
 
-            // PD controller: impulse = (kp * (target - pos) + kd * (target_vel - vel)) * dt
-            let impulse = motor.calculate_impulse(displacement, rel_vel, dt);
-
-            // METABOLIC HEARTBEAT: Calculate Work and Energy Recovery
-            // Work = Impulse * Velocity
-            let work_joules = impulse * rel_vel;
-            if let Some(ref mut cb) = callback {
-                cb.record_work(self.body_b, work_joules);
-            }
-
-            if body_a.is_dynamic() {
-                body_a.linear_velocity[self.axis] -= impulse * body_a.inv_mass;
-            }
-            if body_b.is_dynamic() {
-                body_b.linear_velocity[self.axis] += impulse * body_b.inv_mass;
+            if motor_inputs_valid {
+                let target_velocity = if let Some(target) = motor_state.target_relative_velocity() {
+                    Some(target)
+                } else {
+                    // Evaluate and integrate the PD force once per world step.
+                    // Later iterations solve only the residual against this target.
+                    let desired_step_impulse = motor.calculate_impulse(displacement, rel_vel, dt);
+                    motor_state.initialize_velocity_target(rel_vel, desired_step_impulse, total_inv)
+                };
+                if let Some(target_velocity) = target_velocity {
+                    let desired_impulse_increment = (target_velocity - rel_vel) / total_inv;
+                    if let Some((delta_impulse, _velocity_after)) = motor_state
+                        .apply_impulse_increment(
+                            desired_impulse_increment,
+                            motor.max_force * dt,
+                            rel_vel,
+                            total_inv,
+                        )
+                    {
+                        if body_a.is_dynamic() {
+                            body_a.linear_velocity[self.axis] -= delta_impulse * inv_mass_a;
+                        }
+                        if body_b.is_dynamic() {
+                            body_b.linear_velocity[self.axis] += delta_impulse * inv_mass_b;
+                        }
+                    }
+                }
             }
         }
 
-        // Damp all angular velocity (prismatic = no rotation)
+        // Damp all angular velocity (prismatic = no rotation).
         for i in 0..D {
             for j in (i + 1)..D {
                 let rel = body_b.angular_velocity.get(i, j) - body_a.angular_velocity.get(i, j);
@@ -298,5 +349,163 @@ mod tests {
             b.transform.translation.coord(0).abs() < 0.1,
             "X should be constrained"
         );
+    }
+}
+
+#[cfg(test)]
+mod motor_step_tests {
+    use super::*;
+    use crate::constraint::MotorStepState;
+    use crate::joints::MotorDrive;
+    use symtropy_math::Point;
+
+    fn run_motor_iterations(iterations: usize) -> (f64, f64, f64) {
+        let mut a = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let motor = MotorDrive {
+            target_pos: 1.0,
+            target_vel: 0.0,
+            kp: 2.0,
+            kd: 0.0,
+            max_force: 10.0,
+        };
+        let joint = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0).with_motor(motor);
+        let mut state = MotorStepState::default();
+
+        for _ in 0..iterations {
+            joint.solve_velocity_with_state(&mut a, &mut b, 0.1, None, &mut state);
+        }
+
+        let receipt = state
+            .take_work_receipt()
+            .expect("one aggregated work receipt");
+        assert_eq!(state.take_work_receipt(), None);
+        (state.accumulated_impulse(), b.linear_velocity[0], receipt)
+    }
+
+    #[test]
+    fn prismatic_motor_budget_and_work_are_not_multiplied_by_solver_iterations() {
+        let reference = run_motor_iterations(1);
+        for iterations in [2, 4, 8] {
+            let result = run_motor_iterations(iterations);
+            assert!((result.0 - reference.0).abs() < 1.0e-12);
+            assert!((result.1 - reference.1).abs() < 1.0e-12);
+            assert!((result.2 - reference.2).abs() < 1.0e-12);
+        }
+        assert!((reference.0 - 0.2).abs() < 1.0e-12);
+        assert!((reference.1 - 0.2).abs() < 1.0e-12);
+        assert!((reference.2 - 0.02).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn prismatic_static_endpoint_receives_full_dynamic_response() {
+        let mut anchor = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut moving = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 2.0);
+        let motor = MotorDrive {
+            target_pos: 1.0,
+            target_vel: 0.0,
+            kp: 2.0,
+            kd: 0.0,
+            max_force: 10.0,
+        };
+        let joint = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0).with_motor(motor);
+        let mut state = MotorStepState::default();
+
+        joint.solve_velocity_with_state(&mut anchor, &mut moving, 0.1, None, &mut state);
+
+        // 2 N applied for 0.1 s to a 2 kg body -> 0.1 m/s.
+        assert!((moving.linear_velocity[0] - 0.1).abs() < 1.0e-12);
+        assert!((anchor.linear_velocity[0]).abs() < 1.0e-12);
+        assert!((state.accumulated_impulse() - 0.2).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn prismatic_motor_rejects_negative_effort_without_mutating_velocity() {
+        let mut a = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let motor = MotorDrive {
+            target_pos: 1.0,
+            target_vel: 0.0,
+            kp: 1.0,
+            kd: 0.0,
+            max_force: -1.0,
+        };
+        let joint = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0).with_motor(motor);
+        let mut state = MotorStepState::default();
+
+        joint.solve_velocity_with_state(&mut a, &mut b, 0.1, None, &mut state);
+
+        assert_eq!(b.linear_velocity[0], 0.0);
+        assert_eq!(state.take_work_receipt(), None);
+    }
+
+    #[test]
+    fn prismatic_motor_accumulates_velocity_feedback_impulse_increments() {
+        let mut a = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let motor = MotorDrive {
+            target_pos: 1.0,
+            target_vel: 0.0,
+            kp: 1.0,
+            kd: 1.0,
+            max_force: 10.0,
+        };
+        let joint = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0).with_motor(motor);
+        let mut state = MotorStepState::default();
+
+        // First iteration establishes the fixed per-step target velocity.
+        joint.solve_velocity_with_state(&mut a, &mut b, 0.1, None, &mut state);
+        // Model an intervening passive-constraint impulse which slows the
+        // slider by 0.05 m/s. Iteration then applies only the residual.
+        b.linear_velocity[0] -= 0.05;
+        for _ in 0..7 {
+            joint.solve_velocity_with_state(&mut a, &mut b, 0.1, None, &mut state);
+        }
+
+        assert!((state.accumulated_impulse() - 0.15).abs() < 1.0e-12);
+        assert!((b.linear_velocity[0] - 0.1).abs() < 1.0e-12);
+        assert!(state.take_work_receipt().is_some());
+    }
+
+    #[test]
+    fn prismatic_motor_impulse_respects_one_step_effort_cap() {
+        let mut a = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let motor = MotorDrive {
+            target_pos: 100.0,
+            target_vel: 0.0,
+            kp: 100.0,
+            kd: 0.0,
+            max_force: 1.0,
+        };
+        let joint = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0).with_motor(motor);
+        let mut state = MotorStepState::default();
+
+        for _ in 0..8 {
+            joint.solve_velocity_with_state(&mut a, &mut b, 0.1, None, &mut state);
+        }
+
+        assert!((state.accumulated_impulse() - 0.1).abs() < 1.0e-12);
+        assert!((b.linear_velocity[0] - 0.1).abs() < 1.0e-12);
     }
 }

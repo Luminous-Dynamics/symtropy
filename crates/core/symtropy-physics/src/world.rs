@@ -13,7 +13,7 @@ use symtropy_math::{Bivector, Capsule, HalfSpace, HyperBox, Point, Sphere, Trans
 use crate::body::{BodyHandle, NetId, RigidBody};
 use crate::broadphase;
 use crate::ccd;
-use crate::constraint::Constraint;
+use crate::constraint::{Constraint, MotorStepState};
 use crate::contact::{CollisionEvent, ContactCache, ContactManifold};
 use crate::gjk;
 use crate::integrator;
@@ -79,9 +79,11 @@ pub trait PhysicsCallback<const D: usize> {
     /// Called after each physics step to record energy dissipated.
     fn record_dissipation(&mut self, energy: f64);
 
-    /// Record mechanical work performed (or energy recovered) by an actuator.
-    /// Positive work = energy consumed (motor driving motion).
-    /// Negative work = energy recovered (regenerative braking).
+    /// Record signed mechanical work at an actuator's generalized mechanical port.
+    /// Positive work means the actuator delivered mechanical energy to the bodies;
+    /// negative work means mechanical energy was absorbed at that port. Negative
+    /// mechanical work is not, by itself, proof of electrical regeneration or
+    /// battery energy recovery; drive losses and bus-side measurements are separate.
     fn record_work(&mut self, body: BodyHandle, work_joules: f64);
 
     /// Calculates and applies the long-term effect of a collision event
@@ -693,7 +695,11 @@ impl<const D: usize> PhysicsWorld<D> {
             }
         }
 
-        // 6b. Velocity-level constraint solve (active islands only)
+        // 6b. Velocity-level constraint solve (active islands only).
+        // Motor state is allocated once per constraint for this world step and
+        // shared across every solver iteration. This keeps actuator effort and
+        // mechanical work tied to elapsed dt, not iteration count.
+        let mut motor_step_states = vec![MotorStepState::default(); self.constraints.len()];
         for _ in 0..self.solver_iterations {
             for &ci in &active_constraint_indices {
                 if ci >= self.constraints.len() {
@@ -704,22 +710,36 @@ impl<const D: usize> PhysicsWorld<D> {
                 if let (Some(a), Some(b)) = (idx_a, idx_b) {
                     if a < b {
                         let (left, right) = self.bodies.split_at_mut(b);
-                        self.constraints[ci].solve_velocity(
+                        self.constraints[ci].solve_velocity_with_state(
                             &mut left[a],
                             &mut right[0],
                             dt,
                             Some(callback),
+                            &mut motor_step_states[ci],
                         );
                     } else {
                         let (left, right) = self.bodies.split_at_mut(a);
-                        self.constraints[ci].solve_velocity(
+                        self.constraints[ci].solve_velocity_with_state(
                             &mut right[0],
                             &mut left[b],
                             dt,
                             Some(callback),
+                            &mut motor_step_states[ci],
                         );
                     }
                 }
+            }
+        }
+
+        // Emit one aggregate mechanical-port work receipt per motorized
+        // constraint after all solver iterations have completed.
+        for &ci in &active_constraint_indices {
+            if ci >= self.constraints.len() {
+                continue;
+            }
+            if let Some(work_joules) = motor_step_states[ci].take_work_receipt() {
+                let (_, motor_body) = self.constraints[ci].bodies();
+                callback.record_work(motor_body, work_joules);
             }
         }
 
@@ -2559,5 +2579,95 @@ mod transformed_halfspace_tests {
             .rotation = Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2);
 
         assert!(world.static_tree_dirty);
+    }
+}
+
+#[cfg(test)]
+mod motor_step_world_tests {
+    use super::*;
+    use crate::joints::{BallJoint, MotorDrive, PrismaticJoint};
+    use symtropy_math::{Point, Sphere};
+
+    #[derive(Default)]
+    struct CountingCallback {
+        work_events: Vec<(BodyHandle, f64)>,
+    }
+
+    impl PhysicsCallback<3> for CountingCallback {
+        fn modulate_force(&self, _body: BodyHandle, force: &SVector<f64, 3>) -> SVector<f64, 3> {
+            *force
+        }
+
+        fn modulate_impulse(&self, impulse: f64, _contact_point: &SVector<f64, 3>) -> f64 {
+            impulse
+        }
+
+        fn friction_multiplier(&self, _contact_point: &SVector<f64, 3>, _body: BodyHandle) -> f64 {
+            1.0
+        }
+
+        fn on_collision(&mut self, _event: &CollisionEvent<3>) {}
+        fn record_dissipation(&mut self, _energy: f64) {}
+
+        fn record_work(&mut self, body: BodyHandle, work_joules: f64) {
+            self.work_events.push((body, work_joules));
+        }
+
+        fn apply_trauma(&mut self, _event: &CollisionEvent<3>) {}
+    }
+
+    fn run_prismatic_motor_world(iterations: usize) -> (f64, f64, Vec<(BodyHandle, f64)>) {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.solver_iterations = iterations;
+
+        let mut static_body = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(Sphere::new(Point::origin(), 0.1)),
+        );
+        // These two bodies share a joint anchor at the origin. Suppress their
+        // overlapping collider pair so this test isolates motor/joint work
+        // from a simultaneous contact-resolution impulse.
+        static_body.is_sensor = true;
+        let dynamic_body = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let anchor = world.add_body(static_body);
+        let slider = world.add_body(dynamic_body);
+
+        // Passive constraint is deliberately included: it must not emit a
+        // motor-work receipt or create another per-iteration effort budget.
+        world.add_constraint(Box::new(BallJoint::new(anchor, slider)));
+
+        let motor = MotorDrive {
+            target_pos: 1.0,
+            target_vel: 0.0,
+            kp: 2.0,
+            kd: 0.0,
+            max_force: 10.0,
+        };
+        world.add_constraint(Box::new(
+            PrismaticJoint::new(anchor, slider, 0).with_motor(motor),
+        ));
+
+        let mut callback = CountingCallback::default();
+        world.step_with_callback(0.1, &mut callback);
+        let velocity = world.body(slider).expect("slider exists").linear_velocity[0];
+        let position = world.body(slider).expect("slider exists").position()[0];
+        (velocity, position, callback.work_events)
+    }
+
+    #[test]
+    fn world_emits_one_aggregate_motor_work_receipt_for_any_solver_iteration_count() {
+        let reference = run_prismatic_motor_world(1);
+        assert!((reference.0 - 0.2).abs() < 1.0e-12);
+        assert_eq!(reference.2.len(), 1);
+        assert!((reference.2[0].1 - 0.02).abs() < 1.0e-12);
+
+        for iterations in [2, 4, 8] {
+            let result = run_prismatic_motor_world(iterations);
+            assert!((result.0 - reference.0).abs() < 1.0e-12);
+            assert!((result.1 - reference.1).abs() < 1.0e-12);
+            assert_eq!(result.2.len(), 1, "iterations={iterations}");
+            assert!((result.2[0].1 - reference.2[0].1).abs() < 1.0e-12);
+        }
     }
 }
