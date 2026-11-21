@@ -54,7 +54,7 @@ function strictGroups(obligation, runs) {
     .map(run => run.independence_group));
 }
 function inspect(caseInput) {
-  if (!caseInput.frozen_before_execution) {
+  if (typeof caseInput.preregistration_ref !== "string" || !caseInput.preregistration_ref.trim()) {
     return {
       disposition: "rejected", covered: 0, missing: caseInput.obligations.filter(o => o.criticality !== "informational").map(o => o.id),
       eligible: 0, failed: 0, aborted: 0, invalid: 0, planned: 0, duplicates: 0,
@@ -81,8 +81,9 @@ function inspect(caseInput) {
     unique.push(run);
   }
   const badNa = caseInput.obligations.some(o =>
-    (o.not_applicable_reason !== null && (!o.not_applicable_approved || !o.not_applicable_reason))
-    || (o.not_applicable_approved && o.not_applicable_reason === null));
+    (o.not_applicable_reason !== null && (!o.not_applicable_reason.trim()
+      || !o.not_applicable_review_ref || !o.not_applicable_review_ref.trim()))
+    || (o.not_applicable_review_ref !== null && (!o.not_applicable_reason || !o.not_applicable_reason.trim())));
   if (badNa) {
     return {
       disposition: "rejected", covered: 0,
@@ -106,7 +107,7 @@ function inspect(caseInput) {
   let pairwiseFalse = 0;
   const missing = [];
   for (const obligation of caseInput.obligations) {
-    if (obligation.not_applicable_approved && obligation.not_applicable_reason) {
+    if (obligation.not_applicable_review_ref && obligation.not_applicable_reason) {
       covered += 1;
       continue;
     }
