@@ -183,3 +183,26 @@ Tracking:
 - https://github.com/Luminous-Dynamics/symthaea/issues/13034
 
 Do not promote the prompt-dissociation model as the actual source distribution until a mass-resolved beam characterization supports it.
+
+
+## 10. Eq. 16 / Eq. 17 source-level clarification
+
+A reinspection of the PMC full text (Methods lines 312–334) confirms the exact mismatch:
+
+- Eq. 13: mixture model E_env(E)=A_s E_scr(E;U_e,s)+A_b E_scr(E;U_e,b), with A_s+A_b=1.
+- Eq. 16: a sigmoid effective potential with fixed Delta=0.5 keV; after fixing U_e,b, this leaves two variables (E_0 and U_e,s).
+- Eq. 17: the printed parameter vector is theta={A_s,E_0,U_e,s} (three parameters), and the residual prediction is written as E_env(E_i;theta).
+
+Thus the prose says two free parameters, Eq. 17 lists three, and Eq. 17 uses the Eq. 13 E_env notation while the preceding text describes fitting the Eq. 16 sigmoid through Eq. 12. The original text does not uniquely specify whether the authors fitted:
+1. the Eq. 13 two-environment mixture with A_s,U_e,s;
+2. the Eq. 16 sigmoid effective potential with E_0,U_e,s; or
+3. a composite model not fully specified in the methods.
+
+The printed sigmoid also has opposite low-/high-energy asymptotes from its adjacent physical description (see Section 2).
+
+Keep these as distinct variants. The Rust reference kernel now exposes both literal Eq. 16 and prose-direction sigmoid enhancement functions, and a separate Eq. 13 mixture. It does not combine A_s with the Eq. 16 sigmoid by assumption.
+
+The public full-text source establishes the mismatch, but the 4.8 MB Supplementary Information PDF / Table 2 and archived fit implementation were not successfully opened as visual/source artifacts in this tool session. Therefore, the actual fit parameter values and optimizer objective still require source-file inspection. The Zenodo data record 10.5281/zenodo.20435774 remains embargoed until 2026-12-01:
+https://zenodo.org/records/20435774
+
+Source text: https://pmc.ncbi.nlm.nih.gov/articles/PMC13500673/
