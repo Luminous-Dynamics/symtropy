@@ -288,12 +288,7 @@ mod tests {
         // f(j) = 1/2 ||j||^2 - 3*j0.
         // j_star=(1,0,0,0) is on the first disk boundary; lambda_1=1,
         // lambda_2=0. The candidate j_hat=(9/10,0,1/2,0) is feasible.
-        let h_num: Matrix4 = [
-            [10, 0, 0, 0],
-            [0, 10, 0, 0],
-            [0, 0, 10, 0],
-            [0, 0, 0, 10],
-        ];
+        let h_num: Matrix4 = [[10, 0, 0, 0], [0, 10, 0, 0], [0, 0, 10, 0], [0, 0, 0, 10]];
         let solution_num: Vector4 = [10, 0, 0, 0];
         let candidate_num: Vector4 = [9, 0, 5, 0];
         // c=(-3,0,0,0), represented over denominator 100.
@@ -308,7 +303,10 @@ mod tests {
             solution_num[0] * solution_num[0] + solution_num[1] * solution_num[1],
             100
         );
-        assert_eq!(solution_num[2] * solution_num[2] + solution_num[3] * solution_num[3], 0);
+        assert_eq!(
+            solution_num[2] * solution_num[2] + solution_num[3] * solution_num[3],
+            0
+        );
 
         // Exact KKT stationarity at j_star:
         // H*j_star + c + 2*lambda_1*j_star(first disk) = 0,
@@ -335,8 +333,7 @@ mod tests {
         assert_eq!(candidate_norm_squared_num, 106);
         let primal_twice_kinetic_num = candidate_norm_squared_num;
         let primal_linear_num_over_100 = -270_i128;
-        let primal_num_over_100 =
-            primal_twice_kinetic_num / 2 + primal_linear_num_over_100;
+        let primal_num_over_100 = primal_twice_kinetic_num / 2 + primal_linear_num_over_100;
         assert_eq!(primal_num_over_100, -217);
 
         let dual_num_over_100 = 50_i128 - 300_i128;
@@ -356,5 +353,4 @@ mod tests {
         // complements the prior interior / zero-multiplier exact-gap witness.
         assert!(error_squared_num <= 2 * gap_num_over_100);
     }
-
 }
