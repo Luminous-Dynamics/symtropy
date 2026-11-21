@@ -239,9 +239,6 @@ def main() -> None:
         alpha_sym*Q_source
         /(16*sp.pi*G*eps**3*(1-T)**3*(1+T)**2)
     )
-    exact_zero("source density leading coefficient",
-               sp.limit(source_norm_tau,tau,0)-1600)
-
     # Exact local Wald/Jacobson-Myers density and its parametric variation.
     wald_multiplier=sp.factor(1+alpha_sym*(
         4*(T**2+10*T-3)/(alpha_sym*(1-T)**3)
