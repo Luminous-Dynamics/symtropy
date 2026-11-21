@@ -2805,6 +2805,52 @@ mod constraint_outcome_report_tests {
         assert!(report.world_state_may_have_mutated_before_rejection);
     }
 
+    fn world_with_prismatic_velocity_constraint() -> (PhysicsWorld<3>, BodyHandle) {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let base = world.add_body(RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(Sphere::new(Point::origin(), 0.1)),
+        ));
+        let dynamic = world.add_sphere(Point::origin(), 0.2, 1.0);
+        {
+            let body = world.body_mut(dynamic).expect("dynamic body is present");
+            body.linear_velocity = SVector::from([0.0, 0.4, -0.2]);
+            body.angular_velocity.set(0, 1, 0.5);
+            body.angular_velocity.set(0, 2, -0.3);
+            body.angular_velocity.set(1, 2, 0.2);
+        }
+        world.add_constraint(Box::new(crate::joints::PrismaticJoint::new(
+            base, dynamic, 0,
+        )));
+        world.solver_iterations = 1;
+        (world, dynamic)
+    }
+
+    #[test]
+    fn report_path_invokes_prismatic_solver_once_without_changing_physics() {
+        let (mut ordinary_world, ordinary_body) = world_with_prismatic_velocity_constraint();
+        let (mut report_world, report_body) = world_with_prismatic_velocity_constraint();
+
+        ordinary_world.step(0.016);
+        let report = report_world.step_with_report(0.016);
+
+        assert_eq!(report.constraint_velocity_events.len(), 1);
+        assert!(matches!(
+            report.constraint_velocity_events[0].outcome,
+            ConstraintSolveOutcome::Applied {
+                residual_inf: Some(_)
+            }
+        ));
+        assert_eq!(report.rejected_constraint_count(), 0);
+
+        let ordinary = ordinary_world.body(ordinary_body).expect("ordinary body remains");
+        let reported = report_world.body(report_body).expect("reported body remains");
+        assert_eq!(ordinary.transform.translation, reported.transform.translation);
+        assert_eq!(ordinary.linear_velocity, reported.linear_velocity);
+        assert_eq!(ordinary.angular_velocity, reported.angular_velocity);
+    }
+
     #[test]
     fn legacy_constraint_is_called_once_per_iteration_and_marked_unreported() {
         let mut world = PhysicsWorld::<3>::new(SVector::zeros());
