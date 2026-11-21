@@ -73,6 +73,7 @@ The action ticket now carries the exact M1 subgoal ID, action ID, attempt and ex
 
 The `protocol/` directory provides machine-readable v0.1 schemas:
 
+- `action_ticket.schema.json`: the M2 ticket binds the exact expected observer dependency path and policy digest.
 - `scenario_manifest.schema.json`: controller-visible scenario inputs and budgets only. It explicitly excludes evaluator truth, hidden fault identities and expected outcomes.
 - `action_ticket.schema.json`: the action commitment carries the expected observer dependency path and the policy digest; a receipt-side path cannot silently replace the ticket-side path.
 - `evaluation_plan.schema.json`: candidate/baseline build identities, frozen manifest/evaluator digests, sampling plan, cluster dimensions, metrics and mandatory early-stop rules.
