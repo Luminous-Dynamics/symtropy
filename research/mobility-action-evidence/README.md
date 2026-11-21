@@ -42,6 +42,8 @@ A transport acknowledgement is not physical completion. The physical-outcome val
 - observation frame, calibration and freshness;
 - a declared outcome (Satisfied, NoEffect, PartialEffect or Unknown).
 
+Observer independence is now a ticket-bound policy commitment. The outcome policy declares the executor's failure-domain path and an approved observer-domain allowlist; the observation must declare its dependency-domain path. Empty/duplicate/unapproved domains, policy-version mismatch, or any shared domain between observer and executor cause rejection. Different source IDs or an `IndependentSensor` label alone are not enough. The dependency inventory remains an upstream authenticated claim; this crate checks set separation but cannot prove that the inventory is complete or truthful.
+
 The result is one of:
 
 - **Accepted:** the expected effect has independent, matching evidence;
