@@ -33,9 +33,18 @@ pub struct HmcDiagnosticSummary {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GroupedHmcQuantity {
     Coefficient(usize),
+    /// Positive local scale (exp of the sampled log coordinate).
     LocalScale(usize),
+    /// Raw sampled log-local-scale coordinate.
+    LogLocalScale(usize),
+    /// Positive group-global scale (exp of the sampled log coordinate).
     GlobalScale(usize),
+    /// Raw sampled log-global-scale coordinate.
+    LogGlobalScale(usize),
+    /// Positive experiment normalization scale (exp of the sampled log coordinate).
     ExperimentScale(usize),
+    /// Raw sampled log-experiment-scale coordinate.
+    LogExperimentScale(usize),
 }
 
 /// Apply the same rank-normalized diagnostics to a named grouped-HMC quantity.
@@ -65,14 +74,28 @@ pub fn diagnose_grouped_hmc_quantity(
         let mut draws = Vec::with_capacity(chain.draws.len());
         for draw in &chain.draws {
             let value = match quantity {
-                GroupedHmcQuantity::Coefficient(index) => draw.coefficients.get(index),
-                GroupedHmcQuantity::LocalScale(index) => draw.log_local_scales.get(index),
-                GroupedHmcQuantity::GlobalScale(index) => draw.log_global_scales.get(index),
+                GroupedHmcQuantity::Coefficient(index) => {
+                    draw.coefficients.get(index).copied()
+                }
+                GroupedHmcQuantity::LocalScale(index) => {
+                    draw.log_local_scales.get(index).map(|value| value.exp())
+                }
+                GroupedHmcQuantity::LogLocalScale(index) => {
+                    draw.log_local_scales.get(index).copied()
+                }
+                GroupedHmcQuantity::GlobalScale(index) => {
+                    draw.log_global_scales.get(index).map(|value| value.exp())
+                }
+                GroupedHmcQuantity::LogGlobalScale(index) => {
+                    draw.log_global_scales.get(index).copied()
+                }
                 GroupedHmcQuantity::ExperimentScale(index) => {
-                    draw.log_experiment_scales.get(index)
+                    draw.log_experiment_scales.get(index).map(|value| value.exp())
+                }
+                GroupedHmcQuantity::LogExperimentScale(index) => {
+                    draw.log_experiment_scales.get(index).copied()
                 }
             }
-            .copied()
             .ok_or(ModelError::MismatchedDataLengths)?;
             if !value.is_finite() || !draw.hamiltonian_energy.is_finite() {
                 return Err(ModelError::NonFiniteValue(
@@ -559,8 +582,11 @@ mod grouped_hmc_tests {
         for quantity in [
             GroupedHmcQuantity::Coefficient(0),
             GroupedHmcQuantity::LocalScale(0),
+            GroupedHmcQuantity::LogLocalScale(0),
             GroupedHmcQuantity::GlobalScale(1),
+            GroupedHmcQuantity::LogGlobalScale(1),
             GroupedHmcQuantity::ExperimentScale(0),
+            GroupedHmcQuantity::LogExperimentScale(0),
         ] {
             let summary =
                 diagnose_grouped_hmc_quantity(&chains, quantity).expect("grouped diagnostics");
