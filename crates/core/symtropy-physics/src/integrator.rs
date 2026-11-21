@@ -186,6 +186,28 @@ pub fn apply_impulse<const D: usize>(body: &mut RigidBody<D>, impulse: &SVector<
     }
 }
 
+/// Apply a world-space angular impulse through the strict inertia response API.
+///
+/// The response is computed and checked before the body's angular velocity is
+/// mutated. On any error, the body angular velocity is left unchanged.
+pub fn try_apply_angular_impulse<const D: usize>(
+    body: &mut RigidBody<D>,
+    impulse: &Bivector<D>,
+) -> Result<crate::body::RotationalResponse<D>, crate::body::RotationalResponseError> {
+    let outcome = body.try_apply_inverse_angular_inertia(impulse)?;
+    if let crate::body::RotationalResponse::Applied {
+        delta_angular_velocity,
+        ..
+    } = outcome
+    {
+        let next_angular_velocity = body.angular_velocity.add(&delta_angular_velocity);
+        if !next_angular_velocity.is_finite() {
+            return Err(crate::body::RotationalResponseError::NonFiniteResponse);
+        }
+        body.angular_velocity = next_angular_velocity;
+    }
+    Ok(outcome)
+}
 /// Apply an angular impulse (as a bivector) to a body.
 /// Apply a world-space angular impulse through the body's declared
 /// rotational inertia model.
@@ -530,4 +552,55 @@ mod tests {
             body.transform.rotation.determinant()
         );
     }
+
+    #[test]
+    fn strict_angular_impulse_commits_once_after_successful_preflight() {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(30), Point::origin(), 1.0, 1.0,
+        );
+        let mut impulse = Bivector::<3>::zero();
+        impulse.set(0, 1, 0.4);
+        let before = body.angular_velocity;
+        let outcome = try_apply_angular_impulse(&mut body, &impulse).unwrap();
+        assert!(matches!(outcome, crate::body::RotationalResponse::Applied { .. }));
+        let expected_delta = match outcome {
+            crate::body::RotationalResponse::Applied { delta_angular_velocity, .. } => {
+                delta_angular_velocity
+            }
+            crate::body::RotationalResponse::StaticOrKinematic => Bivector::zero(),
+        };
+        assert!((body.angular_velocity.add(&before.scale(-1.0)).add(&expected_delta.scale(-1.0))).norm() < 1.0e-12);
+    }
+
+    #[test]
+    fn strict_angular_impulse_rejection_leaves_body_unchanged() {
+        let mut body = RigidBody::<4>::dynamic_sphere(
+            BodyHandle(31), Point::origin(), 1.0, 1.0,
+        );
+        body.angular_velocity.set(0, 1, 0.25);
+        let before = body.angular_velocity;
+        let impulse = Bivector::<4>::unit_plane(0, 1);
+        assert!(matches!(
+            try_apply_angular_impulse(&mut body, &impulse),
+            Err(crate::body::RotationalResponseError::UnsupportedModel { .. })
+        ));
+        assert_eq!(body.angular_velocity, before);
+    }
+
+    #[test]
+    fn strict_angular_impulse_overflow_does_not_partially_mutate_body() {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(32), Point::origin(), 1.0, 1.0,
+        );
+        body.angular_velocity.set(0, 1, f64::MAX * 0.75);
+        let before = body.angular_velocity;
+        let mut impulse = Bivector::<3>::zero();
+        impulse.set(0, 1, f64::MAX * 0.2);
+        assert_eq!(
+            try_apply_angular_impulse(&mut body, &impulse),
+            Err(crate::body::RotationalResponseError::NonFiniteResponse)
+        );
+        assert_eq!(body.angular_velocity, before);
+    }
+
 }
