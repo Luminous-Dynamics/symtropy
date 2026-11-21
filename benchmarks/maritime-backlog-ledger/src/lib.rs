@@ -136,7 +136,11 @@ fn parse_u32(value: &str, name: &str, line: usize) -> Result<u32, String> {
         .map_err(|_| format!("line {line}: {name} must be a non-negative integer, got {value:?}"))
 }
 
-fn split_row<'a>(line: &'a str, expected_fields: usize, line_number: usize) -> Result<Vec<&'a str>, String> {
+fn split_row<'a>(
+    line: &'a str,
+    expected_fields: usize,
+    line_number: usize,
+) -> Result<Vec<&'a str>, String> {
     let fields: Vec<&str> = line.split(',').map(str::trim).collect();
     if fields.len() != expected_fields {
         return Err(format!(
@@ -145,7 +149,9 @@ fn split_row<'a>(line: &'a str, expected_fields: usize, line_number: usize) -> R
         ));
     }
     if fields.iter().any(|field| field.is_empty()) {
-        return Err(format!("line {line_number}: blank fields are not permitted"));
+        return Err(format!(
+            "line {line_number}: blank fields are not permitted"
+        ));
     }
     Ok(fields)
 }
@@ -154,7 +160,10 @@ fn split_row<'a>(line: &'a str, expected_fields: usize, line_number: usize) -> R
 /// parser: the admitted fixture has a fixed header and no quoted fields.
 pub fn parse_cases(csv: &str) -> Result<Vec<CaseDefinition>, String> {
     let mut lines = csv.lines().filter(|line| !line.trim().is_empty());
-    let header = lines.next().ok_or_else(|| "case CSV is empty".to_string())?.trim();
+    let header = lines
+        .next()
+        .ok_or_else(|| "case CSV is empty".to_string())?
+        .trim();
     if header != CASES_HEADER {
         return Err(format!("unexpected case CSV header: {header:?}"));
     }
@@ -186,11 +195,17 @@ pub fn parse_cases(csv: &str) -> Result<Vec<CaseDefinition>, String> {
         let expected_accept = match f[8] {
             "ACCEPT" => true,
             "REJECT" => false,
-            other => return Err(format!("line {line_number}: unknown expected outcome {other:?}")),
+            other => {
+                return Err(format!(
+                    "line {line_number}: unknown expected outcome {other:?}"
+                ));
+            }
         };
 
         if window_start_tick > as_of_tick {
-            return Err(format!("line {line_number}: window starts after the as-of cutoff"));
+            return Err(format!(
+                "line {line_number}: window starts after the as-of cutoff"
+            ));
         }
 
         cases.push(CaseDefinition {
@@ -216,7 +231,10 @@ pub fn parse_cases(csv: &str) -> Result<Vec<CaseDefinition>, String> {
 /// and made idempotent by the verifier; conflicting source-record reuse rejects.
 pub fn parse_events(csv: &str) -> Result<Vec<SourceEvent>, String> {
     let mut lines = csv.lines().filter(|line| !line.trim().is_empty());
-    let header = lines.next().ok_or_else(|| "event CSV is empty".to_string())?.trim();
+    let header = lines
+        .next()
+        .ok_or_else(|| "event CSV is empty".to_string())?
+        .trim();
     if header != EVENTS_HEADER {
         return Err(format!("unexpected event CSV header: {header:?}"));
     }
@@ -257,14 +275,18 @@ fn signed_delta(ledger: LedgerKind, event_kind: &str, quantity: u64) -> Result<i
             LedgerKind::VesselQueue,
             "FIRST_BERTH_ENTRY" | "DIVERSION" | "CANCELLATION" | "OTHER_EXIT",
         ) => Ok(-q),
-        (LedgerKind::ContainerStock, "DISCHARGE_IN" | "GATE_IN" | "RAIL_IN" | "ADJUSTMENT_IN") => Ok(q),
+        (LedgerKind::ContainerStock, "DISCHARGE_IN" | "GATE_IN" | "RAIL_IN" | "ADJUSTMENT_IN") => {
+            Ok(q)
+        }
         (
             LedgerKind::ContainerStock,
             "VESSEL_LOAD" | "GATE_OUT" | "RAIL_OUT" | "ADJUSTMENT_OUT",
         ) => Ok(-q),
         (LedgerKind::ContainerStock, "REHANDLE") => Ok(0),
         (_, "NONE") => Err("actual active event cannot have event_kind NONE".to_string()),
-        (_, other) => Err(format!("event kind {other:?} is unsupported for this ledger")),
+        (_, other) => Err(format!(
+            "event kind {other:?} is unsupported for this ledger"
+        )),
     }
 }
 
@@ -277,9 +299,10 @@ fn verify_case(case: &CaseDefinition, input_events: &[SourceEvent]) -> Result<u6
 
     // Filter by observation time before conflict checks. A record not yet
     // observed at the decision cutoff must not influence historical replay.
-    for event in input_events.iter().filter(|event| {
-        event.case_id == case.case_id && event.observed_tick <= case.as_of_tick
-    }) {
+    for event in input_events
+        .iter()
+        .filter(|event| event.case_id == case.case_id && event.observed_tick <= case.as_of_tick)
+    {
         match records_by_id.get(&event.source_record_id) {
             Some(existing) if existing == event => continue,
             Some(_) => {
@@ -302,7 +325,10 @@ fn verify_case(case: &CaseDefinition, input_events: &[SourceEvent]) -> Result<u6
                 event.event_id, event.terminal_id, case.terminal_id
             ));
         }
-        by_event.entry(event.event_id.clone()).or_default().push(event);
+        by_event
+            .entry(event.event_id.clone())
+            .or_default()
+            .push(event);
     }
 
     // Events sharing the same source time resolution are aggregated into
@@ -322,7 +348,9 @@ fn verify_case(case: &CaseDefinition, input_events: &[SourceEvent]) -> Result<u6
                 || event.terminal_id != terminal_id
                 || event.quantity_unit != quantity_unit
         }) {
-            return Err(format!("event {event_id:?} changed source, terminal or unit identity across revisions"));
+            return Err(format!(
+                "event {event_id:?} changed source, terminal or unit identity across revisions"
+            ));
         }
 
         if quantity_unit != case.stock_unit {
@@ -333,8 +361,8 @@ fn verify_case(case: &CaseDefinition, input_events: &[SourceEvent]) -> Result<u6
         }
 
         for (index, event) in revisions.iter().enumerate() {
-            let expected_revision = u32::try_from(index + 1)
-                .map_err(|_| "revision index overflow".to_string())?;
+            let expected_revision =
+                u32::try_from(index + 1).map_err(|_| "revision index overflow".to_string())?;
             if event.revision != expected_revision {
                 return Err(format!(
                     "event {event_id:?} has a visible revision gap: expected {expected_revision}, found {}",
@@ -349,7 +377,9 @@ fn verify_case(case: &CaseDefinition, input_events: &[SourceEvent]) -> Result<u6
 
         if current.state == RecordState::Voided {
             if !is_zero_state(current) {
-                return Err(format!("voided event {event_id:?} must have NONE and zero quantity"));
+                return Err(format!(
+                    "voided event {event_id:?} must have NONE and zero quantity"
+                ));
             }
             continue;
         }
@@ -365,10 +395,14 @@ fn verify_case(case: &CaseDefinition, input_events: &[SourceEvent]) -> Result<u6
         }
 
         if current.event_tick < case.window_start_tick || current.event_tick > case.as_of_tick {
-            return Err(format!("actual event {event_id:?} is outside the case time window"));
+            return Err(format!(
+                "actual event {event_id:?} is outside the case time window"
+            ));
         }
         if current.observed_tick < current.event_tick {
-            return Err(format!("actual event {event_id:?} was observed before it occurred"));
+            return Err(format!(
+                "actual event {event_id:?} was observed before it occurred"
+            ));
         }
         if current.quantity == 0 {
             return Err(format!("actual event {event_id:?} has zero quantity"));
@@ -387,12 +421,14 @@ fn verify_case(case: &CaseDefinition, input_events: &[SourceEvent]) -> Result<u6
             .checked_add(delta)
             .ok_or_else(|| "stock arithmetic overflow".to_string())?;
         if stock < 0 {
-            return Err(format!("stock underflow after the event bucket at tick {tick}"));
+            return Err(format!(
+                "stock underflow after the event bucket at tick {tick}"
+            ));
         }
     }
 
-    let calculated = u64::try_from(stock)
-        .map_err(|_| "calculated closing stock is outside u64".to_string())?;
+    let calculated =
+        u64::try_from(stock).map_err(|_| "calculated closing stock is outside u64".to_string())?;
 
     if calculated != case.reported_closing_stock {
         return Err(format!(
@@ -433,7 +469,12 @@ pub fn evaluate_corpus(cases_csv: &str, events_csv: &str) -> Result<CorpusReport
             rejected += 1;
         }
 
-        let expected = if case.expected_accept { "ACCEPT" } else { "REJECT" }.to_string();
+        let expected = if case.expected_accept {
+            "ACCEPT"
+        } else {
+            "REJECT"
+        }
+        .to_string();
         if actual == expected {
             matched += 1;
         }
@@ -477,14 +518,21 @@ mod tests {
     fn exact_source_record_replay_is_idempotent() {
         let events = parse_events(EVENTS_CSV).expect("events parse");
         let cases = parse_cases(CASES_CSV).expect("cases parse");
-        let case = cases.iter().find(|case| case.case_id == "V06").expect("V06 exists");
+        let case = cases
+            .iter()
+            .find(|case| case.case_id == "V06")
+            .expect("V06 exists");
         assert_eq!(verify_case(case, &events), Ok(1));
     }
 
     #[test]
     fn correction_replaces_earlier_revision_instead_of_adding_to_it() {
         let report = evaluate_reference_corpus().expect("corpus parses");
-        let case = report.cases.iter().find(|case| case.case_id == "V05").expect("V05 exists");
+        let case = report
+            .cases
+            .iter()
+            .find(|case| case.case_id == "V05")
+            .expect("V05 exists");
         assert_eq!(case.actual, "ACCEPT");
         assert_eq!(case.detail, "closing stock = 4");
     }
@@ -492,7 +540,11 @@ mod tests {
     #[test]
     fn future_observed_revision_does_not_leak_into_prior_snapshot() {
         let report = evaluate_reference_corpus().expect("corpus parses");
-        let case = report.cases.iter().find(|case| case.case_id == "V08").expect("V08 exists");
+        let case = report
+            .cases
+            .iter()
+            .find(|case| case.case_id == "V08")
+            .expect("V08 exists");
         assert_eq!(case.actual, "ACCEPT");
         assert_eq!(case.detail, "closing stock = 1");
     }
@@ -500,7 +552,11 @@ mod tests {
     #[test]
     fn voided_latest_revision_removes_prior_event_from_stock() {
         let report = evaluate_reference_corpus().expect("corpus parses");
-        let case = report.cases.iter().find(|case| case.case_id == "V09").expect("V09 exists");
+        let case = report
+            .cases
+            .iter()
+            .find(|case| case.case_id == "V09")
+            .expect("V09 exists");
         assert_eq!(case.actual, "ACCEPT");
         assert_eq!(case.detail, "closing stock = 1");
     }
@@ -508,7 +564,11 @@ mod tests {
     #[test]
     fn rehandles_are_not_counted_as_additional_container_stock() {
         let report = evaluate_reference_corpus().expect("corpus parses");
-        let case = report.cases.iter().find(|case| case.case_id == "C10").expect("C10 exists");
+        let case = report
+            .cases
+            .iter()
+            .find(|case| case.case_id == "C10")
+            .expect("C10 exists");
         assert_eq!(case.actual, "ACCEPT");
         assert_eq!(case.detail, "closing stock = 115");
     }
@@ -519,30 +579,32 @@ mod tests {
         events.reverse();
         let event_rows = events
             .iter()
-            .map(|event| format!(
-                "{},{},{},{},{},{},{},{},{},{},{},{},{}",
-                event.case_id,
-                event.event_id,
-                event.source_record_id,
-                event.source_id,
-                event.revision,
-                event.observed_tick,
-                event.event_tick,
-                match event.classification {
-                    Classification::Actual => "ACTUAL",
-                    Classification::Estimated => "ESTIMATED",
-                    Classification::Planned => "PLANNED",
-                    Classification::Requested => "REQUESTED",
-                },
-                match event.state {
-                    RecordState::Active => "ACTIVE",
-                    RecordState::Voided => "VOIDED",
-                },
-                event.event_kind,
-                event.quantity_unit,
-                event.quantity,
-                event.terminal_id,
-            ))
+            .map(|event| {
+                format!(
+                    "{},{},{},{},{},{},{},{},{},{},{},{},{}",
+                    event.case_id,
+                    event.event_id,
+                    event.source_record_id,
+                    event.source_id,
+                    event.revision,
+                    event.observed_tick,
+                    event.event_tick,
+                    match event.classification {
+                        Classification::Actual => "ACTUAL",
+                        Classification::Estimated => "ESTIMATED",
+                        Classification::Planned => "PLANNED",
+                        Classification::Requested => "REQUESTED",
+                    },
+                    match event.state {
+                        RecordState::Active => "ACTIVE",
+                        RecordState::Voided => "VOIDED",
+                    },
+                    event.event_kind,
+                    event.quantity_unit,
+                    event.quantity,
+                    event.terminal_id,
+                )
+            })
             .collect::<Vec<_>>()
             .join("\n");
         let reordered = format!("{EVENTS_HEADER}\n{event_rows}\n");
@@ -554,7 +616,11 @@ mod tests {
     #[test]
     fn same_tick_events_are_aggregated_without_inventing_lexical_order() {
         let report = evaluate_reference_corpus().expect("corpus parses");
-        let case = report.cases.iter().find(|case| case.case_id == "V32").expect("V32 exists");
+        let case = report
+            .cases
+            .iter()
+            .find(|case| case.case_id == "V32")
+            .expect("V32 exists");
         assert_eq!(case.actual, "ACCEPT");
         assert_eq!(case.detail, "closing stock = 0");
     }
@@ -562,7 +628,11 @@ mod tests {
     #[test]
     fn source_record_id_conflict_is_rejected() {
         let report = evaluate_reference_corpus().expect("corpus parses");
-        let case = report.cases.iter().find(|case| case.case_id == "V24").expect("V24 exists");
+        let case = report
+            .cases
+            .iter()
+            .find(|case| case.case_id == "V24")
+            .expect("V24 exists");
         assert_eq!(case.actual, "REJECT");
         assert!(case.detail.contains("reused with different content"));
     }
@@ -571,16 +641,31 @@ mod tests {
     fn planned_events_cannot_change_actual_stock() {
         let events = parse_events(EVENTS_CSV).expect("events parse");
         let cases = parse_cases(CASES_CSV).expect("cases parse");
-        let case = cases.iter().find(|case| case.case_id == "V07").expect("V07 exists");
+        let case = cases
+            .iter()
+            .find(|case| case.case_id == "V07")
+            .expect("V07 exists");
         assert_eq!(verify_case(case, &events), Ok(1));
     }
 
     #[test]
     fn container_and_vessel_units_are_not_interchangeable() {
         let report = evaluate_reference_corpus().expect("corpus parses");
-        let vessel_case = report.cases.iter().find(|case| case.case_id == "V18").expect("V18 exists");
-        let container_case = report.cases.iter().find(|case| case.case_id == "C19").expect("C19 exists");
-        let unit_case = report.cases.iter().find(|case| case.case_id == "C31").expect("C31 exists");
+        let vessel_case = report
+            .cases
+            .iter()
+            .find(|case| case.case_id == "V18")
+            .expect("V18 exists");
+        let container_case = report
+            .cases
+            .iter()
+            .find(|case| case.case_id == "C19")
+            .expect("C19 exists");
+        let unit_case = report
+            .cases
+            .iter()
+            .find(|case| case.case_id == "C31")
+            .expect("C31 exists");
         assert_eq!(vessel_case.actual, "REJECT");
         assert_eq!(container_case.actual, "REJECT");
         assert!(unit_case.detail.contains("quantity unit"));
@@ -630,7 +715,10 @@ mod tests {
 
         for (observed, (case_id, disposition, detail)) in report.cases.iter().zip(expected) {
             assert_eq!(observed.case_id, case_id, "case ordering changed");
-            assert_eq!(observed.actual, disposition, "wrong disposition for {case_id}");
+            assert_eq!(
+                observed.actual, disposition,
+                "wrong disposition for {case_id}"
+            );
             if disposition == "ACCEPT" {
                 assert_eq!(observed.detail, detail, "wrong closing stock for {case_id}");
             } else {
