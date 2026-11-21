@@ -24,7 +24,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  QUALIFIED_SHA: ${{ env.QUALIFIED_SHA }}
+  QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
   fixture-integrity:
