@@ -58,7 +58,7 @@ jobs:
           ids = [x["episode_id"] for x in workload["episodes"]]
           assert ids == [x["episode_id"] for x in truth["episodes"]]
           assert ids == [x["episode_id"] for x in expected["episodes"]]
-          assert len(ids) == 9
+          assert len(ids) == 11
           forbidden = {"expected_answer", "required_observation_refs", "expected_decision", "superseded_refs", "revoked_refs", "absent_event_class"}
           def scan(value):
               if isinstance(value, dict):
@@ -74,21 +74,38 @@ jobs:
           import json
           p = "research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json"
           data = json.load(open(p, encoding="utf-8"))
+          truth = json.load(open("research/av-long-horizon-evidence-v0/fixtures/evaluator-only/truth-v1.json", encoding="utf-8"))
+          truth_by_id = {row["episode_id"]: row for row in truth["episodes"]}
           for episode in data["episodes"]:
               query_tick = episode["query"]["query_tick"]
-              availability = [event["availability_tick"] for event in episode["stream_events"]]
+              events = episode["stream_events"]
+              availability = [event["availability_tick"] for event in events]
               assert availability == sorted(availability), episode["episode_id"]
-              assert all(tick <= query_tick for tick in availability), episode["episode_id"]
               assert episode["query"]["response_deadline_tick"] >= query_tick
-              known_observations = set()
-              for event in episode["stream_events"]:
+              known_observations = {}
+              event_ids = set()
+              for event in events:
+                  assert event["event_id"] not in event_ids, episode["episode_id"]
+                  event_ids.add(event["event_id"])
+                  tick = event["availability_tick"]
                   if event["kind"] == "observation":
-                      known_observations.add(event["observation_ref"])
+                      known_observations[event["observation_ref"]] = min(
+                          known_observations.get(event["observation_ref"], tick), tick
+                      )
                   elif event["kind"] == "correction":
-                      assert event["supersedes_observation_ref"] in known_observations
-                      assert event["replacement_observation_ref"] in known_observations
+                      old_ref = event["supersedes_observation_ref"]
+                      new_ref = event["replacement_observation_ref"]
+                      assert old_ref in known_observations and new_ref in known_observations
+                      assert known_observations[old_ref] <= tick
+                      assert known_observations[new_ref] <= tick
                   elif event["kind"] == "revocation":
-                      assert event["target_observation_ref"] in known_observations
+                      target = event["target_observation_ref"]
+                      assert target in known_observations
+                      assert known_observations[target] <= tick
+              required = truth_by_id[episode["episode_id"]]["required_observation_refs"]
+              for ref in required:
+                  assert ref in known_observations
+                  assert known_observations[ref] <= query_tick, episode["episode_id"]
           PY
       - name: Duplicate transport retains original observation identity
         run: |
@@ -153,8 +170,8 @@ jobs:
           assert actual["memory_condition"] == expected["memory_condition"]
           for key, value in expected["totals"].items():
               assert actual["totals"][key] == value, (key, actual["totals"][key], value)
-          assert actual["totals"]["answer_correct_count"] == 8
-          assert actual["totals"]["decision_correct_count"] == 9
+          assert actual["totals"]["answer_correct_count"] == 10
+          assert actual["totals"]["decision_correct_count"] == 11
           assert actual["totals"]["hard_violation_count"] == 0
           PY
 
