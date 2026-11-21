@@ -713,6 +713,33 @@ mod tests {
     }
 
     #[test]
+    fn clopper_pearson_upper_bound_has_at_least_nominal_grid_coverage() {
+        let probabilities = [0.01_f64, 0.05, 0.2, 0.5, 0.9];
+        for trials in 1..=20 {
+            for true_miss_probability in probabilities {
+                let mut mass = (1.0 - true_miss_probability).powi(trials as i32);
+                let mut coverage = 0.0;
+                for misses in 0..=trials {
+                    let upper = miss_probability_upper_bound_95(misses, trials)
+                        .expect("valid miss/trial counts");
+                    if true_miss_probability <= upper + 1.0e-12 {
+                        coverage += mass;
+                    }
+                    if misses < trials {
+                        mass *= (trials - misses) as f64 / (misses + 1) as f64
+                            * true_miss_probability
+                            / (1.0 - true_miss_probability);
+                    }
+                }
+                assert!(
+                    coverage >= 0.95 - 1.0e-10,
+                    "undercoverage at n={trials}, q={true_miss_probability}: {coverage}"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn shared_failure_domain_is_not_independent_reference() {
         assert!(shared_failure_domain(
             &["power".to_owned(), "reference_clock".to_owned()],
