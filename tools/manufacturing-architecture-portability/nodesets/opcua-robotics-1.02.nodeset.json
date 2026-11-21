@@ -1,0 +1,53 @@
+{
+  "standard_ref_id": "opcua-robotics-1.02-reference",
+  "name": "OPC UA for Robotics — Part 1: Vertical Integration",
+  "publisher": "OPC Foundation",
+  "edition": "1.02 (published 2025-09-08)",
+  "role": "machine_information_model",
+  "publication_state": "published_specification",
+  "reference_uri": "https://reference.opcfoundation.org/specs/OPC-40010-1",
+  "namespace_metadata": {
+    "namespace_uri": "http://opcfoundation.org/UA/Robotics/",
+    "namespace_version": "1.02",
+    "namespace_publication_date": "2025-09-08",
+    "nodeset_uri": "https://reference.opcfoundation.org/nodesets/?u=http://opcfoundation.org/UA/Robotics/&v=1.02&i=1",
+    "nodeset_scope": "complete_namespace"
+  },
+  "nodeset_artifact": {
+    "artifact_admission_status": "pinned_not_imported",
+    "repository_url": "https://github.com/OPCFoundation/UA-Nodeset",
+    "source_commit_sha": "ed0b821f6a6f1f0c440c442ed95a9146ae8b7f8d",
+    "source_path": "Robotics/Opc.Ua.Robotics.NodeSet2.xml",
+    "git_blob_sha1": "e97e9b88f335c8e7311531eb337e5103806c0a1a",
+    "content_sha256": "487243c1ec85e0b747c087ed96c0e1d824629789055e74854f07d19099c08803",
+    "byte_length": 387529,
+    "namespace_uris": [
+      "http://opcfoundation.org/UA/DI/",
+      "http://opcfoundation.org/UA/IA/",
+      "http://opcfoundation.org/UA/Robotics/"
+    ],
+    "node_set_model": {
+      "model_uri": "http://opcfoundation.org/UA/Robotics/",
+      "version": "1.02",
+      "model_version": "1.2",
+      "publication_date": "2025-09-08"
+    },
+    "required_models": [
+      {
+        "model_uri": "http://opcfoundation.org/UA/",
+        "version": "1.05.03",
+        "publication_date": "2023-12-15"
+      },
+      {
+        "model_uri": "http://opcfoundation.org/UA/DI/",
+        "version": "1.04.0",
+        "publication_date": "2022-11-03"
+      },
+      {
+        "model_uri": "http://opcfoundation.org/UA/IA/",
+        "version": "1.01.4",
+        "publication_date": "2025-05-23"
+      }
+    ]
+  }
+}
