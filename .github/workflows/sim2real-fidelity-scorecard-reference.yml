@@ -62,6 +62,21 @@ jobs:
           assert not set(manifest["training_recording_ids"] + manifest["calibration_recording_ids"]) & {
               trial["source_recording_id"] for trial in trials
           }
+          expected_series = {
+              (trace["signal"], trace["series_id"]): trace["normalization_scale"]
+              for trace in trials[0]["traces"]
+          }
+          for trial in trials:
+              actual = {
+                  (trace["signal"], trace["series_id"]): trace["normalization_scale"]
+                  for trace in trial["traces"]
+              }
+              assert actual == expected_series
+              for trace in trial["traces"]:
+                  real_times = [sample["real_timestamp_ns"] for sample in trace["samples"]]
+                  sim_times = [sample["simulated_timestamp_ns"] for sample in trace["samples"]]
+                  assert real_times == sim_times
+                  assert all(a < b for a, b in zip(real_times, real_times[1:]))
 
           negative_cases = []
           bad = copy.deepcopy(manifest)
@@ -84,7 +99,14 @@ jobs:
               if not list(validator.iter_errors(candidate)):
                   raise SystemExit(f"negative control unexpectedly passed: {name}")
 
-          print(f"validated {len(trials)} synthetic holdout trial records and {len(negative_cases)} negative controls")
+          misaligned = copy.deepcopy(manifest)
+          misaligned["blind_holdout_trials"][0]["traces"][0]["samples"][1]["simulated_timestamp_ns"] += 1
+          assert any(
+              sample["real_timestamp_ns"] != sample["simulated_timestamp_ns"]
+              for sample in misaligned["blind_holdout_trials"][0]["traces"][0]["samples"]
+          )
+
+          print(f"validated {len(trials)} synthetic holdout trial records, {len(negative_cases)} schema negative controls and timestamp/split invariants")
           PY
       - name: Check formatting
         run: cargo fmt --manifest-path benchmarks/sim2real-fidelity-scorecard-reference/v0.1/Cargo.toml -- --check
