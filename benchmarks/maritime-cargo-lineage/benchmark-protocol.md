@@ -32,7 +32,7 @@ A standard-conformant message is not by itself proof that two local identifiers 
 - A later visible revision supersedes the earlier one; a voided latest revision removes that source event from the effective set.
 - Future-published revisions are invisible at the replay cutoff.
 - Planned milestones are retained in the audit counts but cannot mutate a physical-delivery count.
-- A delivery count requires a resolved physical CONTAINER_BOX identity and RECEIVER_RECEIPT evidence. Provider-only delivery claims are reported separately.
+- A counted receipt-backed delivery assertion requires a resolved physical CONTAINER_BOX identity, a DELIVERED_TO_RECEIVER milestone, RECEIVER_RECEIPT evidence kind and a non-empty evidence_id. Provider-only delivery claims are reported separately. Evidence IDs are opaque references in v0.1; the referenced artifact, issuer identity and receiving-party authority are not authenticated here.
 
 ## Frozen synthetic oracle
 
@@ -51,10 +51,10 @@ At as-of tick 200, the hand-computed golden outcome is:
 | Resolved actual event rows | 7 |
 | Unresolved actual event rows | 1 |
 | Unqualified delivery claims | 1 |
-| Qualified delivery events | 1 |
-| Unique delivered physical boxes | 1 |
+| Receiver-receipted delivery assertions | 1 |
+| Unique receipt-backed physical-box IDs | 1 |
 
-These are synthetic ticks and records, not minutes, containers handled by DGT, or a real cargo-delivery result.
+These are synthetic ticks and records, not minutes, containers handled by DGT, or a real cargo-delivery result. The receipt label is not a source-authentication result.
 
 ## Adversarial test families
 

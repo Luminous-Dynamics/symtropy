@@ -5,7 +5,7 @@
 | Standard / ecosystem | What it contributes | What this benchmark adds without replacing it |
 |---|---|---|
 | DCSA Track & Trace | Shared data definitions and event domains for shipment, transport, equipment, IoT and reefer visibility | Exact source-local identity crosswalk qualification, alias validity/revision handling, conflict-preserving historical replay and conservative unique-box counting |
-| GS1 EPCIS 2.0 | Common visibility-event vocabulary and What / When / Where / Why / How dimensions | Cross-source alias mapping and independently checkable rules for whether a receiver event can count as one delivered physical box |
+| GS1 EPCIS 2.0 | Common visibility-event vocabulary and What / When / Where / Why / How dimensions | Cross-source alias mapping and independently checkable rules for whether a receiver-receipt assertion can contribute one unique physical-box ID under the declared v0.1 rules |
 | DCSA Port Call / JIT and IAPH-IHMA PCO | Port-call coordination and typed service-time milestones | Keep vessel visit/call identity distinct from container identity; never use a berth/voyage match as proof of box identity |
 | Terminal operating systems and carrier platforms | Operational identifiers and transaction/event records within their authorized workflows | Read-only, independent reconciliation across system boundaries; no replacement TOS or mutation authority |
 
@@ -28,7 +28,7 @@ All methods receive identical information. The naive matcher must not be present
 - false-merge and false-split rates;
 - ambiguous/unmatched/revoked/out-of-window shares;
 - source-event deduplication and revision correctness;
-- unique physical boxes delivered versus raw event-row/alias counts;
+- unique receipt-backed physical-box IDs versus raw event-row/alias counts;
 - planned/provider-asserted delivery promotions incorrectly counted as delivered;
 - historical publication-cutoff leakage;
 - runtime, peak memory and exact-oracle gap as the corpus scales.

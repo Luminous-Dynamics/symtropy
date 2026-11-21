@@ -26,8 +26,8 @@ fn main() {
     println!("resolved_actual_event_rows={}", report.resolved_actual_event_rows);
     println!("unresolved_actual_event_rows={}", report.unresolved_actual_event_rows);
     println!("unqualified_delivery_claims={}", report.unqualified_delivery_claims);
-    println!("qualified_delivery_events={}", report.qualified_delivery_events);
-    println!("unique_delivered_boxes={}", report.unique_delivered_boxes());
+    println!("receiver_receipt_delivery_events={}", report.receiver_receipt_delivery_events);
+    println!("unique_receipt_backed_boxes={}", report.unique_receipt_backed_boxes());
 
     for (reason, count) in report.unresolved_reasons {
         println!("unresolved.{reason:?}={count}");

@@ -62,6 +62,7 @@ pub struct CargoEvent {
     pub milestone: Milestone,
     pub classification: EventClassification,
     pub evidence_kind: EvidenceKind,
+    pub evidence_id: String,
     pub voided: bool,
 }
 
@@ -96,14 +97,14 @@ pub struct EvaluationReport {
     pub resolved_actual_event_rows: usize,
     pub unresolved_actual_event_rows: usize,
     pub unqualified_delivery_claims: usize,
-    pub qualified_delivery_events: usize,
-    pub delivered_box_ids: BTreeSet<String>,
+    pub receiver_receipt_delivery_events: usize,
+    pub receipt_backed_box_ids: BTreeSet<String>,
     pub unresolved_reasons: BTreeMap<IdentityError, usize>,
 }
 
 impl EvaluationReport {
-    pub fn unique_delivered_boxes(&self) -> usize {
-        self.delivered_box_ids.len()
+    pub fn unique_receipt_backed_boxes(&self) -> usize {
+        self.receipt_backed_box_ids.len()
     }
 }
 
@@ -152,6 +153,14 @@ fn parse_evidence_kind(value: &str) -> Result<EvidenceKind, String> {
     }
 }
 
+fn require_non_empty(value: &str, field: &str) -> Result<(), String> {
+    if value.trim().is_empty() {
+        Err(format!("empty required field: {field}"))
+    } else {
+        Ok(())
+    }
+}
+
 fn parse_number<T: std::str::FromStr>(value: &str, field: &str) -> Result<T, String> {
     value
         .parse::<T>()
@@ -175,20 +184,37 @@ pub fn parse_crosswalk_tsv(input: &str) -> Result<Vec<IdentityMapping>, String> 
         if fields.len() != 11 {
             return Err(format!("crosswalk row {} has {} fields, expected 11", index + 2, fields.len()));
         }
+        for (field_index, field_name) in [
+            (0, "mapping_id"),
+            (2, "source_id"),
+            (3, "local_id"),
+            (4, "canonical_id"),
+            (10, "evidence_id"),
+        ] {
+            require_non_empty(fields[field_index], field_name)?;
+        }
+        let valid_from: i64 = parse_number(fields[5], "valid_from")?;
         let valid_until = if fields[6] == "*" {
             None
         } else {
             Some(parse_number(fields[6], "valid_until")?)
         };
+        if valid_until.is_some_and(|end| end <= valid_from) {
+            return Err(format!("crosswalk row {} has a non-positive validity window", index + 2));
+        }
+        let revision: u32 = parse_number(fields[7], "mapping revision")?;
+        if revision == 0 {
+            return Err(format!("crosswalk row {} has revision zero", index + 2));
+        }
         mappings.push(IdentityMapping {
             mapping_id: fields[0].to_string(),
             entity_kind: parse_entity_kind(fields[1])?,
             source_id: fields[2].to_string(),
             local_id: fields[3].to_string(),
             canonical_id: fields[4].to_string(),
-            valid_from: parse_number(fields[5], "valid_from")?,
+            valid_from,
             valid_until,
-            revision: parse_number(fields[7], "mapping revision")?,
+            revision,
             published_at: parse_number(fields[8], "mapping publication time")?,
             status: parse_mapping_status(fields[9])?,
             evidence_id: fields[10].to_string(),
@@ -198,7 +224,7 @@ pub fn parse_crosswalk_tsv(input: &str) -> Result<Vec<IdentityMapping>, String> 
 }
 
 pub fn parse_events_tsv(input: &str) -> Result<Vec<CargoEvent>, String> {
-    const HEADER: &str = "source_id\tsource_event_id\trevision\tpublished_at\tevent_time\tentity_kind\tlocal_entity_id\tmilestone\tclassification\tevidence_kind\tvoided";
+    const HEADER: &str = "source_id\tsource_event_id\trevision\tpublished_at\tevent_time\tentity_kind\tlocal_entity_id\tmilestone\tclassification\tevidence_kind\tevidence_id\tvoided";
     let mut lines = input.lines();
     if lines.next() != Some(HEADER) {
         return Err("event header mismatch".to_string());
@@ -211,10 +237,22 @@ pub fn parse_events_tsv(input: &str) -> Result<Vec<CargoEvent>, String> {
             continue;
         }
         let fields: Vec<&str> = line.split('\t').collect();
-        if fields.len() != 11 {
-            return Err(format!("event row {} has {} fields, expected 11", index + 2, fields.len()));
+        if fields.len() != 12 {
+            return Err(format!("event row {} has {} fields, expected 12", index + 2, fields.len()));
         }
-        let voided = match fields[10] {
+        for (field_index, field_name) in [
+            (0, "source_id"),
+            (1, "source_event_id"),
+            (6, "local_entity_id"),
+            (10, "evidence_id"),
+        ] {
+            require_non_empty(fields[field_index], field_name)?;
+        }
+        let revision: u32 = parse_number(fields[2], "event revision")?;
+        if revision == 0 {
+            return Err(format!("event row {} has revision zero", index + 2));
+        }
+        let voided = match fields[11] {
             "true" => true,
             "false" => false,
             other => return Err(format!("invalid voided flag: {other}")),
@@ -222,7 +260,7 @@ pub fn parse_events_tsv(input: &str) -> Result<Vec<CargoEvent>, String> {
         events.push(CargoEvent {
             source_id: fields[0].to_string(),
             source_event_id: fields[1].to_string(),
-            revision: parse_number(fields[2], "event revision")?,
+            revision,
             published_at: parse_number(fields[3], "event publication time")?,
             event_time: parse_number(fields[4], "event time")?,
             entity_kind: parse_entity_kind(fields[5])?,
@@ -230,6 +268,7 @@ pub fn parse_events_tsv(input: &str) -> Result<Vec<CargoEvent>, String> {
             milestone: parse_milestone(fields[7])?,
             classification: parse_classification(fields[8])?,
             evidence_kind: parse_evidence_kind(fields[9])?,
+            evidence_id: fields[10].to_string(),
             voided,
         });
     }
@@ -392,8 +431,8 @@ pub fn evaluate(
                     if event.entity_kind == EntityKind::ContainerBox
                         && event.evidence_kind == EvidenceKind::ReceiverReceipt
                     {
-                        report.qualified_delivery_events += 1;
-                        report.delivered_box_ids.insert(canonical_id);
+                        report.receiver_receipt_delivery_events += 1;
+                        report.receipt_backed_box_ids.insert(canonical_id);
                     } else {
                         report.unqualified_delivery_claims += 1;
                     }
@@ -434,9 +473,9 @@ mod tests {
         assert_eq!(report.resolved_actual_event_rows, 7);
         assert_eq!(report.unresolved_actual_event_rows, 1);
         assert_eq!(report.unqualified_delivery_claims, 1);
-        assert_eq!(report.qualified_delivery_events, 1);
-        assert_eq!(report.unique_delivered_boxes(), 1);
-        assert!(report.delivered_box_ids.contains("BOX-0001"));
+        assert_eq!(report.receiver_receipt_delivery_events, 1);
+        assert_eq!(report.unique_receipt_backed_boxes(), 1);
+        assert!(report.receipt_backed_box_ids.contains("BOX-0001"));
         assert_eq!(
             report.unresolved_reasons.get(&IdentityError::Unmatched),
             Some(&1)
@@ -457,8 +496,8 @@ mod tests {
         events.push(second_receipt);
 
         let report = evaluate(&mappings, &events, 200).unwrap();
-        assert_eq!(report.qualified_delivery_events, 2);
-        assert_eq!(report.unique_delivered_boxes(), 1);
+        assert_eq!(report.receiver_receipt_delivery_events, 2);
+        assert_eq!(report.unique_receipt_backed_boxes(), 1);
     }
 
     #[test]
@@ -472,7 +511,7 @@ mod tests {
 
         assert_eq!(report.planned_event_rows, 1);
         assert_eq!(report.actual_event_rows, 0);
-        assert_eq!(report.unique_delivered_boxes(), 0);
+        assert_eq!(report.unique_receipt_backed_boxes(), 0);
     }
 
     #[test]
@@ -485,7 +524,7 @@ mod tests {
         let report = evaluate(&mappings, &provider_claim, 200).unwrap();
 
         assert_eq!(report.unqualified_delivery_claims, 1);
-        assert_eq!(report.unique_delivered_boxes(), 0);
+        assert_eq!(report.unique_receipt_backed_boxes(), 0);
     }
 
     #[test]
@@ -498,7 +537,7 @@ mod tests {
         let report = evaluate(&mappings, &unknown, 200).unwrap();
 
         assert_eq!(report.unresolved_actual_event_rows, 1);
-        assert_eq!(report.unique_delivered_boxes(), 0);
+        assert_eq!(report.unique_receipt_backed_boxes(), 0);
     }
 
     #[test]
@@ -667,6 +706,17 @@ mod tests {
             resolve_identity(&mappings, EntityKind::VesselVisit, "SRC_DGT", "DGT-BOX-A", 6, 200),
             Err(IdentityError::Unmatched)
         );
+    }
+
+    #[test]
+    fn invalid_windows_and_missing_evidence_references_are_rejected() {
+        let bad_window = include_str!("../data/crosswalk.tsv")
+            .replace("DGT-BOX-A\tBOX-0001\t0\t*", "DGT-BOX-A\tBOX-0001\t20\t10");
+        assert!(parse_crosswalk_tsv(&bad_window).is_err());
+
+        let missing_evidence = include_str!("../data/events.tsv")
+            .replace("RECEIVER_RECEIPT\tRECEIPT-EV-006\tfalse", "RECEIVER_RECEIPT\t\tfalse");
+        assert!(parse_events_tsv(&missing_evidence).is_err());
     }
 
     #[test]

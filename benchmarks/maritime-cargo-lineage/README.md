@@ -40,6 +40,6 @@ cargo clippy --offline --locked --all-targets -- -D warnings
 
 This v0.1 is a crosswalk and counting contract—not a complete cargo-custody chain verifier. It does not infer that a box physically moved through every intermediate handoff, authenticate issuers, validate source rights, resolve booking/consignment relationships, verify seals, establish a DGT visit-to-container crosswalk, or estimate real port performance.
 
-The event fixture and crosswalks are synthetic. They contain no DGT records and no real container IDs. A receiver receipt in this finite test fixture is an example of the required evidence class, not a claim about a real shipment.
+The event fixture and crosswalks are synthetic. They contain no DGT records and no real container IDs. The evidence_id is retained as an opaque reference only: v0.1 does not dereference the artifact, authenticate the issuer, or validate the receiving party's authority. A P1 source-admission step must do that before real-world delivery can be qualified. A receiver-receipt label in this finite test fixture is an example of the required evidence class, not an authenticated receipt or a claim about a real shipment.
 
 The benchmark counts physical boxes, not TEUs, container moves, bookings, consignments, or tonnes. Those are different measures and require their own explicit mappings and units.
