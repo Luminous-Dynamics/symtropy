@@ -26,7 +26,7 @@ The manifest binds:
 
 A physical recording ID may occur in exactly one split. The reference requires at least ten blind physical recordings **and** ten independent task clusters as minimum software guards. This is not a statistical-power guarantee. Repeated time windows from one recording do not count as independent trials; multiple recordings of the same task remain nested in one task cluster.
 
-All blind trials must contain the same declared signal-series layout and their real/sim values must be aligned at exactly equal, strictly increasing timestamps. No dynamic time-warping, post-hoc offset fitting or silent resampling occurs in the blind scorer.
+All blind trials must contain the same declared signal-series layout and normalization scales. Each paired sample carries separate real and simulated timestamps; they must be exactly equal and strictly increasing. No dynamic time-warping, post-hoc offset fitting or silent resampling occurs in the blind scorer.
 
 ## Signal-level metrics
 
