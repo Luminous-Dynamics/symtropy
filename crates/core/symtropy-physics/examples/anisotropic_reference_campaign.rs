@@ -403,8 +403,11 @@ fn intermediate_axis_campaign() -> usize {
 }
 
 fn off_center_impulse_energy_campaign() -> usize {
-    let inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<f64, 3>::from([1.4, 0.9, 0.5]))
-        .expect("valid ellipsoid");
+    let inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
+        2.0,
+        SVector::<f64, 3>::from([1.4, 0.9, 0.5]),
+    )
+    .expect("valid ellipsoid");
     let offset = SVector::<f64, 3>::from([0.7, -0.25, 0.4]);
     let impulse = SVector::<f64, 3>::from([-0.2, 0.9, 0.35]).normalize();
     let angular_impulse = Bivector::from_wedge(&offset, &impulse);
@@ -463,9 +466,11 @@ fn bivector_roundtrip_campaign<const D: usize>(name: &str) -> usize {
 }
 
 fn body_frame_contact_campaign() -> usize {
-    let body_inertia =
-        BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<f64, 3>::from([1.4, 0.9, 0.5]))
-            .expect("valid body-frame ellipsoid");
+    let body_inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
+        2.0,
+        SVector::<f64, 3>::from([1.4, 0.9, 0.5]),
+    )
+    .expect("valid body-frame ellipsoid");
     let mut generator = Bivector::<3>::zero();
     generator.set(0, 1, 0.31);
     generator.set(0, 2, -0.22);
