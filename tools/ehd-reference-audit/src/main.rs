@@ -13,6 +13,7 @@ mod gcl;
 mod exchange_receipt;
 mod polynomial_moments;
 mod drag_dissipation;
+mod drag_trajectory;
 
 const EMBEDDED_ATLAS: &str =
     include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
@@ -30,6 +31,8 @@ const EMBEDDED_POLYNOMIAL_MOMENTS: &str =
     include_str!("../../../data/research/ehd_polynomial_moments_v0_1.json");
 const EMBEDDED_DRAG_DISSIPATION: &str =
     include_str!("../../../data/research/ehd_drag_dissipation_v0_1.json");
+const EMBEDDED_DRAG_TRAJECTORY: &str =
+    include_str!("../../../data/research/ehd_drag_trajectory_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -1603,6 +1606,118 @@ pub fn audit_drag_dissipation_contract(root: &Value) -> Vec<String> {
     findings
 }
 
+/// Audit the time-varying drag quadrature receipt scope and claim boundary.
+pub fn audit_drag_trajectory_contract(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_drag_trajectory_quadrature")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["benchmark_id"]) == Some("EHD-DRAG-TRAJECTORY-001")
+            && text_at(root, &["status"])
+                == Some("space_time_quadrature_receipt_validator_authored_tests_rust_execution_pending"),
+        "DRAG_TRAJECTORY_IDENTITY",
+        "time-varying drag quadrature benchmark identity/version/status changed",
+    );
+    let physics = at(root, &["physics"]);
+    push_if_missing(
+        &mut findings,
+        physics.is_some_and(|value| {
+            text_at(value, &["coefficient_density"])
+                .is_some_and(|expr| expr.contains(">= 0"))
+                && text_at(value, &["neutral_impulse"])
+                    .is_some_and(|expr| expr.contains("alpha*relative_velocity"))
+                && text_at(value, &["frictional_heating"])
+                    .is_some_and(|expr| expr.contains("alpha*|relative_velocity|^2")
+                        && expr.contains(">= 0"))
+                && at(value, &["discrete_receipt"]).is_some_and(|receipt| {
+                    text_at(receipt, &["neutral_impulse"])
+                        .is_some_and(|expr| expr.contains("delta_Gamma_q*relative_velocity_q"))
+                        && text_at(receipt, &["frictional_heating"])
+                            .is_some_and(|expr| expr.contains("delta_Gamma_q*|relative_velocity_q|^2"))
+                })
+        }),
+        "DRAG_TRAJECTORY_PHYSICS",
+        "impulse and frictional heating must use the same non-negative space-time drag measure",
+    );
+    let implementation = at(root, &["reference_implementation"]);
+    push_if_missing(
+        &mut findings,
+        implementation.is_some_and(|value| {
+            text_at(value, &["path"]) == Some("tools/ehd-reference-audit/src/drag_trajectory.rs")
+                && at(value, &["input_sample_fields"]).and_then(Value::as_array)
+                    .is_some_and(|fields| ["sample_id","time_fraction","integrated_drag_weight_kg","relative_velocity_m_s"]
+                        .iter().all(|wanted| fields.iter().any(|item| item.as_str() == Some(*wanted))))
+                && at(value, &["event_fields"]).and_then(Value::as_array)
+                    .is_some_and(|fields| fields.iter().any(|item| item.as_str() == Some("charged_frame_id"))
+                        && fields.iter().any(|item| item.as_str() == Some("neutral_frame_id")))
+                && at(value, &["checks"]).and_then(Value::as_array)
+                    .is_some_and(|checks| checks.iter().any(|item| item.as_str() == Some("neutral_impulse_reconstructed_from_same_samples"))
+                        && checks.iter().any(|item| item.as_str() == Some("reported_frictional_heating_matches_same_samples"))
+                        && checks.iter().any(|item| item.as_str() == Some("deterministic_event_and_sample_ordering")))
+                && at(value, &["receipt_fields"]).and_then(Value::as_array)
+                    .is_some_and(|fields| fields.iter().any(|item| item.as_str() == Some("quadrature_rule_ids_by_event"))
+                        && fields.iter().any(|item| item.as_str() == Some("coordinate_frame_ids_by_event")))
+        }),
+        "DRAG_TRAJECTORY_IMPLEMENTATION",
+        "time-varying drag implementation must retain sample identity, shared momentum/energy quadrature and rule provenance",
+    );
+    let manufactured = at(root, &["manufactured_solution"]);
+    push_if_missing(
+        &mut findings,
+        manufactured.is_some_and(|value| {
+            number_at(value, &["duration_seconds"]) == Some(1.0)
+                && number_at(value, &["drag_rate_kg_per_s"]) == Some(2.0)
+                && number_at(value, &["expected_frictional_heating_j"])
+                    .is_some_and(|heat| (heat - 59.0 / 6.0).abs() < 1.0e-12)
+                && at(value, &["expected_neutral_impulse_ns"]).and_then(Value::as_array)
+                    .is_some_and(|impulse| impulse.len() == 3
+                        && impulse[0].as_f64() == Some(4.0)
+                        && impulse[1].as_f64() == Some(-1.0)
+                        && impulse[2].as_f64() == Some(1.0))
+        }),
+        "DRAG_TRAJECTORY_MANUFACTURED_CASE",
+        "variable-drift Simpson manufactured solution and its analytic impulse/heating known answers changed",
+    );
+    let tests = at(root, &["test_families"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        tests.is_some_and(|rows| rows.len() == 13
+            && rows.iter().any(|item| item.as_str() == Some("incorrect_impulse_rejected_even_when_heating_matches"))
+            && rows.iter().any(|item| item.as_str() == Some("incorrect_heating_rejected_even_when_impulse_matches"))
+            && rows.iter().any(|item| item.as_str() == Some("event_error_cancellation_rejected"))
+            && rows.iter().any(|item| item.as_str() == Some("implicit_coordinate_frame_mismatch_rejected"))
+            && rows.iter().any(|item| item.as_str() == Some("offline_reference_self_check"))),
+        "DRAG_TRAJECTORY_TEST_MATRIX",
+        "twelve variable-drift analytic, adversarial and reference tests must remain declared",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["acceptance", "universal_numeric_tolerance"]).is_some_and(Value::is_null)
+            && at(root, &["acceptance", "same_space_time_quadrature_for_impulse_and_heating"])
+                .and_then(Value::as_bool) == Some(true)
+            && at(root, &["acceptance", "quadrature_accuracy_requires_independent_refinement"])
+                .and_then(Value::as_bool) == Some(true)
+            && at(root, &["acceptance", "frame_identity_match_required"])
+                .and_then(Value::as_bool) == Some(true),
+        "DRAG_TRAJECTORY_ACCEPTANCE",
+        "case-specific tolerances and independent quadrature refinement are mandatory",
+    );
+    let limits = at(root, &["limitations"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        limits.is_some_and(|rows| rows.iter().any(|item| item.as_str() == Some("validates_supplied_quadrature_receipt_only"))
+            && rows.iter().any(|item| item.as_str() == Some("elastic_drag_frictional_heating_only"))
+            && rows.iter().any(|item| item.as_str() == Some("no_full_collisional_energy_closure")))
+            && text_at(root, &["claim_ceiling"])
+                .is_some_and(|claim| claim.contains("does not qualify quadrature accuracy")
+                    && claim.contains("full multi-fluid collisional energy closure")),
+        "DRAG_TRAJECTORY_CLAIM_BOUNDARY",
+        "supplied quadrature receipt must not be promoted to quadrature accuracy or complete collisional-energy validation",
+    );
+    findings
+}
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -1687,6 +1802,14 @@ fn main() {
         }
     };
     findings.extend(audit_drag_dissipation_contract(&drag_dissipation_contract));
+    let drag_trajectory_contract: Value = match serde_json::from_str(EMBEDDED_DRAG_TRAJECTORY) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid embedded time-varying drag quadrature contract JSON: {error}");
+            process::exit(2);
+        }
+    };
+    findings.extend(audit_drag_trajectory_contract(&drag_trajectory_contract));
     let exchange_kernel_ok = match exchange::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -1729,6 +1852,13 @@ fn main() {
             false
         }
     };
+    let drag_trajectory_ok = match drag_trajectory::reference_self_check() {
+        Ok(()) => true,
+        Err(error) => {
+            findings.push(format!("DRAG_TRAJECTORY_SELF_CHECK: {error}"));
+            false
+        }
+    };
     if findings.is_empty() {
         let count = len_at(&atlas, &["source_records"]).unwrap_or(0);
         let system_count = len_at(&atlas, &["system_integration_references"]).unwrap_or(0);
@@ -1757,7 +1887,10 @@ fn main() {
         if drag_dissipation_ok {
             println!("constant-drift ion-neutral drag dissipation self-check: passed");
         }
-        println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), general collision heating or durable exactly-once claim");
+        if drag_trajectory_ok {
+            println!("time-varying ion-neutral drag quadrature receipt self-check: passed");
+        }
+        println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), full collisional-energy closure or durable exactly-once claim");
     } else {
         eprintln!("FAIL: {label} ({} finding(s))", findings.len());
         for finding in findings {
@@ -2284,6 +2417,53 @@ mod drag_dissipation_contract_tests {
         value["acceptance"]["per_event_momentum_and_energy_checks_required"] = Value::Bool(false);
         assert!(audit_drag_dissipation_contract(&value).iter().any(|finding| {
             finding.starts_with("DRAG_DISSIPATION_ACCEPTANCE")
+        }));
+    }
+}
+
+#[cfg(test)]
+mod drag_trajectory_contract_tests {
+    use super::*;
+
+    #[test]
+    fn time_varying_drag_quadrature_contract_passes_declared_scope() {
+        let value: Value = serde_json::from_str(EMBEDDED_DRAG_TRAJECTORY)
+            .expect("embedded time-varying drag quadrature contract must be valid JSON");
+        assert!(audit_drag_trajectory_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn time_varying_drag_contract_requires_same_quadrature_for_impulse_and_heating() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_DRAG_TRAJECTORY).unwrap();
+        value["acceptance"]["same_space_time_quadrature_for_impulse_and_heating"] = Value::Bool(false);
+        assert!(audit_drag_trajectory_contract(&value).iter().any(|finding| {
+            finding.starts_with("DRAG_TRAJECTORY_ACCEPTANCE")
+        }));
+    }
+
+    #[test]
+    fn time_varying_drag_contract_cannot_claim_full_collisional_energy_closure() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_DRAG_TRAJECTORY).unwrap();
+        value["limitations"] = Value::Array(Vec::new());
+        assert!(audit_drag_trajectory_contract(&value).iter().any(|finding| {
+            finding.starts_with("DRAG_TRAJECTORY_CLAIM_BOUNDARY")
+        }));
+    }
+}
+
+#[cfg(test)]
+mod drag_trajectory_frame_contract_tests {
+    use super::*;
+
+    #[test]
+    fn time_varying_drag_contract_requires_explicit_frame_identity() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_DRAG_TRAJECTORY).unwrap();
+        value["reference_implementation"]["event_fields"] = Value::Array(vec![
+            Value::String("event_id".into()),
+            Value::String("quadrature_rule_id".into()),
+        ]);
+        assert!(audit_drag_trajectory_contract(&value).iter().any(|finding| {
+            finding.starts_with("DRAG_TRAJECTORY_IMPLEMENTATION")
         }));
     }
 }

@@ -1,0 +1,133 @@
+{
+  "schema": "luminous.ehd_drag_trajectory_quadrature",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-DRAG-TRAJECTORY-001",
+  "as_of": "2026-11-21",
+  "status": "space_time_quadrature_receipt_validator_authored_tests_rust_execution_pending",
+  "units": {
+    "integrated_drag_weight": "kg",
+    "relative_velocity": "m/s",
+    "impulse": "N*s",
+    "frictional_heating": "J"
+  },
+  "physics": {
+    "coefficient_density": "alpha(x,t)=m_s*n_s*nu_sn >= 0",
+    "neutral_impulse": "I_n=integral_space_time(alpha*relative_velocity dVdt)",
+    "charged_reaction": "I_c=-I_n",
+    "frictional_heating": "Q_fric=integral_space_time(alpha*|relative_velocity|^2 dVdt) >= 0",
+    "discrete_receipt": {
+      "neutral_impulse": "sum_q(delta_Gamma_q*relative_velocity_q)",
+      "frictional_heating": "sum_q(delta_Gamma_q*|relative_velocity_q|^2)",
+      "delta_Gamma_q": "positive quadrature weight times spatial measure times time measure times local collision coefficient; units kg"
+    }
+  },
+  "reference_implementation": {
+    "path": "tools/ehd-reference-audit/src/drag_trajectory.rs",
+    "input_sample_fields": [
+      "sample_id",
+      "time_fraction",
+      "integrated_drag_weight_kg",
+      "relative_velocity_m_s"
+    ],
+    "event_fields": [
+      "event_id",
+      "quadrature_rule_id",
+      "charged_frame_id",
+      "neutral_frame_id",
+      "samples",
+      "neutral_impulse_ns",
+      "charged_reaction_impulse_ns",
+      "reported_frictional_heating_j"
+    ],
+    "checks": [
+      "nonnegative_finite_integrated_drag_measure",
+      "unique_event_and_quadrature_sample_ids",
+      "time_fraction_in_closed_unit_interval",
+      "neutral_impulse_reconstructed_from_same_samples",
+      "charged_reaction_equal_and_opposite",
+      "reported_frictional_heating_matches_same_samples",
+      "nonnegative_frictional_heating",
+      "event_and_aggregate_momentum_energy_checks",
+      "deterministic_event_and_sample_ordering",
+      "reject_implicit_charged_neutral_coordinate_frame_mismatch"
+    ],
+    "summation": "compensated_sorted_samples",
+    "receipt_fields": [
+      "event_count",
+      "sample_count",
+      "quadrature_rule_ids_by_event",
+      "coordinate_frame_ids_by_event",
+      "total_integrated_drag_weight_kg",
+      "total_neutral_impulse_ns",
+      "total_charged_reaction_impulse_ns",
+      "aggregate_impulse_residual_ns",
+      "predicted_frictional_heating_j",
+      "reported_frictional_heating_j",
+      "aggregate_energy_residual_j",
+      "max_event_impulse_residual_ns",
+      "max_event_energy_residual_j"
+    ]
+  },
+  "manufactured_solution": {
+    "duration_seconds": 1,
+    "drag_rate_kg_per_s": 2,
+    "relative_velocity_m_s": "[1+2t, -1+t, 0.5]",
+    "quadrature": "three_point_simpson",
+    "integrated_drag_weights_kg": [
+      0.3333333333333333,
+      1.3333333333333333,
+      0.3333333333333333
+    ],
+    "expected_neutral_impulse_ns": [
+      4,
+      -1,
+      1
+    ],
+    "expected_charged_reaction_impulse_ns": [
+      -4,
+      1,
+      -1
+    ],
+    "expected_frictional_heating_j": 9.833333333333334,
+    "exact_for": "linear_impulse_integrand_and_quadratic_frictional_heating_integrand"
+  },
+  "test_families": [
+    "variable_drift_simpson_known_answer",
+    "constant_drift_limit",
+    "negative_integrated_drag_weight_rejected",
+    "incorrect_impulse_rejected_even_when_heating_matches",
+    "incorrect_heating_rejected_even_when_impulse_matches",
+    "negative_reported_heating_rejected",
+    "event_error_cancellation_rejected",
+    "duplicate_event_and_sample_ids_rejected",
+    "invalid_time_and_non_finite_velocity_rejected",
+    "implicit_coordinate_frame_mismatch_rejected",
+    "input_order_determinism",
+    "empty_inputs_and_invalid_tolerances",
+    "offline_reference_self_check"
+  ],
+  "acceptance": {
+    "universal_numeric_tolerance": null,
+    "case_specific_impulse_and_energy_tolerances_required": true,
+    "same_space_time_quadrature_for_impulse_and_heating": true,
+    "event_local_checks_required": true,
+    "aggregate_checks_required": true,
+    "quadrature_accuracy_requires_independent_refinement": true,
+    "frame_identity_match_required": true
+  },
+  "limitations": [
+    "validates_supplied_quadrature_receipt_only",
+    "does_not_estimate_quadrature_error",
+    "elastic_drag_frictional_heating_only",
+    "no_temperature_equilibration",
+    "no_ionization_recombination_particle_conversion_energy",
+    "no_heat_partition_between_species",
+    "no_full_collisional_energy_closure",
+    "no_plasma_neutral_solver"
+  ],
+  "literature": [
+    "https://doi.org/10.1007/s11207-026-02714-1",
+    "https://doi.org/10.3389/fspas.2022.789083"
+  ],
+  "claim_ceiling": "This is a receipt validator for the space-time quadrature of the elastic drag/frictional-heating term only. It does not qualify quadrature accuracy or full multi-fluid collisional energy closure."
+}
