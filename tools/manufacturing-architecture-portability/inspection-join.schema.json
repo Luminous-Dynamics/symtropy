@@ -74,7 +74,14 @@
     "calibration_attestation_sha256",
     "measurement_uncertainty_disposition",
     "uncertainty_budget_id",
-    "uncertainty_budget_sha256"
+    "uncertainty_budget_sha256",
+    "calibration_subject_instrument_id",
+    "calibration_valid_from_ns",
+    "calibration_valid_until_ns",
+    "uncertainty_characteristic_id",
+    "uncertainty_original_unit",
+    "uncertainty_valid_from_ns",
+    "uncertainty_valid_until_ns"
   ],
   "properties": {
     "projection_schema_version": {
@@ -380,6 +387,55 @@
         "null"
       ],
       "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "calibration_subject_instrument_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "calibration_valid_from_ns": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "calibration_valid_until_ns": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "uncertainty_characteristic_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "uncertainty_original_unit": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "uncertainty_valid_from_ns": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "uncertainty_valid_until_ns": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
     }
   },
   "allOf": [
@@ -403,8 +459,27 @@
           "calibration_attestation_sha256": {
             "type": "string",
             "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "calibration_subject_instrument_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "calibration_valid_from_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "calibration_valid_until_ns": {
+            "type": "integer",
+            "minimum": 0
           }
-        }
+        },
+        "required": [
+          "calibration_attestation_id",
+          "calibration_attestation_sha256",
+          "calibration_subject_instrument_id",
+          "calibration_valid_from_ns",
+          "calibration_valid_until_ns"
+        ]
       }
     },
     {
@@ -427,8 +502,32 @@
           "uncertainty_budget_sha256": {
             "type": "string",
             "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "uncertainty_characteristic_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uncertainty_original_unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uncertainty_valid_from_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "uncertainty_valid_until_ns": {
+            "type": "integer",
+            "minimum": 0
           }
-        }
+        },
+        "required": [
+          "uncertainty_budget_id",
+          "uncertainty_budget_sha256",
+          "uncertainty_characteristic_id",
+          "uncertainty_original_unit",
+          "uncertainty_valid_from_ns",
+          "uncertainty_valid_until_ns"
+        ]
       }
     }
   ]
