@@ -377,9 +377,7 @@ fn evaluate_case(case: &AdmissibilityCase) -> Result<Decision, String> {
             if article.events.len() as u64 != article.reported_failure_events {
                 add_blocker(&mut decision, "event_rows_do_not_match_reported_failure_count");
             }
-            if !article.events.is_empty() {
-                decision.event_level_records += 1;
-            }
+            decision.event_level_records += 1;
             if article.reported_failure_events > 1 {
                 decision.recurrent_event_articles += 1;
             }
