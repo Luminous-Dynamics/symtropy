@@ -10,6 +10,7 @@ use std::{env, fs, process};
 mod exchange;
 mod geometry;
 mod gcl;
+mod exchange_receipt;
 
 const EMBEDDED_ATLAS: &str =
     include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
@@ -21,6 +22,8 @@ const EMBEDDED_ARRAY_INTERACTION: &str =
     include_str!("../../../data/research/ehd_array_interaction_benchmark_v0_1.json");
 const EMBEDDED_GCL_BENCHMARK: &str =
     include_str!("../../../data/research/ehd_moving_mesh_gcl_benchmark_v0_1.json");
+const EMBEDDED_EXCHANGE_RECEIPT: &str =
+    include_str!("../../../data/research/ehd_exchange_event_receipt_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -1341,6 +1344,102 @@ pub fn audit_gcl_benchmark(root: &Value) -> Vec<String> {
     findings
 }
 
+/// Audit the event-level exchange receipt contract and ensure that its scope
+/// does not claim durable exactly-once semantics.
+pub fn audit_exchange_receipt_contract(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_exchange_event_receipt")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["benchmark_id"]) == Some("EHD-EXCHANGE-RECEIPT-001")
+            && text_at(root, &["status"])
+                == Some("in_memory_reference_validator_authored_tests_rust_execution_pending"),
+        "EXCHANGE_RECEIPT_IDENTITY",
+        "event receipt benchmark identity/version/status changed",
+    );
+    let implementation = at(root, &["reference_implementation"]);
+    push_if_missing(
+        &mut findings,
+        implementation.is_some_and(|value| {
+            text_at(value, &["path"]) == Some("tools/ehd-reference-audit/src/exchange_receipt.rs")
+                && text_at(value, &["identity_scope"])
+                    == Some("unique_event_id_within_one_in_memory_batch")
+                && text_at(value, &["frame_policy"])
+                    .is_some_and(|policy| policy.contains("implicit transforms rejected"))
+                && text_at(value, &["path_policy"])
+                    .is_some_and(|policy| policy.contains("one_force_transfer_method"))
+                && at(value, &["compensated_summation"]).and_then(Value::as_bool) == Some(true)
+        }),
+        "EXCHANGE_RECEIPT_IMPLEMENTATION",
+        "event receipt implementation path, batch scope, frame policy, path policy or compensated summation boundary changed",
+    );
+    let methods = at(root, &["methods"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        methods.is_some_and(|rows| rows.len() == 2
+            && rows.iter().any(|row| row.as_str() == Some("explicit_species_collision_drag"))
+            && rows.iter().any(|row| row.as_str() == Some("reduced_coulomb_deposition"))),
+        "EXCHANGE_RECEIPT_METHODS",
+        "both mutually exclusive physical transfer methods must remain represented",
+    );
+    let fields = at(root, &["event_fields"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        fields.is_some_and(|rows| {
+            ["event_id", "transfer_path_id", "method", "charged_solver_id",
+             "neutral_solver_id", "charged_frame_id", "neutral_frame_id",
+             "charged_reaction_impulse_ns", "neutral_impulse_ns"]
+                .iter().all(|wanted| rows.iter().any(|row| row.as_str() == Some(*wanted)))
+        }),
+        "EXCHANGE_RECEIPT_EVENT_FIELDS",
+        "event identity, solver, coordinate frame or paired impulse fields are missing",
+    );
+    let invariants = at(root, &["required_invariants"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        invariants.is_some_and(|rows| rows.len() == 8
+            && rows.iter().any(|row| row.as_str() == Some("equal_and_opposite_impulse_per_event"))
+            && rows.iter().any(|row| row.as_str() == Some("one_transfer_method_per_physical_path"))
+            && rows.iter().any(|row| row.as_str() == Some("matching_coordinate_frame_per_event"))
+            && rows.iter().any(|row| row.as_str() == Some("stable_solver_and_frame_identity_per_transfer_path"))),
+        "EXCHANGE_RECEIPT_INVARIANTS",
+        "event-local balance, path method exclusivity and frame identity are mandatory",
+    );
+    let tests = at(root, &["tests"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        tests.is_some_and(|rows| rows.len() == 12
+            && rows.iter().any(|row| row.as_str() == Some("reject_event_residuals_that_cancel_globally"))
+            && rows.iter().any(|row| row.as_str() == Some("reject_duplicate_event_ids"))
+            && rows.iter().any(|row| row.as_str() == Some("reject_solver_or_frame_identity_changes_within_path"))),
+        "EXCHANGE_RECEIPT_TEST_MATRIX",
+        "event receipt must retain all eleven authored test families",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["acceptance", "universal_numeric_tolerance"]).is_some_and(Value::is_null)
+            && at(root, &["acceptance", "per_event_check_required"]).and_then(Value::as_bool) == Some(true)
+            && at(root, &["acceptance", "aggregate_check_required"]).and_then(Value::as_bool) == Some(true)
+            && at(root, &["acceptance", "durable_exactly_once_not_implemented"])
+                .and_then(Value::as_bool) == Some(true),
+        "EXCHANGE_RECEIPT_ACCEPTANCE",
+        "per-event and aggregate checks require predeclared case tolerances; durable exactly-once must remain unimplemented",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["limitations"]).and_then(Value::as_array)
+            .is_some_and(|rows| rows.iter().any(|row| row.as_str() == Some("in_memory_batch_only"))
+                && rows.iter().any(|row| row.as_str() == Some("no_durable_idempotency_across_restarts"))
+                && rows.iter().any(|row| row.as_str() == Some("no_atomic_paired_solver_side_commit")))
+            && text_at(root, &["claim_ceiling"])
+                .is_some_and(|claim| claim.contains("does not provide durable exactly-once semantics")),
+        "EXCHANGE_RECEIPT_CLAIM_BOUNDARY",
+        "in-memory event checks must not be represented as durable exactly-once transaction semantics",
+    );
+    findings
+}
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -1401,6 +1500,14 @@ fn main() {
     findings.extend(audit_exchange_contract(&exchange));
     findings.extend(audit_array_interaction(&array_interaction));
     findings.extend(audit_gcl_benchmark(&gcl_benchmark));
+    let exchange_receipt_contract: Value = match serde_json::from_str(EMBEDDED_EXCHANGE_RECEIPT) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid embedded exchange event receipt JSON: {error}");
+            process::exit(2);
+        }
+    };
+    findings.extend(audit_exchange_receipt_contract(&exchange_receipt_contract));
     let exchange_kernel_ok = match exchange::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -1419,6 +1526,13 @@ fn main() {
         Ok(()) => true,
         Err(error) => {
             findings.push(format!("GCL_KERNEL_SELF_CHECK: {error}"));
+            false
+        }
+    };
+    let exchange_receipt_ok = match exchange_receipt::reference_self_check() {
+        Ok(()) => true,
+        Err(error) => {
+            findings.push(format!("EXCHANGE_RECEIPT_SELF_CHECK: {error}"));
             false
         }
     };
@@ -1441,7 +1555,10 @@ fn main() {
         if gcl_kernel_ok {
             println!("moving-AABB geometric conservation reference self-check: passed");
         }
-        println!("scope: source structure and analytic reference checks only; no physical V&V or production ALE claim");
+        if exchange_receipt_ok {
+            println!("event-level equal-and-opposite exchange receipt self-check: passed");
+        }
+        println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE or durable exactly-once claim");
     } else {
         eprintln!("FAIL: {label} ({} finding(s))", findings.len());
         for finding in findings {
@@ -1876,6 +1993,38 @@ mod moving_gcl_contract_tests {
         value["acceptance"]["universal_numeric_tolerance"] = Value::from(1.0e-6);
         assert!(audit_gcl_benchmark(&value).iter().any(|finding| {
             finding.starts_with("GCL_TOLERANCE_AND_LEDGER_POLICY")
+        }));
+    }
+}
+
+#[cfg(test)]
+mod exchange_event_receipt_contract_tests {
+    use super::*;
+
+    #[test]
+    fn event_level_exchange_receipt_contract_passes() {
+        let value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_RECEIPT)
+            .expect("embedded exchange receipt contract must be valid JSON");
+        assert!(audit_exchange_receipt_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn event_level_exchange_receipt_cannot_claim_durable_exactly_once() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_RECEIPT).unwrap();
+        value["acceptance"]["durable_exactly_once_not_implemented"] = Value::Bool(false);
+        assert!(audit_exchange_receipt_contract(&value).iter().any(|finding| {
+            finding.starts_with("EXCHANGE_RECEIPT_ACCEPTANCE")
+        }));
+    }
+
+    #[test]
+    fn event_level_exchange_receipt_must_check_per_event_balance() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_RECEIPT).unwrap();
+        value["required_invariants"] = Value::Array(vec![
+            Value::String("aggregate_impulse_balance".into())
+        ]);
+        assert!(audit_exchange_receipt_contract(&value).iter().any(|finding| {
+            finding.starts_with("EXCHANGE_RECEIPT_INVARIANTS")
         }));
     }
 }

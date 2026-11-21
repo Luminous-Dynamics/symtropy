@@ -1,0 +1,85 @@
+{
+  "schema": "luminous.ehd_exchange_event_receipt",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-EXCHANGE-RECEIPT-001",
+  "as_of": "2026-11-21",
+  "status": "in_memory_reference_validator_authored_tests_rust_execution_pending",
+  "units": "SI",
+  "impulse_unit": "N*s",
+  "methods": [
+    "explicit_species_collision_drag",
+    "reduced_coulomb_deposition"
+  ],
+  "event_fields": [
+    "event_id",
+    "transfer_path_id",
+    "method",
+    "charged_solver_id",
+    "neutral_solver_id",
+    "charged_frame_id",
+    "neutral_frame_id",
+    "charged_reaction_impulse_ns",
+    "neutral_impulse_ns"
+  ],
+  "reference_implementation": {
+    "path": "tools/ehd-reference-audit/src/exchange_receipt.rs",
+    "identity_scope": "unique_event_id_within_one_in_memory_batch",
+    "event_balance": "charged_reaction_impulse_plus_neutral_impulse_componentwise",
+    "tolerance": "absolute_plus_relative_per_event_component",
+    "aggregate_balance": "separate_componentwise_check_after_event_local_checks",
+    "deterministic_order": "sort_by_event_id_and_ordered_maps",
+    "compensated_summation": true,
+    "frame_policy": "charged_and_neutral_frame_ids_must_match; implicit transforms rejected",
+    "path_policy": "one_force_transfer_method_per_transfer_path_id; solver_pair_and_frame_identity_stable_across_events_in_same_path"
+  },
+  "required_invariants": [
+    "unique_event_ids_within_batch",
+    "equal_and_opposite_impulse_per_event",
+    "aggregate_impulse_balance",
+    "one_transfer_method_per_physical_path",
+    "matching_coordinate_frame_per_event",
+    "deterministic_receipt_under_input_permutation",
+    "finite_impulses_and_case_specific_tolerances",
+    "stable_solver_and_frame_identity_per_transfer_path"
+  ],
+  "tests": [
+    "accept_exact_equal_opposite_events",
+    "reject_duplicate_event_ids",
+    "reject_event_residuals_that_cancel_globally",
+    "reject_conflicting_methods_on_one_path",
+    "reject_implicit_coordinate_frame_mixing",
+    "reject_solver_or_frame_identity_changes_within_path",
+    "reject_non_finite_impulses",
+    "deterministic_input_permutation",
+    "allow_multiple_events_same_path_same_method",
+    "reject_empty_batch",
+    "reject_invalid_tolerance",
+    "offline_cli_self_check"
+  ],
+  "acceptance": {
+    "universal_numeric_tolerance": null,
+    "case_specific_absolute_plus_relative_tolerance_required": true,
+    "per_event_check_required": true,
+    "aggregate_check_required": true,
+    "frame_transform_must_be_explicit": true,
+    "durable_exactly_once_not_implemented": true
+  },
+  "limitations": [
+    "in_memory_batch_only",
+    "no_durable_idempotency_across_restarts",
+    "no_atomic_paired_solver_side_commit",
+    "no_coordinate_transform_execution",
+    "no_collision_physics",
+    "no_solver_adapter",
+    "no_physical_validation"
+  ],
+  "production_follow_on": [
+    "immutable_event_digest_bound_to_run_mesh_and_time_grid",
+    "durable_idempotency_key_and_consume_once_ledger",
+    "staged_committed_reconciled_unknown_outcome_states",
+    "atomic_paired_consumption_or_compensating_reconciliation",
+    "replay_and_crash_injection_tests",
+    "explicit_frame_transform_receipts"
+  ],
+  "claim_ceiling": "The Rust module validates one in-memory event batch only. It does not provide durable exactly-once semantics or a production transaction manager, and has not yet been compiled or executed."
+}
