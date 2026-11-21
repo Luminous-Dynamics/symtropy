@@ -162,6 +162,22 @@ Do not claim superiority over published methods until the original instance, obj
 5. Add fleet substitution and service recovery only through existing MFB co-availability and shared-fleet owners; do not turn the single-module time fraction into fleet availability.
 6. Add matched physical pilot records when a real carrier/module exists and permissions to use the records are secured.
 
+## November 2026 research refresh and v0.2 implications
+
+Two recent problem families change what a meaningful module-lifecycle benchmark must measure:
+
+- Liang, Chen & Du, *European Journal of Operational Research* (online 15 October 2026), “Multi-visit truck-drone pickup and delivery problem with release dates and drone resupply,” DOI [10.1016/j.ejor.2026.10.020](https://doi.org/10.1016/j.ejor.2026.10.020), models distinct delivery and resupply drone classes, truck/locker/drone service, release dates, simultaneous pickup/delivery, time windows and payload/waiting-dependent drone energy. Its tailored ALNS reports paper-specific cost reductions against three baselines on its instances.
+- Liu, Zhu & Zhang, *Transportation Research Part E* (November 2026), “Heterogeneous drone-truck routing problem with En-route operations,” DOI [10.1016/j.tre.2026.105114](https://doi.org/10.1016/j.tre.2026.105114), models heterogeneous aircraft, multi-visit sorties and en-route launch/recovery. It reports paper-specific makespan and energy improvements from these mechanisms.
+
+These are algorithm/service comparisons, not measured lifecycle costs for our modules. They imply the next lifecycle benchmark should distinguish:
+- delivery aircraft versus resupply aircraft as different configuration classes;
+- maintenance and replacement cost per qualified service hour / successful on-time delivery, not only per module-year;
+- maintenance-induced unavailability during rendezvous, multi-visit and resupply windows;
+- serviceability of payload-handling, battery-removal, launch/recovery and reconfiguration interfaces;
+- fleet heterogeneity and spare-module strategy, including the capex/maintenance effect of keeping multiple aircraft classes.
+
+Keep the v0.1 claim ceiling unchanged: all current module rates, task durations, repair values and costs are synthetic. Do not import paper-reported cost or energy improvements into a module lifecycle result. Compose MFB #6177/#6147/#6247 and EV-ICD #6308 rather than implementing routing, cargo or interface qualification in this adapter.
+
 ## Non-claims
 
 The current fixture does not establish real module failures, warranty cost, maintenance intervals, technician rates, factory cost, reliability, fleet availability, vehicle homologation, airworthiness, battery/fire safety, regulatory compliance or commercial TCO.
