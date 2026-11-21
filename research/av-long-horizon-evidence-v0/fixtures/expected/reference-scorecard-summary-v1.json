@@ -19,6 +19,8 @@
     "evidence_compliance_rate": 1,
     "false_memory_count": 0,
     "hard_violation_count": 0,
-    "deadline_miss_count": 0
+    "deadline_miss_count": 0,
+    "evidence_qualified_answer_correct_count": 8,
+    "evidence_qualified_answer_accuracy": 0.8888888888888888
   }
 }
