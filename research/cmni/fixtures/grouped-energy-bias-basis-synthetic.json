@@ -1,0 +1,73 @@
+{
+  "fixture_type": "synthetic_cmni_grouped_energy_bias_basis_v1",
+  "provenance": "basis-construction oracle based on published AIACHNE basis geometry; no PFNS observations",
+  "reference_geometry": {
+    "length_scales_log10": [
+      0.3,
+      0.15,
+      0.05
+    ],
+    "centre_counts": [
+      10,
+      50,
+      100
+    ],
+    "columns_per_group": 160,
+    "total_columns_for_two_groups": 320,
+    "centre_spacing": "equal in log10 energy over frozen domain"
+  },
+  "energy_domain_mev": [
+    0.1,
+    10
+  ],
+  "observation_energies_mev": [
+    0.1,
+    1,
+    10
+  ],
+  "feature_group_memberships": [
+    [
+      0
+    ],
+    [
+      0,
+      1
+    ],
+    [
+      1
+    ]
+  ],
+  "expected_design_shape": [
+    3,
+    320
+  ],
+  "exact_peak_checks": {
+    "energy_0_1_mev_columns": [
+      0,
+      10,
+      60
+    ],
+    "energy_10_mev_columns": [
+      9,
+      59,
+      159
+    ]
+  },
+  "limits": [
+    "Only basis and overlapping group structure are implemented.",
+    "No horseshoe prior, global tau hyperprior or Bayesian Monte Carlo sampler.",
+    "Feature group membership is supplied by the curator."
+  ],
+  "projection_example": {
+    "sparse_coefficients_by_group": {
+      "group_0_basis_column_0": 0.5,
+      "group_1_basis_column_159": -0.25,
+      "all_other_coefficients": 0
+    },
+    "expected_observation_log_bias": [
+      0.5,
+      -0.25
+    ],
+    "note": "The projected vector is supplied as delta(E) to the raw-scale PFNS bias likelihood."
+  }
+}

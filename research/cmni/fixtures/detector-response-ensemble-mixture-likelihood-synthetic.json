@@ -1,0 +1,61 @@
+{
+  "fixture_type": "synthetic_cmni_response_ensemble_poisson_mixture_likelihood_v1",
+  "provenance": "fully synthetic response draws and count observations; no detector calibration or experimental measurements",
+  "response_matrices": [
+    [
+      [
+        0.8,
+        0.1
+      ],
+      [
+        0.2,
+        0.7
+      ]
+    ],
+    [
+      [
+        0.7,
+        0.2
+      ],
+      [
+        0.3,
+        0.6
+      ]
+    ]
+  ],
+  "true_spectrum_rate_per_s": [
+    100,
+    50
+  ],
+  "background_rate_counts_per_s": [
+    1,
+    2
+  ],
+  "exposure_time_s": 10,
+  "observed_integer_counts": [
+    840,
+    600
+  ],
+  "conditional_expected_counts": [
+    [
+      860,
+      570
+    ],
+    [
+      810,
+      620
+    ]
+  ],
+  "conditional_log_likelihoods": [
+    -9.413639743123895,
+    -9.278208344896939
+  ],
+  "equal_weight_mixture_log_predictive_probability": -9.343633086087587,
+  "method": "logsumexp(conditional Poisson log likelihoods) - ln(number of equally weighted response realizations)",
+  "limits": [
+    "Finite response ensemble with fixed equal weights.",
+    "Background is fixed, not sampled.",
+    "Does not include parameter priors, model priors, continuous calibration posterior or other nuisance uncertainty.",
+    "Not source-spectrum unfolding."
+  ]
+}

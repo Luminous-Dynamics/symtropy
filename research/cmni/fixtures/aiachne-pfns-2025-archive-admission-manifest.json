@@ -1,0 +1,116 @@
+{
+  "schema_version": "1.0.0",
+  "study": {
+    "title": "Re-evaluating the prompt fission neutron spectrum of spontaneously fissioning 252Cf",
+    "doi": "10.1051/epjn/2025061",
+    "publication_year": 2025
+  },
+  "source_page": "https://www.epj-n.org/10.1051/epjn/2025061/olm",
+  "access_audit": {
+    "checked_utc": "2026-11-21T10:07:00Z",
+    "publisher_supplement_endpoint": "https://www.epj-n.org/10.1051/epjn/2025061/olm",
+    "browser_access": "failed",
+    "container_download_access": "failed",
+    "mirror_search": "no_provenance_verified_mirror_located",
+    "notes": [
+      "Publisher description identifies seven supplementary artifacts: two pointwise evaluation spectra, their two correlation/covariance files, two JSON experimental-input databases, and a smoothed normalized spectrum.",
+      "The exact filenames, media types, byte lengths and hashes are deliberately not invented.",
+      "No plot digitization or secondary-source reconstruction is substituted for the supplementary files.",
+      "The seven scientific roles are placeholders to be reconciled with the publisher's exact file names and contents when downloaded."
+    ]
+  },
+  "artifacts": [
+    {
+      "artifact_id": "pfns-new-evaluation-spectrum",
+      "scientific_role": "updated_evaluation_pointwise_spectrum",
+      "file_name": null,
+      "sha256": null,
+      "byte_length": null,
+      "retrieved_utc": null,
+      "validation_state": "not_accessible",
+      "sha256_verified": false,
+      "notes": [
+        "Awaiting publisher file; retain original sparse energy grid."
+      ]
+    },
+    {
+      "artifact_id": "pfns-new-evaluation-covariance",
+      "scientific_role": "updated_evaluation_correlation_or_covariance",
+      "file_name": null,
+      "sha256": null,
+      "byte_length": null,
+      "retrieved_utc": null,
+      "validation_state": "not_accessible",
+      "sha256_verified": false,
+      "notes": [
+        "Awaiting publisher file; determine correlation-versus-covariance semantics from file metadata."
+      ]
+    },
+    {
+      "artifact_id": "pfns-mannhart-compatible-spectrum",
+      "scientific_role": "mannhart_compatible_pointwise_spectrum",
+      "file_name": null,
+      "sha256": null,
+      "byte_length": null,
+      "retrieved_utc": null,
+      "validation_state": "not_accessible",
+      "sha256_verified": false,
+      "notes": [
+        "Awaiting publisher file; do not assume identical grid or units to the updated evaluation."
+      ]
+    },
+    {
+      "artifact_id": "pfns-mannhart-compatible-covariance",
+      "scientific_role": "mannhart_compatible_correlation_or_covariance",
+      "file_name": null,
+      "sha256": null,
+      "byte_length": null,
+      "retrieved_utc": null,
+      "validation_state": "not_accessible",
+      "sha256_verified": false,
+      "notes": [
+        "Awaiting publisher file; confirm whether absolute or relative covariance is represented."
+      ]
+    },
+    {
+      "artifact_id": "pfns-experimental-input-database-a",
+      "scientific_role": "experimental_inputs_database_1",
+      "file_name": null,
+      "sha256": null,
+      "byte_length": null,
+      "retrieved_utc": null,
+      "validation_state": "not_accessible",
+      "sha256_verified": false,
+      "notes": [
+        "Awaiting publisher JSON; preserve all experiment fields and missing-value semantics."
+      ]
+    },
+    {
+      "artifact_id": "pfns-experimental-input-database-b",
+      "scientific_role": "experimental_inputs_database_2",
+      "file_name": null,
+      "sha256": null,
+      "byte_length": null,
+      "retrieved_utc": null,
+      "validation_state": "not_accessible",
+      "sha256_verified": false,
+      "notes": [
+        "Awaiting publisher JSON; mapping to the specific evaluation lineage remains to be established from the file content."
+      ]
+    },
+    {
+      "artifact_id": "pfns-smoothed-normalized-spectrum",
+      "scientific_role": "smoothed_normalized_spectrum",
+      "file_name": null,
+      "sha256": null,
+      "byte_length": null,
+      "retrieved_utc": null,
+      "validation_state": "not_accessible",
+      "sha256_verified": false,
+      "notes": [
+        "Awaiting publisher file; normalized smooth curve is not a substitute for the pointwise evaluation and covariance."
+      ]
+    }
+  ],
+  "ingestion_status": "not_started"
+}

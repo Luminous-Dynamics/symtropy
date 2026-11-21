@@ -1,0 +1,57 @@
+{
+  "fixture_type": "synthetic_cmni_raw_scale_horseshoe_target_gradient_v1",
+  "provenance": "fully synthetic two-observation PFNS-like Gaussian likelihood and one feature; not AIACHNE data",
+  "observations": [
+    11,
+    19
+  ],
+  "baseline_mean": [
+    10,
+    20
+  ],
+  "design_matrix": [
+    [
+      0
+    ],
+    [
+      1
+    ]
+  ],
+  "relative_covariance": [
+    [
+      0.04,
+      0.01
+    ],
+    [
+      0.01,
+      0.09
+    ]
+  ],
+  "coefficient": [
+    0.1
+  ],
+  "log_local_scale": [
+    0
+  ],
+  "log_global_scale": -1,
+  "global_scale_prior_scale": 0.5,
+  "expected": {
+    "log_posterior_half_normal": -6.523121342793426,
+    "coefficient_gradient": [
+      -3.014558854923875
+    ],
+    "log_local_scale_gradient": [
+      -0.9261094390106935
+    ],
+    "log_global_scale_gradient_half_normal": -0.46745057195714435,
+    "log_posterior_half_cauchy": -6.91089503195672,
+    "log_global_scale_gradient_half_cauchy": -0.628538150442815
+  },
+  "independent_check": "central finite differences with epsilon=1e-6 matched analytic beta/local/global gradients to approximately 1e-10",
+  "limits": [
+    "Posterior target and analytic gradients only.",
+    "No posterior samples or convergence diagnostics.",
+    "No AIACHNE BMC reproduction.",
+    "No physical experiment data."
+  ]
+}
