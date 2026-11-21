@@ -28,7 +28,7 @@ Ding, Indriyanto, Hidayat & Lestari, *Transportation Research Interdisciplinary 
 - Reports agreement with crew-reported navigation status `κ=0.96` over 917 calls, 26 of 27 berthings detected against terminal schedules, and median departure-time error of 0.4 hours.
 - Reports approximately ±10% variation in KPIs when dwell and gap parameters change.
 
-This is a directly relevant open-access field comparator. It is not an independent gold standard for all event types: its validation set includes crew status and terminal schedule references, and the berth schedule denominator is only 27 calls. We should reproduce its five-state FSM/profile if source code/data can be obtained, then challenge it with known missing-message gaps, duplicate/replayed AIS, polygon boundary transitions, dwell/gap sensitivity, receiver outages and independently adjudicated event labels.
+This is a directly relevant open-access field comparator. It is not an independent gold standard for all event types: its validation set includes crew status and terminal schedule references, and the berth schedule denominator is only 27 calls. It also reports about ±10% KPI sensitivity to dwell/gap parameter changes, so parameter uncertainty belongs in the benchmark. We should reproduce its five-state FSM/profile if source code/data can be obtained, then challenge it with known missing-message gaps, duplicate/replayed AIS, polygon boundary transitions, dwell/gap sensitivity, receiver outages and independently adjudicated event labels.
 
 Paper: https://www.sciencedirect.com/science/article/pii/S2590198226005075
 
