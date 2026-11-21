@@ -36,7 +36,7 @@ The crate has no third-party dependencies. Its tests are synthetic; it does not 
 - Accepts raw AIS navigation-status lexemes as input observations; a conflict counter is diagnostic only and never overrides zone/motion evidence. The upstream feed owner must retain the original raw messages; this reference verifier is not a raw-message archive.
 - Requires an evidence reference when a caller supplies a non-INDETERMINATE initial state. Without one, a first observed berth dwell is reported as zone reacquisition—not a fabricated berth arrival.
 - Carries the entire dwell profile, profile version, evidence-referenced initial state, source-local call reference, receiver, source, geofence digest and spatial reference in the call report.
-- Scores inferred transition intervals against independent ground-truth event labels using deterministic one-to-one matching by call reference and event kind.
+- Scores inferred transition intervals against independent ground-truth event labels using maximum-cardinality, minimum-total-interval-distance one-to-one matching by call reference and event kind.
 
 ## Event semantics and claim ceiling
 
