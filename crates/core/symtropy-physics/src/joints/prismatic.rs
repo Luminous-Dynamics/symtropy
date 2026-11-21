@@ -643,6 +643,37 @@ mod tests {
                 );
             }
         }
+
+        // Independent dense-LU oracle: invert the declared inertia matrices,
+        // assemble W = I_a^-1 + I_b^-1, and solve W * lambda = k * r.
+        // This deliberately uses nalgebra's dense LU path rather than the
+        // production fixed-stack Cholesky implementation.
+        let dense_inertia_a = nalgebra::SMatrix::<f64, 3, 3>::from_row_slice(&[
+            4.0, 0.8, 0.0, 0.8, 3.0, 0.35, 0.0, 0.35, 2.0,
+        ]);
+        let dense_inertia_b = nalgebra::SMatrix::<f64, 3, 3>::from_row_slice(&[
+            2.5, -0.3, 0.1, -0.3, 5.0, 0.6, 0.1, 0.6, 3.5,
+        ]);
+        let dense_delassus = dense_inertia_a
+            .try_inverse()
+            .expect("dense inertia A is invertible")
+            + dense_inertia_b
+                .try_inverse()
+                .expect("dense inertia B is invertible");
+        let dense_rhs = nalgebra::SVector::<f64, 3>::new(0.175, -0.15, 0.2);
+        let expected_impulse = dense_delassus
+            .lu()
+            .solve(&dense_rhs)
+            .expect("independent dense Delassus oracle is nonsingular");
+        let observed_impulse = nalgebra::SVector::<f64, 3>::new(
+            momentum_delta_a.get(0, 1),
+            momentum_delta_a.get(0, 2),
+            momentum_delta_a.get(1, 2),
+        );
+        assert!(
+            (observed_impulse - expected_impulse).norm() < 1.0e-10,
+            "common angular impulse disagrees with independent dense-LU oracle: observed={observed_impulse:?}, expected={expected_impulse:?}"
+        );
     }
 
     #[test]
