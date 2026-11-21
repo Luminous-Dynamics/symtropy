@@ -8,7 +8,7 @@
 
 Build a **process-and-test cell before building a factory**.
 
-The first physical product should remain the #1805 guarded 24 V DC fan. It is a bounded learning vehicle for product design, local fabrication, airflow, power, acoustics, vibration, assembly, metrology, repair and small-batch repeatability. It is not a claim that the product is safe, compliant or superior.
+The first physical product should remain the #1805 guarded low-voltage DC fan. It is a bounded learning vehicle for product design, local fabrication, airflow, power, acoustics, vibration, assembly, metrology, repair and small-batch repeatability. It is not a claim that the product is safe, compliant or superior.
 
 The first cell should own the intellectual and quality core:
 
@@ -34,7 +34,7 @@ The manufacturing cell is itself a product: modular stations, defined utility bo
 
 ## 2. First-product boundary
 
-Start from the #1805 fan architecture:
+Start from the #1805 tabletop fan architecture: a replaceable 140 mm low-voltage DC fan cartridge and separate external DC supply. The cartridge voltage, current, connector and supply rating remain open design inputs and must be frozen from exact component documentation before power is applied. Do not assume 24 V or infer a pinout. Start from the following design boundaries:
 
 - guarded rotating assembly;
 - extra-low-voltage DC supply, initially from an appropriate external power supply;
