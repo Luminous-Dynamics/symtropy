@@ -274,7 +274,7 @@ pub fn minimum_zero_failure_exposure_hours(
     if !target_per_million_hours.is_finite() || target_per_million_hours <= 0.0 {
         return Err("target intensity must be finite and positive".to_owned());
     }
-    if !confidence.is_finite() || !(0.0 < confidence && confidence < 1.0) {
+    if !(confidence.is_finite() && 0.0 < confidence && confidence < 1.0) {
         return Err("confidence must be finite and strictly between zero and one".to_owned());
     }
     let alpha = 1.0 - confidence;
