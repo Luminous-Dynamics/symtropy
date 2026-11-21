@@ -1,0 +1,1032 @@
+{
+  "schema": "luminous.orbital-structural-interface.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_structural_profile_compatibility_only",
+  "base_provider": {
+    "profile_id": "PROVIDER-JOINT-A",
+    "profile_revision": "1",
+    "icd_id": "PROJECT-ICD-001",
+    "icd_revision": "R1",
+    "configuration_id": "JOINT-ASSEMBLY-CFG-001",
+    "frame_id": "JOINT-FRAME-001",
+    "units_profile_id": "SI-UNITS-001",
+    "geometry_profile_id": "GEOM-MATE-001",
+    "mating_feature_id": "MATE-FEATURE-001",
+    "retention_feature_id": "LOCK-FEATURE-001",
+    "max_pose_error_mm": 0.5,
+    "tooling_profile_id": "TOOLING-001",
+    "independent_lock_verification": true,
+    "verification_method_id": "LOCK-VERIFY-METHOD-001",
+    "verification_evidence_ref": "EV-VERIFY",
+    "load_cases": [
+      {
+        "case_id": "COMBINED-ULTIMATE-001",
+        "interaction_profile_ref": "LOAD-INTERACTION-PROFILE-001",
+        "frame_id": "JOINT-FRAME-001",
+        "limits": {
+          "axial_n": 100000,
+          "shear_y_n": 30000,
+          "shear_z_n": 30000,
+          "bending_y_nm": 12000,
+          "bending_z_nm": 12000,
+          "torsion_nm": 8000
+        },
+        "evidence_ref": "EV-STRUCT"
+      }
+    ],
+    "max_deflection_mm": 1.5,
+    "max_slip_mm": 0.2,
+    "minimum_retention_n": 15000,
+    "temperature_min_k": 220,
+    "temperature_max_k": 340,
+    "maximum_service_cycles": 1000,
+    "material_spec_id": "ALLOY-2195",
+    "material_condition_id": "T8",
+    "material_lot_id": "LOT-001",
+    "process_route_id": "MACHINED-HT-ROUTE-001",
+    "material_lineage_ref": "material-lineage://LOT-001",
+    "material_evidence_ref": "EV-MATERIAL",
+    "inspection_method_id": "UT-PROCEDURE-001",
+    "critical_surface_observable": true,
+    "inspection_evidence_ref": "EV-INSPECTION",
+    "replacement_isolated_and_reverified": true,
+    "requires_replacement": false,
+    "requires_fatigue": false,
+    "fatigue_evidence_ref": null,
+    "requires_assembled_path": false,
+    "assembled_path_evidence_ref": null,
+    "requires_independent_evidence": true,
+    "uncertainty_basis": "hard_bound",
+    "evidence": [
+      {
+        "evidence_id": "EV-STRUCT",
+        "kind": "structural_capability",
+        "evidence_class": "scoped_test_or_validated_analysis",
+        "status": "current",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "dependency_group": "STRUCT-LAB-A",
+        "subject_ref": "physical-unit://ORBITAL-JOINT-TEST-0001",
+        "configuration_id": "JOINT-ASSEMBLY-CFG-001",
+        "icd_id": "PROJECT-ICD-001",
+        "icd_revision": "R1"
+      },
+      {
+        "evidence_id": "EV-MATERIAL",
+        "kind": "material_process",
+        "evidence_class": "process_conditioned_material_characterization",
+        "status": "current",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "dependency_group": "MAT-LAB-B",
+        "subject_ref": "material-lineage://LOT-001",
+        "configuration_id": "JOINT-ASSEMBLY-CFG-001",
+        "icd_id": "PROJECT-ICD-001",
+        "icd_revision": "R1"
+      },
+      {
+        "evidence_id": "EV-INSPECTION",
+        "kind": "inspection",
+        "evidence_class": "method_specific_inspection_report",
+        "status": "current",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "dependency_group": "NDE-LAB-C",
+        "subject_ref": "physical-unit://ORBITAL-JOINT-TEST-0001",
+        "configuration_id": "JOINT-ASSEMBLY-CFG-001",
+        "icd_id": "PROJECT-ICD-001",
+        "icd_revision": "R1"
+      },
+      {
+        "evidence_id": "EV-VERIFY",
+        "kind": "verification",
+        "evidence_class": "independent_engagement_verification",
+        "status": "current",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "dependency_group": "VERIFY-LAB-D",
+        "subject_ref": "physical-unit://ORBITAL-JOINT-TEST-0001",
+        "configuration_id": "JOINT-ASSEMBLY-CFG-001",
+        "icd_id": "PROJECT-ICD-001",
+        "icd_revision": "R1"
+      }
+    ],
+    "article_subject_ref": "physical-unit://ORBITAL-JOINT-TEST-0001"
+  },
+  "base_client": {
+    "profile_id": "CLIENT-JOINT-A",
+    "profile_revision": "1",
+    "icd_id": "PROJECT-ICD-001",
+    "icd_revision": "R1",
+    "configuration_id": "JOINT-ASSEMBLY-CFG-001",
+    "frame_id": "JOINT-FRAME-001",
+    "units_profile_id": "SI-UNITS-001",
+    "geometry_profile_id": "GEOM-MATE-001",
+    "mating_feature_id": "MATE-FEATURE-001",
+    "retention_feature_id": "LOCK-FEATURE-001",
+    "max_pose_error_mm": 0.8,
+    "tooling_profile_id": "TOOLING-001",
+    "independent_lock_verification": true,
+    "verification_method_id": "LOCK-VERIFY-METHOD-001",
+    "verification_evidence_ref": null,
+    "load_cases": [
+      {
+        "case_id": "COMBINED-ULTIMATE-001",
+        "interaction_profile_ref": "LOAD-INTERACTION-PROFILE-001",
+        "frame_id": "JOINT-FRAME-001",
+        "limits": {
+          "axial_n": 70000,
+          "shear_y_n": 20000,
+          "shear_z_n": 20000,
+          "bending_y_nm": 8000,
+          "bending_z_nm": 8000,
+          "torsion_nm": 5000
+        },
+        "evidence_ref": null
+      }
+    ],
+    "max_deflection_mm": 2,
+    "max_slip_mm": 0.3,
+    "minimum_retention_n": 12000,
+    "temperature_min_k": 230,
+    "temperature_max_k": 330,
+    "maximum_service_cycles": 750,
+    "material_spec_id": "ALLOY-2195",
+    "material_condition_id": "T8",
+    "material_lot_id": "LOT-001",
+    "process_route_id": "MACHINED-HT-ROUTE-001",
+    "material_lineage_ref": null,
+    "material_evidence_ref": null,
+    "inspection_method_id": "UT-PROCEDURE-001",
+    "critical_surface_observable": true,
+    "inspection_evidence_ref": null,
+    "replacement_isolated_and_reverified": false,
+    "requires_replacement": false,
+    "requires_fatigue": false,
+    "fatigue_evidence_ref": null,
+    "requires_assembled_path": false,
+    "assembled_path_evidence_ref": null,
+    "requires_independent_evidence": true,
+    "uncertainty_basis": "hard_bound",
+    "evidence": [],
+    "article_subject_ref": "design-target://ORBITAL-JOINT-REQUIREMENT-0001"
+  },
+  "cases": [
+    {
+      "case_id": "SI-001",
+      "mutations": [],
+      "expected": {
+        "disposition": "compatible_synthetic_profile",
+        "reasons": []
+      }
+    },
+    {
+      "case_id": "SI-002",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "icd_revision",
+          "value": "R2"
+        }
+      ],
+      "expected": {
+        "disposition": "malformed_or_stale",
+        "reasons": [
+          "EVIDENCE_SCOPE_MISMATCH",
+          "ICD_IDENTITY_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-003",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "mating_feature_id",
+          "value": "MATE-FEATURE-OTHER"
+        }
+      ],
+      "expected": {
+        "disposition": "incompatible",
+        "reasons": [
+          "MATING_FEATURE_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-004",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "frame_id",
+          "value": "JOINT-FRAME-OTHER"
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "FRAME_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-005",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "max_pose_error_mm",
+          "value": 0.81
+        }
+      ],
+      "expected": {
+        "disposition": "incompatible",
+        "reasons": [
+          "POSE_TOLERANCE_EXCEEDED"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-006",
+      "mutations": [
+        {
+          "target": "client",
+          "operation": "set",
+          "path": "max_pose_error_mm",
+          "value": 0.5
+        }
+      ],
+      "expected": {
+        "disposition": "compatible_synthetic_profile",
+        "reasons": []
+      }
+    },
+    {
+      "case_id": "SI-007",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "verification_method_id",
+          "value": ""
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "VERIFICATION_METHOD_MISSING"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-008",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "independent_lock_verification",
+          "value": false
+        }
+      ],
+      "expected": {
+        "disposition": "incompatible",
+        "reasons": [
+          "LOCK_VERIFICATION_UNAVAILABLE"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-009",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "retention_feature_id",
+          "value": "LOCK-FEATURE-OTHER"
+        }
+      ],
+      "expected": {
+        "disposition": "incompatible",
+        "reasons": [
+          "RETENTION_FEATURE_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-010",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "load_cases",
+          "value": [
+            {
+              "case_id": "COMBINED-ULTIMATE-001",
+              "interaction_profile_ref": "LOAD-INTERACTION-PROFILE-001",
+              "frame_id": "JOINT-FRAME-001",
+              "limits": {
+                "axial_n": 65000,
+                "shear_y_n": 30000,
+                "shear_z_n": 30000,
+                "bending_y_nm": 12000,
+                "bending_z_nm": 12000,
+                "torsion_nm": 8000
+              },
+              "evidence_ref": "EV-STRUCT"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "incompatible",
+        "reasons": [
+          "LOAD_CAPACITY_INSUFFICIENT"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-011",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "load_cases",
+          "value": [
+            {
+              "case_id": "COMBINED-ULTIMATE-001",
+              "interaction_profile_ref": "LOAD-INTERACTION-OTHER",
+              "frame_id": "JOINT-FRAME-001",
+              "limits": {
+                "axial_n": 100000,
+                "shear_y_n": 30000,
+                "shear_z_n": 30000,
+                "bending_y_nm": 12000,
+                "bending_z_nm": 12000,
+                "torsion_nm": 8000
+              },
+              "evidence_ref": "EV-STRUCT"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "LOAD_INTERACTION_PROFILE_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-012",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "max_deflection_mm",
+          "value": 2
+        },
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "max_slip_mm",
+          "value": 0.3
+        },
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "minimum_retention_n",
+          "value": 12000
+        }
+      ],
+      "expected": {
+        "disposition": "compatible_synthetic_profile",
+        "reasons": []
+      }
+    },
+    {
+      "case_id": "SI-013",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "minimum_retention_n",
+          "value": 11000
+        }
+      ],
+      "expected": {
+        "disposition": "incompatible",
+        "reasons": [
+          "RETENTION_CAPACITY_INSUFFICIENT"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-014",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "material_condition_id",
+          "value": "T6"
+        }
+      ],
+      "expected": {
+        "disposition": "incompatible",
+        "reasons": [
+          "MATERIAL_CONDITION_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-015",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set_evidence",
+          "evidence_id": "EV-MATERIAL",
+          "field": "evidence_class",
+          "value": "supplier_assertion"
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "EVIDENCE_CLASS_INSUFFICIENT"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-016",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "material_lineage_ref",
+          "value": null
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "MATERIAL_LINEAGE_MISSING"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-017",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "process_route_id",
+          "value": "MACHINED-OTHER-ROUTE"
+        }
+      ],
+      "expected": {
+        "disposition": "incompatible",
+        "reasons": [
+          "PROCESS_ROUTE_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-018",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "temperature_max_k",
+          "value": 320
+        }
+      ],
+      "expected": {
+        "disposition": "incompatible",
+        "reasons": [
+          "TEMPERATURE_RANGE_INSUFFICIENT"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-019",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "uncertainty_basis",
+          "value": "model_prediction_interval"
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "UNCERTAINTY_BASIS_UNSUPPORTED"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-020",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "critical_surface_observable",
+          "value": false
+        }
+      ],
+      "expected": {
+        "disposition": "incompatible",
+        "reasons": [
+          "CRITICAL_SURFACE_NOT_OBSERVABLE"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-021",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set_evidence",
+          "evidence_id": "EV-STRUCT",
+          "field": "status",
+          "value": "stale"
+        }
+      ],
+      "expected": {
+        "disposition": "malformed_or_stale",
+        "reasons": [
+          "EVIDENCE_STALE"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-022",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "uncertainty_basis",
+          "value": "standard_uncertainty"
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "UNCERTAINTY_BASIS_UNSUPPORTED"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-023",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "temperature_min_k",
+          "value": 240
+        },
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "temperature_max_k",
+          "value": 320
+        }
+      ],
+      "expected": {
+        "disposition": "incompatible",
+        "reasons": [
+          "TEMPERATURE_RANGE_INSUFFICIENT"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-024",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "replacement_isolated_and_reverified",
+          "value": false
+        },
+        {
+          "target": "client",
+          "operation": "set",
+          "path": "requires_replacement",
+          "value": true
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "REPLACEMENT_REVERIFICATION_MISSING"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-025",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "verification_evidence_ref",
+          "value": null
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "VERIFICATION_EVIDENCE_MISSING"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-026",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set_evidence",
+          "evidence_id": "EV-STRUCT",
+          "field": "evidence_class",
+          "value": "supplier_assertion"
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "EVIDENCE_CLASS_INSUFFICIENT"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-027",
+      "mutations": [
+        {
+          "target": "client",
+          "operation": "set",
+          "path": "requires_fatigue",
+          "value": true
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "FATIGUE_EVIDENCE_MISSING"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-028",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "load_cases",
+          "value": [
+            {
+              "case_id": "COMBINED-ULTIMATE-001",
+              "interaction_profile_ref": "NONLINEAR-CONTACT-PROFILE",
+              "frame_id": "JOINT-FRAME-001",
+              "limits": {
+                "axial_n": 100000,
+                "shear_y_n": 30000,
+                "shear_z_n": 30000,
+                "bending_y_nm": 12000,
+                "bending_z_nm": 12000,
+                "torsion_nm": 8000
+              },
+              "evidence_ref": "EV-STRUCT"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "LOAD_INTERACTION_PROFILE_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-029",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "configuration_id",
+          "value": "JOINT-ASSEMBLY-CFG-OLD"
+        }
+      ],
+      "expected": {
+        "disposition": "malformed_or_stale",
+        "reasons": [
+          "CONFIGURATION_IDENTITY_MISMATCH",
+          "EVIDENCE_SCOPE_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-030",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set_evidence",
+          "evidence_id": "EV-STRUCT",
+          "field": "evidence_class",
+          "value": "provenance_signature"
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "EVIDENCE_CLASS_INSUFFICIENT"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-031",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set_evidence",
+          "evidence_id": "EV-STRUCT",
+          "field": "evidence_class",
+          "value": "solver_exit_zero_without_convergence"
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "EVIDENCE_CLASS_INSUFFICIENT"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-032",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set_evidence",
+          "evidence_id": "EV-VERIFY",
+          "field": "dependency_group",
+          "value": "STRUCT-LAB-A"
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "INDEPENDENCE_NOT_ESTABLISHED"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-033",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "load_cases",
+          "value": [
+            {
+              "case_id": "COMBINED-ULTIMATE-001",
+              "interaction_profile_ref": "LOAD-INTERACTION-PROFILE-001",
+              "frame_id": "OTHER-FRAME",
+              "limits": {
+                "axial_n": 100000,
+                "shear_y_n": 30000,
+                "shear_z_n": 30000,
+                "bending_y_nm": 12000,
+                "bending_z_nm": 12000,
+                "torsion_nm": 8000
+              },
+              "evidence_ref": "EV-STRUCT"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "LOAD_FRAME_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-034",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "load_cases",
+          "value": []
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "LOAD_CASE_MISSING"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-035",
+      "mutations": [
+        {
+          "target": "client",
+          "operation": "set",
+          "path": "maximum_service_cycles",
+          "value": 1500
+        }
+      ],
+      "expected": {
+        "disposition": "incompatible",
+        "reasons": [
+          "SERVICE_LIFE_INSUFFICIENT"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-036",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "tooling_profile_id",
+          "value": "TOOLING-OTHER"
+        }
+      ],
+      "expected": {
+        "disposition": "incompatible",
+        "reasons": [
+          "TOOLING_PROFILE_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-037",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "remove_evidence",
+          "evidence_id": "EV-STRUCT"
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "EVIDENCE_REFERENCE_MISSING"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-038",
+      "mutations": [
+        {
+          "target": "client",
+          "operation": "set",
+          "path": "requires_assembled_path",
+          "value": true
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "ASSEMBLED_PATH_EVIDENCE_MISSING"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-039",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "reverse_array",
+          "path": "evidence"
+        },
+        {
+          "target": "provider",
+          "operation": "reverse_array",
+          "path": "load_cases"
+        }
+      ],
+      "expected": {
+        "disposition": "compatible_synthetic_profile",
+        "reasons": []
+      }
+    },
+    {
+      "case_id": "SI-040",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set_evidence",
+          "evidence_id": "EV-STRUCT",
+          "field": "sha256",
+          "value": "not-a-digest"
+        }
+      ],
+      "expected": {
+        "disposition": "malformed_or_stale",
+        "reasons": [
+          "EVIDENCE_DIGEST_INVALID"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-041",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set_evidence",
+          "evidence_id": "EV-STRUCT",
+          "field": "configuration_id",
+          "value": "JOINT-ASSEMBLY-CFG-OLD"
+        }
+      ],
+      "expected": {
+        "disposition": "malformed_or_stale",
+        "reasons": [
+          "EVIDENCE_SCOPE_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-042",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set_evidence",
+          "evidence_id": "EV-INSPECTION",
+          "field": "subject_ref",
+          "value": "physical-unit://DIFFERENT-SERIAL-0002"
+        }
+      ],
+      "expected": {
+        "disposition": "malformed_or_stale",
+        "reasons": [
+          "EVIDENCE_SCOPE_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-043",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "load_cases",
+          "value": [
+            {
+              "case_id": "COMBINED-ULTIMATE-001",
+              "interaction_profile_ref": "LOAD-INTERACTION-PROFILE-001",
+              "frame_id": "JOINT-FRAME-001",
+              "limits": {
+                "axial_n": 100000,
+                "shear_y_n": 30000,
+                "shear_z_n": 30000,
+                "bending_y_nm": 12000,
+                "bending_z_nm": 12000,
+                "torsion_nm": 8000
+              },
+              "evidence_ref": "EV-STRUCT"
+            },
+            {
+              "case_id": "COMBINED-ULTIMATE-001",
+              "interaction_profile_ref": "LOAD-INTERACTION-PROFILE-001",
+              "frame_id": "JOINT-FRAME-001",
+              "limits": {
+                "axial_n": 100000,
+                "shear_y_n": 30000,
+                "shear_z_n": 30000,
+                "bending_y_nm": 12000,
+                "bending_z_nm": 12000,
+                "torsion_nm": 8000
+              },
+              "evidence_ref": "EV-STRUCT"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "malformed_or_stale",
+        "reasons": [
+          "LOAD_CASE_ID_DUPLICATE_OR_EMPTY"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-044",
+      "mutations": [
+        {
+          "target": "client",
+          "operation": "set",
+          "path": "load_cases",
+          "value": []
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "LOAD_REQUIREMENT_SET_EMPTY"
+        ]
+      }
+    }
+  ]
+}
