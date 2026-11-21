@@ -212,7 +212,7 @@ pub fn poisson_mean_upper_bound(events: u64, confidence: f64) -> Result<f64, Str
     if events > MAX_FAILURE_EVENTS {
         return Err("failure-event count exceeds the v0.1 limit".to_owned());
     }
-    if !confidence.is_finite() || !(0.0 < confidence && confidence < 1.0) {
+    if !(confidence.is_finite() && 0.0 < confidence && confidence < 1.0) {
         return Err("confidence must be finite and strictly between zero and one".to_owned());
     }
 
@@ -289,10 +289,11 @@ fn evaluate_case(case: &IntensityCase) -> Result<Decision, String> {
     if case.case_id.trim().is_empty() {
         return Err("case ID must be non-empty".to_owned());
     }
-    if !case.target_failure_intensity_per_million_hours.is_finite()
-        || case.target_failure_intensity_per_million_hours <= 0.0
-        || !case.confidence.is_finite()
-        || !(0.0 < case.confidence && case.confidence < 1.0)
+    if !(case.target_failure_intensity_per_million_hours.is_finite()
+        && case.target_failure_intensity_per_million_hours > 0.0
+        && case.confidence.is_finite()
+        && 0.0 < case.confidence
+        && case.confidence < 1.0)
     {
         return Ok(empty_decision(Disposition::Rejected, 0));
     }
@@ -595,7 +596,7 @@ mod tests {
     #[test]
     fn zero_event_mean_bound_is_exact() {
         let bound = poisson_mean_upper_bound(0, 0.90).expect("valid input");
-        assert!((bound - 2.302_585_092_994_046).abs() < 1e-12);
+        assert!((bound - std::f64::consts::LN_10).abs() < 1e-12);
     }
 
     #[test]
