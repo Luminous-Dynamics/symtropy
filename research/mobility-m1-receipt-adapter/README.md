@@ -7,7 +7,7 @@
 The dedicated workflow checks out these exact, public source commits:
 
 - M1 mission supervisor: `03c43fa531174f02348edccb55f745ae49382318`
-- M2 action/effect contract: `773cd0d07ea5eb52331d4e201442976536daada6`
+- M2 action/effect contract: `884bcfbd4474b31ed395fbedf63f0a4091eefa14`
 
 They are imported as modules from the checkout worktrees; the adapter does not fork or copy their state machines.
 
@@ -29,7 +29,7 @@ M2 monotonic ticks are **not** milliseconds. The adapter refuses Unknown/Unquali
 
 ## Tests
 
-Eight adapter regressions cover successful content-digest projection, no-effect/partial/unknown mapping, unknown/unqualified/uncommitted time hold, source-clock mismatch rejection and comparison-clock lineage preservation under the M1 per-source cursor, stale M1 attempt rejection after M2 validation, and M1/M2 ticket identity mismatch, and common-cause observer/executor failure-domain overlap before M1 mutation. The harness also compiles and runs the imported M1 and M2 unit-test suites, including the CDAAB semantic run-receipt validator.
+Eight adapter regressions cover successful content-digest projection, no-effect/partial/unknown mapping, unknown/unqualified/uncommitted time hold, source-clock mismatch rejection and comparison-clock lineage preservation under the M1 per-source cursor, stale M1 attempt rejection after M2 validation, and M1/M2 ticket identity mismatch, and common-cause observer/executor failure-domain overlap before M1 mutation. The harness also compiles and runs the imported M1 and M2 unit-test suites, including the CDAAB semantic run-receipt validator with exact planned episode/scenario and preregistered exclusion-reason checks.
 
 ## Claim ceiling
 
