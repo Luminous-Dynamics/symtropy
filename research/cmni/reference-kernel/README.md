@@ -99,3 +99,12 @@ The forward matrix is a numerical interface only. There is no Geant4/MCNP/DRiFT 
 - A synthetic 2 × 2 fixture is in research/cmni/fixtures/detector-response-matrix-forward-synthetic.json.
 
 This is a generic forward operator only. It does not model scintillator light production, proton quenching, detector geometry/transport, PSD, threshold, pileup, dead time or any Geant4/MCNP response. No spectrum unfolding is implemented.
+
+
+## Nonnegative Poisson unfolding comparator
+
+- DetectorResponseMatrix now includes `poisson_em_unfold`, an unregularized Poisson expectation-maximization / Richardson-Lucy-style comparator for nonnegative source spectra with fixed measured-bin background expectations.
+- The algorithm uses the forward response matrix and column efficiencies; it rejects unobservable true-energy bins and invalid starting spectra.
+- Iteration count is an explicit early-stopping regularization choice. This is not GRAVEL and should not be used to claim superiority without held-out truth, matrix mismatch tests and uncertainty coverage.
+- Five additional tests cover identity response recovery, a migrated two-bin spectrum, known background, unobservable bins and invalid iteration/initial values.
+- Synthetic deterministic benchmark: `research/cmni/fixtures/poisson-em-detector-unfolding-synthetic.json`.
