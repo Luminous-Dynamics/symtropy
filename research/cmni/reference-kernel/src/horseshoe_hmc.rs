@@ -188,11 +188,11 @@ fn hmc_transition(
         }
         let proposal_state = match HmcState::from_flat(&position, current_state.coefficients.len()) {
             Ok(state) => state,
-            Err(_) => return (current_state.clone(), current_target.clone(), false, true),
+            Err(_) => return (current_state.clone(), current_target.clone(), false, true, initial_hamiltonian),
         };
         proposal_target = match evaluate_state(model, &proposal_state, prior) {
             Ok(target) => target,
-            Err(_) => return (current_state.clone(), current_target.clone(), false, true),
+            Err(_) => return (current_state.clone(), current_target.clone(), false, true, initial_hamiltonian),
         };
         let gradient = flatten_gradient(&proposal_target);
         let scale = if step + 1 == config.leapfrog_steps { 0.5 } else { 1.0 };
@@ -217,7 +217,7 @@ fn hmc_transition(
     if accepted {
         let next_state = match HmcState::from_flat(&position, current_state.coefficients.len()) {
             Ok(state) => state,
-            Err(_) => return (current_state.clone(), current_target.clone(), false, true),
+            Err(_) => return (current_state.clone(), current_target.clone(), false, true, initial_hamiltonian),
         };
         (next_state, proposal_target, true, false, initial_hamiltonian)
     } else {
