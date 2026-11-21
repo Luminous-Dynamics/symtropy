@@ -13,3 +13,22 @@ The auditor validates reel/segment geometry, observation identity, evidence-stat
 ## Condition-profile-specific Ic coverage (follow-on contract)
 
 The condition-profile child PR #6602 partitions direct transport, calibrated non-contact proxy, inferred and calibration-unqualified Ic spatial coverage by an exact operating-condition identity and measurement unit. It does not union 77 K self-field and 20 K / 5 T intervals into one coverage figure. Geometry remains observation-specific; different measurement geometries may target the same operating condition, but field, temperature, orientation, current criterion and other operating values must match exactly. The report has no cross-profile global Ic coverage number and performs no T/B interpolation.
+
+
+## Adaptive inspection value-of-information prototype
+
+Schema: `docs/research/schemas/rebco_adaptive_inspection_voi_v0_1.schema.json`.
+
+Synthetic prior/action fixture: `docs/research/fixtures/rebco_adaptive_inspection_voi_synthetic_v0_1.json`.
+
+Run:
+
+```bash
+cargo test --locked -p rebco-long-length-auditor --bin adaptive_inspection_voi
+cargo run --locked --quiet -p rebco-long-length-auditor --bin adaptive_inspection_voi -- \
+  docs/research/fixtures/rebco_adaptive_inspection_voi_synthetic_v0_1.json
+```
+
+The policy evaluates one next action against a weighted ensemble of complete spatial weak-cell maps. It computes the probability of an application-defined contiguous weak run, asymmetric false-accept / false-reject expected decision loss, expected posterior loss after positive/negative measurement outcomes, measurement cost and net VOI. It distinguishes direct-transport actions from calibrated non-contact proxy actions and enforces the exact condition-profile ID, calibration state, validation artifact digest and inspection budget. After a real observation is independently recorded, append its result and rerun to select the next action. The binary itself recommends but does not perform an inspection.
+
+This v0.1 is a one-step greedy synthetic decision-support policy, not a global multi-step optimum, physical product acceptance decision, or claim that the illustrative sensitivities, specificities, costs, prior scenarios or loss values describe a manufacturer or real application.
