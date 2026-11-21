@@ -15,7 +15,7 @@
 //! rule, estimate quadrature error, solve collision kinetics, or partition
 //! thermal energy between species.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fmt;
 
@@ -62,6 +62,8 @@ pub struct DragTrajectoryTolerance {
 pub struct DragTrajectoryReceipt {
     pub event_count: usize,
     pub sample_count: usize,
+    /// Per-event quadrature rule identities retained for downstream evidence.
+    pub quadrature_rule_ids: BTreeMap<u64, u64>,
     pub total_integrated_drag_weight_kg: f64,
     pub total_neutral_impulse_ns: [f64; 3],
     pub total_charged_reaction_impulse_ns: [f64; 3],
@@ -215,6 +217,7 @@ pub fn validate_drag_trajectory(
     let mut ordered_events = events.to_vec();
     ordered_events.sort_by_key(|event| event.event_id);
     let mut seen_event_ids = BTreeSet::new();
+    let mut quadrature_rule_ids = BTreeMap::new();
 
     let mut total_neutral = [CompensatedSum::default(); 3];
     let mut total_charged = [CompensatedSum::default(); 3];
@@ -234,6 +237,7 @@ pub fn validate_drag_trajectory(
         if event.samples.is_empty() {
             return Err(DragTrajectoryError::EmptyEvent(event.event_id));
         }
+        quadrature_rule_ids.insert(event.event_id, event.quadrature_rule_id);
         if !event.reported_frictional_heating_j.is_finite()
             || !event.neutral_impulse_ns.iter().all(|value| value.is_finite())
             || !event.charged_reaction_impulse_ns.iter().all(|value| value.is_finite())
@@ -445,6 +449,7 @@ pub fn validate_drag_trajectory(
     Ok(DragTrajectoryReceipt {
         event_count: ordered_events.len(),
         sample_count,
+        quadrature_rule_ids,
         total_integrated_drag_weight_kg: total_drag_weight.value(),
         total_neutral_impulse_ns,
         total_charged_reaction_impulse_ns,
