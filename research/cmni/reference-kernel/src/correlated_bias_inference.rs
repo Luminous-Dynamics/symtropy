@@ -216,7 +216,6 @@ pub fn fit_sparse_bayesian_correlated_log_bias(
     let mut map_parameter_mean = vec![0.0; parameter_count];
     let mut map_feature_mask = 0usize;
     let mut map_model_probability = -1.0_f64;
-    let mut map_model_index = 0usize;
 
     for (mask, (fit, probability)) in fits.iter().zip(model_probabilities.iter()).enumerate() {
         for (local, feature) in fit.active_bias_features.iter().enumerate() {
@@ -230,7 +229,6 @@ pub fn fit_sparse_bayesian_correlated_log_bias(
         if *probability > map_model_probability {
             map_model_probability = *probability;
             map_feature_mask = mask;
-            map_model_index = mask;
             map_parameter_mean.fill(0.0);
             for fixed in 0..fixed_count {
                 map_parameter_mean[fixed] = fit.parameter_mean[fixed];
@@ -574,7 +572,7 @@ mod tests {
     #[test]
     fn correlated_log_model_identifies_planted_bias_with_full_covariance() {
         let result = fit_sparse_bayesian_correlated_log_bias(
-            &[0.0, 0.6931471805599453, 0.0, 0.6931471805599453],
+            &[0.0, std::f64::consts::LN_2, 0.0, 0.6931471805599453],
             &[vec![], vec![], vec![], vec![]],
             &[vec![0.0], vec![1.0], vec![0.0], vec![1.0]],
             &[
