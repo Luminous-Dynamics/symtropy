@@ -42,7 +42,7 @@ A transport acknowledgement is not physical completion. The physical-outcome val
 - observation frame, calibration and freshness;
 - a declared outcome (Satisfied, NoEffect, PartialEffect or Unknown).
 
-Observer independence is now a ticket-bound policy commitment. The outcome policy declares the executor's failure-domain path and the exact expected observer dependency path for the selected source. The receipt's observer path must exactly equal that policy path; it must not omit or add dependencies. Empty/duplicate/mismatched paths, policy-version mismatch, or any shared domain between observer and executor cause rejection. Different source IDs or an `IndependentSensor` label alone are not enough. The policy digest and dependency inventory must be authenticated by upstream platform/trust owners; this crate checks structural consistency and set separation but cannot prove that the inventory is complete or truthful.
+Observer independence is now a ticket-bound policy commitment. The action ticket itself carries the exact expected observer dependency path and policy digest. The outcome policy declares the executor's failure-domain path and must repeat the exact observer path from the ticket. The receipt's observer path must exactly equal that policy path; it must not omit or add dependencies. Empty/duplicate/mismatched paths, policy-version mismatch, ticket/policy path disagreement, or any shared domain between observer and executor cause rejection. Different source IDs or an `IndependentSensor` label alone are not enough. The policy digest and dependency inventory must be authenticated by upstream platform/trust owners; this crate checks structural consistency and set separation but cannot prove that the inventory is complete or truthful.
 
 The result is one of:
 
@@ -74,6 +74,7 @@ The action ticket now carries the exact M1 subgoal ID, action ID, attempt and ex
 The `protocol/` directory provides machine-readable v0.1 schemas:
 
 - `scenario_manifest.schema.json`: controller-visible scenario inputs and budgets only. It explicitly excludes evaluator truth, hidden fault identities and expected outcomes.
+- `action_ticket.schema.json`: the action commitment carries the expected observer dependency path and the policy digest; a receipt-side path cannot silently replace the ticket-side path.
 - `evaluation_plan.schema.json`: candidate/baseline build identities, frozen manifest/evaluator digests, sampling plan, cluster dimensions, metrics and mandatory early-stop rules.
 - `run_receipt.schema.json`: exact source/artifact/runtime/evaluator/scenario digests, per-episode event/evaluator receipt digests, raw numerator/denominator counts, exclusions and run status.
 
