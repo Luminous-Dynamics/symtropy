@@ -133,6 +133,44 @@ pub fn build_grouped_energy_bias_design(
     })
 }
 
+
+/// Project a flattened vector of group-specific Gaussian-basis coefficients
+/// into the observation-level energy-dependent log-bias field.
+///
+/// Coefficient ordering follows the grouped design matrix: all 160 columns for
+/// group 0, followed by all 160 columns for group 1, and so on. This output can
+/// be passed to the raw-scale correlated Gaussian likelihood as delta(E).
+pub fn project_grouped_energy_bias_field(
+    design: &GroupedEnergyBiasDesign,
+    coefficients_by_group: &[f64],
+) -> Result<Vec<f64>, ModelError> {
+    let expected_columns = design.group_count
+        .checked_mul(design.columns_per_group)
+        .ok_or(ModelError::InvalidParameter("energy_bias_design_dimension_overflow"))?;
+    if design.columns_per_group != ENERGY_BIAS_BASIS_COLUMNS_PER_GROUP
+        || coefficients_by_group.len() != expected_columns
+        || design.basis_by_observation.len() != design.grouped_design_matrix.len()
+        || design.grouped_design_matrix.iter().any(|row| row.len() != expected_columns)
+    {
+        return Err(ModelError::MismatchedDataLengths);
+    }
+    if coefficients_by_group.iter().any(|value| !value.is_finite()) {
+        return Err(ModelError::NonFiniteValue("energy_bias_coefficients"));
+    }
+    let mut bias = Vec::with_capacity(design.grouped_design_matrix.len());
+    for row in &design.grouped_design_matrix {
+        let value = row.iter()
+            .zip(coefficients_by_group.iter())
+            .map(|(basis, coefficient)| basis * coefficient)
+            .sum::<f64>();
+        if !value.is_finite() {
+            return Err(ModelError::InvalidParameter("energy_bias_projection_nonfinite"));
+        }
+        bias.push(value);
+    }
+    Ok(bias)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -240,6 +278,61 @@ mod tests {
         assert_eq!(
             build_grouped_energy_bias_design(&[0.0], &[vec![0]], 1, 0.1, 10.0),
             Err(ModelError::NonPositiveValue("observation_energy_mev"))
+        );
+    }
+
+    #[test]
+    fn projects_grouped_coefficients_to_observation_log_bias() {
+        let design = build_grouped_energy_bias_design(
+            &[0.1, 10.0],
+            &[vec![0], vec![1]],
+            2,
+            0.1,
+            10.0,
+        ).expect("design");
+        let mut coefficients = vec![0.0; 320];
+        coefficients[0] = 0.5;
+        coefficients[160 + 159] = -0.25;
+        let bias = project_grouped_energy_bias_field(&design, &coefficients)
+            .expect("projected bias");
+        assert!((bias[0] - 0.5).abs() < 1.0e-12);
+        assert!((bias[1] + 0.25).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn empty_feature_membership_projects_to_zero_bias() {
+        let design = build_grouped_energy_bias_design(
+            &[0.1, 1.0],
+            &[vec![], vec![]],
+            1,
+            0.1,
+            10.0,
+        ).expect("design");
+        let bias = project_grouped_energy_bias_field(
+            &design,
+            &vec![1.0; ENERGY_BIAS_BASIS_COLUMNS_PER_GROUP],
+        ).expect("zero projection");
+        assert_eq!(bias, vec![0.0, 0.0]);
+    }
+
+    #[test]
+    fn projection_rejects_wrong_coefficient_size_and_nonfinite_values() {
+        let design = build_grouped_energy_bias_design(
+            &[1.0],
+            &[vec![0]],
+            1,
+            0.1,
+            10.0,
+        ).expect("design");
+        assert_eq!(
+            project_grouped_energy_bias_field(&design, &[0.0]),
+            Err(ModelError::MismatchedDataLengths)
+        );
+        let mut coefficients = vec![0.0; ENERGY_BIAS_BASIS_COLUMNS_PER_GROUP];
+        coefficients[0] = f64::NAN;
+        assert_eq!(
+            project_grouped_energy_bias_field(&design, &coefficients),
+            Err(ModelError::NonFiniteValue("energy_bias_coefficients"))
         );
     }
 }
