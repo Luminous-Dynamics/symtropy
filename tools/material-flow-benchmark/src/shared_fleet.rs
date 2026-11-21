@@ -846,7 +846,7 @@ fn upper_tail_cvar90(scenario_costs: &[(u128, u16)]) -> Result<u128, String> {
         return Err("CVaR requires at least one scenario".into());
     }
     let mut ordered = scenario_costs.to_vec();
-    ordered.sort_by(|left, right| right.0.cmp(&left.0));
+    ordered.sort_by_key(|scenario| std::cmp::Reverse(scenario.0));
     let mut remaining = SHARED_CVAR_TAIL_PROBABILITY_BPS;
     let mut weighted_tail_cost = 0_u128;
     for (cost, probability_bps) in ordered {
@@ -1756,7 +1756,7 @@ mod tests {
         assert_eq!(metrics.repositioning_events, 0);
         assert_eq!(metrics.hard_gate_blocked_actions, 1);
         assert_eq!(metrics.idle_periods, 1);
-        assert_eq!(metrics.total_cost, 17 + 2 * 5 + 2 * 100 + 1 * 10 + 1 * 120);
+        assert_eq!(metrics.total_cost, 357);
     }
 
     #[test]
