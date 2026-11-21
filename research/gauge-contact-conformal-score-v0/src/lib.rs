@@ -10,7 +10,8 @@
 
 use loco_episode_conformal::{
     ApplicationDecision, ApplicationIdentity, ApplicationMismatch, CalibrationBlock,
-    CalibrationReceipt, ConformalThreshold, EpisodeOutcome, EpisodeRecord, check_application,
+    CalibrationDataset, CalibrationReceipt, ConformalThreshold, EpisodeOutcome, EpisodeRecord,
+    calibrate, check_application,
 };
 use std::collections::BTreeSet;
 use std::error::Error;
@@ -580,6 +581,27 @@ pub fn bind_pose_calibration_receipt(
         || conformal.score_definition_digest != first_identity.score_definition_digest
         || conformal.calibration_split_digest != first_identity.calibration_split_digest
     {
+        return Err(PoseScoreError::CalibrationBlockReceiptMismatch);
+    }
+
+    let replayed = calibrate(&CalibrationDataset {
+        model_digest: first_identity.model_digest.clone(),
+        target_digest: first_identity.target_digest.clone(),
+        domain_digest: first_identity.domain_digest.clone(),
+        score_definition_digest: first_identity.score_definition_digest.clone(),
+        calibration_split_digest: first_identity.calibration_split_digest.clone(),
+        alpha_ppm: conformal.alpha_ppm,
+        blocks: blocks
+            .iter()
+            .map(|block| block.calibration_block.clone())
+            .collect(),
+        // #4147 already checked fit/test leakage when the original receipt
+        // was produced. The split digest binds that frozen manifest; replay
+        // here checks the rank/threshold/receipt against the source blocks.
+        forbidden_episode_ids: Vec::new(),
+    })
+    .map_err(|_| PoseScoreError::CalibrationBlockReceiptMismatch)?;
+    if replayed != conformal {
         return Err(PoseScoreError::CalibrationBlockReceiptMismatch);
     }
 
