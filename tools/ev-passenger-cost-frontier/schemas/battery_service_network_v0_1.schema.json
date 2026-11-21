@@ -152,14 +152,12 @@
         "pack_id",
         "configuration_id",
         "state",
-        "identity_verified",
-        "custody_resolved",
-        "post_test_freshness",
-        "post_test_passed",
-        "post_test_evidence_reference",
         "usable_energy",
         "peak_power",
-        "thermal"
+        "thermal",
+        "identity_verification",
+        "custody_resolution",
+        "post_test"
       ],
       "properties": {
         "pack_id": {
@@ -173,30 +171,6 @@
         "state": {
           "$ref": "#/$defs/packState"
         },
-        "identity_verified": {
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "custody_resolved": {
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "post_test_freshness": {
-          "$ref": "#/$defs/freshness"
-        },
-        "post_test_passed": {
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "post_test_evidence_reference": {
-          "type": "string"
-        },
         "usable_energy": {
           "$ref": "#/$defs/metric"
         },
@@ -205,6 +179,15 @@
         },
         "thermal": {
           "$ref": "#/$defs/thermal"
+        },
+        "identity_verification": {
+          "$ref": "#/$defs/booleanEvidence"
+        },
+        "custody_resolution": {
+          "$ref": "#/$defs/booleanEvidence"
+        },
+        "post_test": {
+          "$ref": "#/$defs/booleanEvidence"
         }
       }
     },
@@ -241,6 +224,33 @@
           "type": "integer",
           "minimum": -100,
           "maximum": 250
+        }
+      }
+    },
+    "booleanEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "freshness",
+        "evidence_class",
+        "evidence_reference",
+        "value"
+      ],
+      "properties": {
+        "freshness": {
+          "$ref": "#/$defs/freshness"
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidenceClass"
+        },
+        "evidence_reference": {
+          "type": "string"
+        },
+        "value": {
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       }
     }
