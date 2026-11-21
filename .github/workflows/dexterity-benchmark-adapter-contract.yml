@@ -53,21 +53,31 @@ jobs:
               assert item["coverage"]["completed_episode_count"] <= item["coverage"]["expected_episode_count"]
               assert item["coverage"]["failed_episode_count"] <= item["coverage"]["completed_episode_count"]
 
-          # One-reset complete sequence must never silently reset between stages.
+          def must_reject(name, record):
+              errors = list(validator.iter_errors(record))
+              if not errors:
+                  raise SystemExit(f"negative control unexpectedly passed: {name}")
+
+          # A one-reset DexArena sequence cannot insert a reset between stages.
           bad = copy.deepcopy(fixtures[0])
           bad["outcomes"][0]["inter_stage_reset_count"] = 1
-          assert bad["outcomes"][0]["inter_stage_reset_count"] != 0
+          must_reject("dexarena-inter-stage-reset", bad)
 
-          # A not-attempted skill cannot be a native success.
+          # A not-attempted stage cannot claim native success.
           bad = copy.deepcopy(fixtures[1])
           bad["outcomes"][0]["outcome_status"] = "not_attempted"
           bad["outcomes"][0]["native_success"] = True
-          assert bad["outcomes"][0]["outcome_status"] == "not_attempted" and bad["outcomes"][0]["native_success"]
+          must_reject("not-attempted-native-success", bad)
 
-          # A Bench2Dex manifest must preserve all native metric families.
+          # Bench2Dex native metric families are all required.
           bad = copy.deepcopy(fixtures[1])
           bad["native_metrics"] = [m for m in bad["native_metrics"] if m["metric_name"] != "LSCR"]
-          assert not any(m["metric_name"] == "LSCR" for m in bad["native_metrics"])
+          must_reject("missing-lscr", bad)
 
-          print(f"validated {len(fixtures)} synthetic suite manifests and reset/outcome/native-metric guards")
+          # An inherited handoff must bind its predecessor terminal state.
+          bad = copy.deepcopy(fixtures[0])
+          bad["outcomes"][0]["evaluation_mode"] = "inherited_handoff"
+          must_reject("handoff-without-predecessor", bad)
+
+          print(f"validated {len(fixtures)} synthetic suite manifests and 4 semantic negative controls")
           PY
