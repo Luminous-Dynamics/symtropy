@@ -28,20 +28,17 @@
         "additionalProperties": false,
         "required": [
           "case_id",
-          "frozen_before_execution",
           "cost_budget",
           "cycle_count_threshold",
           "obligations",
           "runs",
-          "expected"
+          "expected",
+          "preregistration_ref"
         ],
         "properties": {
           "case_id": {
             "type": "string",
             "minLength": 1
-          },
-          "frozen_before_execution": {
-            "type": "boolean"
           },
           "cost_budget": {
             "type": "integer",
@@ -68,7 +65,7 @@
                 "evidence_key",
                 "minimum_independent_groups",
                 "not_applicable_reason",
-                "not_applicable_approved"
+                "not_applicable_review_ref"
               ],
               "properties": {
                 "id": {
@@ -118,8 +115,11 @@
                     "null"
                   ]
                 },
-                "not_applicable_approved": {
-                  "type": "boolean"
+                "not_applicable_review_ref": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 }
               }
             }
@@ -292,6 +292,12 @@
                 "minimum": 0
               }
             }
+          },
+          "preregistration_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       }
