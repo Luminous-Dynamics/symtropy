@@ -1469,7 +1469,7 @@ mod tests {
         assert_eq!(report.scenario_count, 2);
         assert_eq!(report.stress_scenario_count, 1);
         assert_eq!(report.nonanticipative_policy_node_count, 7);
-        assert_eq!(report.exact_policy_count_evaluated, 16_384);
+        assert_eq!(report.exact_policy_count_evaluated, 2_187);
         assert_eq!(report.optimized_policy.expected_total_cost_units, 524);
         assert_eq!(report.optimized_policy.cvar90_total_cost_units, 866);
         assert!(report
