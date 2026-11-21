@@ -1,0 +1,71 @@
+{
+  "schema_version": "0.1.0",
+  "fixture_id": "karahadian-2026-screening-fit-parameterization-audit-v0",
+  "provenance_kind": "published_method_transcription",
+  "source": {
+    "article_doi": "10.1038/s41467-026-74421-1",
+    "article_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13500673/",
+    "methods_locator": "Methods, equations 12–18, lines 312–334 of PMC full text"
+  },
+  "variants": [
+    {
+      "id": "eq13_two_environment_mixture",
+      "formula": "A_s * E_scr(E,U_e,s) + (1-A_s) * E_scr(E,U_e,b)",
+      "fixed_parameters": [
+        "U_e,b"
+      ],
+      "free_parameters": [
+        "A_s",
+        "U_e,s"
+      ],
+      "role": "source equation 13"
+    },
+    {
+      "id": "eq16_literal_printed_sigmoid",
+      "formula": "U_e,b + (U_e,s-U_e,b)/(1+exp(-(E-E0)/Delta))",
+      "fixed_parameters": [
+        "U_e,b",
+        "Delta=0.5 keV"
+      ],
+      "free_parameters": [
+        "E0",
+        "U_e,s"
+      ],
+      "low_energy_asymptote": "U_e,b",
+      "high_energy_asymptote": "U_e,s",
+      "role": "source equation 16 as printed"
+    },
+    {
+      "id": "eq16_prose_direction_sigmoid",
+      "formula": "U_e,b + (U_e,s-U_e,b)/(1+exp(+(E-E0)/Delta))",
+      "fixed_parameters": [
+        "U_e,b",
+        "Delta=0.5 keV"
+      ],
+      "free_parameters": [
+        "E0",
+        "U_e,s"
+      ],
+      "low_energy_asymptote": "U_e,s",
+      "high_energy_asymptote": "U_e,b",
+      "role": "explicit interpretation matching adjacent prose and Fig. 3c; not source-verified fit"
+    }
+  ],
+  "equation17_as_printed": {
+    "theta": [
+      "A_s",
+      "E0",
+      "U_e,s"
+    ],
+    "prediction_notation": "E_env(E_i;theta)",
+    "stated_free_parameter_count_after_fixing_Ue_b": 2,
+    "ambiguity": "Three fit parameters are listed, one parameter belongs to Eq. 13 but not Eq. 16; objective uses E_env notation despite the preceding instruction to substitute Eq. 16 into Eq. 12."
+  },
+  "status": {
+    "source_text_verified": true,
+    "supplementary_table_2_inspected": false,
+    "archived_fit_code_inspected": false,
+    "original_fit_variant_resolved": false,
+    "claim": "Reproducibility ambiguity; not evidence that experimental observations are invalid."
+  }
+}
