@@ -67,34 +67,89 @@ impl Display for FidelityError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::EmptySimulatorCommit => write!(formatter, "simulator commit must not be empty"),
-            Self::InvalidSimulatorCommit => write!(formatter, "simulator commit must be a 40-character lowercase hex SHA"),
-            Self::EmptySimulatorConfigurationDigest => write!(formatter, "simulator configuration digest must not be empty"),
-            Self::InvalidSimulatorConfigurationDigest => write!(formatter, "simulator configuration digest must be a 64-character lowercase hex SHA-256"),
+            Self::InvalidSimulatorCommit => write!(
+                formatter,
+                "simulator commit must be a 40-character lowercase hex SHA"
+            ),
+            Self::EmptySimulatorConfigurationDigest => write!(
+                formatter,
+                "simulator configuration digest must not be empty"
+            ),
+            Self::InvalidSimulatorConfigurationDigest => write!(
+                formatter,
+                "simulator configuration digest must be a 64-character lowercase hex SHA-256"
+            ),
             Self::EmptyRobotArticleId => write!(formatter, "robot/article ID must not be empty"),
             Self::EmptyAssetRevision => write!(formatter, "asset revision must not be empty"),
-            Self::EmptyCommandTraceDigest => write!(formatter, "command-trace digest must not be empty"),
-            Self::InvalidCommandTraceDigest => write!(formatter, "command-trace digest must be a 64-character lowercase hex SHA-256"),
-            Self::EmptyCalibrationDigest => write!(formatter, "sensor-calibration digest must not be empty"),
-            Self::InvalidCalibrationDigest => write!(formatter, "sensor-calibration digest must be a 64-character lowercase hex SHA-256"),
+            Self::EmptyCommandTraceDigest => {
+                write!(formatter, "command-trace digest must not be empty")
+            }
+            Self::InvalidCommandTraceDigest => write!(
+                formatter,
+                "command-trace digest must be a 64-character lowercase hex SHA-256"
+            ),
+            Self::EmptyCalibrationDigest => {
+                write!(formatter, "sensor-calibration digest must not be empty")
+            }
+            Self::InvalidCalibrationDigest => write!(
+                formatter,
+                "sensor-calibration digest must be a 64-character lowercase hex SHA-256"
+            ),
             Self::EmptyRecordingId => write!(formatter, "recording ID must not be empty"),
-            Self::DuplicateRecordingId => write!(formatter, "recording IDs must be unique within each split"),
-            Self::RecordingSplitLeakage => write!(formatter, "a physical recording appears in more than one split"),
-            Self::InsufficientBlindHoldoutTrials => write!(formatter, "at least ten independent blind physical recordings are required"),
+            Self::DuplicateRecordingId => {
+                write!(formatter, "recording IDs must be unique within each split")
+            }
+            Self::RecordingSplitLeakage => write!(
+                formatter,
+                "a physical recording appears in more than one split"
+            ),
+            Self::InsufficientBlindHoldoutTrials => write!(
+                formatter,
+                "at least ten independent blind physical recordings are required"
+            ),
             Self::EmptyTrialId => write!(formatter, "trial ID must not be empty"),
             Self::EmptyTaskId => write!(formatter, "task ID must not be empty"),
-            Self::InsufficientBlindTaskClusters => write!(formatter, "at least ten independent task clusters are required"),
+            Self::InsufficientBlindTaskClusters => write!(
+                formatter,
+                "at least ten independent task clusters are required"
+            ),
             Self::DuplicateTrialId => write!(formatter, "trial IDs must be unique"),
-            Self::EmptyTraceSet => write!(formatter, "each blind trial must contain at least one measured signal series"),
-            Self::DuplicateSignalSeries => write!(formatter, "signal series IDs must be unique within a trial"),
-            Self::InconsistentSignalSeries => write!(formatter, "all blind trials must contain the same declared signal series"),
+            Self::EmptyTraceSet => write!(
+                formatter,
+                "each blind trial must contain at least one measured signal series"
+            ),
+            Self::DuplicateSignalSeries => {
+                write!(formatter, "signal series IDs must be unique within a trial")
+            }
+            Self::InconsistentSignalSeries => write!(
+                formatter,
+                "all blind trials must contain the same declared signal series"
+            ),
             Self::EmptySeriesId => write!(formatter, "signal series ID must not be empty"),
-            Self::InsufficientSamples => write!(formatter, "each signal series requires at least two paired samples"),
-            Self::NonMonotonicTimestamp => write!(formatter, "timestamps must be strictly increasing"),
-            Self::TimestampMismatch => write!(formatter, "real and simulated samples must share exact timestamps"),
-            Self::NonFiniteSignal => write!(formatter, "all real and simulated signal values must be finite"),
-            Self::InvalidNormalizationScale => write!(formatter, "normalization scale must be finite and positive"),
-            Self::InvalidTaskStageScore => write!(formatter, "task-stage scores must be finite and in [0, 1]"),
-            Self::InvalidBootstrapReplicateCount => write!(formatter, "at least 1000 bootstrap replicates are required"),
+            Self::InsufficientSamples => write!(
+                formatter,
+                "each signal series requires at least two paired samples"
+            ),
+            Self::NonMonotonicTimestamp => {
+                write!(formatter, "timestamps must be strictly increasing")
+            }
+            Self::TimestampMismatch => write!(
+                formatter,
+                "real and simulated samples must share exact timestamps"
+            ),
+            Self::NonFiniteSignal => write!(
+                formatter,
+                "all real and simulated signal values must be finite"
+            ),
+            Self::InvalidNormalizationScale => {
+                write!(formatter, "normalization scale must be finite and positive")
+            }
+            Self::InvalidTaskStageScore => {
+                write!(formatter, "task-stage scores must be finite and in [0, 1]")
+            }
+            Self::InvalidBootstrapReplicateCount => {
+                write!(formatter, "at least 1000 bootstrap replicates are required")
+            }
         }
     }
 }
@@ -203,9 +258,11 @@ impl TraceSeries {
                 return Err(FidelityError::NonMonotonicTimestamp);
             }
         }
-        if self.samples.iter().any(|sample| {
-            !sample.real_value.is_finite() || !sample.simulated_value.is_finite()
-        }) {
+        if self
+            .samples
+            .iter()
+            .any(|sample| !sample.real_value.is_finite() || !sample.simulated_value.is_finite())
+        {
             return Err(FidelityError::NonFiniteSignal);
         }
         Ok(())
@@ -387,8 +444,7 @@ pub fn score_trace(trace: &TraceSeries) -> Result<TraceMetrics, FidelityError> {
         signed_bias,
         p95_absolute_error,
         maximum_absolute_error,
-        normalized_root_mean_square_error: root_mean_square_error
-            / trace.normalization_scale,
+        normalized_root_mean_square_error: root_mean_square_error / trace.normalization_scale,
     })
 }
 
@@ -521,15 +577,11 @@ pub fn score_evaluation(
             mean_task_bias: mean(task_bias.iter().copied()),
             mean_task_p95_absolute_error: mean(task_p95.iter().copied()),
             worst_trial_rmse,
-            mean_task_rmse_95: bootstrap_mean_interval(
-                &task_rmse,
-                bootstrap,
-            ),
+            mean_task_rmse_95: bootstrap_mean_interval(&task_rmse, bootstrap),
         });
     }
 
-    let task_agreement =
-        score_task_agreement(&manifest.blind_holdout_trials, bootstrap);
+    let task_agreement = score_task_agreement(&manifest.blind_holdout_trials, bootstrap);
     Ok(FidelityReport {
         protocol: manifest.protocol.clone(),
         independent_blind_trials: manifest.blind_holdout_trials.len(),
@@ -538,10 +590,7 @@ pub fn score_evaluation(
     })
 }
 
-fn score_task_agreement(
-    trials: &[BlindHoldoutTrial],
-    bootstrap: BootstrapConfig,
-) -> TaskAgreement {
+fn score_task_agreement(trials: &[BlindHoldoutTrial], bootstrap: BootstrapConfig) -> TaskAgreement {
     let count = trials.len();
     let mut tasks: BTreeMap<String, Vec<&BlindHoldoutTrial>> = BTreeMap::new();
     for trial in trials {
@@ -550,7 +599,11 @@ fn score_task_agreement(
     let real: Vec<f64> = tasks
         .values()
         .map(|task_trials| {
-            mean(task_trials.iter().map(|trial| trial.task_outcome.real_stage_score))
+            mean(
+                task_trials
+                    .iter()
+                    .map(|trial| trial.task_outcome.real_stage_score),
+            )
         })
         .collect();
     let simulated: Vec<f64> = tasks
@@ -651,10 +704,7 @@ fn pearson_correlation(left: &[f64], right: &[f64]) -> Option<f64> {
     }
 }
 
-fn bootstrap_mean_interval(
-    values: &[f64],
-    config: BootstrapConfig,
-) -> ConfidenceInterval {
+fn bootstrap_mean_interval(values: &[f64], config: BootstrapConfig) -> ConfidenceInterval {
     let mut random = SplitMix64::new(config.seed);
     let mut bootstrap_means = Vec::with_capacity(config.replicates);
     for _ in 0..config.replicates {
@@ -745,12 +795,7 @@ mod tests {
                 task_id: format!("task-{index}"),
                 source_recording_id: format!("blind-recording-{index}"),
                 traces: vec![
-                    trace(
-                        SignalKind::JointPositionRad,
-                        "left_j1",
-                        &real,
-                        &simulated,
-                    ),
+                    trace(SignalKind::JointPositionRad, "left_j1", &real, &simulated),
                     trace(
                         SignalKind::CurrentDerivedTorqueNm,
                         "left_j1",
@@ -857,22 +902,15 @@ mod tests {
     #[test]
     fn training_and_calibration_recordings_cannot_leak_into_holdout() {
         let mut input = manifest();
-        input.blind_holdout_trials[0].source_recording_id =
-            input.training_recording_ids[0].clone();
-        assert_eq!(
-            input.validate(),
-            Err(FidelityError::RecordingSplitLeakage)
-        );
+        input.blind_holdout_trials[0].source_recording_id = input.training_recording_ids[0].clone();
+        assert_eq!(input.validate(), Err(FidelityError::RecordingSplitLeakage));
     }
 
     #[test]
     fn simulator_configuration_is_frozen_across_evaluation_manifest() {
         let mut input = manifest();
         input.protocol.simulator_commit = "not-a-sha".to_owned();
-        assert_eq!(
-            input.validate(),
-            Err(FidelityError::InvalidSimulatorCommit)
-        );
+        assert_eq!(input.validate(), Err(FidelityError::InvalidSimulatorCommit));
     }
 
     #[test]
@@ -890,16 +928,15 @@ mod tests {
         let mut input = manifest();
         input.blind_holdout_trials[1].source_recording_id =
             input.blind_holdout_trials[0].source_recording_id.clone();
-        assert_eq!(
-            input.validate(),
-            Err(FidelityError::RecordingSplitLeakage)
-        );
+        assert_eq!(input.validate(), Err(FidelityError::RecordingSplitLeakage));
     }
 
     #[test]
     fn requires_ten_independent_blind_recordings() {
         let mut input = manifest();
-        input.blind_holdout_trials.truncate(MIN_BLIND_HOLDOUT_TRIALS - 1);
+        input
+            .blind_holdout_trials
+            .truncate(MIN_BLIND_HOLDOUT_TRIALS - 1);
         assert_eq!(
             input.validate(),
             Err(FidelityError::InsufficientBlindHoldoutTrials)
