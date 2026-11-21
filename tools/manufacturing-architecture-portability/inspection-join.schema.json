@@ -58,7 +58,16 @@
     "derived_value",
     "derived_unit",
     "unit_transform_revision",
-    "qif_source_locator"
+    "qif_source_locator",
+    "cycle_clock_uncertainty_ns",
+    "association_cycle_id",
+    "association_qif_result_id",
+    "association_cycle_source_document_sha256",
+    "association_mtconnect_document_sha256",
+    "association_qif_document_sha256",
+    "association_part_id",
+    "association_lot_id",
+    "association_operation_id"
   ],
   "properties": {
     "projection_schema_version": {
@@ -271,6 +280,42 @@
       "minLength": 1
     },
     "qif_source_locator": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cycle_clock_uncertainty_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "association_cycle_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "association_qif_result_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "association_cycle_source_document_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "association_mtconnect_document_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "association_qif_document_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "association_part_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "association_lot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "association_operation_id": {
       "type": "string",
       "minLength": 1
     }
