@@ -1987,7 +1987,7 @@ mod tests {
     #[test]
     fn planned_forecast_never_qualifies_as_delivered_service() {
         let case = case();
-        let mut receipt = receipt(&case);
+        let receipt = receipt(&case);
         let mut trajectory = fully_served_trajectory(&case, &receipt);
         trajectory.stream_kind = ServiceStreamKind::PlannedForecast;
         trajectory.artifact_uri = "synthetic://forecast".to_string();
