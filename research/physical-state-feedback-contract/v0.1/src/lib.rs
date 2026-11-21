@@ -195,14 +195,16 @@ fn validate_physical_inertia3(matrix: &[[f64; 3]; 3], path: &str) -> Result<(), 
         diagonalized[p][q] = 0.0;
         diagonalized[q][p] = 0.0;
 
-        for k in 0..3 {
+        for (k, row) in diagonalized.iter().enumerate() {
             if k != p && k != q {
-                let kp = diagonalized[k][p];
-                let kq = diagonalized[k][q];
-                diagonalized[k][p] = cosine * kp - sine * kq;
-                diagonalized[p][k] = diagonalized[k][p];
-                diagonalized[k][q] = sine * kp + cosine * kq;
-                diagonalized[q][k] = diagonalized[k][q];
+                let kp = row[p];
+                let kq = row[q];
+                let updated_kp = cosine * kp - sine * kq;
+                let updated_kq = sine * kp + cosine * kq;
+                diagonalized[k][p] = updated_kp;
+                diagonalized[p][k] = updated_kp;
+                diagonalized[k][q] = updated_kq;
+                diagonalized[q][k] = updated_kq;
             }
         }
     }
@@ -814,13 +816,13 @@ impl StateSnapshot {
             }
         }
         for (index, entity) in self.entities.iter().enumerate() {
-            if let Some(parent) = &entity.parent_entity_id {
-                if !entity_ids.contains(parent.as_str()) {
-                    return Err(ValidationError::new(
-                        format!("entities[{index}].parent_entity_id"),
-                        "parent entity is not present in this snapshot",
-                    ));
-                }
+            if let Some(parent) = &entity.parent_entity_id
+                && !entity_ids.contains(parent.as_str())
+            {
+                return Err(ValidationError::new(
+                    format!("entities[{index}].parent_entity_id"),
+                    "parent entity is not present in this snapshot",
+                ));
             }
             for partner in &entity.contact.partner_entity_ids {
                 if !entity_ids.contains(partner.as_str()) {
@@ -962,11 +964,6 @@ impl StateQuery {
                 "returned snapshot does not match the requested immutable snapshot",
             ));
         }
-        let requested = self
-            .entity_ids
-            .iter()
-            .map(String::as_str)
-            .collect::<BTreeSet<_>>();
         let entity_by_id = result
             .entities
             .iter()
