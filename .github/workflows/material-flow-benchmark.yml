@@ -39,6 +39,10 @@ jobs:
           jq empty tools/material-flow-benchmark/schemas/shared_aircraft_repositioning_v0_1.schema.json
           jq empty tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft.json
           jq empty tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft-tail-risk.json
+          jq empty tools/material-flow-benchmark/schemas/published_truck_drone_summary_v0_1.schema.json
+          jq empty tools/material-flow-benchmark/fixtures/cicek_2026_shared_fleet_published_summary_v0_1.json
+          jq empty tools/material-flow-benchmark/schemas/published_truck_drone_summary_v0_1.schema.json
+          jq empty tools/material-flow-benchmark/fixtures/cicek_2026_shared_fleet_published_summary_v0_1.json
       - name: Clippy
         run: cargo clippy --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --all-targets -- -D warnings
       - name: Tests
@@ -101,6 +105,44 @@ jobs:
             and .dispatch_commands_emitted == false
           ' mfb-l1-evidence/shared-aircraft-tail-risk-report.json
           cat mfb-l1-evidence/shared-aircraft-tail-risk-report.json
+      - name: Verify Cicek 2026 published shared-fleet summary (not a paper rerun)
+        run: |
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-verify-published-summary -- tools/material-flow-benchmark/fixtures/cicek_2026_shared_fleet_published_summary_v0_1.json > mfb-l1-evidence/cicek-2026-published-summary-report.json
+          jq -e '
+            .summary_arithmetic_consistent == true
+            and .computed_makespan_reduction_tenths_percent == 245
+            and .computed_truck_energy_reduction_tenths_percent == 396
+            and .computed_total_energy_reduction_tenths_percent == 162
+            and .computed_distance_increase_tenths_percent == 1652
+            and .collaborative_energy_balance_wh == 43017
+            and .delivery_count_reconciles == true
+            and .narrative_table_truck_energy_difference_wh == 1
+            and .published_battery_feasibility_enforced == false
+            and .battery_feasibility_claim_permitted == false
+            and .paper_milp_reexecuted == false
+            and .raw_dataset_loaded == false
+            and .commercial_use_permitted_by_dataset_license == false
+          ' mfb-l1-evidence/cicek-2026-published-summary-report.json
+          cat mfb-l1-evidence/cicek-2026-published-summary-report.json
+      - name: Verify Cicek 2026 published shared-fleet summary (not a paper rerun)
+        run: |
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-verify-published-summary -- tools/material-flow-benchmark/fixtures/cicek_2026_shared_fleet_published_summary_v0_1.json > mfb-l1-evidence/cicek-2026-published-summary-report.json
+          jq -e '
+            .summary_arithmetic_consistent == true
+            and .computed_makespan_reduction_tenths_percent == 245
+            and .computed_truck_energy_reduction_tenths_percent == 396
+            and .computed_total_energy_reduction_tenths_percent == 162
+            and .computed_distance_increase_tenths_percent == 1652
+            and .collaborative_energy_balance_wh == 43017
+            and .delivery_count_reconciles == true
+            and .narrative_table_truck_energy_difference_wh == 1
+            and .published_battery_feasibility_enforced == false
+            and .battery_feasibility_claim_permitted == false
+            and .paper_milp_reexecuted == false
+            and .raw_dataset_loaded == false
+            and .commercial_use_permitted_by_dataset_license == false
+          ' mfb-l1-evidence/cicek-2026-published-summary-report.json
+          cat mfb-l1-evidence/cicek-2026-published-summary-report.json
       - name: Validate synthetic 3D cargo-bay loading
         run: |
           mkdir -p mfb-l1-evidence
@@ -288,6 +330,28 @@ jobs:
             sha256sum tools/material-flow-benchmark/src/shared_fleet.rs
             sha256sum tools/material-flow-benchmark/src/bin/mfb-evaluate-shared-fleet.rs
             sha256sum mfb-l1-evidence/shared-aircraft-report.json
+            echo
+            echo "[cicek_published_summary_schema_digest]"
+            sha256sum tools/material-flow-benchmark/schemas/published_truck_drone_summary_v0_1.schema.json
+            echo
+            echo "[cicek_published_summary_fixture_digest]"
+            sha256sum tools/material-flow-benchmark/fixtures/cicek_2026_shared_fleet_published_summary_v0_1.json
+            echo
+            echo "[cicek_published_summary_source_digest]"
+            sha256sum tools/material-flow-benchmark/src/published_summary.rs
+            sha256sum tools/material-flow-benchmark/src/bin/mfb-verify-published-summary.rs
+            sha256sum mfb-l1-evidence/cicek-2026-published-summary-report.json
+            echo
+            echo "[cicek_published_summary_schema_digest]"
+            sha256sum tools/material-flow-benchmark/schemas/published_truck_drone_summary_v0_1.schema.json
+            echo
+            echo "[cicek_published_summary_fixture_digest]"
+            sha256sum tools/material-flow-benchmark/fixtures/cicek_2026_shared_fleet_published_summary_v0_1.json
+            echo
+            echo "[cicek_published_summary_source_digest]"
+            sha256sum tools/material-flow-benchmark/src/published_summary.rs
+            sha256sum tools/material-flow-benchmark/src/bin/mfb-verify-published-summary.rs
+            sha256sum mfb-l1-evidence/cicek-2026-published-summary-report.json
             echo
             echo "[dependency_lock_digest]"
             sha256sum tools/material-flow-benchmark/Cargo.lock
