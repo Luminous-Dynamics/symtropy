@@ -36,6 +36,8 @@ pub struct RawScaleHorseshoePosterior {
     pub log_prior: f64,
     pub log_posterior: f64,
     pub coefficient_gradient: Vec<f64>,
+    /// Derivative of the log likelihood with respect to each observation's log mean.
+    pub log_mean_gradient: Vec<f64>,
     pub log_local_scale_gradient: Vec<f64>,
     pub log_global_scale_gradient: f64,
     pub biased_prediction: Vec<f64>,
@@ -205,11 +207,16 @@ pub fn raw_scale_horseshoe_log_posterior(
             + logdet
             + quadratic.max(0.0));
 
+    let log_mean_gradient: Vec<f64> = biased_prediction
+        .iter()
+        .zip(weighted_residual.iter())
+        .map(|(prediction, residual)| prediction * residual)
+        .collect();
     let mut coefficient_gradient = vec![0.0; coefficient_count];
     for feature in 0..coefficient_count {
         for row in 0..observation_count {
             coefficient_gradient[feature] +=
-                design_matrix[row][feature] * biased_prediction[row] * weighted_residual[row];
+                design_matrix[row][feature] * log_mean_gradient[row];
         }
     }
 
@@ -262,6 +269,7 @@ pub fn raw_scale_horseshoe_log_posterior(
                 log_prior,
                 log_posterior: log_likelihood + log_prior,
                 coefficient_gradient,
+                log_mean_gradient,
                 log_local_scale_gradient,
                 log_global_scale_gradient: global_gradient,
                 biased_prediction,
@@ -283,6 +291,7 @@ pub fn raw_scale_horseshoe_log_posterior(
                 log_prior,
                 log_posterior: log_likelihood + log_prior,
                 coefficient_gradient,
+                log_mean_gradient,
                 log_local_scale_gradient,
                 log_global_scale_gradient: global_gradient,
                 biased_prediction,
