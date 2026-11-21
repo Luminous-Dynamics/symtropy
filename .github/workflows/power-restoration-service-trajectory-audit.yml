@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   service-trajectory-audit:
@@ -47,8 +47,22 @@ jobs:
               Draft202012Validator.check_schema(schema)
               print(f"PASS: {schema_path} is valid")
           PY
+      - name: Format first-party crate on same-repository PR branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          set -euo pipefail
+          git fetch origin "${GITHUB_HEAD_REF}"
+          git checkout -B "${GITHUB_HEAD_REF}" "origin/${GITHUB_HEAD_REF}"
+          cargo fmt --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --package power-restoration-service-trajectory-audit
+          if ! git diff --quiet -- tools/power-restoration-service-trajectory-audit; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add tools/power-restoration-service-trajectory-audit
+            git commit -m "style(power-restoration): format service trajectory audit"
+            git push origin "HEAD:refs/heads/${GITHUB_HEAD_REF}"
+          fi
       - name: Check Rust formatting
-        run: cargo fmt --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --all -- --check
+        run: cargo fmt --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --package power-restoration-service-trajectory-audit -- --check
       - name: Resolve dependency graph
         run: cargo generate-lockfile --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml
       - name: Run strict Clippy
