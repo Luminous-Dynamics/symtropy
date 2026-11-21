@@ -49,9 +49,7 @@ impl Display for ModelDiscriminationError {
             Self::InvalidGeometry => {
                 "qualified geometry requires finite positive gravity, an admitted incline angle, and a non-zero evidence digest"
             }
-            Self::InvalidCoefficientBounds => {
-                "model coefficient bounds must be finite and ordered"
-            }
+            Self::InvalidCoefficientBounds => "model coefficient bounds must be finite and ordered",
         };
         formatter.write_str(message)
     }
