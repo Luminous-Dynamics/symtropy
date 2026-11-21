@@ -411,10 +411,17 @@
           "probe_id": "rev-008-control",
           "stage": "unrelated_control",
           "kind": "unrelated_control",
-          "query": "The non-revoked inventory item was birch-wren-219. What is that item?",
+          "query": "What separate non-revoked inventory entry remains available?",
           "after_tick": 802
         }
-      ]
+      ],
+      "unrelated_control": {
+        "observation_ref": "obs-rev-008-control",
+        "modality": "video",
+        "availability_tick": 100,
+        "source_content": "Non-revoked inventory entry: birch-wren-219.",
+        "source_dependency_group": "root-rev-008-control"
+      }
     }
   ]
 }
