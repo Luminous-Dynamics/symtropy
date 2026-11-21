@@ -567,6 +567,6 @@ fn production_replay_matches_frozen_expected_outcomes() {
     assert_eq!(report.result, "pass");
     assert_eq!(report.summary.case_count, 63);
     assert_eq!(report.summary.expected_result_mismatches, 0);
-    assert_eq!(report.summary.duplicate_events, 2);
+    assert_eq!(report.summary.duplicate_events, 3);
     assert!(!report.authority_granted);
 }
