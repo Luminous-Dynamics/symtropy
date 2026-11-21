@@ -573,6 +573,44 @@ mod tests {
     }
 
     #[test]
+    fn prompt_dissociation_weighted_yield_matches_component_weighting() {
+        let components = prompt_dissociation_beam_components(1.0, 0.85, 0.15)
+            .expect("valid ion-current fractions");
+        let weighted = prompt_dissociation_weighted_yield(
+            components,
+            GamowEnergyKev::new(986.0).expect("Gamow"),
+            TargetDensityPerCm3::new(5.0e22).expect("density"),
+            2048,
+            |_| 50.0,
+            |_| 1.0e8,
+            |_| 0.5,
+        )
+        .expect("weighted mixture");
+        let d_plus = homogeneous_thick_target_yield(
+            EnergyKev::new(0.5).expect("D+ Ecm"),
+            GamowEnergyKev::new(986.0).expect("Gamow"),
+            TargetDensityPerCm3::new(5.0e22).expect("density"),
+            2048,
+            |_| 50.0,
+            |_| 1.0e8,
+            |_| 0.5,
+        )
+        .expect("D+ component");
+        let d2_fragment = homogeneous_thick_target_yield(
+            EnergyKev::new(0.25).expect("D2+ fragment Ecm"),
+            GamowEnergyKev::new(986.0).expect("Gamow"),
+            TargetDensityPerCm3::new(5.0e22).expect("density"),
+            2048,
+            |_| 50.0,
+            |_| 1.0e8,
+            |_| 0.5,
+        )
+        .expect("D2+ component");
+        let expected = (0.85 / 1.15) * d_plus + (0.30 / 1.15) * d2_fragment;
+        assert!((weighted - expected).abs() / expected < 1.0e-12);
+    }
+
+    #[test]
     fn bare_reference_is_finite_and_positive() {
         let value = synthetic_yield(0.0, 4096).expect("valid synthetic reference");
         assert!(value.is_finite());
