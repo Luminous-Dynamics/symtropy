@@ -2639,18 +2639,16 @@ mod transformed_halfspace_tests {
         use crate::body::MassPropertyInvariantError;
         let mut world = PhysicsWorld::<3>::default();
         let valid = world.add_sphere(Point::origin(), 0.25, 1.0);
-        let mut invalid_body = RigidBody::dynamic_sphere(
-            BodyHandle(0),
-            Point::new([3.0, 0.0, 0.0]),
-            0.25,
-            2.0,
-        );
+        let mut invalid_body =
+            RigidBody::dynamic_sphere(BodyHandle(0), Point::new([3.0, 0.0, 0.0]), 0.25, 2.0);
         invalid_body.inv_mass *= 2.0;
         let invalid = world.add_body(invalid_body);
         let valid_before = world.body(valid).expect("valid body").position();
         let invalid_before = world.body(invalid).expect("invalid body").position();
 
-        let error = world.try_step(0.01).expect_err("stale inverse must fail closed");
+        let error = world
+            .try_step(0.01)
+            .expect_err("stale inverse must fail closed");
         assert_eq!(
             error,
             PhysicsWorldStepError::InvalidMassProperties {
@@ -2658,20 +2656,22 @@ mod transformed_halfspace_tests {
                 reason: MassPropertyInvariantError::InverseMassMismatch,
             }
         );
-        assert_eq!(world.body(valid).expect("valid body").position(), valid_before);
-        assert_eq!(world.body(invalid).expect("invalid body").position(), invalid_before);
+        assert_eq!(
+            world.body(valid).expect("valid body").position(),
+            valid_before
+        );
+        assert_eq!(
+            world.body(invalid).expect("invalid body").position(),
+            invalid_before
+        );
         assert_eq!(world.last_step_error(), Some(error));
     }
 
     #[test]
     fn checked_add_body_rejects_invalid_values_without_consuming_a_handle() {
         let mut world = PhysicsWorld::<3>::default();
-        let mut invalid_body = RigidBody::dynamic_sphere(
-            BodyHandle(99),
-            Point::origin(),
-            0.25,
-            1.0,
-        );
+        let mut invalid_body =
+            RigidBody::dynamic_sphere(BodyHandle(99), Point::origin(), 0.25, 1.0);
         invalid_body.inertia[0] = f64::NAN;
         assert_eq!(
             world.try_add_body(invalid_body),
@@ -2701,5 +2701,4 @@ mod transformed_halfspace_tests {
         );
         assert_eq!(world.body(handle).expect("body").position(), before);
     }
-
 }
