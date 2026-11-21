@@ -321,7 +321,12 @@ fn disposition_for_blockers(blockers: &[Blocker]) -> Disposition {
 fn evaluate_case(case: &Case) -> CaseResult {
     let mut blockers = Vec::new();
     if case.case_id.trim().is_empty() || case.root_claim_id.trim().is_empty() {
-        add_blocker(&mut blockers, "GRAPH_INVALID", None, "case and root IDs must be non-empty");
+        add_blocker(
+            &mut blockers,
+            "GRAPH_INVALID",
+            None,
+            "case and root IDs must be non-empty",
+        );
     }
     if case.scope.subject_id.trim().is_empty()
         || case.scope.configuration_id.trim().is_empty()
@@ -332,10 +337,20 @@ fn evaluate_case(case: &Case) -> CaseResult {
         || case.effective_cutoff < case.scope.valid_from
         || case.effective_cutoff > case.scope.valid_until
     {
-        add_blocker(&mut blockers, "SCOPE_MISMATCH", None, "invalid or out-of-window case scope");
+        add_blocker(
+            &mut blockers,
+            "SCOPE_MISMATCH",
+            None,
+            "invalid or out-of-window case scope",
+        );
     }
     if case.knowledge_cutoff < case.effective_cutoff {
-        add_blocker(&mut blockers, "INDETERMINATE", None, "knowledge cutoff precedes effective cutoff");
+        add_blocker(
+            &mut blockers,
+            "INDETERMINATE",
+            None,
+            "knowledge cutoff precedes effective cutoff",
+        );
     }
 
     let mut claims_by_id = BTreeMap::new();
@@ -427,9 +442,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
                 ClaimState::Contradicted => ("CONTRADICTED", "claim is contradicted"),
                 ClaimState::Indeterminate => ("INDETERMINATE", "claim state is indeterminate"),
                 ClaimState::OpenDefeater => ("OPEN_DEFEATER", "mandatory defeater remains open"),
-                ClaimState::Stale | ClaimState::Withdrawn | ClaimState::Unsupported => {
-                    ("UNSUPPORTED_OR_STALE", "claim is stale, withdrawn or unsupported")
-                }
+                ClaimState::Stale | ClaimState::Withdrawn | ClaimState::Unsupported => (
+                    "UNSUPPORTED_OR_STALE",
+                    "claim is stale, withdrawn or unsupported",
+                ),
                 ClaimState::Supported => unreachable!(),
             };
             if claim.mandatory {
@@ -451,12 +467,20 @@ fn evaluate_case(case: &Case) -> CaseResult {
             Some(evidence) => {
                 let class_matches = match claim.claim_type {
                     ClaimType::PhysicalTestObservation | ClaimType::MeasurementCalibration => {
-                        matches!(evidence.evidence_class, EvidenceClass::Physical | EvidenceClass::Bench)
+                        matches!(
+                            evidence.evidence_class,
+                            EvidenceClass::Physical | EvidenceClass::Bench
+                        )
                     }
                     ClaimType::EvidenceCustody => {
-                        matches!(evidence.evidence_class, EvidenceClass::Software | EvidenceClass::Authority)
+                        matches!(
+                            evidence.evidence_class,
+                            EvidenceClass::Software | EvidenceClass::Authority
+                        )
                     }
-                    ClaimType::ExternalAuthorityDecision => evidence.evidence_class == EvidenceClass::Authority,
+                    ClaimType::ExternalAuthorityDecision => {
+                        evidence.evidence_class == EvidenceClass::Authority
+                    },
                     _ => true,
                 };
                 if !class_matches {
@@ -600,8 +624,13 @@ fn evaluate_case(case: &Case) -> CaseResult {
             Relation::DerivedFrom => {
                 let incompatible = matches!(
                     (from.claim_type, to.claim_type),
-                    (ClaimType::MissionSuccessProbability, ClaimType::ConstantFailureIntensity)
-                        | (ClaimType::ConstantFailureIntensity, ClaimType::MissionSuccessProbability)
+                    (
+                        ClaimType::MissionSuccessProbability,
+                        ClaimType::ConstantFailureIntensity
+                    ) | (
+                        ClaimType::ConstantFailureIntensity,
+                        ClaimType::MissionSuccessProbability
+                    )
                 );
                 if incompatible {
                     add_blocker(
