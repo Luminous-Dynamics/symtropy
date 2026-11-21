@@ -465,7 +465,7 @@ pub struct MissionSupervisor {
     active_subgoal: Option<String>,
     used_action_ids: BTreeSet<String>,
     seen_events: BTreeMap<String, Digest>,
-    source_cursors: BTreeMap<String, (u64, u64, String, String)>,
+    source_cursors: BTreeMap<String, (u64, u64, String, String, String, String, Digest)>,
     decisions: Vec<Decision>,
     halted: bool,
 }
@@ -944,14 +944,25 @@ impl MissionSupervisor {
             return Err(SupervisorError::EventIdConflict);
         }
 
-        if let Some((last_sequence, last_timestamp, last_clock, last_epoch)) =
-            self.source_cursors.get(&envelope.source_id)
+        if let Some((
+            last_sequence,
+            last_timestamp,
+            last_source_clock,
+            last_source_epoch,
+            last_comparison_clock,
+            last_comparison_epoch,
+            last_normalization_commitment,
+        )) = self.source_cursors.get(&envelope.source_id)
         {
             if envelope.source_sequence <= *last_sequence {
                 return Err(SupervisorError::StaleSourceSequence);
             }
-            if envelope.time_qualification.comparison_clock_id != *last_clock
-                || envelope.time_qualification.comparison_boot_epoch_id != *last_epoch
+            let time = &envelope.time_qualification;
+            if time.source_clock_id != *last_source_clock
+                || time.source_boot_epoch_id != *last_source_epoch
+                || time.comparison_clock_id != *last_comparison_clock
+                || time.comparison_boot_epoch_id != *last_comparison_epoch
+                || time.normalization_commitment != *last_normalization_commitment
             {
                 return Err(SupervisorError::SourceTimeBasisMismatch);
             }
@@ -967,8 +978,11 @@ impl MissionSupervisor {
             (
                 envelope.source_sequence,
                 envelope.observed_at_ms,
+                envelope.time_qualification.source_clock_id.clone(),
+                envelope.time_qualification.source_boot_epoch_id.clone(),
                 envelope.time_qualification.comparison_clock_id.clone(),
                 envelope.time_qualification.comparison_boot_epoch_id.clone(),
+                envelope.time_qualification.normalization_commitment,
             ),
         );
         Ok(ReceiptDisposition::Applied)
@@ -1186,6 +1200,82 @@ mod tests {
                 attempt: ticket.attempt,
                 predicate_id: "object-in-gripper".to_owned(),
                 verdict: GoalVerdict::NotSatisfied,
+            }),
+            Err(SupervisorError::SourceTimeBasisMismatch)
+        );
+        assert_eq!(
+            supervisor.phase("pick"),
+            Ok(SubgoalPhase::ReconciliationRequired)
+        );
+    }
+
+
+    #[test]
+    fn source_time_mapping_commitment_cannot_change_between_receipts() {
+        let mut supervisor = MissionSupervisor::new(plan());
+        let ticket = supervisor
+            .dispatch_action("pick", "pick-action-1")
+            .expect("dispatch");
+        supervisor
+            .report_execution(&ticket, ExecutionDisposition::Acknowledged)
+            .expect("ack");
+        let first = envelope(
+            "mapping-first",
+            "sensor-mapping",
+            1,
+            41,
+            9_900,
+            ObserverRole::IndependentSensor,
+        );
+        supervisor
+            .observe_goal(GoalEvidence {
+                envelope: first,
+                subgoal_id: "pick".to_owned(),
+                action_id: ticket.action_id.clone(),
+                attempt: ticket.attempt,
+                predicate_id: "object-in-gripper".to_owned(),
+                verdict: GoalVerdict::Ambiguous,
+            })
+            .expect("first receipt");
+
+        let mut changed_mapping = envelope(
+            "mapping-second",
+            "sensor-mapping",
+            2,
+            42,
+            9_900,
+            ObserverRole::IndependentSensor,
+        );
+        changed_mapping.time_qualification.normalization_commitment = digest(99);
+        assert_eq!(
+            supervisor.observe_goal(GoalEvidence {
+                envelope: changed_mapping,
+                subgoal_id: "pick".to_owned(),
+                action_id: ticket.action_id.clone(),
+                attempt: ticket.attempt,
+                predicate_id: "object-in-gripper".to_owned(),
+                verdict: GoalVerdict::Ambiguous,
+            }),
+            Err(SupervisorError::SourceTimeBasisMismatch)
+        );
+
+        let mut changed_source_clock = envelope(
+            "source-clock-second",
+            "sensor-mapping",
+            2,
+            43,
+            9_900,
+            ObserverRole::IndependentSensor,
+        );
+        changed_source_clock.time_qualification.source_clock_id = "new-source-clock".into();
+        assert_eq!(
+            supervisor.observe_goal(GoalEvidence {
+                envelope: changed_source_clock,
+                subgoal_id: "pick".to_owned(),
+                action_id: ticket.action_id.clone(),
+                attempt: ticket.attempt,
+                predicate_id: "object-in-gripper".to_owned(),
+                verdict: GoalVerdict::Ambiguous,
             }),
             Err(SupervisorError::SourceTimeBasisMismatch)
         );
