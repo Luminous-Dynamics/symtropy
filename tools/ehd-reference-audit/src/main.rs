@@ -473,7 +473,10 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         );
         push_if_missing(
             &mut findings,
-            text_at(case, &["claim_boundary"]).is_some_and(|s| s.contains("discharge/current") && s.contains("not a thrust")),
+            text_at(case, &["claim_boundary"]).is_some_and(|s| {
+                s.contains("discharge I–V curve")
+                    && s.contains("no solver accuracy, thrust prediction")
+            }),
             "MERLINO_REFERENCE_CLAIM",
             "wire-cylinder I-V case must not be promoted to thrust or neutral-flow validation",
         );
