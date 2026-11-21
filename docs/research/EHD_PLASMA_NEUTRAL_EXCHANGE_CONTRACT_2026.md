@@ -60,6 +60,26 @@ This creates a strong separation between:
 - mapping physical exchange between discretisations;
 - qualifying the coupled run against its charge, momentum and energy ledgers.
 
+## 2A. Reference impulse remapper and industry interoperability
+
+The public branch now contains a pure-Rust reference implementation at `tools/ehd-reference-audit/src/exchange.rs`. It maps already-integrated vector impulse contributions from source cell × time slabs to destination cells using explicit overlap fractions. It checks complete coverage for every source event, rejects malformed weights and unmapped events, aggregates deterministically, uses compensated summation, and reports componentwise source/destination impulse residuals against caller-supplied case-specific tolerances.
+
+The v0.1 kernel assumes piecewise-constant impulse density over each source space-time element. The overlap fractions must come from a non-overlapping geometric/time intersection backend. The kernel does **not** calculate intersections, reconstruct high-order fields, rotate coordinate frames, validate the geometry backend, or infer boundary impulse. This is a narrow reference oracle, not a replacement for a general mesh-coupling library.
+
+### Do not reinvent mature coupling infrastructure
+
+[preCICE's mapping documentation](https://precice.org/docs/configuration/basics/mapping/) distinguishes conservative mappings for extensive quantities such as force from consistent mappings for intensive quantities such as temperature. It also documents scaled-consistent mappings when conservation of an integral of an intensive field, such as mass flow, is required. The Luminous kernel should be compared against this mature capability on equivalent extensive quantities; it should not claim general superiority or replace preCICE for production geometry/coupling.
+
+The independent test plan is:
+1. compare against a separately written reference oracle on analytic partitions;
+2. test random valid partitions and cancellation-heavy inputs;
+3. refine source and destination spatial/time partitions independently;
+4. inject invalid overlap tables (including equal-size geometric gaps and overlaps, which a fraction-sum check alone cannot detect);
+5. compare integrated forces using a preCICE conservative mapping path with identical quantities and boundaries;
+6. measure performance only after correctness and semantics match.
+
+The CLI now runs a small synthetic remap self-check. This only confirms the arithmetic path on its fixture; it does not validate real mesh intersections or a solver adapter.
+
 ## 3. Three independent ledgers
 
 ### Charge
