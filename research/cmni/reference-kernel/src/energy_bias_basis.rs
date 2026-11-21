@@ -14,6 +14,41 @@ pub const AIACHNE_BIAS_DOMAIN_LOWER_SUBTRACTION_MEV: f64 = 1.0e-4;
 pub const AIACHNE_BIAS_DOMAIN_UPPER_ADDITION_MEV: f64 = 5.0;
 
 /// Reproduce the reference-grid domain extension in AIACHNE/ExecuteStudy.ipynb.
+/// Map each coefficient in the flattened, group-major AIACHNE basis to
+/// its separate global horseshoe scale. Within each feature group the order is
+/// short (B_s), medium (B_m), then long (B_l).
+pub fn aiachne_global_scale_index_by_coefficient(
+    feature_group_count: usize,
+) -> Result<Vec<usize>, ModelError> {
+    if feature_group_count == 0 {
+        return Err(ModelError::InvalidParameter(
+            "aiachne_feature_group_count_must_be_positive",
+        ));
+    }
+    let coefficient_count = feature_group_count
+        .checked_mul(ENERGY_BIAS_BASIS_COLUMNS_PER_GROUP)
+        .ok_or(ModelError::InvalidParameter(
+            "aiachne_horseshoe_coefficient_count_overflow",
+        ))?;
+    let mut indices = Vec::with_capacity(coefficient_count);
+    for group in 0..feature_group_count {
+        let base = group
+            .checked_mul(3)
+            .ok_or(ModelError::InvalidParameter(
+                "aiachne_horseshoe_group_index_overflow",
+            ))?;
+        indices.extend(std::iter::repeat_n(base, ENERGY_BIAS_CENTRES_PER_SCALE[0]));
+        indices.extend(std::iter::repeat_n(base + 1, ENERGY_BIAS_CENTRES_PER_SCALE[1]));
+        indices.extend(std::iter::repeat_n(base + 2, ENERGY_BIAS_CENTRES_PER_SCALE[2]));
+    }
+    if indices.len() != coefficient_count {
+        return Err(ModelError::InvalidParameter(
+            "aiachne_horseshoe_scale_mapping_length_invalid",
+        ));
+    }
+    Ok(indices)
+}
+
 pub fn aiachne_bias_basis_energy_domain(
     reference_energies_mev: &[f64],
 ) -> Result<(f64, f64), ModelError> {
@@ -260,6 +295,18 @@ mod tests {
         assert!((design.energy_centres_mev[99] - 30.01).abs() < 1.0e-12);
         assert!((design.energy_centres_mev[100] - 0.0004).abs() < 1.0e-15);
         assert!((design.energy_centres_mev[150] - 0.0004).abs() < 1.0e-15);
+    }
+
+    #[test]
+    fn grouped_coefficients_map_to_short_medium_long_global_scales() {
+        let indices = aiachne_global_scale_index_by_coefficient(2).expect("scale map");
+        assert_eq!(indices.len(), 320);
+        assert!(indices[..100].iter().all(|index| *index == 0));
+        assert!(indices[100..150].iter().all(|index| *index == 1));
+        assert!(indices[150..160].iter().all(|index| *index == 2));
+        assert!(indices[160..260].iter().all(|index| *index == 3));
+        assert!(indices[260..310].iter().all(|index| *index == 4));
+        assert!(indices[310..320].iter().all(|index| *index == 5));
     }
 
     #[test]
