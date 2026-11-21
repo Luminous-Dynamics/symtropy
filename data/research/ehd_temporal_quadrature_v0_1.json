@@ -69,6 +69,8 @@
     "impulse_pass_heating_fail_with_gauss_legendre_2",
     "degree_six_heating_fail_gl3_pass_gl4",
     "simpson_exact_low_degree_control",
+    "each_rule_matches_monomial_moments_through_declared_exactness",
+    "each_rule_fails_first_higher_even_monomial_moment",
     "interior_negative_drag_rate_rejected",
     "non_finite_polynomial_coefficient_rejected",
     "invalid_tolerance_rejected",
