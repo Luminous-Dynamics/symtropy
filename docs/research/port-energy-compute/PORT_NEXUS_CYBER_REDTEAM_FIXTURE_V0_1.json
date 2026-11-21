@@ -1,0 +1,381 @@
+{
+  "schema": "luminous.port_nexus.cyber_physical_trust_benchmark",
+  "schema_version": "0.1.0",
+  "fixture_id": "port-nexus-cyber-physical-redteam-v0-1",
+  "snapshot_date": "2026-11-19",
+  "evidence_class": "synthetic_offline_redteam_fixture",
+  "claim_ceiling": "Trust-boundary and safe-degraded disposition tests only. Not an OT penetration test, IEC 62443 certification, NIST compliance claim, maritime SMS approval or live-plant authorization.",
+  "scope": {
+    "zones": [
+      "enterprise_IT",
+      "port_operations",
+      "OT_supervisory",
+      "local_control_and_protection",
+      "grid_connection",
+      "data_centre_compute",
+      "cooling_and_water",
+      "marine_sensor_and_cable",
+      "federation_and_authority"
+    ],
+    "actors": [
+      "untrusted_external",
+      "compromised_vendor",
+      "malicious_insider",
+      "compromised_cloud_service",
+      "stale_or_faulty_sensor",
+      "honest_but_partitioned_operator"
+    ],
+    "control_plane_rule": "AI/optimizer/cloud analytics are proposal-only. No direct actuator path is permitted by this benchmark."
+  },
+  "trust_transitions": [
+    {
+      "stage": "source_authenticity_and_rights",
+      "owner": "source_owner/sol-atlas/mycelix",
+      "claim": "Source identity, signature, ownership and permitted use."
+    },
+    {
+      "stage": "observation_integrity_and_time",
+      "owner": "source_owner/symtropy",
+      "claim": "Observation value, event time, first-available time, sequence, freshness and configuration."
+    },
+    {
+      "stage": "physical_plausibility_and_applicability",
+      "owner": "symtropy_domain_verifier",
+      "claim": "Value fits domain, model, units, meter boundary and applicability envelope."
+    },
+    {
+      "stage": "proposal_feasibility",
+      "owner": "symtropy",
+      "claim": "Proposed service schedule passes independent physical/operational constraints."
+    },
+    {
+      "stage": "human_or_owner_authorization",
+      "owner": "mycelix/asset_owner",
+      "claim": "Exact actor, role, asset, purpose, time, limits and revision are authorized."
+    },
+    {
+      "stage": "command_delivery_and_acknowledgement",
+      "owner": "local_asset_gateway",
+      "claim": "A command reached a particular interface; delivery is not physical effect."
+    },
+    {
+      "stage": "physical_outcome_observation",
+      "owner": "independent_meter_or_sensor_owner",
+      "claim": "Physical delivery/outcome observed at named boundary."
+    },
+    {
+      "stage": "reconciliation_and_incident_correction",
+      "owner": "mycelix/owner_systems",
+      "claim": "Unknown, duplicate, partial or conflicting effects are reconciled without silent overwrite."
+    }
+  ],
+  "non_negotiable_invariants": [
+    "No direct cloud/LLM/Symthaea/optimizer-to-PLC, protection relay, inverter, pump, valve, ship switchboard, crane motion or water-treatment actuation path.",
+    "Local protection, interlocks, emergency shutdown, safe state and operator control remain independent and deterministic.",
+    "Loss of cloud, federation, time, identity, telemetry or external network cannot increase authority.",
+    "Critical stale, unauthenticated, conflicting, out-of-domain, revoked or future-available signals remain Unknown/DataIncomplete and never become defaults.",
+    "Hard electrical, thermal, water-quality and equipment limits remain non-compensatory.",
+    "Proposal, authorization, command, acknowledgement and physical observation are distinct events with their own identities and time semantics.",
+    "Unknown actuator outcome means no new mutation until reconciliation.",
+    "A valid signature is not proof of calibration, applicability, physical correctness or authority.",
+    "No benchmark case issues a real command or touches live safety-critical OT."
+  ],
+  "cases": [
+    {
+      "case_id": "baseline-authenticated-current-positive",
+      "category": "Positive",
+      "attack_or_mutation": "Current owner-authorized metering, signed telemetry, current calibration and correct resource binding.",
+      "expected_disposition": "ACCEPT_EVIDENCE_ONLY",
+      "case_index": 1
+    },
+    {
+      "case_id": "ais-impossible-position-jump",
+      "category": "Negative",
+      "attack_or_mutation": "A signed AIS record moves vessel position beyond physically plausible speed/route bounds.",
+      "expected_disposition": "REJECT_PHYSICAL_PLAUSIBILITY",
+      "case_index": 2
+    },
+    {
+      "case_id": "ais-historical-replay",
+      "category": "Negative",
+      "attack_or_mutation": "An old AIS observation is reissued with a fresh retrieval timestamp.",
+      "expected_disposition": "REJECT_STALE_OBSERVATION",
+      "case_index": 3
+    },
+    {
+      "case_id": "shore-meter-sign-reversal",
+      "category": "Negative",
+      "attack_or_mutation": "Meter sign is reversed while absolute power magnitude remains plausible.",
+      "expected_disposition": "REJECT_SEMANTIC_BOUNDARY",
+      "case_index": 4
+    },
+    {
+      "case_id": "ct-ratio-change-unbound",
+      "category": "Conflict",
+      "attack_or_mutation": "CT ratio or phase mapping changes without asset/configuration revision.",
+      "expected_disposition": "REJECT_CONFIGURATION_MISMATCH",
+      "case_index": 5
+    },
+    {
+      "case_id": "pcc-meter-clock-skew",
+      "category": "Negative",
+      "attack_or_mutation": "Meter timestamp is shifted across a tariff/settlement interval.",
+      "expected_disposition": "DATA_INCOMPLETE_TIME_INTEGRITY",
+      "case_index": 6
+    },
+    {
+      "case_id": "future-renewable-forecast",
+      "category": "Negative",
+      "attack_or_mutation": "Forecast revision first available after the historical decision cutoff is used in replay.",
+      "expected_disposition": "REJECT_LOOKAHEAD",
+      "case_index": 7
+    },
+    {
+      "case_id": "stale-weather-api",
+      "category": "Unknown",
+      "attack_or_mutation": "Authenticated weather response is older than signal freshness limit or has no source vintage.",
+      "expected_disposition": "DATA_INCOMPLETE",
+      "case_index": 8
+    },
+    {
+      "case_id": "marine-product-not-representative",
+      "category": "Unknown",
+      "attack_or_mutation": "Wave/current/temperature product is authentic but wrong depth/location or outside site applicability.",
+      "expected_disposition": "ABSTAIN_APPLICABILITY",
+      "case_index": 9
+    },
+    {
+      "case_id": "marine-temperature-bias",
+      "category": "Negative",
+      "attack_or_mutation": "Biased intake temperature drives a false economiser/heat-sink decision.",
+      "expected_disposition": "REJECT_SENSOR_CONSISTENCY",
+      "case_index": 10
+    },
+    {
+      "case_id": "bess-soc-replay",
+      "category": "Negative",
+      "attack_or_mutation": "BESS SOC repeats while charge/discharge meters show incompatible energy change.",
+      "expected_disposition": "REJECT_STATE_CONSERVATION",
+      "case_index": 11
+    },
+    {
+      "case_id": "thermal-store-flow-disagreement",
+      "category": "Negative",
+      "attack_or_mutation": "Thermal-store SOC, inlet/outlet flow and temperature fail the owner balance.",
+      "expected_disposition": "REJECT_THERMAL_BALANCE",
+      "case_index": 12
+    },
+    {
+      "case_id": "spoofed-ro-flow-creates-sink",
+      "category": "Negative",
+      "attack_or_mutation": "Fabricated feedwater flow claims available heat sink capacity.",
+      "expected_disposition": "REJECT_SINK_CREDIT",
+      "case_index": 13
+    },
+    {
+      "case_id": "potable-quality-model-inference",
+      "category": "Negative",
+      "attack_or_mutation": "Model predicts potable quality without an independent current product-water sample/assessment.",
+      "expected_disposition": "NO_QUALIFIED_WATER_CREDIT",
+      "case_index": 14
+    },
+    {
+      "case_id": "common-clock-power-failure",
+      "category": "Unknown",
+      "attack_or_mutation": "PCC meter, PV inverter and thermal sensors share a common clock or supply fault.",
+      "expected_disposition": "SHARED_OR_UNKNOWN_DEPENDENCY",
+      "case_index": 15
+    },
+    {
+      "case_id": "fibre-paths-shared-landing",
+      "category": "Negative",
+      "attack_or_mutation": "Two fibre paths have distinct IDs but share landing, duct, corridor or backhaul.",
+      "expected_disposition": "NO_INDEPENDENCE_CLAIM",
+      "case_index": 16
+    },
+    {
+      "case_id": "telecom-stats-as-power-failure-rate",
+      "category": "Negative",
+      "attack_or_mutation": "Telecommunications cable repair frequency is assigned to submarine power cable probability.",
+      "expected_disposition": "REJECT_EVIDENCE_CATEGORY",
+      "case_index": 17
+    },
+    {
+      "case_id": "compromised-optimizer-exceeds-pcc",
+      "category": "Negative",
+      "attack_or_mutation": "Optimizer proposes dispatch above owner-verified PCC capacity.",
+      "expected_disposition": "REJECT_BY_INDEPENDENT_VERIFIER",
+      "case_index": 18
+    },
+    {
+      "case_id": "symthaea-fills-missing-berth-readiness",
+      "category": "Negative",
+      "attack_or_mutation": "A fluent Symthaea explanation substitutes for missing ship/berth interface readiness.",
+      "expected_disposition": "ABSTAIN_MISSING_AUTHORITY",
+      "case_index": 19
+    },
+    {
+      "case_id": "revoked-operator-authorization",
+      "category": "Negative",
+      "attack_or_mutation": "A valid proposal uses a revoked or expired operator delegation.",
+      "expected_disposition": "REJECT_AUTHORITY",
+      "case_index": 20
+    },
+    {
+      "case_id": "asset-subject-confusion",
+      "category": "Negative",
+      "attack_or_mutation": "Authorization for asset A is replayed against asset B.",
+      "expected_disposition": "REJECT_SUBJECT_RESOURCE_BINDING",
+      "case_index": 21
+    },
+    {
+      "case_id": "duplicate-command-same-digest",
+      "category": "Positive",
+      "attack_or_mutation": "Same command event and canonical digest is delivered twice under idempotency key.",
+      "expected_disposition": "ONE_LOGICAL_EFFECT",
+      "case_index": 22
+    },
+    {
+      "case_id": "same-idempotency-key-changed-payload",
+      "category": "Conflict",
+      "attack_or_mutation": "Same idempotency key is reused with changed canonical request bytes.",
+      "expected_disposition": "REJECT_IDEMPOTENCY_CONFLICT",
+      "case_index": 23
+    },
+    {
+      "case_id": "unknown-command-outcome",
+      "category": "Unknown",
+      "attack_or_mutation": "Dispatch times out after a remote action may have occurred.",
+      "expected_disposition": "NEEDS_RECONCILIATION_NO_NEW_MUTATION",
+      "case_index": 24
+    },
+    {
+      "case_id": "receipt-without-physical-delivery",
+      "category": "Negative",
+      "attack_or_mutation": "Provider/controller acknowledges command receipt but independent meter does not show delivery.",
+      "expected_disposition": "NO_PHYSICAL_DELIVERY_CLAIM",
+      "case_index": 25
+    },
+    {
+      "case_id": "mycelix-authority-unavailable",
+      "category": "Unknown",
+      "attack_or_mutation": "Authority/receipt service is unreachable during a network partition.",
+      "expected_disposition": "LOCAL_SAFETY_ONLY_NO_AUTHORITY_EXPANSION",
+      "case_index": 26
+    },
+    {
+      "case_id": "clock-source-spoof-or-jump",
+      "category": "Negative",
+      "attack_or_mutation": "NTP/GNSS/PTP source jumps; event order and wall-clock relation become untrusted.",
+      "expected_disposition": "TIME_UNCERTAIN_HOLD",
+      "case_index": 27
+    },
+    {
+      "case_id": "signed-but-revoked-model",
+      "category": "Negative",
+      "attack_or_mutation": "Artifact signature is valid but exact model/configuration revision is revoked or unqualified.",
+      "expected_disposition": "REJECT_MODEL_CONFIGURATION",
+      "case_index": 28
+    },
+    {
+      "case_id": "policy-threshold-tamper",
+      "category": "Negative",
+      "attack_or_mutation": "Trigger threshold or hard-bound policy changes without approved policy digest and revision.",
+      "expected_disposition": "REJECT_POLICY_DIGEST",
+      "case_index": 29
+    },
+    {
+      "case_id": "ot-segmentation-boundary-crossed",
+      "category": "Negative",
+      "attack_or_mutation": "Cloud/analytics host obtains a forbidden route to PLC, relay, inverter or pump control plane.",
+      "expected_disposition": "REJECT_FORBIDDEN_CONTROL_PATH",
+      "case_index": 30
+    },
+    {
+      "case_id": "cloud-optimizer-denial-of-service",
+      "category": "Positive",
+      "attack_or_mutation": "Cloud optimizer unavailable; local PLC/relay/operator control remains available and safe.",
+      "expected_disposition": "SAFE_LOCAL_DEGRADED_MODE",
+      "case_index": 31
+    },
+    {
+      "case_id": "grid-and-fibre-outage",
+      "category": "Positive",
+      "attack_or_mutation": "Grid and fibre fail concurrently; local safe service claims remain within qualified islanding envelope.",
+      "expected_disposition": "DEGRADED_WITHIN_LOCAL_AUTHORITY",
+      "case_index": 32
+    },
+    {
+      "case_id": "low-privilege-insider-dispatch",
+      "category": "Negative",
+      "attack_or_mutation": "Low-privilege authenticated user requests high-impact dispatch.",
+      "expected_disposition": "REJECT_LEAST_PRIVILEGE",
+      "case_index": 33
+    },
+    {
+      "case_id": "human-override-vs-interlock",
+      "category": "Positive",
+      "attack_or_mutation": "Authorized human request conflicts with a hard local interlock; interlock prevails.",
+      "expected_disposition": "INTERLOCK_PREVAILS_AND_AUDITS",
+      "case_index": 34
+    },
+    {
+      "case_id": "expired-sensor-calibration",
+      "category": "Unknown",
+      "attack_or_mutation": "Telemetry is cryptographically valid but sensor calibration evidence expired.",
+      "expected_disposition": "METROLOGY_INCOMPLETE",
+      "case_index": 35
+    },
+    {
+      "case_id": "post-incident-historical-reconstruction",
+      "category": "Positive",
+      "attack_or_mutation": "Historical disposition rebuilt from exact artifact digests and decision-time frontier.",
+      "expected_disposition": "REPRODUCE_HISTORICAL_DISPOSITION",
+      "case_index": 36
+    }
+  ],
+  "policy_references": {
+    "imo_guidance": "MSC-FAL.1/Circ.3/Rev.4 (2026-05-28)",
+    "imo_sms_resolution": "MSC.428(98)",
+    "nist_ot_security": "SP 800-82 Rev.4 Initial Public Draft (2026-09-21; comments due 2026-11-30); Rev.3 remains finalized until Rev.4 publication",
+    "nist_framework": "Cybersecurity Framework 2.0",
+    "cable_security": "European Commission Submarine Cable Security Toolbox (2026-02; non-binding South African reference)"
+  },
+  "target_hypotheses": {
+    "unauthorized_command_success": 0,
+    "stale_to_current_promotions": 0,
+    "replay_duplicate_physical_effects": 0,
+    "hard_boundary_violations_passing": 0,
+    "authority_expansion_during_partition": 0,
+    "false_independent_route_claims": 0,
+    "positive_control_coverage": 1,
+    "caveat": "Targets for offline benchmark qualification only; not measured results or certification."
+  },
+  "owner_contracts": {
+    "symtropy": [
+      "#4582",
+      "#6211",
+      "#6228",
+      "#6255",
+      "#6258",
+      "#3400",
+      "#3418",
+      "#6209"
+    ],
+    "mycelix": [
+      "#5974",
+      "#5762"
+    ],
+    "sol_atlas": [
+      "#654",
+      "#942",
+      "#948"
+    ],
+    "symthaea": [
+      "#5199",
+      "#11572",
+      "#11473"
+    ]
+  },
+  "case_count": 36
+}
