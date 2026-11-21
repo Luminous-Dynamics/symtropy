@@ -36,6 +36,12 @@
       "mutated_Hhat2_prime": 2,
       "compatibility_residual": "4/3",
       "rejected": true
+    },
+    "triangular_reconstruction": {
+      "order_zero": "f0=b0",
+      "order_one_fixed_horizon": "f1=2*lambda*h0/(3*(lambda+1)^2)-h1/(3*(lambda+1))-2*(lambda+2)^2/(3*(lambda+1)^2)",
+      "b1_cancels_at_order_one": true,
+      "recurrence_denominator": "3*(lambda+2)^2"
     }
   },
   "horizon_jet": {
@@ -96,6 +102,9 @@
     "python": "3.13.5",
     "sympy": "1.14.0",
     "myers_perry_horizon_control_exact": true,
-    "wrong_sign_horizon_negative_control_rejected": true
+    "wrong_sign_horizon_negative_control_rejected": true,
+    "triangular_Fhat2_order_zero_reconstruction_exact": true,
+    "triangular_Fhat2_order_one_reconstruction_exact": true,
+    "order_one_Bhat2_prime_cancellation_exact": true
   }
 }
