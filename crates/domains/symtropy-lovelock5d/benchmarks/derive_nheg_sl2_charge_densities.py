@@ -250,6 +250,27 @@ def main() -> None:
         /(16*sp.pi*G*eps**3*(1-T)**3*(1+T)**2)
     )
 
+    # Exact local Wald/Jacobson-Myers density and its parametric variation.
+    wald_multiplier=sp.factor(1+alpha_sym*(
+        4*(T**2+10*T-3)/(alpha_sym*(1-T)**3)
+    )/2)
+    wald_density=sp.factor(
+        sqrt_minus_g*0 + (a*alpha_sym/(8*G*eps**3)*(1-T))*wald_multiplier
+    )
+    wald_variation=sp.factor(sp.diff(wald_density,a)/(2*sp.pi))
+    expected_wald_density=(
+        a*alpha_sym/(8*G*eps**3)
+        *(-5+17*T+5*T**2-T**3)/(1-T)**2
+    )
+    exact_zero("Wald local density",wald_density-expected_wald_density)
+    expected_wald_variation=(
+        alpha_sym/(16*sp.pi*G*eps**3)
+        *(-5+36*T+42*T**2-12*T**3+3*T**4)/(1-T)**3
+    )
+    exact_zero("Wald multiplier",wald_multiplier
+               -(-5+17*T+5*T**2-T**3)/(1-T)**3)
+    exact_zero("Wald parametric variation",wald_variation-expected_wald_variation)
+
     # ------------------------------------------------------------------
     # SL(2,R) charge-density decomposition with the full presymplectic term.
     # The Lovelock potential is divergence-free, so Theta^mu=2 E_R nabla h.
@@ -514,27 +535,6 @@ def main() -> None:
             "eq24_local_identity_2nQ_equals_J2":False
         }
     }
-
-    # Exact local Wald/Jacobson-Myers density and its parametric variation.
-    wald_multiplier=sp.factor(1+alpha_sym*(
-        4*(T**2+10*T-3)/(alpha_sym*(1-T)**3)
-    )/2)
-    wald_density=sp.factor(
-        sqrt_minus_g*0 + (a*alpha_sym/(8*G*eps**3)*(1-T))*wald_multiplier
-    )
-    wald_variation=sp.factor(sp.diff(wald_density,a)/(2*sp.pi))
-    expected_wald_density=(
-        a*alpha_sym/(8*G*eps**3)
-        *(-5+17*T+5*T**2-T**3)/(1-T)**2
-    )
-    exact_zero("Wald local density",wald_density-expected_wald_density)
-    expected_wald_variation=(
-        alpha_sym/(16*sp.pi*G*eps**3)
-        *(-5+36*T+42*T**2-12*T**3+3*T**4)/(1-T)**3
-    )
-    exact_zero("Wald multiplier",wald_multiplier
-               -(-5+17*T+5*T**2-T**3)/(1-T)**3)
-    exact_zero("Wald parametric variation",wald_variation-expected_wald_variation)
 
     source_norm=sp.factor(
         source_density*(16*sp.pi*G*eps**3)/alpha_sym
