@@ -102,6 +102,24 @@ C_{jk}\approx J_{r,j}C_rJ_{r,k}^T.
 
 With a fixed reference integral, the normalized integral is constrained exactly, giving a null covariance direction along the integration weights. With an uncertain shared reference, the common-reference term restores variance in that direction and creates cross-experiment dependence.
 
+## 3A. Reconstructed normalization factors
+
+The pointwise evaluation grid contains 72 strictly increasing energies from 0.0005 to 25.01 MeV. All 21 experimental energy grids are strictly increasing and have no zero-valued observations. Exactly one experiment, `PFNS_Blinov1980002.json`, begins below the evaluation's lower energy boundary (0.000364 MeV). Its first two trapezoidal intervals have left endpoints outside the reference grid and are skipped by the upstream helper. No interval has an in-domain left endpoint followed by an out-of-domain right endpoint.
+
+A candidate parity fixture now records the raw and reference overlap integrals, overlap interval counts, and computed scale factor for all 21 experiments:
+
+`research/cmni/fixtures/aiachne-reference-normalization-v1.json`
+
+The fixture records 1,030 observations, 1,007 included trapezoids, two skipped lower-bound trapezoids, and zero upper-endpoint NaN cases. Its scale factors were reconstructed in-memory using piecewise-linear interpolation and the upstream trapezoidal loop. They have **not** yet been executed against SciPy's `griddata` and the original CmdStan notebook. Treat them as candidate golden values until that independent comparison is performed.
+
+The public Rust kernel now provides:
+- `trapezoidal_integration_weights`;
+- `linear_reference_projection` (strict in-domain interpolation);
+- `aiache_compatible_overlap_geometry` (the notebook's lower-bound skip behavior, with upper-endpoint NaN cases rejected);
+- first-order covariance propagation and shared-reference cross covariance.
+
+The overlap geometry is important: simply extrapolating the low-energy Blinov bins or dropping them from the normalized output would not match the notebook. The scale factor is calculated over the valid overlap, then applied to every observation bin.
+
 ## 4. CMNI implementation increment
 
 The standalone Rust kernel now contains `shared_reference_normalization.rs`, exported through `lib.rs`. It:
