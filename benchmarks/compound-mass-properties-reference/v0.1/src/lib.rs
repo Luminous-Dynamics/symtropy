@@ -253,9 +253,7 @@ impl CompoundMassProperties {
             for (row_index, row_values) in second_moment_at_com_kg_m2.iter_mut().enumerate() {
                 for (column_index, value) in row_values.iter_mut().enumerate() {
                     *value += rotated_component_moment[row_index][column_index]
-                        + component.mass_kg
-                            * displacement[row_index]
-                            * displacement[column_index];
+                        + component.mass_kg * displacement[row_index] * displacement[column_index];
                 }
             }
         }
@@ -478,11 +476,7 @@ fn symmetric_eigenvalues_jacobi(matrix: &Matrix) -> Result<Vector, MassPropertie
             rotated_p_column[k] = new_p;
             rotated_q_column[k] = new_q;
         }
-        for (k, (new_p, new_q)) in rotated_p_column
-            .iter()
-            .zip(&rotated_q_column)
-            .enumerate()
-        {
+        for (k, (new_p, new_q)) in rotated_p_column.iter().zip(&rotated_q_column).enumerate() {
             work[p][k] = *new_p;
             work[q][k] = *new_q;
         }
