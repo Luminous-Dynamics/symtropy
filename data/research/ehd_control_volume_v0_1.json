@@ -1,0 +1,89 @@
+{
+  "schema": "luminous.ehd_control_volume_reducer",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-CV-001",
+  "as_of": "2026-11-21",
+  "status": "vector_bookkeeping_reducer_authored_tests_rust_execution_pending",
+  "equation": {
+    "form": "S + A = P + V + B + F_solid_to_fluid",
+    "reconstructed_solid_on_fluid": "S + A - P - V - B",
+    "inferred_fluid_on_solid": "negative_of_reconstructed_solid_on_fluid",
+    "direct_balance_observable": "fluid_on_solid",
+    "units": "N",
+    "sign_convention_id_required": true
+  },
+  "required_vector_terms": [
+    "momentum_storage",
+    "advective_momentum_flux_all_surfaces",
+    "pressure_traction_all_surfaces",
+    "viscous_traction_all_surfaces",
+    "body_force",
+    "direct_force_balance_fluid_on_solid"
+  ],
+  "vector_evidence_fields": [
+    "value_n",
+    "componentwise_absolute_uncertainty_bound_n",
+    "evidence_id"
+  ],
+  "run_identity_fields": [
+    "run_id",
+    "control_volume_id",
+    "sign_convention_id"
+  ],
+  "uncertainty_policy": {
+    "cv_uncertainty": "U_storage + U_advective + U_pressure + U_viscous + U_body",
+    "combined_uncertainty": "U_cv + U_direct_balance",
+    "acceptance": "absolute_cv_minus_balance_residual <= combined_uncertainty_componentwise",
+    "method": "worst_case_triangle_inequality_no_independence_assumption",
+    "rss_allowed_by_default": false,
+    "covariance_aware_future_method_requires_validated_covariance_artifact": true
+  },
+  "reference_implementation": {
+    "path": "tools/ehd-reference-audit/src/control_volume.rs",
+    "missing_term_policy": "reject_not_zero_fill",
+    "duplicate_evidence_id_policy": "reject",
+    "sign_convention": "explicit_outward_normal_and_solid_to_fluid_force",
+    "outputs": [
+      "solid_on_fluid_from_cv_n",
+      "fluid_on_solid_from_cv_n",
+      "measured_fluid_on_solid_n",
+      "residual_n",
+      "cv_uncertainty_bound_n",
+      "combined_uncertainty_bound_n",
+      "within_combined_bound_by_component",
+      "overall_within_combined_bound",
+      "ordered_evidence_ids"
+    ]
+  },
+  "test_families": [
+    "reconstruct_force_with_frozen_sign_convention",
+    "reject_each_missing_required_term",
+    "flag_discrepancy_beyond_uncertainty",
+    "accept_equality_at_uncertainty_bound",
+    "verify_worst_case_uncertainty_sum_not_rss",
+    "reject_duplicate_evidence_ids",
+    "reject_non_finite_values_and_negative_uncertainty",
+    "reject_empty_run_and_control_volume_identities",
+    "require_nonempty_sign_and_evidence_ids",
+    "offline_reference_self_check"
+  ],
+  "acceptance": {
+    "universal_numeric_tolerance": null,
+    "all_six_terms_required": true,
+    "unknown_term_is_not_zero": true,
+    "componentwise_uncertainty_bound_required": true,
+    "worst_case_sum_is_default": true,
+    "physical_measurement_not_claimed": true
+  },
+  "limitations": [
+    "no_piv_ldv_image_processing",
+    "no_velocity_field_surface_integration",
+    "no_pressure_or_viscous_sensor_reduction",
+    "no_calibration_uncertainty_estimation",
+    "no_covariance_matrix_propagation",
+    "no_ambient_entrainment_or_wall_correction_unless_input_terms_include_it",
+    "no_cfd_or_plasma_solver",
+    "no_physical_thrust_measurement"
+  ],
+  "claim_ceiling": "This is a vector bookkeeping and conservative uncertainty-bound reducer only. It does not process experimental fields, solve fluid equations or validate physical EHD thrust."
+}
