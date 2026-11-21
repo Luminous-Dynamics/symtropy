@@ -69,12 +69,12 @@
     "association_lot_id",
     "association_operation_id",
     "measurement_evidence_class",
-    "calibration_disposition",
-    "calibration_reference_id",
-    "calibration_reference_sha256",
-    "uncertainty_disposition",
-    "uncertainty_reference_id",
-    "uncertainty_reference_sha256"
+    "instrument_calibration_disposition",
+    "calibration_attestation_id",
+    "calibration_attestation_sha256",
+    "measurement_uncertainty_disposition",
+    "uncertainty_budget_id",
+    "uncertainty_budget_sha256"
   ],
   "properties": {
     "projection_schema_version": {
@@ -333,7 +333,7 @@
         "physical_observation"
       ]
     },
-    "calibration_disposition": {
+    "instrument_calibration_disposition": {
       "enum": [
         "not_applicable",
         "qualified_reference",
@@ -343,21 +343,21 @@
         "unsupported"
       ]
     },
-    "calibration_reference_id": {
+    "calibration_attestation_id": {
       "type": [
         "string",
         "null"
       ],
       "minLength": 1
     },
-    "calibration_reference_sha256": {
+    "calibration_attestation_sha256": {
       "type": [
         "string",
         "null"
       ],
       "pattern": "^[a-fA-F0-9]{64}$"
     },
-    "uncertainty_disposition": {
+    "measurement_uncertainty_disposition": {
       "enum": [
         "not_applicable",
         "qualified_reference",
@@ -367,14 +367,14 @@
         "unsupported"
       ]
     },
-    "uncertainty_reference_id": {
+    "uncertainty_budget_id": {
       "type": [
         "string",
         "null"
       ],
       "minLength": 1
     },
-    "uncertainty_reference_sha256": {
+    "uncertainty_budget_sha256": {
       "type": [
         "string",
         "null"
@@ -386,21 +386,21 @@
     {
       "if": {
         "properties": {
-          "calibration_disposition": {
+          "instrument_calibration_disposition": {
             "const": "qualified_reference"
           }
         },
         "required": [
-          "calibration_disposition"
+          "instrument_calibration_disposition"
         ]
       },
       "then": {
         "properties": {
-          "calibration_reference_id": {
+          "calibration_attestation_id": {
             "type": "string",
             "minLength": 1
           },
-          "calibration_reference_sha256": {
+          "calibration_attestation_sha256": {
             "type": "string",
             "pattern": "^[a-fA-F0-9]{64}$"
           }
@@ -410,21 +410,21 @@
     {
       "if": {
         "properties": {
-          "uncertainty_disposition": {
+          "measurement_uncertainty_disposition": {
             "const": "qualified_reference"
           }
         },
         "required": [
-          "uncertainty_disposition"
+          "measurement_uncertainty_disposition"
         ]
       },
       "then": {
         "properties": {
-          "uncertainty_reference_id": {
+          "uncertainty_budget_id": {
             "type": "string",
             "minLength": 1
           },
-          "uncertainty_reference_sha256": {
+          "uncertainty_budget_sha256": {
             "type": "string",
             "pattern": "^[a-fA-F0-9]{64}$"
           }
