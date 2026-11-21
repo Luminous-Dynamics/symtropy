@@ -70,6 +70,25 @@ Candidate interventions should be represented as observation-prediction alternat
 
 Discrete mechanism alternatives also need a model-discrimination score. For fixed-response, independent Poisson predictions, the directed KL divergence is the exact expected log-likelihood ratio under one candidate. The current kernel exposes a pairwise directed KL matrix; it does not turn that matrix into posterior model probabilities or account for nuisance uncertainty.
 
+### Layer D — multifidelity expected-information calculations
+
+CMNI naturally admits a fidelity hierarchy: closed-form screening and reduced transport references; calibrated surrogate or reduced-order models; specialist stopping/material solvers; and the full coupled high-fidelity forward model. A lower-fidelity model is useful only when its paired predictions correlate with the high-fidelity quantity under the same sampled inputs.
+
+The current kernel implements a scalar nested approximate-control-variate (ACV) estimator:
+
+[
+\widehat{\mu}_{ACV}=\overline{H}_{n_H}+\beta(\overline{L}_{n_H}-\overline{L}_{n_L}),
+\qquad n_L>n_H,
+]
+
+where the first n_H low-fidelity samples are paired with the high-fidelity samples and the coefficient beta is frozen independently (for example, from a pilot sample). The nested-sample variance identity is also reported. This is a reusable statistical primitive, **not** the full multifidelity expected-information-gain estimator from the literature. It does not choose beta, allocate compute budgets, estimate EIG, or bound high/low model discrepancy.
+
+A future CMNI EIG estimator should compare a single-fidelity nested Monte Carlo baseline with multifidelity ACV under an identical total compute budget. It must report bias against a tractable oracle, estimator RMSE, variance reduction, high/low evaluation counts, wall-clock cost, and performance as correlation between fidelities degrades. The recent Coons–Huan estimator reports unbiased high-fidelity EIG estimation and 1–2 orders of magnitude variance reduction in its demonstrated nonlinear and turbulent-flow examples. This is an external research target, not a result of the current kernel.
+
+### Layer E — robust finite-scenario design scoring
+
+The current kernel also scores candidate designs over a finite, declared set of nuisance scenarios and selects the maximin design. The scenario set and utilities are caller-supplied; this is a transparent baseline for stress-testing candidate designs, not a guarantee over every possible nuisance realization. More sophisticated robust Bayesian design methods for nonlinear PDE inverse problems use worst-case formulations and uncertainty-aware expected information gain; CMNI should eventually compare its finite-scenario baseline with such methods.
+
 A future design optimizer should compare multiple objectives:
 
 - **Rank / E-optimality:** improve the smallest information eigenvalue and eliminate blind directions.
@@ -108,7 +127,7 @@ All numeric thresholds below are **proposed qualification targets**, not achieve
 | 1 | Fisher-information numerics | Relative eigenvalue / rank decisions agree with independent high-precision references across scale sweeps; no unit-dependent surprises after parameter normalization |
 | 2 | Response ensemble moments | Mean and covariance agree with an independent implementation; covariance is symmetric positive semidefinite within tolerance; exact zero calibration spread reduces to Poisson covariance |
 | 3 | Uncertainty calibration | Across preregistered repeated simulations, nominal 90% interval coverage falls within a binomially justified acceptance band around 90%; likewise for 95% intervals |
-| 4 | Standard spectrum unfolding | On blinded standard spectra and matched response matrices, aim for mean relative spectral deviation at or below 10% while maintaining calibrated 90–95% coverage; compare with GRAVEL and Bayesian baselines |
+| 4 | Standard spectrum unfolding | First reproduce published results on the exact source, detector and metric; then target ≤1.4% error on the cited EJ-301 / Cf best-case condition and ≤4.3% mean deviation only on the matching evaluation protocol, while maintaining calibrated uncertainty; separately compare EJ-309 GRAVEL / Bayesian benchmarks |
 | 5 | Detector/model mismatch | Quantify performance under response-matrix perturbation, energy-scale drift, threshold shifts, background misspecification and unobservable bins; no silent overconfident output |
 | 6 | CMNI forward prediction | Predict held-out energies, sample histories and campaigns with preregistered log score, residual, coverage and calibration diagnostics |
 | 7 | Mechanism discrimination | Identify which hypotheses are not separable under a given observation plan; select candidate designs that measurably reduce ambiguity on held-out synthetic truth |
@@ -129,12 +148,15 @@ For spectrum accuracy, report at least Qs or a clearly defined relative spectral
 | Specialist materials diagnostics | Independent deuterium, defect, phase and depth-sensitive observables | Different modalities have different isotope selectivity, point-spread functions, depth kernels, sample constraints and uncertainty |
 | Symtropy CMNI research twin | Connects source evidence, solver adapters, conservation, measurement operators, nuisance models, replay and experiment design | It is not yet a validated specialist nuclear/materials solver; current kernel is research-only and synthetic |
 
-The 2026 Bayesian unfolding paper reports <15% spectral relative deviation and 92.3% coverage on its specified Cf and Am-Be test data. The 2026 EJ309/EJ276D Geant4 comparison uses GRAVEL and Qs, and finds detector-size and stopping-criterion choices matter. These are benchmarks to reproduce under matched conditions, not universal performance constants.
+The February 2026 high-dimensional Bayesian unfolding paper reports <15% spectral relative deviation and 92.3% coverage on its specified IAEA-403 Cf and Am-Be test data. A separate calibrated EJ-301 study (published online 27 November 2025; Scientific Reports volume 16, 2026) reports a sub-0.35-MeV threshold, average deviation below 4.28%, and best-case 1.42% agreement with the ISO 8529-1 Cf reference. Those are not interchangeable benchmarks: the detector, calibration, source, energy grid and scoring protocol differ. In particular, EJ-301 is not EJ-309. The August 2026 EJ309/EJ276D comparison uses Geant4 response matrices and GRAVEL/Qs and finds detector size and stopping choices matter. Reproduce each study on its own data and metrics before comparing methods or claiming improvement.
 
 References:
 - Wang et al. (2026), *A high-dimensional Bayesian approach for spectrum unfolding and uncertainty quantification in spectrometric measurements*, DOI: https://doi.org/10.1016/j.nima.2025.171041
 - *Geant4 simulation of EJ309 and EJ276D scintillators: A comparative study for fast neutron spectroscopy* (2026), DOI: https://doi.org/10.1016/j.net.2026.104376
 - López-Fidalgo & Wong (2026), *Optimal Designs for Correlated Data*, DOI: https://doi.org/10.1146/annurev-statistics-042324-012947
+- Zhang et al. (2025 online / 2026 volume), *High-fidelity unfolding of 252Cf neutron spectra in EJ-301 scintillators via calibrated response matrices and Monte Carlo simulations*, DOI: https://doi.org/10.1038/s41598-025-30154-7
+- Coons & Huan (2025), *A Multifidelity Estimator of the Expected Information Gain for Bayesian Optimal Experimental Design*, DOI: https://doi.org/10.1137/25M1731812
+- Chowdhary, Attia & Alexanderian (2026), *Robust Optimal Experimental Design of Infinite-Dimensional Bayesian Nonlinear Inverse Problems*, DOI: https://doi.org/10.1137/24M1693921
 - NIST, *Assessment of measurement uncertainty via observation equations*: https://www.nist.gov/publications/assessment-measurement-uncertainty-observation-equations
 
 ## Current implementation and limits
@@ -146,17 +168,20 @@ Implemented in this research-only Rust crate:
 - exact pairwise directed KL divergence for fixed independent-Poisson predictions from candidate discrete hypotheses;
 - symmetric Jacobi eigenvalue decomposition and local effective-rank / logdet / condition diagnostics;
 - equal-weight detector response ensemble and predictive mean/count covariance using the law of total covariance;
-- finite equal-weight response-ensemble Poisson mixture log predictive probability for observed integer counts, evaluated in log space.
+- finite equal-weight response-ensemble Poisson mixture log predictive probability for observed integer counts, evaluated in log space;
+- nested two-level scalar approximate-control-variate estimation with frozen beta and a nested-sample variance estimate;
+- finite-scenario maximin candidate-design scoring with cost metadata and deterministic tie-breaking.
 
 Not implemented yet:
 
 - automatic numerical differentiation of the full CMNI forward model;
 - global profile-likelihood identifiability, Bayesian model comparison or expected information gain;
-- a design-space optimizer, cost model or Pareto frontier;
+- a full Bayesian expected-information-gain estimator, multifidelity sample-allocation optimizer or ACV coefficient learner;
+- a continuous robust-design optimizer, uncertainty-set calibration or Pareto frontier;
 - a nuisance-integrated or posterior-predictive model-discrimination score;
 - a general nuisance-aware hierarchical likelihood for response, background, live time, PSD and other calibration dimensions;
 - bootstrap/calibration-data ingestion and covariance provenance;
 - Geant4, GRAVEL, or the cited 2026 Bayesian method;
 - real 2025/2026 waveform or source-dataset reconstruction.
 
-The finite response-mixture likelihood assumes equal weights over the supplied finite calibration ensemble and fixed background. The code has authored tests only; they require a Rust-capable execution environment before being described as passing. These synthetic and algebraic primitives do not validate an underlying nuclear mechanism or provide experimental evidence.
+The finite response-mixture likelihood assumes equal weights over the supplied finite calibration ensemble and fixed background. The ACV coefficient is fixed independently of the production samples and the estimator does not bound model discrepancy. Finite maximin scoring only covers the caller-supplied nuisance scenarios. The code has authored tests only; they require a Rust-capable execution environment before being described as passing. These synthetic and algebraic primitives do not validate an underlying nuclear mechanism or provide experimental evidence.
