@@ -185,3 +185,12 @@ See [IDENTIFIABILITY_AND_DESIGN.md](../../../docs/research/cmni/IDENTIFIABILITY_
 - This is the raw-scale observation likelihood primitive needed for a faithful PFNS bias analysis. It does not yet implement the AIACHNE horseshoe prior or Bayesian Monte Carlo sampler.
 - Synthetic fixture: `research/cmni/fixtures/raw-scale-pfns-bias-likelihood-synthetic.json`.
 - Six tests cover zero-bias likelihood, mean-only bias effect, full covariance, baseline covariance anchoring, positive-definiteness and invalid inputs. The total is now **147 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics, 7 measurement-bias, 8 sparse-Poisson-bias, 10 energy-bias-basis, 8 correlated-Gaussian-bias, 6 raw-scale-likelihood). Not executed in this environment.
+
+
+## Raw-scale horseshoe posterior target and analytic gradients
+
+- `raw_scale_horseshoe_log_posterior` combines the raw-scale correlated Gaussian likelihood with Normal coefficient priors conditional on local/global scales, half-Cauchy local scales, and either a half-normal or half-Cauchy global-scale prior.
+- The function parameterizes local and global scales in log coordinates and returns analytic gradients for coefficients, every log-local scale, and log-global scale, including coordinate Jacobian terms.
+- It does not implement HMC / BMC / NUTS sampling, warmup adaptation, multiple-chain diagnostics, effective sample size or posterior convergence assessment.
+- Synthetic oracle: baseline mean [10,20], relative covariance [[0.04,0.01],[0.01,0.09]], one feature and planted coefficient 0.1. Independent finite-difference calculations confirm the gradient for both global priors to approximately 1e-10.
+- Five tests cover both global prior choices and finite-difference agreement for beta, local-scale and global-scale gradients. The total is now **152 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics, 7 measurement-bias, 8 sparse-Poisson-bias, 10 energy-bias-basis, 8 correlated-Gaussian-bias, 6 raw-scale-likelihood, 5 horseshoe-posterior). These are authored, not executed.
