@@ -45,6 +45,7 @@ pub use diagnostics::{InvariantDrift, InvariantSnapshot};
 pub use epa::EpaResult;
 pub use integrator::{
     angular_impulse_from_point, angular_point_velocity, nan_zeroed_count,
+    try_apply_angular_impulse,
 };
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
 pub use mass_properties::{
