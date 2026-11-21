@@ -249,7 +249,10 @@ fn evaluate_case(case: &AdmissibilityCase) -> Result<Decision, String> {
         || !present(&case.dependence_assessment_ref)
         || !present(&case.assumption_assessment_ref)
     {
-        add_blocker(&mut decision, "missing_preregistration_sampling_or_assumption_reference");
+        add_blocker(
+            &mut decision,
+            "missing_preregistration_sampling_or_assumption_reference",
+        );
     }
     if !case.diagnostics_predeclared || !case.thresholds_frozen_before_holdout {
         add_blocker(&mut decision, "diagnostics_or_thresholds_not_predeclared");
@@ -259,7 +262,10 @@ fn evaluate_case(case: &AdmissibilityCase) -> Result<Decision, String> {
             || !present(&case.multiplicity_policy_ref)
             || !present(&case.holdout_split_ref))
     {
-        add_blocker(&mut decision, "missing_diagnostic_protocol_multiplicity_or_holdout");
+        add_blocker(
+            &mut decision,
+            "missing_diagnostic_protocol_multiplicity_or_holdout",
+        );
     }
 
     match case.selected_profile {
@@ -267,28 +273,43 @@ fn evaluate_case(case: &AdmissibilityCase) -> Result<Decision, String> {
         | ModelProfile::AcceleratedLife
         | ModelProfile::DegradationPath
         | ModelProfile::UnknownOrUnregistered => {
-            add_blocker(&mut decision, "selected_model_profile_not_implemented_in_v0_1");
+            add_blocker(
+                &mut decision,
+                "selected_model_profile_not_implemented_in_v0_1",
+            );
             decision.disposition = Some(Disposition::ModelNotSupported);
         }
         ModelProfile::WeibullFirstFailureLife => {
             if case.analysis_request != AnalysisRequest::FirstFailureLife {
-                add_blocker(&mut decision, "weibull_profile_requires_first_failure_life_request");
+                add_blocker(
+                    &mut decision,
+                    "weibull_profile_requires_first_failure_life_request",
+                );
                 decision.disposition = Some(Disposition::ModelNotSupported);
             }
             if case.input_resolution != InputResolution::EventLevel {
-                add_blocker(&mut decision, "weibull_first_failure_requires_event_level_input");
+                add_blocker(
+                    &mut decision,
+                    "weibull_first_failure_requires_event_level_input",
+                );
                 decision.disposition = Some(Disposition::Indeterminate);
             }
         }
         ModelProfile::HomogeneousPoissonConstantIntensity => {
             if case.analysis_request == AnalysisRequest::FirstFailureLife {
-                add_blocker(&mut decision, "constant_intensity_profile_cannot_answer_first_failure_life_request");
+                add_blocker(
+                    &mut decision,
+                    "constant_intensity_profile_cannot_answer_first_failure_life_request",
+                );
                 decision.disposition = Some(Disposition::ModelNotSupported);
             }
             if case.analysis_request == AnalysisRequest::AssumptionChallenge
                 && case.input_resolution != InputResolution::EventLevel
             {
-                add_blocker(&mut decision, "aggregate_only_input_cannot_challenge_time_constant_assumption");
+                add_blocker(
+                    &mut decision,
+                    "aggregate_only_input_cannot_challenge_time_constant_assumption",
+                );
             }
         }
     }
@@ -298,7 +319,10 @@ fn evaluate_case(case: &AdmissibilityCase) -> Result<Decision, String> {
             || !present(&case.clock_calibration_ref)
             || !present(&case.maintenance_policy_ref))
     {
-        add_blocker(&mut decision, "missing_event_capture_clock_or_maintenance_reference");
+        add_blocker(
+            &mut decision,
+            "missing_event_capture_clock_or_maintenance_reference",
+        );
     }
 
     let mut record_ids = HashMap::<&str, &ArticleHistory>::new();
@@ -326,7 +350,10 @@ fn evaluate_case(case: &AdmissibilityCase) -> Result<Decision, String> {
         }
         if article_ids.contains_key(article.article_serial.as_str()) {
             decision.disposition = Some(Disposition::Disputed);
-            add_blocker(&mut decision, "multiple_rows_for_same_article_require_prior_aggregation");
+            add_blocker(
+                &mut decision,
+                "multiple_rows_for_same_article_require_prior_aggregation",
+            );
             continue;
         }
         record_ids.insert(&article.record_id, article);
@@ -340,13 +367,19 @@ fn evaluate_case(case: &AdmissibilityCase) -> Result<Decision, String> {
             || article.operating_mode_id != case.operating_mode_id
             || article.environment_profile_id != case.environment_profile_id
         {
-            add_blocker(&mut decision, "population_lot_configuration_mode_or_environment_mismatch");
+            add_blocker(
+                &mut decision,
+                "population_lot_configuration_mode_or_environment_mismatch",
+            );
         }
         if article.exposure_seconds == 0
             || article.reported_failure_events > MAX_EVENTS_PER_ARTICLE
             || !valid_digest(&article.raw_artifact_sha256)
         {
-            add_blocker(&mut decision, "invalid_exposure_event_count_or_artifact_digest");
+            add_blocker(
+                &mut decision,
+                "invalid_exposure_event_count_or_artifact_digest",
+            );
         }
         if !article.evidence_complete
             || !article.exposure_clock_verified
@@ -357,25 +390,40 @@ fn evaluate_case(case: &AdmissibilityCase) -> Result<Decision, String> {
             || !article.event_capture_complete
             || !article.data_loss_counter_verified
         {
-            add_blocker(&mut decision, "incomplete_measurement_clock_or_event_capture_evidence");
+            add_blocker(
+                &mut decision,
+                "incomplete_measurement_clock_or_event_capture_evidence",
+            );
         }
         if matches!(
             article.censoring,
             Censoring::Intervention | Censoring::InformativeWithdrawal | Censoring::Unknown
         ) {
-            add_blocker(&mut decision, "intervention_or_unresolved_informative_censoring");
+            add_blocker(
+                &mut decision,
+                "intervention_or_unresolved_informative_censoring",
+            );
         }
         if article.reported_failure_events > 0 && !article.maintenance_history_complete {
-            add_blocker(&mut decision, "incomplete_maintenance_or_restoration_history");
+            add_blocker(
+                &mut decision,
+                "incomplete_maintenance_or_restoration_history",
+            );
         }
 
         if case.input_resolution == InputResolution::AggregateCountExposure {
             if !article.events.is_empty() {
-                add_blocker(&mut decision, "aggregate_resolution_contains_unscoped_event_rows");
+                add_blocker(
+                    &mut decision,
+                    "aggregate_resolution_contains_unscoped_event_rows",
+                );
             }
         } else {
             if article.events.len() as u64 != article.reported_failure_events {
-                add_blocker(&mut decision, "event_rows_do_not_match_reported_failure_count");
+                add_blocker(
+                    &mut decision,
+                    "event_rows_do_not_match_reported_failure_count",
+                );
             }
             decision.event_level_records += 1;
             if article.reported_failure_events > 1 {
@@ -402,7 +450,10 @@ fn evaluate_case(case: &AdmissibilityCase) -> Result<Decision, String> {
                     || event.event_time_seconds > article.exposure_seconds
                     || prior_time.is_some_and(|previous| event.event_time_seconds <= previous)
                 {
-                    add_blocker(&mut decision, "event_time_order_window_or_definition_invalid");
+                    add_blocker(
+                        &mut decision,
+                        "event_time_order_window_or_definition_invalid",
+                    );
                 }
                 if event.effective_at > case.effective_cutoff
                     || event.recorded_at > case.knowledge_cutoff
@@ -415,7 +466,10 @@ fn evaluate_case(case: &AdmissibilityCase) -> Result<Decision, String> {
                         RestorationState::Unknown | RestorationState::ImperfectRepair
                     )
                 {
-                    add_blocker(&mut decision, "recurrent_event_restoration_semantics_unresolved_or_unsupported");
+                    add_blocker(
+                        &mut decision,
+                        "recurrent_event_restoration_semantics_unresolved_or_unsupported",
+                    );
                 }
                 prior_time = Some(event.event_time_seconds);
             }
@@ -451,24 +505,35 @@ fn evaluate_case(case: &AdmissibilityCase) -> Result<Decision, String> {
     }
 
     if decision.cluster_count < decision.article_count {
-        add_blocker(&mut decision, "shared_sampling_cluster_prevents_independent_article_claim");
+        add_blocker(
+            &mut decision,
+            "shared_sampling_cluster_prevents_independent_article_claim",
+        );
     }
     if decision.article_count < 2 {
         add_blocker(&mut decision, "fewer_than_two_distinct_articles");
     }
     if case.selected_profile == ModelProfile::WeibullFirstFailureLife
-        && unique_articles.iter().any(|article| article.reported_failure_events > 1)
+        && unique_articles
+            .iter()
+            .any(|article| article.reported_failure_events > 1)
     {
-        add_blocker(&mut decision, "recurrent_event_history_not_admissible_for_first_failure_weibull_profile");
+        add_blocker(
+            &mut decision,
+            "recurrent_event_history_not_admissible_for_first_failure_weibull_profile",
+        );
         decision.disposition = Some(Disposition::ModelNotSupported);
     }
     if case.selected_profile == ModelProfile::HomogeneousPoissonConstantIntensity
         && present(&case.maintenance_policy_ref)
-        && unique_articles
-            .iter()
-            .any(|article| article.reported_failure_events > 0 && !article.maintenance_history_complete)
+        && unique_articles.iter().any(|article| {
+            article.reported_failure_events > 0 && !article.maintenance_history_complete
+        })
     {
-        add_blocker(&mut decision, "repair_restoration_history_missing_for_recurrent_process");
+        add_blocker(
+            &mut decision,
+            "repair_restoration_history_missing_for_recurrent_process",
+        );
     }
 
     let hard_dispute = decision.disposition == Some(Disposition::Disputed);
@@ -499,7 +564,8 @@ fn evaluate_case(case: &AdmissibilityCase) -> Result<Decision, String> {
         decision.disposition = Some(Disposition::SupportedForAnalysis);
     }
 
-    decision.assumption_diagnostics_ready = case.analysis_request == AnalysisRequest::AssumptionChallenge
+    decision.assumption_diagnostics_ready = case.analysis_request
+        == AnalysisRequest::AssumptionChallenge
         && case.input_resolution == InputResolution::EventLevel
         && decision.disposition == Some(Disposition::SupportedForAnalysis)
         && decision.event_level_records == decision.article_count
@@ -639,11 +705,19 @@ mod tests {
             claim_ceiling: CLAIM_CEILING.to_owned(),
             authority_granted: false,
             summary: Summary {
-                case_count: 0, supported_for_analysis: 0, indeterminate: 0,
-                model_not_supported: 0, rejected: 0, disputed: 0, article_count: 0,
-                total_exposure_seconds: 0, total_failure_events: 0,
-                assumption_diagnostics_ready: 0, constant_intensity_confirmations: 0,
-                reliability_claims_granted: 0, expected_result_mismatches: 0,
+                case_count: 0,
+                supported_for_analysis: 0,
+                indeterminate: 0,
+                model_not_supported: 0,
+                rejected: 0,
+                disputed: 0,
+                article_count: 0,
+                total_exposure_seconds: 0,
+                total_failure_events: 0,
+                assumption_diagnostics_ready: 0,
+                constant_intensity_confirmations: 0,
+                reliability_claims_granted: 0,
+                expected_result_mismatches: 0,
             },
             cases: Vec::new(),
         };
