@@ -26,10 +26,10 @@ The most valuable South African starting wedge is a **locally serviceable applia
 
 ### 2.1 Energy-efficiency policy
 
-The Department of Electricity and Energy published a **draft National Energy Efficiency Strategy 2025–2035** in Government Gazette Notice 4221 on 30 October 2026. It is a draft policy proposal, not an enacted product requirement. The draft identifies outdated minimum energy performance standards and labels, insufficient accredited testing capacity, and opportunities in household appliances and industrial energy use. It states that thermal processes account for approximately 77% of industrial energy demand and discusses an industrial thermal-efficiency opportunity of approximately 40.7 PJ by 2035. These are draft-strategy estimates and targets, not verified savings available to a particular plant.
+The Department of Electricity and Energy published a **draft National Energy Efficiency Strategy 2025–2035** in Government Gazette Notice 4221 on 30 October 2026. It is a draft policy proposal, not an enacted product requirement. The draft identifies outdated minimum energy performance standards and labels, insufficient accredited testing capacity, and opportunities in household appliances and industrial energy use. It states that thermal processes account for approximately 77% of industrial energy demand. Separately, it estimates that the full set of industrial efficiency interventions could reduce industrial energy consumption by 40.7 PJ by 2035; that 40.7 PJ figure is the industry-sector total, not a thermal-process-only saving. These are draft-strategy estimates, not verified savings available to a particular plant.
 
 Sources:
-- Draft NEES notice: https://www.gov.za/documents/notices/electricity-and-energy-national-energy-efficiency-strategy-2025-2035-30-oct-2026
+- Draft NEES notice and Gazette PDF (Notice 4221, 30 October 2026): https://www.gov.za/sites/default/files/gcis_document/202610/55638gen4221.pdf
 - Department appliance labelling / MEPS programme: https://www.energy.gov.za/EEE/Appliances.html
 
 **Engineering implication:** do not stop at domestic product labels. Create a measurement capability that spans household appliances and industrial utility systems. For factories, measure useful thermal service, hydraulic service and delivered compressed air at the process boundary—not just motor nameplate efficiency.
@@ -38,12 +38,13 @@ Sources:
 
 The South African compulsory-specification and Letter of Authority (LOA) pathway is product-category and model specific. NRCS guidance identifies household electrical appliances in the VC 8055 scope as regulated products, with an LOA required before import where applicable. An overseas test report, an IEC/CB report, an SABS mark, an NRCS LOA, a manufacturer declaration and an internal engineering measurement are separate evidence objects; none should be substituted for another.
 
-The August 2026 amendment to VC 9008 (energy-efficiency and labelling requirements for specified electrical and electronic apparatus) provides phased implementation. The published schedule should be read from the exact notice and annex for each product class; the phase dates are not a substitute for checking the current product list, threshold, label format, scope and any subsequent amendment.
+The 2026 amendment to VC 9008 appears in Government Gazette 55257 (28 August 2026). An Acts Online transcription identifies it as Notice 7859 of 2026 and states that Phase 1 takes effect 12 months after publication and Phase 2 24 months after publication. On the Gazette date, those intervals fall on 28 August 2027 and 28 August 2028 respectively; confirm the numbering, transitional clauses and exact product schedule against the Gazette original before making a market-placement decision. The published schedule must be checked for the specific product class, MEPS threshold, test standard, label and scope.
 
 Sources:
 - NRCS compulsory specifications: https://www.nrcs.org.za/compulsory-specifications/
 - NRCS LOA information: https://www.nrcs.org.za/letter-of-authority/
-- VC 9008 amendment, Government Gazette 55257, Notice 7859, 28 August 2026: https://www.gov.za/documents/notices/national-regulator-compulsory-specification-vc-9008-amendment-28-aug-2026
+- Official Government notice index (Government Gazette 55257, 28 August 2026): https://www.gov.za/documents/notices?%3Bpage=1&page=15
+- Searchable text of the 2026 VC 9008 amendment (Acts Online transcription; verify against the Gazette original): https://www.acts.co.za/national_/n7859_notice_no__7859_of_2026
 
 **Gate before any South African market claim:** for the exact manufacturer, brand, model/SKU, hardware revision, rated voltage/frequency, intended use and importer, obtain a competent applicability determination. Capture the applicable VC/SANS/IEC edition, LOA holder and scope where required, test report scope, importer/warranty obligations, plug/cord compatibility, EMC/radio scope where connected, and product-specific energy-labelling status. A component certificate does not certify the assembled appliance.
 
@@ -70,12 +71,12 @@ This is a starting map, not a determination of applicable law. The exact product
 | Industrial energy management | ISO 50001:2018 | Management-system standard, not product certification or a guaranteed savings claim. |
 
 Reference pages:
-- IEC 60335-1: https://webstore.iec.ch/en/publication/61880
-- IEC 60335-2-7: https://webstore.iec.ch/en/publication/68212
-- IEC 60335-2-5: https://webstore.iec.ch/en/publication/70648
-- IEC 60335-2-24: https://webstore.iec.ch/en/publication/70785
-- IEC 60335-2-40: https://webstore.iec.ch/en/publication/71914
-- IEC 60034-30-1: https://webstore.iec.ch/en/publication/70780
+- IEC 60335-1:2020+AMD1:2025 consolidated record: https://webstore.iec.ch/en/publication/85018
+- IEC 60335-2-7:2024: https://webstore.iec.ch/en/publication/80076
+- IEC 60335-2-5:2025: https://webstore.iec.ch/en/publication/101702
+- IEC 60335-2-24:2025: https://webstore.iec.ch/en/publication/75938
+- IEC 60335-2-40:2024+AMD1:2026 consolidated record: https://webstore.iec.ch/en/publication/104758
+- IEC 60034-30-1:2025: https://webstore.iec.ch/en/publication/91195
 - ISO 9906: https://www.iso.org/standard/41202.html
 - ISO 1217: https://www.iso.org/standard/35807.html
 - ISO 50001: https://www.iso.org/standard/69426.html
@@ -88,16 +89,16 @@ The following are published voluntary US ENERGY STAR thresholds and programmes. 
 
 | Product | Published reference threshold | How to use it responsibly |
 |---|---|---|
-| Front-load clothes washer | ENERGY STAR Version 8.1: IMEF ≥ 2.76 and IWF ≤ 3.2 | Convert the rating into a locally relevant test basket; compare actual cleaning/rinsing, kg dry load, water and energy at matched programme and temperature. |
+| Front-load clothes washer | ENERGY STAR current published criteria page: IMEF ≥ 2.76 and IWF ≤ 3.2 for front-loading residential washers over 2.5 cu ft | Convert the rating into a locally relevant test basket; compare actual cleaning/rinsing, kg dry load, water and energy at matched programme and temperature. |
 | Standard-size dishwasher | ENERGY STAR: ≤ 240 kWh/year and ≤ 3.2 US gal/cycle for standard-size products | Keep capacity/place settings and cleaning/rinse outcome matched; annual use assumptions and local use patterns differ. |
 | Integrated electric heat-pump water heater | ENERGY STAR: UEF ≥ 3.30; First Hour Rating ≥ 45 US gal/h | Report delivered hot-water temperature, draw profile, ambient condition, standby/recovery, noise and backup-element use, not UEF alone. |
-| Refrigerator/freezer | ENERGY STAR Most Efficient 2025 has subtype-specific thresholds; for a standard-size refrigerator-freezer example, annual energy threshold is ≤ 637 kWh/year | Do not apply one kWh/year number across different capacities, configurations, ice makers or freezer arrangements. Normalize by usable volume and thermal service. |
+| Refrigerator/freezer | ENERGY STAR Most Efficient 2025 recognizes standard-size refrigerator-freezers and freezers at AEC ≤ 637 kWh/year; non-top-freezer refrigerator-freezers must also be at least 27% more efficient than the US federal requirement | Do not apply one kWh/year number across different capacities, configurations, ice makers or freezer arrangements. Normalize by usable volume and thermal service. |
 
 Sources:
-- ENERGY STAR clothes washers: https://www.energystar.gov/products/clothes_washers
+- ENERGY STAR clothes washer key product criteria: https://www.energystar.gov/products/clothes_washers/key_product_criteria
 - ENERGY STAR dishwashers: https://www.energystar.gov/products/dishwashers
 - ENERGY STAR residential water heaters: https://www.energystar.gov/products/water_heaters
-- ENERGY STAR Most Efficient refrigerators: https://www.energystar.gov/products/most_efficient/refrigerators
+- ENERGY STAR Most Efficient 2025 criteria PDF: https://www.energystar.gov/sites/default/files/2024-09/Consumer%20Refrigeration%20Products%20ENERGY%20STAR%20Most%20Efficient%202025%20Criteria.pdf
 
 For any product class not shown above, do not invent a threshold. Identify the current local requirement, best independent product dataset, product-specific test method and a frozen competitor set before setting a numeric comparison claim.
 
