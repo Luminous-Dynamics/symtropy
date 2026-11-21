@@ -90,7 +90,7 @@
           },
           "aerial_service_capacity_units": {
             "type": "integer",
-            "minimum": 1,
+            "minimum": 0,
             "maximum": 1000000
           },
           "road_cost_per_unit": {
@@ -110,7 +110,7 @@
     },
     "reposition_links": {
       "type": "array",
-      "minItems": 2,
+      "minItems": 0,
       "maxItems": 6,
       "items": {
         "type": "object",
