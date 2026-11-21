@@ -36,6 +36,7 @@
     "zero_drift_limit",
     "negative_drag_coefficient_rejected",
     "anti_drag_impulse_rejected",
+    "negative_frictional_work_rejected_even_with_relaxed_impulse_tolerance",
     "equal_opposite_wrong_magnitude_rejected",
     "duplicate_event_id_rejected",
     "non_finite_drift_and_invalid_tolerance_rejected",
