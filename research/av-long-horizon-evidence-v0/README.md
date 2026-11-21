@@ -1,0 +1,245 @@
+# AV Long-Horizon Evidence Memory Benchmark v0
+
+**Issue:** #6357  
+**AV consumer:** Symthaea #12837  
+**Memory owner:** Symthaea #10644  
+**As-known evidence:** Symthaea #9075 / #9177  
+**Replay:** Symtropy #6183 / #6201  
+**Foreground/background isolation:** Symtropy #6249  
+**Decision-valued observation:** Symtropy #6222 / #6225  
+**Modality necessity:** Symtropy #6305 / PR #6307
+
+## Objective
+
+Evaluate whether a continuous audiovisual system can retrieve events after long delays, preserve exact source provenance, distinguish similar events, apply corrections and revocations, and resist false memories after compression and distraction.
+
+This is a first data-plane tranche: strict schema, synthetic candidate-visible workload, evaluator-only truth, expected known-answer labels and exact-head fixture integrity. It does not implement a memory engine or claim model performance.
+
+## Why this matters
+
+DIVE (October 2026) reports 525 full-duplex AV evaluation instances across six tasks. Its authors explicitly identify persistent multimodal memory, long-range dependencies and longer-duration interaction as areas outside its current scope. OmniInteract includes 368 continuous 1QnA slots across 250 videos and reports weak performance on that task class. StreamArena supplies a separate long-horizon online perception, retrospection, proactive and tool-use comparison.
+
+Our contribution should test more than whether a summary contains a noun. It should test whether a system can recover the correct event, the actual observation supporting it, its measurement time and clock generation, later corrections, dependency lineage and current eligibility.
+
+References:
+- DIVE: https://arxiv.org/abs/2610.28405
+- OmniInteract: https://aclanthology.org/2026.emnlp-main.490/
+- StreamArena: https://github.com/JIA-Lab-research/StreamArena
+
+## Data planes
+
+- fixtures/agent/workload-v1.json: synthetic observation stream and future query. A real consumer must receive events incrementally at their declared availability tick; it must not mount the entire future timeline.
+- fixtures/evaluator-only/truth-v1.json: hidden answer, required source references, supersession/revocation truth and dependence labels.
+- fixtures/expected/known-answer-v1.json: finite evaluator-known answers for schema/integrity development.
+
+This repository is public. The evaluator-only fixture is logically separate but **not secret or a blind holdout**. A genuine blind test must use evaluator-controlled media/truth storage, separate credentials and a process/container boundary with no candidate access to truth, logs or build artifacts.
+
+Every digest is a placeholder commitment for metadata contract tests. No PCM or RGB bytes, physical capture or calibrated sensors are included.
+
+## Initial scenarios and temporal checkpoint extensions
+
+1. Delayed recall after ten minutes.
+2. Repeated-event disambiguation with a duplicate transport delivery that reuses the original observation identity.
+3. A correction that supersedes an earlier observation while preserving both revisions.
+4. Audio/video views sharing one source-dependency group.
+5. A rare early event amid later nuisance observations.
+6. An absent event that must not be hallucinated.
+7. Independent clock domains and reset generations that must remain incomparable without a qualified transform.
+8. Revocation of an earlier observation, making that evidence ineligible for later retrieval.
+9. Retrieval of a rare early event under a constrained memory budget and many intervening distractors.
+
+The timeline contains availability ticks, not wall-clock latency measurements. A correction or revocation becomes effective only at its declared event availability. A replayed observation does not become a new source event. A summary cannot override the original evidence references or clock identity.
+
+## Memory conditions to compare
+
+The workload declares four comparison lanes:
+- recent-window only;
+- summary-only;
+- episodic retrieval using existing Symthaea ownership;
+- source-linked evidence ledger.
+
+These are evaluation conditions, not implementations added by this PR. Compare identical streams, query ticks, model/runtime revisions, hardware, seeds and memory budgets. Keep offline hindsight analysis separate from online causal ingestion.
+
+## Required future scorecard
+
+Report separately:
+- exact event-identity accuracy by horizon;
+- answer accuracy and abstention/coverage;
+- observation-citation precision and provenance completeness;
+- temporal localization and event-order accuracy;
+- duplicate-delivery counting errors;
+- correction/supersession correctness at each as-of time;
+- false-memory rate for absent events and distractor substitutions;
+- common-cause double-count rate;
+- cross-clock claims made without a qualified transform;
+- revoked/expired evidence retrieval rate;
+- retention versus memory bytes/tokens and retrieval latency;
+- p50/p95/p99 latency and energy only from measured runs.
+
+An answer without correct source lineage is not a fully qualified evidence retrieval. A no-answer decision when evidence is missing is distinct from a correct event answer.
+
+## Proposed research targets (not achieved)
+
+- 100% exact replay of frozen synthetic streams.
+- 100% correction/supersession and revocation known-answer compliance.
+- Zero duplicate-event inflation from a replayed transport delivery.
+- Zero retrieval of revoked/expired evidence as admissible support.
+- Zero false positive for absent-event and explicit distractor controls.
+- At least 95% exact event identity on finite synthetic known-answer fixtures.
+- At least 95% source-citation correctness, including interval and clock generation.
+- Publish quality/coverage/latency degradation curves at 1 / 5 / 15 / 60-minute horizons.
+- At matched answer quality, target materially lower retained memory bytes than a naive rolling-context baseline without loss of event/citation recall; quantify the Pareto frontier rather than claim from synthetic placeholders.
+
+Targets must be calibrated against a powered held-out corpus and independent labels. The synthetic 11-case suite is contract scaffolding, not a SOTA benchmark submission.
+
+## Ownership and limits
+
+This tranche reuses #10644, #9075/#9177, #6249 and #6201. It does not create a second memory index, event graph, clock service, scheduler, compression algorithm, sensor pipeline or retrieval system. Passing fixture integrity validates metadata semantics only; it does not validate real model memory, physical AV evidence, user deletion propagation, privacy, latency or SOTA superiority.
+
+## Next implementation
+
+1. Add a candidate-submission contract for answers, abstention, cited observation refs, as-of tick, and memory condition.
+2. Add a deterministic evaluator for answer correctness, source citation, event ordering, supersession, duplicate delivery, false memory and revocation.
+3. Add a matched memory-condition tournament under exact memory/token budgets.
+4. Connect the existing Symthaea memory owner and causal AV consumer without duplicating their runtime systems.
+5. Move truth/media to a restricted evaluation service for blind, rights-qualified tests.
+
+## Candidate submission and deterministic evaluator (v1)
+
+The first evaluator tranche is now implemented:
+
+- schemas/submission-v1.schema.json: candidate policy answer/abstention, confidence, memory condition, cited and current observation references, independence/cross-clock claims and evidence/response ticks.
+- schemas/scorecard-v1.schema.json: answer/decision accuracy, coverage, selective accuracy, source-citation completeness/precision, hard violations and deadline misses.
+- tools/av-long-horizon-evidence-evaluator/evaluate.py: standard-library-only deterministic scorer.
+- tools/av-long-horizon-evidence-evaluator/test_evaluate.py: adversarial cases for duplicate delivery, source identity, correction/supersession, common-cause dependence, absent-event false memory, clock incomparability, revocation, citations and timing.
+- fixtures/agent/reference-submission-v1.json: authored finite reference evidence-ledger policy.
+- fixtures/expected/reference-scorecard-summary-v1.json: frozen reference totals.
+- The exact-head workflow now validates both schemas, runs the evaluator test suite, scores the reference submission and compares the expected totals.
+
+Run the reference scorer:
+
+    python3 tools/av-long-horizon-evidence-evaluator/evaluate.py \
+      --workload research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json \
+      --truth research/av-long-horizon-evidence-v0/fixtures/evaluator-only/truth-v1.json \
+      --submission research/av-long-horizon-evidence-v0/fixtures/agent/reference-submission-v1.json \
+      --output /tmp/av-long-horizon-reference-scorecard.json
+
+The evaluator requires the submission's evidence cutoff to equal the query tick. This prevents a policy from moving the evidence horizon backwards to make required observations appear unavailable. It verifies citations against the actual stream, requires required source references for answers, tracks the original observation identity across duplicate delivery, rejects revoked evidence after revocation, rejects superseded observations as the current state, and detects false independent-corroboration and cross-clock-order claims.
+
+The finite reference submission now produces ten correct event answers and one correct absent-event abstention: 10/11 answer accuracy, 10/11 coverage, 11/11 safe-decision accuracy, 11/11 complete source-citation sets, zero hard violations and zero deadline misses. This includes a pre-correction checkpoint and a pre-revocation checkpoint. The mean citation precision is 8.5/9 because the correction case intentionally cites both the superseded historical observation and the current replacement while marking only the replacement as current. These values are synthetic evaluator known answers, not learned-model scores.
+
+### Interpretation boundaries
+
+- Historical evidence may remain cited to explain a correction, but the superseded source cannot be claimed as current.
+- Revoked evidence cannot remain eligible support after the revocation event becomes available.
+- Re-delivery of the same observation reference is not a new event; distinct-event counts operate on unique source observation identities, not transport deliveries.
+- An absent-event query is a success only when the policy abstains without inventing a supporting observation.
+- Within-clock sequence reasoning does not license cross-clock ordering. Different domains/generations remain incomparable until an existing owner supplies a qualified transform.
+- The current scorecard does not yet compare the four memory conditions or measure memory bytes, retrieval latency or energy. Those will require a separate matched run envelope and measured telemetry.
+
+### Four-condition memory tournament known-answer correction
+
+The exact-head Actions run on 20 November 2026 completed workload/schema checks, all 16 then-current long-horizon evaluator tests, all 7 matched-memory tournament tests, both score-generation steps and scorecard schema validation. The 21 November evaluator hardening adds nine more long-horizon adversarial tests; these are being checked on the latest exact head. Its final comparison exposed that the frozen summary-only expected row understated the stricter evaluator's result. The expected fixture has now been corrected to the computed known answer:
+
+- summary-only answer accuracy: 2/9 (0.2222);
+- safe-decision accuracy: 3/9 (0.3333);
+- coverage: 8/9 (0.8889);
+- citation precision/recall: 0.8 / 0.8;
+- provenance completeness: 4/9 (0.4444);
+- evidence compliance: 4/9 (0.4444);
+- false-memory count: 6;
+- hard violations: 6.
+
+The six violation count is not the same as the number of non-compliant episodes: one revocation episode carries two distinct failures—reuse/residue of revoked evidence and failure to cite the still-required current public observation. Other failures are the superseded state used as current, the common-cause views claimed independent, unsupported cross-clock ordering, and substitution of a later nuisance event for the rare target event. The corrected expected summary changes only the summary-only evidence-compliance rate and hard-violation count; task/citation outcomes remain unchanged. This is an evaluator known-answer correction, not evidence that any learned memory system has achieved these scores.
+
+
+A second exact-head scoring correction records the current episodic-retrieval reference as **3 hard-violation codes across 2 non-compliant episodes**, not 2 codes. The correction case contributes one code for marking the superseded observation as current. The revocation case contributes two distinct codes: post-revocation evidence/derived-memory reuse, and omission of the still-required eligible public-action observation. The episode count and violation-code count are deliberately different metrics. This correction aligns the expected fixture with the evaluator's fail-closed semantics; it does not alter the underlying policy fixture or convert its failures into passes.
+
+
+## Expanded long-horizon benchmark comparison (21 November 2026)
+
+The closest external comparison is no longer a short-context video-QA benchmark:
+
+| Benchmark | Scale / result | Relevance and limitation |
+|---|---|---|
+| **4DMemory / LongVideo (October 2026)** | About 900 video hours and 5,000+ manually reviewed questions; authors report a harness with four skills and 22+ specialist models that improves tested foundation-model results by over 50% | The most important scale reference for long-horizon visual/spatiotemporal memory; does not by itself evaluate our source revocation, clock admissibility or derived-memory lineage |
+| **EgoMemReason (May 2026)** | 500 questions over week-long egocentric video; about 25.9 hours average evidence backtracking; best reported overall accuracy 39.6% | Tests entity, event and behavior memory across days; useful external memory stress test, but visual-only and a different task protocol |
+| **StreamArena (2026)** | Long-horizon online perception, retrospection, proactive interaction and tool-use evaluations | A strong online agent comparison; keep its official task splits and scoring |
+| **OmniInteract (EMNLP 2026)** | 250 videos / 1,430 response slots; best reported continuous 1QnA IA-QTF1 0.052 | Measures sustained monitoring and interaction timing rather than only delayed factual recall |
+| **DIVE (October 2026)** | 525 AV samples / six task types; leading mean response-window rate 53.77% despite sub-second average latency | Measures full-duplex participation and response timing; not a long-term storage-erasure benchmark |
+
+Sources:
+- 4DMemory: https://arxiv.org/abs/2610.32332
+- EgoMemReason: https://arxiv.org/abs/2605.09874
+- StreamArena: https://github.com/JIA-Lab-research/StreamArena
+- OmniInteract: https://aclanthology.org/2026.emnlp-main.490/
+- DIVE: https://arxiv.org/abs/2610.28405
+
+### Competitive strategy
+
+Reproduce 4DMemory and EgoMemReason using their official data/protocols where rights and access permit. Compare:
+- standalone foundation models;
+- recent-window and long-context baselines;
+- summary-and-retrieve;
+- event/episodic retrieval;
+- specialist harnesses and model-specific RAG;
+- Symthaea memory owner with evidence-ledger qualification.
+
+Then apply our additional orthogonal challenge suite: source citations, exact as-of time, duplicate event identity, correction/supersession, clock-domain incomparability, common-cause dependence, revocation and post-revocation residual probes. Do not call this "better than 4DMemory" merely because a nine-case synthetic set measures additional properties. The claim requires official benchmark reproduction plus independent long-horizon adversarial evidence tests.
+
+A meaningful next result would be non-inferior answer/event recall on 4DMemory/EgoMemReason at materially lower measured retained-memory and retrieval cost, while passing provenance/correction/revocation gates that the external protocol does not currently score.
+
+
+## Evidence-qualified answer metric and evaluator hardening (21 November 2026)
+
+The evaluator now publishes an additional **evidence-qualified answer accuracy** metric. It counts an answer only when the answer is correct, every required current source reference is present and admissible, provenance is complete, and the evidence contract has no violations. Raw answer accuracy, safe-decision accuracy, coverage, citation precision/recall and evidence-qualified accuracy remain separate. This prevents a lucky guess from being described as a successful evidence retrieval.
+
+The synthetic four-condition reference tournament's known-answer evidence-qualified accuracies are:
+- recent-window: 4/9;
+- summary-only: 2/9;
+- episodic retrieval: 6/9;
+- evidence ledger: 8/9.
+
+These figures are outcomes of hand-authored synthetic fixture policies, not learned memory systems or external benchmark scores.
+
+Further hardening validates that duplicate deliveries preserve the exact immutable observation identity: modality set, content digest, capture tick, source dependency group, clock-domain ID and clock generation. The stream's availability ticks must be monotonically ordered. Derived-memory lineage is validated as an acyclic dependency graph; unknown source dependencies, unknown parents, temporal ancestry violations and cycles fail closed.
+
+Purge receipts remain explicitly **candidate-self-reported**. A completed synthetic purge-claim check is not independent proof that bytes were erased from live storage, indexes, backups, caches or external providers. Real deletion qualification needs independent storage/provider receipts and post-revocation residual probes in an isolated evaluator.
+
+
+## As-known-before-change checkpoint extension (21 November 2026)
+
+The first nine episodes tested correction and revocation after those control events had become available. That left an important temporal-state gap: systems also need to preserve the previously valid state before a future correction or revocation arrives.
+
+Two paired checkpoint episodes are now included, taking the synthetic fixture set from nine to eleven:
+
+10. **Correction-before-arrival:** the initial machine-state observation is available at tick 0; a replacement observation arrives at tick 600; the correction becomes available at tick 601; the query is fixed at tick 300. The correct answer must use the initial observation as the current state. The later correction must not leak backward.
+11. **Revocation-before-effect:** a private audio observation is available at tick 0, a public video action at tick 120, and a derived summary at tick 600; the revocation only arrives at tick 1800; the query is tick 1200. The private observation remains eligible at that earlier checkpoint. Once the revocation is available, the original post-revocation case still requires it and all derived descendants to become ineligible and be purged.
+
+The timeline is a stored synthetic replay fixture, not permission to expose future events to the online candidate. A real candidate receives only the causal prefix through the current query tick. The evaluator may hold the full fixture and applies corrections/revocations only when their availability tick is at or before the prediction's as-of tick.
+
+The exact-head fixture workflow now allows future control events to remain in the stored stream while verifying:
+- stream availability order is monotonic;
+- event identities are unique;
+- correction source and replacement observations existed before the correction event;
+- revocation target existed before the revocation event;
+- every truth-required source observation was available by that episode's query tick.
+
+The evidence-ledger reference known-answer score is now 10/11 answers, 11/11 safe decisions, 10/11 coverage, 11/11 complete provenance, zero false memories and zero hard evidence violations. The four-condition tournament reference summary has been updated for 11 matched episodes. All remain hand-authored synthetic policy checks, not model scores or blind-set results.
+
+The paired checkpoints make temporal qualification stricter: a system may neither apply a future correction too early nor retain a revoked source after the revocation becomes effective. Both error directions matter.
+
+
+## New spatial-instance memory comparison: EgoWitness (19 November 2026)
+
+The external long-horizon landscape now includes EgoWitness (arXiv:2611.25849), a new instance-level spatial-memory benchmark. It reports 8,453 human-verified questions across about 324 hours, seven abilities, more than one million reviewed masks, 34 registered landmarks and 21 movable-object labels. The paper reports a 46.97% direct open-weight VLM maximum, with no model above 35% on the “who last saw this object?” task. Its trained EgoClue 4B controller reports 72.65% on 1,320 held-out week-long questions; evidence-trace synthesis reports 74.85% on that same week-long slice and 80.56% on a separate 787-question cross-environment slice.
+
+These are separate task/system slices and must not be averaged or compared as one number. EgoWitness emphasizes stable physical-instance identity, cross-view and cross-wearer evidence, room anchors and visit reasoning. Our event-memory stream schema alone does not test those properties; a separate adapter and synthetic contract now lives in Symtropy issue #6574 / draft PR #6576.
+
+References:
+- EgoWitness paper: https://arxiv.org/abs/2611.25849
+- Existing related benchmark owner: Symtropy #4414 (RoboCasa-Mem; mobile-manipulation memory is complementary, not the same protocol)
+
+The EgoWitness media, masks and annotations are not imported by either PR. Exact upstream release revision, source-video rights, mask/annotation licence and derivative rights remain to be audited per artefact. Public paper facts do not authorize copying or training on the underlying recordings.
+
+The competitive path is now: (1) reproduce official EgoWitness and EgoMemReason scores under their own protocols where the datasets are lawfully accessible; (2) compare against direct VLM, recent-window, summary, retrieval and specialist-tool agents with matched budgets; and (3) add our independent provenance, as-known time, false-merge/split, correction, revocation and causal-evidence checks. The latter enrich the qualification profile but do not replace the official benchmark score.

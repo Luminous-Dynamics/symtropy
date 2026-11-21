@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-long-horizon-evidence-v0",
+  "status": "synthetic_reference_tournament_known_answer_only",
+  "comparison_id": "synthetic-memory-tournament-v1",
+  "per_condition": {
+    "recent_window": {
+      "answer_accuracy": 0.5454545454545454,
+      "decision_accuracy": 0.6363636363636364,
+      "coverage": 0.5454545454545454,
+      "selective_accuracy": 1,
+      "citation_precision": 1,
+      "citation_recall": 0.5882352941176471,
+      "provenance_complete_rate": 0.6363636363636364,
+      "evidence_compliance_rate": 1,
+      "false_memory_count": 0,
+      "hard_violation_count": 0,
+      "evidence_qualified_answer_accuracy": 0.5454545454545454
+    },
+    "summary_only": {
+      "answer_accuracy": 0.36363636363636365,
+      "decision_accuracy": 0.45454545454545453,
+      "coverage": 0.9090909090909091,
+      "selective_accuracy": 0.4,
+      "citation_precision": 0.8235294117647058,
+      "citation_recall": 0.8235294117647058,
+      "provenance_complete_rate": 0.5454545454545454,
+      "evidence_compliance_rate": 0.5454545454545454,
+      "false_memory_count": 6,
+      "hard_violation_count": 6,
+      "evidence_qualified_answer_accuracy": 0.36363636363636365
+    },
+    "episodic_retrieval": {
+      "answer_accuracy": 0.7272727272727273,
+      "decision_accuracy": 0.8181818181818182,
+      "coverage": 0.9090909090909091,
+      "selective_accuracy": 0.8,
+      "citation_precision": 0.8823529411764706,
+      "citation_recall": 0.8823529411764706,
+      "provenance_complete_rate": 0.8181818181818182,
+      "evidence_compliance_rate": 0.8181818181818182,
+      "false_memory_count": 2,
+      "hard_violation_count": 3,
+      "evidence_qualified_answer_accuracy": 0.7272727272727273
+    },
+    "evidence_ledger": {
+      "answer_accuracy": 0.9090909090909091,
+      "decision_accuracy": 1,
+      "coverage": 0.9090909090909091,
+      "selective_accuracy": 1,
+      "citation_precision": 1,
+      "citation_recall": 1,
+      "provenance_complete_rate": 1,
+      "evidence_compliance_rate": 1,
+      "false_memory_count": 0,
+      "hard_violation_count": 0,
+      "evidence_qualified_answer_accuracy": 0.9090909090909091
+    }
+  },
+  "paired": {
+    "vs_recent_window": {
+      "ledger_answer_wins": 4,
+      "baseline_answer_wins": 0,
+      "ties": 7,
+      "ledger_provenance_wins": 4,
+      "baseline_provenance_wins": 0
+    },
+    "vs_summary_only": {
+      "ledger_answer_wins": 6,
+      "baseline_answer_wins": 0,
+      "ties": 5,
+      "ledger_provenance_wins": 5,
+      "baseline_provenance_wins": 0
+    },
+    "vs_episodic_retrieval": {
+      "ledger_answer_wins": 2,
+      "baseline_answer_wins": 0,
+      "ties": 9,
+      "ledger_provenance_wins": 2,
+      "baseline_provenance_wins": 0
+    }
+  }
+}
