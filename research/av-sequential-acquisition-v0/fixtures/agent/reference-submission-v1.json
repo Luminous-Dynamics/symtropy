@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-sequential-acquisition-v0",
+  "policy_id": "finite-reference-policy-v1",
+  "run_id": "synthetic-known-answer-v1",
+  "predictions": [
+    {
+      "episode_id": "sa-001-eig-trap",
+      "actions": [
+        {
+          "action_id": "hazard_cue",
+          "request_tick": 0,
+          "arrival_tick": 1,
+          "outcome_id": "cue"
+        }
+      ],
+      "decision": "warn",
+      "response_tick": 1
+    },
+    {
+      "episode_id": "sa-002-sequential-complementarity",
+      "actions": [
+        {
+          "action_id": "read_x",
+          "request_tick": 0,
+          "arrival_tick": 1,
+          "outcome_id": "x0"
+        },
+        {
+          "action_id": "read_y",
+          "request_tick": 1,
+          "arrival_tick": 2,
+          "outcome_id": "y0"
+        }
+      ],
+      "decision": "same_bits",
+      "response_tick": 2
+    },
+    {
+      "episode_id": "sa-003-deadline-inversion",
+      "actions": [
+        {
+          "action_id": "quick_audio_cue",
+          "request_tick": 0,
+          "arrival_tick": 1,
+          "outcome_id": "cue"
+        }
+      ],
+      "decision": "warn",
+      "response_tick": 1
+    },
+    {
+      "episode_id": "sa-004-permission-fallback",
+      "actions": [
+        {
+          "action_id": "audio_triage",
+          "request_tick": 0,
+          "arrival_tick": 1,
+          "outcome_id": "cue"
+        }
+      ],
+      "decision": "contain",
+      "response_tick": 1
+    }
+  ]
+}
