@@ -1,0 +1,12 @@
+[package]
+name = "gauge-contact-conformal-score"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Complete-trial pose scoring adapter for episode-level split conformal calibration"
+
+[dependencies]
+loco-episode-conformal = { path = "../loco-episode-conformal-v0" }
+
+[workspace]
