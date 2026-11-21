@@ -347,8 +347,7 @@ fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
                 "regions[{index}].region_id: nonempty unique identity required"
             ));
         }
-        if region.aerial_service_capacity_units == 0
-            || region.road_capacity_units > 1_000_000
+        if region.road_capacity_units > 1_000_000
             || region.aerial_service_capacity_units > 1_000_000
         {
             errors.push(format!(
@@ -360,14 +359,13 @@ fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
         errors.push("initial_aircraft_region_id: references unknown region".into());
     }
 
-    let expected_links = input
+    let maximum_links = input
         .regions
         .len()
         .saturating_mul(input.regions.len().saturating_sub(1));
-    if input.reposition_links.len() != expected_links {
+    if input.reposition_links.len() > maximum_links {
         errors.push(format!(
-            "reposition_links: expected {expected_links} directed links for complete regional connectivity, got {}",
-            input.reposition_links.len()
+            "reposition_links: at most {maximum_links} unique directed links are allowed"
         ));
     }
     let mut links = BTreeSet::new();
@@ -646,59 +644,35 @@ fn simulate_scenario(
                         )?;
                     }
                 } else {
-                    let link = reposition_link(input, &aircraft_region, target)
-                        .ok_or_else(|| "reposition link missing after validation".to_string())?;
-                    let origin_observation = observation_for_region(period, &aircraft_region)?;
-                    let target_observation = observation_for_region(period, target)?;
-                    let route_domain_clear = flight_domain_is_current(
-                        origin_observation.weather,
-                        origin_observation.permission,
-                    ) && flight_domain_is_current(
-                        target_observation.weather,
-                        target_observation.permission,
-                    );
-                    if link.evidence_status != SharedEvidenceStatus::FreshInDomain
-                        || !route_domain_clear
-                    {
-                        checked_add(
-                            &mut metrics.hard_gate_blocked_actions,
-                            1,
-                            "hard-gate blocked actions",
-                        )?;
-                    } else if energy
-                        .checked_sub(link.energy_units)
-                        .is_none_or(|remaining| remaining < input.protected_energy_reserve_units)
-                    {
-                        checked_add(
-                            &mut metrics.energy_blocked_actions,
-                            1,
-                            "energy-blocked actions",
-                        )?;
+                    if let Some(link) = reposition_link(input, &aircraft_region, target) {
+                        let origin_observation = observation_for_region(period, &aircraft_region)?;
+                        let target_observation = observation_for_region(period, target)?;
+                        let route_domain_clear = flight_domain_is_current(
+                            origin_observation.weather,
+                            origin_observation.permission,
+                        ) && flight_domain_is_current(target_observation.weather, target_observation.permission);
+                        if link.evidence_status != SharedEvidenceStatus::FreshInDomain || !route_domain_clear {
+                            checked_add(&mut metrics.hard_gate_blocked_actions, 1, "hard-gate blocked actions")?;
+                        } else if energy
+                            .checked_sub(link.energy_units)
+                            .is_none_or(|remaining| remaining < input.protected_energy_reserve_units)
+                        {
+                            checked_add(&mut metrics.energy_blocked_actions, 1, "energy-blocked actions")?;
+                        } else {
+                            energy = energy
+                                .checked_sub(link.energy_units)
+                                .ok_or_else(|| "reposition energy underflow after validation".to_string())?;
+                            checked_add(&mut metrics.reposition_energy_units, u128::from(link.energy_units), "reposition energy")?;
+                            checked_add(&mut metrics.reposition_cost_units, u128::from(link.cost_units), "reposition cost")?;
+                            add_cost(&mut metrics, u128::from(link.cost_units))?;
+                            checked_add(&mut metrics.repositioning_events, 1, "repositioning events")?;
+                            checked_add(&mut metrics.repositioning_periods, 1, "repositioning periods")?;
+                            // v0.1 reserves the complete decision period for repositioning.
+                            // The target region can only be served from the next period onward.
+                            aircraft_region = target.clone();
+                        }
                     } else {
-                        energy = energy.checked_sub(link.energy_units).ok_or_else(|| {
-                            "reposition energy underflow after validation".to_string()
-                        })?;
-                        checked_add(
-                            &mut metrics.reposition_energy_units,
-                            u128::from(link.energy_units),
-                            "reposition energy",
-                        )?;
-                        checked_add(
-                            &mut metrics.reposition_cost_units,
-                            u128::from(link.cost_units),
-                            "reposition cost",
-                        )?;
-                        add_cost(&mut metrics, u128::from(link.cost_units))?;
-                        checked_add(&mut metrics.repositioning_events, 1, "repositioning events")?;
-                        checked_add(
-                            &mut metrics.repositioning_periods,
-                            1,
-                            "repositioning periods",
-                        )?;
-                        aircraft_period_used = true;
-                        // v0.1 reserves the complete decision period for repositioning.
-                        // The target region can only be served from the next period onward.
-                        aircraft_region = target.clone();
+                        checked_add(&mut metrics.hard_gate_blocked_actions, 1, "hard-gate blocked actions")?;
                     }
                 }
             }
@@ -1721,6 +1695,33 @@ mod tests {
         let error = build_decision_nodes(&canonicalize(&test))
             .expect_err("large nonanticipative tree must be rejected");
         assert!(error.contains("nonanticipative nodes"));
+    }
+
+    #[test]
+    fn sparse_network_can_omit_directed_transfer_edges() {
+        let mut test = input();
+        test.reposition_links.pop();
+        assert!(validate_input(&test).is_ok());
+        let canonical = canonicalize(&test);
+        let (_nodes, indices, mask) = forced_region_mask(&canonical, "urban");
+        let metrics = simulate_scenario(
+            &canonical,
+            &canonical.scenarios[0],
+            &indices,
+            mask,
+            true,
+        )
+        .expect("missing reverse edge is blocked");
+        assert_eq!(metrics.repositioning_events, 1);
+    }
+
+    #[test]
+    fn region_without_aerial_capacity_is_valid_ground_only_region() {
+        let mut test = input();
+        test.regions[1].aerial_service_capacity_units = 0;
+        assert!(validate_input(&test).is_ok());
+        let report = evaluate_shared_fleet(&test).expect("ground-only region is valid");
+        assert_eq!(report.optimized_policy.unauthorized_aerial_dispatches, 0);
     }
 
     #[test]
