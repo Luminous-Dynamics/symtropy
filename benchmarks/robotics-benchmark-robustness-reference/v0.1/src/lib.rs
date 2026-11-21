@@ -296,7 +296,7 @@ pub fn evaluate_paired_comparison(
 
     let mut horizon_groups: BTreeMap<u32, Vec<&TaskCluster>> = BTreeMap::new();
     let mut category_groups: BTreeMap<String, Vec<&TaskCluster>> = BTreeMap::new();
-    let mut shift_groups: BTreeMap<String, Vec<&TaskCluster>> = BTreeMap::new();
+    let mut shift_counts: BTreeMap<String, (u64, u64, u64)> = BTreeMap::new();
 
     for task in tasks {
         if task.task_id.trim().is_empty() {
@@ -307,9 +307,6 @@ pub fn evaluate_paired_comparison(
         }
         if task.category.trim().is_empty() {
             return Err(ScorecardError::EmptyTaskCategory);
-        }
-        if task.shift_family.trim().is_empty() {
-            return Err(ScorecardError::EmptyShiftFamily);
         }
         if task.horizon == 0 {
             return Err(ScorecardError::ZeroHorizon);
@@ -328,6 +325,15 @@ pub fn evaluate_paired_comparison(
             if !seen_episodes.insert(episode.episode_id.as_str()) {
                 return Err(ScorecardError::DuplicateEpisodeId);
             }
+            if episode.shift_family.trim().is_empty() {
+                return Err(ScorecardError::EmptyShiftFamily);
+            }
+            let counts = shift_counts
+                .entry(episode.shift_family.clone())
+                .or_insert((0, 0, 0));
+            counts.0 += success_count(episode.baseline_success);
+            counts.1 += success_count(episode.candidate_success);
+            counts.2 += 1;
             total_pairs += 1;
             task_baseline += success_count(episode.baseline_success);
             task_candidate += success_count(episode.candidate_success);
@@ -339,10 +345,6 @@ pub fn evaluate_paired_comparison(
         horizon_groups.entry(task.horizon).or_default().push(task);
         category_groups
             .entry(task.category.clone())
-            .or_default()
-            .push(task);
-        shift_groups
-            .entry(task.shift_family.clone())
             .or_default()
             .push(task);
     }
@@ -367,7 +369,12 @@ pub fn evaluate_paired_comparison(
             .collect(),
     );
     let by_category = compare_groups(category_groups.into_iter().collect());
-    let by_shift_family = compare_groups(shift_groups.into_iter().collect());
+    let by_shift_family = shift_counts
+        .into_iter()
+        .map(|(group, (baseline_successes, candidate_successes, trials))| {
+            make_group_comparison(group, baseline_successes, candidate_successes, trials)
+        })
+        .collect();
 
     Ok(RobustnessScorecard {
         identity,
