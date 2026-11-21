@@ -58,6 +58,12 @@ pub use experiment_design::{
     poisson_fisher_information, poisson_kl_divergence, IdentifiabilitySummary,
 };
 
+mod shared_reference_normalization;
+pub use shared_reference_normalization::{
+    normalize_spectrum_with_shared_reference, shared_reference_cross_covariance,
+    SharedReferenceNormalizationInput, SharedReferenceNormalizationResult,
+};
+
 mod nuisance_identifiability;
 pub use nuisance_identifiability::profile_nuisance_fisher_information;
 
