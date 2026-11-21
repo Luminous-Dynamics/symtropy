@@ -818,6 +818,65 @@ mod tests {
     }
 
     #[test]
+    fn strict_integrator_matches_legacy_for_valid_full_operator_4d_body() {
+        fn fixture() -> RigidBody<4> {
+            let operator = crate::mass_properties::RotationalInertiaOperator::<4>::isotropic(2.0).unwrap();
+            let mut body = RigidBody::<4>::dynamic_sphere(
+                BodyHandle(44), Point::new([1.0, 2.0, 3.0, 4.0]), 0.5, 2.0,
+            ).with_rotational_inertia_operator(operator);
+            body.angular_velocity.set(0, 1, 0.3);
+            body.angular_velocity.set(2, 3, -0.2);
+            body.linear_velocity = nalgebra::SVector::from([0.2, -0.1, 0.3, 0.4]);
+            body.force_accumulator = nalgebra::SVector::from([1.0, 2.0, -0.5, 0.25]);
+            body.torque_accumulator.set(0, 1, 0.2);
+            body.torque_accumulator.set(2, 3, -0.1);
+            body.linear_damping = 0.02;
+            body.angular_damping = 0.01;
+            body
+        }
+        let mut legacy = fixture();
+        let mut strict = fixture();
+        let gravity = nalgebra::SVector::from([0.0, -9.81, 0.0, 0.1]);
+        integrate(&mut legacy, &gravity, 0.001);
+        let outcome = try_integrate(&mut strict, &gravity, 0.001).unwrap();
+        assert!(matches!(outcome, crate::body::RotationalAcceleration::Applied { .. }));
+        assert_eq!(legacy.transform.translation, strict.transform.translation);
+        assert_eq!(legacy.transform.rotation, strict.transform.rotation);
+        assert_eq!(legacy.linear_velocity, strict.linear_velocity);
+        assert_eq!(legacy.angular_velocity, strict.angular_velocity);
+        assert_eq!(strict.force_accumulator, nalgebra::SVector::zeros());
+        assert_eq!(strict.torque_accumulator, Bivector::zero());
+    }
+
+    #[test]
+    fn strict_integrator_rejects_invalid_damping_without_mutation() {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(45), Point::origin(), 0.5, 2.0,
+        );
+        body.linear_velocity[0] = 0.25;
+        body.force_accumulator[1] = 2.0;
+        body.angular_velocity.set(0, 1, 0.2);
+        body.torque_accumulator.set(0, 1, 0.1);
+        body.angular_damping = -0.1;
+        let translation = body.transform.translation;
+        let rotation = body.transform.rotation;
+        let linear_velocity = body.linear_velocity;
+        let angular_velocity = body.angular_velocity;
+        let force = body.force_accumulator;
+        let torque = body.torque_accumulator;
+        assert_eq!(
+            try_integrate(&mut body, &nalgebra::SVector::zeros(), 0.01),
+            Err(crate::body::RotationalResponseError::InvalidDamping)
+        );
+        assert_eq!(body.transform.translation, translation);
+        assert_eq!(body.transform.rotation, rotation);
+        assert_eq!(body.linear_velocity, linear_velocity);
+        assert_eq!(body.angular_velocity, angular_velocity);
+        assert_eq!(body.force_accumulator, force);
+        assert_eq!(body.torque_accumulator, torque);
+    }
+
+    #[test]
     fn strict_integrator_rejects_stale_inverse_mass_without_mutation() {
         let mut body = RigidBody::<3>::dynamic_sphere(
             BodyHandle(43), Point::origin(), 0.5, 2.0,
