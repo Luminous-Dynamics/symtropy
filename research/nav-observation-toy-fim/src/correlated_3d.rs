@@ -273,13 +273,40 @@ pub fn correlated_fisher_3d(
         }
     }
 
-    let lower = cholesky(&covariance)?;
+    // Factor a dimensionless covariance so the positive-definiteness
+    // tolerance is invariant to the physical noise unit/scale.
+    let covariance_scale = covariance
+        .iter()
+        .enumerate()
+        .map(|(index, row)| row[index])
+        .fold(0.0_f64, f64::max);
+    if !covariance_scale.is_finite() || covariance_scale <= 0.0 {
+        return Err(Correlated3DError::InvalidCovariance);
+    }
+    let normalized_covariance = covariance
+        .iter()
+        .map(|row| row.iter().map(|value| value / covariance_scale).collect())
+        .collect::<Vec<Vec<f64>>>();
+    let lower = cholesky(&normalized_covariance)?;
     let hx = h.iter().map(|v| v[0]).collect::<Vec<_>>();
     let hy = h.iter().map(|v| v[1]).collect::<Vec<_>>();
     let hz = h.iter().map(|v| v[2]).collect::<Vec<_>>();
-    let rx = solve_cholesky(&lower, &hx)?;
-    let ry = solve_cholesky(&lower, &hy)?;
-    let rz = solve_cholesky(&lower, &hz)?;
+    let inverse_scale = 1.0 / covariance_scale;
+    if !inverse_scale.is_finite() {
+        return Err(Correlated3DError::InvalidCovariance);
+    }
+    let rx = solve_cholesky(&lower, &hx)?
+        .into_iter()
+        .map(|value| value * inverse_scale)
+        .collect::<Vec<_>>();
+    let ry = solve_cholesky(&lower, &hy)?
+        .into_iter()
+        .map(|value| value * inverse_scale)
+        .collect::<Vec<_>>();
+    let rz = solve_cholesky(&lower, &hz)?
+        .into_iter()
+        .map(|value| value * inverse_scale)
+        .collect::<Vec<_>>();
 
     let mut fisher = Fisher3::default();
     let columns = [&rx, &ry, &rz];
@@ -404,6 +431,43 @@ mod tests {
         assert!((independent_fisher.matrix[0][0] - 2.0).abs() < 1.0e-12);
         assert!((shared_fisher.matrix[0][0] - (2.0 / 3.0)).abs() < 1.0e-12);
         assert_eq!(shared_fisher.rank(1.0e-10), 1);
+    }
+
+
+    #[test]
+    fn common_mode_fisher_is_invariant_to_units_under_uniform_noise_scaling() {
+        let baseline = orthogonal()
+            .into_iter()
+            .map(|mut action| {
+                action.common_mode_group = Some("shared-clock".to_owned());
+                action.common_mode_sigma_m = Some(0.25);
+                action
+            })
+            .collect::<Vec<_>>();
+        let baseline_fisher = correlated_fisher_3d(&baseline).unwrap();
+
+        for scale in [1.0e-8_f64, 1.0e8_f64] {
+            let scaled = baseline
+                .iter()
+                .map(|action| {
+                    let mut copy = action.clone();
+                    copy.independent_sigma_m *= scale;
+                    copy.common_mode_sigma_m =
+                        copy.common_mode_sigma_m.map(|value| value * scale);
+                    copy
+                })
+                .collect::<Vec<_>>();
+            let scaled_fisher = correlated_fisher_3d(&scaled).unwrap();
+            let expected_factor = 1.0 / (scale * scale);
+            for row in 0..3 {
+                for col in 0..3 {
+                    let expected = baseline_fisher.matrix[row][col] * expected_factor;
+                    let actual = scaled_fisher.matrix[row][col];
+                    let relative_error = (actual - expected).abs() / expected.abs().max(1.0);
+                    assert!(relative_error < 1.0e-10, "scale={scale} row={row} col={col}: {actual} vs {expected}");
+                }
+            }
+        }
     }
 
     #[test]
