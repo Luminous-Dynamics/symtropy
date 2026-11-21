@@ -34,7 +34,7 @@ A configuration change, maintenance event, component replacement, environmental 
 
 ## Frozen corpus and oracle
 
-The frozen corpus contains 55 synthetic end-to-end cases. A separately written value-based integration oracle reconstructs outcomes without calling the production reducer. It checks status, reason, cycle count and duplicate count.
+The frozen corpus contains 55 synthetic end-to-end cases. The event schema is published at [event-replay-event-v0.1.schema.json](schema/event-replay-event-v0.1.schema.json). A separately written value-based integration oracle reconstructs outcomes without calling the production reducer. It checks status, reason, cycle count and duplicate count.
 
 Run:
 
