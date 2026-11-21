@@ -1,0 +1,225 @@
+{
+  "schema_version": "nav-transition-benchmark/v0.1",
+  "benchmark_id": "nav-transition-001",
+  "revision": 1,
+  "status": "draft_not_run",
+  "evidence_class": "synthetic_fixture_and_external_reference_registry",
+  "claim_ceiling": "synthetic_transition_contract_only",
+  "parentage": {
+    "symthaea_emsr": "https://github.com/Luminous-Dynamics/symthaea/issues/10775",
+    "symtropy_pnt_resilience": "https://github.com/Luminous-Dynamics/symtropy/issues/3909",
+    "transition_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6434"
+  },
+  "artifacts": {
+    "case_schema": "./nav_transition_case.schema.json",
+    "synthetic_cases": "./fixtures/nav_transition_cases.v0.1.json"
+  },
+  "case_count": 14,
+  "case_ids": [
+    "nav.land.open-urban-tunnel.v0.1",
+    "nav.surface-to-underwater-acoustic-loss.v0.1",
+    "nav.air-gnss-integrity-degradation.v0.1",
+    "nav.space-orbit-optical-relative-reacquisition.v0.1",
+    "nav.common-mode-false-independence.negative.v0.1",
+    "nav.frame-time-basis-mismatch.negative.v0.1",
+    "nav.lunar-body-fixed-to-local-terrain.v0.1",
+    "nav.independent-multimodal-positive.v0.1",
+    "nav.land.valid-reacquisition-positive.v0.1",
+    "nav.air.benign-vision-degradation-control.v0.1",
+    "nav.space.occultation-reacquisition.v0.1",
+    "nav.indoor.observability-recovery.v0.1",
+    "nav.integrity.protection-level-cap-saturation.negative.v0.1",
+    "nav.land.heavy-tail-residual-integrity.v0.1"
+  ],
+  "controller_evaluator_separation": {
+    "controller_input": "Each case controller_stream only",
+    "evaluator_input": "Each case evaluator_only only to independent scorer",
+    "prohibited": "Do not serialize, expose, or derive controller inputs from evaluator_only ground truth or hidden event labels."
+  },
+  "external_reference_register": [
+    {
+      "reference_id": "ISO-IEC-21134-2026",
+      "name": "Benchmarking integrated indoor localization and tracking using dead reckoning",
+      "domain": "indoor",
+      "url": "https://www.iso.org/standard/86651.html",
+      "role": "benchmark_method_reference",
+      "rights_status": "standards_text_subject_to_ISO_terms",
+      "claim_limit": "Methodology alignment reference only; this v0.1 corpus is not yet declared conformant."
+    },
+    {
+      "reference_id": "UrbanNav",
+      "name": "UrbanNav multisensor urban-canyon localization dataset",
+      "domain": "land_urban",
+      "url": "https://github.com/IPNL-POLYU/UrbanNavDataset",
+      "role": "dataset_candidate",
+      "rights_status": "rights_review_pending",
+      "claim_limit": "Candidate dataset for exact sequence/release review; no data imported or result reproduced."
+    },
+    {
+      "reference_id": "SubT-MRS",
+      "name": "SubT-MRS all-weather subterranean SLAM dataset",
+      "domain": "underground",
+      "url": "https://openaccess.thecvf.com/content/CVPR2024/html/Zhao_SubT-MRS_Dataset_Pushing_SLAM_Towards_All-weather_Environments_CVPR_2024_paper.html",
+      "role": "dataset_candidate",
+      "rights_status": "rights_review_pending",
+      "claim_limit": "Candidate localization/perception sequences only; no mine safety or full-site positioning inference."
+    },
+    {
+      "reference_id": "Tank-Underwater-SLAM",
+      "name": "Tank underwater stereo/IMU/DVL/depth SLAM dataset",
+      "domain": "underwater",
+      "url": "https://senseroboticslab.github.io/underwater-tank-dataset/",
+      "role": "dataset_candidate",
+      "rights_status": "CC-BY-NC-SA-4.0-noncommercial-only",
+      "claim_limit": "Controlled tank SLAM only; no open-ocean or commercial-use claim. Requires license-compatible use."
+    },
+    {
+      "reference_id": "GNSS-Cross-Domain-2026",
+      "name": "GNSS spoofing detection in-domain and cross-domain evaluation",
+      "domain": "gnss_integrity",
+      "url": "https://doi.org/10.1109/ACCESS.2026.3693081",
+      "role": "published_comparator_reference",
+      "rights_status": "paper_reference_only",
+      "claim_limit": "Reported metrics apply only to the study's datasets, receivers, splits and scoring protocol."
+    },
+    {
+      "reference_id": "NASA-StarFOX",
+      "name": "Starling Formation-flying Optical eXperiment relative navigation",
+      "domain": "space",
+      "url": "https://www.nasa.gov/smallsat-institute/sst-soa/guidance-navigation-and-control/",
+      "role": "flight_demonstration_reference",
+      "rights_status": "public_reference_page",
+      "claim_limit": "On-orbit angles-only relative navigation demonstration; not a general benchmark dataset or docking qualification."
+    },
+    {
+      "reference_id": "DECLARE-2026",
+      "name": "Conflict-aware evidence fusion for robust decentralized cooperative localization",
+      "domain": "cooperative_localization",
+      "url": "https://doi.org/10.1016/j.engappai.2026.115684",
+      "role": "published_method_comparator_candidate",
+      "rights_status": "paper_reference_only_artifacts_and_dataset_review_pending",
+      "claim_limit": "Abstract describes conflict-aware evidence, Bayesian credibility, entropy and CI-compatible discounting with simulation and real multi-robot evaluation; exact reproduction requires the full protocol, code/data availability, rights and matched metrics."
+    },
+    {
+      "reference_id": "RESILIENT-DISTRIBUTED-LOCALIZATION-2026",
+      "name": "Resilient distributed localization for mobile sensor networks under malicious attacks",
+      "domain": "cooperative_localization",
+      "url": "https://doi.org/10.1016/j.ins.2025.122708",
+      "role": "published_method_comparator_candidate",
+      "rights_status": "paper_reference_only_artifacts_and_dataset_review_pending",
+      "claim_limit": "Abstract describes innovation-based saturation with covariance intersection and bounded covariance analysis; results apply only to the paper's threat model and evaluated setup."
+    },
+    {
+      "reference_id": "ADAPTIVE-PL-CONTROL-2026",
+      "name": "Integrity as a Control Problem: Smooth and Adaptive Protection Levels for Multi-Modal Localization",
+      "domain": "integrity_protection_level",
+      "url": "https://doi.org/10.3390/s26165140",
+      "role": "published_method_comparator_candidate",
+      "rights_status": "paper_reference_only_artifacts_and_dataset_review_pending",
+      "claim_limit": "Paper reports empirical PL results on selected UrbanNav sequences and does not evaluate availability/continuity; protection-level saturation ceiling is a required negative-control hypothesis, not an accepted integrity theorem."
+    },
+    {
+      "reference_id": "UNDERSUBT-VIO-STRESS-2026",
+      "name": "Stress testing visual-inertial odometry under sensor perturbations on CERBERUS subterranean datasets",
+      "domain": "underground_visual_inertial",
+      "url": "https://arxiv.org/abs/2609.18628",
+      "role": "benchmark_method_comparator_candidate",
+      "rights_status": "preprint_reference_code_and_dataset_rights_review_pending",
+      "claim_limit": "Published preprint tests four VIO systems under nine perturbations on CERBERUS data; one-factor perturbation design and exact artifact availability must be reviewed before reproduction."
+    },
+    {
+      "reference_id": "ODOTEST-FSE-2026",
+      "name": "OdoTest: An Automated Testing Approach for Odometry Systems",
+      "domain": "odometry_testing",
+      "url": "https://doi.org/10.1145/3808128",
+      "role": "benchmark_method_comparator_candidate",
+      "rights_status": "paper_reference_only_artifacts_and_dataset_review_pending",
+      "claim_limit": "Automated testing protocol reference only; exact perturbation generators, version, ground truth and replication artifacts must be audited."
+    },
+    {
+      "reference_id": "CAMERA-IMU-TEMPORAL-CALIBRATION-2026",
+      "name": "Lightweight standalone temporal calibration for visual-inertial odometry on resource-constrained embedded systems",
+      "domain": "visual_inertial_calibration",
+      "url": "https://doi.org/10.1016/j.measurement.2026.122778",
+      "role": "calibration_method_comparator_candidate",
+      "rights_status": "paper_reference_only_artifacts_and_dataset_review_pending",
+      "claim_limit": "Abstract reports camera-IMU temporal calibration results on EuRoC sequences; reported timing/accuracy are paper-specific and require matched hardware, reference and protocol reproduction."
+    },
+    {
+      "reference_id": "UWB-NLOS-BACKEND-2026",
+      "name": "A decoupled backend optimizer for UWB localization in NLOS environments",
+      "domain": "uwb_nlos",
+      "url": "https://doi.org/10.1016/j.measurement.2026.121494",
+      "role": "published_method_comparator_candidate",
+      "rights_status": "paper_reference_only_artifacts_and_dataset_review_pending",
+      "claim_limit": "Abstract describes joint refinement of initial positions and residual ranging errors; code/data, exact NLOS model, licensing and matched measurement protocol remain to be reviewed."
+    }
+  ],
+  "metric_families": [
+    "trajectory_ate_rpe",
+    "position_velocity_attitude_error",
+    "uncertainty_region_coverage",
+    "p95_p99_error",
+    "unqualified_position_exposure",
+    "false_accepted_position_exposure",
+    "time_to_detect",
+    "false_alarms_per_operating_hour",
+    "observability_conditioning",
+    "service_state_occupancy",
+    "recovery_time",
+    "premature_reentry_count",
+    "common_mode_false_independence_rate",
+    "abstention_and_unknown_correctness",
+    "resource_and_operator_burden",
+    "deterministic_replay",
+    "innovation_consistency_nees_nis_where_assumptions_hold",
+    "conflict_detection_and_separation_from_uncertainty",
+    "false_accepted_position_exposure",
+    "active_observation_information_gain_per_cost",
+    "observability_rank_and_conditioning",
+    "protection_level_overbound_coverage",
+    "empirical_integrity_risk",
+    "cluster_aware_integrity_risk_confidence_bound",
+    "availability_and_continuity",
+    "time_to_alert",
+    "false_safe_exposure_duration",
+    "protection_level_saturation_and_cap_exhaustion",
+    "premature_protection_level_contraction",
+    "heavy_tail_residual_calibration",
+    "temporal_calibration_error",
+    "stress_test_completion_and_collapse_threshold",
+    "predicted_vs_realized_active_observation_value"
+  ],
+  "benchmark_targets": {
+    "status": "unverified_hypotheses",
+    "targets": [
+      "Zero accepted frame/body/time-basis mix-ups in the frozen negative-control corpus.",
+      "Zero false independence decisions for known common-mode cases.",
+      "Zero premature healthy-state re-entry in the frozen synthetic recovery corpus.",
+      "Empirical uncertainty-region coverage consistent with declared confidence and assumptions.",
+      "At matched operating point, pursue at least 20% reduction in p95 trajectory error or unqualified-position exposure on one preregistered transition profile without worsening false alarms or false-safe exposure.",
+      "100% of decision-relevant outputs bind exact input/configuration/profile/transform/time/evidence/oracle references or return INDETERMINATE.",
+      "100% byte-reproducible replay of the frozen synthetic corpus."
+    ]
+  },
+  "split_policy": [
+    "Group by complete recording, route, site, session, receiver/device, campaign and environmental condition.",
+    "Do not place overlapping windows from one trajectory across train/validation/test.",
+    "Freeze split manifest and benchmark subject before final evaluation.",
+    "Declare public-test exposure and previous tuning use; do not label exposed tests as pristine blind evidence."
+  ],
+  "prerequisites_before_preregistration": [
+    "Freeze the 12-case corpus, exact seeds, profile assumptions and one primary outcome per profile before held-out evaluation.",
+    "Implement and execute semantic validation plus a full JSON Schema Draft 2020-12 validator.",
+    "Qualify ground-truth/oracle independence and provenance.",
+    "Complete external dataset rights, version, calibration and ground-truth audits.",
+    "Pin matched classical and benchmark-native baselines.",
+    "Review the exact Symtropy model-capability path; unsupported physics stays abstract or unknown.",
+    "Reproduce or document non-reproducibility of the 2026 DECLARE and innovation-saturation-plus-CI method comparators under exact protocol and rights constraints.",
+    "Add positive-control/negative-control ablations for conflict detection, source credibility, covariance discounting and common-mode provenance.",
+    "Compare passive fixed-rate measurement with observability-aware active sensing using matched travel/energy/time costs.",
+    "Add and preregister integrity/protection-level saturation and heavy-tail episodes, including cap-exhaustion negative controls and qualified recovery.",
+    "Reproduce or document non-reproducibility of the 2026 adaptive protection-level and Student-t comparators with availability/continuity reported separately.",
+    "Audit OdoTest, UnderSubT VIO stress-test and camera–IMU temporal-calibration artifacts/rights before admitting external results."
+  ]
+}

@@ -1,0 +1,20 @@
+[workspace]
+
+[package]
+name = "nav-transition-validator"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Semantic validator for synthetic navigation observability-transition benchmark cases"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "nav-transition-validate"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "1.0"
+jsonschema = { version = "=0.61.2", default-features = false }
