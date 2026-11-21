@@ -190,23 +190,31 @@ fn validate_physical_inertia3(matrix: &[[f64; 3]; 3], path: &str) -> Result<(), 
 
         let pp = diagonalized[p][p];
         let qq = diagonalized[q][q];
-        diagonalized[p][p] = pp - tangent * off_diagonal;
-        diagonalized[q][q] = qq + tangent * off_diagonal;
-        diagonalized[p][q] = 0.0;
-        diagonalized[q][p] = 0.0;
+        let mut column_p = [0.0; 3];
+        let mut column_q = [0.0; 3];
+        column_p[p] = pp - tangent * off_diagonal;
+        column_q[q] = qq + tangent * off_diagonal;
 
         for (k, row) in diagonalized.iter().enumerate() {
             if k != p && k != q {
                 let kp = row[p];
                 let kq = row[q];
-                let updated_kp = cosine * kp - sine * kq;
-                let updated_kq = sine * kp + cosine * kq;
-                diagonalized[k][p] = updated_kp;
-                diagonalized[p][k] = updated_kp;
-                diagonalized[k][q] = updated_kq;
-                diagonalized[q][k] = updated_kq;
+                column_p[k] = cosine * kp - sine * kq;
+                column_q[k] = sine * kp + cosine * kq;
             }
         }
+
+        let mut rotated = diagonalized;
+        for (row, (value_p, value_q)) in rotated
+            .iter_mut()
+            .zip(column_p.iter().copied().zip(column_q.iter().copied()))
+        {
+            row[p] = value_p;
+            row[q] = value_q;
+        }
+        rotated[p] = column_p;
+        rotated[q] = column_q;
+        diagonalized = rotated;
     }
 
     let mut principal = [diagonalized[0][0], diagonalized[1][1], diagonalized[2][2]];
