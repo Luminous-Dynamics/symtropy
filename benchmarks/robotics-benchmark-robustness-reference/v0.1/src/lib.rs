@@ -39,22 +39,42 @@ impl Display for ScorecardError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::EmptyBenchmarkId => write!(formatter, "benchmark ID must not be empty"),
-            Self::InvalidBenchmarkCommit => write!(formatter, "benchmark commit must be a 40-character lowercase hex SHA"),
-            Self::InvalidProtocolDigest => write!(formatter, "protocol digest must be a 64-character lowercase hex SHA-256"),
+            Self::InvalidBenchmarkCommit => write!(
+                formatter,
+                "benchmark commit must be a 40-character lowercase hex SHA"
+            ),
+            Self::InvalidProtocolDigest => write!(
+                formatter,
+                "protocol digest must be a 64-character lowercase hex SHA-256"
+            ),
             Self::EmptyEmbodiment => write!(formatter, "embodiment must not be empty"),
             Self::EmptyEvaluationSplit => write!(formatter, "evaluation split must not be empty"),
-            Self::InsufficientTaskClusters => write!(formatter, "at least ten independent task clusters are required for inferential cluster bootstrap"),
+            Self::InsufficientTaskClusters => write!(
+                formatter,
+                "at least ten independent task clusters are required for inferential cluster bootstrap"
+            ),
             Self::EmptyTaskSet => write!(formatter, "at least one task cluster is required"),
             Self::EmptyTaskId => write!(formatter, "task ID must not be empty"),
             Self::DuplicateTaskId => write!(formatter, "task cluster IDs must be unique"),
             Self::EmptyTaskCategory => write!(formatter, "task category must not be empty"),
-            Self::EmptyShiftFamily => write!(formatter, "shift family must not be empty; use in_distribution explicitly"),
+            Self::EmptyShiftFamily => write!(
+                formatter,
+                "shift family must not be empty; use in_distribution explicitly"
+            ),
             Self::ZeroHorizon => write!(formatter, "task horizon must be positive"),
-            Self::EmptyTaskCluster => write!(formatter, "each task cluster must include at least one matched episode"),
+            Self::EmptyTaskCluster => write!(
+                formatter,
+                "each task cluster must include at least one matched episode"
+            ),
             Self::EmptyEpisodeId => write!(formatter, "episode ID must not be empty"),
-            Self::DuplicateEpisodeId => write!(formatter, "episode IDs must be unique within a task cluster"),
+            Self::DuplicateEpisodeId => write!(
+                formatter,
+                "episode IDs must be unique within a task cluster"
+            ),
             Self::NoEpisodes => write!(formatter, "no matched episodes supplied"),
-            Self::InvalidBootstrapReplicateCount => write!(formatter, "at least 1000 bootstrap replicates are required"),
+            Self::InvalidBootstrapReplicateCount => {
+                write!(formatter, "at least 1000 bootstrap replicates are required")
+            }
         }
     }
 }
@@ -242,8 +262,7 @@ pub fn wilson_interval(successes: u64, trials: u64, z: f64) -> Option<RateEstima
     let z2 = z * z;
     let denominator = 1.0 + z2 / n;
     let center = (p + z2 / (2.0 * n)) / denominator;
-    let half_width =
-        z * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt()) / denominator;
+    let half_width = z * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt()) / denominator;
     Some(RateEstimate {
         successes,
         trials,
@@ -332,15 +351,12 @@ pub fn evaluate_paired_comparison(
         return Err(ScorecardError::NoEpisodes);
     }
 
-    let baseline =
-        wilson_interval(baseline_successes, total_pairs, 1.959_963_984_540_054)
-            .ok_or(ScorecardError::NoEpisodes)?;
-    let candidate =
-        wilson_interval(candidate_successes, total_pairs, 1.959_963_984_540_054)
-            .ok_or(ScorecardError::NoEpisodes)?;
+    let baseline = wilson_interval(baseline_successes, total_pairs, 1.959_963_984_540_054)
+        .ok_or(ScorecardError::NoEpisodes)?;
+    let candidate = wilson_interval(candidate_successes, total_pairs, 1.959_963_984_540_054)
+        .ok_or(ScorecardError::NoEpisodes)?;
 
-    let paired_task_cluster_delta_95 =
-        bootstrap_task_cluster_delta(tasks, bootstrap);
+    let paired_task_cluster_delta_95 = bootstrap_task_cluster_delta(tasks, bootstrap);
     let by_horizon = compare_groups(
         horizon_groups
             .into_iter()
@@ -380,18 +396,10 @@ fn compare_groups(groups: Vec<(String, Vec<&TaskCluster>)>) -> Vec<GroupComparis
                     trials += 1;
                 }
             }
-            let baseline = wilson_interval(
-                baseline_successes,
-                trials,
-                1.959_963_984_540_054,
-            )
-            .expect("validated non-empty task clusters");
-            let candidate = wilson_interval(
-                candidate_successes,
-                trials,
-                1.959_963_984_540_054,
-            )
-            .expect("validated non-empty task clusters");
+            let baseline = wilson_interval(baseline_successes, trials, 1.959_963_984_540_054)
+                .expect("validated non-empty task clusters");
+            let candidate = wilson_interval(candidate_successes, trials, 1.959_963_984_540_054)
+                .expect("validated non-empty task clusters");
             GroupComparison {
                 group,
                 baseline,
@@ -517,14 +525,30 @@ mod tests {
     #[test]
     fn matched_episode_scorecard_reports_pooled_and_group_metrics() {
         let mut tasks = vec![
-            task("task-a", 1, "in_distribution", &[false, true], &[true, true]),
-            task("task-b", 3, "held_out_layout", &[false, false], &[true, false]),
+            task(
+                "task-a",
+                1,
+                "in_distribution",
+                &[false, true],
+                &[true, true],
+            ),
+            task(
+                "task-b",
+                3,
+                "held_out_layout",
+                &[false, false],
+                &[true, false],
+            ),
         ];
         for index in 0..8 {
             tasks.push(task(
                 &format!("task-extra-{index}"),
                 if index % 2 == 0 { 1 } else { 3 },
-                if index % 2 == 0 { "in_distribution" } else { "held_out_layout" },
+                if index % 2 == 0 {
+                    "in_distribution"
+                } else {
+                    "held_out_layout"
+                },
                 &[false],
                 &[false],
             ));
@@ -532,8 +556,12 @@ mod tests {
         let result = evaluate_paired_comparison(
             identity(),
             &tasks,
-            BootstrapConfig { replicates: 2_000, seed: 7 },
-        ).expect("scorecard");
+            BootstrapConfig {
+                replicates: 2_000,
+                seed: 7,
+            },
+        )
+        .expect("scorecard");
         assert_eq!(result.baseline.successes, 1);
         assert_eq!(result.candidate.successes, 3);
         assert_eq!(result.episode_pair_count, 12);
@@ -546,9 +574,27 @@ mod tests {
     #[test]
     fn cluster_bootstrap_is_deterministic_and_paired() {
         let mut tasks = vec![
-            task("task-a", 2, "in_distribution", &[false, false, false], &[true, true, true]),
-            task("task-b", 4, "held_out_object", &[false, false, false], &[true, true, true]),
-            task("task-c", 6, "held_out_layout", &[false, false, false], &[true, true, true]),
+            task(
+                "task-a",
+                2,
+                "in_distribution",
+                &[false, false, false],
+                &[true, true, true],
+            ),
+            task(
+                "task-b",
+                4,
+                "held_out_object",
+                &[false, false, false],
+                &[true, true, true],
+            ),
+            task(
+                "task-c",
+                6,
+                "held_out_layout",
+                &[false, false, false],
+                &[true, true, true],
+            ),
         ];
         for index in 0..7 {
             tasks.push(task(
@@ -559,25 +605,50 @@ mod tests {
                 &[true, true],
             ));
         }
-        let config = BootstrapConfig { replicates: 5_000, seed: 12345 };
+        let config = BootstrapConfig {
+            replicates: 5_000,
+            seed: 12345,
+        };
         let first = evaluate_paired_comparison(identity(), &tasks, config).expect("first");
         let second = evaluate_paired_comparison(identity(), &tasks, config).expect("second");
         assert_eq!(first, second);
-        assert_eq!(first.paired_task_cluster_delta_95, ConfidenceInterval { lower: 1.0, upper: 1.0 });
+        assert_eq!(
+            first.paired_task_cluster_delta_95,
+            ConfidenceInterval {
+                lower: 1.0,
+                upper: 1.0
+            }
+        );
         assert!(first.positive_improvement_supported);
     }
 
     #[test]
     fn no_improvement_does_not_claim_positive_significance() {
         let mut tasks = vec![
-            task("task-a", 1, "in_distribution", &[true, false], &[true, false]),
-            task("task-b", 2, "held_out_layout", &[false, true], &[false, true]),
+            task(
+                "task-a",
+                1,
+                "in_distribution",
+                &[true, false],
+                &[true, false],
+            ),
+            task(
+                "task-b",
+                2,
+                "held_out_layout",
+                &[false, true],
+                &[false, true],
+            ),
         ];
         for index in 0..8 {
             tasks.push(task(
                 &format!("task-extra-{index}"),
                 1 + (index % 2) as u32,
-                if index % 2 == 0 { "in_distribution" } else { "held_out_layout" },
+                if index % 2 == 0 {
+                    "in_distribution"
+                } else {
+                    "held_out_layout"
+                },
                 &[index % 2 == 0],
                 &[index % 2 == 0],
             ));
@@ -585,10 +656,20 @@ mod tests {
         let result = evaluate_paired_comparison(
             identity(),
             &tasks,
-            BootstrapConfig { replicates: 2_000, seed: 17 },
-        ).expect("scorecard");
+            BootstrapConfig {
+                replicates: 2_000,
+                seed: 17,
+            },
+        )
+        .expect("scorecard");
         assert_eq!(result.pooled_success_delta, 0.0);
-        assert_eq!(result.paired_task_cluster_delta_95, ConfidenceInterval { lower: 0.0, upper: 0.0 });
+        assert_eq!(
+            result.paired_task_cluster_delta_95,
+            ConfidenceInterval {
+                lower: 0.0,
+                upper: 0.0
+            }
+        );
         assert!(!result.positive_improvement_supported);
     }
 
@@ -614,7 +695,11 @@ mod tests {
             ],
         );
         assert_eq!(
-            evaluate_paired_comparison(identity(), &[duplicate_episode], BootstrapConfig::default()),
+            evaluate_paired_comparison(
+                identity(),
+                &[duplicate_episode],
+                BootstrapConfig::default()
+            ),
             Err(ScorecardError::DuplicateEpisodeId)
         );
     }
@@ -664,8 +749,10 @@ mod tests {
         assert_eq!(
             evaluate_paired_comparison(
                 invalid_digest,
-                &[task("task-a", 1, "in_distribution", &[false], &[true]),
-                  task("task-b", 2, "held_out_layout", &[false], &[true])],
+                &[
+                    task("task-a", 1, "in_distribution", &[false], &[true]),
+                    task("task-b", 2, "held_out_layout", &[false], &[true])
+                ],
                 BootstrapConfig::default()
             ),
             Err(ScorecardError::InvalidProtocolDigest)
@@ -678,7 +765,10 @@ mod tests {
             evaluate_paired_comparison(
                 identity(),
                 &[task("task-a", 1, "in_distribution", &[false], &[true])],
-                BootstrapConfig { replicates: 999, seed: 1 }
+                BootstrapConfig {
+                    replicates: 999,
+                    seed: 1
+                }
             ),
             Err(ScorecardError::InvalidBootstrapReplicateCount)
         );
