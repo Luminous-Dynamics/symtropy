@@ -31,6 +31,7 @@
     "p2_quadratic_exact_destination_integrals",
     "space_time_linear_polynomial",
     "reject_degree_exceeded",
+    "reject_requested_maximum_degree_above_p2_scope",
     "reject_non_finite_coefficient",
     "reject_geometry_gap_before_transfer",
     "destination_permutation_determinism",
@@ -82,7 +83,8 @@
     "no_moving_mesh_transport",
     "no_tpe_1_or_tpe_2_implementation",
     "no_production_remapping_solver",
-    "no_physical_ehd_solver"
+    "no_physical_ehd_solver",
+    "polynomial_degree_limited_to_p2"
   ],
   "claim_ceiling": "This is an analytic P0/P1/P2 polynomial integration oracle over axis-aligned intersections. It does not establish production higher-order remapping, TPE(1/2), moving-mesh solution accuracy, Rust execution, physical EHD results or SOTA superiority."
 }
