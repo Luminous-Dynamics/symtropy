@@ -59,6 +59,20 @@ Every regional weather observation has separate weather and permission evidence 
 
 The current model does not authenticate a signature, prove that an observation came from a physical sensor, or adjudicate whether an external authority issued permission. Those are independent Mycelix / Sol-Atlas / Symtropy evidence responsibilities. This module only refuses to act on states declared unknown, stale, conflicted, revoked, blocked or not approved.
 
+## Scenario probability provenance and risk-claim ceiling
+
+Every v0.1 scenario set now declares:
+- a probability basis: `synthetic_fixture`, `uncalibrated_estimate`, or `calibrated_out_of_sample`;
+- a non-empty probability evidence/source reference;
+- for a declared calibrated out-of-sample basis, a 64-character lowercase SHA-256 calibration-report digest and a held-out-window reference.
+
+The evaluator carries these fields into the report and emits a specific risk-claim ceiling:
+- Synthetic fixture weights support exact arithmetic and policy regression tests only. Expected cost and CVaR90 are conditional on those synthetic weights; they are not empirical event probabilities, calibrated field-risk bounds or operational savings.
+- Uncalibrated estimates support conditional scenario analysis only. They do not become calibrated because their integer weights sum to 10,000 basis points.
+- A calibrated-out-of-sample declaration is only a provenance assertion. The evaluator checks the digest shape and held-out reference, but does not download, authenticate or audit the calibration report. Risk outputs remain conditional on the supplied finite scenario set.
+
+A deliberate next step is to support **unweighted stress-only scenarios** in a separate collection. They should inform worst-case and feasibility analysis without being assigned artificial probability mass and folded into expected-cost or CVaR objectives. That work composes [MFB-SCENARIO-CALIBRATION-001 #6460](https://github.com/Luminous-Dynamics/symtropy/issues/6460).
+
 ## Exact oracle and baselines
 
 The committed fixture has two regions, three periods and two stochastic scenarios with a shared initial observation prefix. It creates five nonanticipative policy nodes and enumerates (3^5=243) policies (urban, rural, idle at each node).
