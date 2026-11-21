@@ -30,6 +30,7 @@ pub mod convex_hull;
 pub mod halfspace;
 pub mod hyperbox;
 pub mod hyperplane;
+pub mod mass_properties;
 pub mod point;
 pub mod rotor;
 pub mod shape;
