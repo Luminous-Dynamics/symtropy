@@ -375,8 +375,8 @@ fn compare_groups(groups: Vec<(String, Vec<&TaskCluster>)>) -> Vec<GroupComparis
             let mut trials = 0_u64;
             for task in tasks {
                 for episode in &task.episodes {
-                    baseline_successes += u64::from(episode.baseline_success);
-                    candidate_successes += u64::from(episode.candidate_success);
+                    baseline_successes += success_count(episode.baseline_success);
+                    candidate_successes += success_count(episode.candidate_success);
                     trials += 1;
                 }
             }
@@ -415,8 +415,8 @@ fn bootstrap_task_cluster_delta(
         for _ in 0..tasks.len() {
             let selected = (random.next_u64() % tasks.len() as u64) as usize;
             for episode in &tasks[selected].episodes {
-                baseline_successes += u64::from(episode.baseline_success);
-                candidate_successes += u64::from(episode.candidate_success);
+                baseline_successes += success_count(episode.baseline_success);
+                candidate_successes += success_count(episode.candidate_success);
                 trials += 1;
             }
         }
