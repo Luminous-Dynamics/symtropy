@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-memory-revocation-challenge-v0",
+  "status": "synthetic_protocol_known_answers_only; no physical-erasure claim",
+  "episodes": [
+    {
+      "episode_id": "rev-001-direct-source",
+      "pre_revocation_canary_retrieval_required": true,
+      "post_revocation_residual_allowed": false,
+      "unrelated_control_retention_required": false
+    },
+    {
+      "episode_id": "rev-002-summary-residual",
+      "pre_revocation_canary_retrieval_required": true,
+      "post_revocation_residual_allowed": false,
+      "unrelated_control_retention_required": false
+    },
+    {
+      "episode_id": "rev-003-embedding-nearest-neighbor",
+      "pre_revocation_canary_retrieval_required": true,
+      "post_revocation_residual_allowed": false,
+      "unrelated_control_retention_required": false
+    },
+    {
+      "episode_id": "rev-004-response-cache",
+      "pre_revocation_canary_retrieval_required": true,
+      "post_revocation_residual_allowed": false,
+      "unrelated_control_retention_required": false
+    },
+    {
+      "episode_id": "rev-005-context-after-restart",
+      "pre_revocation_canary_retrieval_required": true,
+      "post_revocation_residual_allowed": false,
+      "unrelated_control_retention_required": false
+    },
+    {
+      "episode_id": "rev-006-cross-modal-derivative",
+      "pre_revocation_canary_retrieval_required": true,
+      "post_revocation_residual_allowed": false,
+      "unrelated_control_retention_required": false
+    },
+    {
+      "episode_id": "rev-007-backup-scope",
+      "pre_revocation_canary_retrieval_required": true,
+      "post_revocation_residual_allowed": false,
+      "unrelated_control_retention_required": false
+    },
+    {
+      "episode_id": "rev-008-unrelated-retention-control",
+      "pre_revocation_canary_retrieval_required": true,
+      "post_revocation_residual_allowed": false,
+      "unrelated_control_retention_required": true
+    }
+  ]
+}

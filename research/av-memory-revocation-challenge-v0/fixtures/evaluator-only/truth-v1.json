@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-memory-revocation-challenge-v0",
+  "warning": "Evaluator-only canary values and aliases. This file is public and is not a blind challenge set.",
+  "episodes": [
+    {
+      "episode_id": "rev-001-direct-source",
+      "canary": "amber-otter-731",
+      "aliases": [
+        "amber otter 731",
+        "AO731"
+      ],
+      "expected_pre_retrieval": true,
+      "expected_post_noninterference": true
+    },
+    {
+      "episode_id": "rev-002-summary-residual",
+      "canary": "cobalt-heron-284",
+      "aliases": [
+        "cobalt heron 284",
+        "CH284"
+      ],
+      "expected_pre_retrieval": true,
+      "expected_post_noninterference": true
+    },
+    {
+      "episode_id": "rev-003-embedding-nearest-neighbor",
+      "canary": "violet-lynx-905",
+      "aliases": [
+        "violet lynx 905",
+        "VL905"
+      ],
+      "expected_pre_retrieval": true,
+      "expected_post_noninterference": true
+    },
+    {
+      "episode_id": "rev-004-response-cache",
+      "canary": "quartz-ibis-416",
+      "aliases": [
+        "quartz ibis 416",
+        "QI416"
+      ],
+      "expected_pre_retrieval": true,
+      "expected_post_noninterference": true
+    },
+    {
+      "episode_id": "rev-005-context-after-restart",
+      "canary": "silver-marten-663",
+      "aliases": [
+        "silver marten 663",
+        "SM663"
+      ],
+      "expected_pre_retrieval": true,
+      "expected_post_noninterference": true
+    },
+    {
+      "episode_id": "rev-006-cross-modal-derivative",
+      "canary": "copper-finch-552",
+      "aliases": [
+        "copper finch 552",
+        "CF552"
+      ],
+      "expected_pre_retrieval": true,
+      "expected_post_noninterference": true
+    },
+    {
+      "episode_id": "rev-007-backup-scope",
+      "canary": "juniper-fox-118",
+      "aliases": [
+        "juniper fox 118",
+        "JF118"
+      ],
+      "expected_pre_retrieval": true,
+      "expected_post_noninterference": true
+    },
+    {
+      "episode_id": "rev-008-unrelated-retention-control",
+      "canary": "maple-tern-807",
+      "aliases": [
+        "maple tern 807",
+        "MT807"
+      ],
+      "control_fact": "birch-wren-219",
+      "control_aliases": [
+        "birch wren 219",
+        "BW219"
+      ],
+      "expected_pre_retrieval": true,
+      "expected_post_noninterference": true,
+      "expected_control_retention": true
+    }
+  ]
+}

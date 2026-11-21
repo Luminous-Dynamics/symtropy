@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-memory-revocation-scorecard-v1.schema.json",
+  "title": "AV Memory Revocation Noninterference Scorecard v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "policy_id",
+    "run_id",
+    "interpretation",
+    "totals",
+    "per_episode"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "av-memory-revocation-challenge-v0"
+    },
+    "policy_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "interpretation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "storage_erasure_status",
+        "limitations"
+      ],
+      "properties": {
+        "status": {
+          "const": "synthetic_revocation_probe_score"
+        },
+        "storage_erasure_status": {
+          "const": "not_independently_verified"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_count",
+        "pre_probe_count",
+        "pre_canary_hits",
+        "pre_canary_recall",
+        "post_probe_count",
+        "post_canary_leaks",
+        "post_canary_leakage_rate",
+        "post_reference_reuse_count",
+        "unrelated_control_count",
+        "unrelated_control_retained",
+        "derived_item_count",
+        "purge_receipt_count",
+        "purge_receipt_coverage",
+        "policy_ineligibility_claim_coverage",
+        "claimed_storage_erasure_complete_count",
+        "in_scope_derived_item_count"
+      ],
+      "properties": {
+        "episode_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pre_probe_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pre_canary_hits": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pre_canary_recall": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "post_probe_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_canary_leaks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_canary_leakage_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "post_reference_reuse_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unrelated_control_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unrelated_control_retained": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "derived_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "purge_receipt_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "purge_receipt_coverage": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "policy_ineligibility_claim_coverage": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "claimed_storage_erasure_complete_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "in_scope_derived_item_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "per_episode": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "episode_id",
+          "pre_canary_hits",
+          "pre_probe_count",
+          "post_canary_leaks",
+          "post_probe_count",
+          "post_reference_reuse_count",
+          "unrelated_control_retained",
+          "derived_item_count",
+          "purge_receipt_coverage",
+          "policy_ineligibility_claim_coverage",
+          "claimed_storage_erasure_complete",
+          "violations",
+          "in_scope_derived_item_count"
+        ],
+        "properties": {
+          "episode_id": {
+            "type": "string"
+          },
+          "pre_canary_hits": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "pre_probe_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "post_canary_leaks": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "post_probe_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "post_reference_reuse_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unrelated_control_retained": {
+            "type": "boolean"
+          },
+          "derived_item_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "purge_receipt_coverage": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "policy_ineligibility_claim_coverage": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "claimed_storage_erasure_complete": {
+            "type": "boolean"
+          },
+          "violations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "in_scope_derived_item_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}
