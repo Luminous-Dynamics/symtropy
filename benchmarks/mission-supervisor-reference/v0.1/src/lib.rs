@@ -35,6 +35,8 @@ pub enum SupervisorError {
     InvalidStateTransition,
     ActionIdReused,
     InvalidActionId,
+    ActionIdMismatch,
+    ActionAttemptMismatch,
     UntrustedObserver,
     InvalidConfidence,
     StaleSourceSequence,
@@ -85,6 +87,12 @@ impl Display for SupervisorError {
             ),
             Self::ActionIdReused => write!(formatter, "action IDs must be unique within a mission"),
             Self::InvalidActionId => write!(formatter, "action ID must not be empty"),
+            Self::ActionIdMismatch => {
+                write!(formatter, "receipt action ID does not match the active action")
+            }
+            Self::ActionAttemptMismatch => {
+                write!(formatter, "receipt attempt does not match the active attempt")
+            }
             Self::UntrustedObserver => write!(
                 formatter,
                 "agent self-reports cannot authorize state transitions"
@@ -278,6 +286,9 @@ pub enum GoalVerdict {
 pub struct GoalEvidence {
     pub envelope: ReceiptEnvelope,
     pub subgoal_id: String,
+    /// Action and attempt that produced this observation.
+    pub action_id: String,
+    pub attempt: u32,
     pub predicate_id: String,
     pub verdict: GoalVerdict,
 }
@@ -294,6 +305,9 @@ pub enum ReconciliationVerdict {
 pub struct ReconciliationEvidence {
     pub envelope: ReceiptEnvelope,
     pub subgoal_id: String,
+    /// Action and attempt being reconciled.
+    pub action_id: String,
+    pub attempt: u32,
     pub verdict: ReconciliationVerdict,
 }
 
@@ -301,6 +315,9 @@ pub struct ReconciliationEvidence {
 pub struct RecoveryPermit {
     pub envelope: ReceiptEnvelope,
     pub subgoal_id: String,
+    /// Recovery authority applies only to this exact failed action attempt.
+    pub action_id: String,
+    pub attempt: u32,
     pub recovery_plan_digest: Digest,
     pub safe_to_mutate: bool,
 }
@@ -559,6 +576,13 @@ impl MissionSupervisor {
             return Ok(disposition);
         }
         self.ensure_active_subgoal(&subgoal_id)?;
+        let active_ticket = self.current_ticket(&subgoal_id)?;
+        if evidence.action_id != active_ticket.action_id {
+            return Err(SupervisorError::ActionIdMismatch);
+        }
+        if evidence.attempt != active_ticket.attempt {
+            return Err(SupervisorError::ActionAttemptMismatch);
+        }
         let runtime = self
             .states
             .get(&subgoal_id)
@@ -638,6 +662,13 @@ impl MissionSupervisor {
             return Ok(disposition);
         }
         self.ensure_active_subgoal(&subgoal_id)?;
+        let active_ticket = self.current_ticket(&subgoal_id)?;
+        if evidence.action_id != active_ticket.action_id {
+            return Err(SupervisorError::ActionIdMismatch);
+        }
+        if evidence.attempt != active_ticket.attempt {
+            return Err(SupervisorError::ActionAttemptMismatch);
+        }
         if !matches!(
             &self
                 .states
@@ -718,6 +749,13 @@ impl MissionSupervisor {
             .ok_or(SupervisorError::UnknownSubgoal)?;
         if !matches!(&runtime.state, RuntimeState::RecoveryRequired(_)) {
             return Err(SupervisorError::InvalidStateTransition);
+        }
+        let active_ticket = self.current_ticket(&subgoal_id)?;
+        if permit.action_id != active_ticket.action_id {
+            return Err(SupervisorError::ActionIdMismatch);
+        }
+        if permit.attempt != active_ticket.attempt {
+            return Err(SupervisorError::ActionAttemptMismatch);
         }
         if !runtime
             .spec
@@ -956,6 +994,8 @@ mod tests {
                 ObserverRole::IndependentSensor,
             ),
             subgoal_id: "pick".to_owned(),
+            action_id: "pick-action-1".to_owned(),
+            attempt: 1,
             predicate_id: "object-in-gripper".to_owned(),
             verdict: GoalVerdict::Satisfied,
         }
@@ -1063,6 +1103,8 @@ mod tests {
                 ObserverRole::IndependentSensor,
             ),
             subgoal_id: "place".to_owned(),
+            action_id: "place-action-1".to_owned(),
+            attempt: 1,
             predicate_id: "object-on-target".to_owned(),
             verdict: GoalVerdict::Satisfied,
         };
@@ -1093,6 +1135,8 @@ mod tests {
                 ObserverRole::IndependentSensor,
             ),
             subgoal_id: "pick".to_owned(),
+            action_id: "pick-action-1".to_owned(),
+            attempt: 1,
             predicate_id: "object-in-gripper".to_owned(),
             verdict: GoalVerdict::Satisfied,
         };
@@ -1145,6 +1189,8 @@ mod tests {
                     ObserverRole::IndependentEvaluator,
                 ),
                 subgoal_id: "pick".to_owned(),
+                action_id: "pick-action-1".to_owned(),
+                attempt: 1,
                 verdict: ReconciliationVerdict::GoalSatisfied,
             })
             .expect("reconcile");
@@ -1172,6 +1218,8 @@ mod tests {
                     ObserverRole::IndependentEvaluator,
                 ),
                 subgoal_id: "pick".to_owned(),
+                action_id: "pick-action-1".to_owned(),
+                attempt: 1,
                 verdict: ReconciliationVerdict::NoEffect,
             })
             .expect("reconcile no effect");
@@ -1201,6 +1249,8 @@ mod tests {
                 ObserverRole::IndependentSensor,
             ),
             subgoal_id: "pick".to_owned(),
+            action_id: "pick-action-1".to_owned(),
+            attempt: 1,
             recovery_plan_digest: digest(77),
             safe_to_mutate: true,
         };
@@ -1218,6 +1268,8 @@ mod tests {
                 ObserverRole::IndependentSensor,
             ),
             subgoal_id: "pick".to_owned(),
+            action_id: "pick-action-1".to_owned(),
+            attempt: 1,
             recovery_plan_digest: digest(90),
             safe_to_mutate: false,
         };
@@ -1248,6 +1300,8 @@ mod tests {
                     ObserverRole::IndependentSensor,
                 ),
                 subgoal_id: "pick".to_owned(),
+                action_id: "pick-action-1".to_owned(),
+                attempt: 1,
                 recovery_plan_digest: digest(90),
                 safe_to_mutate: true,
             })
