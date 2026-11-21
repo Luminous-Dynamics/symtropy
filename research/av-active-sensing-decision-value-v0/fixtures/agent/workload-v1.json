@@ -232,7 +232,7 @@
           "resource_cost": {
             "audio_bytes": 0,
             "video_frames": 2,
-            "energy_joules": 0.7
+            "energy_joules": 0.5
           },
           "max_uses": 1
         },
