@@ -65,7 +65,7 @@ jobs:
 
     # Validate the native physics adapter and its contract dependency.
     - name: Verify Physical State Symtropy Physics Adapter
-      if: runner.os == 'Linux' && startsWith(github.head_ref, 'research/physical-state-symtropy-adapter-')
+      if: runner.os == 'Linux' && startsWith(github.head_ref, 'research/physical-state-symtropy-physics-adapter-')
       run: |
         cargo fmt --manifest-path research/physical-state-feedback-contract/v0.1/Cargo.toml -- --check
         cargo test --manifest-path research/physical-state-feedback-contract/v0.1/Cargo.toml --locked
