@@ -616,10 +616,13 @@ fn evaluate_case(case: &Case) -> CaseResult {
         }
     }
 
-    for claim in case.claims.iter().filter(|claim| claim.claim_id != case.root_claim_id) {
+    for claim in case
+        .claims
+        .iter()
+        .filter(|claim| claim.claim_id != case.root_claim_id)
+    {
         if !case.edges.iter().any(|edge| {
-            edge.from_claim_id == claim.claim_id
-                && is_root_support_edge(edge, &case.root_claim_id)
+            edge.from_claim_id == claim.claim_id && is_root_support_edge(edge, &case.root_claim_id)
         }) {
             add_blocker(
                 &mut blockers,
@@ -648,7 +651,12 @@ fn evaluate_case(case: &Case) -> CaseResult {
     }
 
     if graph_has_cycle(&claim_ids, &case.edges) {
-        add_blocker(&mut blockers, "GRAPH_INVALID", None, "claim dependency graph contains a cycle");
+        add_blocker(
+            &mut blockers,
+            "GRAPH_INVALID",
+            None,
+            "claim dependency graph contains a cycle",
+        );
     }
 
     if case.claims.iter().any(|claim| {
@@ -657,7 +665,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
             && claim.state != ClaimState::Supported
     }) || missing_authority
     {
-        if !blockers.iter().any(|blocker| blocker.code == "MISSING_AUTHORITY") {
+        if !blockers
+            .iter()
+            .any(|blocker| blocker.code == "MISSING_AUTHORITY")
+        {
             add_blocker(
                 &mut blockers,
                 "MISSING_AUTHORITY",
@@ -668,7 +679,11 @@ fn evaluate_case(case: &Case) -> CaseResult {
     }
 
     blockers.sort_by(|left, right| {
-        (&left.code, &left.claim_id, &left.detail).cmp(&(&right.code, &right.claim_id, &right.detail))
+        (&left.code, &left.claim_id, &left.detail).cmp(&(
+            &right.code,
+            &right.claim_id,
+            &right.detail,
+        ))
     });
     blockers.dedup_by(|left, right| {
         left.code == right.code && left.claim_id == right.claim_id && left.detail == right.detail
