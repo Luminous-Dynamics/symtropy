@@ -146,7 +146,59 @@ High thrust density must not compensate for bad T/P, poor flight drag, breakdown
 This atlas is source transcription and benchmark design. The data have not been independently reproduced by Luminous; Merlino2D has not been run in this workspace. No new Rust solver, complete EHD twin, physical experiment, new physical interaction, antigravity effect, vacuum thrust, engineering superiority, certification or independent SOTA result is claimed.
 
 
-## 10. Offline audit command
+## 10. Integrated microrobot and distributed-array control
+
+A separate system-level comparator is Tao et al., *Controlled flight of high-thrust ultralight ion-propelled microrobot with integrated sensing*, Nature Communications 17, Article 9530 (2026), DOI 10.1038/s41467-026-76462-y.
+
+The source reports:
+- a 37.7 × 37.7 mm ion-wind platform with a reported 36.7 mg robot mass;
+- four ion-wind thrusters arranged in a cross;
+- IMU-based closed-loop attitude control;
+- 5:1 reported thrust-to-weight;
+- 146.8 mg payload (four times the reported robot mass);
+- one-hour **tethered** hovering;
+- reported pitch and roll RMSE reductions of 83.11% and 89.21% under the demonstrated control strategy;
+- square- and triangle-path trajectory demonstrations.
+
+This is an integrated system/control reference, not a bare-thruster benchmark. The one-hour hover is tethered; it must not be reported as self-powered free flight. Preserve the source's mass and power boundary and do not invent a battery, onboard HV-converter or support mass that the paper does not report.
+
+### Paradigm shift: propulsion as a distributed, actively controlled surface
+
+Combine two distinct research directions:
+1. **Passive field shaping:** grid collectors and auxiliary electrodes redistribute the electric field and charge flow without adding another active control loop. The 2026 auxiliary-electrode study reports a 31.2% thrust and 72.5% thrust-to-power gain for its aluminium-foil configuration at 60 kV versus its own baseline. [Meng et al.](https://doi.org/10.1088/2058-6272/ae795a)
+2. **Active segmentation:** divide an EHD/EAD array into independently monitored and controllable zones. Control should allocate current/voltage authority across healthy zones, compensate for gas/pressure/flow changes, and isolate failed or unstable zones. This is a proposed architecture, not an already demonstrated Luminous capability.
+
+The opportunity is to co-design the electric-field topology, electrode drag, structural frame and feedback controller as one propulsion system. A segmented architecture could support graceful degradation: a failed or unstable cell is isolated and the remaining cells reallocate authority subject to current, thermal, breakdown and total-power limits.
+
+### Control and integration benchmark
+
+Compare, on the same physical platform and calibration chain:
+- passive fixed geometry with open-loop electrical drive;
+- passive field shaping (grid / auxiliary electrode) with open-loop drive;
+- multi-channel IMU closed-loop control using fixed allocation;
+- segmented, health-aware allocation with disturbance estimation and constrained model-predictive control.
+
+Report separately:
+- pitch / roll / yaw RMSE and peak error;
+- trajectory RMS and maximum deviation;
+- settling time and disturbance recovery;
+- thrust and thrust-to-power during manoeuvres, not only at static hover;
+- total electrical power, controller power and full tether / onboard-source boundary;
+- total mass, payload mass, system T/W and endurance;
+- actuator saturation, unstable-discharge events, rejected commands and failure-isolation time;
+- performance after one zone is unavailable;
+- measurement latency and causal sensor alignment (reuse Symtropy #6188).
+
+Proposed targets, not achieved results:
+- at least 90% pitch and roll RMSE reduction against a matched open-loop baseline;
+- no worse trajectory error than the best matched published integrated-control comparator;
+- maintain declared attitude/trajectory tolerance after loss of one controllable zone, with safe thrust derating rather than uncontrolled collapse;
+- report all manoeuvre power and control-electronics power, not only static electrode power;
+- separate tethered endurance from genuinely self-powered free flight; do not claim the latter until the complete onboard power system is included and physically demonstrated.
+
+This benchmark is intentionally kept separate from bare-thruster T/A and T/P comparisons. A high T/W based on thruster or collector mass alone is not an integrated aircraft result.
+
+## 11. Offline audit command
 
 The branch now includes a small Rust workspace member that checks the atlas schema, metric-unit ontology, source IDs, figure row counts, evidence-class boundaries, configuration-specific extrema, mass/power boundaries, and specialist-solver scope. It has mutation tests for common comparison errors.
 
