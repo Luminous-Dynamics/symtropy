@@ -1016,6 +1016,28 @@ pub struct ReplayReceipt {
 }
 
 impl ReplayReceipt {
+    /// Verify that this replay receipt describes the exact action-bound transition.
+    pub fn validate_for_step(
+        &self,
+        request: &StepRequest,
+        output: &StateSnapshot,
+    ) -> Result<(), ValidationError> {
+        self.validate()?;
+        request.validate_result(output)?;
+        if self.initial_snapshot_sha256 != request.pre_snapshot_sha256
+            || self.action_stream_sha256 != request.action_stream_sha256
+            || self.model_build_sha256 != request.model_build_sha256
+            || self.configuration_sha256 != request.configuration_sha256
+            || self.output_snapshot_sha256 != output.identity.snapshot_sha256
+        {
+            return Err(ValidationError::new(
+                "replay",
+                "replay receipt digests do not match the action-bound state transition",
+            ));
+        }
+        Ok(())
+    }
+
     pub fn validate(&self) -> Result<(), ValidationError> {
         for (name, digest) in [
             ("initial_snapshot_sha256", &self.initial_snapshot_sha256),
@@ -1358,6 +1380,75 @@ mod tests {
         let pre_state = valid_snapshot(0, 0);
         assert!(StepRequest::from_snapshot(&pre_state, "invalid", 1).is_err());
         assert!(StepRequest::from_snapshot(&pre_state, "d".repeat(64), 0).is_err());
+    }
+
+    #[test]
+    fn replay_receipt_must_match_the_exact_step_request_and_output() {
+        let pre_state = valid_snapshot(0, 0);
+        let output = valid_snapshot(1, 1_000_000);
+        let action_digest = "d".repeat(64);
+        let request =
+            StepRequest::from_snapshot(&pre_state, action_digest.clone(), 1_000_000).unwrap();
+        let receipt = ReplayReceipt {
+            initial_snapshot_sha256: pre_state.identity.snapshot_sha256.clone(),
+            action_stream_sha256: action_digest,
+            model_build_sha256: pre_state.identity.model_build_sha256.clone(),
+            configuration_sha256: pre_state.identity.configuration_sha256.clone(),
+            solver_sha256: "e".repeat(64),
+            output_snapshot_sha256: output.identity.snapshot_sha256.clone(),
+            random_seed_sha256: None,
+            replay_class: ReplayClass::Deterministic,
+        };
+        assert!(receipt.validate_for_step(&request, &output).is_ok());
+
+        let mut wrong_receipt = receipt.clone();
+        wrong_receipt.action_stream_sha256 = "f".repeat(64);
+        assert!(wrong_receipt.validate_for_step(&request, &output).is_err());
+    }
+
+    #[test]
+    fn predicted_and_estimated_fields_require_status_specific_provenance() {
+        let predicted = FieldValue {
+            value: Some(0.5),
+            metadata: FieldMetadata {
+                status: FieldStatus::Predicted,
+                unit: "m".to_owned(),
+                frame_id: Some("world".to_owned()),
+                uncertainty: Some(Uncertainty::NotQuantified {
+                    reason: "model emits no variance".to_owned(),
+                }),
+                provenance: Provenance {
+                    model_build_sha256: Some("b".repeat(64)),
+                    ..Provenance::default()
+                },
+                unavailable_reason: None,
+            },
+        };
+        assert!(predicted.validate("predicted").is_ok());
+
+        let missing_model = FieldValue {
+            metadata: FieldMetadata {
+                provenance: Provenance {
+                    derivation: Some("model prediction".to_owned()),
+                    ..Provenance::default()
+                },
+                ..predicted.metadata.clone()
+            },
+            ..predicted
+        };
+        assert!(missing_model.validate("predicted").is_err());
+    }
+
+    #[test]
+    fn inertia_tensor_must_be_symmetric_positive_semidefinite() {
+        let valid = [[2.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 4.0]];
+        assert!(validate_symmetric_psd3(&valid, "inertia").is_ok());
+
+        let asymmetric = [[2.0, 0.5, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 4.0]];
+        assert!(validate_symmetric_psd3(&asymmetric, "inertia").is_err());
+
+        let negative_moment = [[-1.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 4.0]];
+        assert!(validate_symmetric_psd3(&negative_moment, "inertia").is_err());
     }
 
     #[test]
