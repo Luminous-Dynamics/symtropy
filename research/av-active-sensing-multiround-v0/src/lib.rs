@@ -184,7 +184,7 @@ pub enum FixtureOutcomeStatusV1 {
 }
 
 /// Candidate-visible status for a resolved action.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum VisibleOutcomeStatusV1 {
     /// Delivered before or at the decision deadline.
@@ -443,7 +443,7 @@ impl ActiveSensingExecutorV1 {
             let fixture = fixture_map
                 .get(&action.action_id)
                 .ok_or_else(|| ExecutorError::new("missing action fixture"))?;
-            validate_fixture(fixture)?;
+            validate_fixture(action, fixture)?;
             if let Some(reference) = &fixture.observation_ref {
                 if !fixture_observation_refs.insert(reference.clone()) {
                     return Err(ExecutorError::new(
@@ -924,7 +924,10 @@ fn validate_config(config: &EpisodeConfigV1) -> Result<(), ExecutorError> {
     Ok(())
 }
 
-fn validate_fixture(fixture: &ActionOutcomeFixtureV1) -> Result<(), ExecutorError> {
+fn validate_fixture(
+    action: &ActionSpecV1,
+    fixture: &ActionOutcomeFixtureV1,
+) -> Result<(), ExecutorError> {
     if !fixture.consumed_cost.fits_within(action.reserve_cost) {
         return Err(ExecutorError::new(
             "fixture consumption exceeds the action reservation",
