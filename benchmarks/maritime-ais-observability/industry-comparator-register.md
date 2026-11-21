@@ -50,7 +50,8 @@ Source: https://doi.org/10.3233/PMST250026
 ## 5. Metrics that matter
 
 Compare all methods on the same receiver/time/feed and held-out calls:
-- transition precision/recall and confusion by state/event type;
+- transition precision/recall and confusion by state/event type, scored by one-to-one source-local call/event matching;
+- event interval-distance error and matched interval width, separately from confirmation latency;
 - false berth-arrival and false port-exit rate;
 - event-time median/P90/P95 interval width and absolute error;
 - sender event-to-receiver observation latency distribution, without assuming clock synchronization;
