@@ -104,6 +104,20 @@ Primary references:
 
 These scores must not be averaged, ranked against one another or presented as if they shared task definitions. Runtime assurance architectures such as Simplex address controller-level safety monitoring and fallback; they are an essential complementary layer, not a baseline that action-ticket checks can replace. LADDER's 62.0/63.3 mismatch is an explicit baseline-reconciliation item, not a rounding adjustment.
 
+## 4. Relationship to existing safety standards and safety cases
+
+CDAAB is an engineering benchmark and evidence format, not a safety standard, certification route or complete safety case.
+
+- **ISO 34502:2022** describes a scenario-based ADS safety-evaluation framework scoped to limited-access highways. The published scope explicitly excludes misuse, HMI and cybersecurity, and excludes non-safety topics such as comfort, energy and traffic-flow efficiency. CDAAB should add adversarial authority/revocation, queue/replay, common-cause, evaluator-integrity, operator-intervention and cost/energy evidence as complementary dimensions; it must not present these as already covered by ISO 34502.
+- **ISO 21448:2022 (SOTIF)** provides an argument framework and guidance for hazards caused by functional insufficiencies and situational-awareness limitations, including complex sensors/processing and relevant operation-phase activities. CDAAB's stale/conflicted/unqualified observation and independent-effect evidence can contribute concrete verification evidence to a domain SOTIF argument, but cannot replace that argument. The official ISO catalogue currently shows a working draft for a successor edition; implementations must pin the edition they actually use.
+- **UL 4600 Edition 3** is an active standard for developing and evaluating a safety argument for autonomous products, including lifecycle risk mitigation and evidence. CDAAB run receipts can support the evidence layer of such a safety case; they do not establish that the entire argument is complete, valid or accepted.
+
+References:
+- ISO 34502:2022: https://www.iso.org/standard/78951.html
+- ISO 21448:2022: https://www.iso.org/standard/77490.html
+- ISO working draft successor listing: https://www.iso.org/cms/%20render/live/en/sites/isoorg/contents/data/standard/09/30/93071.html
+- UL 4600 Edition 3: https://www.shopulstandards.com/ProductDetail.aspx?productid=UL4600
+
 ## 4. Benchmark the benchmark
 
 A 2026 CoRL audit of LIBERO, CALVIN, SimplerEnv, RoboCasa and RoboTwin 2.0 identified shortcut solvability, statistical significance, creeping overfitting and data-source dependence. It reports that only 19.8% of audited LIBERO SOTA claims were provably statistically significant; a 0.09B probe without a language encoder reached near reported LIBERO SOTA; and CALVIN's average tasks-completed score dropped from 4.17 to 3.14 when object poses were resampled within the training range.
