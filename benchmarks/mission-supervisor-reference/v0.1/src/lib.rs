@@ -456,9 +456,6 @@ pub enum ReceiptDisposition {
     Duplicate,
 }
 
-/// Single-writer deterministic state machine. It allows at most one unresolved
-/// external mutation across the mission at any time.
-#[derive(Clone, Debug)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct SourceCursor {
     sequence: u64,
@@ -470,6 +467,9 @@ struct SourceCursor {
     normalization_commitment: Digest,
 }
 
+/// Single-writer deterministic state machine. It allows at most one unresolved
+/// external mutation across the mission at any time.
+#[derive(Clone, Debug)]
 pub struct MissionSupervisor {
     plan: MissionPlan,
     states: BTreeMap<String, SubgoalRuntime>,
@@ -983,7 +983,10 @@ impl MissionSupervisor {
                 source_clock_id: envelope.time_qualification.source_clock_id.clone(),
                 source_boot_epoch_id: envelope.time_qualification.source_boot_epoch_id.clone(),
                 comparison_clock_id: envelope.time_qualification.comparison_clock_id.clone(),
-                comparison_boot_epoch_id: envelope.time_qualification.comparison_boot_epoch_id.clone(),
+                comparison_boot_epoch_id: envelope
+                    .time_qualification
+                    .comparison_boot_epoch_id
+                    .clone(),
                 normalization_commitment: envelope.time_qualification.normalization_commitment,
             },
         );
