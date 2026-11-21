@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-memory-revocation-submission-v1.schema.json",
+  "title": "AV Memory Revocation Candidate Submission v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "policy_id",
+    "run_id",
+    "measurement_status",
+    "predictions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "av-memory-revocation-challenge-v0"
+    },
+    "policy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "measurement_status": {
+      "const": "synthetic_reference"
+    },
+    "predictions": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "$ref": "#/$defs/prediction"
+      }
+    }
+  },
+  "$defs": {
+    "probe_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "probe_id",
+        "answer_text",
+        "confidence",
+        "cited_observation_refs",
+        "retrieved_memory_item_refs"
+      ],
+      "properties": {
+        "probe_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "answer_text": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "cited_observation_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "retrieved_memory_item_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "purge_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "item_ref",
+        "status",
+        "purge_tick",
+        "receipt_id",
+        "attestation_level"
+      ],
+      "properties": {
+        "item_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "purged",
+            "retained",
+            "pending",
+            "failed"
+          ]
+        },
+        "purge_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "attestation_level": {
+          "enum": [
+            "candidate_self_reported",
+            "independent_storage_witness",
+            "hardware_attested"
+          ]
+        }
+      }
+    },
+    "prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "probe_results",
+        "purge_receipts",
+        "reported_policy_ineligible_refs",
+        "claimed_storage_erasure_complete"
+      ],
+      "properties": {
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "probe_results": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/probe_result"
+          }
+        },
+        "purge_receipts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/purge_receipt"
+          }
+        },
+        "reported_policy_ineligible_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "claimed_storage_erasure_complete": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}
