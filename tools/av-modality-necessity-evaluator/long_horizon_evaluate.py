@@ -109,7 +109,7 @@ def _episode_state(
             observation_signatures[ref] = signature
             # Duplicate delivery reuses the original immutable source identity; first availability wins.
             observations[ref] = min(observations.get(ref, tick), tick)
-        elif kind not in {"correction", "revocation"}:
+        elif not isinstance(kind, str) or kind not in {"correction", "revocation"}:
             raise EvaluationError(f"{episode.get('episode_id')}: unknown event kind {kind!r}")
 
     superseded: set[str] = set()
@@ -452,7 +452,8 @@ def evaluate(
                 violations.append("purge_receipt_missing_identity")
             if receipt.get("attestation_level") != "candidate_self_reported":
                 violations.append("purge_receipt_attestation_level_invalid")
-            if receipt.get("status") not in {"purged", "retained"}:
+            receipt_status = receipt.get("status")
+            if not isinstance(receipt_status, str) or receipt_status not in {"purged", "retained"}:
                 violations.append("purge_receipt_status_invalid")
             purge_by_ref[item_ref] = receipt
 
