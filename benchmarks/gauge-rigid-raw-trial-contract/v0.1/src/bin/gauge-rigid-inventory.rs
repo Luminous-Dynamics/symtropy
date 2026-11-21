@@ -229,15 +229,14 @@ fn sha256_bytes(bytes: &[u8]) -> Result<String, String> {
         .spawn()
         .map_err(|error| format!("sha256sum is unavailable: {error}"))?;
 
-    {
-        let stdin = child
-            .stdin
-            .as_mut()
-            .ok_or_else(|| "sha256sum stdin pipe was not created".to_owned())?;
-        stdin
-            .write_all(bytes)
-            .map_err(|error| format!("cannot provide raw bytes to sha256sum: {error}"))?;
-    }
+    let mut stdin = child
+        .stdin
+        .take()
+        .ok_or_else(|| "sha256sum stdin pipe was not created".to_owned())?;
+    stdin
+        .write_all(bytes)
+        .map_err(|error| format!("cannot provide raw bytes to sha256sum: {error}"))?;
+    drop(stdin);
 
     let output = child
         .wait_with_output()
