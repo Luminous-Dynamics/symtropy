@@ -186,6 +186,8 @@ A candidate CMNI observation model is:
 
 where e indexes experiments, k indexes energy / observation channels, x_e is a versioned experimental-feature vector, beta_k is a sparse energy-dependent feature-bias coefficient, b_e,k is a declared run-level random effect, and epsilon follows the measurement likelihood with its full covariance. A horseshoe or another predeclared shrinkage prior is a candidate for beta, not a default to be tuned after inspecting results.
 
+The kernel now includes a deterministic forward primitive that applies caller-supplied feature coefficients to positive physical expected counts using exp(X beta) independently for each observation channel. It does not estimate beta, impose shrinkage, modify raw data, or infer causal effects. This is an interface boundary that keeps potential detector/analysis bias parameters distinct from the physical reaction model.
+
 Qualification requirements:
 
 - Raw observations and source artifacts are immutable. A corrected dataset is a separate derived layer with a complete provenance receipt.
@@ -211,7 +213,8 @@ Implemented in this research-only Rust crate:
 - finite equal-weight response-ensemble Poisson mixture log predictive probability for observed integer counts, evaluated in log space;
 - nested two-level scalar approximate-control-variate estimation with frozen beta and a nested-sample variance estimate;
 - finite-scenario maximin candidate-design scoring with cost metadata and deterministic tie-breaking;
-- covariance-aware reference-spectrum shape comparison with profiled scale.
+- covariance-aware reference-spectrum shape comparison with profiled scale;
+- a deterministic log-linear feature-conditioned multiplicative-bias forward operator, with caller-supplied coefficients.
 
 Not implemented yet:
 
@@ -220,6 +223,7 @@ Not implemented yet:
 - a full Bayesian expected-information-gain estimator, multifidelity sample-allocation optimizer or ACV coefficient learner;
 - a continuous robust-design optimizer, uncertainty-set calibration or Pareto frontier;
 - a nuisance-integrated or posterior-predictive model-discrimination score;
+- sparse Bayesian inference for feature-conditioned bias coefficients, including prior sensitivity and coefficient uncertainty;
 - a general nuisance-aware hierarchical likelihood for response, background, live time, PSD and other calibration dimensions;
 - versioned PFNS reference evaluation ingestion, JSON experimental covariance database reader, interpolation audit and absolute-fluence comparison;
 - Geant4, GRAVEL, or the cited 2026 Bayesian method;
