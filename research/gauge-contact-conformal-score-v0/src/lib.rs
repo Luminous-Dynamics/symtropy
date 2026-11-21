@@ -1051,34 +1051,113 @@ mod tests {
 
     #[test]
     fn sentinel_threshold_becomes_unbounded_pose_set() {
-        let receipt = CalibrationReceipt {
+        let block_identity = block_identity();
+        let trial =
+            TrialPoseScore::incomplete("failed-trial", EpisodeOutcome::Failed, score_identity(), DIGEST)
+                .unwrap();
+        let block = build_calibration_block("session-01", &[trial], &block_identity).unwrap();
+        let conformal = CalibrationReceipt {
             model_digest: MODEL_DIGEST.to_owned(),
             target_digest: TARGET_DIGEST.to_owned(),
             domain_digest: DOMAIN_DIGEST.to_owned(),
             score_definition_digest: DIGEST.to_owned(),
-            calibration_split_digest: "calibration-manifest-01".to_owned(),
+            calibration_split_digest: block_identity.calibration_split_digest.clone(),
             alpha_ppm: 50_000,
-            independent_unit_count: 19,
-            episode_count: 21,
-            rank_1based: 19,
+            independent_unit_count: 1,
+            episode_count: 1,
+            rank_1based: 1,
             threshold: ConformalThreshold::Finite(INCOMPLETE_HORIZON_SCORE),
             exchangeability_unit: "session/article block".to_owned(),
             coverage_claim: "finite-sample marginal whole-unit coverage under exchangeability"
                 .to_owned(),
         };
-        let decision = check_pose_set_application(
-            &receipt,
-            ApplicationIdentity {
+        let receipt = bind_pose_calibration_receipt(
+            conformal,
+            &[block],
+            RAW_DIGEST,
+            FORECAST_DIGEST,
+        )
+        .unwrap();
+        let identity = PoseSetApplicationIdentity {
+            dataset_revision: DATASET_REVISION,
+            source_manifest_sha256: RAW_DIGEST,
+            conformal: ApplicationIdentity {
                 model_digest: MODEL_DIGEST,
                 target_digest: TARGET_DIGEST,
                 domain_digest: DOMAIN_DIGEST,
                 score_definition_digest: DIGEST,
             },
-        );
+        };
+        let decision = check_pose_set_application(&receipt, identity);
         assert_eq!(
             decision,
             PoseSetApplicationDecision::Applicable {
                 threshold: PoseSetThreshold::Unbounded
+            }
+        );
+    }
+
+    #[test]
+    fn pose_calibration_receipt_refuses_a_different_dataset_or_source_manifest() {
+        let block_identity = block_identity();
+        let trial =
+            TrialPoseScore::incomplete("failed-trial", EpisodeOutcome::Failed, score_identity(), DIGEST)
+                .unwrap();
+        let block = build_calibration_block("session-01", &[trial], &block_identity).unwrap();
+        let conformal = CalibrationReceipt {
+            model_digest: MODEL_DIGEST.to_owned(),
+            target_digest: TARGET_DIGEST.to_owned(),
+            domain_digest: DOMAIN_DIGEST.to_owned(),
+            score_definition_digest: DIGEST.to_owned(),
+            calibration_split_digest: block_identity.calibration_split_digest.clone(),
+            alpha_ppm: 50_000,
+            independent_unit_count: 1,
+            episode_count: 1,
+            rank_1based: 1,
+            threshold: ConformalThreshold::Finite(10),
+            exchangeability_unit: "session/article block".to_owned(),
+            coverage_claim: "finite-sample marginal whole-unit coverage under exchangeability"
+                .to_owned(),
+        };
+        let receipt = bind_pose_calibration_receipt(
+            conformal,
+            &[block],
+            RAW_DIGEST,
+            FORECAST_DIGEST,
+        )
+        .unwrap();
+        let base = PoseSetApplicationIdentity {
+            dataset_revision: DATASET_REVISION,
+            source_manifest_sha256: RAW_DIGEST,
+            conformal: ApplicationIdentity {
+                model_digest: MODEL_DIGEST,
+                target_digest: TARGET_DIGEST,
+                domain_digest: DOMAIN_DIGEST,
+                score_definition_digest: DIGEST,
+            },
+        };
+        assert_eq!(
+            check_pose_set_application(
+                &receipt,
+                PoseSetApplicationIdentity {
+                    dataset_revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    ..base
+                }
+            ),
+            PoseSetApplicationDecision::NotApplicable {
+                reason: PoseSetApplicationMismatch::DatasetRevision
+            }
+        );
+        assert_eq!(
+            check_pose_set_application(
+                &receipt,
+                PoseSetApplicationIdentity {
+                    source_manifest_sha256: FORECAST_DIGEST,
+                    ..base
+                }
+            ),
+            PoseSetApplicationDecision::NotApplicable {
+                reason: PoseSetApplicationMismatch::SourceManifestDigest
             }
         );
     }
