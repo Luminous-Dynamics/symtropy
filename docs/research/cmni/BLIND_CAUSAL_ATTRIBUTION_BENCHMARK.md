@@ -44,6 +44,19 @@ Shared reference uncertainty must be represented once as a common latent quantit
 
 The data generator must retain the true latent decomposition separately from the observations. It must support exact synthetic truth, controlled misspecification, and immutable seeds.
 
+## 2A. Deterministic generator primitive now implemented
+
+The standalone Rust crate now contains `blind_attribution.rs` and exports a deterministic generator. It produces a positive baseline spectrum and separate model-facing design columns for a global physical effect and a feature-conditioned measurement effect, with seeded lognormal noise.
+
+Three basis geometries are implemented:
+- **Orthogonal:** physical and measurement energy signatures are orthogonal.
+- **Partial:** the measurement signature has a configured correlation with the physical signature.
+- **Exact alias:** signatures are identical and experiment feature values are fixed to one, so only the sum of physical and measurement amplitudes is observable.
+
+The API returns separate `BlindAttributionPublicData` and `BlindAttributionTruth` structures. This is a type-level separation only: the blind benchmark harness must serialize these to separate artifacts, hash/freeze the model-facing data, protect the truth file, and ensure fitting/model-selection code cannot access it.
+
+Authored unit tests cover deterministic replay, positive observations, orthogonal basis geometry, requested partial correlation, exact alias equality and rejection of invalid exact-alias feature metadata. The generator is not yet the complete factorial challenge harness, lineage-aware split engine, scoring report, or blinded release process. Its Rust tests await exact-head CI execution.
+
 ## 3. Factorial challenge matrix
 
 Generate a preregistered factorial suite crossing the following dimensions:
