@@ -132,7 +132,7 @@
         "test_scope",
         "minimum_event_rate_per_second",
         "maximum_event_rate_per_second",
-        "test_event_rate_per_second",
+        "test_window_seconds",
         "reference",
         "reference_events",
         "observed_events",
@@ -157,10 +157,6 @@
           "minimum": 0
         },
         "maximum_event_rate_per_second": {
-          "type": "number",
-          "minimum": 0
-        },
-        "test_event_rate_per_second": {
           "type": "number",
           "minimum": 0
         },
@@ -369,6 +365,10 @@
               "maximum": 1
             }
           }
+        },
+        "test_window_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
         }
       }
     }
