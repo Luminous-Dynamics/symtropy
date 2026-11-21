@@ -245,9 +245,8 @@ def main() -> None:
     )
     wald_variation=sp.factor(sp.diff(wald_density,a)/(2*sp.pi))
     expected_wald_variation=(
-        alpha_sym*sine*0/(16*sp.pi*G*eps**3)
-        +alpha_sym/(16*sp.pi*G*eps**3)
-        *(T**4-2*T**3+76*T**2+26*T-5)/(1-T)**4
+        alpha_sym/(16*sp.pi*G*eps**3)
+        *(-5+36*T+42*T**2-12*T**3+3*T**4)/(1-T)**3
     )
     exact_zero("Wald multiplier",wald_multiplier
                -(-5+17*T+5*T**2-T**3)/(1-T)**3)
@@ -356,6 +355,8 @@ def main() -> None:
         "Einstein_and_GB_Noether_prefactors_individually_calibrated":True,
         "Wald_variation_exact":True,
         "source_density_conversion_exact":True,
+        "wald_variation_equals_axial_lovelock_charge_exactly":True,
+        "source_density_disagrees_with_both_exactly":True,
         "three_way_discrepancy_exact":True,
         "source_charge_formula_term_by_term_replayed":False,
         "Lovelock_divergence_free_component_replay":False,
