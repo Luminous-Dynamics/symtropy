@@ -17,7 +17,10 @@ pub enum ConstraintSolveOutcome {
     /// The constraint had no correction to apply.
     NoOp,
     /// The constraint declined an operation without claiming its result.
-    Rejected { code: &'static str },
+    Rejected {
+        code: &'static str,
+        body_state_mutated_before_rejection: bool,
+    },
     /// A legacy implementation ran through the compatibility method and did
     /// not provide a typed outcome.
     Unreported,
