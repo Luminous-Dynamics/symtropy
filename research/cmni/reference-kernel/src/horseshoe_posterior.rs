@@ -55,20 +55,30 @@ pub fn raw_scale_horseshoe_log_posterior(
         || design_matrix.len() != observation_count
         || log_local_scales.len() != coefficient_count
         || relative_covariance.len() != observation_count
-        || relative_covariance.iter().any(|row| row.len() != observation_count)
-        || design_matrix.iter().any(|row| row.len() != coefficient_count)
+        || relative_covariance
+            .iter()
+            .any(|row| row.len() != observation_count)
+        || design_matrix
+            .iter()
+            .any(|row| row.len() != coefficient_count)
     {
         return Err(ModelError::MismatchedDataLengths);
     }
     if !log_global_scale.is_finite() || log_global_scale.abs() > 300.0 {
-        return Err(ModelError::InvalidParameter("log_global_scale_out_of_supported_range"));
+        return Err(ModelError::InvalidParameter(
+            "log_global_scale_out_of_supported_range",
+        ));
     }
-    if log_local_scales.iter().any(|value| !value.is_finite() || value.abs() > 300.0) {
-        return Err(ModelError::InvalidParameter("log_local_scale_out_of_supported_range"));
+    if log_local_scales
+        .iter()
+        .any(|value| !value.is_finite() || value.abs() > 300.0)
+    {
+        return Err(ModelError::InvalidParameter(
+            "log_local_scale_out_of_supported_range",
+        ));
     }
     let prior_scale = match global_scale_prior {
-        GlobalScalePrior::HalfNormal { scale }
-        | GlobalScalePrior::HalfCauchy { scale } => scale,
+        GlobalScalePrior::HalfNormal { scale } | GlobalScalePrior::HalfCauchy { scale } => scale,
     };
     if !prior_scale.is_finite() {
         return Err(ModelError::NonFiniteValue("global_scale_prior_scale"));
@@ -82,7 +92,9 @@ pub fn raw_scale_horseshoe_log_posterior(
             return Err(ModelError::NonFiniteValue("horseshoe_observations"));
         }
         if *value < 0.0 {
-            return Err(ModelError::InvalidParameter("horseshoe_observations_must_be_nonnegative"));
+            return Err(ModelError::InvalidParameter(
+                "horseshoe_observations_must_be_nonnegative",
+            ));
         }
     }
     for value in baseline_mean {
@@ -93,18 +105,29 @@ pub fn raw_scale_horseshoe_log_posterior(
             return Err(ModelError::NonPositiveValue("horseshoe_baseline_mean"));
         }
     }
-    if design_matrix.iter().flatten().any(|value| !value.is_finite()) {
+    if design_matrix
+        .iter()
+        .flatten()
+        .any(|value| !value.is_finite())
+    {
         return Err(ModelError::NonFiniteValue("horseshoe_design_matrix"));
     }
     if coefficients.iter().any(|value| !value.is_finite()) {
         return Err(ModelError::NonFiniteValue("horseshoe_coefficients"));
     }
-    if relative_covariance.iter().flatten().any(|value| !value.is_finite()) {
+    if relative_covariance
+        .iter()
+        .flatten()
+        .any(|value| !value.is_finite())
+    {
         return Err(ModelError::NonFiniteValue("horseshoe_relative_covariance"));
     }
 
-    let covariance_scale = relative_covariance.iter().flatten()
-        .map(|value| value.abs()).fold(0.0_f64, f64::max);
+    let covariance_scale = relative_covariance
+        .iter()
+        .flatten()
+        .map(|value| value.abs())
+        .fold(0.0_f64, f64::max);
     let symmetry_tolerance = 1.0e-10 * covariance_scale.max(f64::MIN_POSITIVE);
     for row in 0..observation_count {
         for column in 0..row {
@@ -123,7 +146,10 @@ pub fn raw_scale_horseshoe_log_posterior(
         return Err(ModelError::InvalidParameter("global_scale_invalid"));
     }
     let local_scales: Vec<f64> = log_local_scales.iter().map(|value| value.exp()).collect();
-    if local_scales.iter().any(|value| !value.is_finite() || *value <= 0.0) {
+    if local_scales
+        .iter()
+        .any(|value| !value.is_finite() || *value <= 0.0)
+    {
         return Err(ModelError::InvalidParameter("local_scale_invalid"));
     }
 
@@ -141,21 +167,28 @@ pub fn raw_scale_horseshoe_log_posterior(
     for row in 0..observation_count {
         let delta = dot(&design_matrix[row], coefficients);
         if !delta.is_finite() || delta.abs() > 700.0 {
-            return Err(ModelError::InvalidParameter("horseshoe_bias_predictor_out_of_range"));
+            return Err(ModelError::InvalidParameter(
+                "horseshoe_bias_predictor_out_of_range",
+            ));
         }
         biased_prediction[row] = baseline_mean[row] * delta.exp();
         if !biased_prediction[row].is_finite() || biased_prediction[row] <= 0.0 {
-            return Err(ModelError::InvalidParameter("horseshoe_biased_prediction_invalid"));
+            return Err(ModelError::InvalidParameter(
+                "horseshoe_biased_prediction_invalid",
+            ));
         }
     }
-    let residual: Vec<f64> = observed.iter()
+    let residual: Vec<f64> = observed
+        .iter()
         .zip(biased_prediction.iter())
         .map(|(y, mean)| y - mean)
         .collect();
     let weighted_residual = solve_cholesky(&lower, &residual)?;
     let quadratic = dot(&residual, &weighted_residual);
     if !quadratic.is_finite() || quadratic < -1.0e-9 {
-        return Err(ModelError::InvalidCovariance("horseshoe_likelihood_quadratic_invalid"));
+        return Err(ModelError::InvalidCovariance(
+            "horseshoe_likelihood_quadratic_invalid",
+        ));
     }
     let log_likelihood = -0.5
         * (observation_count as f64 * (2.0 * std::f64::consts::PI).ln()
@@ -165,9 +198,8 @@ pub fn raw_scale_horseshoe_log_posterior(
     let mut coefficient_gradient = vec![0.0; coefficient_count];
     for feature in 0..coefficient_count {
         for row in 0..observation_count {
-            coefficient_gradient[feature] += design_matrix[row][feature]
-                * biased_prediction[row]
-                * weighted_residual[row];
+            coefficient_gradient[feature] +=
+                design_matrix[row][feature] * biased_prediction[row] * weighted_residual[row];
         }
     }
 
@@ -177,7 +209,9 @@ pub fn raw_scale_horseshoe_log_posterior(
     for feature in 0..coefficient_count {
         let scale = global_scale * local_scales[feature];
         if !scale.is_finite() || scale <= 0.0 {
-            return Err(ModelError::InvalidParameter("horseshoe_coefficient_scale_invalid"));
+            return Err(ModelError::InvalidParameter(
+                "horseshoe_coefficient_scale_invalid",
+            ));
         }
         let standardized = coefficients[feature] / scale;
         let q = standardized * standardized;
@@ -188,30 +222,30 @@ pub fn raw_scale_horseshoe_log_posterior(
         sum_scaled_square += q;
         log_prior += -0.5 * q - scale.ln() - 0.5 * (2.0 * std::f64::consts::PI).ln();
         // Half-Cauchy local scale plus log-coordinate Jacobian.
-        log_prior += (2.0 / std::f64::consts::PI).ln()
-            - (1.0 + local_sq).ln()
-            + log_local_scales[feature];
+        log_prior +=
+            (2.0 / std::f64::consts::PI).ln() - (1.0 + local_sq).ln() + log_local_scales[feature];
         coefficient_gradient[feature] -= coefficients[feature] / (scale * scale);
-        log_local_scale_gradient[feature] =
-            q - 2.0 * local_sq / (1.0 + local_sq);
+        log_local_scale_gradient[feature] = q - 2.0 * local_sq / (1.0 + local_sq);
     }
 
     let global_ratio = global_scale / prior_scale;
     let global_ratio_sq = global_ratio * global_ratio;
     if !global_ratio_sq.is_finite() || !sum_scaled_square.is_finite() {
-        return Err(ModelError::InvalidParameter("horseshoe_global_prior_overflow"));
+        return Err(ModelError::InvalidParameter(
+            "horseshoe_global_prior_overflow",
+        ));
     }
     match global_scale_prior {
         GlobalScalePrior::HalfNormal { scale } => {
-            log_prior += 0.5 * (2.0 / std::f64::consts::PI).ln()
-                - scale.ln()
-                - 0.5 * global_ratio_sq
-                + log_global_scale;
+            log_prior +=
+                0.5 * (2.0 / std::f64::consts::PI).ln() - scale.ln() - 0.5 * global_ratio_sq
+                    + log_global_scale;
             let coefficient_count_f = coefficient_count as f64;
-            let global_gradient =
-                sum_scaled_square - coefficient_count_f + 1.0 - global_ratio_sq;
+            let global_gradient = sum_scaled_square - coefficient_count_f + 1.0 - global_ratio_sq;
             if !global_gradient.is_finite() {
-                return Err(ModelError::InvalidParameter("horseshoe_global_gradient_nonfinite"));
+                return Err(ModelError::InvalidParameter(
+                    "horseshoe_global_gradient_nonfinite",
+                ));
             }
             Ok(RawScaleHorseshoePosterior {
                 log_likelihood,
@@ -224,15 +258,15 @@ pub fn raw_scale_horseshoe_log_posterior(
             })
         }
         GlobalScalePrior::HalfCauchy { scale } => {
-            log_prior += (2.0 / std::f64::consts::PI).ln()
-                - scale.ln()
-                - (1.0 + global_ratio_sq).ln()
-                + log_global_scale;
-            let global_gradient =
-                sum_scaled_square - coefficient_count as f64
-                    + 1.0 - 2.0 * global_ratio_sq / (1.0 + global_ratio_sq);
+            log_prior +=
+                (2.0 / std::f64::consts::PI).ln() - scale.ln() - (1.0 + global_ratio_sq).ln()
+                    + log_global_scale;
+            let global_gradient = sum_scaled_square - coefficient_count as f64 + 1.0
+                - 2.0 * global_ratio_sq / (1.0 + global_ratio_sq);
             if !global_gradient.is_finite() {
-                return Err(ModelError::InvalidParameter("horseshoe_global_gradient_nonfinite"));
+                return Err(ModelError::InvalidParameter(
+                    "horseshoe_global_gradient_nonfinite",
+                ));
             }
             Ok(RawScaleHorseshoePosterior {
                 log_likelihood,
@@ -293,16 +327,24 @@ fn solve_cholesky(lower: &[Vec<f64>], rhs: &[f64]) -> Result<Vec<f64>, ModelErro
         solution[row] = value / lower[row][row];
     }
     if solution.iter().any(|value| !value.is_finite()) {
-        return Err(ModelError::InvalidCovariance("horseshoe_covariance_solve_nonfinite"));
+        return Err(ModelError::InvalidCovariance(
+            "horseshoe_covariance_solve_nonfinite",
+        ));
     }
     Ok(solution)
 }
 
 fn log_determinant_from_cholesky(lower: &[Vec<f64>]) -> Result<f64, ModelError> {
-    let value = 2.0 * lower.iter().enumerate()
-        .map(|(index, row)| row[index].ln()).sum::<f64>();
+    let value = 2.0
+        * lower
+            .iter()
+            .enumerate()
+            .map(|(index, row)| row[index].ln())
+            .sum::<f64>();
     if !value.is_finite() {
-        return Err(ModelError::InvalidCovariance("horseshoe_covariance_logdet_nonfinite"));
+        return Err(ModelError::InvalidCovariance(
+            "horseshoe_covariance_logdet_nonfinite",
+        ));
     }
     Ok(value)
 }
@@ -315,7 +357,14 @@ fn dot(left: &[f64], right: &[f64]) -> f64 {
 mod tests {
     use super::*;
 
-    fn base_args() -> (Vec<f64>, Vec<f64>, Vec<Vec<f64>>, Vec<f64>, Vec<f64>, Vec<Vec<f64>>) {
+    fn base_args() -> (
+        Vec<f64>,
+        Vec<f64>,
+        Vec<Vec<f64>>,
+        Vec<f64>,
+        Vec<f64>,
+        Vec<Vec<f64>>,
+    ) {
         (
             vec![11.0, 19.0],
             vec![10.0, 20.0],
@@ -334,8 +383,16 @@ mod tests {
             GlobalScalePrior::HalfCauchy { scale: 0.5 },
         ] {
             let result = raw_scale_horseshoe_log_posterior(
-                &y, &mu, &x, &beta, &log_lambda, -1.0, &covariance, prior,
-            ).expect("horseshoe target");
+                &y,
+                &mu,
+                &x,
+                &beta,
+                &log_lambda,
+                -1.0,
+                &covariance,
+                prior,
+            )
+            .expect("horseshoe target");
             assert!(result.log_posterior.is_finite());
             assert_eq!(result.coefficient_gradient.len(), 1);
             assert_eq!(result.log_local_scale_gradient.len(), 1);
@@ -347,19 +404,45 @@ mod tests {
         let (y, mu, x, beta, log_lambda, covariance) = base_args();
         let prior = GlobalScalePrior::HalfNormal { scale: 0.5 };
         let result = raw_scale_horseshoe_log_posterior(
-            &y, &mu, &x, &beta, &log_lambda, -1.0, &covariance, prior,
-        ).expect("target");
+            &y,
+            &mu,
+            &x,
+            &beta,
+            &log_lambda,
+            -1.0,
+            &covariance,
+            prior,
+        )
+        .expect("target");
         let epsilon = 1.0e-6;
         let mut plus = beta.clone();
         let mut minus = beta.clone();
         plus[0] += epsilon;
         minus[0] -= epsilon;
         let lp = raw_scale_horseshoe_log_posterior(
-            &y, &mu, &x, &plus, &log_lambda, -1.0, &covariance, prior,
-        ).expect("plus").log_posterior;
+            &y,
+            &mu,
+            &x,
+            &plus,
+            &log_lambda,
+            -1.0,
+            &covariance,
+            prior,
+        )
+        .expect("plus")
+        .log_posterior;
         let lm = raw_scale_horseshoe_log_posterior(
-            &y, &mu, &x, &minus, &log_lambda, -1.0, &covariance, prior,
-        ).expect("minus").log_posterior;
+            &y,
+            &mu,
+            &x,
+            &minus,
+            &log_lambda,
+            -1.0,
+            &covariance,
+            prior,
+        )
+        .expect("minus")
+        .log_posterior;
         let finite_difference = (lp - lm) / (2.0 * epsilon);
         assert!((finite_difference - result.coefficient_gradient[0]).abs() < 1.0e-5);
     }
@@ -369,15 +452,41 @@ mod tests {
         let (y, mu, x, beta, log_lambda, covariance) = base_args();
         let prior = GlobalScalePrior::HalfNormal { scale: 0.5 };
         let result = raw_scale_horseshoe_log_posterior(
-            &y, &mu, &x, &beta, &log_lambda, -1.0, &covariance, prior,
-        ).expect("target");
+            &y,
+            &mu,
+            &x,
+            &beta,
+            &log_lambda,
+            -1.0,
+            &covariance,
+            prior,
+        )
+        .expect("target");
         let epsilon = 1.0e-6;
         let lp = raw_scale_horseshoe_log_posterior(
-            &y, &mu, &x, &beta, &[log_lambda[0] + epsilon], -1.0, &covariance, prior,
-        ).expect("plus").log_posterior;
+            &y,
+            &mu,
+            &x,
+            &beta,
+            &[log_lambda[0] + epsilon],
+            -1.0,
+            &covariance,
+            prior,
+        )
+        .expect("plus")
+        .log_posterior;
         let lm = raw_scale_horseshoe_log_posterior(
-            &y, &mu, &x, &beta, &[log_lambda[0] - epsilon], -1.0, &covariance, prior,
-        ).expect("minus").log_posterior;
+            &y,
+            &mu,
+            &x,
+            &beta,
+            &[log_lambda[0] - epsilon],
+            -1.0,
+            &covariance,
+            prior,
+        )
+        .expect("minus")
+        .log_posterior;
         assert!(((lp - lm) / (2.0 * epsilon) - result.log_local_scale_gradient[0]).abs() < 1.0e-5);
     }
 
@@ -390,15 +499,43 @@ mod tests {
             GlobalScalePrior::HalfCauchy { scale: 0.5 },
         ] {
             let result = raw_scale_horseshoe_log_posterior(
-                &y, &mu, &x, &beta, &log_lambda, -1.0, &covariance, prior,
-            ).expect("target");
+                &y,
+                &mu,
+                &x,
+                &beta,
+                &log_lambda,
+                -1.0,
+                &covariance,
+                prior,
+            )
+            .expect("target");
             let lp = raw_scale_horseshoe_log_posterior(
-                &y, &mu, &x, &beta, &log_lambda, -1.0 + epsilon, &covariance, prior,
-            ).expect("plus").log_posterior;
+                &y,
+                &mu,
+                &x,
+                &beta,
+                &log_lambda,
+                -1.0 + epsilon,
+                &covariance,
+                prior,
+            )
+            .expect("plus")
+            .log_posterior;
             let lm = raw_scale_horseshoe_log_posterior(
-                &y, &mu, &x, &beta, &log_lambda, -1.0 - epsilon, &covariance, prior,
-            ).expect("minus").log_posterior;
-            assert!(((lp - lm) / (2.0 * epsilon) - result.log_global_scale_gradient).abs() < 1.0e-5);
+                &y,
+                &mu,
+                &x,
+                &beta,
+                &log_lambda,
+                -1.0 - epsilon,
+                &covariance,
+                prior,
+            )
+            .expect("minus")
+            .log_posterior;
+            assert!(
+                ((lp - lm) / (2.0 * epsilon) - result.log_global_scale_gradient).abs() < 1.0e-5
+            );
         }
     }
 
@@ -407,14 +544,26 @@ mod tests {
         let (y, mu, x, beta, log_lambda, covariance) = base_args();
         assert_eq!(
             raw_scale_horseshoe_log_posterior(
-                &y, &mu, &x, &beta, &log_lambda, -1.0, &covariance,
+                &y,
+                &mu,
+                &x,
+                &beta,
+                &log_lambda,
+                -1.0,
+                &covariance,
                 GlobalScalePrior::HalfNormal { scale: 0.0 },
             ),
             Err(ModelError::NonPositiveValue("global_scale_prior_scale"))
         );
         assert_eq!(
             raw_scale_horseshoe_log_posterior(
-                &y, &mu, &x, &beta, &[], -1.0, &covariance,
+                &y,
+                &mu,
+                &x,
+                &beta,
+                &[],
+                -1.0,
+                &covariance,
                 GlobalScalePrior::HalfNormal { scale: 1.0 },
             ),
             Err(ModelError::MismatchedDataLengths)

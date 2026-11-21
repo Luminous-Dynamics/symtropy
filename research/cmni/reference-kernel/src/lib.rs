@@ -16,38 +16,28 @@ mod measurement_bias;
 pub use measurement_bias::apply_feature_conditioned_multiplicative_bias;
 
 mod sparse_bias_inference;
-pub use sparse_bias_inference::{
-    fit_sparse_bayesian_poisson_bias,
-    SparseBayesianBiasResult,
-};
+pub use sparse_bias_inference::{fit_sparse_bayesian_poisson_bias, SparseBayesianBiasResult};
 
 mod energy_bias_basis;
 pub use energy_bias_basis::{
-    build_grouped_energy_bias_design,
-    GroupedEnergyBiasDesign,
-    ENERGY_BIAS_BASIS_COLUMNS_PER_GROUP,
-    ENERGY_BIAS_CENTRES_PER_SCALE,
+    build_grouped_energy_bias_design, project_grouped_energy_bias_field, GroupedEnergyBiasDesign,
+    ENERGY_BIAS_BASIS_COLUMNS_PER_GROUP, ENERGY_BIAS_CENTRES_PER_SCALE,
     ENERGY_BIAS_LENGTH_SCALES_LOG10,
-    project_grouped_energy_bias_field,
 };
 
 mod correlated_bias_inference;
 pub use correlated_bias_inference::{
-    fit_sparse_bayesian_correlated_log_bias,
-    CorrelatedLogBiasResult,
+    fit_sparse_bayesian_correlated_log_bias, CorrelatedLogBiasResult,
 };
 
 mod raw_scale_bias_likelihood;
 pub use raw_scale_bias_likelihood::{
-    raw_scale_gaussian_multiplicative_bias_log_likelihood,
-    RawScaleGaussianBiasLikelihood,
+    raw_scale_gaussian_multiplicative_bias_log_likelihood, RawScaleGaussianBiasLikelihood,
 };
 
 mod horseshoe_posterior;
 pub use horseshoe_posterior::{
-    raw_scale_horseshoe_log_posterior,
-    GlobalScalePrior,
-    RawScaleHorseshoePosterior,
+    raw_scale_horseshoe_log_posterior, GlobalScalePrior, RawScaleHorseshoePosterior,
 };
 
 mod prepared_horseshoe;
@@ -55,25 +45,17 @@ pub use prepared_horseshoe::PreparedRawScaleHorseshoeModel;
 
 mod horseshoe_hmc;
 pub use horseshoe_hmc::{
-    run_horseshoe_hmc_chain,
-    split_rhat_for_coefficient,
-    HorseshoeHmcChain,
-    HorseshoeHmcConfig,
+    run_horseshoe_hmc_chain, split_rhat_for_coefficient, HorseshoeHmcChain, HorseshoeHmcConfig,
     HorseshoeHmcDraw,
 };
 
 mod sampler_diagnostics;
 pub use sampler_diagnostics::{diagnose_horseshoe_coefficient, HmcDiagnosticSummary};
 
-
 mod experiment_design;
 pub use experiment_design::{
-    combine_fisher_information,
-    identifiability_summary,
-    poisson_fisher_information,
-    IdentifiabilitySummary,
-    pairwise_poisson_kl_matrix,
-    poisson_kl_divergence,
+    combine_fisher_information, identifiability_summary, pairwise_poisson_kl_matrix,
+    poisson_fisher_information, poisson_kl_divergence, IdentifiabilitySummary,
 };
 
 mod response_uncertainty;
@@ -81,28 +63,17 @@ pub use response_uncertainty::{DetectorResponseEnsemble, PredictiveCountMoments}
 
 mod multifidelity_design;
 pub use multifidelity_design::{
-    nested_control_variate_estimate,
-    robust_design_scores,
-    select_maximin_design,
-    ControlVariateEstimate,
-    RobustDesignScore,
+    nested_control_variate_estimate, robust_design_scores, select_maximin_design,
+    ControlVariateEstimate, RobustDesignScore,
 };
 
 mod spectrum_metrics;
 pub use spectrum_metrics::{covariance_profiled_spectrum_shape_chi_square, SpectrumShapeScore};
 
 mod measurement;
-pub use measurement::{
-    apply_depth_observation_operator,
-    DepthObservedValue,
-    DepthResponseKernel,
-};
+pub use measurement::{apply_depth_observation_operator, DepthObservedValue, DepthResponseKernel};
 mod material_state;
-pub use material_state::{
-    diffuse_no_flux_1d,
-    diffusion_stability_limit_s,
-    source_loss_step,
-};
+pub use material_state::{diffuse_no_flux_1d, diffusion_stability_limit_s, source_loss_step};
 
 const BARN_TO_CM2: f64 = 1.0e-24;
 
@@ -122,8 +93,13 @@ impl fmt::Display for ModelError {
             Self::InvalidParameter(name) => write!(f, "invalid parameter: {name}"),
             Self::NonFiniteValue(name) => write!(f, "non-finite value: {name}"),
             Self::NonPositiveValue(name) => write!(f, "non-positive value: {name}"),
-            Self::InvalidIntegrationSteps => write!(f, "Simpson integration requires an even step count >= 2"),
-            Self::MismatchedDataLengths => write!(f, "observation, prediction, and uncertainty arrays must have equal non-zero length"),
+            Self::InvalidIntegrationSteps => {
+                write!(f, "Simpson integration requires an even step count >= 2")
+            }
+            Self::MismatchedDataLengths => write!(
+                f,
+                "observation, prediction, and uncertainty arrays must have equal non-zero length"
+            ),
             Self::InvalidCovariance(name) => write!(f, "invalid covariance matrix: {name}"),
         }
     }
@@ -219,12 +195,13 @@ where
     let screening = checked_nonnegative(screening_kev, "screening_keV")?;
     let s_factor = checked_positive(s_factor_keV_barn(energy), "S_factor_keV_barn")?;
     let shifted_energy = energy + screening;
-    let cross_section = s_factor
-        / (energy * shifted_energy).sqrt()
+    let cross_section = s_factor / (energy * shifted_energy).sqrt()
         * (-(gamow_energy_cm.0 / shifted_energy).sqrt()).exp();
 
     if !cross_section.is_finite() || cross_section < 0.0 {
-        return Err(ModelError::InvalidParameter("cross_section must be finite and >= 0"));
+        return Err(ModelError::InvalidParameter(
+            "cross_section must be finite and >= 0",
+        ));
     }
     Ok(cross_section)
 }
@@ -259,8 +236,14 @@ pub fn neutron_psd_gate_accepts(
         (light_output_kev_ee, "light_output_keVee"),
         (psd_value, "psd_value"),
         (min_light_output_kev_ee, "minimum_light_output_keVee"),
-        (slice.light_output_min_kev_ee, "slice_light_output_min_keVee"),
-        (slice.light_output_max_kev_ee, "slice_light_output_max_keVee"),
+        (
+            slice.light_output_min_kev_ee,
+            "slice_light_output_min_keVee",
+        ),
+        (
+            slice.light_output_max_kev_ee,
+            "slice_light_output_max_keVee",
+        ),
         (slice.gamma_mean_psd, "gamma_mean_psd"),
         (slice.gamma_sigma_psd, "gamma_sigma_psd"),
         (slice.upper_offset_psd, "upper_offset_psd"),
@@ -272,7 +255,9 @@ pub fn neutron_psd_gate_accepts(
     if slice.light_output_min_kev_ee < 0.0
         || slice.light_output_max_kev_ee <= slice.light_output_min_kev_ee
     {
-        return Err(ModelError::InvalidParameter("invalid_light_output_slice_bounds"));
+        return Err(ModelError::InvalidParameter(
+            "invalid_light_output_slice_bounds",
+        ));
     }
     if slice.gamma_sigma_psd <= 0.0 {
         return Err(ModelError::NonPositiveValue("gamma_sigma_psd"));
@@ -281,7 +266,9 @@ pub fn neutron_psd_gate_accepts(
         return Err(ModelError::NonPositiveValue("upper_offset_psd"));
     }
     if min_light_output_kev_ee < 0.0 {
-        return Err(ModelError::InvalidParameter("minimum_light_output_must_be_nonnegative"));
+        return Err(ModelError::InvalidParameter(
+            "minimum_light_output_must_be_nonnegative",
+        ));
     }
 
     if light_output_kev_ee < min_light_output_kev_ee
@@ -333,11 +320,12 @@ pub fn prompt_dissociation_beam_components(
         }
     }
     if (d_plus_ion_current_fraction + d2_plus_ion_current_fraction - 1.0).abs() > 1.0e-6 {
-        return Err(ModelError::InvalidParameter("D_plus_and_D2_plus_ion_current_fractions_must_sum_to_one"));
+        return Err(ModelError::InvalidParameter(
+            "D_plus_and_D2_plus_ion_current_fractions_must_sum_to_one",
+        ));
     }
 
-    let deuterons_per_charge = d_plus_ion_current_fraction
-        + 2.0 * d2_plus_ion_current_fraction;
+    let deuterons_per_charge = d_plus_ion_current_fraction + 2.0 * d2_plus_ion_current_fraction;
     if deuterons_per_charge <= 0.0 {
         return Err(ModelError::NonPositiveValue("deuterons_per_charge"));
     }
@@ -374,7 +362,9 @@ pub fn total_deuteron_rate_per_second(
         }
     }
     if (d_plus_ion_current_fraction + d2_plus_ion_current_fraction - 1.0).abs() > 1.0e-6 {
-        return Err(ModelError::InvalidParameter("ion_current_fractions_must_sum_to_one"));
+        return Err(ModelError::InvalidParameter(
+            "ion_current_fractions_must_sum_to_one",
+        ));
     }
     const ELEMENTARY_CHARGE_C: f64 = 1.602_176_634e-19;
     Ok((current / ELEMENTARY_CHARGE_C)
@@ -427,12 +417,16 @@ pub fn reconcile_measured_beam_profile(
     relative_tolerance: f64,
 ) -> Result<ReconciledBeamProfile, ModelError> {
     if cells.is_empty() {
-        return Err(ModelError::InvalidParameter("beam_profile_must_not_be_empty"));
+        return Err(ModelError::InvalidParameter(
+            "beam_profile_must_not_be_empty",
+        ));
     }
     let cup_current = checked_positive(faraday_cup_current_a, "faraday_cup_current_A")?;
     let tolerance = checked_nonnegative(relative_tolerance, "beam_profile_relative_tolerance")?;
     if !tolerance.is_finite() {
-        return Err(ModelError::NonFiniteValue("beam_profile_relative_tolerance"));
+        return Err(ModelError::NonFiniteValue(
+            "beam_profile_relative_tolerance",
+        ));
     }
     for (fraction, name) in [
         (d_plus_ion_current_fraction, "D_plus_ion_current_fraction"),
@@ -443,7 +437,9 @@ pub fn reconcile_measured_beam_profile(
         }
     }
     if (d_plus_ion_current_fraction + d2_plus_ion_current_fraction - 1.0).abs() > 1.0e-6 {
-        return Err(ModelError::InvalidParameter("ion_current_fractions_must_sum_to_one"));
+        return Err(ModelError::InvalidParameter(
+            "ion_current_fractions_must_sum_to_one",
+        ));
     }
 
     const ELEMENTARY_CHARGE_C: f64 = 1.602_176_634e-19;
@@ -456,14 +452,19 @@ pub fn reconcile_measured_beam_profile(
             (cell.x_cm, "beam_cell_x_cm"),
             (cell.y_cm, "beam_cell_y_cm"),
             (cell.area_cm2, "beam_cell_area_cm2"),
-            (cell.ion_current_density_a_cm2, "beam_cell_current_density_A_cm2"),
+            (
+                cell.ion_current_density_a_cm2,
+                "beam_cell_current_density_A_cm2",
+            ),
         ] {
             if !value.is_finite() {
                 return Err(ModelError::NonFiniteValue(name));
             }
         }
         if cell.area_cm2 <= 0.0 || cell.ion_current_density_a_cm2 < 0.0 {
-            return Err(ModelError::InvalidParameter("beam_cell_area_must_be_positive_and_current_density_nonnegative"));
+            return Err(ModelError::InvalidParameter(
+                "beam_cell_area_must_be_positive_and_current_density_nonnegative",
+            ));
         }
         let current = cell.area_cm2 * cell.ion_current_density_a_cm2;
         integrated_current += current;
@@ -471,11 +472,15 @@ pub fn reconcile_measured_beam_profile(
     }
 
     if !integrated_current.is_finite() || integrated_current <= 0.0 {
-        return Err(ModelError::NonPositiveValue("integrated_beam_map_current_A"));
+        return Err(ModelError::NonPositiveValue(
+            "integrated_beam_map_current_A",
+        ));
     }
     let relative_mismatch = (integrated_current - cup_current).abs() / cup_current;
     if relative_mismatch > tolerance {
-        return Err(ModelError::InvalidParameter("beam_map_current_does_not_reconcile_with_faraday_cup"));
+        return Err(ModelError::InvalidParameter(
+            "beam_map_current_does_not_reconcile_with_faraday_cup",
+        ));
     }
 
     let mut rates = Vec::with_capacity(cells.len());
@@ -533,11 +538,12 @@ impl GaussianBeamFootprint {
         let total_rate = checked_nonnegative(total_deuteron_rate_s, "total_deuteron_rate_s")?;
         let radius = checked_nonnegative(radius_cm, "beam_radius_cm")?;
         let sigma_sq = self.sigma_cm * self.sigma_cm;
-        let density = total_rate
-            / (2.0 * std::f64::consts::PI * sigma_sq)
+        let density = total_rate / (2.0 * std::f64::consts::PI * sigma_sq)
             * (-(radius * radius) / (2.0 * sigma_sq)).exp();
         if !density.is_finite() || density < 0.0 {
-            return Err(ModelError::InvalidParameter("beam_flux_density_must_be_finite_and_nonnegative"));
+            return Err(ModelError::InvalidParameter(
+                "beam_flux_density_must_be_finite_and_nonnegative",
+            ));
         }
         Ok(density)
     }
@@ -592,32 +598,30 @@ where
         let t = i as f64 * h;
         let energy_cm = t * t;
         let s_factor = checked_positive(s_factor_keV_barn(energy_cm), "S_factor_keV_barn")?;
-        let stopping = checked_positive(
-            stopping_keV_cm_per_cm(energy_cm),
-            "stopping_keV_cm_per_cm",
-        )?;
+        let stopping =
+            checked_positive(stopping_keV_cm_per_cm(energy_cm), "stopping_keV_cm_per_cm")?;
         let screening = checked_nonnegative(screening_keV(energy_cm), "screening_keV")?;
 
         // This is 2*t*sigma(t^2,Ue), the transformed cross-section integrand.
         let transformed = if t == 0.0 {
             if screening > 0.0 {
-                2.0 * s_factor / screening.sqrt()
-                    * (-(gamow_energy_cm.0 / screening).sqrt()).exp()
+                2.0 * s_factor / screening.sqrt() * (-(gamow_energy_cm.0 / screening).sqrt()).exp()
             } else {
                 // For Ue=0 the Gamow factor suppresses the endpoint to zero.
                 0.0
             }
         } else {
             let shifted_energy = energy_cm + screening;
-            let cross_section_barn = s_factor
-                / (energy_cm * shifted_energy).sqrt()
+            let cross_section_barn = s_factor / (energy_cm * shifted_energy).sqrt()
                 * (-(gamow_energy_cm.0 / shifted_energy).sqrt()).exp();
             2.0 * t * cross_section_barn
         };
 
         let integrand = target_density.0 * BARN_TO_CM2 * transformed / stopping;
         if !integrand.is_finite() || integrand < 0.0 {
-            return Err(ModelError::InvalidParameter("yield integrand must be finite and >= 0"));
+            return Err(ModelError::InvalidParameter(
+                "yield integrand must be finite and >= 0",
+            ));
         }
 
         let coefficient = if i == 0 || i == steps {
@@ -632,7 +636,9 @@ where
 
     let result = weighted_sum * h / 3.0;
     if !result.is_finite() || result < 0.0 {
-        return Err(ModelError::InvalidParameter("yield result must be finite and >= 0"));
+        return Err(ModelError::InvalidParameter(
+            "yield result must be finite and >= 0",
+        ));
     }
     Ok(result)
 }
@@ -702,12 +708,15 @@ where
     FU: Fn(f64) -> f64,
 {
     if components.is_empty() {
-        return Err(ModelError::InvalidParameter("beam_spectrum_must_not_be_empty"));
+        return Err(ModelError::InvalidParameter(
+            "beam_spectrum_must_not_be_empty",
+        ));
     }
     let mut total = 0.0;
     let mut weight_sum = 0.0;
     for component in components {
-        let weight = checked_nonnegative(component.deuteron_flux_fraction, "deuteron_flux_fraction")?;
+        let weight =
+            checked_nonnegative(component.deuteron_flux_fraction, "deuteron_flux_fraction")?;
         let energy = EnergyKev::new(component.energy_cm_kev)?;
         let component_yield = homogeneous_thick_target_yield(
             energy,
@@ -722,10 +731,14 @@ where
         weight_sum += weight;
     }
     if (weight_sum - 1.0).abs() > 1.0e-6 {
-        return Err(ModelError::InvalidParameter("deuteron_flux_fractions_must_sum_to_one"));
+        return Err(ModelError::InvalidParameter(
+            "deuteron_flux_fractions_must_sum_to_one",
+        ));
     }
     if !total.is_finite() || total < 0.0 {
-        return Err(ModelError::InvalidParameter("weighted_beam_yield_must_be_finite_and_nonnegative"));
+        return Err(ModelError::InvalidParameter(
+            "weighted_beam_yield_must_be_finite_and_nonnegative",
+        ));
     }
     Ok(total)
 }
@@ -774,12 +787,14 @@ pub fn screening_enhancement(
 
     let shifted_energy = energy + screening;
     let prefactor = (energy / shifted_energy).sqrt();
-    let exponent = (gamow_energy_cm.0 / energy).sqrt()
-        - (gamow_energy_cm.0 / shifted_energy).sqrt();
+    let exponent =
+        (gamow_energy_cm.0 / energy).sqrt() - (gamow_energy_cm.0 / shifted_energy).sqrt();
     let result = prefactor * exponent.exp();
 
     if !result.is_finite() || result <= 0.0 {
-        return Err(ModelError::InvalidParameter("screening enhancement must be finite and > 0"));
+        return Err(ModelError::InvalidParameter(
+            "screening enhancement must be finite and > 0",
+        ));
     }
     Ok(result)
 }
@@ -796,14 +811,18 @@ pub fn two_environment_mixture_enhancement(
     bulk_screening_kev: f64,
 ) -> Result<f64, ModelError> {
     if !surface_amplitude.is_finite() || !(0.0..=1.0).contains(&surface_amplitude) {
-        return Err(ModelError::InvalidParameter("surface_amplitude must be in [0, 1]"));
+        return Err(ModelError::InvalidParameter(
+            "surface_amplitude must be in [0, 1]",
+        ));
     }
     let surface = screening_enhancement(energy_cm, gamow_energy_cm, surface_screening_kev)?;
     let bulk = screening_enhancement(energy_cm, gamow_energy_cm, bulk_screening_kev)?;
     let result = surface_amplitude * surface + (1.0 - surface_amplitude) * bulk;
 
     if !result.is_finite() || result <= 0.0 {
-        return Err(ModelError::InvalidParameter("mixture enhancement must be finite and > 0"));
+        return Err(ModelError::InvalidParameter(
+            "mixture enhancement must be finite and > 0",
+        ));
     }
     Ok(result)
 }
@@ -952,7 +971,10 @@ pub fn shared_reference_log_covariance(
         return Err(ModelError::MismatchedDataLengths);
     }
     let reference_variance = checked_positive(reference_log_variance, "reference_log_variance")?;
-    let mut covariance = vec![vec![reference_variance; numerator_log_variances.len()]; numerator_log_variances.len()];
+    let mut covariance = vec![
+        vec![reference_variance; numerator_log_variances.len()];
+        numerator_log_variances.len()
+    ];
     for (i, variance) in numerator_log_variances.iter().enumerate() {
         let variance = checked_positive(*variance, "numerator_log_variance")?;
         covariance[i][i] += variance;
@@ -965,7 +987,9 @@ pub fn shared_reference_log_covariance(
 fn cholesky_lower(covariance: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelError> {
     let n = covariance.len();
     if n == 0 || covariance.iter().any(|row| row.len() != n) {
-        return Err(ModelError::InvalidCovariance("matrix must be non-empty and square"));
+        return Err(ModelError::InvalidCovariance(
+            "matrix must be non-empty and square",
+        ));
     }
 
     for i in 0..n {
@@ -980,7 +1004,9 @@ fn cholesky_lower(covariance: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelError> 
             }
         }
         if covariance[i][i] <= 0.0 {
-            return Err(ModelError::InvalidCovariance("diagonal entries must be positive"));
+            return Err(ModelError::InvalidCovariance(
+                "diagonal entries must be positive",
+            ));
         }
     }
 
@@ -993,7 +1019,9 @@ fn cholesky_lower(covariance: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelError> 
             }
             if i == j {
                 if !value.is_finite() || value <= 0.0 {
-                    return Err(ModelError::InvalidCovariance("matrix must be positive definite"));
+                    return Err(ModelError::InvalidCovariance(
+                        "matrix must be positive definite",
+                    ));
                 }
                 lower[i][j] = value.sqrt();
             } else {
@@ -1020,12 +1048,18 @@ pub fn correlated_weighted_log_space_chi_square(
         return Err(ModelError::MismatchedDataLengths);
     }
     if covariance.len() != observed_ratios.len()
-        || covariance.iter().any(|row| row.len() != observed_ratios.len())
+        || covariance
+            .iter()
+            .any(|row| row.len() != observed_ratios.len())
     {
-        return Err(ModelError::InvalidCovariance("dimensions must match the ratio arrays"));
+        return Err(ModelError::InvalidCovariance(
+            "dimensions must match the ratio arrays",
+        ));
     }
 
-    let residuals = observed_ratios.iter().zip(predicted_ratios.iter())
+    let residuals = observed_ratios
+        .iter()
+        .zip(predicted_ratios.iter())
         .map(|(observed, predicted)| {
             let observed = checked_positive(*observed, "observed_ratio")?;
             let predicted = checked_positive(*predicted, "predicted_ratio")?;
@@ -1045,7 +1079,9 @@ pub fn correlated_weighted_log_space_chi_square(
     }
     let score = whitened.iter().map(|value| value * value).sum::<f64>();
     if !score.is_finite() || score < 0.0 {
-        return Err(ModelError::InvalidCovariance("generalized chi-square is not finite and nonnegative"));
+        return Err(ModelError::InvalidCovariance(
+            "generalized chi-square is not finite and nonnegative",
+        ));
     }
     Ok(score)
 }
@@ -1060,9 +1096,9 @@ mod tests {
             GamowEnergyKev::new(986.0)?,
             TargetDensityPerCm3::new(5.0e22)?,
             steps,
-            |_| 50.0,        // synthetic constant S factor, keV·barn
-            |_| 1.0e8,       // synthetic stopping, keV_cm/cm
-            |_| screening,   // synthetic effective screening potential, keV
+            |_| 50.0,      // synthetic constant S factor, keV·barn
+            |_| 1.0e8,     // synthetic stopping, keV_cm/cm
+            |_| screening, // synthetic effective screening potential, keV
         )
     }
 
@@ -1078,26 +1114,34 @@ mod tests {
 
     #[test]
     fn neutron_psd_gate_accepts_inside_source_defined_window() {
-        assert!(neutron_psd_gate_accepts(52.5, 0.27, 50.0, example_psd_slice())
-            .expect("valid PSD gate"));
+        assert!(
+            neutron_psd_gate_accepts(52.5, 0.27, 50.0, example_psd_slice())
+                .expect("valid PSD gate")
+        );
     }
 
     #[test]
     fn neutron_psd_gate_rejects_light_output_below_threshold() {
-        assert!(!neutron_psd_gate_accepts(49.9, 0.27, 50.0, example_psd_slice())
-            .expect("valid PSD gate"));
+        assert!(
+            !neutron_psd_gate_accepts(49.9, 0.27, 50.0, example_psd_slice())
+                .expect("valid PSD gate")
+        );
     }
 
     #[test]
     fn neutron_psd_gate_rejects_gamma_side_of_lower_boundary() {
-        assert!(!neutron_psd_gate_accepts(52.5, 0.249, 50.0, example_psd_slice())
-            .expect("valid PSD gate"));
+        assert!(
+            !neutron_psd_gate_accepts(52.5, 0.249, 50.0, example_psd_slice())
+                .expect("valid PSD gate")
+        );
     }
 
     #[test]
     fn neutron_psd_gate_rejects_above_upper_psd_boundary() {
-        assert!(!neutron_psd_gate_accepts(52.5, 0.451, 50.0, example_psd_slice())
-            .expect("valid PSD gate"));
+        assert!(
+            !neutron_psd_gate_accepts(52.5, 0.451, 50.0, example_psd_slice())
+                .expect("valid PSD gate")
+        );
     }
 
     #[test]
@@ -1128,7 +1172,10 @@ mod tests {
     fn prompt_dissociation_deuteron_flux_weights_sum_to_one() {
         let components = prompt_dissociation_beam_components(5.0, 0.85, 0.15)
             .expect("valid ion-current fractions");
-        let sum = components.iter().map(|component| component.deuteron_flux_fraction).sum::<f64>();
+        let sum = components
+            .iter()
+            .map(|component| component.deuteron_flux_fraction)
+            .sum::<f64>();
         assert!((sum - 1.0).abs() < 1.0e-12);
         assert!((components[1].deuteron_flux_fraction - 0.2608695652173913).abs() < 1.0e-12);
     }
@@ -1142,9 +1189,18 @@ mod tests {
     #[test]
     fn arbitrary_measured_spectrum_is_weighted_by_deuteron_flux() {
         let spectrum = [
-            BeamEnergyComponent { energy_cm_kev: 0.25, deuteron_flux_fraction: 0.25 },
-            BeamEnergyComponent { energy_cm_kev: 0.50, deuteron_flux_fraction: 0.50 },
-            BeamEnergyComponent { energy_cm_kev: 0.75, deuteron_flux_fraction: 0.25 },
+            BeamEnergyComponent {
+                energy_cm_kev: 0.25,
+                deuteron_flux_fraction: 0.25,
+            },
+            BeamEnergyComponent {
+                energy_cm_kev: 0.50,
+                deuteron_flux_fraction: 0.50,
+            },
+            BeamEnergyComponent {
+                energy_cm_kev: 0.75,
+                deuteron_flux_fraction: 0.25,
+            },
         ];
         let actual = weighted_beam_spectrum_yield(
             &spectrum,
@@ -1154,26 +1210,38 @@ mod tests {
             |_| 50.0,
             |_| 1.0e8,
             |_| 0.5,
-        ).expect("spectrum yield");
-        let expected = spectrum.iter().map(|component| {
-            component.deuteron_flux_fraction * homogeneous_thick_target_yield(
-                EnergyKev::new(component.energy_cm_kev).expect("energy"),
-                GamowEnergyKev::new(986.0).expect("Gamow"),
-                TargetDensityPerCm3::new(5.0e22).expect("density"),
-                1024,
-                |_| 50.0,
-                |_| 1.0e8,
-                |_| 0.5,
-            ).expect("component yield")
-        }).sum::<f64>();
-        assert!((actual-expected).abs()/expected < 1.0e-12);
+        )
+        .expect("spectrum yield");
+        let expected = spectrum
+            .iter()
+            .map(|component| {
+                component.deuteron_flux_fraction
+                    * homogeneous_thick_target_yield(
+                        EnergyKev::new(component.energy_cm_kev).expect("energy"),
+                        GamowEnergyKev::new(986.0).expect("Gamow"),
+                        TargetDensityPerCm3::new(5.0e22).expect("density"),
+                        1024,
+                        |_| 50.0,
+                        |_| 1.0e8,
+                        |_| 0.5,
+                    )
+                    .expect("component yield")
+            })
+            .sum::<f64>();
+        assert!((actual - expected).abs() / expected < 1.0e-12);
     }
 
     #[test]
     fn arbitrary_spectrum_rejects_unnormalized_weights() {
         let spectrum = [
-            BeamEnergyComponent { energy_cm_kev: 0.25, deuteron_flux_fraction: 0.25 },
-            BeamEnergyComponent { energy_cm_kev: 0.50, deuteron_flux_fraction: 0.50 },
+            BeamEnergyComponent {
+                energy_cm_kev: 0.25,
+                deuteron_flux_fraction: 0.25,
+            },
+            BeamEnergyComponent {
+                energy_cm_kev: 0.50,
+                deuteron_flux_fraction: 0.50,
+            },
         ];
         let result = weighted_beam_spectrum_yield(
             &spectrum,
@@ -1184,7 +1252,12 @@ mod tests {
             |_| 1.0e8,
             |_| 0.5,
         );
-        assert_eq!(result, Err(ModelError::InvalidParameter("deuteron_flux_fractions_must_sum_to_one")));
+        assert_eq!(
+            result,
+            Err(ModelError::InvalidParameter(
+                "deuteron_flux_fractions_must_sum_to_one"
+            ))
+        );
     }
 
     #[test]
@@ -1235,14 +1308,23 @@ mod tests {
             3.0,
             EnergyKev::new(0.6).expect("crossover"),
             0.5,
-        ).expect("printed enhancement");
+        )
+        .expect("printed enhancement");
         let expected_u = sigmoid_screening_potential_printed_equation(
-            energy, 0.8, 3.0, EnergyKev::new(0.6).expect("crossover"), 0.5
-        ).expect("printed potential");
+            energy,
+            0.8,
+            3.0,
+            EnergyKev::new(0.6).expect("crossover"),
+            0.5,
+        )
+        .expect("printed potential");
         let expected = screening_enhancement(
-            energy, GamowEnergyKev::new(986.0).expect("Gamow"), expected_u
-        ).expect("closed form");
-        assert!((enhancement - expected).abs()/expected < 1.0e-12);
+            energy,
+            GamowEnergyKev::new(986.0).expect("Gamow"),
+            expected_u,
+        )
+        .expect("closed form");
+        assert!((enhancement - expected).abs() / expected < 1.0e-12);
     }
 
     #[test]
@@ -1265,8 +1347,8 @@ mod tests {
             vec![0.0, 0.04, 0.0],
             vec![0.0, 0.0, 0.16],
         ];
-        let old = weighted_log_space_chi_square(&observed, &predicted, &sigmas)
-            .expect("diagonal score");
+        let old =
+            weighted_log_space_chi_square(&observed, &predicted, &sigmas).expect("diagonal score");
         let new = correlated_weighted_log_space_chi_square(&observed, &predicted, &diagonal)
             .expect("GLS score");
         assert!((old - new).abs() < 1.0e-10);
@@ -1274,32 +1356,30 @@ mod tests {
 
     #[test]
     fn correlated_chi_square_accepts_shared_reference_covariance() {
-        let covariance = shared_reference_log_covariance(&[0.04, 0.09], 0.01)
-            .expect("covariance");
-        let score = correlated_weighted_log_space_chi_square(
-            &[1.1, 2.2], &[1.0, 2.0], &covariance
-        ).expect("correlated score");
+        let covariance = shared_reference_log_covariance(&[0.04, 0.09], 0.01).expect("covariance");
+        let score = correlated_weighted_log_space_chi_square(&[1.1, 2.2], &[1.0, 2.0], &covariance)
+            .expect("correlated score");
         assert!(score.is_finite() && score >= 0.0);
     }
 
     #[test]
     fn correlated_chi_square_rejects_non_positive_definite_covariance() {
         let covariance = vec![vec![1.0, 2.0], vec![2.0, 1.0]];
-        let result = correlated_weighted_log_space_chi_square(
-            &[1.1, 2.2], &[1.0, 2.0], &covariance
-        );
+        let result =
+            correlated_weighted_log_space_chi_square(&[1.1, 2.2], &[1.0, 2.0], &covariance);
         assert_eq!(
             result,
-            Err(ModelError::InvalidCovariance("matrix must be positive definite"))
+            Err(ModelError::InvalidCovariance(
+                "matrix must be positive definite"
+            ))
         );
     }
 
     #[test]
     fn correlated_chi_square_rejects_asymmetric_covariance() {
         let covariance = vec![vec![1.0, 0.2], vec![0.1, 1.0]];
-        let result = correlated_weighted_log_space_chi_square(
-            &[1.1, 2.2], &[1.0, 2.0], &covariance
-        );
+        let result =
+            correlated_weighted_log_space_chi_square(&[1.1, 2.2], &[1.0, 2.0], &covariance);
         assert_eq!(
             result,
             Err(ModelError::InvalidCovariance("matrix must be symmetric"))
@@ -1308,19 +1388,34 @@ mod tests {
 
     #[test]
     fn total_deuteron_rate_counts_two_nuclei_per_d2_plus_ion() {
-        let rate = total_deuteron_rate_per_second(1.0e-6, 0.85, 0.15)
-            .expect("valid species fractions");
+        let rate =
+            total_deuteron_rate_per_second(1.0e-6, 0.85, 0.15).expect("valid species fractions");
         const E_CHARGE: f64 = 1.602_176_634e-19;
         let expected = 1.0e-6 / E_CHARGE * 1.15;
-        assert!((rate - expected).abs()/expected < 1.0e-12);
+        assert!((rate - expected).abs() / expected < 1.0e-12);
     }
 
     #[test]
     fn measured_beam_profile_reconciles_current_and_conserves_deuteron_flux() {
         let cells = [
-            BeamProfileCell { x_cm: -0.5, y_cm: 0.0, area_cm2: 0.25, ion_current_density_a_cm2: 2.0e-6 },
-            BeamProfileCell { x_cm: 0.0, y_cm: 0.0, area_cm2: 0.50, ion_current_density_a_cm2: 0.5e-6 },
-            BeamProfileCell { x_cm: 0.5, y_cm: 0.0, area_cm2: 0.25, ion_current_density_a_cm2: 1.0e-6 },
+            BeamProfileCell {
+                x_cm: -0.5,
+                y_cm: 0.0,
+                area_cm2: 0.25,
+                ion_current_density_a_cm2: 2.0e-6,
+            },
+            BeamProfileCell {
+                x_cm: 0.0,
+                y_cm: 0.0,
+                area_cm2: 0.50,
+                ion_current_density_a_cm2: 0.5e-6,
+            },
+            BeamProfileCell {
+                x_cm: 0.5,
+                y_cm: 0.0,
+                area_cm2: 0.25,
+                ion_current_density_a_cm2: 1.0e-6,
+            },
         ];
         let profile = reconcile_measured_beam_profile(&cells, 1.0e-6, 0.85, 0.15, 1.0e-12)
             .expect("matching spatial beam profile");
@@ -1328,31 +1423,42 @@ mod tests {
         let fraction_sum = profile.deuteron_flux_fraction_by_cell.iter().sum::<f64>();
         assert!((fraction_sum - 1.0).abs() < 1.0e-12);
         let rate_sum = profile.deuteron_rate_by_cell_s.iter().sum::<f64>();
-        let expected = total_deuteron_rate_per_second(1.0e-6, 0.85, 0.15)
-            .expect("total deuteron rate");
-        assert!((rate_sum - expected).abs()/expected < 1.0e-12);
+        let expected =
+            total_deuteron_rate_per_second(1.0e-6, 0.85, 0.15).expect("total deuteron rate");
+        assert!((rate_sum - expected).abs() / expected < 1.0e-12);
     }
 
     #[test]
     fn measured_beam_profile_rejects_faraday_current_mismatch() {
-        let cells = [
-            BeamProfileCell { x_cm: 0.0, y_cm: 0.0, area_cm2: 1.0, ion_current_density_a_cm2: 1.0e-6 },
-        ];
+        let cells = [BeamProfileCell {
+            x_cm: 0.0,
+            y_cm: 0.0,
+            area_cm2: 1.0,
+            ion_current_density_a_cm2: 1.0e-6,
+        }];
         let result = reconcile_measured_beam_profile(&cells, 1.2e-6, 1.0, 0.0, 0.01);
         assert_eq!(
             result,
-            Err(ModelError::InvalidParameter("beam_map_current_does_not_reconcile_with_faraday_cup"))
+            Err(ModelError::InvalidParameter(
+                "beam_map_current_does_not_reconcile_with_faraday_cup"
+            ))
         );
     }
 
     #[test]
     fn measured_beam_profile_rejects_invalid_cell_geometry_or_density() {
         let bad_area = [BeamProfileCell {
-            x_cm: 0.0, y_cm: 0.0, area_cm2: 0.0, ion_current_density_a_cm2: 1.0e-6
+            x_cm: 0.0,
+            y_cm: 0.0,
+            area_cm2: 0.0,
+            ion_current_density_a_cm2: 1.0e-6,
         }];
         assert!(reconcile_measured_beam_profile(&bad_area, 1.0e-6, 1.0, 0.0, 0.01).is_err());
         let bad_density = [BeamProfileCell {
-            x_cm: 0.0, y_cm: 0.0, area_cm2: 1.0, ion_current_density_a_cm2: -1.0e-6
+            x_cm: 0.0,
+            y_cm: 0.0,
+            area_cm2: 1.0,
+            ion_current_density_a_cm2: -1.0e-6,
         }];
         assert!(reconcile_measured_beam_profile(&bad_density, 1.0e-6, 1.0, 0.0, 0.01).is_err());
     }
@@ -1360,15 +1466,16 @@ mod tests {
     #[test]
     fn gaussian_beam_footprint_is_current_normalized() {
         let footprint = GaussianBeamFootprint::new(0.25).expect("sigma");
-        let rate = total_deuteron_rate_per_second(1.0e-6, 0.85, 0.15)
-            .expect("deuteron rate");
-        let peak = footprint.deuteron_flux_density_cm2_s(rate, 0.0)
+        let rate = total_deuteron_rate_per_second(1.0e-6, 0.85, 0.15).expect("deuteron rate");
+        let peak = footprint
+            .deuteron_flux_density_cm2_s(rate, 0.0)
             .expect("peak density");
-        let one_sigma = footprint.deuteron_flux_density_cm2_s(rate, 0.25)
+        let one_sigma = footprint
+            .deuteron_flux_density_cm2_s(rate, 0.25)
             .expect("one-sigma density");
         assert!((one_sigma / peak - (-0.5_f64).exp()).abs() < 1.0e-12);
         let integrated_rate = peak * 2.0 * std::f64::consts::PI * 0.25_f64.powi(2);
-        assert!((integrated_rate - rate).abs()/rate < 1.0e-12);
+        assert!((integrated_rate - rate).abs() / rate < 1.0e-12);
     }
 
     #[test]
@@ -1454,8 +1561,8 @@ mod tests {
     fn two_environment_mixture_reduces_to_single_environment_at_unit_weight() {
         let energy = EnergyKev::new(0.5).expect("energy");
         let gamow = GamowEnergyKev::new(986.0).expect("Gamow");
-        let mixture = two_environment_mixture_enhancement(energy, gamow, 1.0, 2.5, 0.7)
-            .expect("mixture");
+        let mixture =
+            two_environment_mixture_enhancement(energy, gamow, 1.0, 2.5, 0.7).expect("mixture");
         let surface = screening_enhancement(energy, gamow, 2.5).expect("surface");
         assert!((mixture - surface).abs() < 1.0e-12);
     }
@@ -1470,8 +1577,9 @@ mod tests {
 
         let printed_low = sigmoid_screening_potential_printed_equation(low, bulk, surface, e0, 0.5)
             .expect("printed low");
-        let printed_high = sigmoid_screening_potential_printed_equation(high, bulk, surface, e0, 0.5)
-            .expect("printed high");
+        let printed_high =
+            sigmoid_screening_potential_printed_equation(high, bulk, surface, e0, 0.5)
+                .expect("printed high");
         let prose_low = sigmoid_screening_potential_prose_direction(low, bulk, surface, e0, 0.5)
             .expect("prose low");
         let prose_high = sigmoid_screening_potential_prose_direction(high, bulk, surface, e0, 0.5)
@@ -1498,12 +1606,9 @@ mod tests {
 
     #[test]
     fn weighted_log_space_objective_is_zero_for_exact_prediction() {
-        let value = weighted_log_space_chi_square(
-            &[1.0, 2.0, 10.0],
-            &[1.0, 2.0, 10.0],
-            &[0.1, 0.1, 0.2],
-        )
-        .expect("exact fit");
+        let value =
+            weighted_log_space_chi_square(&[1.0, 2.0, 10.0], &[1.0, 2.0, 10.0], &[0.1, 0.1, 0.2])
+                .expect("exact fit");
         assert!(value.abs() < 1.0e-24);
     }
 
@@ -1526,13 +1631,22 @@ mod tests {
             |_| 0.0,
             |_| 0.0,
         );
-        assert_eq!(result, Err(ModelError::NonPositiveValue("stopping_keV_cm_per_cm")));
+        assert_eq!(
+            result,
+            Err(ModelError::NonPositiveValue("stopping_keV_cm_per_cm"))
+        );
     }
 
     #[test]
     fn rejects_odd_or_insufficient_integration_steps() {
-        assert_eq!(synthetic_yield(0.0, 1), Err(ModelError::InvalidIntegrationSteps));
-        assert_eq!(synthetic_yield(0.0, 3), Err(ModelError::InvalidIntegrationSteps));
+        assert_eq!(
+            synthetic_yield(0.0, 1),
+            Err(ModelError::InvalidIntegrationSteps)
+        );
+        assert_eq!(
+            synthetic_yield(0.0, 3),
+            Err(ModelError::InvalidIntegrationSteps)
+        );
     }
 
     #[test]

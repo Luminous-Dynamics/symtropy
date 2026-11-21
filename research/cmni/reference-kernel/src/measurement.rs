@@ -17,18 +17,19 @@ pub struct DepthResponseKernel {
 }
 
 impl DepthResponseKernel {
-    pub fn new(
-        nominal_depth_nm: f64,
-        weights: Vec<f64>,
-    ) -> Result<Self, ModelError> {
+    pub fn new(nominal_depth_nm: f64, weights: Vec<f64>) -> Result<Self, ModelError> {
         if !nominal_depth_nm.is_finite() {
             return Err(ModelError::NonFiniteValue("nominal_measurement_depth_nm"));
         }
         if nominal_depth_nm < 0.0 {
-            return Err(ModelError::InvalidParameter("nominal_measurement_depth_nm_must_be_nonnegative"));
+            return Err(ModelError::InvalidParameter(
+                "nominal_measurement_depth_nm_must_be_nonnegative",
+            ));
         }
         if weights.is_empty() {
-            return Err(ModelError::InvalidParameter("depth_response_kernel_must_not_be_empty"));
+            return Err(ModelError::InvalidParameter(
+                "depth_response_kernel_must_not_be_empty",
+            ));
         }
         let mut sum = 0.0;
         for weight in &weights {
@@ -36,14 +37,21 @@ impl DepthResponseKernel {
                 return Err(ModelError::NonFiniteValue("depth_response_weight"));
             }
             if *weight < 0.0 {
-                return Err(ModelError::InvalidParameter("depth_response_weights_must_be_nonnegative"));
+                return Err(ModelError::InvalidParameter(
+                    "depth_response_weights_must_be_nonnegative",
+                ));
             }
             sum += *weight;
         }
         if !sum.is_finite() || (sum - 1.0).abs() > 1.0e-8 {
-            return Err(ModelError::InvalidParameter("depth_response_weights_must_sum_to_one"));
+            return Err(ModelError::InvalidParameter(
+                "depth_response_weights_must_sum_to_one",
+            ));
         }
-        Ok(Self { nominal_depth_nm, weights })
+        Ok(Self {
+            nominal_depth_nm,
+            weights,
+        })
     }
 
     pub fn nominal_depth_nm(&self) -> f64 {
@@ -74,7 +82,9 @@ pub fn apply_depth_observation_operator(
     kernels: &[DepthResponseKernel],
 ) -> Result<Vec<DepthObservedValue>, ModelError> {
     if latent_profile.is_empty() || kernels.is_empty() {
-        return Err(ModelError::InvalidParameter("latent_profile_and_depth_kernels_must_not_be_empty"));
+        return Err(ModelError::InvalidParameter(
+            "latent_profile_and_depth_kernels_must_not_be_empty",
+        ));
     }
     for value in latent_profile {
         if !value.is_finite() {
@@ -93,7 +103,9 @@ pub fn apply_depth_observation_operator(
             .map(|(profile_value, weight)| profile_value * weight)
             .sum::<f64>();
         if !value.is_finite() {
-            return Err(ModelError::InvalidParameter("depth_observation_operator_produced_nonfinite_value"));
+            return Err(ModelError::InvalidParameter(
+                "depth_observation_operator_produced_nonfinite_value",
+            ));
         }
         observations.push(DepthObservedValue {
             nominal_depth_nm: kernel.nominal_depth_nm,
@@ -115,19 +127,22 @@ mod tests {
             DepthResponseKernel::new(15.0, vec![0.0, 1.0, 0.0]).expect("identity 2"),
             DepthResponseKernel::new(25.0, vec![0.0, 0.0, 1.0]).expect("identity 3"),
         ];
-        let observed = apply_depth_observation_operator(&profile, &kernels)
-            .expect("identity response");
-        assert_eq!(observed.iter().map(|x| x.value).collect::<Vec<_>>(), profile);
+        let observed =
+            apply_depth_observation_operator(&profile, &kernels).expect("identity response");
+        assert_eq!(
+            observed.iter().map(|x| x.value).collect::<Vec<_>>(),
+            profile
+        );
         assert_eq!(observed[1].nominal_depth_nm, 15.0);
     }
 
     #[test]
     fn broad_response_kernel_smooths_a_narrow_surface_feature() {
         let latent = [10.0, 0.0, 0.0, 0.0];
-        let narrow = DepthResponseKernel::new(0.0, vec![1.0, 0.0, 0.0, 0.0])
-            .expect("narrow kernel");
-        let broad = DepthResponseKernel::new(0.0, vec![0.5, 0.3, 0.15, 0.05])
-            .expect("broad kernel");
+        let narrow =
+            DepthResponseKernel::new(0.0, vec![1.0, 0.0, 0.0, 0.0]).expect("narrow kernel");
+        let broad =
+            DepthResponseKernel::new(0.0, vec![0.5, 0.3, 0.15, 0.05]).expect("broad kernel");
         let result = apply_depth_observation_operator(&latent, &[narrow, broad])
             .expect("response projection");
         assert!((result[0].value - 10.0).abs() < 1.0e-12);
@@ -139,15 +154,16 @@ mod tests {
     fn response_kernels_reject_non_normalized_weights() {
         assert_eq!(
             DepthResponseKernel::new(10.0, vec![0.2, 0.2, 0.2]),
-            Err(ModelError::InvalidParameter("depth_response_weights_must_sum_to_one"))
+            Err(ModelError::InvalidParameter(
+                "depth_response_weights_must_sum_to_one"
+            ))
         );
     }
 
     #[test]
     fn response_operator_rejects_dimension_mismatch() {
         let profile = [1.0, 2.0, 3.0];
-        let kernel = DepthResponseKernel::new(10.0, vec![0.5, 0.5])
-            .expect("valid two-cell kernel");
+        let kernel = DepthResponseKernel::new(10.0, vec![0.5, 0.5]).expect("valid two-cell kernel");
         assert_eq!(
             apply_depth_observation_operator(&profile, &[kernel]),
             Err(ModelError::MismatchedDataLengths)
@@ -170,9 +186,11 @@ mod tests {
             DepthResponseKernel::new(0.0, vec![0.7, 0.2, 0.1, 0.0]).expect("kernel 1"),
             DepthResponseKernel::new(20.0, vec![0.0, 0.2, 0.4, 0.4]).expect("kernel 2"),
         ];
-        let observed = apply_depth_observation_operator(&profile, &kernels)
-            .expect("constant profile");
-        assert!(observed.iter().all(|item| (item.value - 7.5).abs() < 1.0e-12));
+        let observed =
+            apply_depth_observation_operator(&profile, &kernels).expect("constant profile");
+        assert!(observed
+            .iter()
+            .all(|item| (item.value - 7.5).abs() < 1.0e-12));
     }
 
     #[test]

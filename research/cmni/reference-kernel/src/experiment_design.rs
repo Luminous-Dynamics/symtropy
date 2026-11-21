@@ -48,7 +48,9 @@ pub fn poisson_fisher_information(
         }
     }
     if information.iter().flatten().any(|value| !value.is_finite()) {
-        return Err(ModelError::InvalidParameter("poisson_fisher_information_overflowed"));
+        return Err(ModelError::InvalidParameter(
+            "poisson_fisher_information_overflowed",
+        ));
     }
     Ok(information)
 }
@@ -57,15 +59,16 @@ pub fn poisson_fisher_information(
 pub fn combine_fisher_information(
     contributions: &[Vec<Vec<f64>>],
 ) -> Result<Vec<Vec<f64>>, ModelError> {
-    let first = contributions.first().ok_or(ModelError::MismatchedDataLengths)?;
+    let first = contributions
+        .first()
+        .ok_or(ModelError::MismatchedDataLengths)?;
     let dimension = first.len();
     if dimension == 0 || first.iter().any(|row| row.len() != dimension) {
         return Err(ModelError::MismatchedDataLengths);
     }
     let mut combined = vec![vec![0.0; dimension]; dimension];
     for contribution in contributions {
-        if contribution.len() != dimension
-            || contribution.iter().any(|row| row.len() != dimension)
+        if contribution.len() != dimension || contribution.iter().any(|row| row.len() != dimension)
         {
             return Err(ModelError::MismatchedDataLengths);
         }
@@ -102,9 +105,7 @@ pub fn identifiability_summary(
     information: &[Vec<f64>],
     relative_eigenvalue_tolerance: f64,
 ) -> Result<IdentifiabilitySummary, ModelError> {
-    if information.is_empty()
-        || information.iter().any(|row| row.len() != information.len())
-    {
+    if information.is_empty() || information.iter().any(|row| row.len() != information.len()) {
         return Err(ModelError::MismatchedDataLengths);
     }
     if !relative_eigenvalue_tolerance.is_finite()
@@ -121,12 +122,18 @@ pub fn identifiability_summary(
         }
     }
     let dimension = information.len();
-    let matrix_scale = information.iter().flatten().map(|value| value.abs()).fold(0.0_f64, f64::max);
+    let matrix_scale = information
+        .iter()
+        .flatten()
+        .map(|value| value.abs())
+        .fold(0.0_f64, f64::max);
     let symmetry_tolerance = 1.0e-10 * matrix_scale.max(f64::MIN_POSITIVE);
     for row in 0..dimension {
         for column in 0..row {
             if (information[row][column] - information[column][row]).abs() > symmetry_tolerance {
-                return Err(ModelError::InvalidCovariance("fisher_information_must_be_symmetric"));
+                return Err(ModelError::InvalidCovariance(
+                    "fisher_information_must_be_symmetric",
+                ));
             }
         }
     }
@@ -135,26 +142,47 @@ pub fn identifiability_summary(
     let maximum = eigenvalues.first().copied().unwrap_or(0.0).max(0.0);
     let negative_tolerance = 1.0e-9 * maximum.max(f64::MIN_POSITIVE);
     if eigenvalues.iter().any(|value| *value < -negative_tolerance) {
-        return Err(ModelError::InvalidCovariance("fisher_information_must_be_positive_semidefinite"));
+        return Err(ModelError::InvalidCovariance(
+            "fisher_information_must_be_positive_semidefinite",
+        ));
     }
     let threshold = maximum * relative_eigenvalue_tolerance;
-    let effective_rank = eigenvalues.iter()
-        .filter(|value| **value > threshold && **value > 0.0).count();
+    let effective_rank = eigenvalues
+        .iter()
+        .filter(|value| **value > threshold && **value > 0.0)
+        .count();
     let (log_determinant, condition_number) = if effective_rank == dimension {
-        let minimum = *eigenvalues.last().ok_or(ModelError::MismatchedDataLengths)?;
-        (Some(eigenvalues.iter().map(|value| value.ln()).sum()), Some(maximum / minimum))
+        let minimum = *eigenvalues
+            .last()
+            .ok_or(ModelError::MismatchedDataLengths)?;
+        (
+            Some(eigenvalues.iter().map(|value| value.ln()).sum()),
+            Some(maximum / minimum),
+        )
     } else {
         (None, None)
     };
-    Ok(IdentifiabilitySummary { parameter_count: dimension, effective_rank, eigenvalues, log_determinant, condition_number })
+    Ok(IdentifiabilitySummary {
+        parameter_count: dimension,
+        effective_rank,
+        eigenvalues,
+        log_determinant,
+        condition_number,
+    })
 }
 
 fn symmetric_eigenvalues(matrix: &[Vec<f64>]) -> Result<Vec<f64>, ModelError> {
     let dimension = matrix.len();
     let mut work = matrix.to_vec();
-    let scale = matrix.iter().flatten().map(|value| value.abs()).fold(0.0_f64, f64::max);
+    let scale = matrix
+        .iter()
+        .flatten()
+        .map(|value| value.abs())
+        .fold(0.0_f64, f64::max);
     let convergence_tolerance = 1.0e-13 * scale.max(f64::MIN_POSITIVE);
-    let maximum_iterations = 100_usize.saturating_mul(dimension).saturating_mul(dimension);
+    let maximum_iterations = 100_usize
+        .saturating_mul(dimension)
+        .saturating_mul(dimension);
     let mut converged = dimension == 1;
     for _ in 0..maximum_iterations {
         let mut largest = 0.0_f64;
@@ -202,13 +230,14 @@ fn symmetric_eigenvalues(matrix: &[Vec<f64>]) -> Result<Vec<f64>, ModelError> {
         }
     }
     if !converged {
-        return Err(ModelError::InvalidParameter("fisher_eigensolver_did_not_converge"));
+        return Err(ModelError::InvalidParameter(
+            "fisher_eigensolver_did_not_converge",
+        ));
     }
     let mut eigenvalues: Vec<f64> = (0..dimension).map(|index| work[index][index]).collect();
     eigenvalues.sort_by(|left, right| right.total_cmp(left));
     Ok(eigenvalues)
 }
-
 
 /// Exact directed KL divergence between independent Poisson count models.
 ///
@@ -225,7 +254,10 @@ pub fn poisson_kl_divergence(
         return Err(ModelError::MismatchedDataLengths);
     }
     let mut divergence = 0.0;
-    for (reference, alternative) in reference_expected_counts.iter().zip(alternative_expected_counts) {
+    for (reference, alternative) in reference_expected_counts
+        .iter()
+        .zip(alternative_expected_counts)
+    {
         for (value, name) in [
             (*reference, "reference_model_expected_count"),
             (*alternative, "alternative_model_expected_count"),
@@ -240,7 +272,9 @@ pub fn poisson_kl_divergence(
         divergence += reference * (reference / alternative).ln() + alternative - reference;
     }
     if !divergence.is_finite() {
-        return Err(ModelError::InvalidParameter("poisson_kl_divergence_overflowed"));
+        return Err(ModelError::InvalidParameter(
+            "poisson_kl_divergence_overflowed",
+        ));
     }
     // Roundoff can make an analytically nonnegative KL sum very slightly negative.
     Ok(divergence.max(0.0))
@@ -258,7 +292,11 @@ pub fn pairwise_poisson_kl_matrix(
         return Err(ModelError::MismatchedDataLengths);
     }
     let channels = model_expected_counts[0].len();
-    if channels == 0 || model_expected_counts.iter().any(|model| model.len() != channels) {
+    if channels == 0
+        || model_expected_counts
+            .iter()
+            .any(|model| model.len() != channels)
+    {
         return Err(ModelError::MismatchedDataLengths);
     }
     let mut matrix = vec![vec![0.0; model_expected_counts.len()]; model_expected_counts.len()];
@@ -281,13 +319,16 @@ mod tests {
 
     #[test]
     fn poisson_fisher_information_matches_scalar_count_formula() {
-        let information = poisson_fisher_information(&[20.0], &[vec![4.0, 2.0]]).expect("information");
+        let information =
+            poisson_fisher_information(&[20.0], &[vec![4.0, 2.0]]).expect("information");
         assert_eq!(information, vec![vec![0.8, 0.4], vec![0.4, 0.2]]);
     }
 
     #[test]
     fn independent_observables_produce_full_rank_information() {
-        let information = poisson_fisher_information(&[10.0, 20.0], &[vec![10.0, 0.0], vec![0.0, 20.0]]).expect("information");
+        let information =
+            poisson_fisher_information(&[10.0, 20.0], &[vec![10.0, 0.0], vec![0.0, 20.0]])
+                .expect("information");
         let summary = identifiability_summary(&information, 1.0e-10).expect("summary");
         assert_eq!(summary.effective_rank, 2);
         assert!(summary.log_determinant.is_some());
@@ -296,7 +337,9 @@ mod tests {
 
     #[test]
     fn collinear_signatures_are_non_identifiable() {
-        let information = poisson_fisher_information(&[100.0, 200.0], &[vec![1.0, 2.0], vec![2.0, 4.0]]).expect("information");
+        let information =
+            poisson_fisher_information(&[100.0, 200.0], &[vec![1.0, 2.0], vec![2.0, 4.0]])
+                .expect("information");
         let summary = identifiability_summary(&information, 1.0e-9).expect("summary");
         assert_eq!(summary.effective_rank, 1);
         assert_eq!(summary.log_determinant, None);
@@ -322,13 +365,26 @@ mod tests {
 
     #[test]
     fn information_combination_rejects_incompatible_dimensions() {
-        assert_eq!(combine_fisher_information(&[vec![vec![1.0]], vec![vec![1.0, 0.0], vec![0.0, 1.0]]]), Err(ModelError::MismatchedDataLengths));
+        assert_eq!(
+            combine_fisher_information(&[vec![vec![1.0]], vec![vec![1.0, 0.0], vec![0.0, 1.0]]]),
+            Err(ModelError::MismatchedDataLengths)
+        );
     }
 
     #[test]
     fn summary_rejects_non_symmetric_and_indefinite_matrices() {
-        assert_eq!(identifiability_summary(&[vec![1.0, 0.5], vec![0.4, 1.0]], 1.0e-8), Err(ModelError::InvalidCovariance("fisher_information_must_be_symmetric")));
-        assert_eq!(identifiability_summary(&[vec![1.0, 2.0], vec![2.0, 1.0]], 1.0e-8), Err(ModelError::InvalidCovariance("fisher_information_must_be_positive_semidefinite")));
+        assert_eq!(
+            identifiability_summary(&[vec![1.0, 0.5], vec![0.4, 1.0]], 1.0e-8),
+            Err(ModelError::InvalidCovariance(
+                "fisher_information_must_be_symmetric"
+            ))
+        );
+        assert_eq!(
+            identifiability_summary(&[vec![1.0, 2.0], vec![2.0, 1.0]], 1.0e-8),
+            Err(ModelError::InvalidCovariance(
+                "fisher_information_must_be_positive_semidefinite"
+            ))
+        );
     }
 
     #[test]
@@ -355,11 +411,9 @@ mod tests {
 
     #[test]
     fn pairwise_model_kl_matrix_matches_synthetic_oracle() {
-        let matrix = pairwise_poisson_kl_matrix(&[
-            vec![10.0, 20.0],
-            vec![20.0, 10.0],
-            vec![10.0, 10.0],
-        ]).expect("pairwise model KL");
+        let matrix =
+            pairwise_poisson_kl_matrix(&[vec![10.0, 20.0], vec![20.0, 10.0], vec![10.0, 10.0]])
+                .expect("pairwise model KL");
         assert!((matrix[0][1] - 6.931471805599453).abs() < 1.0e-12);
         assert!((matrix[0][2] - 3.862943611198906).abs() < 1.0e-12);
         assert!((matrix[2][0] - 3.068528194400547).abs() < 1.0e-12);
@@ -386,7 +440,9 @@ mod tests {
     fn poisson_kl_rejects_zero_and_nonfinite_expected_counts() {
         assert_eq!(
             poisson_kl_divergence(&[1.0], &[0.0]),
-            Err(ModelError::NonPositiveValue("alternative_model_expected_count"))
+            Err(ModelError::NonPositiveValue(
+                "alternative_model_expected_count"
+            ))
         );
         assert_eq!(
             poisson_kl_divergence(&[f64::NAN], &[1.0]),

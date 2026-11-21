@@ -16,8 +16,12 @@ pub fn apply_feature_conditioned_multiplicative_bias(
     }
     let feature_count = experiment_features.first().map_or(0, Vec::len);
     if feature_count == 0
-        || experiment_features.iter().any(|row| row.len() != feature_count)
-        || coefficients_by_channel.iter().any(|row| row.len() != feature_count)
+        || experiment_features
+            .iter()
+            .any(|row| row.len() != feature_count)
+        || coefficients_by_channel
+            .iter()
+            .any(|row| row.len() != feature_count)
     {
         return Err(ModelError::MismatchedDataLengths);
     }
@@ -59,15 +63,21 @@ pub fn apply_feature_conditioned_multiplicative_bias(
                 .map(|(feature, coefficient)| feature * coefficient)
                 .sum::<f64>();
             if !log_bias.is_finite() {
-                return Err(ModelError::InvalidParameter("measurement_log_bias_nonfinite"));
+                return Err(ModelError::InvalidParameter(
+                    "measurement_log_bias_nonfinite",
+                ));
             }
             let factor = log_bias.exp();
             if !factor.is_finite() || factor <= 0.0 {
-                return Err(ModelError::InvalidParameter("measurement_bias_factor_invalid"));
+                return Err(ModelError::InvalidParameter(
+                    "measurement_bias_factor_invalid",
+                ));
             }
             let value = expected_counts[run][channel] * factor;
             if !value.is_finite() || value <= 0.0 {
-                return Err(ModelError::InvalidParameter("biased_expected_count_invalid"));
+                return Err(ModelError::InvalidParameter(
+                    "biased_expected_count_invalid",
+                ));
             }
             biased[run][channel] = value;
         }
@@ -85,7 +95,8 @@ mod tests {
             &[vec![10.0, 20.0], vec![30.0, 40.0]],
             &[vec![1.0, 0.0], vec![0.0, 1.0]],
             &[vec![0.0, 0.0], vec![0.0, 0.0]],
-        ).expect("zero bias");
+        )
+        .expect("zero bias");
         assert_eq!(actual, vec![vec![10.0, 20.0], vec![30.0, 40.0]]);
     }
 
@@ -95,7 +106,8 @@ mod tests {
             &[vec![100.0], vec![100.0]],
             &[vec![0.0], vec![1.0]],
             &[vec![2.0]],
-        ).expect("bias");
+        )
+        .expect("bias");
         assert_eq!(actual[0][0], 100.0);
         assert!((actual[1][0] - 100.0 * 2.0_f64.exp()).abs() < 1.0e-10);
     }
@@ -106,7 +118,8 @@ mod tests {
             &[vec![10.0, 10.0]],
             &[vec![1.0]],
             &[vec![1.0], vec![-1.0]],
-        ).expect("channel-specific bias");
+        )
+        .expect("channel-specific bias");
         assert!((actual[0][0] - 10.0 * 1.0_f64.exp()).abs() < 1.0e-12);
         assert!((actual[0][1] - 10.0 * (-1.0_f64).exp()).abs() < 1.0e-12);
     }
@@ -114,11 +127,19 @@ mod tests {
     #[test]
     fn rejects_shape_mismatch() {
         assert_eq!(
-            apply_feature_conditioned_multiplicative_bias(&[vec![1.0]], &[vec![1.0, 2.0]], &[vec![1.0]]),
+            apply_feature_conditioned_multiplicative_bias(
+                &[vec![1.0]],
+                &[vec![1.0, 2.0]],
+                &[vec![1.0]]
+            ),
             Err(ModelError::MismatchedDataLengths)
         );
         assert_eq!(
-            apply_feature_conditioned_multiplicative_bias(&[vec![1.0, 2.0]], &[vec![1.0]], &[vec![1.0]]),
+            apply_feature_conditioned_multiplicative_bias(
+                &[vec![1.0, 2.0]],
+                &[vec![1.0]],
+                &[vec![1.0]]
+            ),
             Err(ModelError::MismatchedDataLengths)
         );
     }
@@ -134,11 +155,19 @@ mod tests {
     #[test]
     fn rejects_nonfinite_features_and_coefficients() {
         assert_eq!(
-            apply_feature_conditioned_multiplicative_bias(&[vec![1.0]], &[vec![f64::NAN]], &[vec![1.0]]),
+            apply_feature_conditioned_multiplicative_bias(
+                &[vec![1.0]],
+                &[vec![f64::NAN]],
+                &[vec![1.0]]
+            ),
             Err(ModelError::NonFiniteValue("experiment_feature"))
         );
         assert_eq!(
-            apply_feature_conditioned_multiplicative_bias(&[vec![1.0]], &[vec![1.0]], &[vec![f64::INFINITY]]),
+            apply_feature_conditioned_multiplicative_bias(
+                &[vec![1.0]],
+                &[vec![1.0]],
+                &[vec![f64::INFINITY]]
+            ),
             Err(ModelError::NonFiniteValue("measurement_bias_coefficient"))
         );
     }
@@ -146,8 +175,14 @@ mod tests {
     #[test]
     fn rejects_overflowing_bias_exponents() {
         assert_eq!(
-            apply_feature_conditioned_multiplicative_bias(&[vec![1.0]], &[vec![1000.0]], &[vec![1.0]]),
-            Err(ModelError::InvalidParameter("measurement_bias_factor_invalid"))
+            apply_feature_conditioned_multiplicative_bias(
+                &[vec![1.0]],
+                &[vec![1000.0]],
+                &[vec![1.0]]
+            ),
+            Err(ModelError::InvalidParameter(
+                "measurement_bias_factor_invalid"
+            ))
         );
     }
 }

@@ -67,7 +67,9 @@ pub fn fit_sparse_bayesian_correlated_log_bias(
         || fixed_effect_design.len() != observation_count
         || sparse_bias_design.len() != observation_count
         || log_relative_covariance.len() != observation_count
-        || log_relative_covariance.iter().any(|row| row.len() != observation_count)
+        || log_relative_covariance
+            .iter()
+            .any(|row| row.len() != observation_count)
     {
         return Err(ModelError::MismatchedDataLengths);
     }
@@ -80,7 +82,10 @@ pub fn fit_sparse_bayesian_correlated_log_bias(
         ));
     }
     for (value, name) in [
-        (fixed_effect_prior_standard_deviation, "fixed_effect_prior_standard_deviation"),
+        (
+            fixed_effect_prior_standard_deviation,
+            "fixed_effect_prior_standard_deviation",
+        ),
         (bias_slab_standard_deviation, "bias_slab_standard_deviation"),
     ] {
         if !value.is_finite() {
@@ -93,7 +98,9 @@ pub fn fit_sparse_bayesian_correlated_log_bias(
 
     let fixed_count = fixed_effect_design.first().map_or(0, Vec::len);
     let bias_count = sparse_bias_design.first().map_or(0, Vec::len);
-    if fixed_effect_design.iter().any(|row| row.len() != fixed_count)
+    if fixed_effect_design
+        .iter()
+        .any(|row| row.len() != fixed_count)
         || sparse_bias_design.iter().any(|row| row.len() != bias_count)
     {
         return Err(ModelError::MismatchedDataLengths);
@@ -106,16 +113,31 @@ pub fn fit_sparse_bayesian_correlated_log_bias(
             "correlated_log_bias_feature_count_exceeds_exact_enumeration_limit",
         ));
     }
-    if log_relative_observations.iter().any(|value| !value.is_finite()) {
+    if log_relative_observations
+        .iter()
+        .any(|value| !value.is_finite())
+    {
         return Err(ModelError::NonFiniteValue("log_relative_observations"));
     }
-    if fixed_effect_design.iter().flatten().any(|value| !value.is_finite()) {
+    if fixed_effect_design
+        .iter()
+        .flatten()
+        .any(|value| !value.is_finite())
+    {
         return Err(ModelError::NonFiniteValue("fixed_effect_design"));
     }
-    if sparse_bias_design.iter().flatten().any(|value| !value.is_finite()) {
+    if sparse_bias_design
+        .iter()
+        .flatten()
+        .any(|value| !value.is_finite())
+    {
         return Err(ModelError::NonFiniteValue("sparse_bias_design"));
     }
-    if log_relative_covariance.iter().flatten().any(|value| !value.is_finite()) {
+    if log_relative_covariance
+        .iter()
+        .flatten()
+        .any(|value| !value.is_finite())
+    {
         return Err(ModelError::NonFiniteValue("log_relative_covariance"));
     }
 
@@ -130,13 +152,17 @@ pub fn fit_sparse_bayesian_correlated_log_bias(
     let model_count = 1usize << bias_count;
     let log_included = feature_inclusion_probability.ln();
     let log_excluded = (1.0 - feature_inclusion_probability).ln();
-    let fixed_precision = 1.0
-        / (fixed_effect_prior_standard_deviation * fixed_effect_prior_standard_deviation);
+    let fixed_precision =
+        1.0 / (fixed_effect_prior_standard_deviation * fixed_effect_prior_standard_deviation);
     let bias_precision = 1.0 / (bias_slab_standard_deviation * bias_slab_standard_deviation);
-    if !fixed_precision.is_finite() || fixed_precision <= 0.0
-        || !bias_precision.is_finite() || bias_precision <= 0.0
+    if !fixed_precision.is_finite()
+        || fixed_precision <= 0.0
+        || !bias_precision.is_finite()
+        || bias_precision <= 0.0
     {
-        return Err(ModelError::InvalidParameter("correlated_log_bias_prior_precision_invalid"));
+        return Err(ModelError::InvalidParameter(
+            "correlated_log_bias_prior_precision_invalid",
+        ));
     }
 
     let mut fits = Vec::with_capacity(model_count);
@@ -155,25 +181,32 @@ pub fn fit_sparse_bayesian_correlated_log_bias(
             fixed_effect_prior_standard_deviation,
             bias_slab_standard_deviation,
         )?;
-        fit.log_model_evidence += active.len() as f64 * log_included
-            + (bias_count - active.len()) as f64 * log_excluded;
+        fit.log_model_evidence +=
+            active.len() as f64 * log_included + (bias_count - active.len()) as f64 * log_excluded;
         fits.push(fit);
     }
 
-    let max_log_weight = fits.iter()
+    let max_log_weight = fits
+        .iter()
         .map(|fit| fit.log_model_evidence)
         .fold(f64::NEG_INFINITY, f64::max);
     if !max_log_weight.is_finite() {
-        return Err(ModelError::InvalidParameter("correlated_log_bias_model_evidence_nonfinite"));
+        return Err(ModelError::InvalidParameter(
+            "correlated_log_bias_model_evidence_nonfinite",
+        ));
     }
-    let sum_weights = fits.iter()
+    let sum_weights = fits
+        .iter()
         .map(|fit| (fit.log_model_evidence - max_log_weight).exp())
         .sum::<f64>();
     if !sum_weights.is_finite() || sum_weights <= 0.0 {
-        return Err(ModelError::InvalidParameter("correlated_log_bias_model_weights_invalid"));
+        return Err(ModelError::InvalidParameter(
+            "correlated_log_bias_model_weights_invalid",
+        ));
     }
     let log_model_evidence = max_log_weight + sum_weights.ln();
-    let model_probabilities: Vec<f64> = fits.iter()
+    let model_probabilities: Vec<f64> = fits
+        .iter()
         .map(|fit| (fit.log_model_evidence - max_log_weight).exp() / sum_weights)
         .collect();
 
@@ -188,7 +221,8 @@ pub fn fit_sparse_bayesian_correlated_log_bias(
     for (mask, (fit, probability)) in fits.iter().zip(model_probabilities.iter()).enumerate() {
         for (local, feature) in fit.active_bias_features.iter().enumerate() {
             feature_inclusion_probability_out[*feature] += probability;
-            parameter_mean[fixed_count + *feature] += probability * fit.parameter_mean[fixed_count + local];
+            parameter_mean[fixed_count + *feature] +=
+                probability * fit.parameter_mean[fixed_count + local];
         }
         for fixed in 0..fixed_count {
             parameter_mean[fixed] += probability * fit.parameter_mean[fixed];
@@ -319,10 +353,10 @@ fn fit_gaussian_subset(
         prior_log_determinant += 2.0 * bias_sd.ln();
     }
 
-    let rhs = transpose_matrix_vector_product(&design, &matrix_vector_product(
-        inverse_covariance,
-        observations,
-    )?)?;
+    let rhs = transpose_matrix_vector_product(
+        &design,
+        &matrix_vector_product(inverse_covariance, observations)?,
+    )?;
     let (parameter_mean, parameter_covariance, logdet_hessian) = if parameter_count == 0 {
         (Vec::new(), Vec::new(), 0.0)
     } else {
@@ -352,7 +386,9 @@ fn fit_gaussian_subset(
             + logdet_hessian
             + residual_quadratic.max(0.0));
     if !log_model_evidence.is_finite() {
-        return Err(ModelError::InvalidParameter("correlated_log_bias_log_evidence_nonfinite"));
+        return Err(ModelError::InvalidParameter(
+            "correlated_log_bias_log_evidence_nonfinite",
+        ));
     }
     Ok(GaussianSubsetFit {
         active_bias_features: active_bias_features.to_vec(),
@@ -369,7 +405,9 @@ fn active_features(mask: usize, feature_count: usize) -> Vec<usize> {
 }
 
 fn validate_symmetric(matrix: &[Vec<f64>]) -> Result<(), ModelError> {
-    let scale = matrix.iter().flatten()
+    let scale = matrix
+        .iter()
+        .flatten()
         .map(|value| value.abs())
         .fold(0.0_f64, f64::max);
     let tolerance = 1.0e-10 * scale.max(f64::MIN_POSITIVE);
@@ -434,7 +472,9 @@ fn solve_cholesky(lower: &[Vec<f64>], rhs: &[f64]) -> Result<Vec<f64>, ModelErro
         solution[row] = value / lower[row][row];
     }
     if solution.iter().any(|value| !value.is_finite()) {
-        return Err(ModelError::InvalidCovariance("log_relative_covariance_solve_nonfinite"));
+        return Err(ModelError::InvalidCovariance(
+            "log_relative_covariance_solve_nonfinite",
+        ));
     }
     Ok(solution)
 }
@@ -461,11 +501,16 @@ fn inverse_from_cholesky(lower: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelError
 }
 
 fn log_determinant_from_cholesky(lower: &[Vec<f64>]) -> Result<f64, ModelError> {
-    let value = 2.0 * lower.iter().enumerate()
-        .map(|(index, row)| row[index].ln())
-        .sum::<f64>();
+    let value = 2.0
+        * lower
+            .iter()
+            .enumerate()
+            .map(|(index, row)| row[index].ln())
+            .sum::<f64>();
     if !value.is_finite() {
-        return Err(ModelError::InvalidCovariance("log_relative_covariance_logdet_nonfinite"));
+        return Err(ModelError::InvalidCovariance(
+            "log_relative_covariance_logdet_nonfinite",
+        ));
     }
     Ok(value)
 }
@@ -477,9 +522,7 @@ fn matrix_product(left: &[Vec<f64>], right: &[Vec<f64>]) -> Result<Vec<Vec<f64>>
     let rows = left.len();
     let inner = right.len();
     let columns = right.first().map_or(0, Vec::len);
-    if left.iter().any(|row| row.len() != inner)
-        || right.iter().any(|row| row.len() != columns)
-    {
+    if left.iter().any(|row| row.len() != inner) || right.iter().any(|row| row.len() != columns) {
         return Err(ModelError::MismatchedDataLengths);
     }
     let mut result = vec![vec![0.0; columns]; rows];
@@ -543,7 +586,8 @@ mod tests {
             0.1,
             2.0,
             1.0,
-        ).expect("correlated log-bias fit");
+        )
+        .expect("correlated log-bias fit");
         assert!(result.feature_inclusion_probability[0] > 0.99);
         assert!(result.map_bias_coefficients[0] > 0.5);
         assert_eq!(result.map_feature_mask, 1);
@@ -565,7 +609,8 @@ mod tests {
             0.1,
             2.0,
             1.0,
-        ).expect("null log-bias fit");
+        )
+        .expect("null log-bias fit");
         assert!(result.feature_inclusion_probability[0] < 0.05);
         assert_eq!(result.map_feature_mask, 0);
     }
@@ -590,9 +635,13 @@ mod tests {
             0.1,
             2.0,
             1.0,
-        ).expect("collinear log-bias fit");
-        assert!((result.feature_inclusion_probability[0]
-            - result.feature_inclusion_probability[1]).abs() < 1.0e-10);
+        )
+        .expect("collinear log-bias fit");
+        assert!(
+            (result.feature_inclusion_probability[0] - result.feature_inclusion_probability[1])
+                .abs()
+                < 1.0e-10
+        );
         assert!(result.parameter_posterior_covariance[0][1] < 0.0);
     }
 
@@ -611,7 +660,8 @@ mod tests {
             0.1,
             2.0,
             1.0,
-        ).expect("fixed plus sparse");
+        )
+        .expect("fixed plus sparse");
         assert!((result.fixed_effect_posterior_mean[0] - 0.2).abs() < 0.05);
         assert!(result.feature_inclusion_probability[0] > 0.99);
     }
@@ -630,11 +680,16 @@ mod tests {
             0.2,
             3.0,
             0.5,
-        ).expect("correlated model");
+        )
+        .expect("correlated model");
         assert!((result.model_posterior_probability.iter().sum::<f64>() - 1.0).abs() < 1.0e-12);
         assert_eq!(result.enumerated_model_count, 4);
-        assert!((result.parameter_posterior_covariance[0][1]
-            - result.parameter_posterior_covariance[1][0]).abs() < 1.0e-12);
+        assert!(
+            (result.parameter_posterior_covariance[0][1]
+                - result.parameter_posterior_covariance[1][0])
+                .abs()
+                < 1.0e-12
+        );
     }
 
     #[test]
@@ -649,7 +704,9 @@ mod tests {
                 1.0,
                 1.0,
             ),
-            Err(ModelError::InvalidCovariance("log_relative_covariance_must_be_symmetric"))
+            Err(ModelError::InvalidCovariance(
+                "log_relative_covariance_must_be_symmetric"
+            ))
         );
         assert_eq!(
             fit_sparse_bayesian_correlated_log_bias(
@@ -661,7 +718,9 @@ mod tests {
                 1.0,
                 1.0,
             ),
-            Err(ModelError::InvalidCovariance("log_relative_covariance_must_be_positive_definite"))
+            Err(ModelError::InvalidCovariance(
+                "log_relative_covariance_must_be_positive_definite"
+            ))
         );
     }
 

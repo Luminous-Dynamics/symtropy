@@ -7,10 +7,7 @@
 //! diagnostics before interpreting posterior summaries.
 
 use crate::{
-    GlobalScalePrior,
-    ModelError,
-    PreparedRawScaleHorseshoeModel,
-    RawScaleHorseshoePosterior,
+    GlobalScalePrior, ModelError, PreparedRawScaleHorseshoeModel, RawScaleHorseshoePosterior,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -53,9 +50,8 @@ struct HmcState {
 
 impl HmcState {
     fn flatten(&self) -> Vec<f64> {
-        let mut values = Vec::with_capacity(
-            self.coefficients.len() + self.log_local_scales.len() + 1,
-        );
+        let mut values =
+            Vec::with_capacity(self.coefficients.len() + self.log_local_scales.len() + 1);
         values.extend_from_slice(&self.coefficients);
         values.extend_from_slice(&self.log_local_scales);
         values.push(self.log_global_scale);
@@ -104,7 +100,9 @@ pub fn run_horseshoe_hmc_chain(
         return Err(ModelError::MismatchedDataLengths);
     }
     if config.retained_draws == 0 || config.leapfrog_steps == 0 {
-        return Err(ModelError::InvalidParameter("hmc_draw_and_leapfrog_counts_must_be_positive"));
+        return Err(ModelError::InvalidParameter(
+            "hmc_draw_and_leapfrog_counts_must_be_positive",
+        ));
     }
     if !config.step_size.is_finite() {
         return Err(ModelError::NonFiniteValue("hmc_step_size"));
@@ -118,9 +116,12 @@ pub fn run_horseshoe_hmc_chain(
     if config.divergence_energy_error_threshold <= 0.0 {
         return Err(ModelError::NonPositiveValue("hmc_divergence_threshold"));
     }
-    let transitions = config.discarded_transitions
+    let transitions = config
+        .discarded_transitions
         .checked_add(config.retained_draws)
-        .ok_or(ModelError::InvalidParameter("hmc_transition_count_overflow"))?;
+        .ok_or(ModelError::InvalidParameter(
+            "hmc_transition_count_overflow",
+        ))?;
 
     let mut state = HmcState {
         coefficients: initial_coefficients.to_vec(),
@@ -134,14 +135,8 @@ pub fn run_horseshoe_hmc_chain(
     let mut divergences = 0usize;
 
     for transition in 0..transitions {
-        let (next_state, next_target, accepted, divergent, sampled_energy) = hmc_transition(
-            model,
-            &state,
-            &target,
-            global_scale_prior,
-            config,
-            &mut rng,
-        );
+        let (next_state, next_target, accepted, divergent, sampled_energy) =
+            hmc_transition(model, &state, &target, global_scale_prior, config, &mut rng);
         if accepted {
             state = next_state;
             target = next_target;
@@ -189,16 +184,37 @@ fn hmc_transition(
         for index in 0..dimension {
             position[index] += config.step_size * momentum[index];
         }
-        let proposal_state = match HmcState::from_flat(&position, current_state.coefficients.len()) {
+        let proposal_state = match HmcState::from_flat(&position, current_state.coefficients.len())
+        {
             Ok(state) => state,
-            Err(_) => return (current_state.clone(), current_target.clone(), false, true, initial_hamiltonian),
+            Err(_) => {
+                return (
+                    current_state.clone(),
+                    current_target.clone(),
+                    false,
+                    true,
+                    initial_hamiltonian,
+                )
+            }
         };
         proposal_target = match evaluate_state(model, &proposal_state, prior) {
             Ok(target) => target,
-            Err(_) => return (current_state.clone(), current_target.clone(), false, true, initial_hamiltonian),
+            Err(_) => {
+                return (
+                    current_state.clone(),
+                    current_target.clone(),
+                    false,
+                    true,
+                    initial_hamiltonian,
+                )
+            }
         };
         let gradient = flatten_gradient(&proposal_target);
-        let scale = if step + 1 == config.leapfrog_steps { 0.5 } else { 1.0 };
+        let scale = if step + 1 == config.leapfrog_steps {
+            0.5
+        } else {
+            1.0
+        };
         for index in 0..dimension {
             momentum[index] += scale * config.step_size * gradient[index];
         }
@@ -210,21 +226,45 @@ fn hmc_transition(
     }
     let proposal_hamiltonian = -proposal_target.log_posterior + kinetic_energy(&momentum);
     let energy_error = proposal_hamiltonian - initial_hamiltonian;
-    if !energy_error.is_finite()
-        || energy_error.abs() > config.divergence_energy_error_threshold
-    {
-        return (current_state.clone(), current_target.clone(), false, true, initial_hamiltonian);
+    if !energy_error.is_finite() || energy_error.abs() > config.divergence_energy_error_threshold {
+        return (
+            current_state.clone(),
+            current_target.clone(),
+            false,
+            true,
+            initial_hamiltonian,
+        );
     }
     let log_acceptance = -energy_error;
     let accepted = log_acceptance >= 0.0 || rng.uniform_open().ln() < log_acceptance;
     if accepted {
         let next_state = match HmcState::from_flat(&position, current_state.coefficients.len()) {
             Ok(state) => state,
-            Err(_) => return (current_state.clone(), current_target.clone(), false, true, initial_hamiltonian),
+            Err(_) => {
+                return (
+                    current_state.clone(),
+                    current_target.clone(),
+                    false,
+                    true,
+                    initial_hamiltonian,
+                )
+            }
         };
-        (next_state, proposal_target, true, false, initial_hamiltonian)
+        (
+            next_state,
+            proposal_target,
+            true,
+            false,
+            initial_hamiltonian,
+        )
     } else {
-        (current_state.clone(), current_target.clone(), false, false, initial_hamiltonian)
+        (
+            current_state.clone(),
+            current_target.clone(),
+            false,
+            false,
+            initial_hamiltonian,
+        )
     }
 }
 
@@ -263,7 +303,10 @@ struct SplitMix64 {
 
 impl SplitMix64 {
     fn new(seed: u64) -> Self {
-        Self { state: seed, spare_normal: None }
+        Self {
+            state: seed,
+            spare_normal: None,
+        }
     }
 
     fn next_u64(&mut self) -> u64 {
@@ -304,13 +347,21 @@ pub fn split_rhat_for_coefficient(
     if chains.len() < 2 {
         return Err(ModelError::MismatchedDataLengths);
     }
-    let draws_per_chain = chains.iter().map(|chain| chain.draws.len()).min().unwrap_or(0);
+    let draws_per_chain = chains
+        .iter()
+        .map(|chain| chain.draws.len())
+        .min()
+        .unwrap_or(0);
     let half = draws_per_chain / 2;
     if half < 2 {
         return Err(ModelError::MismatchedDataLengths);
     }
     for chain in chains {
-        if chain.draws.iter().any(|draw| coefficient_index >= draw.coefficients.len()) {
+        if chain
+            .draws
+            .iter()
+            .any(|draw| coefficient_index >= draw.coefficients.len())
+        {
             return Err(ModelError::MismatchedDataLengths);
         }
     }
@@ -318,29 +369,41 @@ pub fn split_rhat_for_coefficient(
     let mut split_chains: Vec<Vec<f64>> = Vec::with_capacity(chains.len() * 2);
     for chain in chains {
         split_chains.push(
-            chain.draws[..half].iter().map(|draw| draw.coefficients[coefficient_index]).collect()
+            chain.draws[..half]
+                .iter()
+                .map(|draw| draw.coefficients[coefficient_index])
+                .collect(),
         );
         split_chains.push(
             chain.draws[draws_per_chain - half..draws_per_chain]
                 .iter()
                 .map(|draw| draw.coefficients[coefficient_index])
-                .collect()
+                .collect(),
         );
     }
     let split_count = split_chains.len();
-    let means: Vec<f64> = split_chains.iter()
+    let means: Vec<f64> = split_chains
+        .iter()
         .map(|values| values.iter().sum::<f64>() / half as f64)
         .collect();
-    let variances: Vec<f64> = split_chains.iter().zip(means.iter())
+    let variances: Vec<f64> = split_chains
+        .iter()
+        .zip(means.iter())
         .map(|(values, mean)| {
-            values.iter().map(|value| (value - mean).powi(2)).sum::<f64>()
+            values
+                .iter()
+                .map(|value| (value - mean).powi(2))
+                .sum::<f64>()
                 / (half - 1) as f64
         })
         .collect();
     let within = variances.iter().sum::<f64>() / split_count as f64;
     let mean_of_means = means.iter().sum::<f64>() / split_count as f64;
-    let between = half as f64 * means.iter()
-        .map(|mean| (mean - mean_of_means).powi(2)).sum::<f64>()
+    let between = half as f64
+        * means
+            .iter()
+            .map(|mean| (mean - mean_of_means).powi(2))
+            .sum::<f64>()
         / (split_count - 1) as f64;
     if within == 0.0 {
         return if between == 0.0 {
@@ -349,8 +412,7 @@ pub fn split_rhat_for_coefficient(
             Ok(f64::INFINITY)
         };
     }
-    let variance_estimate = (half as f64 - 1.0) / half as f64 * within
-        + between / half as f64;
+    let variance_estimate = (half as f64 - 1.0) / half as f64 * within + between / half as f64;
     Ok((variance_estimate / within).sqrt())
 }
 
@@ -364,7 +426,8 @@ mod tests {
             &[10.0, 20.0],
             &[vec![0.0], vec![1.0]],
             &[vec![0.04, 0.01], vec![0.01, 0.09]],
-        ).expect("prepared model")
+        )
+        .expect("prepared model")
     }
 
     fn config(seed: u64) -> HorseshoeHmcConfig {
@@ -382,12 +445,10 @@ mod tests {
     fn same_seed_replays_identical_chain() {
         let model = small_model();
         let prior = GlobalScalePrior::HalfNormal { scale: 0.5 };
-        let first = run_horseshoe_hmc_chain(
-            &model, &[0.1], &[0.0], -1.0, prior, config(1234),
-        ).expect("first chain");
-        let second = run_horseshoe_hmc_chain(
-            &model, &[0.1], &[0.0], -1.0, prior, config(1234),
-        ).expect("second chain");
+        let first = run_horseshoe_hmc_chain(&model, &[0.1], &[0.0], -1.0, prior, config(1234))
+            .expect("first chain");
+        let second = run_horseshoe_hmc_chain(&model, &[0.1], &[0.0], -1.0, prior, config(1234))
+            .expect("second chain");
         assert_eq!(first, second);
     }
 
@@ -401,7 +462,8 @@ mod tests {
             -1.0,
             GlobalScalePrior::HalfNormal { scale: 0.5 },
             config(seed),
-        ).expect("chain");
+        )
+        .expect("chain");
         assert_eq!(chain.seed, seed);
     }
 
@@ -414,11 +476,15 @@ mod tests {
             -1.0,
             GlobalScalePrior::HalfNormal { scale: 0.5 },
             config(99),
-        ).expect("chain");
+        )
+        .expect("chain");
         assert_eq!(chain.draws.len(), 8);
         assert_eq!(chain.transitions, 11);
         assert!((0.0..=1.0).contains(&chain.acceptance_rate));
-        assert!(chain.draws.iter().all(|draw| draw.log_posterior.is_finite()));
+        assert!(chain
+            .draws
+            .iter()
+            .all(|draw| draw.log_posterior.is_finite()));
     }
 
     #[test]
@@ -438,20 +504,25 @@ mod tests {
             divergences: 0,
             acceptance_rate: 1.0,
         };
-        assert_eq!(split_rhat_for_coefficient(&[chain.clone(), chain], 0), Ok(1.0));
+        assert_eq!(
+            split_rhat_for_coefficient(&[chain.clone(), chain], 0),
+            Ok(1.0)
+        );
     }
 
     #[test]
     fn split_rhat_detects_separated_chains() {
         let first = HorseshoeHmcChain {
             seed: 100,
-            draws: (0..8).map(|_| HorseshoeHmcDraw {
-                coefficients: vec![0.0],
-                log_local_scales: vec![0.0],
-                log_global_scale: -1.0,
-                log_posterior: -1.0,
-                hamiltonian_energy: 2.0,
-            }).collect(),
+            draws: (0..8)
+                .map(|_| HorseshoeHmcDraw {
+                    coefficients: vec![0.0],
+                    log_local_scales: vec![0.0],
+                    log_global_scale: -1.0,
+                    log_posterior: -1.0,
+                    hamiltonian_energy: 2.0,
+                })
+                .collect(),
             transitions: 8,
             accepted_transitions: 8,
             divergences: 0,
@@ -459,13 +530,15 @@ mod tests {
         };
         let second = HorseshoeHmcChain {
             seed: 101,
-            draws: (0..8).map(|_| HorseshoeHmcDraw {
-                coefficients: vec![10.0],
-                log_local_scales: vec![0.0],
-                log_global_scale: -1.0,
-                log_posterior: -1.0,
-                hamiltonian_energy: 2.0,
-            }).collect(),
+            draws: (0..8)
+                .map(|_| HorseshoeHmcDraw {
+                    coefficients: vec![10.0],
+                    log_local_scales: vec![0.0],
+                    log_global_scale: -1.0,
+                    log_posterior: -1.0,
+                    hamiltonian_energy: 2.0,
+                })
+                .collect(),
             transitions: 8,
             accepted_transitions: 8,
             divergences: 0,
@@ -480,8 +553,12 @@ mod tests {
         bad.step_size = 0.0;
         assert_eq!(
             run_horseshoe_hmc_chain(
-                &small_model(), &[0.1], &[0.0], -1.0,
-                GlobalScalePrior::HalfNormal { scale: 0.5 }, bad,
+                &small_model(),
+                &[0.1],
+                &[0.0],
+                -1.0,
+                GlobalScalePrior::HalfNormal { scale: 0.5 },
+                bad,
             ),
             Err(ModelError::NonPositiveValue("hmc_step_size"))
         );

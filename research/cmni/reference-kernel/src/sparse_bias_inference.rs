@@ -107,12 +107,18 @@ pub fn fit_sparse_bayesian_poisson_bias(
         }
     }
     if observed_counts.iter().any(|value| *value < 0.0) {
-        return Err(ModelError::InvalidParameter("observed_counts_must_be_nonnegative"));
+        return Err(ModelError::InvalidParameter(
+            "observed_counts_must_be_nonnegative",
+        ));
     }
     if physical_expected_counts.iter().any(|value| *value <= 0.0) {
         return Err(ModelError::NonPositiveValue("physical_expected_counts"));
     }
-    if design_matrix.iter().flatten().any(|value| !value.is_finite()) {
+    if design_matrix
+        .iter()
+        .flatten()
+        .any(|value| !value.is_finite())
+    {
         return Err(ModelError::NonFiniteValue("bias_design_matrix"));
     }
 
@@ -133,8 +139,7 @@ pub fn fit_sparse_bayesian_poisson_bias(
         )?;
         let included = active.len();
         let excluded = feature_count - included;
-        fit.log_joint_evidence += included as f64 * log_included
-            + excluded as f64 * log_excluded;
+        fit.log_joint_evidence += included as f64 * log_included + excluded as f64 * log_excluded;
         maximum_optimizer_iterations = maximum_optimizer_iterations.max(fit.iterations);
         fits.push(fit);
     }
@@ -204,8 +209,8 @@ pub fn fit_sparse_bayesian_poisson_bias(
             for right in 0..feature_count {
                 let left_delta = full_coefficients[left] - coefficient_mean[left];
                 let right_delta = full_coefficients[right] - coefficient_mean[right];
-                coefficient_covariance[left][right] += probability
-                    * (full_covariance[left][right] + left_delta * right_delta);
+                coefficient_covariance[left][right] +=
+                    probability * (full_covariance[left][right] + left_delta * right_delta);
             }
         }
     }
@@ -245,7 +250,9 @@ fn fit_subset(
             .map(|(count, mean)| count * mean.ln() - mean)
             .sum::<f64>();
         if !log_likelihood.is_finite() {
-            return Err(ModelError::InvalidParameter("sparse_bias_null_log_likelihood_nonfinite"));
+            return Err(ModelError::InvalidParameter(
+                "sparse_bias_null_log_likelihood_nonfinite",
+            ));
         }
         return Ok(SubsetFit {
             coefficients: Vec::new(),
@@ -273,7 +280,10 @@ fn fit_subset(
             &coefficients,
             prior_precision,
         )?;
-        let gradient_norm = gradient.iter().map(|value| value.abs()).fold(0.0_f64, f64::max);
+        let gradient_norm = gradient
+            .iter()
+            .map(|value| value.abs())
+            .fold(0.0_f64, f64::max);
         if gradient_norm <= NEWTON_TOLERANCE {
             converged = true;
             break;
@@ -357,12 +367,15 @@ fn fit_subset(
         prior_precision,
     )?;
     let lower = cholesky(&hessian)?;
-    let log_determinant = 2.0 * lower.iter().enumerate()
-        .map(|(index, row)| row[index].ln())
-        .sum::<f64>();
+    let log_determinant = 2.0
+        * lower
+            .iter()
+            .enumerate()
+            .map(|(index, row)| row[index].ln())
+            .sum::<f64>();
     let covariance = inverse_from_cholesky(&lower)?;
-    let standardized_norm_sq = coefficients.iter().map(|value| value * value).sum::<f64>()
-        * prior_precision;
+    let standardized_norm_sq =
+        coefficients.iter().map(|value| value * value).sum::<f64>() * prior_precision;
     let log_joint_evidence = log_likelihood
         - 0.5 * standardized_norm_sq
         - dimension as f64 * slab_sd.ln()
@@ -393,8 +406,8 @@ fn evaluate_subset(
     if coefficients.len() != dimension {
         return Err(ModelError::MismatchedDataLengths);
     }
-    let mut objective = 0.5 * prior_precision
-        * coefficients.iter().map(|value| value * value).sum::<f64>();
+    let mut objective =
+        0.5 * prior_precision * coefficients.iter().map(|value| value * value).sum::<f64>();
     let mut log_likelihood = 0.0;
     let mut gradient = vec![0.0; dimension];
     let mut hessian = vec![vec![0.0; dimension]; dimension];
@@ -405,11 +418,15 @@ fn evaluate_subset(
             eta += design[row][*feature] * coefficients[local];
         }
         if !eta.is_finite() || eta > f64::MAX.ln() {
-            return Err(ModelError::InvalidParameter("sparse_bias_linear_predictor_out_of_range"));
+            return Err(ModelError::InvalidParameter(
+                "sparse_bias_linear_predictor_out_of_range",
+            ));
         }
         let mean = if eta < -745.0 { 0.0 } else { eta.exp() };
         if !mean.is_finite() {
-            return Err(ModelError::InvalidParameter("sparse_bias_expected_count_invalid"));
+            return Err(ModelError::InvalidParameter(
+                "sparse_bias_expected_count_invalid",
+            ));
         }
         let count = observed[row];
         objective += mean - count * eta;
@@ -433,7 +450,9 @@ fn evaluate_subset(
         || gradient.iter().any(|value| !value.is_finite())
         || hessian.iter().flatten().any(|value| !value.is_finite())
     {
-        return Err(ModelError::InvalidParameter("sparse_bias_objective_nonfinite"));
+        return Err(ModelError::InvalidParameter(
+            "sparse_bias_objective_nonfinite",
+        ));
     }
     Ok((objective, gradient, hessian, log_likelihood))
 }
@@ -487,7 +506,9 @@ fn solve_cholesky(lower: &[Vec<f64>], right_hand_side: &[f64]) -> Result<Vec<f64
         solution[row] = value / lower[row][row];
     }
     if solution.iter().any(|value| !value.is_finite()) {
-        return Err(ModelError::InvalidCovariance("sparse_bias_hessian_solve_nonfinite"));
+        return Err(ModelError::InvalidCovariance(
+            "sparse_bias_hessian_solve_nonfinite",
+        ));
     }
     Ok(solution)
 }
@@ -529,7 +550,8 @@ mod tests {
             &[vec![0.0], vec![1.0], vec![0.0], vec![1.0]],
             0.1,
             1.0,
-        ).expect("planted bias");
+        )
+        .expect("planted bias");
         assert!(result.feature_inclusion_probability[0] > 0.99);
         assert!(result.map_coefficients[0] > 0.5);
         assert!(result.map_coefficients[0] < 0.85);
@@ -546,7 +568,8 @@ mod tests {
             &[vec![0.0], vec![1.0], vec![0.0], vec![1.0]],
             0.1,
             1.0,
-        ).expect("null control");
+        )
+        .expect("null control");
         assert!(result.feature_inclusion_probability[0] < 0.05);
         assert_eq!(result.map_feature_mask, 0);
     }
@@ -564,18 +587,20 @@ mod tests {
             ],
             0.1,
             1.0,
-        ).expect("collinear controls");
-        assert!((result.feature_inclusion_probability[0]
-            - result.feature_inclusion_probability[1]).abs() < 1.0e-10);
+        )
+        .expect("collinear controls");
+        assert!(
+            (result.feature_inclusion_probability[0] - result.feature_inclusion_probability[1])
+                .abs()
+                < 1.0e-10
+        );
         assert!(result.coefficient_posterior_covariance[0][1] < 0.0);
     }
 
     #[test]
     fn zero_feature_prior_mass_is_rejected() {
         assert_eq!(
-            fit_sparse_bayesian_poisson_bias(
-                &[1.0], &[1.0], &[vec![1.0]], 0.0, 1.0
-            ),
+            fit_sparse_bayesian_poisson_bias(&[1.0], &[1.0], &[vec![1.0]], 0.0, 1.0),
             Err(ModelError::InvalidParameter(
                 "feature_inclusion_probability_must_be_between_zero_and_one",
             ))
@@ -585,22 +610,18 @@ mod tests {
     #[test]
     fn rejects_nonfinite_or_nonpositive_model_inputs() {
         assert_eq!(
-            fit_sparse_bayesian_poisson_bias(
-                &[f64::NAN], &[1.0], &[vec![1.0]], 0.1, 1.0
-            ),
+            fit_sparse_bayesian_poisson_bias(&[f64::NAN], &[1.0], &[vec![1.0]], 0.1, 1.0),
             Err(ModelError::NonFiniteValue("observed_counts"))
         );
         assert_eq!(
-            fit_sparse_bayesian_poisson_bias(
-                &[1.0], &[0.0], &[vec![1.0]], 0.1, 1.0
-            ),
+            fit_sparse_bayesian_poisson_bias(&[1.0], &[0.0], &[vec![1.0]], 0.1, 1.0),
             Err(ModelError::NonPositiveValue("physical_expected_counts"))
         );
         assert_eq!(
-            fit_sparse_bayesian_poisson_bias(
-                &[-1.0], &[1.0], &[vec![1.0]], 0.1, 1.0
-            ),
-            Err(ModelError::InvalidParameter("observed_counts_must_be_nonnegative"))
+            fit_sparse_bayesian_poisson_bias(&[-1.0], &[1.0], &[vec![1.0]], 0.1, 1.0),
+            Err(ModelError::InvalidParameter(
+                "observed_counts_must_be_nonnegative"
+            ))
         );
     }
 
@@ -623,11 +644,16 @@ mod tests {
             &[vec![0.0, 1.0], vec![1.0, 0.0], vec![1.0, 1.0]],
             0.2,
             0.5,
-        ).expect("two-feature model");
+        )
+        .expect("two-feature model");
         assert!((result.model_posterior_probability.iter().sum::<f64>() - 1.0).abs() < 1.0e-12);
         assert_eq!(result.enumerated_model_count, 4);
-        assert!((result.coefficient_posterior_covariance[0][1]
-            - result.coefficient_posterior_covariance[1][0]).abs() < 1.0e-12);
+        assert!(
+            (result.coefficient_posterior_covariance[0][1]
+                - result.coefficient_posterior_covariance[1][0])
+                .abs()
+                < 1.0e-12
+        );
     }
 
     #[test]
@@ -638,7 +664,8 @@ mod tests {
             &[vec![0.0], vec![1.0], vec![0.0], vec![1.0]],
             0.1,
             1.0,
-        ).expect("fit");
+        )
+        .expect("fit");
         assert!(result.relative_log_model_evidence.is_finite());
         assert!(result.maximum_optimizer_iterations > 0);
     }

@@ -56,7 +56,9 @@ pub fn build_grouped_energy_bias_design(
         }
     }
     if energy_domain_min_mev <= 0.0 || energy_domain_max_mev <= energy_domain_min_mev {
-        return Err(ModelError::InvalidParameter("energy_bias_domain_must_be_positive_and_ordered"));
+        return Err(ModelError::InvalidParameter(
+            "energy_bias_domain_must_be_positive_and_ordered",
+        ));
     }
     for energy in energies_mev {
         if !energy.is_finite() {
@@ -66,17 +68,23 @@ pub fn build_grouped_energy_bias_design(
             return Err(ModelError::NonPositiveValue("observation_energy_mev"));
         }
         if *energy < energy_domain_min_mev || *energy > energy_domain_max_mev {
-            return Err(ModelError::InvalidParameter("observation_energy_outside_frozen_bias_domain"));
+            return Err(ModelError::InvalidParameter(
+                "observation_energy_outside_frozen_bias_domain",
+            ));
         }
     }
     for memberships in group_memberships_by_observation {
         let mut seen = vec![false; group_count];
         for group in memberships {
             if *group >= group_count {
-                return Err(ModelError::InvalidParameter("feature_group_index_out_of_range"));
+                return Err(ModelError::InvalidParameter(
+                    "feature_group_index_out_of_range",
+                ));
             }
             if seen[*group] {
-                return Err(ModelError::InvalidParameter("duplicate_feature_group_membership"));
+                return Err(ModelError::InvalidParameter(
+                    "duplicate_feature_group_membership",
+                ));
             }
             seen[*group] = true;
         }
@@ -103,15 +111,17 @@ pub fn build_grouped_energy_bias_design(
     for (row, energy) in energies_mev.iter().enumerate() {
         let log_energy = energy.log10();
         for column in 0..ENERGY_BIAS_BASIS_COLUMNS_PER_GROUP {
-            let standardized = (log_energy - energy_centres_mev[column].log10())
-                / length_scales_log10[column];
+            let standardized =
+                (log_energy - energy_centres_mev[column].log10()) / length_scales_log10[column];
             basis_by_observation[row][column] = (-(standardized * standardized)).exp();
         }
     }
 
     let total_columns = group_count
         .checked_mul(ENERGY_BIAS_BASIS_COLUMNS_PER_GROUP)
-        .ok_or(ModelError::InvalidParameter("energy_bias_design_dimension_overflow"))?;
+        .ok_or(ModelError::InvalidParameter(
+            "energy_bias_design_dimension_overflow",
+        ))?;
     let mut grouped_design_matrix = vec![vec![0.0; total_columns]; energies_mev.len()];
     for row in 0..energies_mev.len() {
         for group in &group_memberships_by_observation[row] {
@@ -133,7 +143,6 @@ pub fn build_grouped_energy_bias_design(
     })
 }
 
-
 /// Project a flattened vector of group-specific Gaussian-basis coefficients
 /// into the observation-level energy-dependent log-bias field.
 ///
@@ -144,13 +153,19 @@ pub fn project_grouped_energy_bias_field(
     design: &GroupedEnergyBiasDesign,
     coefficients_by_group: &[f64],
 ) -> Result<Vec<f64>, ModelError> {
-    let expected_columns = design.group_count
+    let expected_columns = design
+        .group_count
         .checked_mul(design.columns_per_group)
-        .ok_or(ModelError::InvalidParameter("energy_bias_design_dimension_overflow"))?;
+        .ok_or(ModelError::InvalidParameter(
+            "energy_bias_design_dimension_overflow",
+        ))?;
     if design.columns_per_group != ENERGY_BIAS_BASIS_COLUMNS_PER_GROUP
         || coefficients_by_group.len() != expected_columns
         || design.basis_by_observation.len() != design.grouped_design_matrix.len()
-        || design.grouped_design_matrix.iter().any(|row| row.len() != expected_columns)
+        || design
+            .grouped_design_matrix
+            .iter()
+            .any(|row| row.len() != expected_columns)
     {
         return Err(ModelError::MismatchedDataLengths);
     }
@@ -159,12 +174,15 @@ pub fn project_grouped_energy_bias_field(
     }
     let mut bias = Vec::with_capacity(design.grouped_design_matrix.len());
     for row in &design.grouped_design_matrix {
-        let value = row.iter()
+        let value = row
+            .iter()
             .zip(coefficients_by_group.iter())
             .map(|(basis, coefficient)| basis * coefficient)
             .sum::<f64>();
         if !value.is_finite() {
-            return Err(ModelError::InvalidParameter("energy_bias_projection_nonfinite"));
+            return Err(ModelError::InvalidParameter(
+                "energy_bias_projection_nonfinite",
+            ));
         }
         bias.push(value);
     }
@@ -183,7 +201,8 @@ mod tests {
             1,
             0.1,
             10.0,
-        ).expect("basis");
+        )
+        .expect("basis");
         assert_eq!(design.columns_per_group, 160);
         assert_eq!(design.energy_centres_mev.len(), 160);
         assert_eq!(design.length_scales_log10.len(), 160);
@@ -195,13 +214,8 @@ mod tests {
 
     #[test]
     fn basis_peak_is_one_at_each_width_scale_domain_minimum() {
-        let design = build_grouped_energy_bias_design(
-            &[0.1],
-            &[vec![0]],
-            1,
-            0.1,
-            10.0,
-        ).expect("basis");
+        let design =
+            build_grouped_energy_bias_design(&[0.1], &[vec![0]], 1, 0.1, 10.0).expect("basis");
         assert!((design.basis_by_observation[0][0] - 1.0).abs() < 1.0e-12);
         assert!((design.basis_by_observation[0][10] - 1.0).abs() < 1.0e-12);
         assert!((design.basis_by_observation[0][60] - 1.0).abs() < 1.0e-12);
@@ -209,63 +223,72 @@ mod tests {
 
     #[test]
     fn grouped_design_activates_only_the_assigned_group_block() {
-        let design = build_grouped_energy_bias_design(
-            &[0.1, 1.0],
-            &[vec![0], vec![1]],
-            2,
-            0.1,
-            10.0,
-        ).expect("grouped design");
+        let design =
+            build_grouped_energy_bias_design(&[0.1, 1.0], &[vec![0], vec![1]], 2, 0.1, 10.0)
+                .expect("grouped design");
         assert_eq!(design.grouped_design_matrix[0].len(), 320);
-        assert!(design.grouped_design_matrix[0][..160].iter().any(|value| *value > 0.0));
-        assert!(design.grouped_design_matrix[0][160..].iter().all(|value| *value == 0.0));
-        assert!(design.grouped_design_matrix[1][..160].iter().all(|value| *value == 0.0));
-        assert!(design.grouped_design_matrix[1][160..].iter().any(|value| *value > 0.0));
+        assert!(design.grouped_design_matrix[0][..160]
+            .iter()
+            .any(|value| *value > 0.0));
+        assert!(design.grouped_design_matrix[0][160..]
+            .iter()
+            .all(|value| *value == 0.0));
+        assert!(design.grouped_design_matrix[1][..160]
+            .iter()
+            .all(|value| *value == 0.0));
+        assert!(design.grouped_design_matrix[1][160..]
+            .iter()
+            .any(|value| *value > 0.0));
     }
 
     #[test]
     fn overlapping_feature_levels_share_observations_without_collapsing_groups() {
-        let design = build_grouped_energy_bias_design(
-            &[0.1, 1.0],
-            &[vec![0, 1], vec![1]],
-            2,
-            0.1,
-            10.0,
-        ).expect("overlapping groups");
+        let design =
+            build_grouped_energy_bias_design(&[0.1, 1.0], &[vec![0, 1], vec![1]], 2, 0.1, 10.0)
+                .expect("overlapping groups");
         assert_eq!(
             design.grouped_design_matrix[0][..160],
             design.grouped_design_matrix[0][160..320]
         );
-        assert!(design.grouped_design_matrix[1][..160].iter().all(|value| *value == 0.0));
-        assert!(design.grouped_design_matrix[1][160..].iter().any(|value| *value > 0.0));
+        assert!(design.grouped_design_matrix[1][..160]
+            .iter()
+            .all(|value| *value == 0.0));
+        assert!(design.grouped_design_matrix[1][160..]
+            .iter()
+            .any(|value| *value > 0.0));
     }
 
     #[test]
     fn observations_with_no_membership_have_zero_grouped_bias_row() {
-        let design = build_grouped_energy_bias_design(
-            &[0.1],
-            &[vec![]],
-            2,
-            0.1,
-            10.0,
-        ).expect("no membership");
-        assert!(design.grouped_design_matrix[0].iter().all(|value| *value == 0.0));
-        assert!(design.basis_by_observation[0].iter().any(|value| *value > 0.0));
+        let design = build_grouped_energy_bias_design(&[0.1], &[vec![]], 2, 0.1, 10.0)
+            .expect("no membership");
+        assert!(design.grouped_design_matrix[0]
+            .iter()
+            .all(|value| *value == 0.0));
+        assert!(design.basis_by_observation[0]
+            .iter()
+            .any(|value| *value > 0.0));
     }
 
     #[test]
     fn rejects_out_of_domain_energies_and_invalid_memberships() {
         assert_eq!(
             build_grouped_energy_bias_design(&[20.0], &[vec![0]], 1, 0.1, 10.0),
-            Err(ModelError::InvalidParameter("observation_energy_outside_frozen_bias_domain"))
+            Err(ModelError::InvalidParameter(
+                "observation_energy_outside_frozen_bias_domain"
+            ))
         );
         assert_eq!(
             build_grouped_energy_bias_design(&[1.0], &[vec![1]], 1, 0.1, 10.0),
-            Err(ModelError::InvalidParameter("feature_group_index_out_of_range"))
+            Err(ModelError::InvalidParameter(
+                "feature_group_index_out_of_range"
+            ))
         );
         assert_eq!(
             build_grouped_energy_bias_design(&[1.0], &[vec![0, 0]], 1, 0.1, 10.0),
-            Err(ModelError::InvalidParameter("duplicate_feature_group_membership"))
+            Err(ModelError::InvalidParameter(
+                "duplicate_feature_group_membership"
+            ))
         );
     }
 
@@ -273,7 +296,9 @@ mod tests {
     fn rejects_invalid_energy_domain_and_nonpositive_energy() {
         assert_eq!(
             build_grouped_energy_bias_design(&[1.0], &[vec![0]], 1, 0.1, 0.1),
-            Err(ModelError::InvalidParameter("energy_bias_domain_must_be_positive_and_ordered"))
+            Err(ModelError::InvalidParameter(
+                "energy_bias_domain_must_be_positive_and_ordered"
+            ))
         );
         assert_eq!(
             build_grouped_energy_bias_design(&[0.0], &[vec![0]], 1, 0.1, 10.0),
@@ -283,47 +308,34 @@ mod tests {
 
     #[test]
     fn projects_grouped_coefficients_to_observation_log_bias() {
-        let design = build_grouped_energy_bias_design(
-            &[0.1, 10.0],
-            &[vec![0], vec![1]],
-            2,
-            0.1,
-            10.0,
-        ).expect("design");
+        let design =
+            build_grouped_energy_bias_design(&[0.1, 10.0], &[vec![0], vec![1]], 2, 0.1, 10.0)
+                .expect("design");
         let mut coefficients = vec![0.0; 320];
         coefficients[0] = 0.5;
         coefficients[160 + 159] = -0.25;
-        let bias = project_grouped_energy_bias_field(&design, &coefficients)
-            .expect("projected bias");
+        let bias =
+            project_grouped_energy_bias_field(&design, &coefficients).expect("projected bias");
         assert!((bias[0] - 0.5).abs() < 1.0e-12);
         assert!((bias[1] + 0.25).abs() < 1.0e-12);
     }
 
     #[test]
     fn empty_feature_membership_projects_to_zero_bias() {
-        let design = build_grouped_energy_bias_design(
-            &[0.1, 1.0],
-            &[vec![], vec![]],
-            1,
-            0.1,
-            10.0,
-        ).expect("design");
+        let design = build_grouped_energy_bias_design(&[0.1, 1.0], &[vec![], vec![]], 1, 0.1, 10.0)
+            .expect("design");
         let bias = project_grouped_energy_bias_field(
             &design,
             &vec![1.0; ENERGY_BIAS_BASIS_COLUMNS_PER_GROUP],
-        ).expect("zero projection");
+        )
+        .expect("zero projection");
         assert_eq!(bias, vec![0.0, 0.0]);
     }
 
     #[test]
     fn projection_rejects_wrong_coefficient_size_and_nonfinite_values() {
-        let design = build_grouped_energy_bias_design(
-            &[1.0],
-            &[vec![0]],
-            1,
-            0.1,
-            10.0,
-        ).expect("design");
+        let design =
+            build_grouped_energy_bias_design(&[1.0], &[vec![0]], 1, 0.1, 10.0).expect("design");
         assert_eq!(
             project_grouped_energy_bias_field(&design, &[0.0]),
             Err(ModelError::MismatchedDataLengths)

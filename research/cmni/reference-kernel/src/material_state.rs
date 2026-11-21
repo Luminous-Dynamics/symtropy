@@ -17,7 +17,9 @@ pub fn diffusion_stability_limit_s(
     cell_width_cm: f64,
 ) -> Result<Option<f64>, ModelError> {
     if !diffusion_cm2_s.is_finite() || diffusion_cm2_s < 0.0 {
-        return Err(ModelError::InvalidParameter("diffusion_cm2_s_must_be_finite_and_nonnegative"));
+        return Err(ModelError::InvalidParameter(
+            "diffusion_cm2_s_must_be_finite_and_nonnegative",
+        ));
     }
     if !cell_width_cm.is_finite() {
         return Err(ModelError::NonFiniteValue("cell_width_cm"));
@@ -28,7 +30,9 @@ pub fn diffusion_stability_limit_s(
     if diffusion_cm2_s == 0.0 {
         return Ok(None);
     }
-    Ok(Some(cell_width_cm * cell_width_cm / (2.0 * diffusion_cm2_s)))
+    Ok(Some(
+        cell_width_cm * cell_width_cm / (2.0 * diffusion_cm2_s),
+    ))
 }
 
 /// Advance a cell-centred 1-D concentration profile by one explicit diffusion
@@ -48,14 +52,18 @@ pub fn diffuse_no_flux_1d(
     timestep_s: f64,
 ) -> Result<Vec<f64>, ModelError> {
     if concentration_atoms_cm3.len() < 2 {
-        return Err(ModelError::InvalidParameter("depth_profile_requires_at_least_two_cells"));
+        return Err(ModelError::InvalidParameter(
+            "depth_profile_requires_at_least_two_cells",
+        ));
     }
     for value in concentration_atoms_cm3 {
         if !value.is_finite() {
             return Err(ModelError::NonFiniteValue("concentration_atoms_cm3"));
         }
         if *value < 0.0 {
-            return Err(ModelError::InvalidParameter("concentration_must_be_nonnegative"));
+            return Err(ModelError::InvalidParameter(
+                "concentration_must_be_nonnegative",
+            ));
         }
     }
     if !timestep_s.is_finite() {
@@ -72,10 +80,14 @@ pub fn diffuse_no_flux_1d(
     match stability_limit {
         Some(limit) if timestep_s <= limit * (1.0 + 1.0e-12) => {}
         Some(_) => {
-            return Err(ModelError::InvalidParameter("diffusion_timestep_exceeds_explicit_stability_limit"));
+            return Err(ModelError::InvalidParameter(
+                "diffusion_timestep_exceeds_explicit_stability_limit",
+            ));
         }
         None => {
-            return Err(ModelError::InvalidParameter("positive_diffusivity_requires_finite_stability_limit"));
+            return Err(ModelError::InvalidParameter(
+                "positive_diffusivity_requires_finite_stability_limit",
+            ));
         }
     }
 
@@ -90,16 +102,25 @@ pub fn diffuse_no_flux_1d(
         } else if i == n - 1 {
             concentration_atoms_cm3[n - 2] - concentration_atoms_cm3[n - 1]
         } else {
-            concentration_atoms_cm3[i - 1]
-                - 2.0 * concentration_atoms_cm3[i]
+            concentration_atoms_cm3[i - 1] - 2.0 * concentration_atoms_cm3[i]
                 + concentration_atoms_cm3[i + 1]
         };
         next[i] = concentration_atoms_cm3[i] + coefficient * laplacian;
         if !next[i].is_finite() {
-            return Err(ModelError::InvalidParameter("diffusion_step_produced_nonfinite_concentration"));
+            return Err(ModelError::InvalidParameter(
+                "diffusion_step_produced_nonfinite_concentration",
+            ));
         }
-        if next[i] < -1.0e-12 * concentration_atoms_cm3.iter().copied().fold(1.0_f64, f64::max) {
-            return Err(ModelError::InvalidParameter("diffusion_step_produced_negative_concentration"));
+        if next[i]
+            < -1.0e-12
+                * concentration_atoms_cm3
+                    .iter()
+                    .copied()
+                    .fold(1.0_f64, f64::max)
+        {
+            return Err(ModelError::InvalidParameter(
+                "diffusion_step_produced_negative_concentration",
+            ));
         }
         if next[i] < 0.0 {
             next[i] = 0.0;
@@ -146,11 +167,12 @@ pub fn source_loss_step(
         concentration_atoms_cm3 + source_rate_atoms_cm3_s * timestep_s
     } else {
         let decay = (-loss_rate_s * timestep_s).exp();
-        concentration_atoms_cm3 * decay
-            + (source_rate_atoms_cm3_s / loss_rate_s) * (1.0 - decay)
+        concentration_atoms_cm3 * decay + (source_rate_atoms_cm3_s / loss_rate_s) * (1.0 - decay)
     };
     if !updated.is_finite() || updated < 0.0 {
-        return Err(ModelError::InvalidParameter("source_loss_step_produced_invalid_concentration"));
+        return Err(ModelError::InvalidParameter(
+            "source_loss_step_produced_invalid_concentration",
+        ));
     }
     Ok(updated)
 }
@@ -162,8 +184,8 @@ mod tests {
     #[test]
     fn diffusion_preserves_uniform_profile() {
         let initial = vec![2.0e20; 16];
-        let next = diffuse_no_flux_1d(&initial, 1.0e-8, 1.0e-6, 1.0e-5)
-            .expect("stable diffusion step");
+        let next =
+            diffuse_no_flux_1d(&initial, 1.0e-8, 1.0e-6, 1.0e-5).expect("stable diffusion step");
         for value in next {
             assert!((value - 2.0e20).abs() / 2.0e20 < 1.0e-14);
         }
@@ -172,8 +194,8 @@ mod tests {
     #[test]
     fn diffusion_conserves_total_inventory_with_no_flux_boundaries() {
         let initial = vec![0.5e20, 1.0e20, 2.0e20, 4.0e20, 3.0e20, 1.5e20];
-        let next = diffuse_no_flux_1d(&initial, 2.0e-9, 2.0e-6, 5.0e-4)
-            .expect("stable diffusion step");
+        let next =
+            diffuse_no_flux_1d(&initial, 2.0e-9, 2.0e-6, 5.0e-4).expect("stable diffusion step");
         let before = initial.iter().sum::<f64>();
         let after = next.iter().sum::<f64>();
         assert!((after - before).abs() / before < 1.0e-14);
@@ -182,8 +204,7 @@ mod tests {
     #[test]
     fn diffusion_smooths_a_nonuniform_profile() {
         let initial = vec![0.0, 0.0, 10.0, 0.0, 0.0];
-        let next = diffuse_no_flux_1d(&initial, 1.0, 1.0, 0.2)
-            .expect("stable diffusion step");
+        let next = diffuse_no_flux_1d(&initial, 1.0, 1.0, 0.2).expect("stable diffusion step");
         let initial_range = initial.iter().copied().fold(f64::NEG_INFINITY, f64::max)
             - initial.iter().copied().fold(f64::INFINITY, f64::min);
         let next_range = next.iter().copied().fold(f64::NEG_INFINITY, f64::max)
@@ -223,15 +244,16 @@ mod tests {
         let result = diffuse_no_flux_1d(&[1.0, 2.0, 3.0], 1.0, 1.0, 0.6);
         assert_eq!(
             result,
-            Err(ModelError::InvalidParameter("diffusion_timestep_exceeds_explicit_stability_limit"))
+            Err(ModelError::InvalidParameter(
+                "diffusion_timestep_exceeds_explicit_stability_limit"
+            ))
         );
     }
 
     #[test]
     fn zero_diffusivity_returns_unchanged_profile() {
         let initial = vec![1.0, 2.0, 3.0];
-        let next = diffuse_no_flux_1d(&initial, 0.0, 1.0, 10.0)
-            .expect("zero-diffusivity profile");
+        let next = diffuse_no_flux_1d(&initial, 0.0, 1.0, 10.0).expect("zero-diffusivity profile");
         assert_eq!(next, initial);
     }
 

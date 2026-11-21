@@ -45,7 +45,8 @@ pub fn diagnose_horseshoe_coefficient(
             "sampler_diagnostics_require_at_least_four_chains",
         ));
     }
-    let minimum_draws = chains.iter()
+    let minimum_draws = chains
+        .iter()
         .map(|chain| chain.draws.len())
         .min()
         .unwrap_or(0);
@@ -66,24 +67,29 @@ pub fn diagnose_horseshoe_coefficient(
             return Err(ModelError::MismatchedDataLengths);
         }
         if chain.draws.iter().any(|draw| {
-            coefficient_index >= draw.coefficients.len()
-                || !draw.hamiltonian_energy.is_finite()
+            coefficient_index >= draw.coefficients.len() || !draw.hamiltonian_energy.is_finite()
         }) {
             return Err(ModelError::MismatchedDataLengths);
         }
     }
 
-    let raw_chains: Vec<Vec<f64>> = chains.iter()
-        .map(|chain| chain.draws.iter()
-            .map(|draw| draw.coefficients[coefficient_index])
-            .collect())
+    let raw_chains: Vec<Vec<f64>> = chains
+        .iter()
+        .map(|chain| {
+            chain
+                .draws
+                .iter()
+                .map(|draw| draw.coefficients[coefficient_index])
+                .collect()
+        })
         .collect();
     let split_raw = split_chains(&raw_chains)?;
     let rank_normalized = rank_normalize_chains(&split_raw)?;
     let rank_normalized_split_rhat = split_rhat(&rank_normalized)?;
     let pooled_raw: Vec<f64> = split_raw.iter().flatten().copied().collect();
     let median = quantile(&pooled_raw, 0.5)?;
-    let folded: Vec<Vec<f64>> = split_raw.iter()
+    let folded: Vec<Vec<f64>> = split_raw
+        .iter()
         .map(|chain| chain.iter().map(|value| (value - median).abs()).collect())
         .collect();
     let folded_rank_normalized = rank_normalize_chains(&folded)?;
@@ -93,14 +99,26 @@ pub fn diagnose_horseshoe_coefficient(
     let bulk_ess = effective_sample_size(&rank_normalized)?;
     let lower_threshold = quantile(&pooled_raw, 0.05)?;
     let upper_threshold = quantile(&pooled_raw, 0.95)?;
-    let lower_indicator: Vec<Vec<f64>> = split_raw.iter()
-        .map(|chain| chain.iter().map(|value| if *value <= lower_threshold { 1.0 } else { 0.0 }).collect())
+    let lower_indicator: Vec<Vec<f64>> = split_raw
+        .iter()
+        .map(|chain| {
+            chain
+                .iter()
+                .map(|value| if *value <= lower_threshold { 1.0 } else { 0.0 })
+                .collect()
+        })
         .collect();
-    let upper_indicator: Vec<Vec<f64>> = split_raw.iter()
-        .map(|chain| chain.iter().map(|value| if *value >= upper_threshold { 1.0 } else { 0.0 }).collect())
+    let upper_indicator: Vec<Vec<f64>> = split_raw
+        .iter()
+        .map(|chain| {
+            chain
+                .iter()
+                .map(|value| if *value >= upper_threshold { 1.0 } else { 0.0 })
+                .collect()
+        })
         .collect();
-    let tail_ess = effective_sample_size(&lower_indicator)?
-        .min(effective_sample_size(&upper_indicator)?);
+    let tail_ess =
+        effective_sample_size(&lower_indicator)?.min(effective_sample_size(&upper_indicator)?);
 
     // Mean MCSE must remain in the original coefficient units. Bulk ESS
     // is based on rank-normalized draws and is intentionally reported apart
@@ -112,16 +130,21 @@ pub fn diagnose_horseshoe_coefficient(
     } else {
         f64::INFINITY
     };
-    let energy_bfmi_by_chain: Vec<f64> = chains.iter()
+    let energy_bfmi_by_chain: Vec<f64> = chains
+        .iter()
         .map(|chain| {
-            let energies: Vec<f64> = chain.draws.iter()
+            let energies: Vec<f64> = chain
+                .draws
+                .iter()
                 .map(|draw| draw.hamiltonian_energy)
                 .collect();
             energy_bfmi(&energies)
         })
         .collect();
-    let minimum_energy_bfmi = energy_bfmi_by_chain.iter()
-        .copied().fold(f64::INFINITY, f64::min);
+    let minimum_energy_bfmi = energy_bfmi_by_chain
+        .iter()
+        .copied()
+        .fold(f64::INFINITY, f64::min);
     let divergence_count = chains.iter().map(|chain| chain.divergences).sum();
     let required_ess = 100.0 * chains.len() as f64;
     let meets_proposed_thresholds = maximum_rhat < 1.01
@@ -185,9 +208,7 @@ fn rank_normalize_chains(chains: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelErro
         }
     }
     ordered.sort_by(|left, right| left.0.total_cmp(&right.0));
-    let mut normalized: Vec<Vec<f64>> = chains.iter()
-        .map(|chain| vec![0.0; chain.len()])
-        .collect();
+    let mut normalized: Vec<Vec<f64>> = chains.iter().map(|chain| vec![0.0; chain.len()]).collect();
 
     let mut start = 0usize;
     while start < ordered.len() {
@@ -247,8 +268,7 @@ fn inverse_standard_normal_cdf(probability: f64) -> f64 {
     } else if probability <= HIGH {
         let q = probability - 0.5;
         let r = q * q;
-        (((((A[0] * r + A[1]) * r + A[2]) * r + A[3]) * r + A[4]) * r + A[5])
-            * q
+        (((((A[0] * r + A[1]) * r + A[2]) * r + A[3]) * r + A[4]) * r + A[5]) * q
             / (((((B[0] * r + B[1]) * r + B[2]) * r + B[3]) * r + B[4]) * r + 1.0)
     } else {
         let q = (-2.0 * (1.0 - probability).ln()).sqrt();
@@ -265,25 +285,37 @@ fn split_rhat(chains: &[Vec<f64>]) -> Result<f64, ModelError> {
     if count < 2 || chains.iter().any(|chain| chain.len() != count) {
         return Err(ModelError::MismatchedDataLengths);
     }
-    let means: Vec<f64> = chains.iter()
+    let means: Vec<f64> = chains
+        .iter()
         .map(|chain| chain.iter().sum::<f64>() / count as f64)
         .collect();
-    let variances: Vec<f64> = chains.iter().zip(means.iter())
+    let variances: Vec<f64> = chains
+        .iter()
+        .zip(means.iter())
         .map(|(chain, mean)| {
-            chain.iter().map(|value| (value - mean).powi(2)).sum::<f64>()
+            chain
+                .iter()
+                .map(|value| (value - mean).powi(2))
+                .sum::<f64>()
                 / (count - 1) as f64
         })
         .collect();
     let within = variances.iter().sum::<f64>() / chains.len() as f64;
     let overall_mean = means.iter().sum::<f64>() / means.len() as f64;
     let between = count as f64
-        * means.iter().map(|mean| (mean - overall_mean).powi(2)).sum::<f64>()
+        * means
+            .iter()
+            .map(|mean| (mean - overall_mean).powi(2))
+            .sum::<f64>()
         / (means.len() - 1) as f64;
     if within == 0.0 {
-        return if between == 0.0 { Ok(1.0) } else { Ok(f64::INFINITY) };
+        return if between == 0.0 {
+            Ok(1.0)
+        } else {
+            Ok(f64::INFINITY)
+        };
     }
-    let variance_plus = (count as f64 - 1.0) / count as f64 * within
-        + between / count as f64;
+    let variance_plus = (count as f64 - 1.0) / count as f64 * within + between / count as f64;
     Ok((variance_plus / within).sqrt())
 }
 
@@ -295,19 +327,28 @@ fn variance_plus(chains: &[Vec<f64>]) -> Result<f64, ModelError> {
     if count < 2 || chains.iter().any(|chain| chain.len() != count) {
         return Err(ModelError::MismatchedDataLengths);
     }
-    let means: Vec<f64> = chains.iter()
+    let means: Vec<f64> = chains
+        .iter()
         .map(|chain| chain.iter().sum::<f64>() / count as f64)
         .collect();
-    let variances: Vec<f64> = chains.iter().zip(means.iter())
+    let variances: Vec<f64> = chains
+        .iter()
+        .zip(means.iter())
         .map(|(chain, mean)| {
-            chain.iter().map(|value| (value - mean).powi(2)).sum::<f64>()
+            chain
+                .iter()
+                .map(|value| (value - mean).powi(2))
+                .sum::<f64>()
                 / (count - 1) as f64
         })
         .collect();
     let within = variances.iter().sum::<f64>() / chains.len() as f64;
     let grand_mean = means.iter().sum::<f64>() / means.len() as f64;
     let between = count as f64
-        * means.iter().map(|mean| (mean - grand_mean).powi(2)).sum::<f64>()
+        * means
+            .iter()
+            .map(|mean| (mean - grand_mean).powi(2))
+            .sum::<f64>()
         / (means.len() - 1) as f64;
     Ok((count as f64 - 1.0) / count as f64 * within + between / count as f64)
 }
@@ -320,12 +361,18 @@ fn effective_sample_size(chains: &[Vec<f64>]) -> Result<f64, ModelError> {
     if count < 3 || chains.iter().any(|chain| chain.len() != count) {
         return Err(ModelError::MismatchedDataLengths);
     }
-    let means: Vec<f64> = chains.iter()
+    let means: Vec<f64> = chains
+        .iter()
         .map(|chain| chain.iter().sum::<f64>() / count as f64)
         .collect();
-    let variances: Vec<f64> = chains.iter().zip(means.iter())
+    let variances: Vec<f64> = chains
+        .iter()
+        .zip(means.iter())
         .map(|(chain, mean)| {
-            chain.iter().map(|value| (value - mean).powi(2)).sum::<f64>()
+            chain
+                .iter()
+                .map(|value| (value - mean).powi(2))
+                .sum::<f64>()
                 / (count - 1) as f64
         })
         .collect();
@@ -388,14 +435,19 @@ fn energy_bfmi(energies: &[f64]) -> f64 {
         return 0.0;
     }
     let mean = energies.iter().sum::<f64>() / energies.len() as f64;
-    let variance = energies.iter().map(|value| (value - mean).powi(2)).sum::<f64>()
+    let variance = energies
+        .iter()
+        .map(|value| (value - mean).powi(2))
+        .sum::<f64>()
         / (energies.len() - 1) as f64;
     if variance <= 0.0 {
         return 0.0;
     }
-    let mean_squared_difference = energies.windows(2)
+    let mean_squared_difference = energies
+        .windows(2)
         .map(|pair| (pair[1] - pair[0]).powi(2))
-        .sum::<f64>() / (energies.len() - 1) as f64;
+        .sum::<f64>()
+        / (energies.len() - 1) as f64;
     mean_squared_difference / variance
 }
 
@@ -404,7 +456,9 @@ mod tests {
     use super::*;
 
     fn synthetic_chain(seed: u64, values: &[f64], energy_values: &[f64]) -> HorseshoeHmcChain {
-        let draws = values.iter().zip(energy_values.iter())
+        let draws = values
+            .iter()
+            .zip(energy_values.iter())
             .map(|(value, energy)| crate::HorseshoeHmcDraw {
                 coefficients: vec![*value],
                 log_local_scales: vec![0.0],
@@ -451,7 +505,9 @@ mod tests {
     fn iid_like_chain(seed: u64, count: usize) -> HorseshoeHmcChain {
         let values = deterministic_normal_samples(seed, count);
         let energies = deterministic_normal_samples(seed.wrapping_add(17), count);
-        let draws = values.iter().zip(energies.iter())
+        let draws = values
+            .iter()
+            .zip(energies.iter())
             .map(|(value, energy)| crate::HorseshoeHmcDraw {
                 coefficients: vec![*value],
                 log_local_scales: vec![0.0],
@@ -475,8 +531,8 @@ mod tests {
         let chains: Vec<HorseshoeHmcChain> = (0..4)
             .map(|index| iid_like_chain(0xC0FFEE_u64 + index * 97, 2_000))
             .collect();
-        let summary = diagnose_horseshoe_coefficient(&chains, 0)
-            .expect("IID-like diagnostic control");
+        let summary =
+            diagnose_horseshoe_coefficient(&chains, 0).expect("IID-like diagnostic control");
         assert!(summary.maximum_rhat < 1.01, "Rhat={}", summary.maximum_rhat);
         assert!(summary.bulk_ess >= 400.0, "bulk ESS={}", summary.bulk_ess);
         assert!(summary.tail_ess >= 400.0, "tail ESS={}", summary.tail_ess);
@@ -495,7 +551,9 @@ mod tests {
         ];
         assert_eq!(
             diagnose_horseshoe_coefficient(&chains, 0),
-            Err(ModelError::InvalidParameter("sampler_diagnostics_require_at_least_four_chains"))
+            Err(ModelError::InvalidParameter(
+                "sampler_diagnostics_require_at_least_four_chains"
+            ))
         );
     }
 
@@ -511,7 +569,9 @@ mod tests {
         ];
         assert_eq!(
             diagnose_horseshoe_coefficient(&chains, 0),
-            Err(ModelError::InvalidParameter("sampler_diagnostics_require_unique_chain_seeds"))
+            Err(ModelError::InvalidParameter(
+                "sampler_diagnostics_require_unique_chain_seeds"
+            ))
         );
     }
 
@@ -525,7 +585,11 @@ mod tests {
             let energies: Vec<f64> = (0..80)
                 .map(|index| 2.0 + ((index * 11 + chain_index) as f64 * 0.19).cos())
                 .collect();
-            chains.push(synthetic_chain(1000 + chain_index as u64, &values, &energies));
+            chains.push(synthetic_chain(
+                1000 + chain_index as u64,
+                &values,
+                &energies,
+            ));
         }
         let summary = diagnose_horseshoe_coefficient(&chains, 0).expect("diagnostics");
         assert!(summary.maximum_rhat.is_finite());
@@ -543,7 +607,11 @@ mod tests {
                 .map(|index| if index % 2 == 0 { *scale } else { -*scale })
                 .collect();
             let energies: Vec<f64> = (0..80).map(|index| index as f64).collect();
-            chains.push(synthetic_chain(3000 + chain_index as u64, &values, &energies));
+            chains.push(synthetic_chain(
+                3000 + chain_index as u64,
+                &values,
+                &energies,
+            ));
             let _ = chain_index;
         }
         let summary = diagnose_horseshoe_coefficient(&chains, 0).expect("diagnostics");
@@ -558,7 +626,11 @@ mod tests {
             let values: Vec<f64> = (0..80)
                 .map(|index| ((index * 13 + chain_index * 7) as f64).sin())
                 .collect();
-            chains.push(synthetic_chain(2000 + chain_index as u64, &values, &vec![3.0; 80]));
+            chains.push(synthetic_chain(
+                2000 + chain_index as u64,
+                &values,
+                &vec![3.0; 80],
+            ));
         }
         let summary = diagnose_horseshoe_coefficient(&chains, 0).expect("diagnostics");
         assert_eq!(summary.minimum_energy_bfmi, 0.0);
@@ -575,29 +647,37 @@ mod tests {
             let energies: Vec<f64> = (0..80)
                 .map(|index| 2.0 + ((index * 11 + chain_index) as f64 * 0.19).cos())
                 .collect();
-            chains.push(synthetic_chain(4000 + chain_index as u64, &values, &energies));
+            chains.push(synthetic_chain(
+                4000 + chain_index as u64,
+                &values,
+                &energies,
+            ));
         }
         let base = diagnose_horseshoe_coefficient(&chains, 0).expect("base diagnostics");
-        let scaled_chains: Vec<HorseshoeHmcChain> = chains.iter().map(|chain| {
-            let mut result = chain.clone();
-            for draw in &mut result.draws {
-                draw.coefficients[0] *= 10.0;
-            }
-            result
-        }).collect();
-        let scaled = diagnose_horseshoe_coefficient(&scaled_chains, 0)
-            .expect("scaled diagnostics");
+        let scaled_chains: Vec<HorseshoeHmcChain> = chains
+            .iter()
+            .map(|chain| {
+                let mut result = chain.clone();
+                for draw in &mut result.draws {
+                    draw.coefficients[0] *= 10.0;
+                }
+                result
+            })
+            .collect();
+        let scaled = diagnose_horseshoe_coefficient(&scaled_chains, 0).expect("scaled diagnostics");
         assert!((scaled.mcse_mean / base.mcse_mean - 10.0).abs() < 1.0e-8);
         assert!((scaled.mean_ess - base.mean_ess).abs() < 1.0e-8);
     }
 
     #[test]
     fn raw_mean_mcse_is_infinite_when_raw_mean_ess_is_zero() {
-        let chains = (0..4).map(|chain_index| {
-            let values = vec![chain_index as f64; 8];
-            let energies: Vec<f64> = (0..8).map(|index| index as f64).collect();
-            synthetic_chain(5000 + chain_index as u64, &values, &energies)
-        }).collect::<Vec<_>>();
+        let chains = (0..4)
+            .map(|chain_index| {
+                let values = vec![chain_index as f64; 8];
+                let energies: Vec<f64> = (0..8).map(|index| index as f64).collect();
+                synthetic_chain(5000 + chain_index as u64, &values, &energies)
+            })
+            .collect::<Vec<_>>();
         let summary = diagnose_horseshoe_coefficient(&chains, 0).expect("diagnostics");
         assert_eq!(summary.mean_ess, 0.0);
         assert!(summary.mcse_mean.is_infinite());
