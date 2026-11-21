@@ -28,7 +28,8 @@ jobs:
           set -euo pipefail
           for manifest in \
             research/nav-transition-validator/Cargo.toml \
-            research/nav-observation-toy-fim/Cargo.toml
+            research/nav-observation-toy-fim/Cargo.toml \\
+            research/miluv-ingest/Cargo.toml
           do
             if [[ -f "$manifest" ]]; then
               cargo fmt --manifest-path "$manifest"
@@ -42,7 +43,8 @@ jobs:
           set -euo pipefail
           for manifest in \
             research/nav-transition-validator/Cargo.toml \
-            research/nav-observation-toy-fim/Cargo.toml
+            research/nav-observation-toy-fim/Cargo.toml \\
+            research/miluv-ingest/Cargo.toml
           do
             if [[ -f "$manifest" ]]; then
               echo "::group::cargo clippy --all-targets --manifest-path $manifest"
