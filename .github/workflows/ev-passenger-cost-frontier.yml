@@ -35,6 +35,9 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_design_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/schemas/ev_carrier_module_processes_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_processes_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/schemas/ev_carrier_qualification_v0_1.schema.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_carrier_qualification_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_carrier_engineering_report_contract_v0_1.json
           jq -e '
             .benchmark_id == "EV-PUBLIC-COMPONENT-BENCHMARKS-001"
             and .observed_as_of == "2026-10-20"
@@ -120,6 +123,23 @@ jobs:
             and all(.results[] | select(.config_id == "integrated-drone-bay-production-intent-unknown"); .status == "indeterminate" and .equivalent_good_vehicle_capacity_per_year == null)
             and all(.results[]; .base_factory_production_release_ready == false)
           ' ev-carrier-module-factory-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_carrier_qualification_screen -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_carrier_engineering_report_contract_v0_1.json \
+            ev-carrier-module-factory-report.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_carrier_qualification_v0_1.json \
+            > ev-carrier-qualification-report.json
+          jq -e '
+            .benchmark_id == "EV-CARRIER-QUALIFICATION-001"
+            and .case_count == 6
+            and all(.results[]; .disposition == "indeterminate")
+            and all(.results[]; .release_authority_granted == false)
+            and all(.results[]; .production_release_ready == false)
+            and .release_authority_granted == false
+            and .production_release_ready == false
+            and ([.results[].total_gate_count] | add) == 67
+            and any(.results[] | select(.carrier_config_id == "urban-truck-detachable-drone-pod"); .module_process_scenario_count == 36 and .module_process_status == "synthetic_or_incomplete_capacity_screen")
+            and any(.results[] | select(.carrier_config_id == "urban-truck-mobile-drone-station-trailer"); .module_process_status == "route_not_modelled")
+          ' ev-carrier-qualification-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
@@ -134,7 +154,13 @@ jobs:
             tools/ev-passenger-cost-frontier/src/carrier_module_factory.rs \
             tools/ev-passenger-cost-frontier/src/lib.rs \
             tools/ev-passenger-cost-frontier/src/bin/ev_carrier_module_factory_screen.rs \
-            ev-passenger-cost-report.json ev-localization-cost-report.json ev-factory-design-report.json ev-carrier-module-factory-report.json > ev-passenger-cost-report.sha256
+            tools/ev-passenger-cost-frontier/src/carrier_qualification.rs \
+            tools/ev-passenger-cost-frontier/src/bin/ev_carrier_qualification_screen.rs \
+            tools/ev-passenger-cost-frontier/schemas/ev_carrier_qualification_v0_1.schema.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_carrier_qualification_v0_1.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_carrier_engineering_report_contract_v0_1.json \
+            tools/ev-passenger-cost-frontier/Cargo.toml \
+            ev-passenger-cost-report.json ev-localization-cost-report.json ev-factory-design-report.json ev-carrier-module-factory-report.json ev-carrier-qualification-report.json > ev-passenger-cost-report.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: ev-passenger-cost-frontier-report
@@ -143,6 +169,10 @@ jobs:
             ev-localization-cost-report.json
             ev-factory-design-report.json
             ev-carrier-module-factory-report.json
+            ev-carrier-qualification-report.json
+            tools/ev-passenger-cost-frontier/fixtures/ev_carrier_qualification_v0_1.json
+            tools/ev-passenger-cost-frontier/schemas/ev_carrier_qualification_v0_1.schema.json
+            tools/ev-passenger-cost-frontier/fixtures/ev_carrier_engineering_report_contract_v0_1.json
             tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_processes_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/ev_carrier_module_processes_v0_1.schema.json
             ev-passenger-cost-report.sha256

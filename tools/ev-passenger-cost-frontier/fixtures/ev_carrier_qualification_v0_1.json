@@ -1,0 +1,767 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "EV-CARRIER-QUALIFICATION-001",
+  "claim_ceiling": "Synthetic evidence-completeness interface fixture only; not a product qualification, conformity assessment or release.",
+  "cases": [
+    {
+      "carrier_config_id": "urban-truck-only-control",
+      "base_design_id": "urban-distribution-truck",
+      "architecture": "truck_only",
+      "configuration_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "module_process_config_id": null,
+      "module_process_required": false,
+      "gates": [
+        {
+          "requirement_id": "gross-mass-axle-cg-braking",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "structural-retention-and-fatigue",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "cargo-restraint-and-access",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "hv-isolation-and-electrical-protection",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "thermal-fire-venting-and-propagation",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "vibration-environmental-ingress",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "emc-cybersecurity-diagnostics",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "end-of-line-test-and-configuration-traceability",
+          "criticality": "quality",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "service-install-remove-repair-time-study",
+          "criticality": "service",
+          "required_evidence_class": "measured",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "road-vehicle-homologation",
+          "criticality": "regulatory",
+          "required_evidence_class": "external_authority",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        }
+      ],
+      "notes": [
+        "All qualification gates are deliberately unknown in this synthetic interface fixture.",
+        "The 64-hex configuration digest is a synthetic scope token, not a digest of a production CAD/BOM release.",
+        "The fixture tests fail-closed evidence joining; it does not represent measured or independently tested hardware."
+      ]
+    },
+    {
+      "carrier_config_id": "light-commercial-van-only-control",
+      "base_design_id": "light-commercial-van",
+      "architecture": "truck_only",
+      "configuration_digest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "module_process_config_id": null,
+      "module_process_required": false,
+      "gates": [
+        {
+          "requirement_id": "gross-mass-axle-cg-braking",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "structural-retention-and-fatigue",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "cargo-restraint-and-access",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "hv-isolation-and-electrical-protection",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "thermal-fire-venting-and-propagation",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "vibration-environmental-ingress",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "emc-cybersecurity-diagnostics",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "end-of-line-test-and-configuration-traceability",
+          "criticality": "quality",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "service-install-remove-repair-time-study",
+          "criticality": "service",
+          "required_evidence_class": "measured",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "road-vehicle-homologation",
+          "criticality": "regulatory",
+          "required_evidence_class": "external_authority",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        }
+      ],
+      "notes": [
+        "All qualification gates are deliberately unknown in this synthetic interface fixture.",
+        "The 64-hex configuration digest is a synthetic scope token, not a digest of a production CAD/BOM release.",
+        "The fixture tests fail-closed evidence joining; it does not represent measured or independently tested hardware."
+      ]
+    },
+    {
+      "carrier_config_id": "urban-truck-integrated-enclosed-drone-bay",
+      "base_design_id": "urban-distribution-truck",
+      "architecture": "integrated_enclosed_bay",
+      "configuration_digest_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "module_process_config_id": "integrated-drone-bay-production-intent-unknown",
+      "module_process_required": true,
+      "gates": [
+        {
+          "requirement_id": "gross-mass-axle-cg-braking",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "structural-retention-and-fatigue",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "cargo-restraint-and-access",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "hv-isolation-and-electrical-protection",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "thermal-fire-venting-and-propagation",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "vibration-environmental-ingress",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "emc-cybersecurity-diagnostics",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "end-of-line-test-and-configuration-traceability",
+          "criticality": "quality",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "service-install-remove-repair-time-study",
+          "criticality": "service",
+          "required_evidence_class": "measured",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "road-vehicle-homologation",
+          "criticality": "regulatory",
+          "required_evidence_class": "external_authority",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "aircraft-airworthiness-and-operating-authority",
+          "criticality": "regulatory",
+          "required_evidence_class": "external_authority",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "stationary-launch-recovery-interface-verification",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        }
+      ],
+      "notes": [
+        "All qualification gates are deliberately unknown in this synthetic interface fixture.",
+        "The 64-hex configuration digest is a synthetic scope token, not a digest of a production CAD/BOM release.",
+        "The fixture tests fail-closed evidence joining; it does not represent measured or independently tested hardware."
+      ]
+    },
+    {
+      "carrier_config_id": "urban-truck-detachable-drone-pod",
+      "base_design_id": "urban-distribution-truck",
+      "architecture": "detachable_drone_pod",
+      "configuration_digest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "module_process_config_id": "detachable-uav-pod-synthetic-demo",
+      "module_process_required": true,
+      "gates": [
+        {
+          "requirement_id": "gross-mass-axle-cg-braking",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "structural-retention-and-fatigue",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "cargo-restraint-and-access",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "hv-isolation-and-electrical-protection",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "thermal-fire-venting-and-propagation",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "vibration-environmental-ingress",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "emc-cybersecurity-diagnostics",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "end-of-line-test-and-configuration-traceability",
+          "criticality": "quality",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "service-install-remove-repair-time-study",
+          "criticality": "service",
+          "required_evidence_class": "measured",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "road-vehicle-homologation",
+          "criticality": "regulatory",
+          "required_evidence_class": "external_authority",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "aircraft-airworthiness-and-operating-authority",
+          "criticality": "regulatory",
+          "required_evidence_class": "external_authority",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "stationary-launch-recovery-interface-verification",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        }
+      ],
+      "notes": [
+        "All qualification gates are deliberately unknown in this synthetic interface fixture.",
+        "The 64-hex configuration digest is a synthetic scope token, not a digest of a production CAD/BOM release.",
+        "The fixture tests fail-closed evidence joining; it does not represent measured or independently tested hardware."
+      ]
+    },
+    {
+      "carrier_config_id": "urban-truck-mobile-drone-station-trailer",
+      "base_design_id": "urban-distribution-truck",
+      "architecture": "mobile_drone_station_trailer",
+      "configuration_digest_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "module_process_config_id": null,
+      "module_process_required": true,
+      "gates": [
+        {
+          "requirement_id": "gross-mass-axle-cg-braking",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "structural-retention-and-fatigue",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "cargo-restraint-and-access",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "hv-isolation-and-electrical-protection",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "thermal-fire-venting-and-propagation",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "vibration-environmental-ingress",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "emc-cybersecurity-diagnostics",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "end-of-line-test-and-configuration-traceability",
+          "criticality": "quality",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "service-install-remove-repair-time-study",
+          "criticality": "service",
+          "required_evidence_class": "measured",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "road-vehicle-homologation",
+          "criticality": "regulatory",
+          "required_evidence_class": "external_authority",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "trailer-coupling-axle-brake-and-lighting-approval",
+          "criticality": "regulatory",
+          "required_evidence_class": "external_authority",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "aircraft-airworthiness-and-operating-authority",
+          "criticality": "regulatory",
+          "required_evidence_class": "external_authority",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        }
+      ],
+      "notes": [
+        "All qualification gates are deliberately unknown in this synthetic interface fixture.",
+        "The 64-hex configuration digest is a synthetic scope token, not a digest of a production CAD/BOM release.",
+        "The fixture tests fail-closed evidence joining; it does not represent measured or independently tested hardware."
+      ]
+    },
+    {
+      "carrier_config_id": "urban-truck-amr-handoff-module",
+      "base_design_id": "urban-distribution-truck",
+      "architecture": "amr_cargo_handoff",
+      "configuration_digest_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "module_process_config_id": "amr-handoff-synthetic-demo",
+      "module_process_required": true,
+      "gates": [
+        {
+          "requirement_id": "gross-mass-axle-cg-braking",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "structural-retention-and-fatigue",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "cargo-restraint-and-access",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "hv-isolation-and-electrical-protection",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "thermal-fire-venting-and-propagation",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "vibration-environmental-ingress",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "emc-cybersecurity-diagnostics",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "end-of-line-test-and-configuration-traceability",
+          "criticality": "quality",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "service-install-remove-repair-time-study",
+          "criticality": "service",
+          "required_evidence_class": "measured",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "road-vehicle-homologation",
+          "criticality": "regulatory",
+          "required_evidence_class": "external_authority",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        },
+        {
+          "requirement_id": "amr-functional-safety-and-operating-domain",
+          "criticality": "safety_critical",
+          "required_evidence_class": "independent_test",
+          "state": "unknown",
+          "evidence_class": "unknown",
+          "evidence_reference": "unknown://not-collected",
+          "evidence_digest_sha256": null,
+          "subject_configuration_digest_sha256": null
+        }
+      ],
+      "notes": [
+        "All qualification gates are deliberately unknown in this synthetic interface fixture.",
+        "The 64-hex configuration digest is a synthetic scope token, not a digest of a production CAD/BOM release.",
+        "The fixture tests fail-closed evidence joining; it does not represent measured or independently tested hardware."
+      ]
+    }
+  ]
+}

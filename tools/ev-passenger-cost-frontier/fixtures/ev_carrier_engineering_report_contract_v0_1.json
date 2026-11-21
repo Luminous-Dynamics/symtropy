@@ -1,0 +1,71 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "EV-CARRIER-REF-01",
+  "base_catalog_id": "EV-PLATFORM-001",
+  "method": "synthetic-carrier-report-interface-fixture",
+  "claim_ceiling": "Synthetic interface fixture only.",
+  "results": [
+    {
+      "config_id": "urban-truck-only-control",
+      "base_design_id": "urban-distribution-truck",
+      "architecture": "truck_only",
+      "base_evidence_class": "synthetic",
+      "incremental_evidence_class": "synthetic",
+      "status": "passes_synthetic_screen",
+      "missing_fields": []
+    },
+    {
+      "config_id": "light-commercial-van-only-control",
+      "base_design_id": "light-commercial-van",
+      "architecture": "truck_only",
+      "base_evidence_class": "synthetic",
+      "incremental_evidence_class": "synthetic",
+      "status": "passes_synthetic_screen",
+      "missing_fields": []
+    },
+    {
+      "config_id": "urban-truck-integrated-enclosed-drone-bay",
+      "base_design_id": "urban-distribution-truck",
+      "architecture": "integrated_enclosed_bay",
+      "base_evidence_class": "unknown",
+      "incremental_evidence_class": "unknown",
+      "status": "indeterminate",
+      "missing_fields": [
+        "incremental_mass_energy_power_and_interface_data"
+      ]
+    },
+    {
+      "config_id": "urban-truck-detachable-drone-pod",
+      "base_design_id": "urban-distribution-truck",
+      "architecture": "detachable_drone_pod",
+      "base_evidence_class": "unknown",
+      "incremental_evidence_class": "unknown",
+      "status": "indeterminate",
+      "missing_fields": [
+        "incremental_mass_energy_power_and_interface_data"
+      ]
+    },
+    {
+      "config_id": "urban-truck-mobile-drone-station-trailer",
+      "base_design_id": "urban-distribution-truck",
+      "architecture": "mobile_drone_station_trailer",
+      "base_evidence_class": "unknown",
+      "incremental_evidence_class": "unknown",
+      "status": "indeterminate",
+      "missing_fields": [
+        "incremental_mass_energy_power_and_interface_data"
+      ]
+    },
+    {
+      "config_id": "urban-truck-amr-handoff-module",
+      "base_design_id": "urban-distribution-truck",
+      "architecture": "amr_cargo_handoff",
+      "base_evidence_class": "unknown",
+      "incremental_evidence_class": "unknown",
+      "status": "indeterminate",
+      "missing_fields": [
+        "incremental_mass_energy_power_and_interface_data"
+      ]
+    }
+  ]
+}
