@@ -190,17 +190,17 @@ This tiny example must be included as an exact negative/positive control in the 
 
 The exact-rank pair is not sufficient by itself. Add a deliberately near-collinear full-rank design:
 
-\\[
-X_{\\mathrm{near}}=
-\\begin{bmatrix}
-1&0\\
+\[
+X_{\mathrm{near}}=
+\begin{bmatrix}
+1&0\
 1&10^{-9}
-\\end{bmatrix}.
-\\]
+\end{bmatrix}.
+\]
 
-Its information matrix has approximate eigenvalues \\(2\) and \\(5\\times10^{-19}\\), giving singular values approximately \\(1.4142\) and \\(7.0711\\times10^{-10}\\). At a relative singular-value threshold of \\(10^{-12}\\), the design remains numerically rank two, but its condition number is approximately \\(2\\times10^9\\).
+Its information matrix has approximate eigenvalues \(2\) and \(5\times10^{-19}\), giving singular values approximately \(1.4142\) and \(7.0711\times10^{-10}\). At a relative singular-value threshold of \(10^{-12}\), the design remains numerically rank two, but its condition number is approximately \(2\times10^9\).
 
-This is deliberately not a claim of strong practical identifiability. It verifies that the numerical rank procedure does not lose a resolvable small singular direction through cancellation in \\(X^\\mathsf{T}X\\), and it demonstrates why rank alone is insufficient. The downstream disposition must retain the condition number/weakest direction and require profile-likelihood or other practical-identifiability checks before treating the parameters as well determined.
+This is deliberately not a claim of strong practical identifiability. It verifies that the numerical rank procedure does not lose a resolvable small singular direction through cancellation in \(X^\mathsf{T}X\), and it demonstrates why rank alone is insufficient. The downstream disposition must retain the condition number/weakest direction and require profile-likelihood or other practical-identifiability checks before treating the parameters as well determined.
 
 The reference kernel uses a two-column one-sided Jacobi rotation to obtain the singular spectrum from rotated design columns rather than subtracting nearly equal Gram-matrix eigenvalues.
 
