@@ -18,6 +18,7 @@ pub enum ClaimType {
     ModelCredibility,
     EvidenceCustody,
     ExternalAuthorityDecision,
+    Defeater,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
@@ -29,6 +30,7 @@ pub enum ClaimState {
     Stale,
     Withdrawn,
     Unsupported,
+    OpenDefeater,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
@@ -210,10 +212,6 @@ fn valid_hex(value: &str, length: usize) -> bool {
         && value
             .bytes()
             .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
-}
-
-fn pin_key(pin: &ReceiptPin) -> (&str, &str) {
-    (&pin.receipt_id, &pin.receipt_sha256)
 }
 
 fn evidence_matches_pin(evidence: &EvidenceRef, pin: &ReceiptPin) -> bool {
@@ -428,6 +426,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
             let (code, detail) = match claim.state {
                 ClaimState::Contradicted => ("CONTRADICTED", "claim is contradicted"),
                 ClaimState::Indeterminate => ("INDETERMINATE", "claim state is indeterminate"),
+                ClaimState::OpenDefeater => ("OPEN_DEFEATER", "mandatory defeater remains open"),
                 ClaimState::Stale | ClaimState::Withdrawn | ClaimState::Unsupported => {
                     ("UNSUPPORTED_OR_STALE", "claim is stale, withdrawn or unsupported")
                 }
@@ -450,6 +449,24 @@ fn evaluate_case(case: &Case) -> CaseResult {
                 "claim has no exact receipt reference",
             ),
             Some(evidence) => {
+                let class_matches = match claim.claim_type {
+                    ClaimType::PhysicalTestObservation | ClaimType::MeasurementCalibration => {
+                        matches!(evidence.evidence_class, EvidenceClass::Physical | EvidenceClass::Bench)
+                    }
+                    ClaimType::EvidenceCustody => {
+                        matches!(evidence.evidence_class, EvidenceClass::Software | EvidenceClass::Authority)
+                    }
+                    ClaimType::ExternalAuthorityDecision => evidence.evidence_class == EvidenceClass::Authority,
+                    _ => true,
+                };
+                if !class_matches {
+                    add_blocker(
+                        &mut blockers,
+                        "CLAIM_TYPE_MISMATCH",
+                        Some(&claim.claim_id),
+                        "evidence class is incompatible with this claim type",
+                    );
+                }
                 if evidence.receipt_id.trim().is_empty()
                     || evidence.source_repo.trim().is_empty()
                     || evidence.source_path.trim().is_empty()
@@ -547,6 +564,14 @@ fn evaluate_case(case: &Case) -> CaseResult {
         let from = claims_by_id[edge.from_claim_id.as_str()];
         let to = claims_by_id[edge.to_claim_id.as_str()];
         match edge.relation {
+            Relation::Contradicts => {
+                add_blocker(
+                    &mut blockers,
+                    "CONTRADICTED",
+                    Some(&to.claim_id),
+                    format!("claim is contradicted by {}", from.claim_id),
+                );
+            }
             Relation::Supports if from.claim_type == ClaimType::OrbitalReviewBundle => {
                 add_blocker(
                     &mut blockers,
@@ -579,6 +604,20 @@ fn evaluate_case(case: &Case) -> CaseResult {
                 }
             }
             _ => {}
+        }
+    }
+
+    for claim in case.claims.iter().filter(|claim| claim.claim_id != case.root_claim_id) {
+        if !case.edges.iter().any(|edge| {
+            edge.from_claim_id == claim.claim_id
+                && is_root_support_edge(edge, &case.root_claim_id)
+        }) {
+            add_blocker(
+                &mut blockers,
+                "INCOMPLETE",
+                Some(&claim.claim_id),
+                "claim is not connected to the review root",
+            );
         }
     }
 
