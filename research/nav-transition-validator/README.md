@@ -24,6 +24,10 @@ cargo run --manifest-path research/nav-transition-validator/Cargo.toml -- \
 
 The CLI reports JSON_SCHEMA_DRAFT_2020_12_PASS and STRUCTURAL_SEMANTIC_PASS only when both layers succeed. The validator is pinned to jsonschema 0.61.2 with explicit Draft 2020-12 options and format validation enabled. The schema contains local references only; the package disables remote/file resolver defaults.
 
+## Dataset admission gate
+
+The same package includes a separate Draft 2020-12 schema and semantic admission validator for benchmark payloads. An admitted record requires an immutable release, file SHA-256 hashes, explicit dataset-payload rights evidence, permission for the requested use, a frozen train/test split with a digest, and explicit time/frame/calibration/ground-truth metadata. Candidate records may remain incomplete, but are counted as candidates and never promoted. The validator deliberately allows an explicitly declared unqualified time/frame state while surfacing it in the summary; unknown is not upgraded to qualified. The committed v0.1 registry currently contains four candidates and zero admitted datasets.
+
 ## Semantic checks
 
 - Corpus/manifest identity and exact case-ID set equality.
