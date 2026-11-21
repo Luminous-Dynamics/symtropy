@@ -93,12 +93,29 @@ A reusable Rust implementation is available as `validator::bench_metrics`:
 - `measure_feature_subset_stability` takes a fixed candidate-feature universe and independent selector-run manifests; it reports mean/median/p10/minimum pairwise Jaccard, Kuncheva only on equal-cardinality pairs, and selected-feature-count standard deviation separately.
 - `inspect_run_partition_leakage` checks that training, validation and test run-ID sets are non-empty where required and disjoint before sample/window creation.
 - Feature identifiers must be canonical, non-empty members of a frozen declared universe; whitespace variants, duplicates and unknown identifiers fail closed.
+- `evaluate_binary_calibration` reports Brier score, negative log-likelihood (NLL), fixed-width ECE/MCE and per-bin reliability statistics for independently adjudicated binary outcomes. Predictions must be probabilities in [0,1], not arbitrary scores; duplicate/non-canonical sample IDs fail closed.
 
 - `evaluate_tep_onset_horizon` accepts independently adjudicated run-level detection/diagnosis outcomes for one pre-registered horizon. It requires all 21 scenarios plus normal-operation exposure, validates detection/diagnosis consistency and reports detection recall, confident-wrong rate, safe-deferral rate, diagnosis coverage/accuracy, mean detection delay and false alarms per normal-operation hour.
 
 The onset evaluator receives diagnosis disposition from independent truth adjudication; it does not infer correctness from model confidence or inspect raw TEP samples. Its aggregate counts/rates are micro-averaged over run records; the 21 per-scenario rows must also be published so macro-averages and difficult-scenario behavior remain visible. False alarms are normalized by the total normal-operation exposure hours. Its current known-answer tests are synthetic fixtures only.
 
 Its unit tests include the adversarial case where feature-count standard deviation is zero while feature-identity stability is low. This is an executable metric component, not a TEP benchmark result: no TEP data, labels or learned feature selectors are included in the module.
+
+### Physics-guided residual detection and nominal-reference mismatch
+
+A 2026 Scientific Reports paper provides a useful *binary fault-detection* comparator: nominal TEP simulator residuals feed a temporal feature/attention CRNN, followed by Platt-style probability calibration. It reports a run-level 70/20/10 split, macro-F1 around 0.93 ± 0.02 and ECE around 0.03, with a nuisance-alarm budget around 0.1 alarms/hour. Its "twin" is the nominal reference simulator, not a plant-specific validated physical twin. This must be treated as a binary normal-vs-fault detector; its metrics do not establish multiclass fault diagnosis or process-root-cause attribution.
+
+The paper also stress-tests nominal-model mismatch using a fixed detector/calibration/threshold while perturbing the reference model over λ ∈ {0, 0.05, 0.10, 0.20}. FoundryBench should preserve this as a distinct *reference-model integrity* experiment:
+- build residuals from a frozen nominal reference and independently admitted source process evidence;
+- vary model mismatch, sensor noise, dropped/biased channels and operating-mode shifts in a controlled factorial design;
+- freeze the detector, probability calibrator and alarm threshold while sweeping mismatch, then run a separate re-calibration arm;
+- report performance degradation in recall, false alarms/hour, Brier, negative log-likelihood (NLL), ECE and detection delay at each mismatch level;
+- measure residual drift and calibration drift separately;
+- do not let the synthetic nominal simulator inherit any physical-twin or plant-validation claim.
+
+This creates a strong comparison between raw data-driven detection, physics-guided residual detection, and the hybrid evidence-grounded approach. All arms must use the same run partitions, fault schedule and observable cutoffs.
+
+Source: [Physics-guided residual and calibrated temporal CRNN for TEP early warning, Scientific Reports (2026)](https://www.nature.com/articles/s41598-026-49874-5).
 
 A stronger target is a stable, compact feature subset that retains difficult-fault recall under run-level and operating-mode shifts. The benchmark should test whether stability survives those shifts, not only random resampling from one stationary run.
 
