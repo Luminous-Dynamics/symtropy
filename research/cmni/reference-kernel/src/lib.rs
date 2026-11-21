@@ -21,6 +21,21 @@ pub use sparse_bias_inference::{
     SparseBayesianBiasResult,
 };
 
+mod energy_bias_basis;
+pub use energy_bias_basis::{
+    build_grouped_energy_bias_design,
+    GroupedEnergyBiasDesign,
+    ENERGY_BIAS_BASIS_COLUMNS_PER_GROUP,
+    ENERGY_BIAS_CENTRES_PER_SCALE,
+    ENERGY_BIAS_LENGTH_SCALES_LOG10,
+};
+
+mod correlated_bias_inference;
+pub use correlated_bias_inference::{
+    fit_sparse_bayesian_correlated_log_bias,
+    CorrelatedLogBiasResult,
+};
+
 mod experiment_design;
 pub use experiment_design::{
     combine_fisher_information,
