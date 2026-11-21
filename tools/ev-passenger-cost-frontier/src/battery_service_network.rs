@@ -600,6 +600,7 @@ pub fn evaluate_battery_service_network(
     for pack in &input.packs {
         if pack.pack_id.trim().is_empty()
             || pack.configuration_id.trim().is_empty()
+            || pack.configuration_digest.trim().is_empty()
             || !pack_ids.insert(pack.pack_id.as_str())
         {
             errors.push("pack_identity_empty_or_duplicate".to_string());
@@ -609,6 +610,7 @@ pub fn evaluate_battery_service_network(
     for mission in &input.missions {
         if mission.mission_id.trim().is_empty()
             || mission.configuration_id.trim().is_empty()
+            || mission.configuration_digest.trim().is_empty()
             || mission.required_energy_with_reserve_wh == 0
             || mission.required_peak_power_w == 0
             || !mission_ids.insert(mission.mission_id.as_str())
