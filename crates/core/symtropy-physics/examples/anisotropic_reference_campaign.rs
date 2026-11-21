@@ -18,7 +18,8 @@ use nalgebra::{SMatrix, SVector};
 use symtropy_math::{Bivector, Rotor};
 use symtropy_physics::{
     BivectorInertia, PrincipalInertia3, angular_vector_to_bivector, bivector_to_angular_vector,
-    rotational_kinetic_energy, step_principal_inertia, world_angular_momentum,
+    rotational_kinetic_energy, step_principal_inertia, step_principal_inertia_from_world_momentum,
+    world_angular_momentum,
 };
 
 fn main() {
@@ -360,19 +361,26 @@ fn intermediate_axis_campaign() -> usize {
     let mut rotation = Rotor::<3>::identity();
     let initial_body_omega = SVector::from([0.01, 1.0, 0.02]);
     let mut angular_velocity = angular_vector_to_bivector(&initial_body_omega);
+    // Carry world momentum as the conserved integration state. Reconstructing
+    // it from rounded angular velocity on every step defeats the purpose of
+    // step_principal_inertia_from_world_momentum and accumulates avoidable drift.
+    let mut world_momentum =
+        world_angular_momentum(&rotation, &angular_velocity, inertia).expect("finite initial momentum");
+    let initial_momentum = world_momentum;
     let initial_transverse = (initial_body_omega[0].powi(2) + initial_body_omega[2].powi(2)).sqrt();
     let mut maximum_transverse = initial_transverse;
 
     for _ in 0..20_000 {
-        let step = step_principal_inertia(
+        let step = step_principal_inertia_from_world_momentum(
             &rotation,
-            &angular_velocity,
+            &world_momentum,
             inertia,
             &SVector::zeros(),
             1.0e-3,
         )
         .expect("finite intermediate-axis step");
         rotation = step.rotation;
+        world_momentum = step.world_angular_momentum;
         angular_velocity = step.angular_velocity;
         let omega_body = rotation
             .reverse()
@@ -381,14 +389,9 @@ fn intermediate_axis_campaign() -> usize {
         maximum_transverse = maximum_transverse.max(transverse);
     }
 
-    let final_momentum =
-        world_angular_momentum(&rotation, &angular_velocity, inertia).expect("finite momentum");
-    let initial_momentum = world_angular_momentum(
-        &Rotor::<3>::identity(),
-        &angular_vector_to_bivector(&initial_body_omega),
-        inertia,
-    )
-    .expect("finite initial momentum");
+    // Measure conservation of the carried state, not a fresh reconstruction
+    // from the rounded output angular velocity.
+    let final_momentum = world_momentum;
     let growth = maximum_transverse / initial_transverse;
     let mut failures = 0;
     failures += report_minimum("intermediate_axis_growth", "dt_1e-3_T_20", growth, 20.0);
