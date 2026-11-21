@@ -186,6 +186,23 @@ Required experiments:
 - independent rebuilds by people other than the design author;
 - lifecycle sensitivity analysis across electricity tariffs, water prices, part availability and use profiles.
 
+### External-tool validation and industrial heat-pump scope (research update: 21 November 2026)
+
+The first industrial demonstrator should use the existing whole-system pump programme, but its comparison with industry tools must be explicit. DOE PSAT / MEASUR is a recognized screening and opportunity-quantification comparator that uses measured or estimated field inputs and achievable pump/motor performance assumptions. It is not a physical test, nor a complete validation oracle for every operating trajectory.
+
+A dedicated comparator task is now tracked in [PUMP-PSAT-DIFF-001 #6561](https://github.com/Luminous-Dynamics/symtropy/issues/6561), under [PUMP-SYSTEM-ENERGY-SERVICE-001 #5103](https://github.com/Luminous-Dynamics/symtropy/issues/5103). The required sequence is:
+1. reproduce independently hand-checkable arithmetic;
+2. compare the shared input/output domain against a version-pinned PSAT / MEASUR reference;
+3. explain differences caused by boundaries, defaults, pump/motor curves, source datasets and rounding;
+4. declare unsupported fields and unrepresentable cases;
+5. only then evaluate Symtropy's additional trajectory, storage, service-floor, uncertainty, degradation and lifecycle decision capabilities as separately scoped extensions.
+
+The intention is to establish fair parity where the methods overlap and to demonstrate additional value where Symtropy has a valid, testable capability—not to claim that it replaces DOE tools or relevant ISO/ANSI standards.
+
+For industrial heat pumps, the IEA's 2026 Heat Pump Monitor notes that applications below about 120°C have entered commercial operation, systems below about 160°C are beginning to enter commercial use, while higher-temperature ranges remain mainly demonstration, prototype or concept work. It also highlights integration into existing production processes, electricity-to-fuel price ratios and qualified technician availability as major deployment constraints. Therefore, our first process-heat studies should prioritize low- and medium-temperature heat sources/sinks with explicit temperature lift, schedule and cost conditions; higher-temperature concepts must retain a research/demonstration label until the exact system has credible evidence. The IEA also reports that global heat-pump manufacturing capacity and upstream compressor concentration create supply-chain dependencies, strengthening the case for qualified second sourcing and repair capability rather than assumptions of immediate local compressor manufacture.
+
+Reference: IEA, *Heat Pump Monitor 2026 — Key findings*: https://www.iea.org/reports/heat-pump-monitor-2026/key-findings
+
 ## 8. Luminous system responsibilities and authority limits
 
 | System | Appropriate role | Hard boundary |
