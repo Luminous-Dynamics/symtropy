@@ -48,7 +48,7 @@ The generic #4147 calibration receipt intentionally does not carry a dataset rev
 - independent-unit and episode counts match the generic conformal receipt exactly;
 - a caller-supplied source-manifest SHA-256 and calibration prediction-manifest SHA-256 are retained for audit.
 
-Applying a pose-set threshold first checks exact dataset revision and source-manifest SHA-256, then delegates model/target/domain/score identity to #4147. The prediction-manifest digest is retained as calibration provenance; it is not compared with a future test prediction manifest because the test predictions necessarily refer to different trials. These digests are caller-provided receipts and their construction must be independently reviewed.
+Applying a pose-set threshold first checks exact dataset revision and source-manifest SHA-256, then delegates model/target/domain/score identity to #4147. The prediction-manifest digest is retained as calibration provenance; it is not compared with a future test prediction manifest because the test predictions necessarily refer to different trials. These digests are caller-provided receipts and their construction must be independently reviewed. Before exposing a `PoseCalibrationReceipt`, the adapter replays the supplied calibration blocks through #4147's own `calibrate()` API and compares the complete resulting receipt (including rank, threshold, counts and coverage statement) with the supplied conformal receipt. The adapter therefore does not copy the rank formula and does not accept a hand-built threshold that does not follow from the supplied scores.
 
 ## Temporal and semantic boundary
 
