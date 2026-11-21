@@ -52,7 +52,7 @@ Source: https://doi.org/10.3233/PMST250026
 Compare all methods on the same receiver/time/feed and held-out calls:
 - transition precision/recall and confusion by state/event type;
 - false berth-arrival and false port-exit rate;
-- event-time median/P90/P95 interval width and absolute error;
+- event-time median/P90/P95 interval width and absolute error;\n- sender event-to-receiver observation latency distribution, without assuming clock synchronization;
 - unknown/abstain rate and time spent INDETERMINATE;
 - fix-gap and receiver-outage sensitivity;
 - duplicate/replay/conflict rejection;
