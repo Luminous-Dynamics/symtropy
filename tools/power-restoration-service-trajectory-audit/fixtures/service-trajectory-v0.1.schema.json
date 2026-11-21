@@ -110,7 +110,9 @@
         "instrumentId",
         "calibrationArtifactRef",
         "calibrationArtifactSha256",
-        "evidenceProviderId"
+        "evidenceProviderId",
+        "calibrationValidFromUnixMs",
+        "calibrationValidUntilUnixMs"
       ],
       "properties": {
         "producerId": {
@@ -159,6 +161,20 @@
             "null"
           ],
           "minLength": 1
+        },
+        "calibrationValidFromUnixMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "calibrationValidUntilUnixMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
         }
       }
     },
