@@ -12,6 +12,7 @@ pub enum ModelProfile {
     HomogeneousPoissonConstantIntensity,
     WeibullFirstFailureLife,
     NonhomogeneousPoissonRecurrentEvents,
+    PowerLawRecurrentMinimalRepair,
     AcceleratedLife,
     DegradationPath,
     UnknownOrUnregistered,
@@ -23,6 +24,7 @@ pub enum AnalysisRequest {
     AggregateRateOnly,
     AssumptionChallenge,
     FirstFailureLife,
+    PowerLawRecurrentEstimate,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
@@ -295,6 +297,22 @@ fn evaluate_case(case: &AdmissibilityCase) -> Result<Decision, String> {
                 decision.disposition = Some(Disposition::Indeterminate);
             }
         }
+        ModelProfile::PowerLawRecurrentMinimalRepair => {
+            if case.analysis_request != AnalysisRequest::PowerLawRecurrentEstimate {
+                add_blocker(
+                    &mut decision,
+                    "power_law_profile_requires_power_law_recurrent_estimate_request",
+                );
+                decision.disposition = Some(Disposition::ModelNotSupported);
+            }
+            if case.input_resolution != InputResolution::EventLevel {
+                add_blocker(
+                    &mut decision,
+                    "power_law_profile_requires_event_level_input",
+                );
+                decision.disposition = Some(Disposition::ModelNotSupported);
+            }
+        }
         ModelProfile::HomogeneousPoissonConstantIntensity => {
             if case.analysis_request == AnalysisRequest::FirstFailureLife {
                 add_blocker(
@@ -460,7 +478,15 @@ fn evaluate_case(case: &AdmissibilityCase) -> Result<Decision, String> {
                 {
                     add_blocker(&mut decision, "event_not_known_at_declared_cutoff");
                 }
-                if article.reported_failure_events > 1
+                if case.selected_profile == ModelProfile::PowerLawRecurrentMinimalRepair
+                    && event.restoration_state != RestorationState::MinimalRepair
+                {
+                    add_blocker(
+                        &mut decision,
+                        "power_law_profile_requires_minimal_repair_event_history",
+                    );
+                    decision.disposition = Some(Disposition::ModelNotSupported);
+                } else if article.reported_failure_events > 1
                     && matches!(
                         event.restoration_state,
                         RestorationState::Unknown | RestorationState::ImperfectRepair
@@ -510,7 +536,19 @@ fn evaluate_case(case: &AdmissibilityCase) -> Result<Decision, String> {
             "shared_sampling_cluster_prevents_independent_article_claim",
         );
     }
-    if decision.article_count < 2 {
+    let single_repairable_series = case.selected_profile
+        == ModelProfile::PowerLawRecurrentMinimalRepair
+        && case.analysis_request == AnalysisRequest::PowerLawRecurrentEstimate
+        && case.input_resolution == InputResolution::EventLevel;
+    if single_repairable_series {
+        if decision.article_count != 1 {
+            add_blocker(
+                &mut decision,
+                "power_law_profile_requires_exactly_one_repairable_series",
+            );
+            decision.disposition = Some(Disposition::ModelNotSupported);
+        }
+    } else if decision.article_count < 2 {
         add_blocker(&mut decision, "fewer_than_two_distinct_articles");
     }
     if case.selected_profile == ModelProfile::WeibullFirstFailureLife
