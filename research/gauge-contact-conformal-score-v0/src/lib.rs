@@ -468,12 +468,29 @@ mod tests {
     use super::*;
 
     const DIGEST: &str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    const MODEL_DIGEST: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const TARGET_DIGEST: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    const DOMAIN_DIGEST: &str = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+    const RAW_DIGEST: &str = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
+    const FORECAST_DIGEST: &str = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+    const DATASET_REVISION: &str = "f95bb06e7d11142f88ffd3b6b56c7258deb8fff6";
 
     fn normalization() -> PoseScoreNormalization<'static> {
         PoseScoreNormalization {
             translation_scale_m: 0.01,
             rotation_scale_rad: 0.1,
             score_definition_sha256: DIGEST,
+        }
+    }
+
+    fn score_identity() -> TrialScoreIdentity {
+        TrialScoreIdentity {
+            dataset_revision: DATASET_REVISION.to_owned(),
+            raw_trial_sha256: RAW_DIGEST.to_owned(),
+            prediction_sha256: FORECAST_DIGEST.to_owned(),
+            model_digest: MODEL_DIGEST.to_owned(),
+            target_digest: TARGET_DIGEST.to_owned(),
+            domain_digest: DOMAIN_DIGEST.to_owned(),
         }
     }
 
@@ -515,11 +532,11 @@ mod tests {
 
     fn block_identity() -> CalibrationBlockIdentity {
         CalibrationBlockIdentity {
-            model_digest: "model-01".to_owned(),
-            target_digest: "gauge-rigid-pose-target-v1".to_owned(),
-            domain_digest: "gauge-slope-slider-wood-v1".to_owned(),
+            model_digest: MODEL_DIGEST.to_owned(),
+            target_digest: TARGET_DIGEST.to_owned(),
+            domain_digest: DOMAIN_DIGEST.to_owned(),
             score_definition_digest: DIGEST.to_owned(),
-            calibration_split_digest: "calibration-manifest-01".to_owned(),
+            calibration_split_digest: "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".to_owned(),
         }
     }
 
@@ -531,6 +548,7 @@ mod tests {
             &expected(),
             &samples(),
             normalization(),
+            score_identity(),
         )
         .unwrap();
         // Maximum normalized error is 0.04 / 0.1 = 0.4.
@@ -678,17 +696,21 @@ mod tests {
     #[test]
     fn incomplete_failed_or_aborted_trial_uses_maximum_sentinel_and_is_retained() {
         assert_eq!(
-            TrialPoseScore::incomplete("trial-02", EpisodeOutcome::Completed),
+            TrialPoseScore::incomplete("trial-02", EpisodeOutcome::Completed, score_identity(), DIGEST),
             Err(PoseScoreError::InvalidIncompleteOutcome)
         );
-        let failed = TrialPoseScore::incomplete("trial-02", EpisodeOutcome::Failed).unwrap();
-        let aborted = TrialPoseScore::incomplete("trial-03", EpisodeOutcome::Aborted).unwrap();
+        let failed = TrialPoseScore::incomplete("trial-02", EpisodeOutcome::Failed, score_identity(), DIGEST).unwrap();
+        let aborted = TrialPoseScore::incomplete("trial-03", EpisodeOutcome::Aborted, score_identity(), DIGEST).unwrap();
         let block =
             build_calibration_block("session-01", &[failed, aborted], &block_identity()).unwrap();
-        assert_eq!(block.episodes.len(), 2);
-        assert_eq!(block.maximum_nonconformity_score, INCOMPLETE_HORIZON_SCORE);
-        assert_eq!(block.episodes[0].outcome, EpisodeOutcome::Failed);
-        assert_eq!(block.episodes[1].outcome, EpisodeOutcome::Aborted);
+        assert_eq!(block.calibration_block.episodes.len(), 2);
+        assert_eq!(
+            block.calibration_block.maximum_nonconformity_score,
+            INCOMPLETE_HORIZON_SCORE
+        );
+        assert_eq!(block.calibration_block.episodes[0].outcome, EpisodeOutcome::Failed);
+        assert_eq!(block.calibration_block.episodes[1].outcome, EpisodeOutcome::Aborted);
+        assert_eq!(block.trial_score_records.len(), 2);
     }
 
     #[test]
@@ -716,8 +738,8 @@ mod tests {
         .unwrap();
         let block =
             build_calibration_block("session-01", &[a.clone(), b], &block_identity()).unwrap();
-        assert_eq!(block.maximum_nonconformity_score, a.maximum_nonconformity_score);
-        assert_eq!(block.episodes.len(), 2);
+        assert_eq!(block.calibration_block.maximum_nonconformity_score, a.maximum_nonconformity_score);
+        assert_eq!(block.calibration_block.episodes.len(), 2);
     }
 
     #[test]
@@ -739,9 +761,9 @@ mod tests {
     #[test]
     fn sentinel_threshold_becomes_unbounded_pose_set() {
         let receipt = CalibrationReceipt {
-            model_digest: "model-01".to_owned(),
-            target_digest: "gauge-rigid-pose-target-v1".to_owned(),
-            domain_digest: "gauge-slope-slider-wood-v1".to_owned(),
+            model_digest: MODEL_DIGEST.to_owned(),
+            target_digest: TARGET_DIGEST.to_owned(),
+            domain_digest: DOMAIN_DIGEST.to_owned(),
             score_definition_digest: DIGEST.to_owned(),
             calibration_split_digest: "calibration-manifest-01".to_owned(),
             alpha_ppm: 50_000,
@@ -755,9 +777,9 @@ mod tests {
         let decision = check_pose_set_application(
             &receipt,
             ApplicationIdentity {
-                model_digest: "model-01",
-                target_digest: "gauge-rigid-pose-target-v1",
-                domain_digest: "gauge-slope-slider-wood-v1",
+                model_digest: MODEL_DIGEST,
+                target_digest: TARGET_DIGEST,
+                domain_digest: DOMAIN_DIGEST,
                 score_definition_digest: DIGEST,
             },
         );
