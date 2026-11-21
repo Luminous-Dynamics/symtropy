@@ -100,6 +100,12 @@ pub fn measure_feature_subset_stability(
     if feature_universe.is_empty() {
         return Err("feature universe must not be empty".to_owned());
     }
+    if feature_universe
+        .iter()
+        .any(|feature| feature.trim().is_empty() || feature.trim() != feature)
+    {
+        return Err("feature universe contains an empty or non-canonical feature ID".to_owned());
+    }
     if runs.len() < 2 {
         return Err("at least two independent selector runs are required".to_owned());
     }
@@ -116,6 +122,15 @@ pub fn measure_feature_subset_stability(
             return Err(format!("duplicate selector run ID {:?}", run.run_id));
         }
         let subset: BTreeSet<String> = run.selected_features.iter().cloned().collect();
+        if subset
+            .iter()
+            .any(|feature| feature.trim().is_empty() || feature.trim() != feature)
+        {
+            return Err(format!(
+                "selector run {:?} contains an empty or non-canonical feature ID",
+                run.run_id
+            ));
+        }
         if subset.is_empty() {
             return Err(format!(
                 "selector run {:?} returned an empty feature set",
@@ -310,6 +325,30 @@ mod tests {
             measure_feature_subset_stability(&universe, &[run("a", &["x4"]), run("b", &["x2"])])
                 .unwrap_err()
                 .contains("unknown feature")
+        );
+    }
+
+
+    #[test]
+    fn rejects_noncanonical_feature_identifiers() {
+        let padded_universe = set(&["x1", " x2"]);
+        assert!(
+            measure_feature_subset_stability(
+                &padded_universe,
+                &[run("seed-1", &["x1"]), run("seed-2", &["x1"])]
+            )
+            .unwrap_err()
+            .contains("non-canonical feature ID")
+        );
+
+        let universe = set(&["x1", "x2"]);
+        assert!(
+            measure_feature_subset_stability(
+                &universe,
+                &[run("seed-1", &["x1"]), run("seed-2", &[" x2"])]
+            )
+            .unwrap_err()
+            .contains("non-canonical feature ID")
         );
     }
 
