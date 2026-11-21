@@ -29,5 +29,7 @@ fn main() {
     println!();
     println!("Positive gap = actual above target; negative gap = actual below target.");
     println!("The two OTD series preserve the source labels 'including 80s' and 'excluding 80s'.");
-    println!("This is an aggregate published reference, not route capacity or a live dispatch feed.");
+    println!(
+        "This is an aggregate published reference, not route capacity or a live dispatch feed."
+    );
 }
