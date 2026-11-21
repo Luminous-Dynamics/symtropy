@@ -554,6 +554,20 @@ mod tests {
         DwellProfile::default()
     }
 
+    fn evaluate_from_baselined_outside(
+        fixes: &[AisFix],
+        profile: &DwellProfile,
+    ) -> CallReport {
+        evaluate_call_with_initial_state(
+            "563123456",
+            ServiceState::Outside,
+            Some("SYNTHETIC_OUTSIDE_BASELINE_V0_1"),
+            fixes,
+            profile,
+        )
+        .expect("valid call with evidence-backed initial state")
+    }
+
     #[test]
     fn stable_berth_zone_entry_has_an_interval_and_confirmation_time() {
         let fixes = [
@@ -564,7 +578,7 @@ mod tests {
             fix(4, "m4", Zone::Berth, 100),
         ];
 
-        let report = evaluate_call("563123456", &fixes, &default_profile()).expect("valid call");
+        let report = evaluate_from_baselined_outside(&fixes, &default_profile());
         let berth = report
             .events
             .iter()
@@ -584,7 +598,7 @@ mod tests {
             fix(2, "m2", Zone::Approach, 5_000),
             fix(3, "m3", Zone::Outside, 5_000),
         ];
-        let report = evaluate_call("563123456", &fixes, &default_profile()).expect("valid call");
+        let report = evaluate_from_baselined_outside(&fixes, &default_profile());
 
         assert!(
             !report
@@ -602,7 +616,7 @@ mod tests {
             fix(5, "m2", Zone::Berth, 100),
             fix(6, "m3", Zone::Berth, 100),
         ];
-        let report = evaluate_call("563123456", &fixes, &default_profile()).expect("valid call");
+        let report = evaluate_from_baselined_outside(&fixes, &default_profile());
 
         assert_eq!(report.observability_gap_count, 1);
         assert!(
@@ -625,7 +639,7 @@ mod tests {
             fix(3, "m3", Zone::Berth, 100),
             fix(4, "m4", Zone::Berth, 100),
         ];
-        let report = evaluate_call("563123456", &fixes, &default_profile()).expect("valid call");
+        let report = evaluate_from_baselined_outside(&fixes, &default_profile());
 
         assert_eq!(report.duplicate_fix_count, 1);
         assert_eq!(report.final_state, ServiceState::Berth);
@@ -688,7 +702,7 @@ mod tests {
             fix(8, "m8", Zone::Outside, 10_000),
             fix(9, "m9", Zone::Outside, 10_000),
         ];
-        let report = evaluate_call("563123456", &fixes, &default_profile()).expect("valid call");
+        let report = evaluate_from_baselined_outside(&fixes, &default_profile());
 
         assert!(report.events.iter().any(|event| {
             event.kind == EventKind::BerthExitDetected
@@ -710,7 +724,7 @@ mod tests {
             fix(3, "m3", Zone::Berth, 100),
             fix(4, "m4", Zone::Berth, 8_000),
         ];
-        let report = evaluate_call("563123456", &fixes, &default_profile()).expect("valid call");
+        let report = evaluate_from_baselined_outside(&fixes, &default_profile());
 
         assert_eq!(report.kinematic_conflict_count, 1);
         assert_eq!(report.final_state, ServiceState::Indeterminate);
@@ -725,7 +739,7 @@ mod tests {
         let mut second = fix(1, "m1", Zone::Outside, 0);
         second.geofence_digest = "sha256:fixture-geofence-v2".to_string();
 
-        let error = evaluate_call("563123456", &[first, second], &default_profile())
+        let error = evaluate_from_baselined_outside(&[first, second], &default_profile())
             .expect_err("mixed geofence versions must reject");
         assert!(error.contains("geofence identity changed"));
     }
@@ -744,7 +758,7 @@ mod tests {
         for dwell in 1..=4 {
             let mut profile = default_profile();
             profile.berth_dwell_ticks = dwell;
-            let report = evaluate_call("563123456", &fixes, &profile).expect("valid call");
+            let report = evaluate_from_baselined_outside(&fixes, &profile);
             let event = report
                 .events
                 .iter()
@@ -767,7 +781,7 @@ mod tests {
             fix(10, "m10", Zone::Berth, 100),
             fix(11, "m11", Zone::Berth, 100),
         ];
-        let report = evaluate_call("563123456", &fixes, &default_profile()).expect("valid call");
+        let report = evaluate_from_baselined_outside(&fixes, &default_profile());
 
         assert_eq!(report.observability_gap_count, 1);
         assert_eq!(report.final_state, ServiceState::Berth);
@@ -793,10 +807,47 @@ mod tests {
             invalid,
             fix(3, "m3", Zone::Berth, 100),
         ];
-        let report = evaluate_call("563123456", &fixes, &default_profile()).expect("valid call");
+        let report = evaluate_from_baselined_outside(&fixes, &default_profile());
 
         assert_eq!(report.invalid_fix_count, 1);
         assert_eq!(report.final_state, ServiceState::Indeterminate);
+    }
+
+    #[test]
+    fn without_a_qualified_baseline_first_zone_is_reacquisition_not_arrival() {
+        let fixes = [
+            fix(0, "m0", Zone::Berth, 100),
+            fix(1, "m1", Zone::Berth, 100),
+            fix(2, "m2", Zone::Berth, 100),
+            fix(3, "m3", Zone::Berth, 100),
+        ];
+        let report = evaluate_call("563123456", &fixes, &default_profile())
+            .expect("safe indeterminate initialization");
+
+        assert_eq!(report.initial_state, ServiceState::Indeterminate);
+        assert!(report.initial_state_evidence_id.is_none());
+        assert_eq!(report.final_state, ServiceState::Berth);
+        assert!(report.events.iter().any(|event| event.kind == EventKind::ZoneReacquired));
+        assert!(
+            !report
+                .events
+                .iter()
+                .any(|event| event.kind == EventKind::BerthZoneEntry)
+        );
+    }
+
+    #[test]
+    fn non_indeterminate_initial_state_requires_an_evidence_reference() {
+        let fixes = [fix(0, "m0", Zone::Outside, 0)];
+        let error = evaluate_call_with_initial_state(
+            "563123456",
+            ServiceState::Outside,
+            None,
+            &fixes,
+            &default_profile(),
+        )
+        .expect_err("unreferenced initial state must reject");
+        assert!(error.contains("requires an evidence reference"));
     }
 
     #[test]
