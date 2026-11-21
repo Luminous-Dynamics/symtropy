@@ -27,7 +27,10 @@
     "mean_realized_evsi": 1.875,
     "catalogue_audio_bytes_total": 16384,
     "catalogue_video_frames_total": 0,
-    "catalogue_energy_cost_total": 1.3
+    "catalogue_energy_cost_total": 1.3,
+    "estimated_evsi_count": 3,
+    "mean_estimated_evsi_mae": 0,
+    "mean_estimated_evsi_bias": 0
   },
   "per_episode": [
     {
@@ -48,7 +51,10 @@
         "audio_bytes": 0,
         "video_frames": 0,
         "energy_joules": 0
-      }
+      },
+      "estimated_evsi_count": 0,
+      "estimated_evsi_mae": null,
+      "estimated_evsi_bias": null
     },
     {
       "episode_id": "as-002-low-eig-high-evsi",
@@ -68,7 +74,10 @@
         "audio_bytes": 4096,
         "video_frames": 0,
         "energy_joules": 0.4
-      }
+      },
+      "estimated_evsi_count": 1,
+      "estimated_evsi_mae": 0,
+      "estimated_evsi_bias": 0
     },
     {
       "episode_id": "as-003-audio-necessary",
@@ -88,7 +97,10 @@
         "audio_bytes": 8192,
         "video_frames": 0,
         "energy_joules": 0.5
-      }
+      },
+      "estimated_evsi_count": 1,
+      "estimated_evsi_mae": 0,
+      "estimated_evsi_bias": 0
     },
     {
       "episode_id": "as-004-common-cause-duplicate",
@@ -108,7 +120,10 @@
         "audio_bytes": 0,
         "video_frames": 0,
         "energy_joules": 0
-      }
+      },
+      "estimated_evsi_count": 0,
+      "estimated_evsi_mae": null,
+      "estimated_evsi_bias": null
     },
     {
       "episode_id": "as-005-deadline-late-observation",
@@ -128,7 +143,10 @@
         "audio_bytes": 0,
         "video_frames": 0,
         "energy_joules": 0
-      }
+      },
+      "estimated_evsi_count": 0,
+      "estimated_evsi_mae": null,
+      "estimated_evsi_bias": null
     },
     {
       "episode_id": "as-006-budget-allocation",
@@ -148,7 +166,10 @@
         "audio_bytes": 4096,
         "video_frames": 0,
         "energy_joules": 0.4
-      }
+      },
+      "estimated_evsi_count": 1,
+      "estimated_evsi_mae": 0,
+      "estimated_evsi_bias": 0
     },
     {
       "episode_id": "as-007-partial-unavailable-action",
@@ -168,7 +189,10 @@
         "audio_bytes": 0,
         "video_frames": 0,
         "energy_joules": 0
-      }
+      },
+      "estimated_evsi_count": 0,
+      "estimated_evsi_mae": null,
+      "estimated_evsi_bias": null
     },
     {
       "episode_id": "as-008-sufficient-stop",
@@ -188,7 +212,10 @@
         "audio_bytes": 0,
         "video_frames": 0,
         "energy_joules": 0
-      }
+      },
+      "estimated_evsi_count": 0,
+      "estimated_evsi_mae": null,
+      "estimated_evsi_bias": null
     }
   ]
 }
