@@ -127,3 +127,14 @@ Research targets (not achieved):
 - No action for high-EIG/zero-EVSI and a timely action for low-EIG/high-EVSI.
 - At matched decision quality, eventually target at least 20% reduction in measured AV input/energy versus always-on full-fidelity A+V.
 - On a powered, rights-qualified held-out cohort, statistically supported regret or response-window gains over fixed, random, EIG and AVP baselines.
+
+
+### What the first executable evaluator qualifies
+
+The current evaluator is tools/av-modality-necessity-evaluator/active_sensing_evaluate.py; run instructions and claim boundaries are in EVALUATOR.md. It checks exact action sequences, unique request identity, per-action max uses, scenario action arrival time, per-episode budgets, actual admitted observation references, future/post-deadline citation, action-required source citations, common-cause double counting, regret and realized EVSI.
+
+Candidate-supplied EIG/EVSI estimates are not treated as ground truth. The evaluator's realized EVSI comes from the separate hidden scenario outcome, and only a unique, within-limit, on-time, delivered independent result earns value. A second over-limit request cannot double-count the same observation's EVSI.
+
+The finite synthetic reference requests three actions and stops in the other five episodes. Its expected known answer is 8/8 task answers, 8/8 optimal action/stop sequences, zero regret, three acquisitions, no wasted/late acquisitions, no budget/evidence violations, and mean realized EVSI 1.875. Scenario catalogue costs sum to 16,384 audio bytes and 1.3 energy-cost units; these are synthetic configured costs, not measured hardware telemetry.
+
+The evaluator and fixture now have adversarial tests for high-EIG/zero-EVSI waste, missing low-EIG/high-EVSI evidence, late delivery, fabricated observations, required action-evidence omission, common-cause dependence, resource overrun, partial sensor outcomes, duplicate request and EVSI over-credit. The exact-head Actions run is the qualification gate; no model result is claimed.
