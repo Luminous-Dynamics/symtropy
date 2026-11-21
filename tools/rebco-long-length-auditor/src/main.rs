@@ -1188,7 +1188,7 @@ mod tests {
         .expect("synthetic fixture must parse")
     }
 
-    fn profile_at_temperature<'a>(report: &'a AuditReport, temperature_k: f64) -> &'a Value {
+    fn profile_at_temperature(report: &AuditReport, temperature_k: f64) -> &Value {
         report
             .coverage_profiles
             .iter()
