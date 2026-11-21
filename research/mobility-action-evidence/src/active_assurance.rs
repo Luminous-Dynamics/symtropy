@@ -175,9 +175,7 @@ pub fn select_observation_frontier(
         if candidate.expected_residual_risk_upper_bound_bps > MAX_RISK_BPS {
             return Err(AssuranceError::InvalidResidualRiskBound);
         }
-        if candidate.expected_residual_risk_upper_bound_bps
-            >= context.current_risk_upper_bound_bps
-        {
+        if candidate.expected_residual_risk_upper_bound_bps >= context.current_risk_upper_bound_bps {
             return Err(AssuranceError::NoExpectedRiskReduction);
         }
 
@@ -311,9 +309,7 @@ mod tests {
     #[test]
     fn common_cause_overlap_with_executor_blocks_the_entire_selection() {
         let mut option = candidate("shared-power", 300, 100, 4_000, 1_000, "sensor-a");
-        option
-            .observer_failure_domains
-            .push("robot-power".into());
+        option.observer_failure_domains.push("robot-power".into());
         assert_eq!(
             select_observation_frontier(&context(), budget(), &[option]),
             Err(AssuranceError::CommonCauseObserverExecutorOverlap)
@@ -359,7 +355,11 @@ mod tests {
         let low_risk = candidate("high-information", 200, 450, 19_000, 9_000, "sensor-a");
         let low_cost = candidate("cheap", 900, 90, 4_000, 100, "sensor-b");
         assert_eq!(
-            select_observation_frontier(&context(), budget(), &[low_risk.clone(), low_cost.clone()]),
+            select_observation_frontier(
+                &context(),
+                budget(),
+                &[low_risk.clone(), low_cost.clone()]
+            ),
             Ok(AssuranceDecision::AcquireObservation {
                 pareto_frontier: vec![low_cost, low_risk],
                 filtered_out_candidate_ids: vec![],
