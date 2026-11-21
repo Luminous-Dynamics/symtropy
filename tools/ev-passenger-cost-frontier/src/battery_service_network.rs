@@ -58,6 +58,15 @@ pub struct MetricEvidence {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct BooleanEvidence {
+    pub freshness: EvidenceFreshness,
+    pub evidence_class: EvidenceClass,
+    pub evidence_reference: String,
+    pub value: Option<bool>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct ThermalEvidence {
     pub freshness: EvidenceFreshness,
     pub evidence_class: EvidenceClass,
@@ -72,11 +81,9 @@ pub struct BatteryPack {
     pub pack_id: String,
     pub configuration_id: String,
     pub state: PackState,
-    pub identity_verified: Option<bool>,
-    pub custody_resolved: Option<bool>,
-    pub post_test_freshness: EvidenceFreshness,
-    pub post_test_passed: Option<bool>,
-    pub post_test_evidence_reference: String,
+    pub identity_verification: BooleanEvidence,
+    pub custody_resolution: BooleanEvidence,
+    pub post_test: BooleanEvidence,
     pub usable_energy: MetricEvidence,
     pub peak_power: MetricEvidence,
     pub thermal: ThermalEvidence,
@@ -212,6 +219,39 @@ fn evidence_is_fresh(
     true
 }
 
+fn evaluate_boolean_evidence(
+    evidence: &BooleanEvidence,
+    name: &str,
+    findings: &mut Vec<String>,
+    status: &mut EligibilityStatus,
+) {
+    if !evidence_is_fresh(
+        evidence.freshness,
+        evidence.evidence_class,
+        &evidence.evidence_reference,
+        findings,
+        status,
+        name,
+    ) {
+        return;
+    }
+    match evidence.value {
+        Some(true) => {}
+        Some(false) => add_finding(
+            findings,
+            status,
+            EligibilityStatus::Blocked,
+            &format!("{name}_not_verified_or_failed"),
+        ),
+        None => add_finding(
+            findings,
+            status,
+            EligibilityStatus::Indeterminate,
+            &format!("{name}_result_unknown"),
+        ),
+    }
+}
+
 fn evaluate_pair(mission: &MissionDemand, pack: &BatteryPack) -> PairEvaluation {
     let mut findings = Vec::new();
     let mut status = EligibilityStatus::Eligible;
@@ -232,62 +272,24 @@ fn evaluate_pair(mission: &MissionDemand, pack: &BatteryPack) -> PairEvaluation 
         ),
     }
 
-    match pack.identity_verified {
-        Some(true) => {}
-        Some(false) => add_finding(
-            &mut findings,
-            &mut status,
-            EligibilityStatus::Blocked,
-            "pack_identity_not_verified",
-        ),
-        None => add_finding(
-            &mut findings,
-            &mut status,
-            EligibilityStatus::Indeterminate,
-            "pack_identity_unknown",
-        ),
-    }
-    match pack.custody_resolved {
-        Some(true) => {}
-        Some(false) => add_finding(
-            &mut findings,
-            &mut status,
-            EligibilityStatus::Blocked,
-            "pack_custody_unresolved",
-        ),
-        None => add_finding(
-            &mut findings,
-            &mut status,
-            EligibilityStatus::Indeterminate,
-            "pack_custody_unknown",
-        ),
-    }
-
-    match pack.post_test_freshness {
-        EvidenceFreshness::Fresh if !pack.post_test_evidence_reference.trim().is_empty() => {
-            match pack.post_test_passed {
-                Some(true) => {}
-                Some(false) => add_finding(
-                    &mut findings,
-                    &mut status,
-                    EligibilityStatus::Blocked,
-                    "post_test_failed",
-                ),
-                None => add_finding(
-                    &mut findings,
-                    &mut status,
-                    EligibilityStatus::Indeterminate,
-                    "post_test_result_unknown",
-                ),
-            }
-        }
-        _ => add_finding(
-            &mut findings,
-            &mut status,
-            EligibilityStatus::Indeterminate,
-            "post_test_evidence_not_fresh_or_missing",
-        ),
-    }
+    evaluate_boolean_evidence(
+        &pack.identity_verification,
+        "pack_identity",
+        &mut findings,
+        &mut status,
+    );
+    evaluate_boolean_evidence(
+        &pack.custody_resolution,
+        "pack_custody",
+        &mut findings,
+        &mut status,
+    );
+    evaluate_boolean_evidence(
+        &pack.post_test,
+        "post_test",
+        &mut findings,
+        &mut status,
+    );
 
     if pack.configuration_id != mission.configuration_id {
         add_finding(
@@ -636,7 +638,10 @@ pub fn evaluate_battery_service_network(
         pair_evaluations,
         status: status.to_string(),
         all_pack_evidence_synthetic: packs.iter().all(|pack| {
-            pack.usable_energy.evidence_class == EvidenceClass::Synthetic
+            pack.identity_verification.evidence_class == EvidenceClass::Synthetic
+                && pack.custody_resolution.evidence_class == EvidenceClass::Synthetic
+                && pack.post_test.evidence_class == EvidenceClass::Synthetic
+                && pack.usable_energy.evidence_class == EvidenceClass::Synthetic
                 && pack.peak_power.evidence_class == EvidenceClass::Synthetic
                 && pack.thermal.evidence_class == EvidenceClass::Synthetic
         }),
@@ -669,11 +674,24 @@ mod tests {
             pack_id: id.to_string(),
             configuration_id: configuration_id.to_string(),
             state: PackState::Available,
-            identity_verified: Some(true),
-            custody_resolved: Some(true),
-            post_test_freshness: EvidenceFreshness::Fresh,
-            post_test_passed: Some(true),
-            post_test_evidence_reference: "urn:synthetic:post-test".to_string(),
+            identity_verification: BooleanEvidence {
+                freshness: EvidenceFreshness::Fresh,
+                evidence_class: EvidenceClass::Synthetic,
+                evidence_reference: "urn:synthetic:identity".to_string(),
+                value: Some(true),
+            },
+            custody_resolution: BooleanEvidence {
+                freshness: EvidenceFreshness::Fresh,
+                evidence_class: EvidenceClass::Synthetic,
+                evidence_reference: "urn:synthetic:custody".to_string(),
+                value: Some(true),
+            },
+            post_test: BooleanEvidence {
+                freshness: EvidenceFreshness::Fresh,
+                evidence_class: EvidenceClass::Synthetic,
+                evidence_reference: "urn:synthetic:post-test".to_string(),
+                value: Some(true),
+            },
             usable_energy: metric(energy_wh, EvidenceFreshness::Fresh),
             peak_power: metric(peak_power_w, EvidenceFreshness::Fresh),
             thermal: ThermalEvidence {
@@ -753,7 +771,7 @@ mod tests {
     #[test]
     fn unresolved_custody_is_blocked() {
         let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
-        battery.custody_resolved = Some(false);
+        battery.custody_resolution.value = Some(false);
         let demand = mission("m1", "uav-a", 1_000, 1_000);
         assert_eq!(pair_status(&battery, &demand), EligibilityStatus::Blocked);
     }
@@ -808,7 +826,7 @@ mod tests {
     #[test]
     fn unknown_identity_is_indeterminate_not_eligible() {
         let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
-        battery.identity_verified = None;
+        battery.identity_verification.value = None;
         let demand = mission("m1", "uav-a", 1_000, 1_000);
         assert_eq!(pair_status(&battery, &demand), EligibilityStatus::Indeterminate);
     }
