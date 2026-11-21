@@ -7,7 +7,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::env;
 use std::fs::{self, File};
-use std::io::{self, BufRead, BufReader, Read, Write};
+use std::io::{self, BufRead, BufReader, Write};
 use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
 
@@ -655,12 +655,12 @@ fn audit(args: &Args) -> Result<(Vec<Row>, String), String> {
         if let Some(metadata_path) = &mapping.metadata_path {
             referenced_metadata.insert(metadata_path.clone());
         }
-        if mapping.status == "AMBIGUOUS" || mapping.status == "UNMAPPED" {
-            if grouping.disposition != "UNKNOWN" {
-                return Err(format!(
-                    "{raw_path}: ambiguous/unmapped metadata cannot be assigned a source-backed physical unit"
-                ));
-            }
+        if (mapping.status == "AMBIGUOUS" || mapping.status == "UNMAPPED")
+            && grouping.disposition != "UNKNOWN"
+        {
+            return Err(format!(
+                "{raw_path}: ambiguous/unmapped metadata cannot be assigned a source-backed physical unit"
+            ));
         }
         if grouping.disposition == "SOURCE_BACKED" {
             let evidence = grouping.group_evidence_path.as_deref().unwrap_or_default();
@@ -714,7 +714,6 @@ fn grouping_components(rows: &[Row]) -> (UnionFind, BTreeMap<usize, Vec<usize>>)
             row.grouping
                 .dependence_keys
                 .iter()
-                .cloned()
                 .map(|key| format!("dep:{key}")),
         )
         .chain(std::iter::once(format!("rawsha:{}", row.mapping.raw_sha)));
@@ -726,8 +725,8 @@ fn grouping_components(rows: &[Row]) -> (UnionFind, BTreeMap<usize, Vec<usize>>)
     }
 
     let mut components = BTreeMap::<usize, Vec<usize>>::new();
-    for index in 0..rows.len() {
-        if rows[index].grouping.disposition == "SOURCE_BACKED" {
+    for (index, row) in rows.iter().enumerate() {
+        if row.grouping.disposition == "SOURCE_BACKED" {
             let root = union.find(index);
             components.entry(root).or_default().push(index);
         }
