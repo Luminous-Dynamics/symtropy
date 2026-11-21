@@ -81,11 +81,23 @@ pub struct SharedRepositionLink {
     pub evidence_reference: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ScenarioProbabilityBasis {
+    SyntheticFixture,
+    UncalibratedEstimate,
+    CalibratedOutOfSample,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SharedFleetInput {
     pub schema_version: u16,
     pub scenario_set_id: String,
+    pub probability_basis: ScenarioProbabilityBasis,
+    pub probability_evidence_reference: String,
+    pub calibration_report_sha256: Option<String>,
+    pub held_out_window_reference: Option<String>,
     pub period_count: u16,
     pub initial_aircraft_region_id: String,
     pub maximum_aircraft_energy_units: u64,
@@ -182,6 +194,11 @@ pub struct SharedFleetReport {
     pub schema_version: u16,
     pub scenario_set_id: String,
     pub input_digest_sha256: String,
+    pub probability_basis: ScenarioProbabilityBasis,
+    pub probability_evidence_reference: String,
+    pub calibration_report_sha256: Option<String>,
+    pub held_out_window_reference: Option<String>,
+    pub risk_claim_ceiling: String,
     pub region_count: usize,
     pub period_count: usize,
     pub scenario_count: usize,
@@ -265,6 +282,45 @@ fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
     }
     if input.scenario_set_id.trim().is_empty() {
         errors.push("scenario_set_id: must be non-empty".into());
+    }
+    if input.probability_evidence_reference.trim().is_empty() {
+        errors.push("probability_evidence_reference: must be non-empty".into());
+    }
+    match input.probability_basis {
+        ScenarioProbabilityBasis::CalibratedOutOfSample => {
+            let valid_digest = input.calibration_report_sha256.as_ref().is_some_and(|digest| {
+                digest.len() == 64
+                    && digest.bytes().all(|byte| byte.is_ascii_hexdigit())
+                    && digest == &digest.to_ascii_lowercase()
+            });
+            if !valid_digest {
+                errors.push(
+                    "calibration_report_sha256: calibrated out-of-sample weights require a 64-character lowercase SHA-256 digest"
+                        .into(),
+                );
+            }
+            if input
+                .held_out_window_reference
+                .as_ref()
+                .is_none_or(|reference| reference.trim().is_empty())
+            {
+                errors.push(
+                    "held_out_window_reference: calibrated out-of-sample weights require a held-out evaluation window"
+                        .into(),
+                );
+            }
+        }
+        ScenarioProbabilityBasis::SyntheticFixture
+        | ScenarioProbabilityBasis::UncalibratedEstimate => {
+            if input.calibration_report_sha256.is_some()
+                || input.held_out_window_reference.is_some()
+            {
+                errors.push(
+                    "calibration metadata is only valid with calibrated_out_of_sample probability basis"
+                        .into(),
+                );
+            }
+        }
     }
     if input.period_count == 0 || usize::from(input.period_count) > MAX_SHARED_PERIODS {
         errors.push(format!("period_count: expected 1..={MAX_SHARED_PERIODS}"));
@@ -1032,6 +1088,15 @@ pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetRepo
         schema_version: SHARED_FLEET_SCHEMA_VERSION,
         scenario_set_id: canonical.scenario_set_id.clone(),
         input_digest_sha256,
+        probability_basis: canonical.probability_basis,
+        probability_evidence_reference: canonical.probability_evidence_reference.clone(),
+        calibration_report_sha256: canonical.calibration_report_sha256.clone(),
+        held_out_window_reference: canonical.held_out_window_reference.clone(),
+        risk_claim_ceiling: match canonical.probability_basis {
+            ScenarioProbabilityBasis::SyntheticFixture => "Expected-cost and CVaR outputs are conditional arithmetic on supplied synthetic weights; they are not calibrated event probabilities, empirical field-risk bounds or operational savings claims.",
+            ScenarioProbabilityBasis::UncalibratedEstimate => "Expected-cost and CVaR outputs are conditional arithmetic on supplied uncalibrated estimates; they are not calibrated field-risk bounds. Probability calibration and out-of-sample decision validation remain required.",
+            ScenarioProbabilityBasis::CalibratedOutOfSample => "The input declares an out-of-sample calibration report and held-out window; this evaluator does not audit that report or prove calibration. Risk outputs remain conditional on the supplied finite scenario set and weights.",
+        }.into(),
         region_count: canonical.regions.len(),
         period_count: usize::from(canonical.period_count),
         scenario_count: canonical.scenarios.len(),
@@ -1089,6 +1154,10 @@ mod tests {
         SharedFleetInput {
             schema_version: 1,
             scenario_set_id: "two-region-shared-aircraft-v1".into(),
+            probability_basis: ScenarioProbabilityBasis::SyntheticFixture,
+            probability_evidence_reference: "synthetic://scenario-weights/two-region-shared-aircraft-v1".into(),
+            calibration_report_sha256: None,
+            held_out_window_reference: None,
             period_count: 3,
             initial_aircraft_region_id: "urban".into(),
             maximum_aircraft_energy_units: 20,
@@ -1216,6 +1285,45 @@ mod tests {
         );
         assert_eq!(report.truck_only_baseline.expected_total_cost_units, 1_980);
         assert!(!report.physical_dispatch_authorized);
+    }
+
+    #[test]
+    fn synthetic_weight_basis_is_reported_as_conditional_not_calibrated_risk() {
+        let report = evaluate_shared_fleet(&input()).expect("synthetic fixture");
+        assert_eq!(
+            report.probability_basis,
+            ScenarioProbabilityBasis::SyntheticFixture
+        );
+        assert!(report.risk_claim_ceiling.contains("not calibrated"));
+        assert!(report.risk_claim_ceiling.contains("synthetic weights"));
+        assert!(report.calibration_report_sha256.is_none());
+        assert!(report.held_out_window_reference.is_none());
+    }
+
+    #[test]
+    fn calibrated_probability_basis_requires_digest_and_held_out_window() {
+        let mut test = input();
+        test.probability_basis = ScenarioProbabilityBasis::CalibratedOutOfSample;
+        test.calibration_report_sha256 = Some("not-a-digest".into());
+        test.held_out_window_reference = Some("2026-Q3".into());
+        let errors = validate_input(&test).expect_err("invalid calibration digest");
+        assert!(errors.iter().any(|error| error.contains("64-character lowercase SHA-256")));
+
+        test.calibration_report_sha256 = Some("a".repeat(64));
+        assert!(validate_input(&test).is_ok());
+        let report = evaluate_shared_fleet(&test).expect("declared calibration metadata");
+        assert!(report.risk_claim_ceiling.contains("does not audit"));
+    }
+
+    #[test]
+    fn uncalibrated_estimates_cannot_smuggle_in_calibration_metadata() {
+        let mut test = input();
+        test.probability_basis = ScenarioProbabilityBasis::UncalibratedEstimate;
+        test.probability_evidence_reference = "evidence://unvalidated-frequency-estimate/v1".into();
+        test.calibration_report_sha256 = Some("a".repeat(64));
+        test.held_out_window_reference = Some("2026-Q3".into());
+        let errors = validate_input(&test).expect_err("calibration fields contradict basis");
+        assert!(errors.iter().any(|error| error.contains("only valid with calibrated_out_of_sample")));
     }
 
     #[test]
