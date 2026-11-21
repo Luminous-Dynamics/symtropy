@@ -267,6 +267,7 @@ fn multiply(a: &Mat3, b: &Mat3) -> Mat3 {
     }
     out
 }
+#[cfg(test)]
 fn multiply_vec(a: Mat3, b: Vec3) -> Vec3 {
     [dot(a[0], b), dot(a[1], b), dot(a[2], b)]
 }
@@ -309,15 +310,15 @@ fn validate_second_moment(c: Mat3) -> Result<(), ContactError> {
         return Err(ContactError::NonPositiveSemidefiniteTensor);
     }
     let tol = TOL * scale;
-    for i in 0..3 {
-        for j in 0..3 {
-            if (c[i][j] - c[j][i]).abs() > tol {
+    for (i, row) in c.iter().enumerate() {
+        for (j, value) in row.iter().enumerate() {
+            if (value - c[j][i]).abs() > tol {
                 return Err(ContactError::NonSymmetricTensor);
             }
         }
     }
-    for i in 0..3 {
-        if c[i][i] < -tol {
+    for (i, row) in c.iter().enumerate() {
+        if row[i] < -tol {
             return Err(ContactError::NonPositiveSemidefiniteTensor);
         }
     }
@@ -336,10 +337,10 @@ fn validate_rotation(r: Mat3) -> Result<(), ContactError> {
         return Err(ContactError::NonFiniteInput);
     }
     let p = multiply(&transpose(r), &r);
-    for i in 0..3 {
-        for j in 0..3 {
+    for (i, row) in p.iter().enumerate() {
+        for (j, value) in row.iter().enumerate() {
             let target = if i == j { 1.0 } else { 0.0 };
-            if (p[i][j] - target).abs() > 1.0e-9 {
+            if (value - target).abs() > 1.0e-9 {
                 return Err(ContactError::InvalidRotation);
             }
         }
@@ -385,14 +386,15 @@ fn solve3(a: Mat3, b: Vec3) -> Result<Vec3, ContactError> {
         }
         aug.swap(pivot, col);
         let divisor = aug[col][col];
-        for j in col..4 {
-            aug[col][j] /= divisor;
+        for value in aug[col].iter_mut().skip(col) {
+            *value /= divisor;
         }
-        for row in 0..3 {
-            if row != col {
-                let factor = aug[row][col];
-                for j in col..4 {
-                    aug[row][j] -= factor * aug[col][j];
+        let pivot_values = aug[col];
+        for (row_index, row_values) in aug.iter_mut().enumerate() {
+            if row_index != col {
+                let factor = row_values[col];
+                for (value, pivot_value) in row_values.iter_mut().zip(pivot_values).skip(col) {
+                    *value -= factor * pivot_value;
                 }
             }
         }
