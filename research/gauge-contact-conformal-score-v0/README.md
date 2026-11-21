@@ -39,6 +39,17 @@ Quantization uses one billion integer units per normalized-error unit and rounds
 
 The adapter's block builder consumes the actual #4147 CalibrationBlock type by a local path dependency. It preserves every trial ID/outcome and computes one maximum score over all trials in a declared independent session/article/trial block. #4147 remains the sole owner of rank arithmetic, exchangeability-unit uniqueness, fit/test leakage and application identity.
 
+### Dataset-bound calibration receipt
+
+The generic #4147 calibration receipt intentionally does not carry a dataset revision or source-manifest digest. The GAUGE adapter therefore wraps it in `PoseCalibrationReceipt` after checking all supplied `CalibrationBlockReceipt` values:
+- every block has the same exact 40-hex dataset revision and identical model/target/domain/score-definition/split identities;
+- exchangeability-unit IDs and trial IDs are unique across the complete supplied calibration set;
+- trial records match each #4147 block's episode IDs, outcomes and maximum score;
+- independent-unit and episode counts match the generic conformal receipt exactly;
+- a caller-supplied source-manifest SHA-256 and calibration prediction-manifest SHA-256 are retained for audit.
+
+Applying a pose-set threshold first checks exact dataset revision and source-manifest SHA-256, then delegates model/target/domain/score identity to #4147. The prediction-manifest digest is retained as calibration provenance; it is not compared with a future test prediction manifest because the test predictions necessarily refer to different trials. These digests are caller-provided receipts and their construction must be independently reviewed.
+
 ## Temporal and semantic boundary
 
 Frame indices are zero-based exported sample indices. They are not absolute sensor timestamps or 180-Hz acquisition indices. The GAUGE JSON exports trajectories at 30 FPS; high-frequency contact information cannot be reconstructed by interpolation. The upstream temporal observability contract #6587 owns what claims the exported cadence supports.
@@ -65,7 +76,8 @@ The deterministic tests cover:
 - duplicate trial identity rejection;
 - mixed model identity rejection;
 - preservation of raw-trial and forecast digests in the block receipt;
-- sentinel threshold becoming an unbounded pose set.
+- sentinel threshold becoming an unbounded pose set;
+- calibration-receipt binding across complete source blocks and refusing a different dataset revision or raw-source manifest.
 
 ## Run
 
