@@ -184,8 +184,18 @@ pub struct ScenarioReport {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct LagSensitivityStep {
+    pub reporting_delay_ticks: u8,
+    pub true_berth_cif: f64,
+    pub observed_berth_cif: f64,
+    pub berth_underestimation: f64,
+    pub unresolved_fraction: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct RobustnessReport {
     pub scenarios: Vec<ScenarioReport>,
+    pub reporting_delay_sweep: Vec<LagSensitivityStep>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -557,6 +567,61 @@ fn generate_scenario(
     (latent, observed)
 }
 
+fn observe_with_berth_reporting_delay(
+    latent: LatentCall,
+    berth_delay_ticks: u8,
+) -> ObservedCall {
+    match (latent.cause, latent.event_tick) {
+        (Some(Cause::Berth), Some(event_tick))
+            if event_tick.saturating_add(berth_delay_ticks) > HORIZON =>
+        {
+            censor(
+                latent.stratum,
+                HORIZON,
+                CensorReason::ReportingLag,
+            )
+        }
+        (Some(cause), Some(event_tick)) => event(latent.stratum, event_tick, cause),
+        _ => censor(
+            latent.stratum,
+            HORIZON,
+            CensorReason::Administrative,
+        ),
+    }
+}
+
+fn evaluate_reporting_delay_sweep() -> Vec<LagSensitivityStep> {
+    // Hold the latent cohort fixed across all delay values. Only publication
+    // latency changes, so the sensitivity curve has no cohort-composition noise.
+    let scenario = ScenarioKind::OutcomeDependentReportingLag;
+    let mut latent_rng =
+        SplitMix64::new(scenario.seed() ^ 0xA076_1D64_78BD_642F);
+    let latent: Vec<LatentCall> = (0..CALLS_PER_SCENARIO)
+        .map(|index| sample_latent_event((index % 2) as u8, &mut latent_rng))
+        .collect();
+    let truth = truth_cif(&latent);
+    let delays = [0_u8, 1, 2, 3, 4, 5, 6, 8, 10];
+
+    delays
+        .into_iter()
+        .map(|delay| {
+            let observed: Vec<ObservedCall> = latent
+                .iter()
+                .copied()
+                .map(|call| observe_with_berth_reporting_delay(call, delay))
+                .collect();
+            let estimate = aj_cif(&observed);
+            LagSensitivityStep {
+                reporting_delay_ticks: delay,
+                true_berth_cif: truth.berth,
+                observed_berth_cif: estimate.berth,
+                berth_underestimation: truth.berth - estimate.berth,
+                unresolved_fraction: unresolved_fraction(&observed),
+            }
+        })
+        .collect()
+}
+
 fn evaluate_scenario(scenario: ScenarioKind) -> ScenarioReport {
     let (latent, observed) = generate_scenario(scenario, CALLS_PER_SCENARIO);
     let full_truth = truth_cif(&latent);
@@ -629,6 +694,7 @@ pub fn evaluate_reference_scenarios() -> RobustnessReport {
         .into_iter()
         .map(evaluate_scenario)
         .collect(),
+        reporting_delay_sweep: evaluate_reporting_delay_sweep(),
     }
 }
 
@@ -792,6 +858,50 @@ mod tests {
         ];
         let estimate = aj_cif(&observed);
         close(estimate.berth, 0.5, 1e-12);
+    }
+
+    #[test]
+    fn reporting_delay_sweep_uses_one_latent_cohort_and_exposes_growing_bias() {
+        let report = evaluate_reference_scenarios();
+        assert_eq!(report.reporting_delay_sweep.len(), 9);
+
+        let truth = report.reporting_delay_sweep[0].true_berth_cif;
+        close(
+            report.reporting_delay_sweep[0].observed_berth_cif,
+            truth,
+            1e-12,
+        );
+        close(
+            report.reporting_delay_sweep[0].berth_underestimation,
+            0.0,
+            1e-12,
+        );
+
+        for window in report.reporting_delay_sweep.windows(2) {
+            assert_eq!(window[0].true_berth_cif, window[1].true_berth_cif);
+            assert!(
+                window[1].berth_underestimation >= window[0].berth_underestimation,
+                "berth underestimation did not grow with reporting delay"
+            );
+            assert!(
+                window[1].unresolved_fraction >= window[0].unresolved_fraction,
+                "unresolved fraction did not grow with reporting delay"
+            );
+        }
+
+        let four_tick = report
+            .reporting_delay_sweep
+            .iter()
+            .find(|step| step.reporting_delay_ticks == 4)
+            .expect("four-tick delay exists");
+        close(four_tick.berth_underestimation, 0.09706666666666669, 1e-12);
+
+        let ten_tick = report
+            .reporting_delay_sweep
+            .iter()
+            .find(|step| step.reporting_delay_ticks == 10)
+            .expect("ten-tick delay exists");
+        close(ten_tick.observed_berth_cif, 0.0, 1e-12);
     }
 
     #[test]
