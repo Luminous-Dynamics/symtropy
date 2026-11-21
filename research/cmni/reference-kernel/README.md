@@ -176,3 +176,12 @@ See [IDENTIFIABILITY_AND_DESIGN.md](../../../docs/research/cmni/IDENTIFIABILITY_
 - This is a correlated-data log-Gaussian comparator, not the raw-scale AIACHNE likelihood. If transforming a raw relative covariance by the delta method, record that approximation explicitly. It does not implement BMC or the horseshoe prior.
 - Synthetic fixture: `research/cmni/fixtures/correlated-gaussian-log-bias-synthetic.json`.
 - Seven basis tests and eight correlated-Gaussian tests have been added. The total is now **153 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics, 7 measurement-bias, 8 sparse-Poisson-bias, 7 energy-bias-basis, 8 correlated-Gaussian-bias). Tests have not been executed in this environment.
+
+
+## Raw-scale correlated Gaussian PFNS bias likelihood
+
+- `raw_scale_gaussian_multiplicative_bias_log_likelihood` evaluates one experiment with mean `mu * exp(delta)` and covariance `diag(mu) * Sigma_relative * diag(mu)`.
+- The relative covariance remains anchored to the un-biased baseline mean; it is not silently scaled by the bias term. The baseline mean should already include the declared experiment normalization.
+- This is the raw-scale observation likelihood primitive needed for a faithful PFNS bias analysis. It does not yet implement the AIACHNE horseshoe prior or Bayesian Monte Carlo sampler.
+- Synthetic fixture: `research/cmni/fixtures/raw-scale-pfns-bias-likelihood-synthetic.json`.
+- Six additional tests cover zero-bias likelihood, mean-only bias effect, full covariance, baseline covariance anchoring, positive-definiteness and invalid inputs. The total is now **159 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics, 7 measurement-bias, 8 sparse-Poisson-bias, 7 energy-bias-basis, 8 correlated-Gaussian-bias, 6 raw-scale-likelihood). Not executed in this environment.
