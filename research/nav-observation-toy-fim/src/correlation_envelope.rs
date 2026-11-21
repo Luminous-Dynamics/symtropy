@@ -555,6 +555,72 @@ mod tests {
         assert_eq!(selected.total_cost_units, 2);
     }
 
+
+    #[test]
+    fn uncertain_correlation_changes_selection_from_precise_shared_pair_to_diverse_pair() {
+        let actions = vec![
+            CorrelatedRangeAction::independent("a-east-precise", 0.0, 0.1, 1),
+            CorrelatedRangeAction::independent(
+                "b-north-precise",
+                std::f64::consts::FRAC_PI_2,
+                0.1,
+                1,
+            ),
+            CorrelatedRangeAction::independent(
+                "c-diagonal-diverse",
+                std::f64::consts::FRAC_PI_4,
+                0.11,
+                1,
+            ),
+            CorrelatedRangeAction::independent(
+                "d-antidiagonal-diverse",
+                3.0 * std::f64::consts::FRAC_PI_4,
+                0.11,
+                1,
+            ),
+        ];
+        let ids = [
+            "a-east-precise",
+            "b-north-precise",
+            "c-diagonal-diverse",
+            "d-antidiagonal-diverse",
+        ];
+        let independence_assumption = complete_pair_scenario("rho-zero", &ids, None);
+        let shared_clock_hypothesis = complete_pair_scenario(
+            "shared-clock-a-b",
+            &ids,
+            Some(("a-east-precise", "b-north-precise", 0.9)),
+        );
+
+        let nominal = robust_select_correlation_envelope(
+            &actions,
+            &[independence_assumption.clone()],
+            2,
+        )
+        .unwrap();
+        assert_eq!(
+            nominal.action_ids,
+            vec!["a-east-precise".to_owned(), "b-north-precise".to_owned()]
+        );
+
+        let robust = robust_select_correlation_envelope(
+            &actions,
+            &[independence_assumption, shared_clock_hypothesis],
+            2,
+        )
+        .unwrap();
+        assert_eq!(
+            robust.action_ids,
+            vec![
+                "c-diagonal-diverse".to_owned(),
+                "d-antidiagonal-diverse".to_owned()
+            ]
+        );
+        assert!(robust.envelope.worst_case_minimum_eigenvalue > 82.0);
+        assert!(robust.envelope.worst_case_minimum_eigenvalue
+            > nominal.envelope.worst_case_minimum_eigenvalue * 0.82);
+    }
+
     #[test]
     fn robust_selector_is_deterministic_under_candidate_and_pair_permutation() {
         let actions = vec![
