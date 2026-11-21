@@ -126,3 +126,21 @@ The research kernel now includes `BeamProfileCell` and `reconcile_measured_beam_
 It does not silently renormalize an inconsistent map to force agreement. The synthetic fixture `research/cmni/fixtures/arbitrary-2d-beam-profile-faraday-reconciliation-synthetic.json` demonstrates a nonuniform map whose integrated current equals 1.0 µA and a 50%-mismatch negative control that should be rejected.
 
 Current limitations: this helper assumes a combined D+ / D2+ current-density map with uniform species fractions across cells. A production measured input should preserve species-resolved maps when available and support spatially varying species composition and energy distributions.
+
+
+## 10. Instrument response kernels and isotope-aware observability
+
+The reference crate now contains a separate `measurement.rs` module:
+- `DepthResponseKernel` stores a nominal sample depth and a caller-supplied normalized nonnegative response over latent depth cells.
+- `apply_depth_observation_operator` maps a latent profile to instrument-level observations.
+- The operator supports arbitrary row kernels; it does not assume a Gaussian or shift-invariant blur.
+
+This is deliberately an observation operator, not a simulator of any particular instrument. The instrument adapter must supply calibrated response rows, and separately model calibration, isotope selectivity, efficiency, background and covariance.
+
+Be careful with isotope selectivity:
+- The 6.385-MeV `1H(15N,αγ)12C` resonant NRA reaction measures **protium**, not deuterium.
+- A D-specific reaction such as `D(3He,p)alpha` has a separate energy/stopping/matrix response.
+- SIMS can distinguish H and D with suitable mass resolution, standards and matrix calibration.
+- Slow-positron depth response is an energy-dependent Makhovian distribution; lateral beam point-spread is a separate dimension.
+
+The approximately 50-µm PAS number cited in a 2025 Pd methods discussion is a spatial-resolution value, not a depth-resolution value. The current model docs now explicitly keep these axes separate.
