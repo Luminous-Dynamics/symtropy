@@ -35,6 +35,8 @@ pub struct ExpectedRunBinding {
     pub expected_evaluator_receipt_digest: Digest,
     /// Exact episode IDs and scenario identities frozen by the plan.
     pub planned_episodes: Vec<PlannedEpisode>,
+    /// Exclusion reason codes explicitly allowed by the preregistered plan.
+    pub permitted_exclusion_reason_codes: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -56,6 +58,7 @@ pub struct EpisodeReceipt {
 pub struct ExcludedEpisode {
     pub episode_id: String,
     pub scenario_id: String,
+    pub reason_code: String,
     pub reason: String,
 }
 
@@ -109,6 +112,7 @@ pub enum RunReceiptError {
     EmptyScenarioId,
     DuplicateEpisodeId,
     EmptyExclusionReason,
+    UnapprovedExclusionReason,
     DuplicateExcludedEpisodeId,
     EpisodeAlsoExcluded,
     EpisodeCountExceedsPlan,
@@ -239,6 +243,13 @@ pub fn validate_run_receipt(
         if !nonempty(&excluded.reason) {
             return Err(RunReceiptError::EmptyExclusionReason);
         }
+        if !nonempty(&excluded.reason_code)
+            || !expected
+                .permitted_exclusion_reason_codes
+                .contains(&excluded.reason_code)
+        {
+            return Err(RunReceiptError::UnapprovedExclusionReason);
+        }
         if !excluded_ids.insert(excluded.episode_id.as_str()) {
             return Err(RunReceiptError::DuplicateExcludedEpisodeId);
         }
@@ -311,6 +322,9 @@ mod tests {
             scenario_set_digest: digest(6),
             expected_evaluator_identity: "evaluator-v1".into(),
             expected_evaluator_receipt_digest: digest(7),
+            permitted_exclusion_reason_codes: vec![
+                "simulator_reset_before_policy_invocation".into(),
+            ],
             planned_episodes: vec![
                 PlannedEpisode {
                     episode_id: "episode-001".into(),
@@ -495,6 +509,7 @@ mod tests {
         run.excluded_episodes.push(ExcludedEpisode {
             episode_id: "episode-001".into(),
             scenario_id: "scenario-001".into(),
+            reason_code: "simulator_reset_before_policy_invocation".into(),
             reason: "excluded".into(),
         });
         assert_eq!(
@@ -535,6 +550,7 @@ mod tests {
         run.excluded_episodes.push(ExcludedEpisode {
             episode_id: "episode-003".into(),
             scenario_id: "scenario-003".into(),
+            reason_code: "simulator_reset_before_policy_invocation".into(),
             reason: "simulator reset failed before invocation".into(),
         });
         let result = validate_run_receipt(&binding, &run).expect("documented exclusion");
@@ -545,11 +561,46 @@ mod tests {
         run.excluded_episodes.push(ExcludedEpisode {
             episode_id: "episode-003".into(),
             scenario_id: "scenario-003".into(),
+            reason_code: "simulator_reset_before_policy_invocation".into(),
             reason: " ".into(),
         });
         assert_eq!(
             validate_run_receipt(&binding, &run),
             Err(RunReceiptError::EmptyExclusionReason)
+        );
+    }
+
+
+    #[test]
+    fn post_hoc_exclusion_reason_codes_are_rejected() {
+        let mut binding = expected();
+        binding.planned_episodes.push(PlannedEpisode {
+            episode_id: "episode-003".into(),
+            scenario_id: "scenario-003".into(),
+        });
+        let mut run = receipt();
+        run.excluded_episodes.push(ExcludedEpisode {
+            episode_id: "episode-003".into(),
+            scenario_id: "scenario-003".into(),
+            reason_code: "candidate_failed".into(),
+            reason: "candidate did not complete the task".into(),
+        });
+        assert_eq!(
+            validate_run_receipt(&binding, &run),
+            Err(RunReceiptError::UnapprovedExclusionReason)
+        );
+
+        let mut run = receipt();
+        run.excluded_episodes.push(ExcludedEpisode {
+            episode_id: "episode-003".into(),
+            scenario_id: "scenario-003".into(),
+            reason_code: "simulator_reset_before_policy_invocation".into(),
+            reason: "pre-invocation simulator reset failure".into(),
+        });
+        run.excluded_episodes[0].scenario_id = "wrong-scenario".into();
+        assert_eq!(
+            validate_run_receipt(&binding, &run),
+            Err(RunReceiptError::PlannedScenarioMismatch)
         );
     }
 
@@ -590,6 +641,7 @@ mod tests {
         run.excluded_episodes.push(ExcludedEpisode {
             episode_id: "unplanned-exclusion".into(),
             scenario_id: "scenario-003".into(),
+            reason_code: "simulator_reset_before_policy_invocation".into(),
             reason: "not in the frozen plan".into(),
         });
         assert_eq!(
