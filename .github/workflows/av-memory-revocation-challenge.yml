@@ -22,7 +22,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  QUALIFIED_SHA: ${{ env.QUALIFIED_SHA }}
+  QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
   fixture-integrity:
@@ -81,7 +81,55 @@ jobs:
                   assert refs and all(x in parents or x in known_items for x in refs), (episode["episode_id"], item["item_ref"])
                   known_items.add(item["item_ref"])
           PY
+      - name: Validate candidate submission and scorecard schemas
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-memory-revocation-challenge-v0/"
+          submission_schema = json.load(open(base + "schemas/submission-v1.schema.json", encoding="utf-8"))
+          scorecard_schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          for schema in (submission_schema, scorecard_schema):
+              Draft202012Validator.check_schema(schema)
+          submission = json.load(open(base + "fixtures/agent/reference-submission-v1.json", encoding="utf-8"))
+          Draft202012Validator(submission_schema).validate(submission)
+          PY
+      - name: Run revocation evaluator unit and adversarial tests
+        run: python -m unittest discover -s tools/av-modality-necessity-evaluator -p "test_evaluate_revocation.py" -v
+      - name: Score reference revocation submission
+        run: |
+          python tools/av-modality-necessity-evaluator/evaluate_revocation.py \
+            --workload research/av-memory-revocation-challenge-v0/fixtures/agent/workload-v1.json \
+            --truth research/av-memory-revocation-challenge-v0/fixtures/evaluator-only/truth-v1.json \
+            --submission research/av-memory-revocation-challenge-v0/fixtures/agent/reference-submission-v1.json \
+            --output /tmp/av-memory-revocation-scorecard.json
+      - name: Validate revocation scorecard known answers
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-memory-revocation-challenge-v0/"
+          schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          actual = json.load(open("/tmp/av-memory-revocation-scorecard.json", encoding="utf-8"))
+          expected = json.load(open(base + "fixtures/expected/reference-scorecard-v1.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(actual)
+          assert actual["totals"] == expected["totals"], (actual["totals"], expected["totals"])
+          assert actual["interpretation"]["storage_erasure_status"] == "not_independently_verified"
+          assert all(not row["violations"] for row in actual["per_episode"])
+          PY
       - name: Require coverage of all declared residual attack paths
+
+        run: |
+          python - <<'PY'
+          import json
+          p = "research/av-memory-revocation-challenge-v0/fixtures/agent/workload-v1.json"
+          doc = json.load(open(p, encoding="utf-8"))
+          kinds = {probe["kind"] for ep in doc["episodes"] for probe in ep["probes"]}
+          required = {"direct", "paraphrase", "nearest_neighbor", "cache_replay", "restart", "cross_modal", "replica_recall", "unrelated_control"}
+          assert required <= kinds, sorted(required - kinds)
+          assert any(probe["stage"] == "unrelated_control" for ep in doc["episodes"] for probe in ep["probes"])
+          PY
+
         run: |
           python - <<'PY'
           import json
