@@ -1849,3 +1849,33 @@ mod tests {
     }
 
 }
+
+#[cfg(test)]
+mod moving_gcl_contract_tests {
+    use super::*;
+
+    #[test]
+    fn moving_mesh_gcl_benchmark_passes_declared_contract() {
+        let value: Value = serde_json::from_str(EMBEDDED_GCL_BENCHMARK)
+            .expect("embedded moving-mesh GCL benchmark must be valid JSON");
+        assert!(audit_gcl_benchmark(&value).is_empty());
+    }
+
+    #[test]
+    fn moving_mesh_gcl_claim_cannot_be_promoted_to_general_ale_validation() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_GCL_BENCHMARK).unwrap();
+        value["limitations"] = Value::Array(Vec::new());
+        assert!(audit_gcl_benchmark(&value).iter().any(|finding| {
+            finding.starts_with("GCL_CLAIM_BOUNDARY")
+        }));
+    }
+
+    #[test]
+    fn moving_mesh_gcl_requires_case_specific_tolerances() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_GCL_BENCHMARK).unwrap();
+        value["acceptance"]["universal_numeric_tolerance"] = Value::from(1.0e-6);
+        assert!(audit_gcl_benchmark(&value).iter().any(|finding| {
+            finding.starts_with("GCL_TOLERANCE_AND_LEDGER_POLICY")
+        }));
+    }
+}
