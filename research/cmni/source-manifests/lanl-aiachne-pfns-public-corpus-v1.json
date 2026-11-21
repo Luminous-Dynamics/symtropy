@@ -1,0 +1,203 @@
+{
+  "schema_version": "1.0.0",
+  "title": "Public LANL AIACHNE PFNS source-corpus inventory",
+  "status": "catalogue_only_not_data_admission",
+  "source": {
+    "repository": "https://github.com/lanl/sparse_bias",
+    "branch": "main",
+    "commit": "190a4e97ac21de4f33b42e49733e62c45d515e75",
+    "commit_date": "2026-07-20T16:59:22Z",
+    "data_directory": "AIACHNE/Data_LA-UR-25-31736/",
+    "readme_license_statement": "README states BSD-3 License; verify applicable rights and notices before redistribution."
+  },
+  "scope": {
+    "json_experiment_files": 21,
+    "pointwise_reference_files": 1,
+    "total_files": 22,
+    "total_bytes": 1508795,
+    "note": "This is the original public AIACHNE corpus in the LANL sparse_bias repository. It is distinct from the seven Neudecker 2025 supplementary artifacts and from NMF-90."
+  },
+  "identity_semantics": {
+    "git_blob_sha1": "Git object identity reported by the GitHub Contents API; not a SHA-256 digest.",
+    "sha256": "Must be computed from exact materialized bytes before data-admission status can advance.",
+    "validation": "File identity and byte size do not establish scientific validity, metadata completeness, covariance interpretation, or fitness for a benchmark."
+  },
+  "files": [
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/Eval_MvUncCf252PFNS_AfterAIACHNEKnowledgePointwise_Upd20250908.dat",
+      "size_bytes": 3198,
+      "git_blob_sha1": "61967b0be2074f5199828006b5dcab1830421788",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Bao1989.json",
+      "size_bytes": 31887,
+      "git_blob_sha1": "cf184e20271c7f08b96f6ff38df6c847d1835048",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Blain2017highEout.json",
+      "size_bytes": 11440,
+      "git_blob_sha1": "3fad353838e98a7bb08a038521612ca8623a3d70",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Blain2017lowEout.json",
+      "size_bytes": 12076,
+      "git_blob_sha1": "ddc27e8bebb1bac325aa0dacf5a788028c385626",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Blinov1973.json",
+      "size_bytes": 121809,
+      "git_blob_sha1": "6b3360de135009da64fe699ac39cff08a10363ea",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Blinov1980002.json",
+      "size_bytes": 102757,
+      "git_blob_sha1": "aefd6b13656e2ea90bf727b15d14a6fa22774b36",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Blinov1980003.json",
+      "size_bytes": 58916,
+      "git_blob_sha1": "d9f85c4701ce2ec9a0e0522aaca58e417ff331a0",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Blinov1980004.json",
+      "size_bytes": 128786,
+      "git_blob_sha1": "437d4df0c44f72145b9e92200545a0a6c78ad52e",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Blinov1980005.json",
+      "size_bytes": 146192,
+      "git_blob_sha1": "f70d688d9767512e2719e8ad705202efb467d315",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Boettger1990.json",
+      "size_bytes": 82971,
+      "git_blob_sha1": "2a1b674e1cf6f5b182dfdb927f8e91fca087d2ae",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Boldeman1986highEout.json",
+      "size_bytes": 80347,
+      "git_blob_sha1": "0a6c92990606e21cc7a0c1535266aca16876d1e8",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Boldeman1986lowEout.json",
+      "size_bytes": 25537,
+      "git_blob_sha1": "0e3962c318fdf935fccfb7329814bfe8cf3b344a",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Boytsov1983003.json",
+      "size_bytes": 20291,
+      "git_blob_sha1": "3f5b7e8de0cbbd8a0650eb3f0bcb46aaff649a7f",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Boytsov1983004.json",
+      "size_bytes": 20311,
+      "git_blob_sha1": "d11228d1fb06efe5b237d8cb228f80ff48804981",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Boytsov1983ant.json",
+      "size_bytes": 70439,
+      "git_blob_sha1": "23537ede0253b5217f6ccc6dc898400ee5d8f679",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Chalupka1990.json",
+      "size_bytes": 24693,
+      "git_blob_sha1": "773d97899647dae1464d377ff7431e7bb51a07a1",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Knitter1973003.json",
+      "size_bytes": 174786,
+      "git_blob_sha1": "4849a3cb68b5aa8263df5133197d929bc105abb2",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Kornilov2015.json",
+      "size_bytes": 174393,
+      "git_blob_sha1": "53284095187ad723fe5d06e7d63d54c1ae9ef21a",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Lajtai1990.json",
+      "size_bytes": 111158,
+      "git_blob_sha1": "88f52e41d94a2af2f99b84f4c68f42847515581e",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Maerten1990_0deg.json",
+      "size_bytes": 19928,
+      "git_blob_sha1": "495c4655e9f75533102aa2c29c19795740a0f042",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Maerten1990_60deg.json",
+      "size_bytes": 19904,
+      "git_blob_sha1": "ddfd9ea8cefd9fdf2d92b639470343eea1cd2c78",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Poenitz1982.json",
+      "size_bytes": 66976,
+      "git_blob_sha1": "18483c2b20a27c92331b7adc12a40011211214be",
+      "sha256": null,
+      "byte_retrieval_status": "not_materialized",
+      "sha256_status": "pending_byte_level_verification"
+    }
+  ]
+}
