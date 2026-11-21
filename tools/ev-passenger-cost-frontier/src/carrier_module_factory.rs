@@ -152,8 +152,16 @@ pub fn validate_and_evaluate(
     let mut base_scenarios = base.results.clone();
     let mut configs = modules.configurations.clone();
     base_scenarios.sort_by(|left, right| {
-        (&left.site_id, &left.template_id, left.target_good_vehicles_per_year)
-            .cmp(&(&right.site_id, &right.template_id, right.target_good_vehicles_per_year))
+        (
+            &left.site_id,
+            &left.template_id,
+            left.target_good_vehicles_per_year,
+        )
+            .cmp(&(
+                &right.site_id,
+                &right.template_id,
+                right.target_good_vehicles_per_year,
+            ))
     });
     configs.sort_by(|left, right| left.config_id.cmp(&right.config_id));
     let mut results = Vec::new();
@@ -180,9 +188,7 @@ fn validate_inputs(
     if base.schema_version != "0.1.0" || base.benchmark_id != "EV-FACTORY-DESIGN-001" {
         errors.push("unsupported_base_factory_report".into());
     }
-    if modules.schema_version != "0.1.0"
-        || modules.benchmark_id != "EV-CARRIER-MODULE-MFG-001"
-    {
+    if modules.schema_version != "0.1.0" || modules.benchmark_id != "EV-CARRIER-MODULE-MFG-001" {
         errors.push("unsupported_module_process_schema_or_benchmark".into());
     }
     if modules.claim_ceiling.trim().is_empty()
@@ -202,7 +208,9 @@ fn validate_inputs(
             scenario.target_good_vehicles_per_year,
         );
         if !base_keys.insert(key) {
-            errors.push(format!("base.results[{index}]: duplicate scenario identity"));
+            errors.push(format!(
+                "base.results[{index}]: duplicate scenario identity"
+            ));
         }
         if scenario.site_id.trim().is_empty()
             || scenario.template_id.trim().is_empty()
@@ -223,14 +231,18 @@ fn validate_inputs(
     let mut config_ids = BTreeSet::new();
     for (index, config) in modules.configurations.iter().enumerate() {
         if config.config_id.trim().is_empty() || !config_ids.insert(config.config_id.as_str()) {
-            errors.push(format!("configurations[{index}].config_id: nonempty unique identity required"));
+            errors.push(format!(
+                "configurations[{index}].config_id: nonempty unique identity required"
+            ));
         }
         if config.architecture.trim().is_empty()
             || config.evidence_reference.trim().is_empty()
             || config.notes.is_empty()
             || config.notes.iter().any(|note| note.trim().is_empty())
         {
-            errors.push(format!("configurations[{index}]: architecture, reference and notes are required"));
+            errors.push(format!(
+                "configurations[{index}]: architecture, reference and notes are required"
+            ));
         }
         if config.modules_per_good_vehicle == 0
             || config.modules_per_good_vehicle > MAX_MODULES_PER_VEHICLE
@@ -241,11 +253,15 @@ fn validate_inputs(
         }
         if let Some(yield_fraction) = config.good_module_yield_fraction {
             if !yield_fraction.is_finite() || yield_fraction <= 0.0 || yield_fraction > 1.0 {
-                errors.push(format!("configurations[{index}].good_module_yield_fraction: invalid fraction"));
+                errors.push(format!(
+                    "configurations[{index}].good_module_yield_fraction: invalid fraction"
+                ));
             }
         }
         if config.station_processes.is_empty() || config.station_processes.len() > MAX_STATIONS {
-            errors.push(format!("configurations[{index}].station_processes: expected 1..={MAX_STATIONS}"));
+            errors.push(format!(
+                "configurations[{index}].station_processes: expected 1..={MAX_STATIONS}"
+            ));
         }
         let mut process_ids = BTreeSet::new();
         for (station_index, station) in config.station_processes.iter().enumerate() {
@@ -256,44 +272,72 @@ fn validate_inputs(
                 errors.push(format!("configurations[{index}].station_processes[{station_index}]: process identity/label must be nonempty and unique"));
             }
             for (field, value) in [
-                ("cycle_minutes_per_attempt", station.cycle_minutes_per_attempt),
-                ("equipment_capex_usd_per_cell", station.equipment_capex_usd_per_cell),
+                (
+                    "cycle_minutes_per_attempt",
+                    station.cycle_minutes_per_attempt,
+                ),
+                (
+                    "equipment_capex_usd_per_cell",
+                    station.equipment_capex_usd_per_cell,
+                ),
                 ("footprint_sqm_per_cell", station.footprint_sqm_per_cell),
                 ("energy_kwh_per_attempt", station.energy_kwh_per_attempt),
-                ("thermal_energy_kwh_per_attempt", station.thermal_energy_kwh_per_attempt),
+                (
+                    "thermal_energy_kwh_per_attempt",
+                    station.thermal_energy_kwh_per_attempt,
+                ),
             ] {
                 if let Some(value) = value {
                     if !value.is_finite() || value < 0.0 || value > 1_000_000.0 {
-                        errors.push(format!("configurations[{index}].{field}: must be finite and nonnegative"));
+                        errors.push(format!(
+                            "configurations[{index}].{field}: must be finite and nonnegative"
+                        ));
                     }
                 }
             }
-            if station.maximum_parallel_cells_available.is_some_and(|value| value > 1_000_000) {
-                errors.push(format!("configurations[{index}].maximum_parallel_cells_available: exceeds v1 limit"));
+            if station
+                .maximum_parallel_cells_available
+                .is_some_and(|value| value > 1_000_000)
+            {
+                errors.push(format!(
+                    "configurations[{index}].maximum_parallel_cells_available: exceeds v1 limit"
+                ));
             }
-            if station.operators_per_cell_per_shift.is_some_and(|value| value > 10_000) {
-                errors.push(format!("configurations[{index}].operators_per_cell_per_shift: exceeds v1 limit"));
+            if station
+                .operators_per_cell_per_shift
+                .is_some_and(|value| value > 10_000)
+            {
+                errors.push(format!(
+                    "configurations[{index}].operators_per_cell_per_shift: exceeds v1 limit"
+                ));
             }
-            if station.cycle_minutes_per_attempt.is_some_and(|value| value <= 0.0) {
-                errors.push(format!("configurations[{index}].cycle_minutes_per_attempt: must be positive"));
+            if station
+                .cycle_minutes_per_attempt
+                .is_some_and(|value| value <= 0.0)
+            {
+                errors.push(format!(
+                    "configurations[{index}].cycle_minutes_per_attempt: must be positive"
+                ));
             }
         }
     }
-    if errors.is_empty() { Ok(()) } else { Err(errors) }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
 }
 
 fn ceil_div_u64(numerator: u64, denominator: u64) -> Option<u64> {
     if denominator == 0 {
         return None;
     }
-    numerator.checked_add(denominator - 1).map(|value| value / denominator)
+    numerator
+        .checked_add(denominator - 1)
+        .map(|value| value / denominator)
 }
 
-fn required_cells(
-    cycle_minutes: f64,
-    attempts: u64,
-    productive_minutes: f64,
-) -> Option<u64> {
+fn required_cells(cycle_minutes: f64, attempts: u64, productive_minutes: f64) -> Option<u64> {
     let ratio = cycle_minutes * attempts as f64 / productive_minutes;
     if !ratio.is_finite() || ratio > MAX_CELLS_PER_STATION {
         return None;
@@ -302,12 +346,16 @@ fn required_cells(
 }
 
 fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> ScenarioResult {
-    let target_good_modules = u64::from(config.modules_per_good_vehicle)
-        .checked_mul(base.target_good_vehicles_per_year);
+    let target_good_modules =
+        u64::from(config.modules_per_good_vehicle).checked_mul(base.target_good_vehicles_per_year);
     let attempts = match (target_good_modules, config.good_module_yield_fraction) {
         (Some(target), Some(yield_fraction)) => {
             let value = (target as f64 / yield_fraction).ceil();
-            if value.is_finite() && value <= u64::MAX as f64 { Some(value as u64) } else { None }
+            if value.is_finite() && value <= u64::MAX as f64 {
+                Some(value as u64)
+            } else {
+                None
+            }
         }
         _ => None,
     };
@@ -335,33 +383,51 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
     for station in stations {
         let mut missing = Vec::new();
         let required = match (station.cycle_minutes_per_attempt, attempts) {
-            (Some(cycle), Some(attempts)) => required_cells(
-                cycle,
-                attempts,
-                base.productive_minutes_per_cell_year,
-            ),
+            (Some(cycle), Some(attempts)) => {
+                required_cells(cycle, attempts, base.productive_minutes_per_cell_year)
+            }
             _ => None,
         };
         let cells = match (required, station.maximum_parallel_cells_available) {
             (Some(required), Some(available)) => Some(required.min(u64::from(available))),
             _ => None,
         };
-        if station.cycle_minutes_per_attempt.is_none() { missing.push("cycle_minutes_per_attempt".into()); }
-        if station.equipment_capex_usd_per_cell.is_none() { missing.push("equipment_capex_usd_per_cell".into()); }
-        if station.footprint_sqm_per_cell.is_none() { missing.push("footprint_sqm_per_cell".into()); }
-        if station.operators_per_cell_per_shift.is_none() { missing.push("operators_per_cell_per_shift".into()); }
-        if station.maximum_parallel_cells_available.is_none() { missing.push("maximum_parallel_cells_available".into()); }
-        if station.energy_kwh_per_attempt.is_none() { missing.push("energy_kwh_per_attempt".into()); }
-        if station.thermal_energy_kwh_per_attempt.is_none() { missing.push("thermal_energy_kwh_per_attempt".into()); }
+        if station.cycle_minutes_per_attempt.is_none() {
+            missing.push("cycle_minutes_per_attempt".into());
+        }
+        if station.equipment_capex_usd_per_cell.is_none() {
+            missing.push("equipment_capex_usd_per_cell".into());
+        }
+        if station.footprint_sqm_per_cell.is_none() {
+            missing.push("footprint_sqm_per_cell".into());
+        }
+        if station.operators_per_cell_per_shift.is_none() {
+            missing.push("operators_per_cell_per_shift".into());
+        }
+        if station.maximum_parallel_cells_available.is_none() {
+            missing.push("maximum_parallel_cells_available".into());
+        }
+        if station.energy_kwh_per_attempt.is_none() {
+            missing.push("energy_kwh_per_attempt".into());
+        }
+        if station.thermal_energy_kwh_per_attempt.is_none() {
+            missing.push("thermal_energy_kwh_per_attempt".into());
+        }
 
         let capacity = match (cells, station.cycle_minutes_per_attempt) {
             (Some(cells), Some(cycle)) => {
                 let raw = base.productive_minutes_per_cell_year * cells as f64 / cycle;
-                if raw.is_finite() && raw <= u64::MAX as f64 { Some(raw.floor() as u64) } else { None }
+                if raw.is_finite() && raw <= u64::MAX as f64 {
+                    Some(raw.floor() as u64)
+                } else {
+                    None
+                }
             }
             _ => None,
         };
-        if let Some(value) = capacity { station_capacities.push(value); }
+        if let Some(value) = capacity {
+            station_capacities.push(value);
+        }
         if let Some(value) = cells {
             total_cells = total_cells.saturating_add(value);
         }
@@ -371,20 +437,29 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
         };
         if let Some(value) = station_operators {
             total_operators = total_operators.saturating_add(value);
-            total_positions = total_positions.saturating_add(value * u64::from(base.shifts_per_day));
+            total_positions =
+                total_positions.saturating_add(value * u64::from(base.shifts_per_day));
         }
         let area = match (cells, station.footprint_sqm_per_cell) {
             (Some(cells), Some(area)) => Some(area * cells as f64),
             _ => None,
         };
-        if let Some(value) = area { total_area += value; }
+        if let Some(value) = area {
+            total_area += value;
+        }
         let capex = match (cells, station.equipment_capex_usd_per_cell) {
             (Some(cells), Some(capex)) => Some(capex * cells as f64),
             _ => None,
         };
-        if let Some(value) = capex { total_capex += value; }
-        if let Some(value) = station.energy_kwh_per_attempt { total_energy_per_attempt += value; }
-        if let Some(value) = station.thermal_energy_kwh_per_attempt { total_thermal_per_attempt += value; }
+        if let Some(value) = capex {
+            total_capex += value;
+        }
+        if let Some(value) = station.energy_kwh_per_attempt {
+            total_energy_per_attempt += value;
+        }
+        if let Some(value) = station.thermal_energy_kwh_per_attempt {
+            total_thermal_per_attempt += value;
+        }
 
         station_results.push(StationResult {
             process_id: station.process_id.clone(),
@@ -394,8 +469,9 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
             maximum_parallel_cells_available: station.maximum_parallel_cells_available,
             parallel_cells_sized: cells,
             planned_attempt_capacity_per_year: capacity,
-            good_module_capacity_per_year: capacity.zip(config.good_module_yield_fraction)
-                .map(|(capacity, yield_fraction)| (capacity as f64 * yield_fraction).floor() as u64),
+            good_module_capacity_per_year: capacity.zip(config.good_module_yield_fraction).map(
+                |(capacity, yield_fraction)| (capacity as f64 * yield_fraction).floor() as u64,
+            ),
             equipment_capex_usd: capex,
             operators_per_shift: station_operators,
             active_positions_across_shifts: station_operators
@@ -422,11 +498,16 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
     let carrier_capacity = bottleneck_good_capacity
         .map(|modules| modules / u64::from(config.modules_per_good_vehicle));
     let capacity_margin = carrier_capacity.and_then(|capacity| {
-        i64::try_from(capacity).ok()?.checked_sub(i64::try_from(base.target_good_vehicles_per_year).ok()?)
+        i64::try_from(capacity)
+            .ok()?
+            .checked_sub(i64::try_from(base.target_good_vehicles_per_year).ok()?)
     });
     let capacity_blocker = capacity_margin.is_some_and(|margin| margin < 0);
 
-    let missing_any = !missing_fields.is_empty() || station_results.iter().any(|station| !station.missing_fields.is_empty());
+    let missing_any = !missing_fields.is_empty()
+        || station_results
+            .iter()
+            .any(|station| !station.missing_fields.is_empty());
     let mut findings = Vec::new();
     if capacity_blocker {
         findings.push("module_process_capacity_cannot_support_base_vehicle_output".into());
@@ -454,14 +535,26 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
 
     let target_good_modules = target_good_modules;
     let attempts = attempts;
-    let all_cells_known = station_results.iter().all(|station| station.parallel_cells_sized.is_some());
+    let all_cells_known = station_results
+        .iter()
+        .all(|station| station.parallel_cells_sized.is_some());
     let cells_total = all_cells_known.then_some(total_cells);
-    let operators_total = station_results.iter().all(|station| station.operators_per_shift.is_some())
+    let operators_total = station_results
+        .iter()
+        .all(|station| station.operators_per_shift.is_some())
         .then_some(total_operators);
-    let positions_total = station_results.iter().all(|station| station.active_positions_across_shifts.is_some())
+    let positions_total = station_results
+        .iter()
+        .all(|station| station.active_positions_across_shifts.is_some())
         .then_some(total_positions);
-    let area_total = station_results.iter().all(|station| station.footprint_sqm.is_some()).then_some(total_area);
-    let capex_total = station_results.iter().all(|station| station.equipment_capex_usd.is_some()).then_some(total_capex);
+    let area_total = station_results
+        .iter()
+        .all(|station| station.footprint_sqm.is_some())
+        .then_some(total_area);
+    let capex_total = station_results
+        .iter()
+        .all(|station| station.equipment_capex_usd.is_some())
+        .then_some(total_capex);
     let all_energy_known = station_results
         .iter()
         .all(|station| station.energy_kwh_per_attempt.is_some());
@@ -584,8 +677,10 @@ mod tests {
         low.good_module_yield_fraction = Some(0.80);
         let high_result = evaluate_pair(&base(), &high);
         let low_result = evaluate_pair(&base(), &low);
-        assert!(low_result.planned_module_attempts_per_year.unwrap()
-            > high_result.planned_module_attempts_per_year.unwrap());
+        assert!(
+            low_result.planned_module_attempts_per_year.unwrap()
+                > high_result.planned_module_attempts_per_year.unwrap()
+        );
     }
 
     #[test]
@@ -595,7 +690,12 @@ mod tests {
         test.station_processes[0].cycle_minutes_per_attempt = None;
         let result = evaluate_pair(&base(), &test);
         assert_eq!(result.status, Status::Indeterminate);
-        assert!(result.missing_fields.iter().any(|field| field == "good_module_yield_fraction"));
+        assert!(
+            result
+                .missing_fields
+                .iter()
+                .any(|field| field == "good_module_yield_fraction")
+        );
         assert!(result.equivalent_good_vehicle_capacity_per_year.is_none());
     }
 
@@ -616,8 +716,10 @@ mod tests {
         high.target_good_vehicles_per_year = 10_000;
         let low_result = evaluate_pair(&low, &config());
         let high_result = evaluate_pair(&high, &config());
-        assert!(high_result.additional_parallel_cells.unwrap()
-            >= low_result.additional_parallel_cells.unwrap());
+        assert!(
+            high_result.additional_parallel_cells.unwrap()
+                >= low_result.additional_parallel_cells.unwrap()
+        );
     }
 
     #[test]
@@ -663,9 +765,12 @@ mod tests {
         assert_eq!(result.status, Status::Indeterminate);
         assert_eq!(result.equivalent_good_vehicle_capacity_per_year, None);
         assert_eq!(result.additional_parallel_cells, None);
-        assert!(result.missing_fields.iter().any(|field| {
-            field == "assembly:maximum_parallel_cells_available"
-        }));
+        assert!(
+            result
+                .missing_fields
+                .iter()
+                .any(|field| { field == "assembly:maximum_parallel_cells_available" })
+        );
     }
 
     #[test]
@@ -674,14 +779,21 @@ mod tests {
         test.station_processes[0].equipment_capex_usd_per_cell = None;
         let result = evaluate_pair(&base(), &test);
         assert_eq!(result.status, Status::Indeterminate);
-        assert!(result.stations.iter().any(|station| station.missing_fields.contains(&"equipment_capex_usd_per_cell".into())));
+        assert!(result.stations.iter().any(|station| {
+            station
+                .missing_fields
+                .contains(&"equipment_capex_usd_per_cell".into())
+        }));
         assert!(result.additional_equipment_capex_usd.is_none());
     }
 
     #[test]
     fn rejects_unknown_json_fields() {
         let mut value = serde_json::to_value(config()).expect("serialize");
-        value.as_object_mut().unwrap().insert("pretend_release".into(), serde_json::json!(true));
+        value
+            .as_object_mut()
+            .unwrap()
+            .insert("pretend_release".into(), serde_json::json!(true));
         assert!(serde_json::from_value::<ModuleConfiguration>(value).is_err());
     }
 }
