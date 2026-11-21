@@ -35,6 +35,8 @@ pub struct HorseshoeHmcDraw {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct HorseshoeHmcChain {
+    /// Seed used for the chain's momentum stream.
+    pub seed: u64,
     pub draws: Vec<HorseshoeHmcDraw>,
     pub transitions: usize,
     pub accepted_transitions: usize,
@@ -154,6 +156,7 @@ pub fn run_horseshoe_hmc_chain(
     }
 
     Ok(HorseshoeHmcChain {
+        seed: config.seed,
         draws,
         transitions,
         accepted_transitions,
@@ -414,6 +417,7 @@ mod tests {
             hamiltonian_energy: 4.0,
         };
         let chain = HorseshoeHmcChain {
+            seed: 42,
             draws: vec![draw.clone(); 8],
             transitions: 8,
             accepted_transitions: 8,
@@ -426,6 +430,7 @@ mod tests {
     #[test]
     fn split_rhat_detects_separated_chains() {
         let first = HorseshoeHmcChain {
+            seed: 100,
             draws: (0..8).map(|_| HorseshoeHmcDraw {
                 coefficients: vec![0.0],
                 log_local_scales: vec![0.0],
@@ -439,6 +444,7 @@ mod tests {
             acceptance_rate: 1.0,
         };
         let second = HorseshoeHmcChain {
+            seed: 101,
             draws: (0..8).map(|_| HorseshoeHmcDraw {
                 coefficients: vec![10.0],
                 log_local_scales: vec![0.0],
