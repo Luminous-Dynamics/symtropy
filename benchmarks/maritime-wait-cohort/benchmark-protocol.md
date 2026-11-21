@@ -91,7 +91,9 @@ Five cohorts and 25 calls cover:
 - multiple competing outcomes at the same wait duration;
 - a berth outcome observed only after the historical cutoff.
 
-Administrative and reporting-lag censoring are counted separately.\n\nIndependent golden tests pin:
+Administrative and reporting-lag censoring are counted separately.
+
+Independent golden tests pin:
 - call/outcome/censor counts;
 - total vessel-tick exposure;
 - selected exact risk sets;
@@ -128,7 +130,8 @@ Before any real-port metrics are published:
 5. Keep diversion/cancellation as competing causes.
 6. Validate call cohorts against independent port/terminal totals and reconcile with the conserved backlog ledger.
 7. Stratify by terminal, vessel size, trade/service, cargo class and disruption regime; use time/terminal held-out windows.
-8. For algorithm comparisons, replay only information available at each decision time and compare the same disturbance realizations.\n9. Measure source reporting delay by outcome, terminal and congestion regime; test censoring independence and quantify sensitivity to informative censoring.
+8. For algorithm comparisons, replay only information available at each decision time and compare the same disturbance realizations.
+9. Measure source reporting delay by outcome, terminal and congestion regime; test censoring independence and quantify sensitivity to informative censoring.
 
 ## 10. Claim ceiling
 
