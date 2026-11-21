@@ -239,6 +239,259 @@ pub fn inspect_run_partition_leakage(
     Ok(leakage)
 }
 
+
+pub const TEP_SCENARIO_IDS: [u8; 21] = [
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DiagnosisDisposition {
+    Correct,
+    ConfidentWrong,
+    SafeDeferral,
+    NotAttempted,
+    NotApplicable,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TepOnsetRecord {
+    pub run_id: String,
+    /// Some(1..=21) for fault runs; None for normal-operation exposure.
+    pub scenario_id: Option<u8>,
+    /// First detection delay from the ground-truth fault onset. None means no detection.
+    pub detection_delay_ns: Option<u64>,
+    /// Correctness/deferral label comes from independent ground truth, not this evaluator.
+    pub diagnosis: DiagnosisDisposition,
+    /// False-alarm events and exposure are recorded on normal-operation runs only.
+    pub normal_false_alarm_count: u32,
+    pub normal_exposure_ns: u64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TepScenarioOnsetMetrics {
+    pub scenario_id: u8,
+    pub fault_run_count: usize,
+    pub detected_run_count: usize,
+    pub detection_recall: f64,
+    pub confident_wrong_count: usize,
+    pub safe_deferral_count: usize,
+    pub diagnosis_coverage: Option<f64>,
+    pub selective_diagnosis_accuracy: Option<f64>,
+    pub mean_detection_delay_ns: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TepOnsetMetrics {
+    pub evaluation_horizon_ns: u64,
+    pub fault_run_count: usize,
+    pub detected_fault_run_count: usize,
+    pub detection_recall: f64,
+    pub confident_wrong_count: usize,
+    pub confident_wrong_rate_detected: Option<f64>,
+    pub safe_deferral_count: usize,
+    pub safe_deferral_rate_detected: Option<f64>,
+    pub diagnosis_coverage: Option<f64>,
+    pub selective_diagnosis_accuracy: Option<f64>,
+    pub mean_detection_delay_ns: Option<f64>,
+    pub normal_false_alarm_count: u64,
+    pub normal_exposure_hours: f64,
+    pub false_alarm_rate_per_normal_hour: f64,
+    pub scenarios: Vec<TepScenarioOnsetMetrics>,
+}
+
+/// Evaluate one pre-registered post-onset horizon over all 21 TEP fault scenarios.
+///
+/// The caller supplies detection and diagnosis outcomes already adjudicated against
+/// independent labels. This function checks denominators, outcome consistency,
+/// run identity and horizon bounds; it does not inspect model output or labels.
+pub fn evaluate_tep_onset_horizon(
+    records: &[TepOnsetRecord],
+    evaluation_horizon_ns: u64,
+) -> Result<TepOnsetMetrics, String> {
+    if evaluation_horizon_ns == 0 {
+        return Err("evaluation horizon must be greater than zero".to_owned());
+    }
+    if records.is_empty() {
+        return Err("TEP onset evaluation must contain records".to_owned());
+    }
+
+    let mut run_ids = BTreeSet::new();
+    let mut scenario_records: std::collections::BTreeMap<u8, Vec<&TepOnsetRecord>> =
+        std::collections::BTreeMap::new();
+    let mut normal_false_alarm_count = 0u64;
+    let mut normal_exposure_ns = 0u64;
+    let mut normal_run_count = 0usize;
+
+    for record in records {
+        if record.run_id.trim().is_empty() {
+            return Err("TEP record run ID must not be empty".to_owned());
+        }
+        if !run_ids.insert(record.run_id.clone()) {
+            return Err(format!("duplicate TEP run ID {:?}", record.run_id));
+        }
+        match record.scenario_id {
+            Some(scenario_id) => {
+                if !(1..=21).contains(&scenario_id) {
+                    return Err(format!("invalid TEP fault scenario ID {scenario_id}"));
+                }
+                if record.normal_false_alarm_count != 0 || record.normal_exposure_ns != 0 {
+                    return Err(format!(
+                        "fault run {:?} must not contribute normal-operation exposure",
+                        record.run_id
+                    ));
+                }
+                match (record.detection_delay_ns, record.diagnosis) {
+                    (None, DiagnosisDisposition::NotAttempted) => {}
+                    (Some(delay), disposition)
+                        if delay <= evaluation_horizon_ns
+                            && matches!(
+                                disposition,
+                                DiagnosisDisposition::Correct
+                                    | DiagnosisDisposition::ConfidentWrong
+                                    | DiagnosisDisposition::SafeDeferral
+                            ) => {}
+                    (Some(delay), _) if delay > evaluation_horizon_ns => {
+                        return Err(format!(
+                            "detection delay for run {:?} exceeds the evaluation horizon",
+                            record.run_id
+                        ));
+                    }
+                    _ => {
+                        return Err(format!(
+                            "fault run {:?} has an inconsistent detection/diagnosis disposition",
+                            record.run_id
+                        ));
+                    }
+                }
+                scenario_records
+                    .entry(scenario_id)
+                    .or_default()
+                    .push(record);
+            }
+            None => {
+                if record.detection_delay_ns.is_some()
+                    || record.diagnosis != DiagnosisDisposition::NotApplicable
+                {
+                    return Err(format!(
+                        "normal run {:?} must not carry fault detection or diagnosis",
+                        record.run_id
+                    ));
+                }
+                if record.normal_exposure_ns == 0 {
+                    return Err(format!(
+                        "normal run {:?} must have positive exposure",
+                        record.run_id
+                    ));
+                }
+                normal_run_count += 1;
+                normal_false_alarm_count += u64::from(record.normal_false_alarm_count);
+                normal_exposure_ns = normal_exposure_ns
+                    .checked_add(record.normal_exposure_ns)
+                    .ok_or_else(|| "normal exposure nanosecond sum overflowed".to_owned())?;
+            }
+        }
+    }
+
+    if normal_run_count == 0 || normal_exposure_ns == 0 {
+        return Err("at least one normal-operation run with positive exposure is required".to_owned());
+    }
+    let missing: Vec<u8> = TEP_SCENARIO_IDS
+        .iter()
+        .copied()
+        .filter(|scenario| !scenario_records.contains_key(scenario))
+        .collect();
+    if !missing.is_empty() {
+        return Err(format!("TEP evaluation is missing scenarios {missing:?}"));
+    }
+
+    let mut fault_run_count = 0usize;
+    let mut detected_fault_run_count = 0usize;
+    let mut confident_wrong_count = 0usize;
+    let mut safe_deferral_count = 0usize;
+    let mut correct_diagnosis_count = 0usize;
+    let mut attempted_diagnosis_count = 0usize;
+    let mut detection_delay_sum = 0u128;
+    let mut detection_delay_count = 0usize;
+    let mut scenarios = Vec::with_capacity(TEP_SCENARIO_IDS.len());
+
+    for scenario_id in TEP_SCENARIO_IDS {
+        let runs = scenario_records
+            .get(&scenario_id)
+            .expect("complete scenario set checked above");
+        let mut detected = 0usize;
+        let mut correct = 0usize;
+        let mut wrong = 0usize;
+        let mut deferred = 0usize;
+        let mut delay_sum = 0u128;
+        let mut delay_count = 0usize;
+
+        for record in runs {
+            if let Some(delay) = record.detection_delay_ns {
+                detected += 1;
+                delay_sum += u128::from(delay);
+                delay_count += 1;
+                detection_delay_sum += u128::from(delay);
+                detection_delay_count += 1;
+                match record.diagnosis {
+                    DiagnosisDisposition::Correct => correct += 1,
+                    DiagnosisDisposition::ConfidentWrong => wrong += 1,
+                    DiagnosisDisposition::SafeDeferral => deferred += 1,
+                    DiagnosisDisposition::NotAttempted | DiagnosisDisposition::NotApplicable => {
+                        unreachable!("detection disposition validated above")
+                    }
+                }
+            }
+        }
+
+        let scenario_runs = runs.len();
+        let attempted = correct + wrong;
+        fault_run_count += scenario_runs;
+        detected_fault_run_count += detected;
+        correct_diagnosis_count += correct;
+        confident_wrong_count += wrong;
+        safe_deferral_count += deferred;
+        attempted_diagnosis_count += attempted;
+
+        scenarios.push(TepScenarioOnsetMetrics {
+            scenario_id,
+            fault_run_count: scenario_runs,
+            detected_run_count: detected,
+            detection_recall: detected as f64 / scenario_runs as f64,
+            confident_wrong_count: wrong,
+            safe_deferral_count: deferred,
+            diagnosis_coverage: (detected > 0).then(|| attempted as f64 / detected as f64),
+            selective_diagnosis_accuracy: (attempted > 0)
+                .then(|| correct as f64 / attempted as f64),
+            mean_detection_delay_ns: (delay_count > 0)
+                .then(|| delay_sum as f64 / delay_count as f64),
+        });
+    }
+
+    let normal_exposure_hours = normal_exposure_ns as f64 / 3_600_000_000_000.0;
+    Ok(TepOnsetMetrics {
+        evaluation_horizon_ns,
+        fault_run_count,
+        detected_fault_run_count,
+        detection_recall: detected_fault_run_count as f64 / fault_run_count as f64,
+        confident_wrong_count,
+        confident_wrong_rate_detected: (detected_fault_run_count > 0)
+            .then(|| confident_wrong_count as f64 / detected_fault_run_count as f64),
+        safe_deferral_count,
+        safe_deferral_rate_detected: (detected_fault_run_count > 0)
+            .then(|| safe_deferral_count as f64 / detected_fault_run_count as f64),
+        diagnosis_coverage: (detected_fault_run_count > 0)
+            .then(|| attempted_diagnosis_count as f64 / detected_fault_run_count as f64),
+        selective_diagnosis_accuracy: (attempted_diagnosis_count > 0)
+            .then(|| correct_diagnosis_count as f64 / attempted_diagnosis_count as f64),
+        mean_detection_delay_ns: (detection_delay_count > 0)
+            .then(|| detection_delay_sum as f64 / detection_delay_count as f64),
+        normal_false_alarm_count,
+        normal_exposure_hours,
+        false_alarm_rate_per_normal_hour: normal_false_alarm_count as f64 / normal_exposure_hours,
+        scenarios,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -252,6 +505,97 @@ mod tests {
             run_id: id.to_owned(),
             selected_features: features.iter().map(|value| (*value).to_owned()).collect(),
         }
+    }
+
+
+    fn tep_records() -> Vec<TepOnsetRecord> {
+        let mut records = Vec::new();
+        for scenario_id in TEP_SCENARIO_IDS {
+            records.push(TepOnsetRecord {
+                run_id: format!("fault-{scenario_id:02}"),
+                scenario_id: Some(scenario_id),
+                detection_delay_ns: Some(30_000_000_000),
+                diagnosis: match scenario_id {
+                    3 | 9 => DiagnosisDisposition::SafeDeferral,
+                    15 => DiagnosisDisposition::ConfidentWrong,
+                    _ => DiagnosisDisposition::Correct,
+                },
+                normal_false_alarm_count: 0,
+                normal_exposure_ns: 0,
+            });
+        }
+        records.push(TepOnsetRecord {
+            run_id: "normal-1".to_owned(),
+            scenario_id: None,
+            detection_delay_ns: None,
+            diagnosis: DiagnosisDisposition::NotApplicable,
+            normal_false_alarm_count: 2,
+            normal_exposure_ns: 7_200_000_000_000,
+        });
+        records
+    }
+
+    #[test]
+    fn onset_metrics_separate_detection_wrong_labels_safe_deferral_and_false_alarms() {
+        let metrics = evaluate_tep_onset_horizon(&tep_records(), 60_000_000_000).unwrap();
+        assert_eq!(metrics.fault_run_count, 21);
+        assert_eq!(metrics.detected_fault_run_count, 21);
+        assert_eq!(metrics.detection_recall, 1.0);
+        assert_eq!(metrics.confident_wrong_count, 1);
+        assert_eq!(metrics.safe_deferral_count, 2);
+        assert_eq!(metrics.confident_wrong_rate_detected, Some(1.0 / 21.0));
+        assert_eq!(metrics.safe_deferral_rate_detected, Some(2.0 / 21.0));
+        assert_eq!(metrics.diagnosis_coverage, Some(18.0 / 21.0));
+        assert_eq!(metrics.selective_diagnosis_accuracy, Some(17.0 / 18.0));
+        assert_eq!(metrics.mean_detection_delay_ns, Some(30_000_000_000.0));
+        assert_eq!(metrics.false_alarm_rate_per_normal_hour, 1.0);
+        assert_eq!(metrics.scenarios.len(), 21);
+    }
+
+    #[test]
+    fn onset_evaluator_rejects_missing_scenarios_and_duplicate_run_ids() {
+        let mut records = tep_records();
+        records.retain(|record| record.scenario_id != Some(15));
+        assert!(evaluate_tep_onset_horizon(&records, 60_000_000_000)
+            .unwrap_err()
+            .contains("missing scenarios"));
+
+        let mut duplicate = tep_records();
+        duplicate.push(duplicate[0].clone());
+        assert!(evaluate_tep_onset_horizon(&duplicate, 60_000_000_000)
+            .unwrap_err()
+            .contains("duplicate TEP run ID"));
+    }
+
+    #[test]
+    fn onset_evaluator_rejects_horizon_and_detection_disposition_mismatches() {
+        let mut late = tep_records();
+        late[0].detection_delay_ns = Some(120_000_000_000);
+        assert!(evaluate_tep_onset_horizon(&late, 60_000_000_000)
+            .unwrap_err()
+            .contains("exceeds the evaluation horizon"));
+
+        let mut inconsistent = tep_records();
+        inconsistent[0].detection_delay_ns = None;
+        inconsistent[0].diagnosis = DiagnosisDisposition::Correct;
+        assert!(evaluate_tep_onset_horizon(&inconsistent, 60_000_000_000)
+            .unwrap_err()
+            .contains("inconsistent detection/diagnosis"));
+    }
+
+    #[test]
+    fn onset_evaluator_rejects_fault_labels_on_normal_run_and_requires_normal_exposure() {
+        let mut normal_fault = tep_records();
+        normal_fault.last_mut().unwrap().diagnosis = DiagnosisDisposition::Correct;
+        assert!(evaluate_tep_onset_horizon(&normal_fault, 60_000_000_000)
+            .unwrap_err()
+            .contains("normal run"));
+
+        let mut no_exposure = tep_records();
+        no_exposure.last_mut().unwrap().normal_exposure_ns = 0;
+        assert!(evaluate_tep_onset_horizon(&no_exposure, 60_000_000_000)
+            .unwrap_err()
+            .contains("positive exposure"));
     }
 
     #[test]
