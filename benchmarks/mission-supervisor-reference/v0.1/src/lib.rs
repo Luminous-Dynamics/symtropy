@@ -1209,7 +1209,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn source_time_mapping_commitment_cannot_change_between_receipts() {
         let mut supervisor = MissionSupervisor::new(plan());
