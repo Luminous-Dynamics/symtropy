@@ -79,7 +79,7 @@ A reference path sharing a clock, power source, sensor front-end, firmware, tran
 
 ## Frozen adversarial corpus
 
-The v0.1 corpus contains 22 synthetic cases:
+The v0.1 corpus contains 47 synthetic cases:
 1. all known injections reconciled;
 2. one and multiple missing injections with exact binomial upper bounds;
 3. duplicate capture of one reference event;
