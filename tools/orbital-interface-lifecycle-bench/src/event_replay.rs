@@ -696,7 +696,7 @@ fn decide(case: &EventCase) -> Decision {
                             );
                         }
                     }
-                },
+                }
             }
         }
 
