@@ -173,6 +173,10 @@ def main():
             raise AssertionError(
                 f"{key}: H2_second contributes to the cubic horizon coefficient"
             )
+        if key == "h" and sp.simplify(series.get(mHp, [0]*4)[3]) != 0:
+            raise AssertionError(
+                "E_h cubic formula must include H2_prime if its cubic coefficient is nonzero"
+            )
 
         # Exclude b3/f3 terms from B2', F2' and B2'' Taylor expansions.
         for monomial in (mBp, mFp):
