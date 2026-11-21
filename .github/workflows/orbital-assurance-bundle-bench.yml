@@ -1,0 +1,87 @@
+name: Orbital Assurance Bundle Benchmark
+
+on:
+  push:
+    branches: ["research/orbital-assurance-bundle-v0-1"]
+    paths:
+      - "tools/orbital-assurance-bundle-bench/**"
+      - ".github/workflows/orbital-assurance-bundle-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/orbital-assurance-bundle-bench/**"
+      - ".github/workflows/orbital-assurance-bundle-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: orbital-assurance-bundle-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  assurance-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      BENCHMARK_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact benchmark head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Generate standalone lockfile
+        run: cargo generate-lockfile --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml -- --check
+
+      - name: Run unit tests
+        run: cargo test --locked --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --all-targets
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --all-targets -- -D warnings
+
+      - name: Replay frozen assurance corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_commit="$(git rev-parse HEAD)"
+          test "$actual_commit" = "$BENCHMARK_COMMIT"
+          cargo run --locked --quiet --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml -- \
+            tools/orbital-assurance-bundle-bench/fixtures/v0.1/assurance-cases.json \
+            --source-commit "$actual_commit" > orbital-assurance-bundle-receipt.json
+          jq -e --arg expected_commit "$BENCHMARK_COMMIT" '
+            .receipt_schema == "luminous.orbital-assurance-bundle.receipt.v0.1"
+            and .source_commit == $expected_commit
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and .result == "pass"
+            and .report.evidence_class == "synthetic"
+            and .report.claim_ceiling == "synthetic-assurance-graph-structure-only"
+            and .report.summary.case_count == 54
+            and .report.summary.expected_result_mismatches == 0
+            and .report.summary.review_bundle_complete >= 1
+            and .report.summary.authority_grants == 0
+            and .report.authority_granted == false
+            and .authority_granted == false
+          ' orbital-assurance-bundle-receipt.json
+
+      - name: Run independent JavaScript graph oracle
+        run: node tools/orbital-assurance-bundle-bench/tests/reference_oracle.mjs tools/orbital-assurance-bundle-bench/fixtures/v0.1/assurance-cases.json
+
+      - name: Upload reproducible assurance receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-assurance-bundle-${{ github.event.pull_request.head.sha || github.sha }}
+          path: orbital-assurance-bundle-receipt.json
+          if-no-files-found: error
+          retention-days: 30
