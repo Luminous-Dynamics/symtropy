@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-interface-lifecycle-corpus-v0.1.schema.json",
+  "title": "Orbital Interface Lifecycle Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-interface-lifecycle.corpus.v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic-lifecycle-state-semantics-only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "at_tick",
+          "pair_id",
+          "qualified_pair_id",
+          "service_kind",
+          "qualification_service_kind",
+          "provider_configuration",
+          "qualified_configuration",
+          "current_procedure_revision",
+          "qualified_procedure_revision",
+          "cycle_count",
+          "qualified_cycle_limit",
+          "inspection_age_ticks",
+          "inspection_interval_ticks",
+          "qualification_valid_until_tick",
+          "calibration_valid",
+          "wear_within_limit",
+          "environment_within_envelope",
+          "uncertainty_clears_margin",
+          "inspection_coverage_complete",
+          "lineage_reconciled",
+          "raw_artifact_valid",
+          "critical_defect_for_service",
+          "maintenance_after_qualification",
+          "qualification_revoked",
+          "fluid_interface_observation_present",
+          "restricted",
+          "expected_status",
+          "expected_reason"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "at_tick": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "pair_id": {
+            "type": "string"
+          },
+          "qualified_pair_id": {
+            "type": "string"
+          },
+          "service_kind": {
+            "enum": [
+              "mechanical_capture",
+              "prepared_storable_fluid"
+            ]
+          },
+          "qualification_service_kind": {
+            "enum": [
+              "mechanical_capture",
+              "prepared_storable_fluid"
+            ]
+          },
+          "provider_configuration": {
+            "type": "string"
+          },
+          "qualified_configuration": {
+            "type": "string"
+          },
+          "current_procedure_revision": {
+            "type": "string"
+          },
+          "qualified_procedure_revision": {
+            "type": "string"
+          },
+          "cycle_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "qualified_cycle_limit": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "inspection_age_ticks": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "inspection_interval_ticks": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "qualification_valid_until_tick": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "calibration_valid": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "wear_within_limit": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "environment_within_envelope": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "uncertainty_clears_margin": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "inspection_coverage_complete": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "lineage_reconciled": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "raw_artifact_valid": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "critical_defect_for_service": {
+            "type": "boolean"
+          },
+          "maintenance_after_qualification": {
+            "type": "boolean"
+          },
+          "qualification_revoked": {
+            "type": "boolean"
+          },
+          "fluid_interface_observation_present": {
+            "type": "boolean"
+          },
+          "restricted": {
+            "type": "boolean"
+          },
+          "expected_status": {
+            "enum": [
+              "qualified_within_declared_envelope",
+              "restricted",
+              "requalification_required",
+              "withdrawn",
+              "rejected",
+              "indeterminate"
+            ]
+          },
+          "expected_reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
