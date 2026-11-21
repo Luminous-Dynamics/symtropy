@@ -725,6 +725,7 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
         "auxiliary_electrode",
         "collector_topology",
         "drive_architecture",
+        "multistage_duct_geometry",
     ];
     let factors_match = factors.is_some_and(|items| {
         items.len() == required_factors.len()
