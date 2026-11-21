@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_spin2_reduced_principal_horizon_local_replay_receipt",
+  "status": "local_development_source_replayed_exactly",
+  "source": {
+    "local_development_script_sha256": "aaff3e4be6926e9e8ad2d619abdb9c8f75a551203a5508e0e70988b5622271f7",
+    "public_committed_script_git_blob_sha1": "9f14de9f87e973f5bb7dabef2e84811c41e5011d",
+    "public_committed_script_exact_blob_replay": "not performed; local development copy differs from the committed public script"
+  },
+  "input": {
+    "sha256": "b4b9d891c47e91d1e1e2541a1be39c005ed77b840b1f02874c599085f1200dba",
+    "provenance": "local SymPy reconstruction with all four equation lengths, symbolic fingerprints and emitted-text SHA-256 values matching the public generator metadata; not a clean-checkout generator replay"
+  },
+  "output": {
+    "sha256": "a21e203dd109114db40748ea9bf2001e79b36e8337faa52f08f5f4e8ce6c0060",
+    "status": "exact_general_lambda_horizon_principal_block_derived",
+    "horizon_rank": 1,
+    "determinant_first_y_coefficient": "1/2",
+    "horizon_null_vector": ["1", "3*(lambda+1)"]
+  },
+  "execution": {
+    "python": "3.13.5",
+    "sympy": "1.14.0",
+    "elapsed_seconds": 9.622503,
+    "arithmetic": "exact symbolic algebra in lambda, rho and Qbar"
+  },
+  "claim_ceiling": "This receipt records the local development run. It is not a replay receipt for the public committed verifier, a clean repository checkout, CI, or a global determinant/no-extra-zero proof."
+}
