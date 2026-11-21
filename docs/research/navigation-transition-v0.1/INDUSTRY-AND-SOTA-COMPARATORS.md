@@ -107,3 +107,15 @@ Where online active sensing changes the route or viewpoint, use identical initia
 - **P4 — Cross-domain qualification:** run the frozen protocol on indoor UWB/VIO, urban GNSS/INS/LiDAR, subterranean LiDAR/IMU, and controlled underwater DVL/visual-inertial tracks, respecting each dataset's rights.
 
 The prototype PRs currently test mathematical and synthetic contracts. They do not yet establish these external benchmark results or physical navigation qualification.
+
+
+### Verified public dataset licence details (21 November 2026)
+
+The source review refined three rights entries:
+
+- **MILUV v1:** The exact Figshare accession is `10.25452/figshare.plus.28386041.v1`. The NLM Dataset Catalog lists **CC BY 4.0** for the dataset itself (not only the paper). The paper describes 217 minutes, 36 experiments, three UAVs, UWB raw timestamps/CIR, vision, IMU, laser height, magnetometer and motion-capture poses. Source: [NLM Dataset Catalog](https://datasetcatalog.nlm.nih.gov/dataset?q=0002392468) and [MILUV paper](https://doi.org/10.1177/02783649251405898). The dataset is registered as a candidate, not admitted, until the exact payload is downloaded and hashed and the split/time/frame/calibration record is frozen.
+- **UrbanNav:** The official GitHub repository's licence section states MIT applies to the dataset files provided through its download links, including ROS bags, RINEX, IMU and ground-truth files. The official IPNL lab page also labels the dataset MIT. Some individual sequences still have technical limitations (e.g. 1 Hz GT, pilot timing gaps, calibration gaps or partial GT); choose and hash a specific sequence before admission. Sources: [repository README/licence](https://github.com/IPNL-POLYU/UrbanNavDataset) and [official lab dataset page](https://www.polyu.edu.hk/aae/ipn-lab/us/en/resources/urbannav-dataset/).
+- **Tank underwater:** The official download page states CC BY-NC-SA 4.0 and non-commercial academic use, and invites commercial users to contact the authors. This dataset must not enter a commercial evaluation path without separate permission. Source: [official download/licence page](https://senseroboticslab.github.io/underwater-tank-dataset/download/).
+- **SubT-MRS:** the public dataset listing describes synchronized RGB/LiDAR/thermal/IMU and downloadable bags, extracted folders and separate ground truth; the rights field is not clearly established by that listing. It remains rights-unknown and not admitted until payload-specific permission/licence is found. Source: [AirLab dataset listing](https://superodometry.com/datasets).
+
+The machine-readable register at `datasets.v0.1.json` records these facts without treating a public page as a completed data snapshot. All four datasets remain `candidate_not_admitted`: the next gate is exact payload acquisition, immutable release/commit pinning, file hashes, calibration/time/frame audit and non-overlapping route/session/experiment splits. No dataset binaries are included in the repository.
