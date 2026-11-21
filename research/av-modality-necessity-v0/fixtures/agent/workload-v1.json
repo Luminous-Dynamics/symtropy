@@ -1,0 +1,663 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-modality-necessity-v0",
+  "note": "Synthetic metadata-only fixture catalogue. No physical sensor or acoustic propagation claim.",
+  "policy_arms": [
+    "video_only",
+    "audio_only",
+    "audio_video_late_fusion",
+    "transcript_mediated_video",
+    "strong_general_av_model",
+    "symthaea_native",
+    "symthaea_hybrid"
+  ],
+  "episodes": [
+    {
+      "episode_id": "mod-001-audio-needed-a",
+      "pair_id": "audio-needed-01",
+      "pair_member": "A",
+      "task": {
+        "query": "Which event occurred in the corridor immediately before the door closed?",
+        "deadline_tick": 140,
+        "query_cutoff_tick": 160
+      },
+      "video": {
+        "observation_ref": "v-audio-1",
+        "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sensor_id": "front-camera",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "capture_start_us": 10000000,
+        "capture_end_us": 11000000,
+        "source_dependency_group": "root-vis-a1",
+        "profile_id": "synthetic-software-camera-v1",
+        "producer_class": "synthetic"
+      },
+      "audio": {
+        "observation_ref": "a-audio-1",
+        "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "sensor_id": "microphone-mono",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "source_sequence": 1,
+        "source_start_sample": 160000,
+        "source_end_sample": 161600,
+        "sample_rate_hz": 16000,
+        "channel_layout": [
+          "mono"
+        ],
+        "source_dependency_group": "root-audio-a1",
+        "profile_id": "synthetic-direct-pcm-fixture-v1",
+        "producer_class": "synthetic",
+        "capture_start_us": 10000000,
+        "capture_end_us": 10100000
+      },
+      "availability": {
+        "video_tick": 20,
+        "audio_tick": 20
+      }
+    },
+    {
+      "episode_id": "mod-001-audio-needed-b",
+      "pair_id": "audio-needed-01",
+      "pair_member": "B",
+      "task": {
+        "query": "Which event occurred in the corridor immediately before the door closed?",
+        "deadline_tick": 140,
+        "query_cutoff_tick": 160
+      },
+      "video": {
+        "observation_ref": "v-audio-2",
+        "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sensor_id": "front-camera",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "capture_start_us": 10000000,
+        "capture_end_us": 11000000,
+        "source_dependency_group": "root-vis-a1",
+        "profile_id": "synthetic-software-camera-v1",
+        "producer_class": "synthetic"
+      },
+      "audio": {
+        "observation_ref": "a-audio-2",
+        "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "sensor_id": "microphone-mono",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "source_sequence": 1,
+        "source_start_sample": 160000,
+        "source_end_sample": 161600,
+        "sample_rate_hz": 16000,
+        "channel_layout": [
+          "mono"
+        ],
+        "source_dependency_group": "root-audio-a2",
+        "profile_id": "synthetic-direct-pcm-fixture-v1",
+        "producer_class": "synthetic",
+        "capture_start_us": 10000000,
+        "capture_end_us": 10100000
+      },
+      "availability": {
+        "video_tick": 20,
+        "audio_tick": 20
+      }
+    },
+    {
+      "episode_id": "mod-002-video-needed-a",
+      "pair_id": "video-needed-01",
+      "pair_member": "A",
+      "task": {
+        "query": "Which visible source produced the warning tone?",
+        "deadline_tick": 140,
+        "query_cutoff_tick": 160
+      },
+      "video": {
+        "observation_ref": "v-video-1",
+        "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "sensor_id": "front-camera",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "capture_start_us": 20000000,
+        "capture_end_us": 21000000,
+        "source_dependency_group": "root-vis-v1",
+        "profile_id": "synthetic-software-camera-v1",
+        "producer_class": "synthetic"
+      },
+      "audio": {
+        "observation_ref": "a-video-1",
+        "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "sensor_id": "microphone-mono",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "source_sequence": 1,
+        "source_start_sample": 320000,
+        "source_end_sample": 321600,
+        "sample_rate_hz": 16000,
+        "channel_layout": [
+          "mono"
+        ],
+        "source_dependency_group": "root-audio-v1",
+        "profile_id": "synthetic-direct-pcm-fixture-v1",
+        "producer_class": "synthetic",
+        "capture_start_us": 20000000,
+        "capture_end_us": 20100000
+      },
+      "availability": {
+        "video_tick": 30,
+        "audio_tick": 30
+      }
+    },
+    {
+      "episode_id": "mod-002-video-needed-b",
+      "pair_id": "video-needed-01",
+      "pair_member": "B",
+      "task": {
+        "query": "Which visible source produced the warning tone?",
+        "deadline_tick": 140,
+        "query_cutoff_tick": 160
+      },
+      "video": {
+        "observation_ref": "v-video-2",
+        "artifact_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "sensor_id": "front-camera",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "capture_start_us": 20000000,
+        "capture_end_us": 21000000,
+        "source_dependency_group": "root-vis-v2",
+        "profile_id": "synthetic-software-camera-v1",
+        "producer_class": "synthetic"
+      },
+      "audio": {
+        "observation_ref": "a-video-2",
+        "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "sensor_id": "microphone-mono",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "source_sequence": 1,
+        "source_start_sample": 320000,
+        "source_end_sample": 321600,
+        "sample_rate_hz": 16000,
+        "channel_layout": [
+          "mono"
+        ],
+        "source_dependency_group": "root-audio-v1",
+        "profile_id": "synthetic-direct-pcm-fixture-v1",
+        "producer_class": "synthetic",
+        "capture_start_us": 20000000,
+        "capture_end_us": 20100000
+      },
+      "availability": {
+        "video_tick": 30,
+        "audio_tick": 30
+      }
+    },
+    {
+      "episode_id": "mod-003-joint-needed-a",
+      "pair_id": "joint-needed-01",
+      "pair_member": "A",
+      "task": {
+        "query": "What event happened, and which visible entity caused it?",
+        "deadline_tick": 220,
+        "query_cutoff_tick": 240
+      },
+      "video": {
+        "observation_ref": "v-joint-1",
+        "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sensor_id": "front-camera",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "capture_start_us": 30000000,
+        "capture_end_us": 31000000,
+        "source_dependency_group": "root-joint-v1",
+        "profile_id": "synthetic-software-camera-v1",
+        "producer_class": "synthetic"
+      },
+      "audio": {
+        "observation_ref": "a-joint-1",
+        "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "sensor_id": "microphone-mono",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "source_sequence": 1,
+        "source_start_sample": 480000,
+        "source_end_sample": 481600,
+        "sample_rate_hz": 16000,
+        "channel_layout": [
+          "mono"
+        ],
+        "source_dependency_group": "root-joint-a1",
+        "profile_id": "synthetic-direct-pcm-fixture-v1",
+        "producer_class": "synthetic",
+        "capture_start_us": 30000000,
+        "capture_end_us": 30100000
+      },
+      "availability": {
+        "video_tick": 40,
+        "audio_tick": 42
+      }
+    },
+    {
+      "episode_id": "mod-003-joint-needed-b",
+      "pair_id": "joint-needed-01",
+      "pair_member": "B",
+      "task": {
+        "query": "What event happened, and which visible entity caused it?",
+        "deadline_tick": 220,
+        "query_cutoff_tick": 240
+      },
+      "video": {
+        "observation_ref": "v-joint-2",
+        "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "sensor_id": "front-camera",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "capture_start_us": 30000000,
+        "capture_end_us": 31000000,
+        "source_dependency_group": "root-joint-v2",
+        "profile_id": "synthetic-software-camera-v1",
+        "producer_class": "synthetic"
+      },
+      "audio": {
+        "observation_ref": "a-joint-2",
+        "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "sensor_id": "microphone-mono",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "source_sequence": 1,
+        "source_start_sample": 480000,
+        "source_end_sample": 481600,
+        "sample_rate_hz": 16000,
+        "channel_layout": [
+          "mono"
+        ],
+        "source_dependency_group": "root-joint-a2",
+        "profile_id": "synthetic-direct-pcm-fixture-v1",
+        "producer_class": "synthetic",
+        "capture_start_us": 30000000,
+        "capture_end_us": 30100000
+      },
+      "availability": {
+        "video_tick": 40,
+        "audio_tick": 42
+      }
+    },
+    {
+      "episode_id": "mod-004-audio-video-conflict",
+      "task": {
+        "query": "Do the audible event and visible event share the same source?",
+        "deadline_tick": 180,
+        "query_cutoff_tick": 200
+      },
+      "video": {
+        "observation_ref": "v-conflict",
+        "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "sensor_id": "front-camera",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "capture_start_us": 50000000,
+        "capture_end_us": 51000000,
+        "source_dependency_group": "root-visible-alarm",
+        "profile_id": "synthetic-software-camera-v1",
+        "producer_class": "synthetic"
+      },
+      "audio": {
+        "observation_ref": "a-conflict",
+        "artifact_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "sensor_id": "microphone-mono",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "source_sequence": 1,
+        "source_start_sample": 832000,
+        "source_end_sample": 833600,
+        "sample_rate_hz": 16000,
+        "channel_layout": [
+          "mono"
+        ],
+        "source_dependency_group": "root-audio-distant-impact",
+        "profile_id": "synthetic-direct-pcm-fixture-v1",
+        "producer_class": "synthetic",
+        "capture_start_us": 52000000,
+        "capture_end_us": 52100000
+      },
+      "availability": {
+        "video_tick": 60,
+        "audio_tick": 62
+      }
+    },
+    {
+      "episode_id": "mod-005-common-cause-redundancy",
+      "task": {
+        "query": "Is there independent corroboration for the detected impact?",
+        "deadline_tick": 160,
+        "query_cutoff_tick": 180
+      },
+      "video": {
+        "observation_ref": "v-common",
+        "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "sensor_id": "front-camera",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "capture_start_us": 70000000,
+        "capture_end_us": 71000000,
+        "source_dependency_group": "root-event-impact-7",
+        "profile_id": "synthetic-software-camera-v1",
+        "producer_class": "synthetic"
+      },
+      "audio": {
+        "observation_ref": "a-common",
+        "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "sensor_id": "microphone-mono",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "source_sequence": 1,
+        "source_start_sample": 1120000,
+        "source_end_sample": 1121600,
+        "sample_rate_hz": 16000,
+        "channel_layout": [
+          "mono"
+        ],
+        "source_dependency_group": "root-event-impact-7",
+        "profile_id": "synthetic-direct-pcm-fixture-v1",
+        "producer_class": "synthetic",
+        "capture_start_us": 70000000,
+        "capture_end_us": 70100000
+      },
+      "availability": {
+        "video_tick": 80,
+        "audio_tick": 80
+      }
+    },
+    {
+      "episode_id": "mod-006-nonspeech-audio",
+      "task": {
+        "query": "What non-verbal environmental event occurred, and when did it begin?",
+        "deadline_tick": 300,
+        "query_cutoff_tick": 320
+      },
+      "video": {
+        "observation_ref": "v-nonspeech",
+        "artifact_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "sensor_id": "front-camera",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "capture_start_us": 90000000,
+        "capture_end_us": 91000000,
+        "source_dependency_group": "root-scene-09",
+        "profile_id": "synthetic-software-camera-v1",
+        "producer_class": "synthetic"
+      },
+      "audio": {
+        "observation_ref": "a-nonspeech",
+        "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sensor_id": "microphone-mono",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "source_sequence": 1,
+        "source_start_sample": 1440000,
+        "source_end_sample": 1441600,
+        "sample_rate_hz": 16000,
+        "channel_layout": [
+          "mono"
+        ],
+        "source_dependency_group": "root-nonspeech-event-9",
+        "profile_id": "synthetic-direct-pcm-fixture-v1",
+        "producer_class": "synthetic",
+        "capture_start_us": 90000000,
+        "capture_end_us": 90100000
+      },
+      "availability": {
+        "video_tick": 100,
+        "audio_tick": 100
+      },
+      "audio_profile": {
+        "signal_class": "non_speech_pcm",
+        "transcript_available": false
+      }
+    },
+    {
+      "episode_id": "mod-007-temporal-misalignment",
+      "task": {
+        "query": "Does the sound coincide with the visible impact?",
+        "deadline_tick": 300,
+        "query_cutoff_tick": 340
+      },
+      "video": {
+        "observation_ref": "v-misaligned",
+        "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "sensor_id": "front-camera",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "capture_start_us": 110000000,
+        "capture_end_us": 111000000,
+        "source_dependency_group": "root-visual-impact-10",
+        "profile_id": "synthetic-software-camera-v1",
+        "producer_class": "synthetic"
+      },
+      "audio": {
+        "observation_ref": "a-misaligned",
+        "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "sensor_id": "microphone-mono",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "source_sequence": 1,
+        "source_start_sample": 2320000,
+        "source_end_sample": 2321600,
+        "sample_rate_hz": 16000,
+        "channel_layout": [
+          "mono"
+        ],
+        "source_dependency_group": "root-audio-event-10",
+        "profile_id": "synthetic-direct-pcm-fixture-v1",
+        "producer_class": "synthetic",
+        "capture_start_us": 145000000,
+        "capture_end_us": 145100000
+      },
+      "availability": {
+        "video_tick": 120,
+        "audio_tick": 155
+      }
+    },
+    {
+      "episode_id": "mod-008-missing-audio",
+      "task": {
+        "query": "What non-speech sound caused the visible reaction?",
+        "deadline_tick": 400,
+        "query_cutoff_tick": 450
+      },
+      "video": {
+        "observation_ref": "v-missing-audio",
+        "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "sensor_id": "front-camera",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "capture_start_us": 150000000,
+        "capture_end_us": 151000000,
+        "source_dependency_group": "root-scene-11",
+        "profile_id": "synthetic-software-camera-v1",
+        "producer_class": "synthetic"
+      },
+      "audio": null,
+      "availability": {
+        "video_tick": 160,
+        "audio_tick": null
+      },
+      "transport_events": [
+        {
+          "sensor_id": "microphone-mono",
+          "source_sequence": 5,
+          "disposition": "Dropped",
+          "availability_tick": 160,
+          "observation_ref": null
+        }
+      ]
+    },
+    {
+      "episode_id": "mod-009-nuisance-shortcut",
+      "pair_id": "nuisance-01",
+      "pair_member": "A",
+      "task": {
+        "query": "Which event is supported by the admitted audio and video evidence?",
+        "deadline_tick": 500,
+        "query_cutoff_tick": 540
+      },
+      "video": {
+        "observation_ref": "v-nuisance-a",
+        "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "sensor_id": "front-camera",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "capture_start_us": 180000000,
+        "capture_end_us": 181000000,
+        "source_dependency_group": "root-nuisance-visual-a",
+        "profile_id": "synthetic-software-camera-v1",
+        "producer_class": "synthetic"
+      },
+      "audio": {
+        "observation_ref": "a-nuisance-a",
+        "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "sensor_id": "microphone-mono",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "source_sequence": 1,
+        "source_start_sample": 2880000,
+        "source_end_sample": 2881600,
+        "sample_rate_hz": 16000,
+        "channel_layout": [
+          "mono"
+        ],
+        "source_dependency_group": "root-nuisance-audio-a",
+        "profile_id": "synthetic-direct-pcm-fixture-v1",
+        "producer_class": "synthetic",
+        "capture_start_us": 180000000,
+        "capture_end_us": 180100000
+      },
+      "availability": {
+        "video_tick": 190,
+        "audio_tick": 190
+      },
+      "nuisance_profile": "background-layout-randomized-v1"
+    },
+    {
+      "episode_id": "mod-009-nuisance-shortcut-b",
+      "pair_id": "nuisance-01",
+      "pair_member": "B",
+      "task": {
+        "query": "Which event is supported by the admitted audio and video evidence?",
+        "deadline_tick": 500,
+        "query_cutoff_tick": 540
+      },
+      "video": {
+        "observation_ref": "v-nuisance-b",
+        "artifact_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "sensor_id": "front-camera",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "capture_start_us": 180000000,
+        "capture_end_us": 181000000,
+        "source_dependency_group": "root-nuisance-visual-b",
+        "profile_id": "synthetic-software-camera-v1",
+        "producer_class": "synthetic"
+      },
+      "audio": {
+        "observation_ref": "a-nuisance-b",
+        "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "sensor_id": "microphone-mono",
+        "clock_domain": {
+          "domain_id": "synthetic-sim-clock",
+          "generation": 0,
+          "time_scale_id": "simulation-microseconds-v1"
+        },
+        "source_sequence": 1,
+        "source_start_sample": 2880000,
+        "source_end_sample": 2881600,
+        "sample_rate_hz": 16000,
+        "channel_layout": [
+          "mono"
+        ],
+        "source_dependency_group": "root-nuisance-audio-b",
+        "profile_id": "synthetic-direct-pcm-fixture-v1",
+        "producer_class": "synthetic",
+        "capture_start_us": 180000000,
+        "capture_end_us": 180100000
+      },
+      "availability": {
+        "video_tick": 190,
+        "audio_tick": 190
+      },
+      "nuisance_profile": "background-layout-randomized-v1"
+    }
+  ]
+}

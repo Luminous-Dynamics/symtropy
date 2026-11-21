@@ -1,0 +1,44 @@
+{
+ "benchmark_id":"av-modality-necessity-v0",
+ "hard_violations":[],
+ "interpretation":{"limitations":[
+  "The supplied workload contains synthetic metadata and placeholder commitments, not raw PCM or RGB evidence.",
+  "Modality use is candidate-declared and checked against cited observation references; it is not proof of internal model attention or execution.",
+  "Passing this finite fixture does not establish real-world AV accuracy, causal feature use, sensor validity, privacy compliance, or SOTA superiority.",
+  "Latency, energy, token, frame and byte budgets are not inferred from simulation ticks; they require separate measured run telemetry."
+ ],"status":"offline_candidate_submission_score"},
+ "paired_groups":[
+  {"all_decisions_correct":true,"counterfactual_discrimination_observed":true,"counterfactual_discrimination_required":true,"episode_count":2,"episode_ids":["mod-001-audio-needed-a","mod-001-audio-needed-b"],"pair_id":"audio-needed-01"},
+  {"all_decisions_correct":true,"counterfactual_discrimination_observed":true,"counterfactual_discrimination_required":true,"episode_count":2,"episode_ids":["mod-003-joint-needed-a","mod-003-joint-needed-b"],"pair_id":"joint-needed-01"},
+  {"all_decisions_correct":true,"counterfactual_discrimination_observed":true,"counterfactual_discrimination_required":true,"episode_count":2,"episode_ids":["mod-009-nuisance-shortcut","mod-009-nuisance-shortcut-b"],"pair_id":"nuisance-01"},
+  {"all_decisions_correct":true,"counterfactual_discrimination_observed":true,"counterfactual_discrimination_required":true,"episode_count":2,"episode_ids":["mod-002-video-needed-a","mod-002-video-needed-b"],"pair_id":"video-needed-01"}
+ ],
+ "per_episode":[
+  {"abstained":false,"answer_correct":true,"confidence":0.95,"deadline_miss":false,"decision_correct":true,"episode_id":"mod-001-audio-needed-a","evidence_compliant":true,"necessity":"audio_necessary","violations":[]},
+  {"abstained":false,"answer_correct":true,"confidence":0.95,"deadline_miss":false,"decision_correct":true,"episode_id":"mod-001-audio-needed-b","evidence_compliant":true,"necessity":"audio_necessary","violations":[]},
+  {"abstained":false,"answer_correct":true,"confidence":0.95,"deadline_miss":false,"decision_correct":true,"episode_id":"mod-002-video-needed-a","evidence_compliant":true,"necessity":"video_necessary","violations":[]},
+  {"abstained":false,"answer_correct":true,"confidence":0.95,"deadline_miss":false,"decision_correct":true,"episode_id":"mod-002-video-needed-b","evidence_compliant":true,"necessity":"video_necessary","violations":[]},
+  {"abstained":false,"answer_correct":true,"confidence":0.95,"deadline_miss":false,"decision_correct":true,"episode_id":"mod-003-joint-needed-a","evidence_compliant":true,"necessity":"jointly_necessary","violations":[]},
+  {"abstained":false,"answer_correct":true,"confidence":0.95,"deadline_miss":false,"decision_correct":true,"episode_id":"mod-003-joint-needed-b","evidence_compliant":true,"necessity":"jointly_necessary","violations":[]},
+  {"abstained":false,"answer_correct":true,"confidence":0.95,"deadline_miss":false,"decision_correct":true,"episode_id":"mod-004-audio-video-conflict","evidence_compliant":true,"necessity":"conflict_abstain_or_separate_hypotheses","violations":[]},
+  {"abstained":false,"answer_correct":true,"confidence":0.95,"deadline_miss":false,"decision_correct":true,"episode_id":"mod-005-common-cause-redundancy","evidence_compliant":true,"necessity":"dependent_redundant_views","violations":[]},
+  {"abstained":false,"answer_correct":true,"confidence":0.95,"deadline_miss":false,"decision_correct":true,"episode_id":"mod-006-nonspeech-audio","evidence_compliant":true,"necessity":"non_speech_audio_required","violations":[]},
+  {"abstained":false,"answer_correct":true,"confidence":0.95,"deadline_miss":false,"decision_correct":true,"episode_id":"mod-007-temporal-misalignment","evidence_compliant":true,"necessity":"no_cross_modal_association","violations":[]},
+  {"abstained":true,"answer_correct":false,"confidence":0.0,"deadline_miss":false,"decision_correct":true,"episode_id":"mod-008-missing-audio","evidence_compliant":true,"necessity":"abstain_audio_missing","violations":[]},
+  {"abstained":false,"answer_correct":true,"confidence":0.95,"deadline_miss":false,"decision_correct":true,"episode_id":"mod-009-nuisance-shortcut","evidence_compliant":true,"necessity":"nuisance_invariant_pair","violations":[]},
+  {"abstained":false,"answer_correct":true,"confidence":0.95,"deadline_miss":false,"decision_correct":true,"episode_id":"mod-009-nuisance-shortcut-b","evidence_compliant":true,"necessity":"nuisance_invariant_pair","violations":[]}
+ ],
+ "per_necessity":{
+  "abstain_audio_missing":{"answered_brier_score":null,"answered_correct_count":0,"answered_count":0,"coverage":0.0,"deadline_miss_count":0,"decision_accuracy":1.0,"decision_correct_count":1,"episode_count":1,"evidence_compliance_rate":1.0,"evidence_compliant_count":1,"hard_violation_count":0,"selective_accuracy":null},
+  "audio_necessary":{"answered_brier_score":0.0025000000000000044,"answered_correct_count":2,"answered_count":2,"coverage":1.0,"deadline_miss_count":0,"decision_accuracy":1.0,"decision_correct_count":2,"episode_count":2,"evidence_compliance_rate":1.0,"evidence_compliant_count":2,"hard_violation_count":0,"selective_accuracy":1.0},
+  "conflict_abstain_or_separate_hypotheses":{"answered_brier_score":0.0025000000000000044,"answered_correct_count":1,"answered_count":1,"coverage":1.0,"deadline_miss_count":0,"decision_accuracy":1.0,"decision_correct_count":1,"episode_count":1,"evidence_compliance_rate":1.0,"evidence_compliant_count":1,"hard_violation_count":0,"selective_accuracy":1.0},
+  "dependent_redundant_views":{"answered_brier_score":0.0025000000000000044,"answered_correct_count":1,"answered_count":1,"coverage":1.0,"deadline_miss_count":0,"decision_accuracy":1.0,"decision_correct_count":1,"episode_count":1,"evidence_compliance_rate":1.0,"evidence_compliant_count":1,"hard_violation_count":0,"selective_accuracy":1.0},
+  "jointly_necessary":{"answered_brier_score":0.0025000000000000044,"answered_correct_count":2,"answered_count":2,"coverage":1.0,"deadline_miss_count":0,"decision_accuracy":1.0,"decision_correct_count":2,"episode_count":2,"evidence_compliance_rate":1.0,"evidence_compliant_count":2,"hard_violation_count":0,"selective_accuracy":1.0},
+  "no_cross_modal_association":{"answered_brier_score":0.0025000000000000044,"answered_correct_count":1,"answered_count":1,"coverage":1.0,"deadline_miss_count":0,"decision_accuracy":1.0,"decision_correct_count":1,"episode_count":1,"evidence_compliance_rate":1.0,"evidence_compliant_count":1,"hard_violation_count":0,"selective_accuracy":1.0},
+  "non_speech_audio_required":{"answered_brier_score":0.0025000000000000044,"answered_correct_count":1,"answered_count":1,"coverage":1.0,"deadline_miss_count":0,"decision_accuracy":1.0,"decision_correct_count":1,"episode_count":1,"evidence_compliance_rate":1.0,"evidence_compliant_count":1,"hard_violation_count":0,"selective_accuracy":1.0},
+  "nuisance_invariant_pair":{"answered_brier_score":0.0025000000000000044,"answered_correct_count":2,"answered_count":2,"coverage":1.0,"deadline_miss_count":0,"decision_accuracy":1.0,"decision_correct_count":2,"episode_count":2,"evidence_compliance_rate":1.0,"evidence_compliant_count":2,"hard_violation_count":0,"selective_accuracy":1.0},
+  "video_necessary":{"answered_brier_score":0.0025000000000000044,"answered_correct_count":2,"answered_count":2,"coverage":1.0,"deadline_miss_count":0,"decision_accuracy":1.0,"decision_correct_count":2,"episode_count":2,"evidence_compliance_rate":1.0,"evidence_compliant_count":2,"hard_violation_count":0,"selective_accuracy":1.0}
+ },
+ "policy_id":"reference-rule-policy-v1","run_id":"synthetic-known-answer-reference-v1","schema_version":1,
+ "totals":{"answered_brier_score":0.0025000000000000044,"answered_correct_count":12,"answered_count":12,"coverage":0.9230769230769231,"deadline_miss_count":0,"decision_accuracy":1.0,"decision_correct_count":13,"episode_count":13,"evidence_compliance_rate":1.0,"evidence_compliant_count":13,"hard_violation_count":0,"selective_accuracy":1.0}
+}
