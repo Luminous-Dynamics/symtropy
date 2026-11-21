@@ -307,6 +307,12 @@ References: https://mc-stan.org/misc/warnings.html and https://mc-stan.org/docs/
 
 The diagnostics require at least four unique chain seeds and equal retained draw counts; the seed is recorded on each HMC chain. Unique seeds are a reproducibility guard, not proof of independent posterior exploration. The diagnostics remain a research implementation requiring independent comparison against reference chains. Rank ties, heavy-tail stress cases, autocorrelation patterns, E-BFMI and ESS should be cross-checked against a mature implementation before the qualification flag is trusted. Mean MCSE is computed on raw coefficient draws and scaled in coefficient units; bulk ESS is computed on rank-normalized draws. An IID deterministic positive-control gives Rhat and folded Rhat near 1, bulk ESS about 7,896, tail ESS about 7,690 and minimum E-BFMI about 1.94 in an independent Python implementation of these equations. This is a numerical cross-check, not Rust execution or Stan parity. The diagnostics do not replace trace plots, posterior predictive checks or prior sensitivity.
 
+### Layer N — source-archive admission gate
+
+The public branch now contains an admission schema and manifest for the seven 2025 PFNS supplementary artifacts. The manifest identifies their scientific roles but deliberately records each as not accessible, with filename, byte length, retrieval timestamp and SHA-256 all null. The publisher page documents two pointwise evaluation spectra, two matching correlation/covariance files, two JSON experimental-input databases, and a smoothed normalized spectrum. The supplement endpoint and container download route could not be retrieved in this environment, and no provenance-verifiable mirror was found.
+
+This is an evidence gate, not data ingestion. The manifest must not be promoted to hash-verified or content-validated until the original file bytes have been retrieved, exact publisher filenames and byte lengths recorded, SHA-256 computed, and the internal schema / covariance semantics checked. Preserve sparse energy grids and do not silently linearly interpolate the historical PFNS files. Tracking: https://github.com/Luminous-Dynamics/symtropy/issues/6571.
+
 ## Current implementation and limits
 
 Implemented in this research-only Rust crate:
