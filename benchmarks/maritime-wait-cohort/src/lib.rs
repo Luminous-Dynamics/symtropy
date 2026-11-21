@@ -12,6 +12,12 @@ enum Outcome {
     Censored,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum CensorReason {
+    Administrative,
+    ReportingLag,
+}
+
 impl Outcome {
     fn parse(value: &str) -> Result<Self, String> {
         match value {
@@ -41,6 +47,7 @@ struct ResolvedCall {
     end_tick: i64,
     duration_ticks: u64,
     outcome: Outcome,
+    censor_reason: Option<CensorReason>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -66,6 +73,8 @@ pub struct CohortReport {
     pub diversion_count: usize,
     pub cancellation_count: usize,
     pub censored_count: usize,
+    pub administrative_censored_count: usize,
+    pub reporting_lag_censored_count: usize,
     pub total_vessel_ticks: u128,
     pub integrated_queue_vessel_ticks: u128,
     pub mean_observed_queue_ticks: f64,
@@ -144,9 +153,14 @@ fn resolve_call(observation: &Observation) -> Result<ResolvedCall, String> {
 
     // The source may publish an actual outcome only after the historical
     // snapshot cutoff. That later outcome cannot rewrite the earlier cohort.
-    let (effective_outcome, end_tick) = if observation.observed_tick > observation.as_of_tick {
-        (Outcome::Censored, observation.as_of_tick)
-    } else {
+    let (effective_outcome, end_tick, censor_reason) =
+        if observation.observed_tick > observation.as_of_tick {
+            (
+                Outcome::Censored,
+                observation.as_of_tick,
+                Some(CensorReason::ReportingLag),
+            )
+        } else {
         match observation.outcome {
             Outcome::Censored => {
                 if observation.outcome_tick != observation.as_of_tick
@@ -157,7 +171,11 @@ fn resolve_call(observation: &Observation) -> Result<ResolvedCall, String> {
                         observation.call_id
                     ));
                 }
-                (Outcome::Censored, observation.as_of_tick)
+                (
+                    Outcome::Censored,
+                    observation.as_of_tick,
+                    Some(CensorReason::Administrative),
+                )
             }
             outcome => {
                 if observation.outcome_tick < observation.entry_tick {
@@ -178,7 +196,7 @@ fn resolve_call(observation: &Observation) -> Result<ResolvedCall, String> {
                         observation.call_id
                     ));
                 }
-                (outcome, observation.outcome_tick)
+                (outcome, observation.outcome_tick, None)
             }
         }
     };
@@ -194,6 +212,7 @@ fn resolve_call(observation: &Observation) -> Result<ResolvedCall, String> {
         end_tick,
         duration_ticks,
         outcome: effective_outcome,
+        censor_reason,
     })
 }
 
@@ -257,6 +276,8 @@ fn evaluate_scenario(
     let mut diversion_count = 0;
     let mut cancellation_count = 0;
     let mut censored_count = 0;
+    let mut administrative_censored_count = 0;
+    let mut reporting_lag_censored_count = 0;
     let mut buckets: BTreeMap<u64, EventBucket> = BTreeMap::new();
 
     for observation in observations {
@@ -294,6 +315,15 @@ fn evaluate_scenario(
             Outcome::Censored => {
                 censored_count += 1;
                 bucket.censored += 1;
+                match call.censor_reason {
+                    Some(CensorReason::Administrative) => administrative_censored_count += 1,
+                    Some(CensorReason::ReportingLag) => reporting_lag_censored_count += 1,
+                    None => {
+                        return Err(format!(
+                            "scenario {scenario_id:?} has censored call without a censor reason"
+                        ));
+                    }
+                }
             }
         }
         resolved.push(call);
@@ -375,6 +405,8 @@ fn evaluate_scenario(
         diversion_count,
         cancellation_count,
         censored_count,
+        administrative_censored_count,
+        reporting_lag_censored_count,
         total_vessel_ticks,
         integrated_queue_vessel_ticks,
         mean_observed_queue_ticks,
