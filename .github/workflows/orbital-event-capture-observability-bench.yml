@@ -72,6 +72,11 @@ jobs:
             and .report.summary.authority_grants == 0
             and .report.authority_granted == false
             and .report.physical_completeness_claim_granted == false
+            and .report.cases[0].declared_evidence_bindings.qualified_scope.sensor_id == "sensor-qualification-coupon-01"
+            and .report.cases[0].declared_evidence_bindings.reference.available == true
+            and .report.cases[0].declared_evidence_bindings.derived_reference_event_rate_per_second == 1
+            and .report.cases[0].declared_evidence_bindings.calibration.valid_at_test_time == true
+            and .report.cases[0].declared_evidence_bindings.clock.synchronized == true
           ' orbital-event-capture-receipt.json
 
       - name: Run independent JavaScript reconciliation oracle
