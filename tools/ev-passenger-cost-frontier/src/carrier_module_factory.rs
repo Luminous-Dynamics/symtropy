@@ -750,10 +750,11 @@ fn validate_shared_cell_catalog(
     let mut mapping_ids = BTreeSet::new();
     let mut mapping_keys = BTreeSet::new();
     for (index, mapping) in catalog.mappings.iter().enumerate() {
-        if mapping.mapping_id.trim().is_empty()
-            || !mapping_ids.insert(mapping.mapping_id.as_str())
+        if mapping.mapping_id.trim().is_empty() || !mapping_ids.insert(mapping.mapping_id.as_str())
         {
-            errors.push(format!("mappings[{index}].mapping_id: nonempty unique identity required"));
+            errors.push(format!(
+                "mappings[{index}].mapping_id: nonempty unique identity required"
+            ));
         }
         let key = (
             mapping.config_id.as_str(),
@@ -761,7 +762,9 @@ fn validate_shared_cell_catalog(
             mapping.module_process_id.as_str(),
         );
         if !mapping_keys.insert(key) {
-            errors.push(format!("mappings[{index}]: duplicate configuration/template/process mapping"));
+            errors.push(format!(
+                "mappings[{index}]: duplicate configuration/template/process mapping"
+            ));
         }
         if mapping.evidence_reference.trim().is_empty()
             || mapping.notes.is_empty()
@@ -771,55 +774,99 @@ fn validate_shared_cell_catalog(
             || mapping.module_process_id.trim().is_empty()
             || mapping.base_station_process_id.trim().is_empty()
         {
-            errors.push(format!("mappings[{index}]: identities, evidence reference and notes are required"));
+            errors.push(format!(
+                "mappings[{index}]: identities, evidence reference and notes are required"
+            ));
         }
-        for (name, value) in [
-            ("setup_minutes_per_changeover", mapping.setup_minutes_per_changeover),
-        ] {
+        for (name, value) in [(
+            "setup_minutes_per_changeover",
+            mapping.setup_minutes_per_changeover,
+        )] {
             if value.is_some_and(|value| !value.is_finite() || value < 0.0 || value > 1_000_000.0) {
-                errors.push(format!("mappings[{index}].{name}: must be finite and within v1 bounds"));
+                errors.push(format!(
+                    "mappings[{index}].{name}: must be finite and within v1 bounds"
+                ));
             }
         }
-        if mapping.changeovers_per_year.is_some_and(|value| value > 1_000_000) {
-            errors.push(format!("mappings[{index}].changeovers_per_year: exceeds v1 limit"));
+        if mapping
+            .changeovers_per_year
+            .is_some_and(|value| value > 1_000_000)
+        {
+            errors.push(format!(
+                "mappings[{index}].changeovers_per_year: exceeds v1 limit"
+            ));
         }
-        if mapping.maximum_supplemental_cells.is_some_and(|value| value > 100_000) {
-            errors.push(format!("mappings[{index}].maximum_supplemental_cells: exceeds v1 limit"));
+        if mapping
+            .maximum_supplemental_cells
+            .is_some_and(|value| value > 100_000)
+        {
+            errors.push(format!(
+                "mappings[{index}].maximum_supplemental_cells: exceeds v1 limit"
+            ));
         }
         match mapping.compatibility {
             SharedCellCompatibility::SyntheticCompatible
                 if mapping.evidence_class != EvidenceClass::Synthetic =>
             {
-                errors.push(format!("mappings[{index}]: synthetic compatibility must use synthetic evidence"));
+                errors.push(format!(
+                    "mappings[{index}]: synthetic compatibility must use synthetic evidence"
+                ));
             }
             SharedCellCompatibility::VerifiedCompatible
-                if !matches!(mapping.evidence_class, EvidenceClass::Measured | EvidenceClass::IndependentTest) =>
+                if !matches!(
+                    mapping.evidence_class,
+                    EvidenceClass::Measured | EvidenceClass::IndependentTest
+                ) =>
             {
                 errors.push(format!("mappings[{index}]: verified compatibility requires measured or independent-test evidence"));
             }
             _ => {}
         }
 
-        let config = modules.configurations.iter().find(|config| config.config_id == mapping.config_id);
+        let config = modules
+            .configurations
+            .iter()
+            .find(|config| config.config_id == mapping.config_id);
         let Some(config) = config else {
-            errors.push(format!("mappings[{index}]: references unknown module configuration"));
+            errors.push(format!(
+                "mappings[{index}]: references unknown module configuration"
+            ));
             continue;
         };
-        if !config.station_processes.iter().any(|station| station.process_id == mapping.module_process_id) {
-            errors.push(format!("mappings[{index}]: references unknown module process"));
+        if !config
+            .station_processes
+            .iter()
+            .any(|station| station.process_id == mapping.module_process_id)
+        {
+            errors.push(format!(
+                "mappings[{index}]: references unknown module process"
+            ));
         }
-        let matching_base_scenarios: Vec<&BaseFactoryScenario> = base.results.iter()
+        let matching_base_scenarios: Vec<&BaseFactoryScenario> = base
+            .results
+            .iter()
             .filter(|scenario| scenario.template_id == mapping.template_id)
             .collect();
         if matching_base_scenarios.is_empty() {
-            errors.push(format!("mappings[{index}]: references unknown factory template"));
+            errors.push(format!(
+                "mappings[{index}]: references unknown factory template"
+            ));
         } else if !matching_base_scenarios.iter().any(|scenario| {
-            scenario.stations.iter().any(|station| station.process_id == mapping.base_station_process_id)
+            scenario
+                .stations
+                .iter()
+                .any(|station| station.process_id == mapping.base_station_process_id)
         }) {
-            errors.push(format!("mappings[{index}]: base station does not exist in the selected factory template"));
+            errors.push(format!(
+                "mappings[{index}]: base station does not exist in the selected factory template"
+            ));
         }
     }
-    if errors.is_empty() { Ok(()) } else { Err(errors) }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
 }
 
 fn ceil_supplemental_cells(required_minutes: f64, productive_minutes: f64) -> Option<u64> {
@@ -843,9 +890,13 @@ fn evaluate_shared_cell_pair(
     mapping: &SharedCellMapping,
 ) -> SharedCellScenarioResult {
     let module_result = evaluate_pair(base, config);
-    let base_station = base.stations.iter()
+    let base_station = base
+        .stations
+        .iter()
         .find(|station| station.process_id == mapping.base_station_process_id);
-    let module_station = config.station_processes.iter()
+    let module_station = config
+        .station_processes
+        .iter()
         .find(|station| station.process_id == mapping.module_process_id);
 
     let mut missing = Vec::new();
@@ -871,16 +922,18 @@ fn evaluate_shared_cell_pair(
     if module_result.planned_module_attempts_per_year.is_none() {
         missing.push("planned_module_attempts_per_year".into());
     }
-    if module_station.and_then(|station| station.cycle_minutes_per_attempt).is_none() {
+    if module_station
+        .and_then(|station| station.cycle_minutes_per_attempt)
+        .is_none()
+    {
         missing.push("module_cycle_minutes_per_attempt".into());
     }
 
     let base_station_available_minutes = base_station.map(|station| {
         station.parallel_cells_required as f64 * base.productive_minutes_per_cell_year
     });
-    let base_vehicle_station_load_minutes = base_station.map(|station| {
-        base.planned_attempts_per_year as f64 * station.cycle_minutes_per_attempt
-    });
+    let base_vehicle_station_load_minutes = base_station
+        .map(|station| base.planned_attempts_per_year as f64 * station.cycle_minutes_per_attempt);
     let base_station_residual_minutes = base_station_available_minutes
         .zip(base_vehicle_station_load_minutes)
         .map(|(available, load)| available - load);
@@ -906,31 +959,49 @@ fn evaluate_shared_cell_pair(
         SharedCellCompatibility::SyntheticCompatible | SharedCellCompatibility::VerifiedCompatible
     );
     let fitted = compatibility_allows_sharing
-        .then(|| total_module_work_minutes.zip(base_station_residual_minutes)
-            .map(|(work, residual)| work.min(residual.max(0.0))))
+        .then(|| {
+            total_module_work_minutes
+                .zip(base_station_residual_minutes)
+                .map(|(work, residual)| work.min(residual.max(0.0)))
+        })
         .flatten();
     let excess = compatibility_allows_sharing
-        .then(|| total_module_work_minutes.zip(base_station_residual_minutes)
-            .map(|(work, residual)| (work - residual.max(0.0)).max(0.0)))
+        .then(|| {
+            total_module_work_minutes
+                .zip(base_station_residual_minutes)
+                .map(|(work, residual)| (work - residual.max(0.0)).max(0.0))
+        })
         .flatten();
     let required_supplemental = excess.and_then(|minutes| {
         ceil_supplemental_cells(minutes, base.productive_minutes_per_cell_year)
     });
     let supplemental_capacity = compatibility_allows_sharing
-        .then(|| mapping.maximum_supplemental_cells
-            .map(|cells| cells as f64 * base.productive_minutes_per_cell_year))
+        .then(|| {
+            mapping
+                .maximum_supplemental_cells
+                .map(|cells| cells as f64 * base.productive_minutes_per_cell_year)
+        })
         .flatten();
     let shared_capacity_margin = base_station_residual_minutes
         .zip(supplemental_capacity)
         .zip(total_module_work_minutes)
         .map(|((residual, supplemental), work)| residual + supplemental - work);
-    let dedicated_station = module_result.stations.iter()
+    let dedicated_station = module_result
+        .stations
+        .iter()
         .find(|station| station.process_id == mapping.module_process_id);
     let dedicated_cells = dedicated_station.and_then(|station| station.parallel_cells_required);
-    let supplemental_cells_used = required_supplemental.zip(mapping.maximum_supplemental_cells)
+    let supplemental_cells_used = required_supplemental
+        .zip(mapping.maximum_supplemental_cells)
         .map(|(required, available)| required.min(u64::from(available)));
-    let dedicated_cells_avoided = dedicated_cells.zip(supplemental_cells_used)
-        .and_then(|(dedicated, shared)| i64::try_from(dedicated).ok()?.checked_sub(i64::try_from(shared).ok()?));
+    let dedicated_cells_avoided =
+        dedicated_cells
+            .zip(supplemental_cells_used)
+            .and_then(|(dedicated, shared)| {
+                i64::try_from(dedicated)
+                    .ok()?
+                    .checked_sub(i64::try_from(shared).ok()?)
+            });
     let supplemental_equipment_capex = supplemental_cells_used
         .zip(module_station.and_then(|station| station.equipment_capex_usd_per_cell))
         .map(|(cells, capex)| cells as f64 * capex);
@@ -947,20 +1018,30 @@ fn evaluate_shared_cell_pair(
     let base_vehicle_attempts_displaced = shortfall_minutes
         .zip(base_station.map(|station| station.cycle_minutes_per_attempt))
         .and_then(|(minutes, cycle)| {
-            if cycle <= 0.0 { None } else { ceil_supplemental_cells(minutes, cycle) }
+            if cycle <= 0.0 {
+                None
+            } else {
+                ceil_supplemental_cells(minutes, cycle)
+            }
         });
 
     if mapping.compatibility == SharedCellCompatibility::Incompatible {
         findings.push("base_station_process_is_not_qualified_for_module_process".into());
     }
     if shortfall_minutes.is_some_and(|minutes| minutes > 1e-9) {
-        findings.push("shared_station_capacity_plus_supplemental_cells_cannot_preserve_base_vehicle_output".into());
+        findings.push(
+            "shared_station_capacity_plus_supplemental_cells_cannot_preserve_base_vehicle_output"
+                .into(),
+        );
     }
     if mapping.compatibility == SharedCellCompatibility::SyntheticCompatible {
-        findings.push("shared_station_mapping_is_synthetic_and_only_validates_screen_arithmetic".into());
+        findings.push(
+            "shared_station_mapping_is_synthetic_and_only_validates_screen_arithmetic".into(),
+        );
     }
     if !missing.is_empty() {
-        findings.push("missing_shared_station_mapping_or_capacity_inputs_prevent_qualification".into());
+        findings
+            .push("missing_shared_station_mapping_or_capacity_inputs_prevent_qualification".into());
     }
     findings.sort();
 
@@ -1035,8 +1116,16 @@ pub fn evaluate_shared_cells(
     let mut configs = modules.configurations.clone();
     let mut mappings = catalog.mappings.clone();
     base_scenarios.sort_by(|left, right| {
-        (&left.site_id, &left.template_id, left.target_good_vehicles_per_year)
-            .cmp(&(&right.site_id, &right.template_id, right.target_good_vehicles_per_year))
+        (
+            &left.site_id,
+            &left.template_id,
+            left.target_good_vehicles_per_year,
+        )
+            .cmp(&(
+                &right.site_id,
+                &right.template_id,
+                right.target_good_vehicles_per_year,
+            ))
     });
     configs.sort_by(|left, right| left.config_id.cmp(&right.config_id));
     mappings.sort_by(|left, right| left.mapping_id.cmp(&right.mapping_id));
@@ -1052,8 +1141,18 @@ pub fn evaluate_shared_cells(
         }
     }
     results.sort_by(|left, right| {
-        (&left.site_id, &left.template_id, &left.config_id, &left.mapping_id)
-            .cmp(&(&right.site_id, &right.template_id, &right.config_id, &right.mapping_id))
+        (
+            &left.site_id,
+            &left.template_id,
+            &left.config_id,
+            &left.mapping_id,
+        )
+            .cmp(&(
+                &right.site_id,
+                &right.template_id,
+                &right.config_id,
+                &right.mapping_id,
+            ))
     });
     Ok(SharedCellReport {
         schema_version: catalog.schema_version.clone(),
@@ -1066,7 +1165,6 @@ pub fn evaluate_shared_cells(
         claim_ceiling: "Synthetic/shared-station capacity overlay only; no verified fixture compatibility, production release, supplier quotation, physical plant layout or cost superiority is established".into(),
     })
 }
-
 
 #[cfg(test)]
 mod tests {
