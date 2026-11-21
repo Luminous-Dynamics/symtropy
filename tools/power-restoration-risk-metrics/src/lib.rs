@@ -694,8 +694,9 @@ mod tests {
         assert!((stats.p95_nearest_rank - 0.95).abs() < EPSILON);
         assert!((stats.cvar95_exact_tail - 1.0).abs() < EPSILON);
 
-        let tail = exact_cvar_upper_tail(&[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], 0.15).unwrap();
-        assert!((tail - ((0.9 + 0.8) / 1.5)).abs() < EPSILON);
+        let fractional_tail = (1..=30).map(|value| value as f64).collect::<Vec<_>>();
+        let tail = exact_cvar_upper_tail(&fractional_tail, 0.05).unwrap();
+        assert!((tail - ((30.0 + 29.0 * 0.5) / 1.5)).abs() < EPSILON);
     }
 
     #[test]
