@@ -9,7 +9,7 @@
 //! alphabet, a one-step action choice, and symmetric zero-one decision loss.
 //! It is an exact synthetic oracle, not a navigation estimator or safety case.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 const PROBABILITY_TOLERANCE: f64 = 1.0e-9;
@@ -94,6 +94,54 @@ impl BinaryBelief {
         loss.validate()?;
         Ok((self.probability_state_zero() * loss.false_safe_loss)
             .min(self.probability_state_one * loss.false_degraded_loss))
+    }
+}
+
+/// State-dependent acquisition success model.
+///
+/// StateZero may represent an unsafe/out-of-envelope navigation state and
+/// StateOne a safe/in-envelope state. Different success probabilities model
+/// informative missingness (for example, state-dependent occlusion or
+/// receiver dropout). This is an explicit model input, never inferred from
+/// the absence of a sample.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct AcquisitionSuccessModel {
+    pub probability_success_state_zero: f64,
+    pub probability_success_state_one: f64,
+}
+
+impl AcquisitionSuccessModel {
+    pub fn new(
+        probability_success_state_zero: f64,
+        probability_success_state_one: f64,
+    ) -> Result<Self, DecisionValueError> {
+        let model = Self {
+            probability_success_state_zero,
+            probability_success_state_one,
+        };
+        model.validate("acquisition-model")?;
+        Ok(model)
+    }
+
+    pub const fn state_independent(probability: f64) -> Self {
+        Self {
+            probability_success_state_zero: probability,
+            probability_success_state_one: probability,
+        }
+    }
+
+    fn validate(self, action_id: &str) -> Result<(), DecisionValueError> {
+        for probability in [
+            self.probability_success_state_zero,
+            self.probability_success_state_one,
+        ] {
+            if !probability.is_finite() || !(0.0..=1.0).contains(&probability) {
+                return Err(DecisionValueError::InvalidAcquisitionProbability(
+                    action_id.to_owned(),
+                ));
+            }
+        }
+        Ok(())
     }
 }
 
@@ -211,9 +259,15 @@ pub struct ActionAssessment {
     pub expected_bayes_risk: f64,
     /// Baseline risk minus acquisition-failure-adjusted expected risk.
     pub expected_decision_value: f64,
-    /// Mutual information between the latent state and observation, conditional on success.
+    /// P(acquisition succeeds), marginalized over the current prior.
+    pub acquisition_success_probability_under_prior: f64,
+    /// Expected Bayes risk conditional on acquisition failing. If failure has
+    /// zero probability, this is 0 because that branch is impossible.
+    pub bayes_risk_after_failure: f64,
+    /// Mutual information between state and the measurement, conditional on success.
     pub mutual_information_bits_on_success: f64,
-    /// Acquisition-success-adjusted mutual information.
+    /// Mutual information in the complete acquisition event: success plus
+    /// measurement outcome, or the explicit no-observation event.
     pub expected_mutual_information_bits: f64,
 }
 
@@ -293,51 +347,130 @@ pub fn evaluate_action_with_loss(
     budget: ResourceBudget,
     loss: DecisionLoss,
 ) -> Result<ActionAssessment, DecisionValueError> {
-    // Revalidate even if the caller constructed the public structs directly.
+    evaluate_action_with_models(
+        action,
+        belief,
+        budget,
+        loss,
+        AcquisitionSuccessModel::state_independent(action.acquisition_success_probability),
+    )
+}
+
+/// Evaluate one candidate with explicit loss and state-dependent acquisition.
+///
+/// A failed acquisition is modelled as an observable NoObservation outcome:
+/// P(no observation | StateZero) = 1 - q0 and
+/// P(no observation | StateOne)  = 1 - q1.
+/// Consequently, missingness contributes to posterior risk and mutual
+/// information only when a declared model says it is state-dependent.
+pub fn evaluate_action_with_models(
+    action: &DiagnosticAction,
+    belief: BinaryBelief,
+    budget: ResourceBudget,
+    loss: DecisionLoss,
+    acquisition: AcquisitionSuccessModel,
+) -> Result<ActionAssessment, DecisionValueError> {
     BinaryBelief::new(belief.probability_state_one)?;
     loss.validate()?;
     validate_action(action)?;
+    acquisition.validate(&action.id)?;
 
     let p0 = belief.probability_state_zero();
     let p1 = belief.probability_state_one;
     let baseline_bayes_risk = belief.bayes_risk_with_loss(loss)?;
-    let mut bayes_risk_after_success = 0.0;
+    let q0 = acquisition.probability_success_state_zero;
+    let q1 = acquisition.probability_success_state_one;
+    let success_probability = p0 * q0 + p1 * q1;
+    let failure_probability = p0 * (1.0 - q0) + p1 * (1.0 - q1);
+
+    let mut success_joint_risk = 0.0;
+    let mut failure_joint_risk = 0.0;
+    let mut total_mutual_information_bits = 0.0;
     let mut mutual_information_bits_on_success = 0.0;
 
     for outcome in &action.outcomes {
-        let joint_state_zero = p0 * outcome.likelihood_state_zero;
-        let joint_state_one = p1 * outcome.likelihood_state_one;
-        let probability_outcome = joint_state_zero + joint_state_one;
+        // Joint probability of (state, successful acquisition, outcome).
+        let joint_zero = p0 * q0 * outcome.likelihood_state_zero;
+        let joint_one = p1 * q1 * outcome.likelihood_state_one;
+        let probability_outcome = joint_zero + joint_one;
+        success_joint_risk += (joint_zero * loss.false_safe_loss)
+            .min(joint_one * loss.false_degraded_loss);
 
-        // Bayes classification loss after this outcome is the smaller joint
-        // mass. Summing it over outcomes gives expected posterior Bayes risk.
-        bayes_risk_after_success +=
-            (joint_state_zero * loss.false_safe_loss)
-                .min(joint_state_one * loss.false_degraded_loss);
-
-        // I(State; Outcome) = sum_s,o P(s,o) log2(P(o|s) / P(o)).
-        // Zero-probability terms contribute exactly zero.
+        // The unconditional observation channel includes acquisition success.
         if probability_outcome > 0.0 {
-            if joint_state_zero > 0.0 {
-                mutual_information_bits_on_success += joint_state_zero
-                    * (outcome.likelihood_state_zero / probability_outcome).log2();
+            if joint_zero > 0.0 {
+                let conditional = q0 * outcome.likelihood_state_zero;
+                total_mutual_information_bits +=
+                    joint_zero * (conditional / probability_outcome).log2();
             }
-            if joint_state_one > 0.0 {
-                mutual_information_bits_on_success += joint_state_one
-                    * (outcome.likelihood_state_one / probability_outcome).log2();
+            if joint_one > 0.0 {
+                let conditional = q1 * outcome.likelihood_state_one;
+                total_mutual_information_bits +=
+                    joint_one * (conditional / probability_outcome).log2();
+            }
+        }
+
+        // Conditional-on-success MI uses the state distribution among
+        // successful acquisitions, not the pre-acquisition prior.
+        if success_probability > 0.0 {
+            let success_p0 = p0 * q0 / success_probability;
+            let success_p1 = p1 * q1 / success_probability;
+            let success_joint_zero = success_p0 * outcome.likelihood_state_zero;
+            let success_joint_one = success_p1 * outcome.likelihood_state_one;
+            let success_outcome_probability = success_joint_zero + success_joint_one;
+            if success_outcome_probability > 0.0 {
+                if success_joint_zero > 0.0 {
+                    mutual_information_bits_on_success += success_joint_zero
+                        * (outcome.likelihood_state_zero / success_outcome_probability).log2();
+                }
+                if success_joint_one > 0.0 {
+                    mutual_information_bits_on_success += success_joint_one
+                        * (outcome.likelihood_state_one / success_outcome_probability).log2();
+                }
             }
         }
     }
 
-    let success = action.acquisition_success_probability;
-    let expected_bayes_risk =
-        success * bayes_risk_after_success + (1.0 - success) * baseline_bayes_risk;
+    // Missingness is itself a possible observation. It is uninformative when
+    // q0 == q1, but can change the posterior when acquisition success depends
+    // on the latent state.
+    let no_observation_zero = p0 * (1.0 - q0);
+    let no_observation_one = p1 * (1.0 - q1);
+    if failure_probability > 0.0 {
+        failure_joint_risk = (no_observation_zero * loss.false_safe_loss)
+            .min(no_observation_one * loss.false_degraded_loss);
+        if no_observation_zero > 0.0 {
+            total_mutual_information_bits += no_observation_zero
+                * ((1.0 - q0) / failure_probability).log2();
+        }
+        if no_observation_one > 0.0 {
+            total_mutual_information_bits += no_observation_one
+                * ((1.0 - q1) / failure_probability).log2();
+        }
+    }
+
+    // Conditional branch risks are undefined on zero-probability branches;
+    // report 0 there and retain the branch probability explicitly.
+    let bayes_risk_after_success = if success_probability > 0.0 {
+        success_joint_risk / success_probability
+    } else {
+        0.0
+    };
+    let bayes_risk_after_failure = if failure_probability > 0.0 {
+        failure_joint_risk / failure_probability
+    } else {
+        0.0
+    };
+    let expected_bayes_risk = success_joint_risk + failure_joint_risk;
     let expected_decision_value =
         (baseline_bayes_risk - expected_bayes_risk).max(0.0);
     let mutual_information_bits_on_success = mutual_information_bits_on_success.max(0.0);
-    let expected_mutual_information_bits = success * mutual_information_bits_on_success;
+    let expected_mutual_information_bits = total_mutual_information_bits.max(0.0);
 
-    if !bayes_risk_after_success.is_finite()
+    if !success_probability.is_finite()
+        || !failure_probability.is_finite()
+        || !bayes_risk_after_success.is_finite()
+        || !bayes_risk_after_failure.is_finite()
         || !expected_bayes_risk.is_finite()
         || !expected_decision_value.is_finite()
         || !mutual_information_bits_on_success.is_finite()
@@ -352,11 +485,29 @@ pub fn evaluate_action_with_loss(
         feasible: action.cost.fits(budget),
         baseline_bayes_risk,
         bayes_risk_after_success,
+        bayes_risk_after_failure,
         expected_bayes_risk,
         expected_decision_value,
+        acquisition_success_probability_under_prior: success_probability,
         mutual_information_bits_on_success,
         expected_mutual_information_bits,
     })
+}
+
+/// Evaluate one candidate with an explicit acquisition model and zero-one loss.
+pub fn evaluate_action_with_acquisition_model(
+    action: &DiagnosticAction,
+    belief: BinaryBelief,
+    budget: ResourceBudget,
+    acquisition: AcquisitionSuccessModel,
+) -> Result<ActionAssessment, DecisionValueError> {
+    evaluate_action_with_models(
+        action,
+        belief,
+        budget,
+        DecisionLoss::zero_one(),
+        acquisition,
+    )
 }
 
 /// Evaluate all candidates in a stable order, rejecting duplicate action IDs.
@@ -376,13 +527,50 @@ pub fn evaluate_actions_with_loss(
     loss: DecisionLoss,
 ) -> Result<Vec<ActionAssessment>, DecisionValueError> {
     loss.validate()?;
+    let acquisition_models: BTreeMap<String, AcquisitionSuccessModel> = actions
+        .iter()
+        .map(|action| (
+            action.id.clone(),
+            AcquisitionSuccessModel::state_independent(
+                action.acquisition_success_probability,
+            ),
+        ))
+        .collect();
+    evaluate_actions_with_models(actions, &acquisition_models, belief, budget, loss)
+}
+
+/// Evaluate all candidates with an explicit per-action acquisition model map.
+///
+/// The map must contain exactly one model for every candidate. Missing or
+/// extraneous IDs are rejected rather than silently falling back to a
+/// state-independent success probability.
+pub fn evaluate_actions_with_models(
+    actions: &[DiagnosticAction],
+    acquisition_models: &BTreeMap<String, AcquisitionSuccessModel>,
+    belief: BinaryBelief,
+    budget: ResourceBudget,
+    loss: DecisionLoss,
+) -> Result<Vec<ActionAssessment>, DecisionValueError> {
+    loss.validate()?;
     let mut ids = BTreeSet::new();
     let mut assessments = Vec::with_capacity(actions.len());
     for action in actions {
         if !ids.insert(action.id.clone()) {
             return Err(DecisionValueError::DuplicateActionId(action.id.clone()));
         }
-        assessments.push(evaluate_action_with_loss(action, belief, budget, loss)?);
+        let model = acquisition_models.get(&action.id).ok_or_else(|| {
+            DecisionValueError::InvalidAcquisitionProbability(action.id.clone())
+        })?;
+        assessments.push(evaluate_action_with_models(
+            action, belief, budget, loss, *model,
+        )?);
+    }
+    if acquisition_models.len() != actions.len()
+        || acquisition_models.keys().any(|id| !ids.contains(id))
+    {
+        return Err(DecisionValueError::InvalidAcquisitionProbability(
+            "acquisition-model-map".to_owned(),
+        ));
     }
     assessments.sort_by(|a, b| a.action_id.cmp(&b.action_id));
     Ok(assessments)
@@ -443,7 +631,36 @@ pub fn select_action_with_loss(
     criterion: SelectionCriterion,
     loss: DecisionLoss,
 ) -> Result<Option<ActionAssessment>, DecisionValueError> {
-    let assessments = evaluate_actions_with_loss(actions, belief, budget, loss)?;
+    let acquisition_models: BTreeMap<String, AcquisitionSuccessModel> = actions
+        .iter()
+        .map(|action| (
+            action.id.clone(),
+            AcquisitionSuccessModel::state_independent(
+                action.acquisition_success_probability,
+            ),
+        ))
+        .collect();
+    select_action_with_models(
+        actions,
+        &acquisition_models,
+        belief,
+        budget,
+        criterion,
+        loss,
+    )
+}
+
+/// Select from candidates with explicit state-dependent acquisition models.
+pub fn select_action_with_models(
+    actions: &[DiagnosticAction],
+    acquisition_models: &BTreeMap<String, AcquisitionSuccessModel>,
+    belief: BinaryBelief,
+    budget: ResourceBudget,
+    criterion: SelectionCriterion,
+    loss: DecisionLoss,
+) -> Result<Option<ActionAssessment>, DecisionValueError> {
+    let assessments =
+        evaluate_actions_with_models(actions, acquisition_models, belief, budget, loss)?;
     Ok(assessments
         .into_iter()
         .filter(|assessment| {
@@ -726,6 +943,76 @@ mod tests {
             ),
             Err(DecisionValueError::InvalidDecisionLoss)
         ));
+    }
+
+    #[test]
+    fn state_dependent_missingness_is_an_explicit_information_channel() {
+        let belief = BinaryBelief::new(0.6).unwrap();
+        let action = DiagnosticAction {
+            id: "state_dependent_dropout".to_owned(),
+            cost: ActionCost::default(),
+            acquisition_success_probability: 0.5,
+            outcomes: vec![
+                ObservationOutcome {
+                    id: "measurement_zero".to_owned(),
+                    likelihood_state_zero: 0.5,
+                    likelihood_state_one: 0.5,
+                },
+                ObservationOutcome {
+                    id: "measurement_one".to_owned(),
+                    likelihood_state_zero: 0.5,
+                    likelihood_state_one: 0.5,
+                },
+            ],
+        };
+        let model = AcquisitionSuccessModel::new(0.2, 0.8).unwrap();
+        let result = evaluate_action_with_acquisition_model(
+            &action,
+            belief,
+            ResourceBudget::default(),
+            model,
+        ).unwrap();
+
+        // Measurements are deliberately uninformative. Only acquisition
+        // success/failure changes the posterior, and that is modelled.
+        close(result.mutual_information_bits_on_success, 0.0);
+        close(result.acquisition_success_probability_under_prior, 0.56);
+        close(result.baseline_bayes_risk, 0.4);
+        close(result.expected_bayes_risk, 0.2);
+        close(result.expected_decision_value, 0.2);
+        assert!(result.expected_mutual_information_bits > 0.0);
+        assert!(result.bayes_risk_after_failure < result.baseline_bayes_risk);
+    }
+
+    #[test]
+    fn state_independent_dropout_preserves_the_previous_failure_formula() {
+        let belief = BinaryBelief::new(0.9).unwrap();
+        let action = demo_actions().remove(1);
+        let model = AcquisitionSuccessModel::state_independent(0.8);
+        let old = evaluate_action(&action, belief, budget()).unwrap();
+        let explicit = evaluate_action_with_acquisition_model(
+            &action, belief, budget(), model,
+        ).unwrap();
+        close(explicit.expected_bayes_risk, old.expected_bayes_risk);
+        close(explicit.expected_decision_value, old.expected_decision_value);
+        close(
+            explicit.expected_mutual_information_bits,
+            old.expected_mutual_information_bits,
+        );
+        close(explicit.bayes_risk_after_failure, 0.1);
+    }
+
+    #[test]
+    fn state_dependent_acquisition_models_fail_closed() {
+        assert!(AcquisitionSuccessModel::new(-0.1, 0.8).is_err());
+        assert!(AcquisitionSuccessModel::new(0.2, f64::NAN).is_err());
+
+        let belief = BinaryBelief::new(0.6).unwrap();
+        let actions = demo_actions();
+        let map = BTreeMap::new();
+        assert!(evaluate_actions_with_models(
+            &actions, &map, belief, budget(), DecisionLoss::zero_one()
+        ).is_err());
     }
 
     #[test]
