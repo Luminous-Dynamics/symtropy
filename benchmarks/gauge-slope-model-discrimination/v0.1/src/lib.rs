@@ -10,6 +10,8 @@
 //! Each input row is one independent, preregistered trial-level aggregate.
 //! Adjacent trajectory frames are not independent observations.
 
+pub mod model_set_design;
+
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
@@ -26,6 +28,7 @@ pub enum ModelDiscriminationError {
     InsufficientSpeedExcitation,
     NonFiniteArithmetic,
     InvalidGeometry,
+    InvalidCoefficientBounds,
 }
 
 impl Display for ModelDiscriminationError {
@@ -46,6 +49,7 @@ impl Display for ModelDiscriminationError {
             Self::InvalidGeometry => {
                 "qualified geometry requires finite positive gravity, an admitted incline angle, and a non-zero evidence digest"
             }
+            Self::InvalidCoefficientBounds => "model coefficient bounds must be finite and ordered",
         };
         formatter.write_str(message)
     }
