@@ -43,7 +43,8 @@ The validator:
 4. checks equal-and-opposite impulse for every event and every vector component;
 5. checks the aggregate residual as a separate condition;
 6. sorts by event ID, uses deterministic ordered maps and compensated accumulation;
-7. emits a receipt with path-to-method ownership, aggregate impulses, aggregate residual and maximum event residual.
+7. requires solver-pair and coordinate-frame identity to remain stable across all events assigned to one transfer path;
+8. emits a receipt with path-to-method ownership, aggregate impulses, aggregate residual and maximum event residual.
 
 The reference validator does not perform coordinate transformations. A non-matching frame is rejected; a future transform adapter must provide an explicit transform identity, convention, source and destination frame, and transformed-vector receipt.
 
@@ -60,12 +61,13 @@ A production exactly-once exchange needs a durable transaction protocol: immutab
 
 ## 4. Authored test matrix
 
-The module currently contains eleven tests:
+The module currently contains twelve tests:
 - exact equal-and-opposite events;
 - duplicate event ID rejection;
 - per-event errors that cancel globally;
 - conflicting transfer methods on one path;
 - implicit coordinate-frame mixing;
+- solver-pair or frame identity changes within one transfer path;
 - non-finite impulses;
 - deterministic input permutation;
 - multiple events on one path with a consistent method;
