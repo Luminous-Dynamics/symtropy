@@ -1,0 +1,340 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-response-window-scorecard-v1.schema.json",
+  "title": "AV Response Window and Silence Scorecard v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "policy_id",
+    "run_id",
+    "interpretation",
+    "totals",
+    "per_episode"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "av-response-window-silence-v0"
+    },
+    "policy_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "interpretation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "limitations"
+      ],
+      "properties": {
+        "status": {
+          "const": "synthetic_response_window_score"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "totals": {
+      "$ref": "#/$defs/metrics"
+    },
+    "per_episode": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "episode_id",
+          "decision_count",
+          "correct_decision_count",
+          "response_window_count",
+          "response_window_hits",
+          "early_responses",
+          "late_responses",
+          "missed_responses",
+          "silence_window_count",
+          "silence_false_positives",
+          "unsolicited_responses",
+          "duplicate_responses",
+          "yield_ack_failures",
+          "stop_ack_failures",
+          "stop_latch_violations",
+          "stale_responses",
+          "backchannel_false_yields"
+        ],
+        "properties": {
+          "episode_id": {
+            "type": "string"
+          },
+          "decision_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "correct_decision_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "response_window_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "response_window_hits": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "early_responses": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "late_responses": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "missed_responses": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "silence_window_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "silence_false_positives": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unsolicited_responses": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "duplicate_responses": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "yield_ack_failures": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "stop_ack_failures": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "stop_latch_violations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "stale_responses": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "backchannel_false_yields": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "violations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_count",
+        "decision_count",
+        "correct_decision_count",
+        "decision_accuracy",
+        "required_response_count",
+        "response_window_hits",
+        "response_window_rate",
+        "early_responses",
+        "late_responses",
+        "missed_responses",
+        "silence_window_count",
+        "silence_false_positives",
+        "silence_precision",
+        "unsolicited_responses",
+        "duplicate_responses",
+        "required_yields",
+        "yield_ack_within_bound_count",
+        "yield_ack_failures",
+        "required_stops",
+        "stop_ack_within_bound_count",
+        "stop_ack_failures",
+        "stop_latch_violations",
+        "backchannel_event_count",
+        "backchannel_false_yields",
+        "required_cancellations",
+        "cancellation_actions",
+        "stale_responses",
+        "required_deescalations",
+        "deescalation_actions",
+        "required_abstentions",
+        "abstention_actions",
+        "background_load_episodes",
+        "background_window_misses"
+      ],
+      "properties": {
+        "episode_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "decision_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "correct_decision_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "decision_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "required_response_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "response_window_hits": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "response_window_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "early_responses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "late_responses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "missed_responses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "silence_window_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "silence_false_positives": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "silence_precision": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "unsolicited_responses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "duplicate_responses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "required_yields": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "yield_ack_within_bound_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "yield_ack_failures": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "required_stops": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stop_ack_within_bound_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stop_ack_failures": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stop_latch_violations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "backchannel_event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "backchannel_false_yields": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "required_cancellations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cancellation_actions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stale_responses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "required_deescalations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deescalation_actions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "required_abstentions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "abstention_actions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "background_load_episodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "background_window_misses": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

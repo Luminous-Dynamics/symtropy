@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-response-window-workload-v1.schema.json",
+  "title": "AV Response Window and Silence Workload v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "note",
+    "episodes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "av-response-window-silence-v0"
+    },
+    "note": {
+      "type": "string"
+    },
+    "episodes": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "$ref": "#/$defs/episode"
+      }
+    }
+  },
+  "$defs": {
+    "stream_event": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "event_id",
+        "tick",
+        "event_type"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "event_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "modality": {
+          "enum": [
+            "audio",
+            "video"
+          ]
+        },
+        "observation_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "duplicate_of": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_generation": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "episode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "duration_ticks",
+        "turn_epoch",
+        "task_prompt",
+        "background_load_profile",
+        "stream_events"
+      ],
+      "properties": {
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "duration_ticks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "turn_epoch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_prompt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "background_load_profile": {
+          "enum": [
+            "idle",
+            "moderate_retrieval",
+            "saturated_memory_compaction_and_search"
+          ]
+        },
+        "stream_events": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/stream_event"
+          }
+        }
+      }
+    }
+  }
+}

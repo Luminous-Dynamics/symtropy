@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-response-window-silence-v0",
+  "status": "author-authored synthetic policy contract; no model results",
+  "episode_count": 12,
+  "expected_decision_count": 15,
+  "required_responses": 4,
+  "required_clarifications": 1,
+  "required_yields": 1,
+  "required_stops": 1,
+  "required_cancellations": 1,
+  "required_deescalations": 1,
+  "required_abstentions": 1,
+  "expected_silence_decisions": 5
+}
