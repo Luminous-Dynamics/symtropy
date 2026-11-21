@@ -8,6 +8,7 @@
 //! releases a reel, or treats a synthetic scenario ensemble as physical truth.
 
 use serde_json::{json, Map, Value};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
@@ -501,6 +502,12 @@ fn audit_document(value: &Value) -> Result<Value, String> {
     if cell_count == 0 {
         return Err(fail("$.cell_count", "must be positive"));
     }
+    if profile.minimum_contiguous_weak_cells > cell_count {
+        return Err(fail(
+            "$.application_profile.minimum_contiguous_weak_cells",
+            "cannot exceed cell_count",
+        ));
+    }
     let scenario_values = array(
         value
             .get("prior_scenarios")
@@ -624,7 +631,9 @@ fn run() -> Result<(), String> {
         .map_err(|error| format!("cannot read fixture {path}: {error}"))?;
     let value: Value = serde_json::from_str(&source)
         .map_err(|error| format!("invalid JSON in {path}: {error}"))?;
-    let receipt = audit_document(&value)?;
+    let mut receipt = audit_document(&value)?;
+    let fixture_sha256 = format!("{:x}", Sha256::digest(source.as_bytes()));
+    receipt["fixture_sha256"] = json!(fixture_sha256);
     println!(
         "{}",
         serde_json::to_string_pretty(&receipt)
@@ -769,6 +778,17 @@ mod tests {
             audit_document(&value)
                 .unwrap_err()
                 .contains("SHA-256")
+        );
+    }
+
+    #[test]
+    fn rejects_contiguous_failure_threshold_larger_than_grid() {
+        let mut value = fixture();
+        value["application_profile"]["minimum_contiguous_weak_cells"] = json!(9);
+        assert!(
+            audit_document(&value)
+                .unwrap_err()
+                .contains("cannot exceed cell_count")
         );
     }
 
