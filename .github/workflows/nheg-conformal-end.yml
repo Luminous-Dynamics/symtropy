@@ -50,7 +50,7 @@ jobs:
           data=json.loads(Path(os.environ["REPLAY_JSON"]).read_text())
           v=data["validation"]
           for key in (
-              "induced_metric_exact",
+              "intrinsic_metric_exact",
               "sectional_curvature_formulae_exact",
               "scalar_curvature_formula_exact",
               "asymptotic_hyperbolic_limit_exact",
