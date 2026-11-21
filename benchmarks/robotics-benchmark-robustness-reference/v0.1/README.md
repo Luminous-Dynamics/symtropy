@@ -11,12 +11,7 @@ A top-line manipulation success score is not enough to establish robust capabili
 
 ## Matched input contract
 
-Each episode record is represented as a baseline/candidate pair with the **same** episode ID, inside a task cluster. Each task cluster declares:
-- stable task ID;
-- task category;
-- semantic task horizon;
-- explicit shift family such as `in_distribution`, `held_out_object`, `held_out_layout`, `lighting`, `material`, `camera` or `compositional`;
-- all matched episode pairs for that task.
+Each episode record is represented as a baseline/candidate pair with the **same** episode ID, inside a task cluster. Each task cluster declares a stable semantic task ID, task category and semantic horizon. Every matched episode pair declares its own shift family (`in_distribution`, `held_out_object`, `held_out_layout`, `lighting`, `material`, `camera` or `compositional`). Keep all shift variants of the same semantic task inside the same task cluster; the bootstrap then resamples them together rather than treating them as independent tasks.
 
 The benchmark identity binds the scorecard to a benchmark ID, exact 40-character benchmark commit, task/scene protocol digest, embodiment, evaluation split and tuning-on-benchmark declaration.
 
