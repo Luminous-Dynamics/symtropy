@@ -6,13 +6,13 @@ on:
       - research/av-active-sensing-decision-value-v0
     paths:
       - "research/av-active-sensing-decision-value-v0/**"
-      - "tools/av-modality-necessity-evaluator/active_sensing*"
+      - "tools/av-modality-necessity-evaluator/**"
       - ".github/workflows/av-active-sensing-decision-value.yml"
   pull_request:
     branches: [main]
     paths:
       - "research/av-active-sensing-decision-value-v0/**"
-      - "tools/av-modality-necessity-evaluator/active_sensing*"
+      - "tools/av-modality-necessity-evaluator/**"
       - ".github/workflows/av-active-sensing-decision-value.yml"
   workflow_dispatch:
 
@@ -74,11 +74,16 @@ jobs:
           from jsonschema import Draft202012Validator
           base = "research/av-active-sensing-decision-value-v0/"
           schema = json.load(open(base + "schemas/submission-v1.schema.json", encoding="utf-8"))
-          submission = json.load(open(base + "fixtures/agent/reference-submission-v1.json", encoding="utf-8"))
-          Draft202012Validator(schema).validate(submission)
+          submissions = [
+              "reference-submission-v1.json",
+              "max-eig-reference-submission-v1.json",
+          ]
+          for filename in submissions:
+              submission = json.load(open(base + "fixtures/agent/" + filename, encoding="utf-8"))
+              Draft202012Validator(schema).validate(submission)
           PY
       - name: Run active sensing adversarial evaluator tests
-        run: python -m unittest discover -s tools/av-modality-necessity-evaluator -p "test_active_sensing_evaluate.py" -v
+        run: python -m unittest discover -s tools/av-modality-necessity-evaluator -p "test_*active_sensing*.py" -v
       - name: Score finite active sensing reference policy
         run: |
           python tools/av-modality-necessity-evaluator/active_sensing_evaluate.py \
@@ -105,6 +110,27 @@ jobs:
           assert actual["totals"]["late_acquisition_count"] == 0
           assert actual["totals"]["budget_violation_count"] == 0
           assert actual["totals"]["evidence_violation_count"] == 0
+          PY
+      - name: Compare decision-value policy with greedy maximum-EIG baseline
+        run: |
+          python tools/av-modality-necessity-evaluator/compare_active_sensing_policies.py \
+            --workload research/av-active-sensing-decision-value-v0/fixtures/agent/workload-v1.json \
+            --truth research/av-active-sensing-decision-value-v0/fixtures/evaluator-only/action-truth-v1.json \
+            --decision-value research/av-active-sensing-decision-value-v0/fixtures/agent/reference-submission-v1.json \
+            --max-eig research/av-active-sensing-decision-value-v0/fixtures/agent/max-eig-reference-submission-v1.json \
+            --output /tmp/av-active-sensing-policy-comparison.json
+      - name: Assert finite EIG-versus-EVSI counterexample
+        run: |
+          python - <<'PY'
+          import json
+          report = json.load(open("/tmp/av-active-sensing-policy-comparison.json", encoding="utf-8"))
+          dv, eig = report["per_policy"]["decision_value"], report["per_policy"]["max_eig"]
+          assert dv["answer_accuracy"] == 1.0 and eig["answer_accuracy"] == 0.75
+          assert dv["safe_decision_accuracy"] == 1.0 and eig["safe_decision_accuracy"] == 0.25
+          assert dv["acquisition_count"] == 3 and eig["acquisition_count"] == 8
+          assert eig["wasted_acquisition_count"] == 6 and eig["late_acquisition_count"] == 1
+          assert dv["decision_regret_total"] == 0 and eig["decision_regret_total"] == 11.5
+          assert report["paired"]["safe_decision_correctness"]["candidate_wins"] == 6
           PY
       - name: Assert causal deadlines and resource bounds
         run: |
