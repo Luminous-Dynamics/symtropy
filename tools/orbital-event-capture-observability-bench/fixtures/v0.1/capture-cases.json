@@ -1,0 +1,2584 @@
+{
+  "schema": "luminous.orbital-event-capture.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic-capture-reconciliation-only",
+  "cases": [
+    {
+      "case_id": "nominal_all_events_reconciled",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 1,
+      "reference": {
+        "available": true,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 102,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-001",
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-002",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-003",
+          "reference_event_id": "inj-003",
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-004",
+          "reference_event_id": "inj-004",
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-005",
+          "reference_event_id": "inj-005",
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "counters": {
+        "overflow_count": 0,
+        "dropped_event_count": 0,
+        "dropped_packet_count": 0,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": true,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": true,
+        "measured_max_error_ticks": 1,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "reconciled_fixture_only",
+        "injected_count": 5,
+        "captured_count": 5,
+        "missed_count": 0,
+        "duplicate_count": 0,
+        "unexpected_count": 0,
+        "upper_miss_probability_95": 0.45071972834694113
+      }
+    },
+    {
+      "case_id": "one_injected_event_missing",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 1,
+      "reference": {
+        "available": true,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 102,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-001",
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-002",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-004",
+          "reference_event_id": "inj-004",
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-005",
+          "reference_event_id": "inj-005",
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "counters": {
+        "overflow_count": 0,
+        "dropped_event_count": 0,
+        "dropped_packet_count": 0,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": true,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": true,
+        "measured_max_error_ticks": 1,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "incomplete",
+        "injected_count": 5,
+        "captured_count": 4,
+        "missed_count": 1,
+        "duplicate_count": 0,
+        "unexpected_count": 0,
+        "upper_miss_probability_95": null
+      }
+    },
+    {
+      "case_id": "duplicate_observed_event",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 1,
+      "reference": {
+        "available": true,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 102,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-001",
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-002",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-003",
+          "reference_event_id": "inj-003",
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-004",
+          "reference_event_id": "inj-004",
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-005",
+          "reference_event_id": "inj-005",
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-extra",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "counters": {
+        "overflow_count": 0,
+        "dropped_event_count": 0,
+        "dropped_packet_count": 0,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": true,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": true,
+        "measured_max_error_ticks": 1,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "disputed",
+        "injected_count": 5,
+        "captured_count": 5,
+        "missed_count": 0,
+        "duplicate_count": 1,
+        "unexpected_count": 0,
+        "upper_miss_probability_95": 0.45071972834694113
+      }
+    },
+    {
+      "case_id": "unexpected_observed_event",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 1,
+      "reference": {
+        "available": true,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 102,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-001",
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-002",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-003",
+          "reference_event_id": "inj-003",
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-004",
+          "reference_event_id": "inj-004",
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-005",
+          "reference_event_id": "inj-005",
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-extra",
+          "reference_event_id": "inj-not-in-reference",
+          "time_ticks": 6500,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "counters": {
+        "overflow_count": 0,
+        "dropped_event_count": 0,
+        "dropped_packet_count": 0,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": true,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": true,
+        "measured_max_error_ticks": 1,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "disputed",
+        "injected_count": 5,
+        "captured_count": 5,
+        "missed_count": 0,
+        "duplicate_count": 0,
+        "unexpected_count": 1,
+        "upper_miss_probability_95": 0.45071972834694113
+      }
+    },
+    {
+      "case_id": "missing_independent_reference",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 1,
+      "reference": {
+        "available": false,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 102,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-001",
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-002",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-003",
+          "reference_event_id": "inj-003",
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-004",
+          "reference_event_id": "inj-004",
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-005",
+          "reference_event_id": "inj-005",
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "counters": {
+        "overflow_count": 0,
+        "dropped_event_count": 0,
+        "dropped_packet_count": 0,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": true,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": true,
+        "measured_max_error_ticks": 1,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "indeterminate",
+        "injected_count": 0,
+        "captured_count": 0,
+        "missed_count": 0,
+        "duplicate_count": 0,
+        "unexpected_count": 0,
+        "upper_miss_probability_95": null
+      }
+    },
+    {
+      "case_id": "common_reference_clock_failure_domain",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 1,
+      "reference": {
+        "available": true,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage",
+          "reference-clock"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 102,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-001",
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-002",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-003",
+          "reference_event_id": "inj-003",
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-004",
+          "reference_event_id": "inj-004",
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-005",
+          "reference_event_id": "inj-005",
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "counters": {
+        "overflow_count": 0,
+        "dropped_event_count": 0,
+        "dropped_packet_count": 0,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": true,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": true,
+        "measured_max_error_ticks": 1,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "indeterminate",
+        "injected_count": 0,
+        "captured_count": 0,
+        "missed_count": 0,
+        "duplicate_count": 0,
+        "unexpected_count": 0,
+        "upper_miss_probability_95": null
+      }
+    },
+    {
+      "case_id": "calibration_out_of_scope",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 1,
+      "reference": {
+        "available": true,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 102,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-001",
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-002",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-003",
+          "reference_event_id": "inj-003",
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-004",
+          "reference_event_id": "inj-004",
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-005",
+          "reference_event_id": "inj-005",
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "counters": {
+        "overflow_count": 0,
+        "dropped_event_count": 0,
+        "dropped_packet_count": 0,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": false,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": true,
+        "measured_max_error_ticks": 1,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "indeterminate",
+        "injected_count": 0,
+        "captured_count": 0,
+        "missed_count": 0,
+        "duplicate_count": 0,
+        "unexpected_count": 0,
+        "upper_miss_probability_95": null
+      }
+    },
+    {
+      "case_id": "wrong_sensor_firmware_scope",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 1,
+      "reference": {
+        "available": true,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 102,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-001",
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-002",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-003",
+          "reference_event_id": "inj-003",
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-004",
+          "reference_event_id": "inj-004",
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-005",
+          "reference_event_id": "inj-005",
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "counters": {
+        "overflow_count": 0,
+        "dropped_event_count": 0,
+        "dropped_packet_count": 0,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": true,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": true,
+        "measured_max_error_ticks": 1,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "out_of_envelope",
+        "injected_count": 0,
+        "captured_count": 0,
+        "missed_count": 0,
+        "duplicate_count": 0,
+        "unexpected_count": 0,
+        "upper_miss_probability_95": null
+      }
+    },
+    {
+      "case_id": "daq_overflow_counter",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 1,
+      "reference": {
+        "available": true,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 102,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-001",
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-002",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-003",
+          "reference_event_id": "inj-003",
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-004",
+          "reference_event_id": "inj-004",
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-005",
+          "reference_event_id": "inj-005",
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "counters": {
+        "overflow_count": 1,
+        "dropped_event_count": 0,
+        "dropped_packet_count": 0,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": true,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": true,
+        "measured_max_error_ticks": 1,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "incomplete",
+        "injected_count": 5,
+        "captured_count": 5,
+        "missed_count": 0,
+        "duplicate_count": 0,
+        "unexpected_count": 0,
+        "upper_miss_probability_95": 0.45071972834694113
+      }
+    },
+    {
+      "case_id": "missing_packet_loss_counter",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 1,
+      "reference": {
+        "available": true,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 102,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-001",
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-002",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-003",
+          "reference_event_id": "inj-003",
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-004",
+          "reference_event_id": "inj-004",
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-005",
+          "reference_event_id": "inj-005",
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "counters": {
+        "overflow_count": 0,
+        "dropped_event_count": 0,
+        "dropped_packet_count": null,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": true,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": true,
+        "measured_max_error_ticks": 1,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "indeterminate",
+        "injected_count": 0,
+        "captured_count": 0,
+        "missed_count": 0,
+        "duplicate_count": 0,
+        "unexpected_count": 0,
+        "upper_miss_probability_95": null
+      }
+    },
+    {
+      "case_id": "clock_uncertainty_exceeds_limit",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 1,
+      "reference": {
+        "available": true,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 102,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-001",
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-002",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-003",
+          "reference_event_id": "inj-003",
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-004",
+          "reference_event_id": "inj-004",
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-005",
+          "reference_event_id": "inj-005",
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "counters": {
+        "overflow_count": 0,
+        "dropped_event_count": 0,
+        "dropped_packet_count": 0,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": true,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": true,
+        "measured_max_error_ticks": 3,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "indeterminate",
+        "injected_count": 0,
+        "captured_count": 0,
+        "missed_count": 0,
+        "duplicate_count": 0,
+        "unexpected_count": 0,
+        "upper_miss_probability_95": null
+      }
+    },
+    {
+      "case_id": "malformed_firmware_digest",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 1,
+      "reference": {
+        "available": true,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 102,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-001",
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-002",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-003",
+          "reference_event_id": "inj-003",
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-004",
+          "reference_event_id": "inj-004",
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-005",
+          "reference_event_id": "inj-005",
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "counters": {
+        "overflow_count": 0,
+        "dropped_event_count": 0,
+        "dropped_packet_count": 0,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": true,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": true,
+        "measured_max_error_ticks": 1,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "rejected",
+        "injected_count": 0,
+        "captured_count": 0,
+        "missed_count": 0,
+        "duplicate_count": 0,
+        "unexpected_count": 0,
+        "upper_miss_probability_95": null
+      }
+    },
+    {
+      "case_id": "independent_reference_sequence_gap",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 1,
+      "reference": {
+        "available": true,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 104,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-001",
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-002",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-003",
+          "reference_event_id": "inj-003",
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-004",
+          "reference_event_id": "inj-004",
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-005",
+          "reference_event_id": "inj-005",
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "counters": {
+        "overflow_count": 0,
+        "dropped_event_count": 0,
+        "dropped_packet_count": 0,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": true,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": true,
+        "measured_max_error_ticks": 1,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "rejected",
+        "injected_count": 0,
+        "captured_count": 0,
+        "missed_count": 0,
+        "duplicate_count": 0,
+        "unexpected_count": 0,
+        "upper_miss_probability_95": null
+      }
+    },
+    {
+      "case_id": "captured_payload_mismatch",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 1,
+      "reference": {
+        "available": true,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 102,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-001",
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-002",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2000,
+          "payload_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        {
+          "record_id": "record-003",
+          "reference_event_id": "inj-003",
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-004",
+          "reference_event_id": "inj-004",
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-005",
+          "reference_event_id": "inj-005",
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "counters": {
+        "overflow_count": 0,
+        "dropped_event_count": 0,
+        "dropped_packet_count": 0,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": true,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": true,
+        "measured_max_error_ticks": 1,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "disputed",
+        "injected_count": 5,
+        "captured_count": 5,
+        "missed_count": 0,
+        "duplicate_count": 0,
+        "unexpected_count": 0,
+        "upper_miss_probability_95": 0.45071972834694113
+      }
+    },
+    {
+      "case_id": "captured_timestamp_outside_clock_bound",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 1,
+      "reference": {
+        "available": true,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 102,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-001",
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-002",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2005,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-003",
+          "reference_event_id": "inj-003",
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-004",
+          "reference_event_id": "inj-004",
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-005",
+          "reference_event_id": "inj-005",
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "counters": {
+        "overflow_count": 0,
+        "dropped_event_count": 0,
+        "dropped_packet_count": 0,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": true,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": true,
+        "measured_max_error_ticks": 1,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "disputed",
+        "injected_count": 5,
+        "captured_count": 5,
+        "missed_count": 0,
+        "duplicate_count": 0,
+        "unexpected_count": 0,
+        "upper_miss_probability_95": 0.45071972834694113
+      }
+    },
+    {
+      "case_id": "event_rate_outside_envelope",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 12,
+      "reference": {
+        "available": true,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 102,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-001",
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-002",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-003",
+          "reference_event_id": "inj-003",
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-004",
+          "reference_event_id": "inj-004",
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-005",
+          "reference_event_id": "inj-005",
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "counters": {
+        "overflow_count": 0,
+        "dropped_event_count": 0,
+        "dropped_packet_count": 0,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": true,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": true,
+        "measured_max_error_ticks": 1,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "out_of_envelope",
+        "injected_count": 0,
+        "captured_count": 0,
+        "missed_count": 0,
+        "duplicate_count": 0,
+        "unexpected_count": 0,
+        "upper_miss_probability_95": null
+      }
+    },
+    {
+      "case_id": "duplicate_record_identity",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 1,
+      "reference": {
+        "available": true,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 102,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-001",
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-003",
+          "reference_event_id": "inj-003",
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-004",
+          "reference_event_id": "inj-004",
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-005",
+          "reference_event_id": "inj-005",
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "counters": {
+        "overflow_count": 0,
+        "dropped_event_count": 0,
+        "dropped_packet_count": 0,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": true,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": true,
+        "measured_max_error_ticks": 1,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "disputed",
+        "injected_count": 5,
+        "captured_count": 0,
+        "missed_count": 0,
+        "duplicate_count": 0,
+        "unexpected_count": 0,
+        "upper_miss_probability_95": null
+      }
+    },
+    {
+      "case_id": "all_reference_events_missing",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 1,
+      "reference": {
+        "available": true,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 102,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [],
+      "counters": {
+        "overflow_count": 0,
+        "dropped_event_count": 0,
+        "dropped_packet_count": 0,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": true,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": true,
+        "measured_max_error_ticks": 1,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "incomplete",
+        "injected_count": 5,
+        "captured_count": 0,
+        "missed_count": 5,
+        "duplicate_count": 0,
+        "unexpected_count": 0,
+        "upper_miss_probability_95": null
+      }
+    },
+    {
+      "case_id": "shared_firmware_common_cause",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 1,
+      "reference": {
+        "available": true,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock",
+          "daq-firmware"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 102,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-001",
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-002",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-003",
+          "reference_event_id": "inj-003",
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-004",
+          "reference_event_id": "inj-004",
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-005",
+          "reference_event_id": "inj-005",
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "counters": {
+        "overflow_count": 0,
+        "dropped_event_count": 0,
+        "dropped_packet_count": 0,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": true,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": true,
+        "measured_max_error_ticks": 1,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "indeterminate",
+        "injected_count": 0,
+        "captured_count": 0,
+        "missed_count": 0,
+        "duplicate_count": 0,
+        "unexpected_count": 0,
+        "upper_miss_probability_95": null
+      }
+    },
+    {
+      "case_id": "timestamp_backfill_claim_without_monotonic_clock",
+      "qualified_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "test_scope": {
+        "sensor_id": "sensor-qualification-coupon-01",
+        "firmware_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "event_class": "mechanical-impact",
+        "operating_mode_id": "capture-bench-nominal",
+        "environment_id": "ambient-lab"
+      },
+      "minimum_event_rate_per_second": 0.1,
+      "maximum_event_rate_per_second": 10,
+      "test_event_rate_per_second": 1,
+      "reference": {
+        "available": true,
+        "system_id": "independent-pulse-reference-01",
+        "reference_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "failure_domains": [
+          "pulse-generator",
+          "reference-clock"
+        ],
+        "acquisition_failure_domains": [
+          "sensor-front-end",
+          "daq-firmware",
+          "buffer",
+          "storage"
+        ]
+      },
+      "reference_events": [
+        {
+          "event_id": "inj-001",
+          "sequence": 100,
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-002",
+          "sequence": 101,
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-003",
+          "sequence": 102,
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-004",
+          "sequence": 103,
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "event_id": "inj-005",
+          "sequence": 104,
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "observed_events": [
+        {
+          "record_id": "record-001",
+          "reference_event_id": "inj-001",
+          "time_ticks": 1000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-002",
+          "reference_event_id": "inj-002",
+          "time_ticks": 2000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-003",
+          "reference_event_id": "inj-003",
+          "time_ticks": 3000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-004",
+          "reference_event_id": "inj-004",
+          "time_ticks": 4000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "record_id": "record-005",
+          "reference_event_id": "inj-005",
+          "time_ticks": 5000,
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "counters": {
+        "overflow_count": 0,
+        "dropped_event_count": 0,
+        "dropped_packet_count": 0,
+        "reset_count": 0,
+        "sequence_gap_count": 0,
+        "counter_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "calibration": {
+        "valid_at_test_time": true,
+        "scope_matches": true,
+        "certificate_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock": {
+        "synchronized": true,
+        "monotonic": false,
+        "measured_max_error_ticks": 1,
+        "allowed_max_error_ticks": 2,
+        "synchronization_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected": {
+        "disposition": "indeterminate",
+        "injected_count": 0,
+        "captured_count": 0,
+        "missed_count": 0,
+        "duplicate_count": 0,
+        "unexpected_count": 0,
+        "upper_miss_probability_95": null
+      }
+    }
+  ]
+}
