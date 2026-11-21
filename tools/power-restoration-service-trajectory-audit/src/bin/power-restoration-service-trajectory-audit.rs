@@ -1,6 +1,6 @@
 use power_restoration_service_trajectory_audit::{
-    CascadeEndpointMapping, ServiceTrajectoryAuditReport,
-    aggregate_cascade_endpoint_availability, parse_and_audit,
+    CascadeEndpointMapping, ServiceTrajectoryAuditReport, aggregate_cascade_endpoint_availability,
+    parse_and_audit,
 };
 use serde::Serialize;
 use std::collections::BTreeMap;
@@ -16,8 +16,7 @@ struct CliReport {
 }
 
 fn read(path: &PathBuf) -> Result<String, String> {
-    fs::read_to_string(path)
-        .map_err(|error| format!("cannot read {}: {error}", path.display()))
+    fs::read_to_string(path).map_err(|error| format!("cannot read {}: {error}", path.display()))
 }
 
 fn run() -> Result<CliReport, String> {
@@ -34,8 +33,8 @@ fn run() -> Result<CliReport, String> {
     let trajectory = read(&paths[0])?;
     let receipt = read(&paths[1])?;
     let case_json = read(&paths[2])?;
-    let report = parse_and_audit(&trajectory, &receipt, &case_json)
-        .map_err(|errors| errors.join("\n"))?;
+    let report =
+        parse_and_audit(&trajectory, &receipt, &case_json).map_err(|errors| errors.join("\n"))?;
 
     let cascade_endpoint_availability = if paths.len() == 4 {
         let case: power_restoration_benchmark_case::BenchmarkCase =
@@ -46,7 +45,7 @@ fn run() -> Result<CliReport, String> {
             .map_err(|error| format!("cascade mapping JSON decode error: {error}"))?;
         Some(
             aggregate_cascade_endpoint_availability(&report, &case, &mapping)
-                .map_err(|errors| errors.join("\n"))?
+                .map_err(|errors| errors.join("\n"))?,
         )
     } else {
         None

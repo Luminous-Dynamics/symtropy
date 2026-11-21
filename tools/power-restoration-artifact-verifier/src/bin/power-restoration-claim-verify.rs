@@ -1,12 +1,12 @@
 use power_restoration_artifact_verifier::{
-    verify_restoration_claim_evidence, AttestationEnvelope, BundleManifest,
-    ClaimProducerProfile, RestorationClaimVerificationReport, TrustRoot,
+    AttestationEnvelope, BundleManifest, ClaimProducerProfile, RestorationClaimVerificationReport,
+    TrustRoot, verify_restoration_claim_evidence,
 };
 use power_restoration_benchmark_case::BenchmarkCase;
 use power_restoration_observation_evidence::EvidenceBatch;
 use power_restoration_run_receipt::RunReceipt;
-use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};

@@ -1,7 +1,6 @@
 use power_restoration_artifact_verifier::{
-    verify_attestation_set, verify_bundle_manifest, AttestationEnvelope,
-    BundleManifest, ExpectedAttestationBinding, TrustRoot, VerifiedAttestation,
-    BundleVerificationReport,
+    AttestationEnvelope, BundleManifest, BundleVerificationReport, ExpectedAttestationBinding,
+    TrustRoot, VerifiedAttestation, verify_attestation_set, verify_bundle_manifest,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
