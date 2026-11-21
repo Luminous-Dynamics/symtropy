@@ -292,7 +292,10 @@ fn evaluate_case(case: &TrendCase) -> Decision {
     if !valid_hex(&case.admissibility_receipt_sha256, 64)
         || !valid_hex(&case.admissibility_source_commit, 40)
     {
-        push_blocker(&mut blockers, "missing_or_malformed_admissibility_receipt_pin");
+        push_blocker(
+            &mut blockers,
+            "missing_or_malformed_admissibility_receipt_pin",
+        );
         return Decision {
             disposition: Disposition::Indeterminate,
             event_count: case.event_times_seconds.len(),
@@ -333,10 +336,14 @@ fn evaluate_case(case: &TrendCase) -> Decision {
         Err(error) => {
             let invalid_window = case.exposure_end_seconds == 0
                 || case.exposure_end_seconds > MAX_EXPOSURE_SECONDS
-                || case.event_times_seconds.iter().any(|time| {
-                    *time == 0 || *time >= case.exposure_end_seconds
-                })
-                || case.event_times_seconds.windows(2).any(|pair| pair[0] >= pair[1]);
+                || case
+                    .event_times_seconds
+                    .iter()
+                    .any(|time| *time == 0 || *time >= case.exposure_end_seconds)
+                || case
+                    .event_times_seconds
+                    .windows(2)
+                    .any(|pair| pair[0] >= pair[1]);
             let insufficient = case.event_times_seconds.len() < 2;
             let code = if invalid_window {
                 "event_history_or_exposure_window_invalid"
@@ -481,10 +488,10 @@ mod tests {
 
     #[test]
     fn scale_invariance_of_trend_statistic() {
-        let first = estimate_trend(&[1_000, 2_000, 4_000, 5_000], 10_000)
-            .expect("valid first history");
-        let second = estimate_trend(&[10_000, 20_000, 40_000, 50_000], 100_000)
-            .expect("scaled history");
+        let first =
+            estimate_trend(&[1_000, 2_000, 4_000, 5_000], 10_000).expect("valid first history");
+        let second =
+            estimate_trend(&[10_000, 20_000, 40_000, 50_000], 100_000).expect("scaled history");
         assert!((first.0 - second.0).abs() < 1.0e-12);
         assert!((first.1 - second.1).abs() < 1.0e-12);
         assert!((first.2 - second.2).abs() < 1.0e-12);
@@ -527,11 +534,12 @@ mod tests {
                 beta_hat: None,
                 likelihood_ratio_statistic: None,
                 exact_conditional_p_value: None,
-                blockers: vec![
-                    "selected_model_profile_is_not_power_law_minimal_repair".to_owned(),
-                ],
+                blockers: vec!["selected_model_profile_is_not_power_law_minimal_repair".to_owned()],
             },
         };
-        assert_eq!(evaluate_case(&case).disposition, Disposition::ModelNotSupported);
+        assert_eq!(
+            evaluate_case(&case).disposition,
+            Disposition::ModelNotSupported
+        );
     }
 }
