@@ -84,10 +84,7 @@ impl MotorStepState {
         if !candidate_total.is_finite() {
             return None;
         }
-        let projected_total = candidate_total.clamp(
-            -maximum_step_impulse,
-            maximum_step_impulse,
-        );
+        let projected_total = candidate_total.clamp(-maximum_step_impulse, maximum_step_impulse);
         let delta_impulse = projected_total - self.accumulated_impulse;
         let relative_velocity_after =
             relative_velocity_before + effective_inverse_mass * delta_impulse;
@@ -276,7 +273,6 @@ mod tests {
     }
 }
 
-
 #[cfg(test)]
 mod motor_step_state_tests {
     use super::MotorStepState;
@@ -307,7 +303,11 @@ mod motor_step_state_tests {
 
             close(state.accumulated_impulse(), 6.0, 1.0e-12);
             close(velocity, 3.0, 1.0e-12);
-            close(state.take_work_receipt().expect("one work receipt"), 9.0, 1.0e-12);
+            close(
+                state.take_work_receipt().expect("one work receipt"),
+                9.0,
+                1.0e-12,
+            );
             assert_eq!(state.take_work_receipt(), None);
         }
     }
@@ -330,7 +330,6 @@ mod motor_step_state_tests {
         close(state.accumulated_impulse(), 0.2, 1.0e-12);
         close(state.take_work_receipt().expect("receipt"), 0.01, 1.0e-12);
     }
-
 
     #[test]
     fn velocity_target_is_frozen_after_the_first_controller_evaluation() {
@@ -355,7 +354,12 @@ mod motor_step_state_tests {
         close(reused, 0.4, 1.0e-12);
 
         let (delta, after) = state
-            .apply_impulse_increment((reused - disturbed_velocity) / 1.0, 0.5, disturbed_velocity, 1.0)
+            .apply_impulse_increment(
+                (reused - disturbed_velocity) / 1.0,
+                0.5,
+                disturbed_velocity,
+                1.0,
+            )
             .expect("remaining motor correction");
         close(delta, 0.1, 1.0e-12);
         close(after, 0.3, 1.0e-12);
