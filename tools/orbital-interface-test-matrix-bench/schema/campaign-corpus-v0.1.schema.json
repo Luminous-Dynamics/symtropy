@@ -63,7 +63,7 @@
                 "lifecycle_phase",
                 "conditions",
                 "evidence_key",
-                "minimum_independent_groups",
+                "minimum_run_groups",
                 "not_applicable_reason",
                 "not_applicable_review_ref"
               ],
@@ -105,7 +105,7 @@
                   "type": "string",
                   "minLength": 1
                 },
-                "minimum_independent_groups": {
+                "minimum_run_groups": {
                   "type": "integer",
                   "minimum": 1
                 },
@@ -143,7 +143,7 @@
                 "uncertainty_complete",
                 "clock_aligned",
                 "evidence_keys",
-                "independence_group",
+                "run_group_id",
                 "cost_units"
               ],
               "properties": {
@@ -204,7 +204,7 @@
                     "type": "string"
                   }
                 },
-                "independence_group": {
+                "run_group_id": {
                   "type": "string"
                 },
                 "cost_units": {
