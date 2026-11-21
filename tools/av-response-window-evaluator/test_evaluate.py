@@ -90,6 +90,19 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
     def episode(self, report, episode_id):
         return next(row for row in report["per_episode"] if row["episode_id"] == episode_id)
 
+    def set_renderer_tick(self, candidate, response, role, tick):
+        field = (
+            "playback_start_event_ref"
+            if role == "start"
+            else "playback_end_event_ref"
+        )
+        event_ref = response[field]
+        event = next(
+            item for item in candidate["renderer_lifecycle_events"]
+            if item["event_ref"] == event_ref
+        )
+        event["tick"] = tick
+
     def test_reference_known_answer_scores_all_expected_events(self):
         report = self.score()
         totals = report["totals"]
@@ -112,6 +125,8 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
         row = next(x for x in candidate["responses"] if x["response_id"] == "r1")
         row["response_start_tick"] = 10
         row["response_end_tick"] = 12
+        self.set_renderer_tick(candidate, row, "start", 10)
+        self.set_renderer_tick(candidate, row, "end", 12)
         report = self.score(submission=candidate)
         result = self.episode(report, "rw-001-spi-on-time")
         self.assertEqual(result["on_time_count"], 1)
@@ -120,6 +135,8 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
 
         row["response_start_tick"] = 20
         row["response_end_tick"] = 22
+        self.set_renderer_tick(candidate, row, "start", 20)
+        self.set_renderer_tick(candidate, row, "end", 22)
         report = self.score(submission=candidate)
         result = self.episode(report, "rw-001-spi-on-time")
         self.assertEqual(result["late_count"], 1)
@@ -131,6 +148,8 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
         row = next(x for x in candidate["responses"] if x["response_id"] == "r1")
         row["response_start_tick"] = 9
         row["response_end_tick"] = 11
+        self.set_renderer_tick(candidate, row, "start", 9)
+        self.set_renderer_tick(candidate, row, "end", 11)
         report = self.score(submission=candidate)
         result = self.episode(report, "rw-001-spi-on-time")
         self.assertEqual(result["early_count"], 1)
@@ -192,6 +211,7 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
         candidate = copy.deepcopy(self.submission)
         row = next(x for x in candidate["responses"] if x["response_id"] == "r4a")
         row["response_end_tick"] = 21
+        self.set_renderer_tick(candidate, row, "end", 21)
         report = self.score(submission=candidate)
         result = self.episode(report, "rw-004-overlapping-windows")
         self.assertIn("assistant_response_intervals_overlap", result["violations"])
@@ -230,6 +250,8 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
         candidate = copy.deepcopy(self.submission)
         row = next(x for x in candidate["responses"] if x["response_id"] == "r1")
         row.update(response_start_tick=28, response_end_tick=31)
+        self.set_renderer_tick(candidate, row, "start", 28)
+        self.set_renderer_tick(candidate, row, "end", 31)
         report = self.score(submission=candidate)
         result = self.episode(report, "rw-001-spi-on-time")
         self.assertIn("response_overhang_past_episode_deadline", result["violations"])
@@ -249,6 +271,9 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
         candidate = copy.deepcopy(self.submission)
         row = next(x for x in candidate["responses"] if x["response_id"] == "r1")
         row.update(response_start_tick=4, response_end_tick=6)
+        row["controller_permission_event_ref"] = None
+        self.set_renderer_tick(candidate, row, "start", 4)
+        self.set_renderer_tick(candidate, row, "end", 6)
         report = self.score(submission=candidate)
         result = self.episode(report, "rw-001-spi-on-time")
         self.assertIn("response_precedes_trigger_availability", result["violations"])
@@ -301,7 +326,9 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
 
     def test_response_interval_must_have_nonnegative_duration(self):
         candidate = copy.deepcopy(self.submission)
-        candidate["responses"][0]["response_end_tick"] = candidate["responses"][0]["response_start_tick"] - 1
+        row = candidate["responses"][0]
+        row["response_end_tick"] = row["response_start_tick"] - 1
+        self.set_renderer_tick(candidate, row, "end", row["response_end_tick"])
         report = self.score(submission=candidate)
         result = self.episode(report, "rw-001-spi-on-time")
         self.assertIn("invalid_response_interval", result["violations"])
