@@ -289,7 +289,9 @@ pub fn validate_input(input: &CompatibilityInput) -> Result<(), Vec<String>> {
         errors.push("vehicle: configuration, family and revision IDs are required".into());
     }
     if input.modules.is_empty() || input.modules.len() > MAX_MODULES {
-        errors.push(format!("modules: expected 1..={MAX_MODULES} configurations"));
+        errors.push(format!(
+            "modules: expected 1..={MAX_MODULES} configurations"
+        ));
     }
     validate_ports("vehicle", &input.vehicle.ports, &mut errors);
     let mut vehicle_mate_ids = BTreeSet::new();
@@ -1081,10 +1083,23 @@ mod tests {
             .iter()
             .find(|interface| interface.module_port_id == "module-hv")
             .expect("HV interface result");
-        assert!(hv.vehicle_evidence_id.as_deref().unwrap().starts_with("vehicle-hv-"));
+        assert!(
+            hv.vehicle_evidence_id
+                .as_deref()
+                .unwrap()
+                .starts_with("vehicle-hv-")
+        );
         assert!(hv.module_evidence_id.starts_with("module-hv-"));
-        assert!(hv.vehicle_evidence_source_reference.as_deref().unwrap().starts_with("synthetic://"));
-        assert!(hv.module_evidence_source_reference.starts_with("synthetic://"));
+        assert!(
+            hv.vehicle_evidence_source_reference
+                .as_deref()
+                .unwrap()
+                .starts_with("synthetic://")
+        );
+        assert!(
+            hv.module_evidence_source_reference
+                .starts_with("synthetic://")
+        );
         let expected_digest = "a".repeat(64);
         assert_eq!(
             hv.vehicle_evidence_report_digest_sha256.as_deref(),
@@ -1170,7 +1185,11 @@ mod tests {
         duplicate.port_id = "vehicle-mount-copy".into();
         input.vehicle.ports.push(duplicate);
         let errors = validate_input(&input).expect_err("ambiguous host mate identity");
-        assert!(errors.iter().any(|error| error.contains("multiple vehicle ports claim module mate ID")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("multiple vehicle ports claim module mate ID"))
+        );
     }
 
     #[test]
