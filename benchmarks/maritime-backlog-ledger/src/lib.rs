@@ -464,12 +464,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn all_thirty_one_frozen_dispositions_match() {
+    fn all_thirty_two_frozen_dispositions_match() {
         let report = evaluate_reference_corpus().expect("frozen corpus should parse");
-        assert_eq!(report.total, 31);
-        assert_eq!(report.accepted, 15);
+        assert_eq!(report.total, 32);
+        assert_eq!(report.accepted, 16);
         assert_eq!(report.rejected, 16);
-        assert_eq!(report.matched, 31);
+        assert_eq!(report.matched, 32);
         assert!(report.all_expected_dispositions_match());
     }
 
