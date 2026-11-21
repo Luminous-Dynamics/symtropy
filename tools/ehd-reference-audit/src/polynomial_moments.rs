@@ -46,6 +46,7 @@ pub enum PolynomialError {
     InvalidTolerance,
     NonFiniteCoefficient,
     DegreeExceeded { degree: u32, maximum: u32 },
+    UnsupportedMaximumDegree { requested: u32, supported: u32 },
     NonFiniteIntegral,
     ConservationFailure {
         residual: f64,
@@ -65,6 +66,10 @@ impl fmt::Display for PolynomialError {
             Self::DegreeExceeded { degree, maximum } => {
                 write!(f, "polynomial term degree {degree} exceeds declared maximum {maximum}")
             }
+            Self::UnsupportedMaximumDegree { requested, supported } => write!(
+                f,
+                "requested maximum polynomial degree {requested} exceeds supported reference degree {supported}"
+            ),
             Self::NonFiniteIntegral => write!(f, "polynomial integral became non-finite"),
             Self::ConservationFailure { residual, allowed } => write!(
                 f,
@@ -146,6 +151,12 @@ pub fn integrate_polynomial<const N: usize>(
     maximum_total_degree: u32,
 ) -> Result<f64, PolynomialError> {
     validate_box(cell)?;
+    if maximum_total_degree > 2 {
+        return Err(PolynomialError::UnsupportedMaximumDegree {
+            requested: maximum_total_degree,
+            supported: 2,
+        });
+    }
     if terms.is_empty() {
         return Err(PolynomialError::EmptyPolynomial);
     }
@@ -454,6 +465,26 @@ mod tests {
             2,
         ).unwrap_err();
         assert_eq!(error, PolynomialError::DegreeExceeded { degree: 3, maximum: 2 });
+    }
+
+    #[test]
+    fn rejects_requested_degree_above_p2_reference_scope() {
+        let source = SpaceTimeBox {
+            id: 1,
+            lower: [0.0],
+            upper: [1.0],
+        };
+        assert_eq!(
+            integrate_polynomial(
+                &source,
+                &[PolynomialTerm { coefficient: 1.0, powers: [1] }],
+                3,
+            ).unwrap_err(),
+            PolynomialError::UnsupportedMaximumDegree {
+                requested: 3,
+                supported: 2,
+            }
+        );
     }
 
     #[test]
