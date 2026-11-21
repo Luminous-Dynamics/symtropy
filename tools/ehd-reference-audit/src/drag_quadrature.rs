@@ -168,9 +168,16 @@ impl fmt::Display for QuadratureError {
 impl Error for QuadratureError {}
 
 fn evaluate(coefficients: &[f64], time: f64) -> f64 {
-    coefficients.iter().rev().fold(0.0, |value, coefficient| {
+    coefficients.iter().rev().fold(0.0_f64, |value, coefficient| {
         value.mul_add(time, *coefficient)
     })
+}
+
+fn polynomial_degree(coefficients: &[f64]) -> u32 {
+    coefficients
+        .iter()
+        .rposition(|coefficient| *coefficient != 0.0)
+        .unwrap_or(0) as u32
 }
 
 fn multiply(left: &[f64], right: &[f64]) -> Vec<f64> {
@@ -247,21 +254,19 @@ fn analytic_integrals(
         let velocity = case.relative_velocity_m_s[component];
         let product = multiply(&drag, &velocity);
         impulse[component] = exact_integral(&product);
-        impulse_degree = impulse_degree.max((product.len() - 1) as u32);
+        impulse_degree = impulse_degree.max(polynomial_degree(&product));
 
         let square = multiply(&velocity, &velocity);
         speed_squared = add_polynomials(&speed_squared, &square);
-        drift_degree = drift_degree.max((velocity.iter().rposition(|value| *value != 0.0).unwrap_or(0)) as u32);
     }
 
     let heating_polynomial = multiply(&drag, &speed_squared);
     let heating = exact_integral(&heating_polynomial);
-    let heating_degree = (heating_polynomial.len() - 1) as u32;
+    let heating_degree = polynomial_degree(&heating_polynomial);
 
     if !impulse.iter().all(|value| value.is_finite()) || !heating.is_finite() {
         return Err(QuadratureError::NonFiniteIntegral);
     }
-    let _ = drift_degree;
     Ok((impulse, heating, impulse_degree, heating_degree))
 }
 
