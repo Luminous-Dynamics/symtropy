@@ -13,6 +13,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 pub const MIN_BLIND_HOLDOUT_TRIALS: usize = 10;
+pub const MIN_BLIND_TASK_CLUSTERS: usize = 10;
 pub const MIN_BOOTSTRAP_REPLICATES: usize = 1_000;
 const Z_95: f64 = 1.959_963_984_540_054;
 
@@ -49,15 +50,20 @@ pub enum FidelityError {
     EmptySimulatorCommit,
     InvalidSimulatorCommit,
     EmptySimulatorConfigurationDigest,
+    InvalidSimulatorConfigurationDigest,
     EmptyRobotArticleId,
     EmptyAssetRevision,
     EmptyCommandTraceDigest,
+    InvalidCommandTraceDigest,
     EmptyCalibrationDigest,
+    InvalidCalibrationDigest,
     EmptyRecordingId,
     DuplicateRecordingId,
     RecordingSplitLeakage,
     InsufficientBlindHoldoutTrials,
     EmptyTrialId,
+    EmptyTaskId,
+    InsufficientBlindTaskClusters,
     DuplicateTrialId,
     EmptyTraceSet,
     DuplicateSignalSeries,
@@ -79,15 +85,20 @@ impl Display for FidelityError {
             Self::EmptySimulatorCommit => write!(formatter, "simulator commit must not be empty"),
             Self::InvalidSimulatorCommit => write!(formatter, "simulator commit must be a 40-character lowercase hex SHA"),
             Self::EmptySimulatorConfigurationDigest => write!(formatter, "simulator configuration digest must not be empty"),
+            Self::InvalidSimulatorConfigurationDigest => write!(formatter, "simulator configuration digest must be a 64-character lowercase hex SHA-256"),
             Self::EmptyRobotArticleId => write!(formatter, "robot/article ID must not be empty"),
             Self::EmptyAssetRevision => write!(formatter, "asset revision must not be empty"),
             Self::EmptyCommandTraceDigest => write!(formatter, "command-trace digest must not be empty"),
+            Self::InvalidCommandTraceDigest => write!(formatter, "command-trace digest must be a 64-character lowercase hex SHA-256"),
             Self::EmptyCalibrationDigest => write!(formatter, "sensor-calibration digest must not be empty"),
+            Self::InvalidCalibrationDigest => write!(formatter, "sensor-calibration digest must be a 64-character lowercase hex SHA-256"),
             Self::EmptyRecordingId => write!(formatter, "recording ID must not be empty"),
             Self::DuplicateRecordingId => write!(formatter, "recording IDs must be unique within each split"),
             Self::RecordingSplitLeakage => write!(formatter, "a physical recording appears in more than one split"),
             Self::InsufficientBlindHoldoutTrials => write!(formatter, "at least ten independent blind physical recordings are required"),
             Self::EmptyTrialId => write!(formatter, "trial ID must not be empty"),
+            Self::EmptyTaskId => write!(formatter, "task ID must not be empty"),
+            Self::InsufficientBlindTaskClusters => write!(formatter, "at least ten independent task clusters are required"),
             Self::DuplicateTrialId => write!(formatter, "trial IDs must be unique"),
             Self::EmptyTraceSet => write!(formatter, "each blind trial must contain at least one measured signal series"),
             Self::DuplicateSignalSeries => write!(formatter, "signal series IDs must be unique within a trial"),
@@ -119,6 +130,13 @@ pub struct ProtocolIdentity {
     pub sensor_calibration_digest: String,
 }
 
+fn is_lower_hex_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
 impl ProtocolIdentity {
     pub fn validate(&self) -> Result<(), FidelityError> {
         if self.simulator_commit.trim().is_empty() {
@@ -135,6 +153,9 @@ impl ProtocolIdentity {
         if self.simulator_configuration_digest.trim().is_empty() {
             return Err(FidelityError::EmptySimulatorConfigurationDigest);
         }
+        if !is_lower_hex_sha256(&self.simulator_configuration_digest) {
+            return Err(FidelityError::InvalidSimulatorConfigurationDigest);
+        }
         if self.robot_article_id.trim().is_empty() {
             return Err(FidelityError::EmptyRobotArticleId);
         }
@@ -144,8 +165,14 @@ impl ProtocolIdentity {
         if self.command_trace_digest.trim().is_empty() {
             return Err(FidelityError::EmptyCommandTraceDigest);
         }
+        if !is_lower_hex_sha256(&self.command_trace_digest) {
+            return Err(FidelityError::InvalidCommandTraceDigest);
+        }
         if self.sensor_calibration_digest.trim().is_empty() {
             return Err(FidelityError::EmptyCalibrationDigest);
+        }
+        if !is_lower_hex_sha256(&self.sensor_calibration_digest) {
+            return Err(FidelityError::InvalidCalibrationDigest);
         }
         Ok(())
     }
@@ -220,7 +247,9 @@ impl TaskOutcomePair {
 #[derive(Clone, Debug, PartialEq)]
 pub struct BlindHoldoutTrial {
     pub trial_id: String,
-    /// Independent physical recording ID; resampling unit for uncertainty.
+    /// Semantic task/activity ID; independent tasks are the outer cluster.
+    pub task_id: String,
+    /// Independent physical recording ID nested within the task cluster.
     pub source_recording_id: String,
     pub traces: Vec<TraceSeries>,
     pub task_outcome: TaskOutcomePair,
@@ -258,6 +287,7 @@ impl EvaluationManifest {
         }
 
         let mut trial_ids = BTreeSet::new();
+        let mut task_ids = BTreeSet::new();
         let mut expected_series: Option<BTreeSet<(SignalKind, String)>> = None;
         for trial in &self.blind_holdout_trials {
             if trial.trial_id.trim().is_empty() {
@@ -266,6 +296,10 @@ impl EvaluationManifest {
             if !trial_ids.insert(trial.trial_id.as_str()) {
                 return Err(FidelityError::DuplicateTrialId);
             }
+            if trial.task_id.trim().is_empty() {
+                return Err(FidelityError::EmptyTaskId);
+            }
+            task_ids.insert(trial.task_id.as_str());
             if trial.source_recording_id.trim().is_empty() {
                 return Err(FidelityError::EmptyRecordingId);
             }
@@ -291,6 +325,9 @@ impl EvaluationManifest {
             } else {
                 expected_series = Some(series_keys);
             }
+        }
+        if task_ids.len() < MIN_BLIND_TASK_CLUSTERS {
+            return Err(FidelityError::InsufficientBlindTaskClusters);
         }
         Ok(())
     }
@@ -374,19 +411,22 @@ pub struct ConfidenceInterval {
 pub struct ChannelSummary {
     pub signal: SignalKind,
     pub series_id: String,
-    pub independent_trials: usize,
-    pub mean_trial_mae: f64,
-    pub mean_trial_rmse: f64,
-    pub mean_trial_bias: f64,
-    pub mean_trial_p95_absolute_error: f64,
+    pub physical_trial_count: usize,
+    pub independent_task_clusters: usize,
+    /// Equal-weight mean across task clusters; repetitions are averaged within each task.
+    pub mean_task_mae: f64,
+    pub mean_task_rmse: f64,
+    pub mean_task_bias: f64,
+    pub mean_task_p95_absolute_error: f64,
     pub worst_trial_rmse: f64,
-    /// Bootstrap interval over independent trial-level RMSE, not time samples.
-    pub mean_trial_rmse_95: ConfidenceInterval,
+    /// Bootstrap interval over task-cluster mean RMSE, not correlated time samples.
+    pub mean_task_rmse_95: ConfidenceInterval,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TaskAgreement {
     pub independent_trials: usize,
+    pub independent_task_clusters: usize,
     pub real_mean_stage_score: f64,
     pub simulated_mean_stage_score: f64,
     /// Simulated minus real stage score.
@@ -432,34 +472,51 @@ pub fn score_evaluation(
 
     let mut channel_summaries = Vec::with_capacity(series_keys.len());
     for (signal, series_id) in series_keys {
-        let mut metrics = Vec::with_capacity(manifest.blind_holdout_trials.len());
+        let mut metrics_by_task: BTreeMap<String, Vec<TraceMetrics>> = BTreeMap::new();
+        let mut worst_trial_rmse: f64 = 0.0;
+        let mut physical_trial_count = 0_usize;
         for trial in &manifest.blind_holdout_trials {
             let trace = trial
                 .traces
                 .iter()
                 .find(|trace| trace.signal == signal && trace.series_id == series_id)
                 .expect("manifest validates identical series layout");
-            metrics.push(score_trace(trace)?);
+            let metrics = score_trace(trace)?;
+            worst_trial_rmse = worst_trial_rmse.max(metrics.root_mean_square_error);
+            physical_trial_count += 1;
+            metrics_by_task
+                .entry(trial.task_id.clone())
+                .or_default()
+                .push(metrics);
         }
-        let rmse_values: Vec<f64> = metrics
-            .iter()
-            .map(|metric| metric.root_mean_square_error)
+        let task_mae: Vec<f64> = metrics_by_task
+            .values()
+            .map(|values| mean(values.iter().map(|metric| metric.mean_absolute_error)))
+            .collect();
+        let task_rmse: Vec<f64> = metrics_by_task
+            .values()
+            .map(|values| mean(values.iter().map(|metric| metric.root_mean_square_error)))
+            .collect();
+        let task_bias: Vec<f64> = metrics_by_task
+            .values()
+            .map(|values| mean(values.iter().map(|metric| metric.signed_bias)))
+            .collect();
+        let task_p95: Vec<f64> = metrics_by_task
+            .values()
+            .map(|values| mean(values.iter().map(|metric| metric.p95_absolute_error)))
             .collect();
         channel_summaries.push(ChannelSummary {
             signal,
             series_id,
-            independent_trials: metrics.len(),
-            mean_trial_mae: mean(metrics.iter().map(|metric| metric.mean_absolute_error)),
-            mean_trial_rmse: mean(rmse_values.iter().copied()),
-            mean_trial_bias: mean(metrics.iter().map(|metric| metric.signed_bias)),
-            mean_trial_p95_absolute_error: mean(
-                metrics
-                    .iter()
-                    .map(|metric| metric.p95_absolute_error),
-            ),
-            worst_trial_rmse: rmse_values.iter().copied().fold(0.0, f64::max),
-            mean_trial_rmse_95: bootstrap_mean_interval(
-                &rmse_values,
+            physical_trial_count,
+            independent_task_clusters: metrics_by_task.len(),
+            mean_task_mae: mean(task_mae.iter().copied()),
+            mean_task_rmse: mean(task_rmse.iter().copied()),
+            mean_task_bias: mean(task_bias.iter().copied()),
+            mean_task_p95_absolute_error: mean(task_p95.iter().copied()),
+            worst_trial_rmse,
+            mean_task_rmse_95: bootstrap_mean_interval(
+                &task_rmse,
                 bootstrap,
                 Z_95,
             ),
@@ -481,13 +538,25 @@ fn score_task_agreement(
     bootstrap: BootstrapConfig,
 ) -> TaskAgreement {
     let count = trials.len();
-    let real: Vec<f64> = trials
-        .iter()
-        .map(|trial| trial.task_outcome.real_stage_score)
+    let mut tasks: BTreeMap<String, Vec<&BlindHoldoutTrial>> = BTreeMap::new();
+    for trial in trials {
+        tasks.entry(trial.task_id.clone()).or_default().push(trial);
+    }
+    let real: Vec<f64> = tasks
+        .values()
+        .map(|task_trials| {
+            mean(task_trials.iter().map(|trial| trial.task_outcome.real_stage_score))
+        })
         .collect();
-    let simulated: Vec<f64> = trials
-        .iter()
-        .map(|trial| trial.task_outcome.simulated_stage_score)
+    let simulated: Vec<f64> = tasks
+        .values()
+        .map(|task_trials| {
+            mean(
+                task_trials
+                    .iter()
+                    .map(|trial| trial.task_outcome.simulated_stage_score),
+            )
+        })
         .collect();
     let deltas: Vec<f64> = simulated
         .iter()
@@ -528,6 +597,7 @@ fn score_task_agreement(
 
     TaskAgreement {
         independent_trials: count,
+        independent_task_clusters: tasks.len(),
         real_mean_stage_score: mean(real.iter().copied()),
         simulated_mean_stage_score: mean(simulated.iter().copied()),
         mean_signed_stage_gap: mean(deltas.iter().copied()),
@@ -632,7 +702,7 @@ mod tests {
     fn protocol() -> ProtocolIdentity {
         ProtocolIdentity {
             simulator_commit: "12".repeat(20),
-            simulator_configuration_digest: "sim-config-v1".to_owned(),
+            simulator_configuration_digest: "ab".repeat(32),
             robot_article_id: "robot-article-01".to_owned(),
             asset_revision: "asset-revision-a".to_owned(),
             command_trace_digest: "command-trace-a".to_owned(),
@@ -667,6 +737,7 @@ mod tests {
             let simulated = real.map(|value| value + 0.1 + shift);
             holdout.push(BlindHoldoutTrial {
                 trial_id: format!("trial-{index}"),
+                task_id: format!("task-{index}"),
                 source_recording_id: format!("blind-recording-{index}"),
                 traces: vec![
                     trace(
@@ -802,6 +873,7 @@ mod tests {
         )
         .expect("scorecard");
         assert_eq!(report.independent_blind_trials, 10);
+        assert_eq!(report.task_agreement.independent_task_clusters, 10);
         assert_eq!(report.channel_summaries.len(), 2);
         assert_ne!(
             report.channel_summaries[0].signal,
