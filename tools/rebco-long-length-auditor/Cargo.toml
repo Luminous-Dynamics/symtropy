@@ -11,3 +11,7 @@ publish = false
 [dependencies]
 serde_json = "1.0"
 sha2 = "0.10"
+
+[[bin]]
+name = "sequential_inspection_dp"
+path = "src/bin/sequential_inspection_dp.rs"
