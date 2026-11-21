@@ -450,12 +450,32 @@ pub enum ContactStatus {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ContactObservation {
     pub status: ContactStatus,
+    /// Provenance and uncertainty for the contact classification itself.
+    pub metadata: FieldMetadata,
     pub partner_entity_ids: Vec<String>,
     pub impulse_ns: Option<FieldValue<[f64; 3]>>,
 }
 
 impl ContactObservation {
-    fn validate(&self, path: &str, entity_id: &str) -> Result<(), ValidationError> {
+    fn validate(
+        &self,
+        path: &str,
+        entity_id: &str,
+        world_frame: &str,
+    ) -> Result<(), ValidationError> {
+        self.metadata.validate(&format!("{path}.metadata"))?;
+        if self.metadata.unit != "1" {
+            return Err(ValidationError::new(
+                path,
+                "contact classification must use unit '1'",
+            ));
+        }
+        if self.metadata.frame_id.as_deref().is_some_and(|frame| frame != world_frame) {
+            return Err(ValidationError::new(
+                path,
+                "contact classification frame must match the world frame",
+            ));
+        }
         let partners = self
             .partner_entity_ids
             .iter()
@@ -474,6 +494,12 @@ impl ContactObservation {
         }
         match &self.status {
             ContactStatus::NoContact => {
+                if self.metadata.status == FieldStatus::Unavailable {
+                    return Err(ValidationError::new(
+                        path,
+                        "NoContact requires an available, provenance-backed classification",
+                    ));
+                }
                 if !self.partner_entity_ids.is_empty() || self.impulse_ns.is_some() {
                     return Err(ValidationError::new(
                         path,
@@ -482,6 +508,12 @@ impl ContactObservation {
                 }
             }
             ContactStatus::InContact => {
+                if self.metadata.status == FieldStatus::Unavailable {
+                    return Err(ValidationError::new(
+                        path,
+                        "InContact requires an available, provenance-backed classification",
+                    ));
+                }
                 if self.partner_entity_ids.is_empty() {
                     return Err(ValidationError::new(
                         path,
@@ -494,7 +526,9 @@ impl ContactObservation {
                 }
             }
             ContactStatus::Unavailable { reason } => {
-                if reason.trim().is_empty()
+                if self.metadata.status != FieldStatus::Unavailable
+                    || self.metadata.unavailable_reason.as_deref() != Some(reason.as_str())
+                    || reason.trim().is_empty()
                     || !self.partner_entity_ids.is_empty()
                     || self.impulse_ns.is_some()
                 {
@@ -567,8 +601,11 @@ impl EntityState {
             ];
             validate_symmetric_psd3(&matrix, &format!("{path}.inertia"))?;
         }
-        self.contact
-            .validate(&format!("{path}.contact"), &self.entity_id)?;
+        self.contact.validate(
+            &format!("{path}.contact"),
+            &self.entity_id,
+            world_frame,
+        )?;
         Ok(())
     }
 }
@@ -1094,6 +1131,14 @@ mod tests {
             inertia_kg_m2: unavailable("kg*m^2", Some(&format!("{entity_id}/frame"))),
             contact: ContactObservation {
                 status: ContactStatus::NoContact,
+                metadata: metadata(
+                    FieldStatus::Measured,
+                    "1",
+                    Some("world"),
+                    Some(Uncertainty::NotQuantified {
+                        reason: "contact classifier uncertainty not supplied".to_owned(),
+                    }),
+                ),
                 partner_entity_ids: Vec::new(),
                 impulse_ns: None,
             },
@@ -1193,6 +1238,14 @@ mod tests {
         let mut snapshot = valid_snapshot(0, 0);
         snapshot.entities[0].contact = ContactObservation {
             status: ContactStatus::InContact,
+            metadata: metadata(
+                FieldStatus::Measured,
+                "1",
+                Some("world"),
+                Some(Uncertainty::NotQuantified {
+                    reason: "synthetic contact fixture".to_owned(),
+                }),
+            ),
             partner_entity_ids: vec!["missing-body".to_owned()],
             impulse_ns: None,
         };
@@ -1235,6 +1288,14 @@ mod tests {
         context_result.entities.push(partner);
         context_result.entities[0].contact = ContactObservation {
             status: ContactStatus::InContact,
+            metadata: metadata(
+                FieldStatus::Measured,
+                "1",
+                Some("world"),
+                Some(Uncertainty::NotQuantified {
+                    reason: "synthetic contact fixture has no calibrated classifier error".to_owned(),
+                }),
+            ),
             partner_entity_ids: vec!["partner-1".to_owned()],
             impulse_ns: None,
         };
