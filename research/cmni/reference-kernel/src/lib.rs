@@ -60,8 +60,9 @@ pub use experiment_design::{
 
 mod shared_reference_normalization;
 pub use shared_reference_normalization::{
-    linear_reference_projection, normalize_spectrum_with_shared_reference,
-    shared_reference_cross_covariance, trapezoidal_integration_weights,
+    aiache_compatible_overlap_geometry, linear_reference_projection,
+    normalize_spectrum_with_shared_reference, shared_reference_cross_covariance,
+    trapezoidal_integration_weights, ReferenceOverlapGeometry,
     SharedReferenceNormalizationInput, SharedReferenceNormalizationResult,
 };
 
