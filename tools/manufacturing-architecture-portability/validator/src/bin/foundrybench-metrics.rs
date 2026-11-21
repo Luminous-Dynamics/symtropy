@@ -409,6 +409,7 @@ fn main() -> ExitCode {
                             "schema_valid": true,
                             "observation_count": report.observation_count,
                             "brier_score": report.brier_score,
+                            "negative_log_likelihood": report.negative_log_likelihood,
                             "expected_calibration_error": report.expected_calibration_error,
                             "maximum_calibration_error": report.maximum_calibration_error,
                             "bins": bins,
