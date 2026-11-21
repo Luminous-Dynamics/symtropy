@@ -5,7 +5,8 @@
 
 use mfg_architecture_profile_validator::bench_metrics::{
     DiagnosisDisposition, FeatureSubsetRun, RunPartitionManifest, TepOnsetRecord,
-    evaluate_tep_onset_horizon, inspect_run_partition_leakage, measure_feature_subset_stability,
+    evaluate_binary_calibration, evaluate_tep_onset_horizon, inspect_run_partition_leakage,
+    measure_feature_subset_stability, BinaryCalibrationObservation,
 };
 use serde_json::{Value, json};
 use std::{collections::BTreeSet, env, fs, path::PathBuf, process::ExitCode};
@@ -99,7 +100,7 @@ fn diagnosis(value: &Value) -> Result<DiagnosisDisposition, String> {
 
 fn usage() -> ExitCode {
     eprintln!(
-        "usage:\n  foundrybench-metrics feature-stability <input.schema.json> <manifest.json>\n  foundrybench-metrics tep-onset <input.schema.json> <manifest.json>\n  foundrybench-metrics run-partitions <input.schema.json> <manifest.json>"
+        "usage:\n  foundrybench-metrics feature-stability <input.schema.json> <manifest.json>\n  foundrybench-metrics tep-onset <input.schema.json> <manifest.json>\n  foundrybench-metrics calibration <input.schema.json> <manifest.json>\n  foundrybench-metrics run-partitions <input.schema.json> <manifest.json>"
     );
     ExitCode::from(2)
 }
@@ -333,6 +334,87 @@ fn main() -> ExitCode {
                             "claim_ceiling": "synthetic onset metric only; adjudication labels are supplied, no TEP model or dataset is evaluated"
                         }))
                         .expect("TEP onset report serializes")
+                    );
+                    ExitCode::SUCCESS
+                }
+                Err(error) => {
+                    eprintln!("{error}");
+                    ExitCode::FAILURE
+                }
+            }
+        }
+        "calibration" => {
+            let bin_count = match required_u64(&manifest, "bin_count") {
+                Ok(value) => match usize::try_from(value) {
+                    Ok(value) => value,
+                    Err(_) => {
+                        eprintln!("bin_count: value exceeds usize");
+                        return ExitCode::FAILURE;
+                    }
+                },
+                Err(error) => {
+                    eprintln!("{error}");
+                    return ExitCode::FAILURE;
+                }
+            };
+            let observation_values = manifest
+                .get("observations")
+                .and_then(Value::as_array)
+                .expect("schema requires observations array");
+            let mut observations = Vec::with_capacity(observation_values.len());
+            for observation in observation_values {
+                let sample_id = match required_string(observation, "sample_id") {
+                    Ok(value) => value,
+                    Err(error) => {
+                        eprintln!("{error}");
+                        return ExitCode::FAILURE;
+                    }
+                };
+                let actual_positive = match observation.get("actual_positive").and_then(Value::as_bool) {
+                    Some(value) => value,
+                    None => {
+                        eprintln!("actual_positive: expected boolean");
+                        return ExitCode::FAILURE;
+                    }
+                };
+                let predicted_probability = match observation.get("predicted_probability").and_then(Value::as_f64) {
+                    Some(value) => value,
+                    None => {
+                        eprintln!("predicted_probability: expected number");
+                        return ExitCode::FAILURE;
+                    }
+                };
+                observations.push(BinaryCalibrationObservation {
+                    sample_id,
+                    actual_positive,
+                    predicted_probability,
+                });
+            }
+
+            match evaluate_binary_calibration(&observations, bin_count) {
+                Ok(report) => {
+                    let bins: Vec<Value> = report.bins
+                        .iter()
+                        .map(|bin| json!({
+                            "lower_bound": bin.lower_bound,
+                            "upper_bound": bin.upper_bound,
+                            "sample_count": bin.sample_count,
+                            "mean_predicted_probability": bin.mean_predicted_probability,
+                            "observed_positive_rate": bin.observed_positive_rate
+                        }))
+                        .collect();
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&json!({
+                            "schema_valid": true,
+                            "observation_count": report.observation_count,
+                            "brier_score": report.brier_score,
+                            "expected_calibration_error": report.expected_calibration_error,
+                            "maximum_calibration_error": report.maximum_calibration_error,
+                            "bins": bins,
+                            "claim_ceiling": "synthetic calibration metric only; no trained model or real observations are evaluated"
+                        }))
+                        .expect("calibration report serializes")
                     );
                     ExitCode::SUCCESS
                 }
