@@ -79,6 +79,8 @@ Dossier: [EV Carrier Lifecycle and Serviceability Screen v0.1](../../docs/resear
 
 The `battery_service_network_screen` binary is the first executable slice for [BATTERY-SERVICE-NETWORK-001 #6674](https://github.com/Luminous-Dynamics/symtropy/issues/6674).
 
+Research dossier: [Battery Service Network Benchmark v0.1](../../docs/research/BATTERY_SERVICE_NETWORK_BENCHMARK_V0_1.md).
+
 Run:
 
 ```bash
