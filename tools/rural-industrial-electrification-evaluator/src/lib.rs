@@ -296,6 +296,15 @@ pub fn validate_input(input: &CompatibilityInput) -> Result<(), Vec<String>> {
         errors.push(format!("modules: expected 1..={MAX_MODULES} configurations"));
     }
     validate_ports("vehicle", &input.vehicle.ports, &mut errors);
+    let mut vehicle_mate_ids = BTreeSet::new();
+    for port in &input.vehicle.ports {
+        if !vehicle_mate_ids.insert(port.mate_port_id.as_str()) {
+            errors.push(format!(
+                "vehicle.ports: multiple vehicle ports claim module mate ID {}",
+                port.mate_port_id
+            ));
+        }
+    }
     let mut module_ids = BTreeSet::new();
     for (index, module) in input.modules.iter().enumerate() {
         if module.module_configuration_id.trim().is_empty()
@@ -1000,6 +1009,29 @@ mod tests {
             .expect("HV finding")
             .findings
             .contains(&"provider_operating_range_outside_consumer_acceptance".into()));
+    }
+
+    #[test]
+    fn new_interface_revision_invalidates_old_qualification_receipts() {
+        let mut input = qualified_input();
+        input.vehicle.ports[0].interface_revision = "ICD-001-0.2".into();
+        input.modules[0].ports[0].interface_revision = "ICD-001-0.2".into();
+        let report = evaluate_compatibility(&input).expect("valid updated revision");
+        assert_eq!(report.results[0].status, CompatibilityStatus::Indeterminate);
+        assert!(report.results[0].interfaces.iter().any(|interface| {
+            interface.module_port_id == "module-hv"
+                && interface.status == CompatibilityStatus::Indeterminate
+        }));
+    }
+
+    #[test]
+    fn ambiguous_vehicle_mating_port_inventory_is_rejected() {
+        let mut input = qualified_input();
+        let mut duplicate = input.vehicle.ports[1].clone();
+        duplicate.port_id = "vehicle-mount-copy".into();
+        input.vehicle.ports.push(duplicate);
+        let errors = validate_input(&input).expect_err("ambiguous host mate identity");
+        assert!(errors.iter().any(|error| error.contains("multiple vehicle ports claim module mate ID")));
     }
 
     #[test]
