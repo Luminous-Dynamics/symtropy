@@ -17,7 +17,6 @@ use physical_state_feedback_contract::{
 };
 use symtropy_math::Point;
 use symtropy_physics::body::{BodyHandle, BodyType, RigidBody};
-use symtropy_physics::contact::ContactManifold;
 use symtropy_physics::world::PhysicsWorld;
 
 const ROTATION_TOLERANCE: f64 = 1.0e-7;
@@ -772,13 +771,7 @@ mod tests {
         let mut world = world();
         let a = world.add_sphere(Point::origin(), 0.5, 1.0);
         let b = world.add_sphere(Point::new([0.5, 0.0, 0.0]), 0.5, 1.0);
-        world.contacts.push(ContactManifold::single(
-            a,
-            b,
-            SVector::<f64, 3>::new(1.0, 0.0, 0.0),
-            SVector::<f64, 3>::new(0.25, 0.0, 0.0),
-            0.1,
-        ));
+        world.step(1.0 / 60.0);
         let adapter = adapter(&world, &[a, b], true);
         let snapshot = adapter.snapshot().unwrap();
         assert_eq!(snapshot.entities[0].contact.status, ContactStatus::InContact);
