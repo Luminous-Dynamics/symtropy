@@ -485,6 +485,59 @@ mod tests {
     }
 
     #[test]
+    fn every_rule_matches_all_declared_monomial_moments() {
+        let rules = [
+            QuadratureRule::GaussLegendre1,
+            QuadratureRule::GaussLegendre2,
+            QuadratureRule::GaussLegendre3,
+            QuadratureRule::GaussLegendre4,
+            QuadratureRule::Simpson3,
+        ];
+        for rule in rules {
+            let (nodes, weights) = rule.nodes_and_weights();
+            for degree in 0..=rule.exactness_degree() {
+                let numerical = nodes
+                    .iter()
+                    .zip(weights.iter())
+                    .map(|(node, weight)| weight * node.powi(degree as i32))
+                    .sum::<f64>();
+                let exact = 1.0 / (degree as f64 + 1.0);
+                assert!(
+                    (numerical - exact).abs() < 2.0e-14,
+                    "{} failed degree-{degree} moment: numerical={numerical}, exact={exact}",
+                    rule.name()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn every_rule_fails_its_first_higher_even_moment() {
+        let rules = [
+            QuadratureRule::GaussLegendre1,
+            QuadratureRule::GaussLegendre2,
+            QuadratureRule::GaussLegendre3,
+            QuadratureRule::GaussLegendre4,
+            QuadratureRule::Simpson3,
+        ];
+        for rule in rules {
+            let (nodes, weights) = rule.nodes_and_weights();
+            let degree = rule.exactness_degree() + 1;
+            let numerical = nodes
+                .iter()
+                .zip(weights.iter())
+                .map(|(node, weight)| weight * node.powi(degree as i32))
+                .sum::<f64>();
+            let exact = 1.0 / (degree as f64 + 1.0);
+            assert!(
+                (numerical - exact).abs() > 1.0e-10,
+                "{} unexpectedly integrates degree-{degree} exactly",
+                rule.name()
+            );
+        }
+    }
+
+    #[test]
     fn rejects_drag_rate_that_becomes_negative_inside_interval() {
         let case = DragQuadratureCase {
             drag_rate_kg_per_s: [1.0, -6.0, 6.0],
