@@ -136,6 +136,16 @@ fn reference(
                 duplicates,
             );
         }
+        let event_latest = event_tick
+            .saturating_add(e["time_uncertainty_ticks"].as_u64().unwrap_or(0));
+        if event_latest > at_tick || observation_tick > at_tick || ingestion_tick > at_tick {
+            return (
+                ReplayStatus::Indeterminate,
+                "event_not_known_at_evaluation_cutoff",
+                0,
+                duplicates,
+            );
+        }
     }
 
     let mut ordered = BTreeMap::<u64, Value>::new();
@@ -303,6 +313,44 @@ fn reference(
                             duplicates,
                         );
                     }
+                    let event_tick = e["event_tick"].as_u64().unwrap_or(0);
+                    let time_uncertainty =
+                        e["time_uncertainty_ticks"].as_u64().unwrap_or(0);
+                    let event_earliest = event_tick.saturating_sub(time_uncertainty);
+                    let event_latest = event_tick.saturating_add(time_uncertainty);
+                    if event_earliest > expiry {
+                        return (
+                            ReplayStatus::RequalificationRequired,
+                            "cycle_after_qualification_expiry",
+                            cycles,
+                            duplicates,
+                        );
+                    }
+                    if event_latest > expiry {
+                        return (
+                            ReplayStatus::Indeterminate,
+                            "cycle_time_uncertainty_crosses_qualification_expiry",
+                            cycles,
+                            duplicates,
+                        );
+                    }
+                    let inspection_due = last_inspection.saturating_add(inspection_interval);
+                    if event_earliest > inspection_due {
+                        return (
+                            ReplayStatus::RequalificationRequired,
+                            "cycle_after_inspection_interval",
+                            cycles,
+                            duplicates,
+                        );
+                    }
+                    if event_latest > inspection_due {
+                        return (
+                            ReplayStatus::Indeterminate,
+                            "cycle_time_uncertainty_crosses_inspection_interval",
+                            cycles,
+                            duplicates,
+                        );
+                    }
                     cycles += 1;
                     if cycles > limit {
                         status = ReplayStatus::RequalificationRequired;
@@ -312,27 +360,51 @@ fn reference(
                     }
                 }
                 "inspection_recorded" => {
-                    if e["wear_within_limit"] == false {
-                        status = ReplayStatus::Withdrawn;
-                        reason = "wear_exceeds_declared_limit";
-                    } else if e["calibration_valid"] != true
-                        || e["measurement_in_range"] != true
-                        || e["inspection_coverage_complete"] != true
-                        || e["wear_within_limit"] != true
-                        || e["uncertainty_clears_margin"] != true
-                        || e["raw_artifact_sha256"]
+                    let evidence_valid = e["calibration_valid"] == true
+                        && e["measurement_in_range"] == true
+                        && e["inspection_coverage_complete"] == true
+                        && e["uncertainty_clears_margin"] == true
+                        && e["raw_artifact_sha256"]
                             .as_str()
-                            .map_or(true, |s| s.len() != 64)
-                    {
+                            .is_some_and(|s| s.len() == 64);
+                    if !evidence_valid {
                         return (
                             ReplayStatus::Indeterminate,
                             "inspection_evidence_incomplete_or_invalid",
                             cycles,
                             duplicates,
                         );
+                    }
+                    if e["wear_within_limit"] == false {
+                        status = ReplayStatus::Withdrawn;
+                        reason = "wear_exceeds_declared_limit";
+                    } else if e["wear_within_limit"] != true {
+                        return (
+                            ReplayStatus::Indeterminate,
+                            "inspection_wear_observation_missing",
+                            cycles,
+                            duplicates,
+                        );
                     } else if status == ReplayStatus::Qualified {
-                        last_inspection = e["event_tick"].as_u64().unwrap_or(0);
-                        reason = "inspection_evidence_admitted";
+                        let due = last_inspection.saturating_add(inspection_interval);
+                        let event_tick = e["event_tick"].as_u64().unwrap_or(0);
+                        let uncertainty = e["time_uncertainty_ticks"].as_u64().unwrap_or(0);
+                        let earliest = event_tick.saturating_sub(uncertainty);
+                        let latest = event_tick.saturating_add(uncertainty);
+                        if earliest > due {
+                            status = ReplayStatus::RequalificationRequired;
+                            reason = "inspection_after_interval_requires_requalification";
+                        } else if latest > due {
+                            return (
+                                ReplayStatus::Indeterminate,
+                                "inspection_time_uncertainty_crosses_interval",
+                                cycles,
+                                duplicates,
+                            );
+                        } else {
+                            last_inspection = event_tick;
+                            reason = "inspection_evidence_admitted";
+                        }
                     }
                 }
                 "maintenance_performed" => {
@@ -417,6 +489,20 @@ fn reference(
                     );
                 }
                 "environment_exposure" => {
+                    let evidence_valid = e["calibration_valid"] == true
+                        && e["measurement_in_range"] == true
+                        && e["uncertainty_clears_margin"] == true
+                        && e["raw_artifact_sha256"]
+                            .as_str()
+                            .is_some_and(|s| s.len() == 64);
+                    if !evidence_valid {
+                        return (
+                            ReplayStatus::Indeterminate,
+                            "environment_evidence_incomplete_or_invalid",
+                            cycles,
+                            duplicates,
+                        );
+                    }
                     if e["environment_within_envelope"] == false {
                         status = ReplayStatus::RequalificationRequired;
                         reason = "environment_exceeds_qualified_envelope";
