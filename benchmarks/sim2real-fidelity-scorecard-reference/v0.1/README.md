@@ -18,14 +18,13 @@ A high task-score correlation cannot hide a wrong contact trajectory. A low traj
 ## Split integrity
 
 The manifest binds:
-- simulator commit and full configuration digest (solver, integrator, step/substeps, contact, controller, filters);
-- robot/article, asset revision and command trace digest;
-- sensor calibration digest;
+- simulator commit and full SHA-256 configuration digest (solver, integrator, step/substeps, contact, controller, filters);
+- robot/article, asset revision, command-trace SHA-256 and sensor-calibration SHA-256;
 - complete training recording IDs;
 - complete calibration recording IDs;
-- independent blind physical holdout recordings and trials.
+- task/activity ID, independent blind physical recording ID and trial ID.
 
-A physical recording ID may occur in exactly one split. The reference requires at least ten independent holdout recordings as a minimum guard. This is not a statistical-power guarantee. Repeated time windows from one recording do not count as independent trials.
+A physical recording ID may occur in exactly one split. The reference requires at least ten blind physical recordings **and** ten independent task clusters as minimum software guards. This is not a statistical-power guarantee. Repeated time windows from one recording do not count as independent trials; multiple recordings of the same task remain nested in one task cluster.
 
 All blind trials must contain the same declared signal-series layout and their real/sim values must be aligned at exactly equal, strictly increasing timestamps. No dynamic time-warping, post-hoc offset fitting or silent resampling occurs in the blind scorer.
 
@@ -42,11 +41,11 @@ Each channel/series is scored separately:
 
 Channel kinds distinguish joint position, velocity, independently sensed joint torque, current-derived torque, end-effector position, object position/orientation, temperature, contact-event time and contact normal impulse. Independent joint torque and motor-current-derived torque must not be substituted for each other.
 
-The bootstrap resamples independent physical trials, not time samples. The scorecard reports mean trial-level RMSE and a deterministic percentile interval. It does not claim the interval is meaningful with ten trials automatically; publish a separate pre-registered power analysis.
+Each channel is scored per physical recording first. Repeated recordings are averaged within each semantic task, then task clusters are equally weighted. The bootstrap resamples whole task clusters, not time samples or repeated recordings from the same task. The scorecard reports mean task-level RMSE and a deterministic percentile interval. Ten tasks is only a software minimum; publish a separate pre-registered power analysis and enough independent articles/labs for the intended claim.
 
 ## Task-level metrics
 
-Stage-average score and end-to-end success remain distinct. The report includes real/sim stage means, signed gap, MAE, RMSE, Pearson correlation, E2E rates, binary agreement and false-safe/false-failure counts. A false-safe is a simulator success where the physical trial failed; it must not be concealed inside a high correlation.
+Stage-average score and end-to-end success remain distinct. Stage-score MAE/RMSE/bias and Pearson correlation are computed over equal-weight task-cluster means. E2E success/agreement and false-safe/false-failure counts remain at physical-trial level. A false-safe is a simulator success where the physical trial failed; it must not be concealed inside a high correlation.
 
 ## Tests
 
