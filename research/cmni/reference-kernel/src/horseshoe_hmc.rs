@@ -296,20 +296,20 @@ fn kinetic_energy(momentum: &[f64]) -> f64 {
 }
 
 #[derive(Debug, Clone)]
-struct SplitMix64 {
+pub(crate) struct SplitMix64 {
     state: u64,
     spare_normal: Option<f64>,
 }
 
 impl SplitMix64 {
-    fn new(seed: u64) -> Self {
+    pub(crate) fn new(seed: u64) -> Self {
         Self {
             state: seed,
             spare_normal: None,
         }
     }
 
-    fn next_u64(&mut self) -> u64 {
+    pub(crate) fn next_u64(&mut self) -> u64 {
         self.state = self.state.wrapping_add(0x9E37_79B9_7F4A_7C15);
         let mut value = self.state;
         value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
@@ -317,12 +317,12 @@ impl SplitMix64 {
         value ^ (value >> 31)
     }
 
-    fn uniform_open(&mut self) -> f64 {
+    pub(crate) fn uniform_open(&mut self) -> f64 {
         let mantissa = self.next_u64() >> 11;
         (mantissa as f64 + 0.5) / 9_007_199_254_740_992.0
     }
 
-    fn normal(&mut self) -> f64 {
+    pub(crate) fn normal(&mut self) -> f64 {
         if let Some(value) = self.spare_normal.take() {
             return value;
         }
