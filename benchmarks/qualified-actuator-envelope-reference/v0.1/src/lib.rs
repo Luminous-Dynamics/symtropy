@@ -63,6 +63,19 @@ pub struct QualifiedCell {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EnvelopeMetadata {
+    pub article_id: String,
+    pub calibration_id: String,
+    pub calibration_digest: Digest,
+    pub valid_from_ms: u64,
+    pub valid_until_ms: u64,
+    pub supply_voltage_min_mv: u32,
+    pub supply_voltage_max_mv: u32,
+    pub max_duty_basis_points: u16,
+    pub derating_margin_basis_points: u16,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CapabilityEnvelope {
     article_id: String,
     calibration_id: String,
@@ -83,23 +96,23 @@ pub struct CapabilityEnvelope {
 }
 
 impl CapabilityEnvelope {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
-        article_id: impl Into<String>,
-        calibration_id: impl Into<String>,
-        calibration_digest: Digest,
-        valid_from_ms: u64,
-        valid_until_ms: u64,
-        supply_voltage_min_mv: u32,
-        supply_voltage_max_mv: u32,
-        max_duty_basis_points: u16,
-        derating_margin_basis_points: u16,
+        metadata: EnvelopeMetadata,
         speed_breakpoints_mrpm: Vec<u32>,
         temperature_breakpoints_mc: Vec<i32>,
         cells: Vec<QualifiedCell>,
     ) -> Result<Self, EnvelopeError> {
-        let article_id = article_id.into();
-        let calibration_id = calibration_id.into();
+        let EnvelopeMetadata {
+            article_id,
+            calibration_id,
+            calibration_digest,
+            valid_from_ms,
+            valid_until_ms,
+            supply_voltage_min_mv,
+            supply_voltage_max_mv,
+            max_duty_basis_points,
+            derating_margin_basis_points,
+        } = metadata;
         if article_id.trim().is_empty() {
             return Err(EnvelopeError::EmptyArticleId);
         }
@@ -194,6 +207,10 @@ impl CapabilityEnvelope {
             admission: Admission::Rejected(RejectionReason::InvalidTelemetry),
         };
 
+        if request.command_id.trim().is_empty() {
+            decision.admission = Admission::Rejected(RejectionReason::InvalidCommandId);
+            return decision;
+        }
         if !request.telemetry_complete {
             decision.admission = Admission::Rejected(RejectionReason::InvalidTelemetry);
             return decision;
@@ -286,6 +303,7 @@ pub struct TorqueRequest {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RejectionReason {
+    InvalidCommandId,
     InvalidTelemetry,
     CalibrationNotCurrent,
     SupplyVoltageOutOfRange,
@@ -325,15 +343,17 @@ mod tests {
     fn envelope(margin_bp: u16) -> CapabilityEnvelope {
         // 2 speed intervals × 2 temperature intervals; row-major by temperature.
         CapabilityEnvelope::new(
-            "joint-article-01",
-            "cal-2026-11-01",
-            digest(42),
-            1_000,
-            9_000,
-            22_000,
-            26_000,
-            7_000,
-            margin_bp,
+            EnvelopeMetadata {
+                article_id: "joint-article-01".to_owned(),
+                calibration_id: "cal-2026-11-01".to_owned(),
+                calibration_digest: digest(42),
+                valid_from_ms: 1_000,
+                valid_until_ms: 9_000,
+                supply_voltage_min_mv: 22_000,
+                supply_voltage_max_mv: 26_000,
+                max_duty_basis_points: 7_000,
+                derating_margin_basis_points: margin_bp,
+            },
             vec![0, 1_000_000, 2_000_000],
             vec![20_000, 40_000, 60_000],
             vec![
@@ -472,7 +492,12 @@ mod tests {
     fn rejects_malformed_grid_and_calibration_metadata() {
         assert_eq!(
             CapabilityEnvelope::new(
-                "article", "cal", digest(1), 1, 2, 10, 5, 100, 0,
+                EnvelopeMetadata {
+                    article_id: "article".to_owned(), calibration_id: "cal".to_owned(),
+                    calibration_digest: digest(1), valid_from_ms: 1, valid_until_ms: 2,
+                    supply_voltage_min_mv: 10, supply_voltage_max_mv: 5,
+                    max_duty_basis_points: 100, derating_margin_basis_points: 0,
+                },
                 vec![0, 1], vec![0, 1],
                 vec![QualifiedCell { positive_limit_mnm: 1, negative_limit_mnm: 1, max_command_duration_ms: 1 }],
             ),
@@ -480,7 +505,12 @@ mod tests {
         );
         assert_eq!(
             CapabilityEnvelope::new(
-                "article", "cal", digest(1), 1, 2, 10, 10, 10_001, 0,
+                EnvelopeMetadata {
+                    article_id: "article".to_owned(), calibration_id: "cal".to_owned(),
+                    calibration_digest: digest(1), valid_from_ms: 1, valid_until_ms: 2,
+                    supply_voltage_min_mv: 10, supply_voltage_max_mv: 10,
+                    max_duty_basis_points: 10_001, derating_margin_basis_points: 0,
+                },
                 vec![0, 1], vec![0, 1],
                 vec![QualifiedCell { positive_limit_mnm: 1, negative_limit_mnm: 1, max_command_duration_ms: 1 }],
             ),
@@ -488,7 +518,12 @@ mod tests {
         );
         assert_eq!(
             CapabilityEnvelope::new(
-                "article", "cal", digest(1), 1, 2, 10, 10, 100, 0,
+                EnvelopeMetadata {
+                    article_id: "article".to_owned(), calibration_id: "cal".to_owned(),
+                    calibration_digest: digest(1), valid_from_ms: 1, valid_until_ms: 2,
+                    supply_voltage_min_mv: 10, supply_voltage_max_mv: 10,
+                    max_duty_basis_points: 100, derating_margin_basis_points: 0,
+                },
                 vec![0, 1], vec![0, 1],
                 vec![],
             ),
@@ -496,7 +531,12 @@ mod tests {
         );
         assert_eq!(
             CapabilityEnvelope::new(
-                "article", "cal", digest(1), 1, 2, 10, 10, 100, 0,
+                EnvelopeMetadata {
+                    article_id: "article".to_owned(), calibration_id: "cal".to_owned(),
+                    calibration_digest: digest(1), valid_from_ms: 1, valid_until_ms: 2,
+                    supply_voltage_min_mv: 10, supply_voltage_max_mv: 10,
+                    max_duty_basis_points: 100, derating_margin_basis_points: 0,
+                },
                 vec![0, 1, 1], vec![0, 1],
                 vec![
                     QualifiedCell { positive_limit_mnm: 1, negative_limit_mnm: 1, max_command_duration_ms: 1 },
