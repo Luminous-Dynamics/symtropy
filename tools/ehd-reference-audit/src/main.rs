@@ -30,6 +30,10 @@ fn len_at(value: &Value, path: &[&str]) -> Option<usize> {
     at(value, path)?.as_array().map(Vec::len)
 }
 
+fn find_record<'a>(records: Option<&'a Vec<Value>>, wanted: &str) -> Option<&'a Value> {
+    records.and_then(|rows| rows.iter().find(|row| text_at(row, &["id"]) == Some(wanted)))
+}
+
 fn row_matches(row: &Value, expected: &[(&str, f64)]) -> bool {
     expected
         .iter()
@@ -560,11 +564,7 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
         }
     }
 
-    let record = |wanted: &str| {
-        records.and_then(|rows| rows.iter().find(|row| text_at(row, &["id"]) == Some(wanted)))
-    };
-
-    let jiang = record("jiang-2026-sub-unit-electrode");
+    let jiang = find_record(records, "jiang-2026-sub-unit-electrode");
     push_if_missing(
         &mut findings,
         jiang.is_some(),
@@ -616,7 +616,7 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
         );
     }
 
-    let nonaka = record("nonaka-2026-guide-electrode");
+    let nonaka = find_record(records, "nonaka-2026-guide-electrode");
     push_if_missing(
         &mut findings,
         nonaka.is_some(),
@@ -634,7 +634,7 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
         );
     }
 
-    let tao = record("tao-2026-controlled-microrobot");
+    let tao = find_record(records, "tao-2026-controlled-microrobot");
     push_if_missing(
         &mut findings,
         tao.is_some(),
@@ -655,7 +655,7 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
         );
     }
 
-    let shibata = record("shibata-2026-multistage-ducted-optimization");
+    let shibata = find_record(records, "shibata-2026-multistage-ducted-optimization");
     push_if_missing(
         &mut findings,
         shibata.is_some(),
@@ -693,7 +693,7 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
         );
     }
 
-    let dong = record("dong-2026-ion-mobility-regulation");
+    let dong = find_record(records, "dong-2026-ion-mobility-regulation");
     push_if_missing(
         &mut findings,
         dong.is_some(),
