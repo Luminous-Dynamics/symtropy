@@ -60,7 +60,7 @@ At each event-time step:
 
 within numerical tolerance.
 
-This is a non-parametric Aalen–Johansen competing-risk estimate. It is not the same as treating diversion/cancellation as ordinary independent censoring in a Kaplan–Meier estimator. No extrapolation beyond the observed event horizon is performed.
+This is a non-parametric Aalen–Johansen competing-risk estimate. It is not the same as treating diversion/cancellation as ordinary independent censoring in a Kaplan–Meier estimator. No extrapolation beyond the observed event horizon is performed. The estimator still relies on non-informative right censoring, conditional on the cohort and any stratification. Administrative end-of-window censoring may be defensible under the declared sampling design; delayed source publication may be informative if delay depends on terminal, outcome or congestion. V0.1 separates administrative censoring from reporting-lag censoring, but does not model or correct informative censoring. A real cohort must publish reporting-delay diagnostics and sensitivity analyses (or use an independently validated censoring model) before interpreting the CIF as a calibrated probability.
 
 ## 5. Berth-incidence quantiles
 
@@ -91,7 +91,7 @@ Five cohorts and 25 calls cover:
 - multiple competing outcomes at the same wait duration;
 - a berth outcome observed only after the historical cutoff.
 
-Independent golden tests pin:
+Administrative and reporting-lag censoring are counted separately.\n\nIndependent golden tests pin:
 - call/outcome/censor counts;
 - total vessel-tick exposure;
 - selected exact risk sets;
@@ -128,7 +128,7 @@ Before any real-port metrics are published:
 5. Keep diversion/cancellation as competing causes.
 6. Validate call cohorts against independent port/terminal totals and reconcile with the conserved backlog ledger.
 7. Stratify by terminal, vessel size, trade/service, cargo class and disruption regime; use time/terminal held-out windows.
-8. For algorithm comparisons, replay only information available at each decision time and compare the same disturbance realizations.
+8. For algorithm comparisons, replay only information available at each decision time and compare the same disturbance realizations.\n9. Measure source reporting delay by outcome, terminal and congestion regime; test censoring independence and quantify sensitivity to informative censoring.
 
 ## 10. Claim ceiling
 
