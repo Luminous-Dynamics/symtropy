@@ -25,6 +25,10 @@ cargo clippy --offline --locked --all-targets -- -D warnings
 
 The package has no third-party dependencies and is isolated by its own Cargo workspace. A machine without Rust/Cargo can still review the CSV and manifest; the Rust tests must be executed before claiming a Rust pass.
 
+## Industry comparators and target ladder
+
+See [industry-comparator-register.md](industry-comparator-register.md) for current external references covering the CPPI, DCSA Port Call 2.0, 2026 integrated berth/quay-crane and robust yard optimization, railway disruption recovery, public ship-block scheduling data, and ITTC manoeuvring validation. It also defines matched-baseline rules and proposed advancement targets. Those targets are research goals, not achieved results.
+
 ## Source and scope
 
 - Publisher: Transnet Rail Infrastructure Manager.
