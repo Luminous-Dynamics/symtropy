@@ -941,8 +941,12 @@ mod tests {
         assert!(hv.module_evidence_id.starts_with("module-hv-"));
         assert!(hv.vehicle_evidence_source_reference.as_deref().unwrap().starts_with("synthetic://"));
         assert!(hv.module_evidence_source_reference.starts_with("synthetic://"));
-        assert_eq!(hv.vehicle_evidence_report_digest_sha256.as_deref(), Some("a".repeat(64).as_str()));
-        assert_eq!(hv.module_evidence_report_digest_sha256, "a".repeat(64));
+        let expected_digest = "a".repeat(64);
+        assert_eq!(
+            hv.vehicle_evidence_report_digest_sha256.as_deref(),
+            Some(expected_digest.as_str())
+        );
+        assert_eq!(hv.module_evidence_report_digest_sha256, expected_digest);
     }
 
     #[test]
