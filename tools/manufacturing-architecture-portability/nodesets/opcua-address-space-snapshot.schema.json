@@ -1,0 +1,258 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous:symtropy:opcua-address-space-snapshot:0.1.0",
+  "title": "Read-only OPC UA NodeSet and Server Address-Space Comparison Input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "evidence_class",
+    "profile_id",
+    "endpoint_id",
+    "server_application_uri",
+    "endpoint_certificate_sha256",
+    "nodeset_source_sha256",
+    "namespace_uri",
+    "namespace_version",
+    "namespace_publication_date",
+    "is_namespace_subset",
+    "namespace_array",
+    "captured_at",
+    "read_only_probe",
+    "service_calls",
+    "mutation_service_calls",
+    "physical_qualification",
+    "expected_nodes",
+    "observed_nodes"
+  ],
+  "properties": {
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "recorded"
+      ]
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "endpoint_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "server_application_uri": {
+      "type": "string",
+      "format": "uri"
+    },
+    "endpoint_certificate_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "nodeset_source_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "namespace_uri": {
+      "type": "string",
+      "format": "uri"
+    },
+    "namespace_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "namespace_publication_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "is_namespace_subset": {
+      "type": "boolean"
+    },
+    "namespace_array": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "format": "uri"
+      }
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "read_only_probe": {
+      "const": true
+    },
+    "service_calls": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "Browse",
+          "Read"
+        ]
+      }
+    },
+    "mutation_service_calls": {
+      "const": 0
+    },
+    "physical_qualification": {
+      "const": false
+    },
+    "expected_nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "observed_nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    }
+  },
+  "$defs": {
+    "nodeId": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "namespace_uri",
+        "identifier_type",
+        "identifier"
+      ],
+      "properties": {
+        "namespace_uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "identifier_type": {
+          "enum": [
+            "i",
+            "s",
+            "g",
+            "b"
+          ]
+        },
+        "identifier": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "browseName": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "namespace_uri",
+        "name"
+      ],
+      "properties": {
+        "namespace_uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_type",
+        "target",
+        "is_forward"
+      ],
+      "properties": {
+        "reference_type": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "target": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "is_forward": {
+          "type": "boolean"
+        }
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "node_class",
+        "browse_name",
+        "data_type",
+        "value_rank",
+        "type_definition",
+        "modelling_rule",
+        "references"
+      ],
+      "properties": {
+        "node_id": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "node_class": {
+          "enum": [
+            "Object",
+            "Variable",
+            "ObjectType",
+            "VariableType",
+            "DataType",
+            "ReferenceType",
+            "View",
+            "Method"
+          ]
+        },
+        "browse_name": {
+          "$ref": "#/$defs/browseName"
+        },
+        "data_type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/nodeId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "value_rank": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "type_definition": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/nodeId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "modelling_rule": {
+          "enum": [
+            "mandatory",
+            "optional",
+            "optional_placeholder",
+            "mandatory_placeholder",
+            "none"
+          ]
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/reference"
+          }
+        }
+      }
+    }
+  }
+}
