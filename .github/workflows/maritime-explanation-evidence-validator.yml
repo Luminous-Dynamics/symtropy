@@ -1,0 +1,60 @@
+name: Maritime explanation evidence validator
+on:
+  push:
+    branches: ["research/maritime-explanation-evidence-v0-1"]
+    paths:
+      - "tools/maritime-explanation-evidence-validator/**"
+      - "benchmarks/maritime-explanation/**"
+      - "docs/tech/MARITIME_EXPLANATION_*.json"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/maritime-explanation-evidence-validator.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/maritime-explanation-evidence-validator/**"
+      - "benchmarks/maritime-explanation/**"
+      - "docs/tech/MARITIME_EXPLANATION_*.json"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/maritime-explanation-evidence-validator.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: maritime-explanation-validator-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy
+      - name: Test explanation evidence contract
+        run: cargo test --locked -p maritime-explanation-evidence-validator
+      - name: Strict Clippy
+        run: cargo clippy --locked -p maritime-explanation-evidence-validator --all-targets -- -D warnings
+      - name: Execute frozen corpus and verify receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          corpus="benchmarks/maritime-explanation/explanation-corpus-v0.1.json"
+          case_sha256="$(sha256sum "$corpus" | awk '{print $1}')"
+          cargo run --quiet --locked -p maritime-explanation-evidence-validator -- "$corpus" --source-commit "$source_commit" --case-sha256 "$case_sha256" > maritime-explanation-report.json
+          jq -e --arg source "$source_commit" --arg digest "$case_sha256" '.execution.source_commit == $source and .execution.case_sha256 == $digest and (.case_results | length == 14) and (.metamorphic_results | length == 2) and (.metamorphic_results | all(.status == "PASS")) and .authority_boundary.read_only == true and .authority_boundary.actuation == false' maritime-explanation-report.json
+      - name: Upload deterministic report
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-explanation-evidence-report
+          path: maritime-explanation-report.json
+          if-no-files-found: error
+          retention-days: 90
