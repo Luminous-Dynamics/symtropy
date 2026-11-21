@@ -36,6 +36,7 @@ A transport acknowledgement is not physical completion. The physical-outcome val
 - exact platform configuration and expected effect predicate;
 - independent observer role and source identity distinct from the executing controller;
 - monotonic source sequence and same clock/boot epoch;
+- an explicit freshness-policy clock/boot identity matching the ticket and outcome receipt;
 - observation frame, calibration and freshness;
 - a declared outcome (Satisfied, NoEffect, PartialEffect or Unknown).
 
@@ -75,6 +76,7 @@ The unit-test corpus contains positive controls and table-driven negative contro
 - self-report and executor-as-observer rejection;
 - wrong ticket, configuration, predicate, calibration and frame;
 - stale, future-dated, low-confidence and out-of-order outcome evidence;
+- outcome freshness evaluated under a mismatched clock or boot epoch;
 - no-effect, partial-effect and unknown-outcome disposition.
 
 ## Run
