@@ -466,7 +466,7 @@ pub struct OutcomePolicy {
     /// Dependency domains of the executor/platform path for this action.
     pub execution_failure_domains: Vec<String>,
     /// Approved observer dependency domains under the ticket-bound policy.
-    pub approved_observer_failure_domains: Vec<String>,
+    pub expected_observer_failure_domains: Vec<String>,
     pub observer_independence_policy_digest: Digest,
 }
 
@@ -493,7 +493,7 @@ pub enum OutcomeError {
     ConfidenceInsufficient,
     IndependencePolicyMismatch,
     FailureDomainPolicyInvalid,
-    ObserverFailureDomainUnapproved,
+    ObserverFailureDomainMismatch,
     CommonCauseFailureDomainOverlap,
 }
 
@@ -549,26 +549,22 @@ pub fn validate_physical_outcome(
         return Err(OutcomeError::IndependencePolicyMismatch);
     }
     if policy.execution_failure_domains.is_empty()
-        || policy.approved_observer_failure_domains.is_empty()
+        || policy.expected_observer_failure_domains.is_empty()
         || evidence.observer_failure_domains.is_empty()
         || policy
             .execution_failure_domains
             .iter()
-            .chain(policy.approved_observer_failure_domains.iter())
+            .chain(policy.expected_observer_failure_domains.iter())
             .chain(evidence.observer_failure_domains.iter())
             .any(|domain| !is_nonempty(domain))
         || has_duplicates(&policy.execution_failure_domains)
-        || has_duplicates(&policy.approved_observer_failure_domains)
+        || has_duplicates(&policy.expected_observer_failure_domains)
         || has_duplicates(&evidence.observer_failure_domains)
     {
         return Err(OutcomeError::FailureDomainPolicyInvalid);
     }
-    if evidence
-        .observer_failure_domains
-        .iter()
-        .any(|domain| !policy.approved_observer_failure_domains.contains(domain))
-    {
-        return Err(OutcomeError::ObserverFailureDomainUnapproved);
+    if evidence.observer_failure_domains != policy.expected_observer_failure_domains {
+        return Err(OutcomeError::ObserverFailureDomainMismatch);
     }
     if evidence
         .observer_failure_domains
@@ -763,7 +759,7 @@ mod tests {
                 "vehicle-bus".into(),
                 "vehicle-power".into(),
             ],
-            approved_observer_failure_domains: vec![
+            expected_observer_failure_domains: vec![
                 "camera-sensor".into(),
                 "camera-processor".into(),
                 "observer-power".into(),
@@ -1154,12 +1150,12 @@ mod tests {
     }
 
     #[test]
-    fn observer_failure_domains_must_be_approved_by_ticket_bound_policy() {
+    fn observer_failure_domains_must_exactly_match_ticket_bound_policy() {
         let mut evidence = physical_evidence();
         evidence.observer_failure_domains.push("unregistered-clock".into());
         assert_eq!(
             validate_physical_outcome(&ticket(), &evidence, outcome_policy()),
-            Err(OutcomeError::ObserverFailureDomainUnapproved)
+            Err(OutcomeError::ObserverFailureDomainMismatch)
         );
     }
 
