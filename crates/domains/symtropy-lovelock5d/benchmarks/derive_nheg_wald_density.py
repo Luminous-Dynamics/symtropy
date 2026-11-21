@@ -27,13 +27,15 @@ def main() -> None:
     eps,alpha,beta,a,G,s,delta=sp.symbols(
         "epsilon alpha_sym beta a G s delta", positive=True, finite=True
     )
+    alpha_NH=alpha/4
+    exact_zero("alpha_sym coupling conversion",alpha-4*alpha_NH)
     q=1-beta*eps**4
     R_h=4*(beta**2*eps**8+10*beta*eps**4-3)/(alpha*q**3)
     area_density=a*alpha*q/(2*eps**3)
 
     # For L=(R+alpha_NH*GB)/(16*pi*G), the 5D Lovelock Wald/JM density
     # is sqrt(h)/(4G)*(1+2*alpha_NH*R[h]); alpha_NH=alpha_sym/4.
-    wald_multiplier=sp.factor(1+alpha*R_h/2)
+    wald_multiplier=sp.factor(1+2*alpha_NH*R_h)
     expected_multiplier=(
         -5+17*beta*eps**4+5*beta**2*eps**8-beta**3*eps**12
     )/q**3
@@ -190,6 +192,7 @@ def main() -> None:
         "gauge_caveat":"The displayed change is a smooth non-geodesic defining-function change. It proves raw cutoff finite parts are regulator-dependent in this wider regulator class; it does not prove dependence within a fixed geodesic-defining-function gauge and fixed conformal representative."
       },
       "validation":{
+        "coupling_conversion_exact":True,
         "wald_multiplier_exact":True,
         "wald_density_exact":True,
         "wald_density_primitive_exact":True,
