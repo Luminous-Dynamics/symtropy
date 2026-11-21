@@ -13,7 +13,9 @@ fn run() -> Result<ExitCode, String> {
     if args.next().as_deref() != Some("--source-commit") {
         return Err("expected --source-commit".to_owned());
     }
-    let source_commit = args.next().ok_or_else(|| "missing source commit value".to_owned())?;
+    let source_commit = args
+        .next()
+        .ok_or_else(|| "missing source commit value".to_owned())?;
     if source_commit.len() != 40
         || !source_commit
             .bytes()
