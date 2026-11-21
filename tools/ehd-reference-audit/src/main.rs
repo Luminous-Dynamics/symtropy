@@ -9,6 +9,7 @@ use std::{env, fs, process};
 
 mod exchange;
 mod geometry;
+mod gcl;
 
 const EMBEDDED_ATLAS: &str =
     include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
@@ -18,6 +19,8 @@ const EMBEDDED_EXCHANGE_CONTRACT: &str =
     include_str!("../../../data/research/ehd_plasma_neutral_exchange_contract_v0_1.json");
 const EMBEDDED_ARRAY_INTERACTION: &str =
     include_str!("../../../data/research/ehd_array_interaction_benchmark_v0_1.json");
+const EMBEDDED_GCL_BENCHMARK: &str =
+    include_str!("../../../data/research/ehd_moving_mesh_gcl_benchmark_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -1259,6 +1262,85 @@ pub fn audit_array_interaction(root: &Value) -> Vec<String> {
     findings
 }
 
+/// Audit the moving-mesh GCL benchmark identity and its deliberately narrow
+/// analytic-reference claim boundary. It does not certify a production ALE solver.
+pub fn audit_gcl_benchmark(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_moving_mesh_gcl_benchmark")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["benchmark_id"]) == Some("EHD-MOVING-GCL-001")
+            && text_at(root, &["status"])
+                == Some("analytic_reference_oracle_authored_tests_rust_execution_pending"),
+        "GCL_BENCHMARK_IDENTITY",
+        "moving-mesh GCL benchmark identity/version/status changed",
+    );
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["identity", "equation"])
+            .is_some_and(|value| value.contains("V(t1)-V(t0)") && value.contains("w dot n"))
+            && text_at(root, &["identity", "residual"])
+                == Some("integrated_grid_flux_minus_cell_volume_change"),
+        "GCL_BENCHMARK_IDENTITY_EQUATION",
+        "GCL must compare integrated outward grid flux with the endpoint volume change",
+    );
+    let implementation = at(root, &["reference_implementation"]);
+    push_if_missing(
+        &mut findings,
+        implementation.is_some_and(|value| {
+            text_at(value, &["path"]) == Some("tools/ehd-reference-audit/src/gcl.rs")
+                && text_at(value, &["geometry"]) == Some("single_axis_aligned_spatial_box")
+                && text_at(value, &["motion"]) == Some("lower_and_upper_bounds_linear_in_normalized_time")
+                && text_at(value, &["face_area_integral"])
+                    .is_some_and(|method| method.contains("exact_polynomial"))
+                && at(value, &["spatial_dimensions"]).and_then(Value::as_array)
+                    .is_some_and(|dims| dims.len() == 3
+                        && dims[0].as_u64() == Some(1)
+                        && dims[1].as_u64() == Some(2)
+                        && dims[2].as_u64() == Some(3))
+                && at(value, &["reports"]).and_then(Value::as_array)
+                    .is_some_and(|fields| fields.iter().any(|field| field.as_str() == Some("integrated_grid_flux"))
+                        && fields.iter().any(|field| field.as_str() == Some("gcl_residual")))
+        }),
+        "GCL_REFERENCE_SCOPE",
+        "GCL reference implementation must preserve exact polynomial integration and the 1D/2D/3D AABB scope",
+    );
+    let test_families = at(root, &["test_families"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        test_families.is_some_and(|rows| rows.len() == 11
+            && rows.iter().any(|row| row.as_str() == Some("independent_temporal_subdivision_additivity"))
+            && rows.iter().any(|row| row.as_str() == Some("uniform_scalar_ale_free_stream"))
+            && rows.iter().any(|row| row.as_str() == Some("forward_reverse_flux_antisymmetry"))),
+        "GCL_TEST_MATRIX",
+        "GCL benchmark must retain all eleven authored test families",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["acceptance", "universal_numeric_tolerance"]).is_some_and(Value::is_null)
+            && at(root, &["acceptance", "case_specific_absolute_plus_relative_tolerance_required"])
+                .and_then(Value::as_bool) == Some(true)
+            && at(root, &["acceptance", "geometric_residual_separate_from_impulse_charge_momentum_energy_ledgers"])
+                .and_then(Value::as_bool) == Some(true),
+        "GCL_TOLERANCE_AND_LEDGER_POLICY",
+        "GCL tolerances must be case-specific and GCL residuals must remain separate from physical ledgers",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["limitations"]).and_then(Value::as_array)
+            .is_some_and(|limits| limits.iter().any(|item| item.as_str() == Some("axis_aligned_cells_only"))
+                && limits.iter().any(|item| item.as_str() == Some("no_general_polyhedra"))
+                && limits.iter().any(|item| item.as_str() == Some("not_a_production_ale_solver")))
+            && text_at(root, &["claim_ceiling"])
+                .is_some_and(|claim| claim.contains("No arbitrary moving-mesh GCL compliance")
+                    && claim.contains("No production ALE solver")),
+        "GCL_CLAIM_BOUNDARY",
+        "GCL artifact must not promote an analytic AABB oracle into general ALE solver qualification",
+    );
+    findings
+}
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -1307,10 +1389,18 @@ fn main() {
             process::exit(2);
         }
     };
+    let gcl_benchmark: Value = match serde_json::from_str(EMBEDDED_GCL_BENCHMARK) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid embedded moving-mesh GCL benchmark JSON: {error}");
+            process::exit(2);
+        }
+    };
     let mut findings = audit_atlas(&atlas);
     findings.extend(audit_frontier_patterns(&frontier));
     findings.extend(audit_exchange_contract(&exchange));
     findings.extend(audit_array_interaction(&array_interaction));
+    findings.extend(audit_gcl_benchmark(&gcl_benchmark));
     let exchange_kernel_ok = match exchange::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -1322,6 +1412,13 @@ fn main() {
         Ok(()) => true,
         Err(error) => {
             findings.push(format!("GEOMETRY_KERNEL_SELF_CHECK: {error}"));
+            false
+        }
+    };
+    let gcl_kernel_ok = match gcl::reference_self_check() {
+        Ok(()) => true,
+        Err(error) => {
+            findings.push(format!("GCL_KERNEL_SELF_CHECK: {error}"));
             false
         }
     };
@@ -1341,7 +1438,10 @@ fn main() {
         if geometry_kernel_ok {
             println!("axis-aligned space-time geometry self-check: passed");
         }
-        println!("scope: source structure and cohort comparability only; no physical V&V claim");
+        if gcl_kernel_ok {
+            println!("moving-AABB geometric conservation reference self-check: passed");
+        }
+        println!("scope: source structure and analytic reference checks only; no physical V&V or production ALE claim");
     } else {
         eprintln!("FAIL: {label} ({} finding(s))", findings.len());
         for finding in findings {
