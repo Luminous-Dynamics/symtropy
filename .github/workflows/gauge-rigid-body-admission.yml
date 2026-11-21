@@ -1,0 +1,92 @@
+name: GAUGE Rigid-Body Source Admission
+
+on:
+  pull_request:
+    paths:
+      - 'benchmarks/gauge-rigid-body-admission/v0.1/**'
+      - '.github/workflows/gauge-rigid-body-admission.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'benchmarks/gauge-rigid-body-admission/v0.1/**'
+      - '.github/workflows/gauge-rigid-body-admission.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gauge-rigid-body-source-admission-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.24.0
+      - name: Validate source manifest and fail-closed claims
+        run: |
+          python - <<'PY'
+          import copy
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("benchmarks/gauge-rigid-body-admission/v0.1")
+          schema = json.loads((root / "source_manifest.schema.json").read_text())
+          manifest = json.loads((root / "source_manifest.v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema)
+          errors = list(validator.iter_errors(manifest))
+          if errors:
+              raise SystemExit("; ".join(f"{e.json_path}: {e.message}" for e in errors))
+
+          assert manifest["no_data_imported"] is True
+          sources = {source["source_id"]: source for source in manifest["sources"]}
+          code = sources["gauge-code"]
+          dataset = sources["gauge-dataset"]
+          assert code["revision_full"] == "5a6207c22d1dc0bf321369875963e7fa259bcbfb"
+          assert code["admission_state"] == "not_admitted"
+          assert {item["path"] for item in code["source_files"]} == {"README.md", "LICENSE"}
+          assert code["runner_paths_present"] == []
+          assert dataset["revision_full"] == "f95bb06e7d11142f88ffd3b6b56c7258deb8fff6"
+          assert dataset["revision_observed_short"] == "f95bb06"
+          assert any("only representative bouncing-ball and newton's-cradle" in blocker.lower() for blocker in dataset["blockers"])
+          assert dataset["admission_state"] == "not_admitted"
+          assert dataset["artifact_manifest"] == []
+          assert dataset["license"]["review_status"] == "declared_not_independently_reviewed"
+          assert dataset["data_card_preview"]["viewer_available"] is False
+          assert dataset["data_card_preview"]["preview_is_trial_schema"] is False
+
+          overclaim = copy.deepcopy(manifest)
+          next(source for source in overclaim["sources"] if source["source_id"] == "gauge-dataset")["admission_state"] = "admitted"
+          if not list(validator.iter_errors(overclaim)):
+              raise SystemExit("dataset admission with unresolved evidence unexpectedly validated")
+
+          duplicate_source = copy.deepcopy(manifest)
+          duplicate_source["sources"][1] = copy.deepcopy(code)
+          if not list(validator.iter_errors(duplicate_source)):
+              raise SystemExit("duplicate source identities unexpectedly validated")
+
+          missing_source = copy.deepcopy(manifest)
+          missing_source["sources"] = [code, copy.deepcopy(code)]
+          if not list(validator.iter_errors(missing_source)):
+              raise SystemExit("manifest without a dataset source unexpectedly validated")
+
+          print("Validated pinned code and dataset identities, explicit no-import state, blocked-admission and source-identity negative controls.")
+          PY
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/gauge-rigid-body-admission/v0.1/Cargo.toml -- --check
+      - name: Run admission-gate tests
+        run: cargo test --manifest-path benchmarks/gauge-rigid-body-admission/v0.1/Cargo.toml --locked
+      - name: Run Clippy
+        run: cargo clippy --manifest-path benchmarks/gauge-rigid-body-admission/v0.1/Cargo.toml --all-targets --locked -- -D warnings

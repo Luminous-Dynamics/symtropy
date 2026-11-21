@@ -1,0 +1,410 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/symtropy/gauge-rigid-body-source-admission/v0.1",
+  "title": "GAUGE rigid-body source admission manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "scope",
+    "no_data_imported",
+    "sources"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "GAUGE-RIGID-BODY"
+    },
+    "scope": {
+      "const": "M0_SOURCE_AUDIT_ONLY"
+    },
+    "no_data_imported": {
+      "const": true
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "source_role",
+          "url",
+          "revision_full",
+          "revision_observed_short",
+          "license",
+          "source_files",
+          "artifact_manifest",
+          "qualifications",
+          "admission_state",
+          "blockers",
+          "observed_inventory"
+        ],
+        "properties": {
+          "source_id": {
+            "enum": [
+              "gauge-code",
+              "gauge-dataset"
+            ]
+          },
+          "source_role": {
+            "enum": [
+              "benchmark_runner_source",
+              "physical_measurements_and_assets"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "revision_full": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+          },
+          "revision_observed_short": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{7,39}$"
+          },
+          "license": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "declared_expression",
+              "evidence_url",
+              "review_status"
+            ],
+            "properties": {
+              "declared_expression": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "evidence_url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "review_status": {
+                "enum": [
+                  "reviewed_for_code_only",
+                  "reviewed_for_dataset_scope",
+                  "declared_not_independently_reviewed",
+                  "unknown"
+                ]
+              }
+            }
+          },
+          "source_files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "git_blob_sha1"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "git_blob_sha1": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                }
+              }
+            }
+          },
+          "artifact_manifest": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "sha256"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            }
+          },
+          "qualifications": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "dataset_schema_reviewed",
+              "coordinate_frames_and_units_reviewed",
+              "calibration_uncertainty_reviewed",
+              "repeat_and_split_structure_reviewed",
+              "provenance_and_integrity_reviewed",
+              "data_use_authorized"
+            ],
+            "properties": {
+              "dataset_schema_reviewed": {
+                "type": "boolean"
+              },
+              "coordinate_frames_and_units_reviewed": {
+                "type": "boolean"
+              },
+              "calibration_uncertainty_reviewed": {
+                "type": "boolean"
+              },
+              "repeat_and_split_structure_reviewed": {
+                "type": "boolean"
+              },
+              "provenance_and_integrity_reviewed": {
+                "type": "boolean"
+              },
+              "data_use_authorized": {
+                "type": "boolean"
+              }
+            }
+          },
+          "admission_state": {
+            "enum": [
+              "not_admitted",
+              "admitted"
+            ]
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "observed_inventory": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "data_card_preview": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "required": [
+              "viewer_available",
+              "preview_rows",
+              "preview_is_trial_schema"
+            ],
+            "properties": {
+              "viewer_available": {
+                "type": "boolean"
+              },
+              "preview_rows": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "preview_is_trial_schema": {
+                "type": "boolean"
+              }
+            }
+          },
+          "runner_paths_present": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "contains": {
+            "properties": {
+              "source_id": {
+                "const": "gauge-code"
+              }
+            },
+            "required": [
+              "source_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "source_id": {
+                "const": "gauge-dataset"
+              }
+            },
+            "required": [
+              "source_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "sources": {
+            "contains": {
+              "properties": {
+                "source_id": {
+                  "const": "gauge-dataset"
+                },
+                "admission_state": {
+                  "const": "admitted"
+                }
+              },
+              "required": [
+                "source_id",
+                "admission_state"
+              ]
+            }
+          }
+        },
+        "required": [
+          "sources"
+        ]
+      },
+      "then": {
+        "properties": {
+          "sources": {
+            "contains": {
+              "properties": {
+                "source_id": {
+                  "const": "gauge-dataset"
+                },
+                "revision_full": {
+                  "type": "string",
+                  "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+                },
+                "license": {
+                  "properties": {
+                    "review_status": {
+                      "const": "reviewed_for_dataset_scope"
+                    }
+                  },
+                  "required": [
+                    "review_status"
+                  ]
+                },
+                "artifact_manifest": {
+                  "minItems": 1
+                },
+                "qualifications": {
+                  "properties": {
+                    "dataset_schema_reviewed": {
+                      "const": true
+                    },
+                    "coordinate_frames_and_units_reviewed": {
+                      "const": true
+                    },
+                    "calibration_uncertainty_reviewed": {
+                      "const": true
+                    },
+                    "repeat_and_split_structure_reviewed": {
+                      "const": true
+                    },
+                    "provenance_and_integrity_reviewed": {
+                      "const": true
+                    },
+                    "data_use_authorized": {
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "dataset_schema_reviewed",
+                    "coordinate_frames_and_units_reviewed",
+                    "calibration_uncertainty_reviewed",
+                    "repeat_and_split_structure_reviewed",
+                    "provenance_and_integrity_reviewed",
+                    "data_use_authorized"
+                  ]
+                },
+                "blockers": {
+                  "maxItems": 0
+                }
+              },
+              "required": [
+                "source_id",
+                "revision_full",
+                "license",
+                "artifact_manifest",
+                "qualifications",
+                "blockers"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "sources": {
+            "contains": {
+              "properties": {
+                "source_id": {
+                  "const": "gauge-dataset"
+                },
+                "admission_state": {
+                  "const": "not_admitted"
+                }
+              },
+              "required": [
+                "source_id",
+                "admission_state"
+              ]
+            }
+          }
+        },
+        "required": [
+          "sources"
+        ]
+      },
+      "then": {
+        "properties": {
+          "sources": {
+            "contains": {
+              "properties": {
+                "source_id": {
+                  "const": "gauge-dataset"
+                },
+                "blockers": {
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "source_id",
+                "blockers"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
+}
