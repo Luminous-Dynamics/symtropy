@@ -35,7 +35,20 @@
             "tested_vehicle_configuration_id": "carrier-ref-01-r1",
             "tested_module_configuration_id": "detachable-uav-pod-synthetic",
             "interface_revision": "ICD-001-0.1",
-            "acceptance_criteria_id": "ICD-AC-001"
+            "acceptance_criteria_id": "ICD-AC-001",
+            "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+            "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+            "test_article_module_serial": "SYNTH-MOD-detachable-uav-pod-synthetic",
+            "test_procedure_id": "SYNTH-ICD-TP-VEHICLE-HV",
+            "test_procedure_revision": "SYNTH-REV-A",
+            "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+            "test_completed_at_utc": "2026-11-21T06:00:00Z",
+            "test_result": "inconclusive",
+            "limitations": [
+              "Synthetic fixture record only; not a measurement or qualification receipt."
+            ]
           },
           {
             "evidence_id": "vehicle-hv-integrated-drone-bay-polarity-negative-control",
@@ -45,7 +58,20 @@
             "tested_vehicle_configuration_id": "carrier-ref-01-r1",
             "tested_module_configuration_id": "integrated-drone-bay-polarity-negative-control",
             "interface_revision": "ICD-001-0.1",
-            "acceptance_criteria_id": "ICD-AC-001"
+            "acceptance_criteria_id": "ICD-AC-001",
+            "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+            "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+            "test_article_module_serial": "SYNTH-MOD-integrated-drone-bay-polarity-negative-control",
+            "test_procedure_id": "SYNTH-ICD-TP-VEHICLE-HV",
+            "test_procedure_revision": "SYNTH-REV-A",
+            "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+            "test_completed_at_utc": "2026-11-21T06:00:00Z",
+            "test_result": "inconclusive",
+            "limitations": [
+              "Synthetic fixture record only; not a measurement or qualification receipt."
+            ]
           },
           {
             "evidence_id": "vehicle-hv-mobile-drone-trailer-revision-negative-control",
@@ -55,7 +81,20 @@
             "tested_vehicle_configuration_id": "carrier-ref-01-r1",
             "tested_module_configuration_id": "mobile-drone-trailer-revision-negative-control",
             "interface_revision": "ICD-001-0.1",
-            "acceptance_criteria_id": "ICD-AC-001"
+            "acceptance_criteria_id": "ICD-AC-001",
+            "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+            "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+            "test_article_module_serial": "SYNTH-MOD-mobile-drone-trailer-revision-negative-control",
+            "test_procedure_id": "SYNTH-ICD-TP-VEHICLE-HV",
+            "test_procedure_revision": "SYNTH-REV-A",
+            "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+            "test_completed_at_utc": "2026-11-21T06:00:00Z",
+            "test_result": "inconclusive",
+            "limitations": [
+              "Synthetic fixture record only; not a measurement or qualification receipt."
+            ]
           },
           {
             "evidence_id": "vehicle-hv-amr-handoff-unqualified",
@@ -65,7 +104,20 @@
             "tested_vehicle_configuration_id": "carrier-ref-01-r1",
             "tested_module_configuration_id": "amr-handoff-unqualified",
             "interface_revision": "ICD-001-0.1",
-            "acceptance_criteria_id": "ICD-AC-001"
+            "acceptance_criteria_id": "ICD-AC-001",
+            "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+            "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+            "test_article_module_serial": "SYNTH-MOD-amr-handoff-unqualified",
+            "test_procedure_id": "SYNTH-ICD-TP-VEHICLE-HV",
+            "test_procedure_revision": "SYNTH-REV-A",
+            "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+            "test_completed_at_utc": "2026-11-21T06:00:00Z",
+            "test_result": "inconclusive",
+            "limitations": [
+              "Synthetic fixture record only; not a measurement or qualification receipt."
+            ]
           }
         ]
       },
@@ -93,7 +145,20 @@
             "tested_vehicle_configuration_id": "carrier-ref-01-r1",
             "tested_module_configuration_id": "detachable-uav-pod-synthetic",
             "interface_revision": "ICD-001-0.1",
-            "acceptance_criteria_id": "ICD-AC-001"
+            "acceptance_criteria_id": "ICD-AC-001",
+            "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+            "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+            "test_article_module_serial": "SYNTH-MOD-detachable-uav-pod-synthetic",
+            "test_procedure_id": "SYNTH-ICD-TP-VEHICLE-MOUNT",
+            "test_procedure_revision": "SYNTH-REV-A",
+            "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+            "test_completed_at_utc": "2026-11-21T06:00:00Z",
+            "test_result": "inconclusive",
+            "limitations": [
+              "Synthetic fixture record only; not a measurement or qualification receipt."
+            ]
           },
           {
             "evidence_id": "vehicle-mount-integrated-drone-bay-polarity-negative-control",
@@ -103,7 +168,20 @@
             "tested_vehicle_configuration_id": "carrier-ref-01-r1",
             "tested_module_configuration_id": "integrated-drone-bay-polarity-negative-control",
             "interface_revision": "ICD-001-0.1",
-            "acceptance_criteria_id": "ICD-AC-001"
+            "acceptance_criteria_id": "ICD-AC-001",
+            "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+            "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+            "test_article_module_serial": "SYNTH-MOD-integrated-drone-bay-polarity-negative-control",
+            "test_procedure_id": "SYNTH-ICD-TP-VEHICLE-MOUNT",
+            "test_procedure_revision": "SYNTH-REV-A",
+            "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+            "test_completed_at_utc": "2026-11-21T06:00:00Z",
+            "test_result": "inconclusive",
+            "limitations": [
+              "Synthetic fixture record only; not a measurement or qualification receipt."
+            ]
           },
           {
             "evidence_id": "vehicle-mount-mobile-drone-trailer-revision-negative-control",
@@ -113,7 +191,20 @@
             "tested_vehicle_configuration_id": "carrier-ref-01-r1",
             "tested_module_configuration_id": "mobile-drone-trailer-revision-negative-control",
             "interface_revision": "ICD-001-0.1",
-            "acceptance_criteria_id": "ICD-AC-001"
+            "acceptance_criteria_id": "ICD-AC-001",
+            "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+            "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+            "test_article_module_serial": "SYNTH-MOD-mobile-drone-trailer-revision-negative-control",
+            "test_procedure_id": "SYNTH-ICD-TP-VEHICLE-MOUNT",
+            "test_procedure_revision": "SYNTH-REV-A",
+            "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+            "test_completed_at_utc": "2026-11-21T06:00:00Z",
+            "test_result": "inconclusive",
+            "limitations": [
+              "Synthetic fixture record only; not a measurement or qualification receipt."
+            ]
           },
           {
             "evidence_id": "vehicle-mount-amr-handoff-unqualified",
@@ -123,7 +214,20 @@
             "tested_vehicle_configuration_id": "carrier-ref-01-r1",
             "tested_module_configuration_id": "amr-handoff-unqualified",
             "interface_revision": "ICD-001-0.1",
-            "acceptance_criteria_id": "ICD-AC-001"
+            "acceptance_criteria_id": "ICD-AC-001",
+            "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+            "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+            "test_article_module_serial": "SYNTH-MOD-amr-handoff-unqualified",
+            "test_procedure_id": "SYNTH-ICD-TP-VEHICLE-MOUNT",
+            "test_procedure_revision": "SYNTH-REV-A",
+            "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+            "test_completed_at_utc": "2026-11-21T06:00:00Z",
+            "test_result": "inconclusive",
+            "limitations": [
+              "Synthetic fixture record only; not a measurement or qualification receipt."
+            ]
           }
         ]
       },
@@ -148,7 +252,20 @@
             "tested_vehicle_configuration_id": "carrier-ref-01-r1",
             "tested_module_configuration_id": "detachable-uav-pod-synthetic",
             "interface_revision": "ICD-001-0.1",
-            "acceptance_criteria_id": "ICD-AC-001"
+            "acceptance_criteria_id": "ICD-AC-001",
+            "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+            "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+            "test_article_module_serial": "SYNTH-MOD-detachable-uav-pod-synthetic",
+            "test_procedure_id": "SYNTH-ICD-TP-VEHICLE-DATA",
+            "test_procedure_revision": "SYNTH-REV-A",
+            "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+            "test_completed_at_utc": "2026-11-21T06:00:00Z",
+            "test_result": "inconclusive",
+            "limitations": [
+              "Synthetic fixture record only; not a measurement or qualification receipt."
+            ]
           },
           {
             "evidence_id": "vehicle-data-integrated-drone-bay-polarity-negative-control",
@@ -158,7 +275,20 @@
             "tested_vehicle_configuration_id": "carrier-ref-01-r1",
             "tested_module_configuration_id": "integrated-drone-bay-polarity-negative-control",
             "interface_revision": "ICD-001-0.1",
-            "acceptance_criteria_id": "ICD-AC-001"
+            "acceptance_criteria_id": "ICD-AC-001",
+            "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+            "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+            "test_article_module_serial": "SYNTH-MOD-integrated-drone-bay-polarity-negative-control",
+            "test_procedure_id": "SYNTH-ICD-TP-VEHICLE-DATA",
+            "test_procedure_revision": "SYNTH-REV-A",
+            "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+            "test_completed_at_utc": "2026-11-21T06:00:00Z",
+            "test_result": "inconclusive",
+            "limitations": [
+              "Synthetic fixture record only; not a measurement or qualification receipt."
+            ]
           },
           {
             "evidence_id": "vehicle-data-mobile-drone-trailer-revision-negative-control",
@@ -168,7 +298,20 @@
             "tested_vehicle_configuration_id": "carrier-ref-01-r1",
             "tested_module_configuration_id": "mobile-drone-trailer-revision-negative-control",
             "interface_revision": "ICD-001-0.1",
-            "acceptance_criteria_id": "ICD-AC-001"
+            "acceptance_criteria_id": "ICD-AC-001",
+            "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+            "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+            "test_article_module_serial": "SYNTH-MOD-mobile-drone-trailer-revision-negative-control",
+            "test_procedure_id": "SYNTH-ICD-TP-VEHICLE-DATA",
+            "test_procedure_revision": "SYNTH-REV-A",
+            "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+            "test_completed_at_utc": "2026-11-21T06:00:00Z",
+            "test_result": "inconclusive",
+            "limitations": [
+              "Synthetic fixture record only; not a measurement or qualification receipt."
+            ]
           },
           {
             "evidence_id": "vehicle-data-amr-handoff-unqualified",
@@ -178,7 +321,20 @@
             "tested_vehicle_configuration_id": "carrier-ref-01-r1",
             "tested_module_configuration_id": "amr-handoff-unqualified",
             "interface_revision": "ICD-001-0.1",
-            "acceptance_criteria_id": "ICD-AC-001"
+            "acceptance_criteria_id": "ICD-AC-001",
+            "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+            "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+            "test_article_module_serial": "SYNTH-MOD-amr-handoff-unqualified",
+            "test_procedure_id": "SYNTH-ICD-TP-VEHICLE-DATA",
+            "test_procedure_revision": "SYNTH-REV-A",
+            "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+            "test_completed_at_utc": "2026-11-21T06:00:00Z",
+            "test_result": "inconclusive",
+            "limitations": [
+              "Synthetic fixture record only; not a measurement or qualification receipt."
+            ]
           }
         ]
       }
@@ -221,7 +377,20 @@
               "tested_vehicle_configuration_id": "carrier-ref-01-r1",
               "tested_module_configuration_id": "detachable-uav-pod-synthetic",
               "interface_revision": "ICD-001-0.1",
-              "acceptance_criteria_id": "ICD-AC-001"
+              "acceptance_criteria_id": "ICD-AC-001",
+              "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+              "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+              "test_article_module_serial": "SYNTH-MOD-detachable-uav-pod-synthetic",
+              "test_procedure_id": "SYNTH-ICD-TP-MODULE-HV",
+              "test_procedure_revision": "SYNTH-REV-A",
+              "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+              "test_completed_at_utc": "2026-11-21T06:00:00Z",
+              "test_result": "inconclusive",
+              "limitations": [
+                "Synthetic fixture record only; not a measurement or qualification receipt."
+              ]
             }
           ]
         },
@@ -249,7 +418,20 @@
               "tested_vehicle_configuration_id": "carrier-ref-01-r1",
               "tested_module_configuration_id": "detachable-uav-pod-synthetic",
               "interface_revision": "ICD-001-0.1",
-              "acceptance_criteria_id": "ICD-AC-001"
+              "acceptance_criteria_id": "ICD-AC-001",
+              "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+              "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+              "test_article_module_serial": "SYNTH-MOD-detachable-uav-pod-synthetic",
+              "test_procedure_id": "SYNTH-ICD-TP-MODULE-MOUNT",
+              "test_procedure_revision": "SYNTH-REV-A",
+              "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+              "test_completed_at_utc": "2026-11-21T06:00:00Z",
+              "test_result": "inconclusive",
+              "limitations": [
+                "Synthetic fixture record only; not a measurement or qualification receipt."
+              ]
             }
           ]
         },
@@ -274,7 +456,20 @@
               "tested_vehicle_configuration_id": "carrier-ref-01-r1",
               "tested_module_configuration_id": "detachable-uav-pod-synthetic",
               "interface_revision": "ICD-001-0.1",
-              "acceptance_criteria_id": "ICD-AC-001"
+              "acceptance_criteria_id": "ICD-AC-001",
+              "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+              "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+              "test_article_module_serial": "SYNTH-MOD-detachable-uav-pod-synthetic",
+              "test_procedure_id": "SYNTH-ICD-TP-MODULE-DATA",
+              "test_procedure_revision": "SYNTH-REV-A",
+              "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+              "test_completed_at_utc": "2026-11-21T06:00:00Z",
+              "test_result": "inconclusive",
+              "limitations": [
+                "Synthetic fixture record only; not a measurement or qualification receipt."
+              ]
             }
           ]
         }
@@ -316,7 +511,20 @@
               "tested_vehicle_configuration_id": "carrier-ref-01-r1",
               "tested_module_configuration_id": "integrated-drone-bay-polarity-negative-control",
               "interface_revision": "ICD-001-0.1",
-              "acceptance_criteria_id": "ICD-AC-001"
+              "acceptance_criteria_id": "ICD-AC-001",
+              "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+              "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+              "test_article_module_serial": "SYNTH-MOD-integrated-drone-bay-polarity-negative-control",
+              "test_procedure_id": "SYNTH-ICD-TP-MODULE-HV",
+              "test_procedure_revision": "SYNTH-REV-A",
+              "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+              "test_completed_at_utc": "2026-11-21T06:00:00Z",
+              "test_result": "inconclusive",
+              "limitations": [
+                "Synthetic fixture record only; not a measurement or qualification receipt."
+              ]
             }
           ]
         },
@@ -344,7 +552,20 @@
               "tested_vehicle_configuration_id": "carrier-ref-01-r1",
               "tested_module_configuration_id": "integrated-drone-bay-polarity-negative-control",
               "interface_revision": "ICD-001-0.1",
-              "acceptance_criteria_id": "ICD-AC-001"
+              "acceptance_criteria_id": "ICD-AC-001",
+              "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+              "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+              "test_article_module_serial": "SYNTH-MOD-integrated-drone-bay-polarity-negative-control",
+              "test_procedure_id": "SYNTH-ICD-TP-MODULE-MOUNT",
+              "test_procedure_revision": "SYNTH-REV-A",
+              "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+              "test_completed_at_utc": "2026-11-21T06:00:00Z",
+              "test_result": "inconclusive",
+              "limitations": [
+                "Synthetic fixture record only; not a measurement or qualification receipt."
+              ]
             }
           ]
         },
@@ -369,7 +590,20 @@
               "tested_vehicle_configuration_id": "carrier-ref-01-r1",
               "tested_module_configuration_id": "integrated-drone-bay-polarity-negative-control",
               "interface_revision": "ICD-001-0.1",
-              "acceptance_criteria_id": "ICD-AC-001"
+              "acceptance_criteria_id": "ICD-AC-001",
+              "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+              "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+              "test_article_module_serial": "SYNTH-MOD-integrated-drone-bay-polarity-negative-control",
+              "test_procedure_id": "SYNTH-ICD-TP-MODULE-DATA",
+              "test_procedure_revision": "SYNTH-REV-A",
+              "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+              "test_completed_at_utc": "2026-11-21T06:00:00Z",
+              "test_result": "inconclusive",
+              "limitations": [
+                "Synthetic fixture record only; not a measurement or qualification receipt."
+              ]
             }
           ]
         }
@@ -411,7 +645,20 @@
               "tested_vehicle_configuration_id": "carrier-ref-01-r1",
               "tested_module_configuration_id": "mobile-drone-trailer-revision-negative-control",
               "interface_revision": "ICD-001-0.1",
-              "acceptance_criteria_id": "ICD-AC-001"
+              "acceptance_criteria_id": "ICD-AC-001",
+              "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+              "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+              "test_article_module_serial": "SYNTH-MOD-mobile-drone-trailer-revision-negative-control",
+              "test_procedure_id": "SYNTH-ICD-TP-MODULE-HV",
+              "test_procedure_revision": "SYNTH-REV-A",
+              "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+              "test_completed_at_utc": "2026-11-21T06:00:00Z",
+              "test_result": "inconclusive",
+              "limitations": [
+                "Synthetic fixture record only; not a measurement or qualification receipt."
+              ]
             }
           ]
         },
@@ -439,7 +686,20 @@
               "tested_vehicle_configuration_id": "carrier-ref-01-r1",
               "tested_module_configuration_id": "mobile-drone-trailer-revision-negative-control",
               "interface_revision": "ICD-001-0.1",
-              "acceptance_criteria_id": "ICD-AC-001"
+              "acceptance_criteria_id": "ICD-AC-001",
+              "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+              "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+              "test_article_module_serial": "SYNTH-MOD-mobile-drone-trailer-revision-negative-control",
+              "test_procedure_id": "SYNTH-ICD-TP-MODULE-MOUNT",
+              "test_procedure_revision": "SYNTH-REV-A",
+              "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+              "test_completed_at_utc": "2026-11-21T06:00:00Z",
+              "test_result": "inconclusive",
+              "limitations": [
+                "Synthetic fixture record only; not a measurement or qualification receipt."
+              ]
             }
           ]
         },
@@ -464,7 +724,20 @@
               "tested_vehicle_configuration_id": "carrier-ref-01-r1",
               "tested_module_configuration_id": "mobile-drone-trailer-revision-negative-control",
               "interface_revision": "ICD-001-0.1",
-              "acceptance_criteria_id": "ICD-AC-001"
+              "acceptance_criteria_id": "ICD-AC-001",
+              "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+              "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+              "test_article_module_serial": "SYNTH-MOD-mobile-drone-trailer-revision-negative-control",
+              "test_procedure_id": "SYNTH-ICD-TP-MODULE-DATA",
+              "test_procedure_revision": "SYNTH-REV-A",
+              "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+              "test_completed_at_utc": "2026-11-21T06:00:00Z",
+              "test_result": "inconclusive",
+              "limitations": [
+                "Synthetic fixture record only; not a measurement or qualification receipt."
+              ]
             }
           ]
         }
@@ -506,7 +779,20 @@
               "tested_vehicle_configuration_id": "carrier-ref-01-r1",
               "tested_module_configuration_id": "amr-handoff-unqualified",
               "interface_revision": "ICD-001-0.1",
-              "acceptance_criteria_id": "ICD-AC-001"
+              "acceptance_criteria_id": "ICD-AC-001",
+              "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+              "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+              "test_article_module_serial": "SYNTH-MOD-amr-handoff-unqualified",
+              "test_procedure_id": "SYNTH-ICD-TP-MODULE-HV",
+              "test_procedure_revision": "SYNTH-REV-A",
+              "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+              "test_completed_at_utc": "2026-11-21T06:00:00Z",
+              "test_result": "inconclusive",
+              "limitations": [
+                "Synthetic fixture record only; not a measurement or qualification receipt."
+              ]
             }
           ]
         },
@@ -534,7 +820,20 @@
               "tested_vehicle_configuration_id": "carrier-ref-01-r1",
               "tested_module_configuration_id": "amr-handoff-unqualified",
               "interface_revision": "ICD-001-0.1",
-              "acceptance_criteria_id": "ICD-AC-001"
+              "acceptance_criteria_id": "ICD-AC-001",
+              "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+              "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+              "test_article_module_serial": "SYNTH-MOD-amr-handoff-unqualified",
+              "test_procedure_id": "SYNTH-ICD-TP-MODULE-MOUNT",
+              "test_procedure_revision": "SYNTH-REV-A",
+              "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+              "test_completed_at_utc": "2026-11-21T06:00:00Z",
+              "test_result": "inconclusive",
+              "limitations": [
+                "Synthetic fixture record only; not a measurement or qualification receipt."
+              ]
             }
           ]
         },
@@ -559,7 +858,20 @@
               "tested_vehicle_configuration_id": "carrier-ref-01-r1",
               "tested_module_configuration_id": "amr-handoff-unqualified",
               "interface_revision": "ICD-001-0.1",
-              "acceptance_criteria_id": "ICD-AC-001"
+              "acceptance_criteria_id": "ICD-AC-001",
+              "issuer_id": "synthetic://issuer/EV-CARRIER-ICD-001",
+              "measurement_dataset_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "calibration_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "test_article_vehicle_serial": "SYNTH-VEH-carrier-ref-01-r1",
+              "test_article_module_serial": "SYNTH-MOD-amr-handoff-unqualified",
+              "test_procedure_id": "SYNTH-ICD-TP-MODULE-DATA",
+              "test_procedure_revision": "SYNTH-REV-A",
+              "uncertainty_budget_reference": "synthetic://uncertainty/EV-CARRIER-ICD-001",
+              "test_completed_at_utc": "2026-11-21T06:00:00Z",
+              "test_result": "inconclusive",
+              "limitations": [
+                "Synthetic fixture record only; not a measurement or qualification receipt."
+              ]
             }
           ]
         }
