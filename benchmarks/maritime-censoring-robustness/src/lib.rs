@@ -144,7 +144,7 @@ pub struct IncidenceBounds {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Qualification {
-    CalibratableUnderDeclaredMechanism,
+    IdentifiableUnderDeclaredMechanism,
     SensitivityRequiredNotIdentified,
     NotEvaluable,
 }
@@ -152,7 +152,7 @@ pub enum Qualification {
 impl Qualification {
     pub fn label(self) -> &'static str {
         match self {
-            Self::CalibratableUnderDeclaredMechanism => "CALIBRATABLE_UNDER_DECLARED_MECHANISM",
+            Self::IdentifiableUnderDeclaredMechanism => "IDENTIFIABLE_UNDER_DECLARED_MECHANISM",
             Self::SensitivityRequiredNotIdentified => "SENSITIVITY_REQUIRED_NOT_IDENTIFIED",
             Self::NotEvaluable => "NOT_EVALUABLE",
         }
@@ -586,7 +586,7 @@ fn evaluate_scenario(scenario: ScenarioKind) -> ScenarioReport {
     let qualification = match scenario {
         ScenarioKind::IndependentAdministrative
         | ScenarioKind::MeasuredStratumDependent => {
-            Qualification::CalibratableUnderDeclaredMechanism
+            Qualification::IdentifiableUnderDeclaredMechanism
         }
         ScenarioKind::OutcomeDependentReportingLag => {
             Qualification::SensitivityRequiredNotIdentified
@@ -684,7 +684,7 @@ mod tests {
         );
         assert_eq!(
             independent.qualification,
-            Qualification::CalibratableUnderDeclaredMechanism
+            Qualification::IdentifiableUnderDeclaredMechanism
         );
     }
 
