@@ -889,6 +889,126 @@ mod tests {
     }
 
     #[test]
+    fn event_scorecard_matches_truth_inside_the_inferred_interval() {
+        let fixes = [
+            fix(0, "m0", Zone::Approach, 5_000),
+            fix(1, "m1", Zone::Berth, 100),
+            fix(2, "m2", Zone::Berth, 100),
+            fix(3, "m3", Zone::Berth, 100),
+            fix(4, "m4", Zone::Berth, 100),
+        ];
+        let report = evaluate_from_baselined_outside(&fixes, &default_profile());
+        let truth = [GroundTruthEvent {
+            call_reference_id: "SYNTH_CALL_001".to_string(),
+            kind: ScoredEventKind::BerthEntry,
+            event_tick: 2,
+        }];
+        let predictions = predictions_from_report(&report);
+        let score = score_events(&truth, &predictions, 0).expect("scorecard");
+
+        assert_eq!(score.overall.true_positive, 1);
+        assert_eq!(score.overall.false_positive, 0);
+        assert_eq!(score.overall.false_negative, 0);
+        assert_eq!(score.overall.precision, Some(1.0));
+        assert_eq!(score.overall.recall, Some(1.0));
+        assert_eq!(score.overall.mean_interval_distance_ticks, Some(0.0));
+        assert_eq!(score.overall.total_matched_interval_width_ticks, 3);
+    }
+
+    #[test]
+    fn event_scorecard_penalizes_duplicate_predictions_one_to_one() {
+        let truth = [GroundTruthEvent {
+            call_reference_id: "CALL_A".to_string(),
+            kind: ScoredEventKind::BerthEntry,
+            event_tick: 10,
+        }];
+        let prediction = ScoredPrediction {
+            call_reference_id: "CALL_A".to_string(),
+            kind: ScoredEventKind::BerthEntry,
+            lower_tick: 9,
+            upper_tick: 11,
+        };
+        let score = score_events(&truth, &[prediction.clone(), prediction], 0)
+            .expect("scorecard");
+
+        assert_eq!(score.overall.true_positive, 1);
+        assert_eq!(score.overall.false_positive, 1);
+        assert_eq!(score.overall.false_negative, 0);
+        assert_eq!(score.overall.precision, Some(0.5));
+        assert_eq!(score.overall.recall, Some(1.0));
+    }
+
+    #[test]
+    fn event_scorecard_separates_missed_events_from_false_transitions() {
+        let truth = [GroundTruthEvent {
+            call_reference_id: "CALL_A".to_string(),
+            kind: ScoredEventKind::BerthEntry,
+            event_tick: 10,
+        }];
+        let prediction = ScoredPrediction {
+            call_reference_id: "CALL_B".to_string(),
+            kind: ScoredEventKind::PortExit,
+            lower_tick: 10,
+            upper_tick: 10,
+        };
+        let score = score_events(&truth, &[prediction], 0).expect("scorecard");
+
+        let berth = score.by_kind.get(&ScoredEventKind::BerthEntry).expect("berth metric");
+        let exit = score.by_kind.get(&ScoredEventKind::PortExit).expect("exit metric");
+        assert_eq!(berth.false_negative, 1);
+        assert_eq!(berth.recall, Some(0.0));
+        assert_eq!(exit.false_positive, 1);
+        assert_eq!(exit.precision, Some(0.0));
+    }
+
+    #[test]
+    fn event_scorecard_enforces_call_and_event_identity_and_tolerance() {
+        let truth = [GroundTruthEvent {
+            call_reference_id: "CALL_A".to_string(),
+            kind: ScoredEventKind::BerthEntry,
+            event_tick: 10,
+        }];
+        let too_late = ScoredPrediction {
+            call_reference_id: "CALL_A".to_string(),
+            kind: ScoredEventKind::BerthEntry,
+            lower_tick: 12,
+            upper_tick: 13,
+        };
+        let score = score_events(&truth, &[too_late], 1).expect("scorecard");
+        assert_eq!(score.overall.true_positive, 0);
+        assert_eq!(score.overall.false_positive, 1);
+        assert_eq!(score.overall.false_negative, 1);
+    }
+
+    #[test]
+    fn event_scorecard_rejects_invalid_prediction_interval() {
+        let prediction = ScoredPrediction {
+            call_reference_id: "CALL_A".to_string(),
+            kind: ScoredEventKind::BerthEntry,
+            lower_tick: 12,
+            upper_tick: 11,
+        };
+        assert!(
+            score_events(&[], &[prediction], 0)
+                .unwrap_err()
+                .contains("lower bound exceeds upper bound")
+        );
+    }
+
+    #[test]
+    fn call_reference_identity_cannot_change_within_trajectory() {
+        let first = fix(0, "m0", Zone::Outside, 0);
+        let mut second = fix(1, "m1", Zone::Outside, 0);
+        second.call_reference_id = "SYNTH_CALL_002".to_string();
+        let error = evaluate_from_baselined_outside(
+            &[first, second],
+            &default_profile(),
+        )
+        .expect_err("call reference change must reject");
+        assert!(error.contains("call reference ID changed"));
+    }
+
+    #[test]
     fn stable_berth_zone_entry_has_an_interval_and_confirmation_time() {
         let fixes = [
             fix(0, "m0", Zone::Approach, 5_000),
