@@ -657,12 +657,10 @@ mod tests {
 
     #[test]
     fn exposure_sizing_rejects_excessive_failure_count() {
-        assert!(minimum_exposure_hours_for_maximum_failures(
-            MAX_FAILURE_EVENTS + 1,
-            100.0,
-            0.90
-        )
-        .is_err());
+        assert!(
+            minimum_exposure_hours_for_maximum_failures(MAX_FAILURE_EVENTS + 1, 100.0, 0.90)
+                .is_err()
+        );
     }
 
     #[test]
