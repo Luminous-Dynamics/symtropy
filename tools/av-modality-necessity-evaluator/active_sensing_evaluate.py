@@ -185,10 +185,12 @@ def evaluate(
                 raise EvaluationError(f"{episode_id}: duplicate initial observation reference")
             admitted[ref] = (tick, observation.get("source_dependency_group"))
         for action, outcome, _ in requested_outcomes:
-            if outcome.get("status") == "delivered":
+            if outcome.get("observation_ref") is not None:
                 ref = outcome["observation_ref"]
                 if ref in admitted:
                     raise EvaluationError(f"{episode_id}: action outcome reuses an existing observation ref")
+                # A late result has an identity and an arrival time, but is not
+                # eligible before its arrival or after the task deadline.
                 admitted[ref] = (outcome["arrival_tick"], outcome.get("source_dependency_group"))
 
         citations = prediction.get("cited_observation_refs")
@@ -270,6 +272,7 @@ def evaluate(
             "answer_correct": bool(answer_correct),
             "decision_correct": bool(decision_correct),
             "action_policy_correct": bool(action_policy_correct),
+            "answered": decision == "answer",
             "response_tick": response_tick,
             "decision_regret": regret,
             "acquisition_count": action_count,
@@ -314,7 +317,7 @@ def evaluate(
             "episode_count": count,
             "answer_accuracy": answer_correct_count / count if count else None,
             "safe_decision_accuracy": decision_correct_count / count if count else None,
-            "coverage": sum(row["answer_correct"] or row["decision_correct"] for row in results) / count if count else None,
+            "coverage": sum(row["answered"] for row in results) / count if count else None,
             "decision_regret_total": regret_total,
             "acquisition_count": total_acquisitions,
             "wasted_acquisition_count": total_wasted,
