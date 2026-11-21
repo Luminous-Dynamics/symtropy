@@ -5,7 +5,7 @@
 //! Adapters must preserve epistemic status, units, frames and uncertainty
 //! semantics rather than silently inventing unavailable values.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 
@@ -470,10 +470,10 @@ impl ContactObservation {
                 "contact classification must use unit '1'",
             ));
         }
-        if self.metadata.frame_id.as_deref().is_some_and(|frame| frame != world_frame) {
+        if self.metadata.frame_id.as_deref() != Some(world_frame) {
             return Err(ValidationError::new(
                 path,
-                "contact classification frame must match the world frame",
+                "contact classification must explicitly identify the world frame",
             ));
         }
         let partners = self.partner_entity_ids.iter().collect::<BTreeSet<_>>();
@@ -737,13 +737,46 @@ pub fn validate_snapshot_sequence(
             "sequence must contain at least one snapshot",
         ));
     }
+    let mut snapshot_digests = BTreeSet::new();
+    let mut last_generation_by_entity = BTreeMap::<String, u64>::new();
+    let mut previously_present = BTreeSet::<String>::new();
+
     for (index, snapshot) in snapshots.iter().enumerate() {
         snapshot.validate()?;
+        let current = &snapshot.identity;
+        if !snapshot_digests.insert(current.snapshot_sha256.as_str()) {
+            return Err(ValidationError::new(
+                format!("snapshots[{index}].identity.snapshot_sha256"),
+                "snapshot digest must be unique within a trajectory",
+            ));
+        }
+
+        let mut currently_present = BTreeSet::new();
+        for entity in &snapshot.entities {
+            if let Some(previous_generation) = last_generation_by_entity.get(&entity.entity_id) {
+                if previously_present.contains(&entity.entity_id) {
+                    if entity.generation != *previous_generation {
+                        return Err(ValidationError::new(
+                            format!("snapshots[{index}].entities"),
+                            "an entity generation cannot change while the entity remains present",
+                        ));
+                    }
+                } else if entity.generation <= *previous_generation {
+                    return Err(ValidationError::new(
+                        format!("snapshots[{index}].entities"),
+                        "a reappearing entity ID must increment its generation",
+                    ));
+                }
+            }
+            last_generation_by_entity.insert(entity.entity_id.clone(), entity.generation);
+            currently_present.insert(entity.entity_id.clone());
+        }
+        previously_present = currently_present;
+
         if index == 0 {
             continue;
         }
         let previous = &snapshots[index - 1].identity;
-        let current = &snapshot.identity;
         if current.trajectory_id != previous.trajectory_id
             || current.episode_id != previous.episode_id
             || current.world_id != previous.world_id
@@ -1364,6 +1397,37 @@ mod tests {
         assert!(validate_snapshot_sequence(&[first.clone(), second]).is_ok());
         let out_of_order = valid_snapshot(1, 0);
         assert!(validate_snapshot_sequence(&[first, out_of_order]).is_err());
+    }
+
+    #[test]
+    fn reappearing_entity_id_requires_a_new_generation() {
+        let first = valid_snapshot(0, 0);
+        let mut middle = valid_snapshot(1, 1_000_000);
+        middle.entities[0].entity_id = "other-body".to_owned();
+        middle.entities[0].pose.child_frame_id = "other-body/frame".to_owned();
+
+        let mut reappeared_old_generation = valid_snapshot(2, 2_000_000);
+        assert!(
+            validate_snapshot_sequence(&[
+                first.clone(),
+                middle.clone(),
+                reappeared_old_generation.clone()
+            ])
+            .is_err()
+        );
+
+        reappeared_old_generation.entities[0].generation = 1;
+        assert!(
+            validate_snapshot_sequence(&[first, middle, reappeared_old_generation]).is_ok()
+        );
+    }
+
+    #[test]
+    fn snapshot_sequences_reject_duplicate_snapshot_digests() {
+        let first = valid_snapshot(0, 0);
+        let mut second = valid_snapshot(1, 1_000_000);
+        second.identity.snapshot_sha256 = first.identity.snapshot_sha256.clone();
+        assert!(validate_snapshot_sequence(&[first, second]).is_err());
     }
 
     #[test]
