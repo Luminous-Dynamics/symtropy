@@ -26,6 +26,12 @@ fn len_at(value: &Value, path: &[&str]) -> Option<usize> {
     at(value, path)?.as_array().map(Vec::len)
 }
 
+fn row_matches(row: &Value, expected: &[(&str, f64)]) -> bool {
+    expected
+        .iter()
+        .all(|(field, value)| number_at(row, &[*field]) == Some(*value))
+}
+
 fn contains_any(value: &Value, path: &[&str], needle: &str) -> bool {
     match at(value, path) {
         Some(Value::String(text)) => text.contains(needle),
@@ -167,6 +173,39 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
             contains_any(record, &["provenance", "limitations"], "Do not count repeated figure data as independent samples"),
             "USUELLI_DUPLICATION_BOUNDARY",
             "repeated figures must not be counted as independent observations",
+        );
+        let figure3 = at(record, &["extracted_figure_data", "figure3_ignition_voltage", "rows"])
+            .and_then(Value::as_array);
+        let figure4 = at(record, &["extracted_figure_data", "figure4_breakdown_voltage", "rows"])
+            .and_then(Value::as_array);
+        let figure5 = at(record, &["extracted_figure_data", "figure5_ignition_to_breakdown_voltage_delta", "rows"])
+            .and_then(Value::as_array);
+        let figure12_ta = at(record, &["extracted_figure_data", "figure12_altitude_projection", "thrust_density_variation"])
+            .and_then(Value::as_array);
+        let figure12_tp = at(record, &["extracted_figure_data", "figure12_altitude_projection", "thrust_to_power_variation"])
+            .and_then(Value::as_array);
+
+        let source_points_match = figure3.is_some_and(|rows| {
+            row_matches(&rows[0], &[("gap_mm", 20.0), ("pressure_pa", 100.0), ("ignition_voltage_kv", 7.29)])
+                && row_matches(&rows[44], &[("gap_mm", 60.0), ("pressure_pa", 20.0), ("ignition_voltage_kv", 5.12)])
+        }) && figure4.is_some_and(|rows| {
+            row_matches(&rows[0], &[("pressure_gap_pa_m", 400.0), ("breakdown_voltage_kv", 7.5395)])
+                && row_matches(&rows[29], &[("pressure_gap_pa_m", 3500.0), ("breakdown_voltage_kv", 24.7899)])
+        }) && figure5.is_some_and(|rows| {
+            row_matches(&rows[0], &[("gap_mm", 20.0), ("pressure_pa", 20000.0), ("delta_voltage_kv", 4.5195)])
+                && row_matches(&rows[28], &[("gap_mm", 50.0), ("pressure_pa", 70000.0), ("delta_voltage_kv", 16.6149)])
+        }) && figure12_ta.is_some_and(|rows| {
+            row_matches(&rows[0], &[("altitude_km", 0.11090105), ("percentage_variation", 0.0)])
+                && row_matches(&rows[16], &[("altitude_km", 11.7763701), ("percentage_variation", -80.33792326)])
+        }) && figure12_tp.is_some_and(|rows| {
+            row_matches(&rows[0], &[("altitude_km", 0.11090105), ("percentage_variation", 0.0)])
+                && row_matches(&rows[16], &[("altitude_km", 11.7763701), ("percentage_variation", -78.04621025)])
+        });
+        push_if_missing(
+            &mut findings,
+            source_points_match,
+            "USUELLI_SOURCE_POINTS",
+            "source-pinned first/last points no longer match the Zenodo raw text assets",
         );
     }
 
@@ -419,6 +458,14 @@ mod tests {
         value["source_records"][1]["extracted_figure_data"]["figure3_ignition_voltage"]["rows"]
             .as_array_mut().unwrap().pop();
         assert!(has_code(&audit_atlas(&value), "USUELLI_ROW_COUNT"));
+    }
+
+    #[test]
+    fn source_figure_endpoints_match_known_answers() {
+        let mut value = atlas();
+        value["source_records"][1]["extracted_figure_data"]["figure3_ignition_voltage"]["rows"][0]["ignition_voltage_kv"] =
+            Value::from(7.31);
+        assert!(has_code(&audit_atlas(&value), "USUELLI_SOURCE_POINTS"));
     }
 
     #[test]
