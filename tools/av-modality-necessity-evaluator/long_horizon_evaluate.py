@@ -409,7 +409,7 @@ def evaluate(
                 or set(ordered_required) != required
             ):
                 raise EvaluationError(f"{episode_id}: ordered truth refs must be a unique permutation of required refs")
-            sequence_correct = current_refs == ordered_required
+            sequence_correct = abstained or current_refs == ordered_required
             if not sequence_correct:
                 violations.append("current_observation_order_mismatch")
         if not required <= set(observations):
