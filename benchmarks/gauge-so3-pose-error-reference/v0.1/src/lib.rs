@@ -71,12 +71,7 @@ impl UnitQuaternionWxyz {
     fn from_components(components: [f64; 4], order: QuaternionOrder) -> Result<Self, PoseError> {
         let [w, x, y, z] = match order {
             QuaternionOrder::Wxyz => components,
-            QuaternionOrder::Xyzw => [
-                components[3],
-                components[0],
-                components[1],
-                components[2],
-            ],
+            QuaternionOrder::Xyzw => [components[3], components[0], components[1], components[2]],
         };
 
         if ![w, x, y, z].iter().all(|value| value.is_finite()) {
@@ -84,7 +79,10 @@ impl UnitQuaternionWxyz {
         }
 
         let norm = (w * w + x * x + y * y + z * z).sqrt();
-        if !norm.is_finite() || norm <= f64::EPSILON || (norm - 1.0).abs() > UNIT_QUATERNION_TOLERANCE {
+        if !norm.is_finite()
+            || norm <= f64::EPSILON
+            || (norm - 1.0).abs() > UNIT_QUATERNION_TOLERANCE
+        {
             return Err(PoseError::InvalidQuaternion);
         }
 
@@ -114,6 +112,7 @@ impl UnitQuaternionWxyz {
         }
     }
 
+    #[cfg(test)]
     fn rotate_vector(self, vector: [f64; 3]) -> [f64; 3] {
         let pure = Self {
             w: 0.0,
@@ -240,11 +239,7 @@ mod tests {
         }
     }
 
-    fn pose(
-        translation: [f64; 3],
-        rotation: [f64; 4],
-        order: QuaternionOrder,
-    ) -> RigidPose {
+    fn pose(translation: [f64; 3], rotation: [f64; 4], order: QuaternionOrder) -> RigidPose {
         RigidPose::try_new(translation, rotation, frame("world", "body", order))
             .expect("valid test pose")
     }
@@ -258,7 +253,11 @@ mod tests {
 
     #[test]
     fn identical_poses_have_zero_discrepancy() {
-        let real = pose([1.0, -2.0, 3.0], [1.0, 0.0, 0.0, 0.0], QuaternionOrder::Wxyz);
+        let real = pose(
+            [1.0, -2.0, 3.0],
+            [1.0, 0.0, 0.0, 0.0],
+            QuaternionOrder::Wxyz,
+        );
         let simulated = real.clone();
         let difference = compare_poses(&real, &simulated).expect("same frames");
         close(difference.translation_error_m, 0.0, 0.0);
@@ -275,8 +274,16 @@ mod tests {
 
     #[test]
     fn xyzw_storage_maps_to_the_same_canonical_rotation() {
-        let real = pose([0.0; 3], [SQRT_2 / 2.0, 0.0, 0.0, SQRT_2 / 2.0], QuaternionOrder::Wxyz);
-        let simulated = pose([0.0; 3], [0.0, 0.0, SQRT_2 / 2.0, SQRT_2 / 2.0], QuaternionOrder::Xyzw);
+        let real = pose(
+            [0.0; 3],
+            [SQRT_2 / 2.0, 0.0, 0.0, SQRT_2 / 2.0],
+            QuaternionOrder::Wxyz,
+        );
+        let simulated = pose(
+            [0.0; 3],
+            [0.0, 0.0, SQRT_2 / 2.0, SQRT_2 / 2.0],
+            QuaternionOrder::Xyzw,
+        );
         let difference = compare_poses(&real, &simulated).expect("same frames");
         close(difference.rotation_error_rad, 0.0, 1.0e-12);
     }
@@ -325,7 +332,10 @@ mod tests {
         other_frame.world_frame_id = "another_world".to_owned();
         let simulated = RigidPose::try_new([0.0; 3], [1.0, 0.0, 0.0, 0.0], other_frame)
             .expect("valid but different frame");
-        assert_eq!(compare_poses(&real, &simulated), Err(PoseError::FrameMismatch));
+        assert_eq!(
+            compare_poses(&real, &simulated),
+            Err(PoseError::FrameMismatch)
+        );
     }
 
     #[test]
@@ -364,8 +374,16 @@ mod tests {
 
     #[test]
     fn common_world_rigid_transform_preserves_pose_difference() {
-        let real = pose([0.3, -0.2, 1.1], [0.8, 0.2, -0.4, 0.4], QuaternionOrder::Wxyz);
-        let simulated = pose([0.4, -0.1, 1.0], [0.7, 0.1, -0.5, 0.5], QuaternionOrder::Wxyz);
+        let real = pose(
+            [0.3, -0.2, 1.1],
+            [0.8, 0.2, -0.4, 0.4],
+            QuaternionOrder::Wxyz,
+        );
+        let simulated = pose(
+            [0.4, -0.1, 1.0],
+            [0.7, 0.1, -0.5, 0.5],
+            QuaternionOrder::Wxyz,
+        );
         let original = compare_poses(&real, &simulated).expect("same frames");
 
         let global_half = (0.63_f64 / 2.0).cos();
@@ -388,7 +406,11 @@ mod tests {
             RigidPose::try_new(
                 translation,
                 [rotation.w, rotation.x, rotation.y, rotation.z],
-                frame("world_after_common_transform", "body", QuaternionOrder::Wxyz),
+                frame(
+                    "world_after_common_transform",
+                    "body",
+                    QuaternionOrder::Wxyz,
+                ),
             )
             .expect("transformed pose")
         };
@@ -398,8 +420,16 @@ mod tests {
         let transformed = compare_poses(&transformed_real, &transformed_simulated)
             .expect("transformed frames match");
 
-        close(transformed.translation_error_m, original.translation_error_m, 1.0e-12);
-        close(transformed.rotation_error_rad, original.rotation_error_rad, 1.0e-12);
+        close(
+            transformed.translation_error_m,
+            original.translation_error_m,
+            1.0e-12,
+        );
+        close(
+            transformed.rotation_error_rad,
+            original.rotation_error_rad,
+            1.0e-12,
+        );
     }
 
     #[test]
