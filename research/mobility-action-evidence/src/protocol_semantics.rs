@@ -263,7 +263,8 @@ mod tests {
             manifest_digest: digest(2),
             evaluator_digest: digest(3),
             candidate_source_commit: "0123456789abcdef0123456789abcdef01234567".into(),
-            candidate_artifact_digest: digest(4), candidate_runtime_digest: digest(5),
+            candidate_artifact_digest: digest(4),
+            candidate_runtime_digest: digest(5),
             scenario_set_digest: digest(6),
             expected_evaluator_identity: "evaluator-v1".into(),
             expected_evaluator_receipt_digest: digest(7),
@@ -278,7 +279,8 @@ mod tests {
             manifest_digest: digest(2),
             evaluator_digest: digest(3),
             candidate_source_commit: "0123456789abcdef0123456789abcdef01234567".into(),
-            candidate_artifact_digest: digest(4), candidate_runtime_digest: digest(5),
+            candidate_artifact_digest: digest(4),
+            candidate_runtime_digest: digest(5),
             scenario_set_digest: digest(6),
             episode_receipts: vec![
                 EpisodeReceipt {
@@ -378,7 +380,10 @@ mod tests {
     fn incomplete_or_safety_stopped_run_cannot_be_promoted_to_complete() {
         let mut run = receipt();
         run.episode_receipts[1].status = EpisodeStatus::Incomplete;
-        assert_eq!(validate_run_receipt(&expected(), &run), Err(RunReceiptError::CompleteRunContainsNonCompletedEpisode));
+        assert_eq!(
+            validate_run_receipt(&expected(), &run),
+            Err(RunReceiptError::CompleteRunContainsNonCompletedEpisode)
+        );
         run.run_status = RunStatus::Incomplete;
         assert!(
             !validate_run_receipt(&expected(), &run)
