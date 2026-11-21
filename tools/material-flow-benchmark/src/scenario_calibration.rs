@@ -178,10 +178,15 @@ fn round_six(value: f64) -> f64 {
 
 fn canonical_digest(corpus: &ScenarioCalibrationCorpus) -> Result<String, String> {
     let mut canonical = corpus.clone();
-    canonical.outcomes.sort_by(|left, right| left.outcome_id.cmp(&right.outcome_id));
-    canonical.forecasts.sort_by(|left, right| left.forecast_id.cmp(&right.forecast_id));
+    canonical
+        .outcomes
+        .sort_by(|left, right| left.outcome_id.cmp(&right.outcome_id));
+    canonical
+        .forecasts
+        .sort_by(|left, right| left.forecast_id.cmp(&right.forecast_id));
     for forecast in &mut canonical.forecasts {
-        forecast.outcome_probabilities
+        forecast
+            .outcome_probabilities
             .sort_by(|left, right| left.outcome_id.cmp(&right.outcome_id));
     }
     let encoded = serde_json::to_vec(&canonical)
@@ -207,8 +212,14 @@ fn validate_corpus(corpus: &ScenarioCalibrationCorpus) -> Result<(), Vec<String>
         ("geography", corpus.geography.as_str()),
         ("target_definition", corpus.target_definition.as_str()),
         ("forecast_model_id", corpus.forecast_model_id.as_str()),
-        ("forecast_model_version", corpus.forecast_model_version.as_str()),
-        ("probability_evidence_reference", corpus.probability_evidence_reference.as_str()),
+        (
+            "forecast_model_version",
+            corpus.forecast_model_version.as_str(),
+        ),
+        (
+            "probability_evidence_reference",
+            corpus.probability_evidence_reference.as_str(),
+        ),
     ] {
         if value.trim().is_empty() {
             errors.push(format!("{name}: must be non-empty"));
@@ -233,7 +244,11 @@ fn validate_corpus(corpus: &ScenarioCalibrationCorpus) -> Result<(), Vec<String>
             "outcomes: expected 2..={MAX_CALIBRATION_OUTCOMES} outcome classes"
         ));
     }
-    if !corpus.outcomes.iter().any(|outcome| outcome.outcome_id == "other") {
+    if !corpus
+        .outcomes
+        .iter()
+        .any(|outcome| outcome.outcome_id == "other")
+    {
         errors.push("outcomes: explicit 'other' class is required to expose support misses".into());
     }
     if corpus.forecasts.is_empty() || corpus.forecasts.len() > MAX_CALIBRATION_FORECASTS {
@@ -245,10 +260,11 @@ fn validate_corpus(corpus: &ScenarioCalibrationCorpus) -> Result<(), Vec<String>
     let mut outcome_ids = BTreeSet::new();
     let mut baseline_sum_bps = 0_u32;
     for (index, outcome) in corpus.outcomes.iter().enumerate() {
-        if outcome.outcome_id.trim().is_empty()
-            || !outcome_ids.insert(outcome.outcome_id.as_str())
+        if outcome.outcome_id.trim().is_empty() || !outcome_ids.insert(outcome.outcome_id.as_str())
         {
-            errors.push(format!("outcomes[{index}].outcome_id: nonempty unique ID required"));
+            errors.push(format!(
+                "outcomes[{index}].outcome_id: nonempty unique ID required"
+            ));
         }
         baseline_sum_bps += u32::from(outcome.baseline_probability_bps);
     }
@@ -263,28 +279,40 @@ fn validate_corpus(corpus: &ScenarioCalibrationCorpus) -> Result<(), Vec<String>
         if forecast.forecast_id.trim().is_empty()
             || !forecast_ids.insert(forecast.forecast_id.as_str())
         {
-            errors.push(format!("forecasts[{index}].forecast_id: nonempty unique ID required"));
+            errors.push(format!(
+                "forecasts[{index}].forecast_id: nonempty unique ID required"
+            ));
         }
         if forecast.region_id.trim().is_empty() || forecast.lead_time_bucket.trim().is_empty() {
-            errors.push(format!("forecasts[{index}]: region and lead-time bucket required"));
+            errors.push(format!(
+                "forecasts[{index}]: region and lead-time bucket required"
+            ));
         }
         if forecast.forecast_source_reference.trim().is_empty()
             || forecast.observation_source_reference.trim().is_empty()
         {
-            errors.push(format!("forecasts[{index}]: forecast and observation source references required"));
+            errors.push(format!(
+                "forecasts[{index}]: forecast and observation source references required"
+            ));
         }
         if forecast.issued_at_unix_ms < corpus.evaluation_start_unix_ms
             || forecast.issued_at_unix_ms > corpus.evaluation_end_unix_ms
         {
-            errors.push(format!("forecasts[{index}]: issue time outside held-out evaluation window"));
+            errors.push(format!(
+                "forecasts[{index}]: issue time outside held-out evaluation window"
+            ));
         }
         if forecast.issued_at_unix_ms >= forecast.valid_at_unix_ms
             || forecast.valid_at_unix_ms > forecast.observed_at_unix_ms
         {
-            errors.push(format!("forecasts[{index}]: require issue < valid time <= observation time"));
+            errors.push(format!(
+                "forecasts[{index}]: require issue < valid time <= observation time"
+            ));
         }
         if corpus.model_trained_through_unix_ms >= forecast.issued_at_unix_ms {
-            errors.push(format!("forecasts[{index}]: training cutoff leaks into forecast issue time"));
+            errors.push(format!(
+                "forecasts[{index}]: training cutoff leaks into forecast issue time"
+            ));
         }
         if forecast.outcome_probabilities.len() != corpus.outcomes.len() {
             errors.push(format!(
@@ -295,9 +323,13 @@ fn validate_corpus(corpus: &ScenarioCalibrationCorpus) -> Result<(), Vec<String>
         let mut probability_sum_bps = 0_u32;
         for probability in &forecast.outcome_probabilities {
             if !outcome_ids.contains(probability.outcome_id.as_str())
-                || probabilities.insert(probability.outcome_id.as_str(), probability.probability_bps).is_some()
+                || probabilities
+                    .insert(probability.outcome_id.as_str(), probability.probability_bps)
+                    .is_some()
             {
-                errors.push(format!("forecasts[{index}]: unknown or duplicate outcome probability"));
+                errors.push(format!(
+                    "forecasts[{index}]: unknown or duplicate outcome probability"
+                ));
             }
             probability_sum_bps += u32::from(probability.probability_bps);
         }
@@ -312,7 +344,11 @@ fn validate_corpus(corpus: &ScenarioCalibrationCorpus) -> Result<(), Vec<String>
             ));
         }
     }
-    if errors.is_empty() { Ok(()) } else { Err(errors) }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
 }
 
 fn build_reliability_metrics(
@@ -322,7 +358,8 @@ fn build_reliability_metrics(
     let mut bins = [ReliabilityAccumulator::default(); CALIBRATION_BINS as usize];
     let mut observed_event_count = 0_u64;
     for forecast in &corpus.forecasts {
-        let probability = forecast.outcome_probabilities
+        let probability = forecast
+            .outcome_probabilities
             .iter()
             .find(|item| item.outcome_id == outcome_id)
             .ok_or_else(|| format!("missing probability for outcome {outcome_id}"))?
@@ -330,11 +367,19 @@ fn build_reliability_metrics(
         let bin_index = usize::from((probability / 1_000).min(9));
         let bin = &mut bins[bin_index];
         bin.forecast_probability_sum_bps += u128::from(probability);
-        let observed = if forecast.observed_outcome_id == outcome_id { 1_u64 } else { 0_u64 };
-        bin.observed_event_sum_bps += u128::from(observed) * u128::from(CALIBRATION_PROBABILITY_TOTAL_BPS);
-        bin.count = bin.count.checked_add(1)
+        let observed = if forecast.observed_outcome_id == outcome_id {
+            1_u64
+        } else {
+            0_u64
+        };
+        bin.observed_event_sum_bps +=
+            u128::from(observed) * u128::from(CALIBRATION_PROBABILITY_TOTAL_BPS);
+        bin.count = bin
+            .count
+            .checked_add(1)
             .ok_or_else(|| "reliability bin count overflow".to_string())?;
-        observed_event_count = observed_event_count.checked_add(observed)
+        observed_event_count = observed_event_count
+            .checked_add(observed)
             .ok_or_else(|| "observed event count overflow".to_string())?;
     }
 
@@ -375,13 +420,16 @@ fn build_reliability_metrics(
     })
 }
 
-fn brier_score(
-    corpus: &ScenarioCalibrationCorpus,
-    baseline: bool,
-) -> Result<f64, String> {
-    let baseline_probabilities: BTreeMap<&str, u16> = corpus.outcomes
+fn brier_score(corpus: &ScenarioCalibrationCorpus, baseline: bool) -> Result<f64, String> {
+    let baseline_probabilities: BTreeMap<&str, u16> = corpus
+        .outcomes
         .iter()
-        .map(|outcome| (outcome.outcome_id.as_str(), outcome.baseline_probability_bps))
+        .map(|outcome| {
+            (
+                outcome.outcome_id.as_str(),
+                outcome.baseline_probability_bps,
+            )
+        })
         .collect();
     let mut squared_error_sum = 0_u128;
     for forecast in &corpus.forecasts {
@@ -392,8 +440,11 @@ fn brier_score(
                 0
             };
             let predicted = if baseline {
-                u32::from(*baseline_probabilities.get(probability.outcome_id.as_str())
-                    .ok_or_else(|| "baseline missing outcome probability".to_string())?)
+                u32::from(
+                    *baseline_probabilities
+                        .get(probability.outcome_id.as_str())
+                        .ok_or_else(|| "baseline missing outcome probability".to_string())?,
+                )
             } else {
                 u32::from(probability.probability_bps)
             };
@@ -411,13 +462,15 @@ fn log_loss(corpus: &ScenarioCalibrationCorpus) -> Result<(Option<f64>, u64), St
     let mut log_loss_sum = 0.0_f64;
     let mut zero_probability_count = 0_u64;
     for forecast in &corpus.forecasts {
-        let probability = forecast.outcome_probabilities
+        let probability = forecast
+            .outcome_probabilities
             .iter()
             .find(|item| item.outcome_id == forecast.observed_outcome_id)
             .ok_or_else(|| "observed outcome probability missing".to_string())?
             .probability_bps;
         if probability == 0 {
-            zero_probability_count = zero_probability_count.checked_add(1)
+            zero_probability_count = zero_probability_count
+                .checked_add(1)
                 .ok_or_else(|| "zero-probability count overflow".to_string())?;
         } else {
             log_loss_sum += -(f64::from(probability) / 10_000.0).ln();
@@ -445,8 +498,8 @@ pub fn evaluate_scenario_calibration(
     let mut calibration_metrics = Vec::new();
     let mut weighted_ece_sum = 0_u128;
     for outcome in &outcomes {
-        let metrics = build_reliability_metrics(corpus, &outcome.outcome_id)
-            .map_err(|error| vec![error])?;
+        let metrics =
+            build_reliability_metrics(corpus, &outcome.outcome_id).map_err(|error| vec![error])?;
         let total = metrics.forecast_count as u128;
         weighted_ece_sum += u128::from(metrics.expected_calibration_error_bps) * total;
         calibration_metrics.push(metrics);
@@ -454,8 +507,7 @@ pub fn evaluate_scenario_calibration(
     let ece_denominator = (corpus.forecasts.len() as u128)
         .checked_mul(corpus.outcomes.len() as u128)
         .ok_or_else(|| vec!["ECE denominator overflow".into()])?;
-    let ece_bps = rounded_ratio(weighted_ece_sum, ece_denominator)
-        .map_err(|error| vec![error])?;
+    let ece_bps = rounded_ratio(weighted_ece_sum, ece_denominator).map_err(|error| vec![error])?;
     let model_brier = brier_score(corpus, false).map_err(|error| vec![error])?;
     let baseline_brier = brier_score(corpus, true).map_err(|error| vec![error])?;
     let skill = if baseline_brier > 0.0 {
@@ -474,7 +526,8 @@ pub fn evaluate_scenario_calibration(
         }
         ProbabilityBasis::StressOnly => {
             return Err(vec![
-                "stress_only_scenarios: keep outside probability-weighted forecast calibration".into()
+                "stress_only_scenarios: keep outside probability-weighted forecast calibration"
+                    .into(),
             ]);
         }
     };
@@ -528,43 +581,80 @@ mod tests {
 
     fn corpus() -> ScenarioCalibrationCorpus {
         let outcomes = vec![
-            CalibrationOutcomeClass { outcome_id: "normal".into(), baseline_probability_bps: 7_500 },
-            CalibrationOutcomeClass { outcome_id: "surge".into(), baseline_probability_bps: 1_500 },
-            CalibrationOutcomeClass { outcome_id: "weather_blocked".into(), baseline_probability_bps: 800 },
-            CalibrationOutcomeClass { outcome_id: "other".into(), baseline_probability_bps: 200 },
+            CalibrationOutcomeClass {
+                outcome_id: "normal".into(),
+                baseline_probability_bps: 7_500,
+            },
+            CalibrationOutcomeClass {
+                outcome_id: "surge".into(),
+                baseline_probability_bps: 1_500,
+            },
+            CalibrationOutcomeClass {
+                outcome_id: "weather_blocked".into(),
+                baseline_probability_bps: 800,
+            },
+            CalibrationOutcomeClass {
+                outcome_id: "other".into(),
+                baseline_probability_bps: 200,
+            },
         ];
         let observed = [
-            "normal", "normal", "normal", "normal", "normal",
-            "normal", "normal", "normal", "normal", "normal",
-            "normal", "normal", "surge", "surge", "surge", "surge",
-            "weather_blocked", "weather_blocked", "weather_blocked", "other",
+            "normal",
+            "normal",
+            "normal",
+            "normal",
+            "normal",
+            "normal",
+            "normal",
+            "normal",
+            "normal",
+            "normal",
+            "normal",
+            "normal",
+            "surge",
+            "surge",
+            "surge",
+            "surge",
+            "weather_blocked",
+            "weather_blocked",
+            "weather_blocked",
+            "other",
         ];
-        let forecasts = observed.iter().enumerate().map(|(index, observed_outcome_id)| {
-            let probabilities = match *observed_outcome_id {
-                "normal" => [7_000, 2_000, 800, 200],
-                "surge" => [5_000, 4_000, 800, 200],
-                "weather_blocked" => [7_000, 1_000, 1_800, 200],
-                "other" => [7_000, 1_000, 500, 1_500],
-                _ => unreachable!("test outcomes are finite"),
-            };
-            CalibrationForecastCase {
-                forecast_id: format!("forecast-{index:02}"),
-                region_id: if index % 2 == 0 { "rural" } else { "urban" }.into(),
-                lead_time_bucket: if index % 3 == 0 { "same_day" } else { "next_day" }.into(),
-                issued_at_unix_ms: 2_000 + index as u64 * 1_000,
-                valid_at_unix_ms: 100_000 + index as u64 * 1_000,
-                observed_at_unix_ms: 110_000 + index as u64 * 1_000,
-                observed_outcome_id: (*observed_outcome_id).into(),
-                forecast_source_reference: format!("synthetic://forecast/{index}"),
-                observation_source_reference: format!("synthetic://observation/{index}"),
-                outcome_probabilities: vec![
-                    outcome_probability("normal", probabilities[0]),
-                    outcome_probability("surge", probabilities[1]),
-                    outcome_probability("weather_blocked", probabilities[2]),
-                    outcome_probability("other", probabilities[3]),
-                ],
-            }
-        }).collect();
+        let forecasts = observed
+            .iter()
+            .enumerate()
+            .map(|(index, observed_outcome_id)| {
+                let probabilities = match *observed_outcome_id {
+                    "normal" => [7_000, 2_000, 800, 200],
+                    "surge" => [5_000, 4_000, 800, 200],
+                    "weather_blocked" => [7_000, 1_000, 1_800, 200],
+                    "other" => [7_000, 1_000, 500, 1_500],
+                    _ => unreachable!("test outcomes are finite"),
+                };
+                CalibrationForecastCase {
+                    forecast_id: format!("forecast-{index:02}"),
+                    region_id: if index % 2 == 0 { "rural" } else { "urban" }.into(),
+                    lead_time_bucket: if index % 3 == 0 {
+                        "same_day"
+                    } else {
+                        "next_day"
+                    }
+                    .into(),
+                    issued_at_unix_ms: 2_000 + index as u64 * 1_000,
+                    valid_at_unix_ms: 100_000 + index as u64 * 1_000,
+                    observed_at_unix_ms: 110_000 + index as u64 * 1_000,
+                    observed_outcome_id: (*observed_outcome_id).into(),
+                    forecast_source_reference: format!("synthetic://forecast/{index}"),
+                    observation_source_reference: format!("synthetic://observation/{index}"),
+                    outcome_probabilities: vec![
+                        outcome_probability("normal", probabilities[0]),
+                        outcome_probability("surge", probabilities[1]),
+                        outcome_probability("weather_blocked", probabilities[2]),
+                        outcome_probability("other", probabilities[3]),
+                    ],
+                }
+            })
+            .collect();
         ScenarioCalibrationCorpus {
             schema_version: 1,
             benchmark_id: SCENARIO_CALIBRATION_BENCHMARK_ID.into(),
@@ -595,7 +685,10 @@ mod tests {
         assert!(report.climatology_brier_score >= 0.0);
         assert!(!report.field_risk_claim_authorized);
         assert!(report.independent_review_required);
-        assert_eq!(report.probability_claim_class, ProbabilityClaimClass::SyntheticArithmeticOnly);
+        assert_eq!(
+            report.probability_claim_class,
+            ProbabilityClaimClass::SyntheticArithmeticOnly
+        );
         assert_eq!(report.zero_probability_observed_outcome_count, 0);
     }
 
@@ -604,7 +697,10 @@ mod tests {
         let report = evaluate_scenario_calibration(&corpus()).expect("valid synthetic corpus");
         assert_eq!(report.multiclass_brier_score, 0.442610);
         assert_eq!(report.climatology_brier_score, 0.605800);
-        assert_eq!(report.brier_skill_score_vs_training_climatology, Some(0.269379));
+        assert_eq!(
+            report.brier_skill_score_vs_training_climatology,
+            Some(0.269379)
+        );
         assert_eq!(report.log_loss_nats, Some(0.749339));
         assert_eq!(report.expected_calibration_error_bps, 1_628);
     }
@@ -614,7 +710,11 @@ mod tests {
         let report = evaluate_scenario_calibration(&corpus()).expect("valid corpus");
         for outcome in &report.outcomes {
             assert_eq!(
-                outcome.reliability_bins.iter().map(|bin| bin.sample_count).sum::<u64>(),
+                outcome
+                    .reliability_bins
+                    .iter()
+                    .map(|bin| bin.sample_count)
+                    .sum::<u64>(),
                 20
             );
             assert_eq!(outcome.forecast_count, 20);
@@ -628,7 +728,8 @@ mod tests {
         test.forecasts[0].outcome_probabilities[1].probability_bps = 9_000;
         test.forecasts[0].outcome_probabilities[2].probability_bps = 800;
         test.forecasts[0].outcome_probabilities[3].probability_bps = 200;
-        let report = evaluate_scenario_calibration(&test).expect("valid but zero-probability outcome");
+        let report =
+            evaluate_scenario_calibration(&test).expect("valid but zero-probability outcome");
         assert_eq!(report.log_loss_nats, None);
         assert_eq!(report.zero_probability_observed_outcome_count, 1);
     }
@@ -657,9 +758,12 @@ mod tests {
     #[test]
     fn requires_explicit_other_outcome_for_support_misses() {
         let mut test = corpus();
-        test.outcomes.retain(|outcome| outcome.outcome_id != "other");
+        test.outcomes
+            .retain(|outcome| outcome.outcome_id != "other");
         for forecast in &mut test.forecasts {
-            forecast.outcome_probabilities.retain(|item| item.outcome_id != "other");
+            forecast
+                .outcome_probabilities
+                .retain(|item| item.outcome_id != "other");
         }
         assert!(evaluate_scenario_calibration(&test).is_err());
     }
@@ -683,7 +787,10 @@ mod tests {
         let mut test = corpus();
         test.probability_basis = ProbabilityBasis::Unknown;
         let report = evaluate_scenario_calibration(&test).expect("arithmetic still scores");
-        assert_eq!(report.probability_claim_class, ProbabilityClaimClass::UnqualifiedProbabilityProvenance);
+        assert_eq!(
+            report.probability_claim_class,
+            ProbabilityClaimClass::UnqualifiedProbabilityProvenance
+        );
         assert!(!report.field_risk_claim_authorized);
     }
 
@@ -706,7 +813,9 @@ mod tests {
         test.forecasts[1].forecast_id = test.forecasts[0].forecast_id.clone();
         assert!(evaluate_scenario_calibration(&test).is_err());
         let mut test = corpus();
-        test.forecasts[0].outcome_probabilities.push(test.forecasts[0].outcome_probabilities[0].clone());
+        test.forecasts[0]
+            .outcome_probabilities
+            .push(test.forecasts[0].outcome_probabilities[0].clone());
         assert!(evaluate_scenario_calibration(&test).is_err());
     }
 
