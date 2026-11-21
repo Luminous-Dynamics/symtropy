@@ -203,7 +203,7 @@ pub fn validate_run_receipt(
     if receipt.independent_evaluator_receipt_digest != expected.expected_evaluator_receipt_digest {
         return Err(RunReceiptError::EvaluatorReceiptDigestMismatch);
     }
-    if receipt.episode_receipts.is_empty() {
+    if receipt.episode_receipts.is_empty() && receipt.run_status == RunStatus::Complete {
         return Err(RunReceiptError::EmptyEpisodeSet);
     }
 
@@ -278,11 +278,14 @@ pub fn validate_run_receipt(
             return Err(RunReceiptError::NumeratorExceedsDenominator);
         }
     }
-    if receipt.aggregate_counts.is_empty() {
+    if receipt.aggregate_counts.is_empty() && receipt.run_status == RunStatus::Complete {
         return Err(RunReceiptError::EmptyMetricId);
     }
 
     if receipt.run_status == RunStatus::Complete {
+        if receipt.aggregate_counts.is_empty() {
+            return Err(RunReceiptError::EmptyMetricId);
+        }
         if accounted != planned_by_id.len() {
             return Err(RunReceiptError::CompleteRunDoesNotAccountForPlan);
         }
@@ -646,6 +649,30 @@ mod tests {
         assert_eq!(
             validate_run_receipt(&expected(), &run),
             Err(RunReceiptError::UnplannedEpisodeId)
+        );
+    }
+
+
+    #[test]
+    fn preflight_aborted_or_invalidated_runs_remain_recordable_as_incomplete_evidence() {
+        for status in [RunStatus::Incomplete, RunStatus::Aborted, RunStatus::Invalidated] {
+            let mut run = receipt();
+            run.episode_receipts.clear();
+            run.aggregate_counts.clear();
+            run.run_status = status;
+            let validated = validate_run_receipt(&expected(), &run)
+                .expect("non-complete run with no episodes remains recordable");
+            assert!(!validated.complete);
+            assert_eq!(validated.executed_episodes, 0);
+            assert_eq!(validated.metrics, 0);
+        }
+
+        let mut complete = receipt();
+        complete.episode_receipts.clear();
+        complete.aggregate_counts.clear();
+        assert_eq!(
+            validate_run_receipt(&expected(), &complete),
+            Err(RunReceiptError::EmptyEpisodeSet)
         );
     }
 
