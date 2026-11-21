@@ -37,6 +37,10 @@ jobs:
             tools/manufacturing-architecture-portability/validator -> target
 
       # Cargo.lock is committed and every dependency operation is locked.
+      - name: Check formatting
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: cargo fmt --all -- --check
+
       - name: Validate Draft 2020-12 schema and profile fixtures
         working-directory: tools/manufacturing-architecture-portability/validator
         run: cargo test --locked
