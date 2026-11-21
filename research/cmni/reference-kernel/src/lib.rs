@@ -20,8 +20,8 @@ pub use sparse_bias_inference::{fit_sparse_bayesian_poisson_bias, SparseBayesian
 
 mod energy_bias_basis;
 pub use energy_bias_basis::{
-    aiachne_bias_basis_energy_domain, build_grouped_energy_bias_design,
-    project_grouped_energy_bias_field, GroupedEnergyBiasDesign,
+    aiachne_bias_basis_energy_domain, aiachne_global_scale_index_by_coefficient,
+    build_grouped_energy_bias_design, project_grouped_energy_bias_field, GroupedEnergyBiasDesign,
     AIACHNE_BIAS_DOMAIN_LOWER_SUBTRACTION_MEV, AIACHNE_BIAS_DOMAIN_UPPER_ADDITION_MEV,
     ENERGY_BIAS_BASIS_COLUMNS_PER_GROUP, ENERGY_BIAS_CENTRES_PER_SCALE,
     ENERGY_BIAS_LENGTH_SCALES_LOG10,
@@ -39,7 +39,9 @@ pub use raw_scale_bias_likelihood::{
 
 mod horseshoe_posterior;
 pub use horseshoe_posterior::{
-    raw_scale_horseshoe_log_posterior, GlobalScalePrior, RawScaleHorseshoePosterior,
+    grouped_raw_scale_horseshoe_log_posterior, raw_scale_horseshoe_log_posterior,
+    GlobalScalePrior, GroupedHorseshoePosteriorInput, GroupedRawScaleHorseshoePosterior,
+    RawScaleHorseshoePosterior,
 };
 
 mod prepared_horseshoe;
