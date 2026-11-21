@@ -3,7 +3,7 @@
 //! JSON, authenticate hashes, inspect private evaluator truth, or calculate
 //! statistics.
 
-use crate::Digest;
+use super::Digest;
 use std::collections::BTreeSet;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
