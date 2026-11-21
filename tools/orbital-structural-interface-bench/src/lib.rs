@@ -745,8 +745,8 @@ fn evaluate(provider: &Profile, client: &Profile) -> (String, Vec<String>) {
             Severity::Indeterminate,
         );
     }
-    if client.requires_independent_evidence {
-        if let (Some(structural), Some(verification)) = (
+    if client.requires_independent_evidence
+        && let (Some(structural), Some(verification)) = (
             provider.load_cases.first().and_then(|load| {
                 profile_evidence(
                     provider,
@@ -758,27 +758,25 @@ fn evaluate(provider: &Profile, client: &Profile) -> (String, Vec<String>) {
                 )
             }),
             verification,
-        ) {
-            if structural.dependency_group == verification.dependency_group {
-                add_reason(
-                    &mut reasons,
-                    "INDEPENDENCE_NOT_ESTABLISHED",
-                    Severity::Indeterminate,
-                );
-            }
-        }
+        )
+        && structural.dependency_group == verification.dependency_group
+    {
+        add_reason(
+            &mut reasons,
+            "INDEPENDENCE_NOT_ESTABLISHED",
+            Severity::Indeterminate,
+        );
     }
 
-    if let (Some(material), Some(inspection)) = (material, inspection) {
-        if material.dependency_group == inspection.dependency_group
-            && client.requires_independent_evidence
-        {
-            add_reason(
-                &mut reasons,
-                "MATERIAL_INSPECTION_COMMON_CAUSE",
-                Severity::Indeterminate,
-            );
-        }
+    if let (Some(material), Some(inspection)) = (material, inspection)
+        && material.dependency_group == inspection.dependency_group
+        && client.requires_independent_evidence
+    {
+        add_reason(
+            &mut reasons,
+            "MATERIAL_INSPECTION_COMMON_CAUSE",
+            Severity::Indeterminate,
+        );
     }
 
     let disposition = if reasons
