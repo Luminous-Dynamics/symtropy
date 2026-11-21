@@ -285,4 +285,41 @@ mod tests {
             FieldDisposition::MissingFromOracle
         );
     }
+    #[test]
+    fn source_document_digest_mismatch_is_hard_evidence_failure() {
+        let mut actual = candidate();
+        actual["source_document_sha256"] =
+            json!("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+        let result = compare_required_fields(&oracle(), &actual, FIELDS).unwrap();
+        assert!(!result.equivalent_on_required_fields);
+    }
+
+    #[test]
+    fn reference_timestamp_mismatch_is_not_silently_aligned() {
+        let mut actual = candidate();
+        actual["reference_timestamp_ns"] = json!(1750000101);
+        let result = compare_required_fields(&oracle(), &actual, FIELDS).unwrap();
+        assert!(!result.equivalent_on_required_fields);
+    }
+
+    #[test]
+    fn missing_source_locator_is_incomplete_evidence() {
+        let mut actual = candidate();
+        actual.as_object_mut().unwrap().remove("source_locator");
+        let result = compare_required_fields(&oracle(), &actual, FIELDS).unwrap();
+        assert!(!result.equivalent_on_required_fields);
+        assert_eq!(
+            result.results.iter().find(|field| field.field == "source_locator").unwrap().disposition,
+            FieldDisposition::MissingFromCandidate
+        );
+    }
+
+    #[test]
+    fn observation_kind_change_is_not_semantically_equivalent() {
+        let mut actual = candidate();
+        actual["native_kind"] = json!("EVENT");
+        let result = compare_required_fields(&oracle(), &actual, FIELDS).unwrap();
+        assert!(!result.equivalent_on_required_fields);
+    }
+
 }
