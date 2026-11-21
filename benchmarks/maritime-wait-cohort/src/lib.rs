@@ -466,7 +466,16 @@ mod tests {
         assert_eq!(report.cohorts.len(), 5);
 
         let s01 = cohort(&report, "S01");
-        assert_eq!((s01.call_count, s01.berth_count, s01.diversion_count, s01.cancellation_count, s01.censored_count), (6, 3, 1, 1, 1));
+        assert_eq!(
+            (
+                s01.call_count,
+                s01.berth_count,
+                s01.diversion_count,
+                s01.cancellation_count,
+                s01.censored_count
+            ),
+            (6, 3, 1, 1, 1)
+        );
         assert_eq!(s01.total_vessel_ticks, 22);
         assert_eq!(s01.integrated_queue_vessel_ticks, 22);
         assert_eq!(s01.administrative_censored_count, 1);
@@ -488,7 +497,16 @@ mod tests {
         close(s01.risk_steps.last().unwrap().cancellation_cumulative_incidence, 1.0 / 6.0);
 
         let s02 = cohort(&report, "S02");
-        assert_eq!((s02.call_count, s02.berth_count, s02.diversion_count, s02.cancellation_count, s02.censored_count), (5, 2, 1, 1, 1));
+        assert_eq!(
+            (
+                s02.call_count,
+                s02.berth_count,
+                s02.diversion_count,
+                s02.cancellation_count,
+                s02.censored_count
+            ),
+            (5, 2, 1, 1, 1)
+        );
         assert_eq!(s02.total_vessel_ticks, 15);
         assert_eq!(s02.integrated_queue_vessel_ticks, 15);
         assert_eq!(s02.administrative_censored_count, 1);
@@ -500,7 +518,16 @@ mod tests {
         close(s02.risk_steps.last().unwrap().cancellation_cumulative_incidence, 0.2);
 
         let s03 = cohort(&report, "S03");
-        assert_eq!((s03.call_count, s03.berth_count, s03.diversion_count, s03.cancellation_count, s03.censored_count), (4, 0, 0, 0, 4));
+        assert_eq!(
+            (
+                s03.call_count,
+                s03.berth_count,
+                s03.diversion_count,
+                s03.cancellation_count,
+                s03.censored_count
+            ),
+            (4, 0, 0, 0, 4)
+        );
         assert_eq!(s03.total_vessel_ticks, 20);
         assert_eq!(s03.integrated_queue_vessel_ticks, 20);
         assert_eq!(s03.administrative_censored_count, 4);
@@ -510,7 +537,16 @@ mod tests {
         close(s03.risk_steps.last().unwrap().berth_cumulative_incidence, 0.0);
 
         let s04 = cohort(&report, "S04");
-        assert_eq!((s04.call_count, s04.berth_count, s04.diversion_count, s04.cancellation_count, s04.censored_count), (5, 2, 1, 1, 1));
+        assert_eq!(
+            (
+                s04.call_count,
+                s04.berth_count,
+                s04.diversion_count,
+                s04.cancellation_count,
+                s04.censored_count
+            ),
+            (5, 2, 1, 1, 1)
+        );
         assert_eq!(s04.total_vessel_ticks, 19);
         assert_eq!(s04.integrated_queue_vessel_ticks, 19);
         assert_eq!(s04.administrative_censored_count, 1);
@@ -522,7 +558,16 @@ mod tests {
         close(s04.risk_steps.last().unwrap().cancellation_cumulative_incidence, 0.2);
 
         let s05 = cohort(&report, "S05");
-        assert_eq!((s05.call_count, s05.berth_count, s05.diversion_count, s05.cancellation_count, s05.censored_count), (5, 1, 1, 1, 2));
+        assert_eq!(
+            (
+                s05.call_count,
+                s05.berth_count,
+                s05.diversion_count,
+                s05.cancellation_count,
+                s05.censored_count
+            ),
+            (5, 1, 1, 1, 2)
+        );
         assert_eq!(s05.total_vessel_ticks, 23);
         assert_eq!(s05.integrated_queue_vessel_ticks, 23);
         assert_eq!(s05.administrative_censored_count, 1);
@@ -548,7 +593,14 @@ mod tests {
         assert_eq!(s01.risk_steps.len(), expected.len());
         for (step, expected) in s01.risk_steps.iter().zip(expected) {
             assert_eq!(
-                (step.duration_ticks, step.at_risk, step.berth_events, step.diverted_events, step.cancelled_events, step.censored),
+                (
+                    step.duration_ticks,
+                    step.at_risk,
+                    step.berth_events,
+                    step.diverted_events,
+                    step.cancelled_events,
+                    step.censored
+                ),
                 (expected.0, expected.1, expected.2, expected.3, expected.4, expected.5)
             );
             close(step.event_free_survival, expected.6);
@@ -621,7 +673,11 @@ mod tests {
         let mixed_cutoff = format!(
             "{COHORTS_HEADER}\nS,1,0,5,CENSORED,5,5\nS,2,0,6,CENSORED,6,6\n"
         );
-        assert!(evaluate_cohorts(&mixed_cutoff).unwrap_err().contains("inconsistent observation cutoffs"));
+        assert!(
+            evaluate_cohorts(&mixed_cutoff)
+                .unwrap_err()
+                .contains("inconsistent observation cutoffs")
+        );
     }
 
     #[test]
