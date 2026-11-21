@@ -641,6 +641,34 @@ mod tests {
     }
 
     #[test]
+    fn frozen_corpus_replays_without_claim_escalation() {
+        let corpus: Corpus = serde_json::from_str(include_str!(
+            "../fixtures/v0.1/plp-gof-cases.json"
+        ))
+        .expect("frozen PLP GOF corpus parses");
+        let report = evaluate(&corpus).expect("frozen PLP GOF corpus evaluates");
+        assert_eq!(report.result, "pass");
+        assert_eq!(report.summary.case_count, 22);
+        assert_eq!(report.summary.expected_result_mismatches, 0);
+        assert_eq!(report.summary.fit_acceptances, 0);
+        assert_eq!(report.summary.reliability_claims, 0);
+        assert_eq!(report.summary.physical_qualifications, 0);
+        assert_eq!(report.summary.authority_grants, 0);
+        assert!(report.cases.iter().any(|case| {
+            case.disposition == Disposition::FitRejected
+        }));
+        assert!(report.cases.iter().any(|case| {
+            case.disposition == Disposition::FitNotRejectedAtDeclaredLevel
+        }));
+        assert!(report.cases.iter().all(|case| {
+            !case.fit_acceptance_granted
+                && !case.reliability_claim_granted
+                && !case.physical_qualification_granted
+                && !case.authority_granted
+        }));
+    }
+
+    #[test]
     fn beta_not_equal_to_one_is_not_a_trend_test() {
         let times = [3_000, 7_000, 12_000, 22_000, 45_000, 78_000];
         let (beta_hat, _) = estimate_beta_and_cvm(&times, 100_000).expect("valid PLP history");
