@@ -89,9 +89,6 @@ impl Display for PortabilityError {
                 formatter,
                 "a policy may have only one aggregate outcome per task and setup"
             ),
-            Self::DuplicatePolicyId => {
-                write!(formatter, "policy IDs must be unique within a setup")
-            }
             Self::InconsistentTaskContract => write!(
                 formatter,
                 "source and target setups must use the same pinned task contract"
