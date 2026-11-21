@@ -88,7 +88,11 @@ fn finite_horizon_records_do_not_claim_asymptotic_regime_status() {
     let trajectory = run_paired_arm(BasinIntervention::EcologicalReroute);
 
     assert_eq!(trajectory.len(), HORIZON);
-    assert!(trajectory.windows(2).all(|pair| pair[0].tick < pair[1].tick));
+    assert!(
+        trajectory
+            .windows(2)
+            .all(|pair| pair[0].tick < pair[1].tick)
+    );
 
     // This fixture only establishes that the model emitted a finite trajectory.
     // It deliberately makes no convergence, basin or attractor assertion.
