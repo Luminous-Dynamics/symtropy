@@ -102,7 +102,32 @@
       "source_impulse_ns",
       "mapping_residual_ns"
     ],
-    "interpolation_only_is_sufficient": false
+    "interpolation_only_is_sufficient": false,
+    "reference_kernel": {
+      "implementation": "tools/ehd-reference-audit/src/exchange.rs",
+      "quantity": "already-integrated vector impulse in N*s per source cell x time slab",
+      "source_reconstruction": "piecewise_constant_on_each_source_spacetime_element_first_order",
+      "overlap_fraction": "non_overlapping_space_time_intersection_measure_divided_by_full_source_cell_time_slab_measure",
+      "coverage_policy": "all source space-time measure must map; no implicit renormalization or silent loss",
+      "aggregation": "deterministic BTreeMap ordering and compensated summation",
+      "verification": [
+        "per-source overlap-fraction coverage",
+        "global vector impulse residual with case-specific absolute-plus-relative tolerances",
+        "input-order permutation determinism"
+      ],
+      "limitations": [
+        "does_not_compute_geometric_intersections",
+        "does_not_perform_higher_order_reconstruction",
+        "does_not_transform_coordinate_frames",
+        "does_not_infer_boundary_impulse",
+        "does_not_verify_geometric_nonoverlap_of_supplied_intersections"
+      ]
+    },
+    "industry_interoperability": {
+      "reference": "preCICE",
+      "documentation": "https://precice.org/docs/configuration/basics/mapping/",
+      "rule": "Use conservative mapping for extensive quantities such as forces; use consistent mapping for intensive quantities such as temperature or pressure. The Luminous reference kernel is a narrow impulse-transfer oracle, not a replacement for general multiphysics coupling."
+    }
   },
   "invariants": [
     {
