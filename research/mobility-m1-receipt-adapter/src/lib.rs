@@ -240,6 +240,7 @@ mod tests {
             expected_observation_frame_id: "frame.local-1".into(),
             expected_calibration_id: "calibration-1".into(),
             expected_effect_digest: digest(7),
+            observer_independence_policy_digest: digest(40),
         };
         let live = m2::LiveContext {
             mission_id: m2_ticket.mission_id.clone(),
@@ -274,6 +275,11 @@ mod tests {
             event_id: "physical-effect-1".into(),
             source_id: "independent-gripper-camera".into(),
             executing_controller_id: "arm-controller-1".into(),
+            observer_failure_domains: vec![
+                "gripper-camera".into(),
+                "observer-processor".into(),
+                "observer-power".into(),
+            ],
             observer_role: m2::ObserverRole::IndependentSensor,
             source_sequence: 31,
             observed_at_ticks: 1_070,
@@ -292,6 +298,17 @@ mod tests {
             sequence_source_id: evidence.source_id.clone(),
             last_source_sequence: 30,
             minimum_confidence_basis_points: 9_000,
+            execution_failure_domains: vec![
+                "arm-controller".into(),
+                "vehicle-bus".into(),
+                "vehicle-power".into(),
+            ],
+            expected_observer_failure_domains: vec![
+                "gripper-camera".into(),
+                "observer-processor".into(),
+                "observer-power".into(),
+            ],
+            observer_independence_policy_digest: digest(40),
         };
         let receipt_time = QualifiedReceiptTime::Qualified {
             source_clock: evidence.clock.clone(),
@@ -464,6 +481,31 @@ mod tests {
         .expect("explicitly qualified target comparison clock");
         assert_eq!(result, m1::ReceiptDisposition::Applied);
         assert_eq!(f.supervisor.phase("pick"), Ok(m1::SubgoalPhase::Complete));
+    }
+
+
+    #[test]
+    fn common_cause_observer_is_rejected_before_m1_receipt_mutation() {
+        let mut f = fixture(m2::PhysicalOutcome::Satisfied);
+        f.evidence.observer_failure_domains.push("vehicle-power".into());
+        assert_eq!(
+            apply_outcome_to_m1(
+                &mut f.supervisor,
+                &f.m1_ticket,
+                &f.m2_ticket,
+                &f.live,
+                &f.evidence,
+                f.policy.clone(),
+                &f.receipt_time,
+            ),
+            Err(AdapterError::Outcome(
+                m2::OutcomeError::CommonCauseFailureDomainOverlap
+            ))
+        );
+        assert_eq!(
+            f.supervisor.phase("pick"),
+            Ok(m1::SubgoalPhase::AwaitingEvidence)
+        );
     }
 
     #[test]
