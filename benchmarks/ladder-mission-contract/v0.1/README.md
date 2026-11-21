@@ -35,20 +35,50 @@ Full benchmark episode coverage is:
 
 LADDER-Lite is 10 tasks and 112 episodes: 4 RoboLab tasks, 2 SimplerEnv tasks and 4 RobotArena tasks. It must never be pooled into the full benchmark's overall or suite-mean score.
 
-## Official scoring to preserve
+## Official episode row — exact schema
 
-- An episode is a task success only if **every required subgoal** is completed.
-- Suite success is computed from all episodes for all tasks in that suite using the official default episode counts.
-- The paper's `overall` score pools all episodes. The `suite mean` is the unweighted mean of the three suite success rates. Report both; do not call them the same number.
-- The reported `±` is the larger side of the 95% Wilson interval.
-- Subgoal progress is the share of required subgoals completed. A later Relay/Revisit leg only counts if its prerequisite legs were completed in order.
-- Also report horizon and category breakdowns.
-- No failed episode may be dropped or selectively rerun. The leaderboard checks missing tasks and incorrect episode counts.
-- Privileged systems must be marked as privileged and are not ranked alongside real-observation entries.
-- State `tuned_on_ladder` truthfully if prompts, thresholds, weights or other parts of the system were tuned on LADDER scenes/tasks. Per-task prompts/settings are disallowed.
-- Pin `ladder_commit`; results across different benchmark versions are not comparable.
+The official `scripts/leaderboard.py` at the pinned commit packages each evaluator episode into these **seven fields only**:
 
-The JSON schemas in this directory define a local *run manifest* and *derived result record*. They do not replace LADDER's official `episodes.jsonl`, `submission.yaml`, package script or validator.
+```json
+{
+  "suite": "simplerenv_long",
+  "task": "relay2e",
+  "episode": 0,
+  "success": false,
+  "subgoals_done": 1,
+  "subgoals": 2,
+  "steps": 340
+}
+```
+
+- `episode` is zero-based within the task.
+- `success` is read from the official episode log. It must not be supplied by a Symtropy claim or evidence record.
+- `subgoals_done` is derived from the evaluator's `goal_objects` and `goal_trace`; dependent Relay/Revisit legs count only when the earlier legs for the same object have been completed in the required order.
+- `subgoals` must match the pinned task catalogue.
+- The official checker validates task identity, subgoal counts, successful-episode completeness and default episode counts for each task in each claimed suite.
+
+The benchmark commit belongs in `submission.yaml` as `ladder_commit`; it does **not** belong in an episode JSONL row. Symtropy-specific evidence is kept in a separate sidecar joined by `(benchmark_commit, suite, task, episode)`. The official leaderboard checker must never ingest that sidecar.
+
+## Official scoring — preserve the implementation exactly
+
+The pinned `scripts/leaderboard.py` function `score` makes two different uncertainty calculations:
+
+1. **Per-suite success and pooled overall success:** Wilson 95% interval, reporting the larger distance from the point estimate to either interval endpoint.
+2. **Equal-weight suite mean:** the unweighted arithmetic mean of the three suite rates. Its reported margin is **not a Wilson interval**. The official code computes:
+
+```text
+p_s = successes_s / episodes_s
+mean = (p_robolab + p_simplerenv + p_robotarena) / 3
+SE = sqrt(sum(p_s * (1-p_s) / n_s for each suite)) / 3
+mean_margin_percentage_points = 196 * SE
+```
+
+3. **Pooled overall:** total successes divided by total episodes across all included suite rows, with its own Wilson margin.
+4. **Subgoal progress:** `sum(subgoals_done)/sum(subgoals)` per suite; overall progress is the equal-weight mean of the three suite progress values.
+5. **Breakdowns:** success by subgoal horizon and official task category.
+6. **LADDER-Lite:** the Lite task subset receives separate scores; it is not mixed into full-benchmark task rows or used as a substitute for full coverage.
+
+An official submission may cover one, two or all three suites. A partial entry must identify which suites it covers; do not describe it as a full-benchmark result. For full benchmark comparison, require all 145 tasks and 2,024 episodes at the default episode counts.
 
 ## Licenses and execution constraints
 
