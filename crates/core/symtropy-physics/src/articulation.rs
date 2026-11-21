@@ -7,6 +7,8 @@
 //! quadruped legs, exoskeleton limbs).
 
 use nalgebra::SVector;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 use symtropy_math::Point;
 
 use crate::body::{BodyHandle, RigidBody};
@@ -39,6 +41,57 @@ impl Default for LinkSpec {
             motor_damping: None,
         }
     }
+}
+
+/// Error returned when a chain specification cannot be placed geometrically.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ChainBuildError {
+    InvalidLinkLength { index: usize },
+}
+
+impl Display for ChainBuildError {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidLinkLength { index } => write!(
+                formatter,
+                "link {index} length must be finite and strictly positive"
+            ),
+        }
+    }
+}
+
+impl Error for ChainBuildError {}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct LinkPlacement {
+    center_step: f64,
+    previous_body_anchor: f64,
+    current_body_anchor: f64,
+}
+
+fn compute_link_placements(lengths: &[f64]) -> Result<Vec<LinkPlacement>, ChainBuildError> {
+    let mut placements = Vec::with_capacity(lengths.len());
+    let mut previous_length = None;
+
+    for (index, &length) in lengths.iter().enumerate() {
+        if !length.is_finite() || length <= 0.0 {
+            return Err(ChainBuildError::InvalidLinkLength { index });
+        }
+
+        let (center_step, previous_body_anchor) = match previous_length {
+            Some(previous) => ((previous + length) * 0.5, -previous * 0.5),
+            None => (length, -length * 0.5),
+        };
+
+        placements.push(LinkPlacement {
+            center_step,
+            previous_body_anchor,
+            current_body_anchor: length * 0.5,
+        });
+        previous_length = Some(length);
+    }
+
+    Ok(placements)
 }
 
 /// An articulated chain in a physics world.
@@ -102,7 +155,23 @@ impl ChainBuilder {
     }
 
     /// Build the chain in the physics world.
+    ///
+    /// Panics when a link length is non-finite or non-positive. Use
+    /// `try_build` when specifications are not trusted.
     pub fn build(self, world: &mut PhysicsWorld<3>) -> ArticulatedChain {
+        self.try_build(world)
+            .expect("ChainBuilder::build requires finite, positive link lengths")
+    }
+
+    /// Validate and build the chain without partially mutating the world on an
+    /// invalid link length.
+    pub fn try_build(
+        self,
+        world: &mut PhysicsWorld<3>,
+    ) -> Result<ArticulatedChain, ChainBuildError> {
+        let lengths: Vec<f64> = self.links.iter().map(|spec| spec.length).collect();
+        let placements = compute_link_placements(&lengths)?;
+
         // Static base (small sphere)
         let base = world.add_body(RigidBody::static_body(
             BodyHandle(0), // overwritten by add_body
@@ -114,8 +183,8 @@ impl ChainBuilder {
         let mut prev = base;
         let mut pos = self.base_pos.0;
 
-        for spec in &self.links {
-            pos[2] -= spec.length;
+        for (spec, placement) in self.links.iter().zip(&placements) {
+            pos[2] -= placement.center_step;
             let link_pos = Point::new([pos[0], pos[1], pos[2]]);
             let handle = world.add_body(RigidBody::dynamic_sphere(
                 BodyHandle(0),
@@ -124,8 +193,10 @@ impl ChainBuilder {
                 spec.mass,
             ));
 
-            let anchor_a: SVector<f64, 3> = SVector::from([0.0, 0.0, -spec.length * 0.5]);
-            let anchor_b: SVector<f64, 3> = SVector::from([0.0, 0.0, spec.length * 0.5]);
+            let anchor_a: SVector<f64, 3> =
+                SVector::from([0.0, 0.0, placement.previous_body_anchor]);
+            let anchor_b: SVector<f64, 3> =
+                SVector::from([0.0, 0.0, placement.current_body_anchor]);
 
             let mut hinge = HingeJoint::with_anchors(
                 prev,
@@ -151,11 +222,11 @@ impl ChainBuilder {
             prev = handle;
         }
 
-        ArticulatedChain {
+        Ok(ArticulatedChain {
             base,
             links,
             num_joints: self.links.len(),
-        }
+        })
     }
 }
 
@@ -171,6 +242,71 @@ mod tests {
 
     fn world_with_gravity() -> PhysicsWorld<3> {
         PhysicsWorld::new(SVector::from([0.0, 0.0, -9.81]))
+    }
+
+    #[test]
+    fn unequal_link_lengths_produce_coincident_adjacent_pivots() {
+        let lengths = [0.5, 0.4, 0.3];
+        let placements = compute_link_placements(&lengths).expect("valid geometry");
+        assert_eq!(placements.len(), 3);
+
+        let mut centers = Vec::with_capacity(placements.len());
+        let mut z = 3.0;
+        for placement in &placements {
+            z -= placement.center_step;
+            centers.push(z);
+        }
+
+        // First link retains the original base-to-link offset. Subsequent
+        // centers are half the sum of adjacent pivot-to-pivot lengths apart.
+        assert!((centers[0] - 2.5).abs() < 1.0e-12);
+        assert!((centers[1] - 2.05).abs() < 1.0e-12);
+        assert!((centers[2] - 1.70).abs() < 1.0e-12);
+        assert!((placements[1].center_step - 0.45).abs() < 1.0e-12);
+        assert!((placements[2].center_step - 0.35).abs() < 1.0e-12);
+
+        // Check each pivot in world Z: base to first link, then link-to-link.
+        let base_joint = 3.0 + placements[0].previous_body_anchor;
+        let first_link_joint = centers[0] + placements[0].current_body_anchor;
+        assert!((base_joint - first_link_joint).abs() < 1.0e-12);
+
+        for index in 1..placements.len() {
+            let previous_distal = centers[index - 1] + placements[index].previous_body_anchor;
+            let current_proximal = centers[index] + placements[index].current_body_anchor;
+            assert!(
+                (previous_distal - current_proximal).abs() < 1.0e-12,
+                "pivot {index}: previous={previous_distal}, current={current_proximal}"
+            );
+        }
+    }
+
+    #[test]
+    fn equal_link_lengths_preserve_original_center_spacing_and_anchors() {
+        let placements = compute_link_placements(&[0.3, 0.3]).expect("valid geometry");
+        for placement in placements {
+            assert!((placement.center_step - 0.3).abs() < 1.0e-12);
+            assert!((placement.previous_body_anchor + 0.15).abs() < 1.0e-12);
+            assert!((placement.current_body_anchor - 0.15).abs() < 1.0e-12);
+        }
+    }
+
+    #[test]
+    fn invalid_link_length_fails_before_world_mutation() {
+        let mut world = world_with_gravity();
+        let result = ChainBuilder::new()
+            .add_link(LinkSpec {
+                length: 0.5,
+                ..Default::default()
+            })
+            .add_link(LinkSpec {
+                length: f64::NAN,
+                ..Default::default()
+            })
+            .try_build(&mut world);
+
+        assert_eq!(result, Err(ChainBuildError::InvalidLinkLength { index: 1 }));
+        assert!(world.bodies.is_empty());
+        assert!(world.constraints.is_empty());
     }
 
     #[test]
