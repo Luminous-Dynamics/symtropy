@@ -194,3 +194,12 @@ See [IDENTIFIABILITY_AND_DESIGN.md](../../../docs/research/cmni/IDENTIFIABILITY_
 - It does not implement HMC / BMC / NUTS sampling, warmup adaptation, multiple-chain diagnostics, effective sample size or posterior convergence assessment.
 - Synthetic oracle: baseline mean [10,20], relative covariance [[0.04,0.01],[0.01,0.09]], one feature and planted coefficient 0.1. Independent finite-difference calculations confirm the gradient for both global priors to approximately 1e-10.
 - Five tests cover both global prior choices and finite-difference agreement for beta, local-scale and global-scale gradients. The total is now **152 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics, 7 measurement-bias, 8 sparse-Poisson-bias, 10 energy-bias-basis, 8 correlated-Gaussian-bias, 6 raw-scale-likelihood, 5 horseshoe-posterior). These are authored, not executed.
+
+
+## Prepared horseshoe evaluation and fixed-step HMC comparator
+
+- `PreparedRawScaleHorseshoeModel` constructs and caches the full baseline relative-covariance Cholesky factor once, then repeatedly evaluates the raw-scale likelihood / horseshoe posterior and analytic gradients without refactorizing the covariance at each step.
+- `run_horseshoe_hmc_chain` provides a seeded, fixed-step Hamiltonian Monte Carlo comparator with caller-specified discarded transitions, retained draws, step size and leapfrog count. It records acceptance and divergences.
+- `split_rhat_for_coefficient` provides a basic split-Rhat screening statistic for independent chains. It is not rank-normalized or folded Rhat.
+- The sampler has no warmup adaptation, dense/diagonal mass-matrix adaptation, NUTS tree building, effective sample size, posterior predictive diagnostics or tau0 stability screening. Run multiple independent seeds and dispersed initials; do not interpret samples until those diagnostics are added and the chains are validated.
+- Three prepared-model tests and five HMC tests have been authored. The total is now **160 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics, 7 measurement-bias, 8 sparse-Poisson-bias, 10 energy-bias-basis, 8 correlated-Gaussian-bias, 6 raw-scale-likelihood, 5 horseshoe-posterior, 3 prepared-horseshoe, 5 horseshoe-HMC). Tests remain unexecuted.
