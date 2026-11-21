@@ -29,7 +29,7 @@ M2 monotonic ticks are **not** milliseconds. The adapter refuses Unknown/Unquali
 
 ## Tests
 
-Seven adapter regressions cover successful content-digest projection, no-effect/partial/unknown mapping, unknown/unqualified/uncommitted time hold, source-clock mismatch rejection and comparison-clock lineage preservation under the M1 per-source cursor, stale M1 attempt rejection after M2 validation, and M1/M2 ticket identity mismatch. The harness also compiles and runs the imported M1 and M2 unit-test suites.
+Eight adapter regressions cover successful content-digest projection, no-effect/partial/unknown mapping, unknown/unqualified/uncommitted time hold, source-clock mismatch rejection and comparison-clock lineage preservation under the M1 per-source cursor, stale M1 attempt rejection after M2 validation, and M1/M2 ticket identity mismatch, and common-cause observer/executor failure-domain overlap before M1 mutation. The harness also compiles and runs the imported M1 and M2 unit-test suites.
 
 ## Claim ceiling
 
