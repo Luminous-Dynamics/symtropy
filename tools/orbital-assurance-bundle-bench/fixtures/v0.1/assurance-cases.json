@@ -22039,7 +22039,7 @@
       ],
       "expected": {
         "disposition": "invalid_graph",
-        "blocker_count": 3,
+        "blocker_count": 2,
         "authority_granted": false
       }
     },
