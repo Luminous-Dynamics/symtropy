@@ -32,7 +32,9 @@ The 5 cohorts contain 25 synthetic call observations. The input time unit is an 
 - Administrative cutoff censoring and reporting-lag censoring are reported separately. This is essential because reporting delay may be informative.
 - The evaluator never imputes a future berth time or computes berth p50/p90/p95 from completed-berth calls alone.
 
-The Aalen–Johansen estimator assumes censoring is non-informative conditional on the cohort/strata. The synthetic evaluator does not prove that assumption for real ports. Source-specific reporting lags may depend on terminal, outcome or congestion; a real deployment must measure reporting-delay distributions, stratify, and run sensitivity analyses or use an appropriate censoring model before publishing probability estimates.\n\nThe estimator reports:
+The Aalen–Johansen estimator assumes censoring is non-informative conditional on the cohort/strata. The synthetic evaluator does not prove that assumption for real ports. Source-specific reporting lags may depend on terminal, outcome or congestion; a real deployment must measure reporting-delay distributions, stratify, and run sensitivity analyses or use an appropriate censoring model before publishing probability estimates.
+
+The estimator reports:
 - event-free survival;
 - separate cumulative incidence for berth, diversion and cancellation;
 - the number at risk and tied outcome counts at each wait-duration tick;
