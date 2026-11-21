@@ -1153,8 +1153,14 @@ mod tests {
         let first = fix(0, "m0", Zone::Outside, 0);
         let mut second = fix(1, "m1", Zone::Outside, 0);
         second.call_reference_id = "SYNTH_CALL_002".to_string();
-        let error = evaluate_from_baselined_outside(&[first, second], &default_profile())
-            .expect_err("call reference change must reject");
+        let error = evaluate_call_with_initial_state(
+            "563123456",
+            ServiceState::Outside,
+            Some("SYNTHETIC_OUTSIDE_BASELINE_V0_1"),
+            &[first, second],
+            &default_profile(),
+        )
+        .expect_err("call reference change must reject");
         assert!(error.contains("call reference ID changed"));
     }
 
@@ -1299,8 +1305,14 @@ mod tests {
         let mut second = fix(1, "m1", Zone::Outside, 0);
         second.received_tick = 99;
 
-        let error = evaluate_from_baselined_outside(&[first, second], &default_profile())
-            .expect_err("receiver clock rollback must reject");
+        let error = evaluate_call_with_initial_state(
+            "563123456",
+            ServiceState::Outside,
+            Some("SYNTHETIC_OUTSIDE_BASELINE_V0_1"),
+            &[first, second],
+            &default_profile(),
+        )
+        .expect_err("receiver clock rollback must reject");
         assert!(error.contains("out-of-order receiver tick"));
     }
 
