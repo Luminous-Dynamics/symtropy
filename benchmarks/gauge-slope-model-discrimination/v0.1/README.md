@@ -149,6 +149,8 @@ A useful negative control is that two speed levels can make a linear and quadrat
 
 The reference uses the shared dependency-free `DesignCondition`, uncertainty validation and compensated sums from the v0.1 library. It does not reimplement the generic optimizer in #3784 and does not account for speed measurement error or speed/acceleration covariance.
 
+**Adjacent prior art:** Liu, Maini and Baker (Mathematical Biosciences 399, September 2026, 109710) explicitly combine profile-likelihood practical identifiability with optimal experiment design for model discrimination, formulate the design as an optimal-control problem, and use Pontryagin's Maximum Principle. Their demonstrated application is mechanistic ODE models in biology, not rigid-body contact. Symtropy must treat this as a methodological baseline and reproduce an appropriate profile-likelihood / optimal-control comparator before claiming an advantage. The robotics-specific research opportunity is composition with hybrid contact transitions, bounded safe excitation, measurement-timebase lineage, correlated mocap error and independent physical transfer: [DOI 10.1016/j.mbs.2026.109710](https://doi.org/10.1016/j.mbs.2026.109710), [PubMed record](https://pubmed.ncbi.nlm.nih.gov/42176891/).
+
 Tests cover two-speed equivalence, three-speed separation, zero-effect overlap, wider speed range, uncertainty scaling, invalid coefficient bounds, repeated-speed rank failure and input permutation invariance.
 
 See [ROBUST-MODEL-SEPARATION-001 #6653](https://github.com/Luminous-Dynamics/symtropy/issues/6653).
