@@ -20,7 +20,7 @@
             "temperature": "cold"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -45,7 +45,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-r1",
+          "run_group_id": "group-r1",
           "cost_units": 1
         }
       ],
@@ -82,7 +82,7 @@
             "energy": "low"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -106,7 +106,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-nominal-0",
+          "run_group_id": "group-nominal-0",
           "cost_units": 1
         },
         {
@@ -127,7 +127,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-nominal-1",
+          "run_group_id": "group-nominal-1",
           "cost_units": 1
         },
         {
@@ -148,7 +148,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-nominal-2",
+          "run_group_id": "group-nominal-2",
           "cost_units": 1
         },
         {
@@ -169,7 +169,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-nominal-3",
+          "run_group_id": "group-nominal-3",
           "cost_units": 1
         },
         {
@@ -190,7 +190,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-nominal-4",
+          "run_group_id": "group-nominal-4",
           "cost_units": 1
         },
         {
@@ -211,7 +211,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-nominal-5",
+          "run_group_id": "group-nominal-5",
           "cost_units": 1
         },
         {
@@ -232,7 +232,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-nominal-6",
+          "run_group_id": "group-nominal-6",
           "cost_units": 1
         },
         {
@@ -253,7 +253,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-nominal-7",
+          "run_group_id": "group-nominal-7",
           "cost_units": 1
         },
         {
@@ -274,7 +274,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-nominal-8",
+          "run_group_id": "group-nominal-8",
           "cost_units": 1
         },
         {
@@ -295,7 +295,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-nominal-9",
+          "run_group_id": "group-nominal-9",
           "cost_units": 1
         }
       ],
@@ -334,7 +334,7 @@
             "energy": "high"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -358,7 +358,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-nominal",
+          "run_group_id": "group-nominal",
           "cost_units": 1
         },
         {
@@ -379,7 +379,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-low",
+          "run_group_id": "group-low",
           "cost_units": 1
         }
       ],
@@ -419,7 +419,7 @@
             "temperature": "cold"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -444,7 +444,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-low-warm",
+          "run_group_id": "group-low-warm",
           "cost_units": 1
         },
         {
@@ -466,7 +466,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-nominal-cold",
+          "run_group_id": "group-nominal-cold",
           "cost_units": 1
         }
       ],
@@ -507,7 +507,7 @@
             "life_state": "end_of_test"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -533,7 +533,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-low-cold-new",
+          "run_group_id": "group-low-cold-new",
           "cost_units": 1
         },
         {
@@ -556,7 +556,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-low-nominal-aged",
+          "run_group_id": "group-low-nominal-aged",
           "cost_units": 1
         },
         {
@@ -579,7 +579,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-nominal-cold-aged",
+          "run_group_id": "group-nominal-cold-aged",
           "cost_units": 1
         }
       ],
@@ -618,7 +618,7 @@
             "energy": "low"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -642,7 +642,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-low",
+          "run_group_id": "group-low",
           "cost_units": 1
         }
       ],
@@ -679,7 +679,7 @@
           "lifecycle_phase": "preflight",
           "conditions": {},
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": "Declared unsafe in note",
           "not_applicable_review_ref": null
         }
@@ -718,7 +718,7 @@
           "lifecycle_phase": "preflight",
           "conditions": {},
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": "Facility does not support this approved test condition",
           "not_applicable_review_ref": "synthetic-review-ref:facility-scope"
         }
@@ -757,7 +757,7 @@
             "energy": "low"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -781,7 +781,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-planned-low",
+          "run_group_id": "group-planned-low",
           "cost_units": 1
         }
       ],
@@ -820,7 +820,7 @@
             "energy": "low"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -844,7 +844,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-aborted-low",
+          "run_group_id": "group-aborted-low",
           "cost_units": 1
         }
       ],
@@ -883,7 +883,7 @@
             "energy": "low"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -907,7 +907,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-failed-low",
+          "run_group_id": "group-failed-low",
           "cost_units": 1
         }
       ],
@@ -944,7 +944,7 @@
             "energy": "high"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -968,7 +968,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-abort-high",
+          "run_group_id": "group-abort-high",
           "cost_units": 1
         }
       ],
@@ -1007,7 +1007,7 @@
             "energy": "low"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 2,
+          "minimum_run_groups": 2,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -1031,7 +1031,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-same-run",
+          "run_group_id": "group-same-run",
           "cost_units": 1
         },
         {
@@ -1052,7 +1052,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-same-run",
+          "run_group_id": "group-same-run",
           "cost_units": 1
         }
       ],
@@ -1091,7 +1091,7 @@
             "energy": "low"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -1115,7 +1115,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-same-id",
+          "run_group_id": "group-same-id",
           "cost_units": 1
         },
         {
@@ -1136,7 +1136,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-same-id",
+          "run_group_id": "group-same-id",
           "cost_units": 1
         }
       ],
@@ -1175,7 +1175,7 @@
             "energy": "low"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -1199,7 +1199,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-stale-config",
+          "run_group_id": "group-stale-config",
           "cost_units": 1
         }
       ],
@@ -1238,7 +1238,7 @@
             "energy": "low"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -1262,7 +1262,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-stale-procedure",
+          "run_group_id": "group-stale-procedure",
           "cost_units": 1
         }
       ],
@@ -1301,7 +1301,7 @@
             "load": "boundary"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -1325,7 +1325,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-out-of-range",
+          "run_group_id": "group-out-of-range",
           "cost_units": 1
         }
       ],
@@ -1364,7 +1364,7 @@
             "environment": "after_hot_cycle"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -1388,7 +1388,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-environment-only",
+          "run_group_id": "group-environment-only",
           "cost_units": 1
         }
       ],
@@ -1427,7 +1427,7 @@
             "maintenance_state": "after_maintenance"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -1451,7 +1451,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-maintenance-record",
+          "run_group_id": "group-maintenance-record",
           "cost_units": 1
         }
       ],
@@ -1490,7 +1490,7 @@
             "energy": "low"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         },
@@ -1505,7 +1505,7 @@
             "energy": "low"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -1529,7 +1529,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-old-config-test",
+          "run_group_id": "group-old-config-test",
           "cost_units": 1
         }
       ],
@@ -1568,7 +1568,7 @@
             "release_state": "release"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -1592,7 +1592,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-capture-only",
+          "run_group_id": "group-capture-only",
           "cost_units": 1
         }
       ],
@@ -1631,7 +1631,7 @@
             "pressure": "nominal"
           },
           "evidence_key": "receiver-mass",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -1655,7 +1655,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-mechanical-only",
+          "run_group_id": "group-mechanical-only",
           "cost_units": 1
         }
       ],
@@ -1694,7 +1694,7 @@
             "energy": "nominal"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         },
@@ -1710,7 +1710,7 @@
             "load": "boundary"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -1734,7 +1734,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-old-nominal",
+          "run_group_id": "group-old-nominal",
           "cost_units": 1
         }
       ],
@@ -1773,7 +1773,7 @@
             "temperature": "cold"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 2,
+          "minimum_run_groups": 2,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -1797,7 +1797,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "fixture-A-operator-A-day-1",
+          "run_group_id": "fixture-A-operator-A-day-1",
           "cost_units": 1
         },
         {
@@ -1818,7 +1818,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "fixture-A-operator-A-day-1",
+          "run_group_id": "fixture-A-operator-A-day-1",
           "cost_units": 1
         }
       ],
@@ -1857,7 +1857,7 @@
             "energy": "low"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -1881,7 +1881,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-bad-digest",
+          "run_group_id": "group-bad-digest",
           "cost_units": 1
         }
       ],
@@ -1920,7 +1920,7 @@
             "energy": "low"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -1944,7 +1944,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-clock-unknown",
+          "run_group_id": "group-clock-unknown",
           "cost_units": 1
         }
       ],
@@ -1983,7 +1983,7 @@
             "energy": "low"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -2007,7 +2007,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-expensive-low",
+          "run_group_id": "group-expensive-low",
           "cost_units": 12
         }
       ],
@@ -2044,7 +2044,7 @@
             "load": "boundary"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -2068,7 +2068,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-failed-boundary",
+          "run_group_id": "group-failed-boundary",
           "cost_units": 1
         }
       ],
@@ -2105,7 +2105,7 @@
             "temperature": "hot"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 2,
+          "minimum_run_groups": 2,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -2129,7 +2129,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "fixture-shared-1",
+          "run_group_id": "fixture-shared-1",
           "cost_units": 1
         },
         {
@@ -2150,7 +2150,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "fixture-shared-1",
+          "run_group_id": "fixture-shared-1",
           "cost_units": 1
         }
       ],
@@ -2189,7 +2189,7 @@
             "maintenance_state": "post"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -2213,7 +2213,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-pre-maintenance",
+          "run_group_id": "group-pre-maintenance",
           "cost_units": 1
         }
       ],
@@ -2252,7 +2252,7 @@
             "load": "boundary"
           },
           "evidence_key": "retention-load",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -2276,7 +2276,7 @@
           "evidence_keys": [
             "geometry-metrology"
           ],
-          "independence_group": "group-geometry-only",
+          "run_group_id": "group-geometry-only",
           "cost_units": 1
         }
       ],
@@ -2315,7 +2315,7 @@
             "load": "boundary"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -2339,7 +2339,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-no-uncertainty",
+          "run_group_id": "group-no-uncertainty",
           "cost_units": 1
         }
       ],
@@ -2378,7 +2378,7 @@
             "environment_sequence": "after_vibration"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -2402,7 +2402,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-pre-vibration-check",
+          "run_group_id": "group-pre-vibration-check",
           "cost_units": 1
         }
       ],
@@ -2441,7 +2441,7 @@
             "energy": "low"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         },
@@ -2456,7 +2456,7 @@
             "temperature": "cold"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -2480,7 +2480,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-low",
+          "run_group_id": "group-low",
           "cost_units": 1
         },
         {
@@ -2501,7 +2501,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-cold",
+          "run_group_id": "group-cold",
           "cost_units": 1
         }
       ],
@@ -2538,7 +2538,7 @@
             "energy": "low"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         },
@@ -2553,7 +2553,7 @@
             "surface": "paint"
           },
           "evidence_key": "metrology-force",
-          "minimum_independent_groups": 1,
+          "minimum_run_groups": 1,
           "not_applicable_reason": null,
           "not_applicable_review_ref": null
         }
@@ -2577,7 +2577,7 @@
           "evidence_keys": [
             "metrology-force"
           ],
-          "independence_group": "group-paint-only",
+          "run_group_id": "group-paint-only",
           "cost_units": 1
         }
       ],
