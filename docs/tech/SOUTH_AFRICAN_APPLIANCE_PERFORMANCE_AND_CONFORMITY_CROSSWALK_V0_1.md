@@ -61,7 +61,7 @@ This is a starting map, not a determination of applicable law. The exact product
 | Product family | International standards / test references to investigate | Important boundary |
 |---|---|---|
 | General household appliances | IEC 60335-1:2020 + AMD1:2025 | Apply with the relevant Part 2 and confirm current SANS adoption and NRCS scope. |
-| Washing machines | IEC 60335-2-7:2024; applicable washer performance test methods | Safety standard is not a wash-performance ranking. |
+| Washing machines | IEC 60335-2-7:2024 for safety; IEC 60456:2024 Edition 6 for household performance; IEC 60704-2-4:2025 Edition 4 for airborne noise | Keep safety, performance, noise, South African SANS adoption and regulatory/LOA scope distinct. IEC 60456:2024 is a major technical revision; do not assume existing local laboratory scope or legacy product-sheet values automatically align. |
 | Household dishwashers | IEC 60335-2-5:2025; applicable dishwasher performance procedure | Commercial dishwashers have a different safety part, e.g. IEC 60335-2-58. |
 | Refrigerators/freezers | IEC 60335-2-24:2025; applicable energy and temperature-performance methods | Refrigerant handling and sealed-system repairs remain specialist service boundaries. |
 | Heat pumps, air conditioners and dehumidifiers | IEC 60335-2-40:2024 + AMD1:2026 | Refrigerant class, charge, flammability and installation/site rules require product-specific treatment. |
@@ -107,6 +107,32 @@ Add two international policy/market comparison layers to the source register:
 - IEA 4E Product Energy Efficiency Trends (PEET), which tracks standards, labels and product-efficiency trends across member economies: https://www.iea-4e.org/publications/peet/status-of-domestic-refrigerator-regulations/
 
 These are useful for setting an international ambition ladder and checking whether a foreign label is actually a frontier. They are not interchangeable test results: align product class, capacity, climate, duty profile, test edition and metric before transferring a threshold.
+
+## 4A. Washer-specific standards update and South African laboratory-scope gap
+
+The current household washer performance method is **IEC 60456:2024, Edition 6**, published 27 November 2024 and shown as valid with stability date 2028. It replaces IEC 60456:2010 plus Amendment 1:2022. The revision materially changes the performance evidence available: it adds new standard powder/liquid/wool detergents; cleaning rather than the prior washing-performance formulation; wool cleaning; LAS rinsing; gentleness of action; low-power modes; temperature inside the washload; intermittently recurring functions; alternative conditioning/ambient corrections; mixed textile loads; and multi-compartment machines. It does not cover commercial laundries and does not itself define acoustical-noise measurement.
+
+**The benchmark consequence:** energy per cycle is no longer an adequate standalone washer objective. A credible comparison should preserve cleaning, rinse residue/LAS, gentleness/textile care, temperature inside the load, spin residual moisture, low-power energy, cycle time, water and electricity as separate outcomes, with the applicable prescribed test materials and conditioning. A separate long-horizon textile durability study may extend the scope, but must not be represented as a direct IEC 60456 requirement.
+
+For washer noise, **IEC 60704-2-4:2025 Edition 4** is now the current IEC method for washing machines and spin extractors. It is aligned to IEC 60456:2024 test programmes and detergents. For washer safety, **IEC 60335-2-7:2024 Edition 9** is the latest IEC product-specific safety part identified in the catalogue. The exact relevant Part 1 amendments, SANS adoption, applicability and NRCS scope still require competent local determination.
+
+References:
+- IEC 60456:2024: https://webstore.iec.ch/en/publication/70049
+- IEC 60704-2-4:2025: https://webstore.iec.ch/en/publication/90407
+- IEC 60335-2-7:2024: https://webstore.iec.ch/en/publication/80076
+- IEC 60335-1:2020+AMD1:2025 consolidated record: https://webstore.iec.ch/en/publication/85018
+
+**South African method transition remains unresolved.** Public sources confirm that SABS has an ISO/IEC 17025-accredited Appliances Laboratory conducting household appliance safety, performance and energy-efficiency testing. They do not, on the public laboratory page alone, prove that its current accredited schedule includes IEC 60456:2024 Edition 6 or IEC 60704-2-4:2025. Legacy public documents reference older and inconsistent washing-machine performance methods (including SANS 60456 / IEC 60456:2003 and SANS 1695). These legacy references are not sufficient to establish the current SANS adoption or laboratory scope.
+
+Required pre-test action: retrieve the live SABS standards catalogue status for the current SANS method; obtain the current SANAS certificate and detailed scope for the exact SABS Appliances Laboratory; confirm whether the laboratory can perform IEC 60456:2024 as an accredited test, a non-accredited customer-specific engineering test, or cannot yet perform it; record the status separately. If external testing is considered, verify the exact method scope of the ILAC-MRA laboratory and separately confirm what NRCS accepts for any regulatory/LOA purpose.
+
+Sources:
+- SABS Appliances Laboratory: https://www.sabs.co.za/appliances
+- SANAS latest accredited-facilities database: https://www.sanas.co.za/Pages/website/accreditation/load/latest-accredited-facilities.aspx
+- Historical DMRE/SABS scope-capacity document (legacy 2003 reference): https://www.dmre.gov.za/Portals/0/Energy_Website/EEE/Projects/EnergyEfficiencyStandardsAndLabellingForHouseholdAppliances/Capacity-to-test-for-newEnergyEfficiencyStandards-SABS-Lab.pdf
+- Historic UNDP/SABS appliance-laboratory tender (legacy SANS 1695 reference): https://procurement-notices.undp.org/view_file.cfm?doc_id=143929
+
+Related source-grounded product candidate register: [South African Washer Comparator Discovery Register v0.1](SOUTH_AFRICAN_WASHER_COMPARATOR_DISCOVERY_REGISTER_V0_1.md). It is a procurement discovery register only: Bosch WAN282X1ZA, Miele WWA120 WCS and LG F1222TD5 are documented candidate products, while a Samsung regional page that currently says "Not for sale" is explicitly excluded from local procurement. Their published energy figures use different methods/label regimes and are not ranked.
 
 ## 5. Shared benchmark contract: compare useful service, not label numbers
 
