@@ -570,7 +570,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn post_hoc_exclusion_reason_codes_are_rejected() {
         let mut binding = expected();
