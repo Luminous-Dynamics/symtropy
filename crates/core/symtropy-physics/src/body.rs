@@ -103,9 +103,14 @@ impl<const D: usize> RigidBody<D> {
         )
     }
 
+    /// Construct a dynamic body with a uniform-density solid D-ball collider.
+    ///
+    /// For a uniform solid D-ball, the moment of inertia in any coordinate
+    /// 2-plane is I = 2 m r² / (D + 2). In D=3 this reduces to the familiar
+    /// solid-sphere coefficient 0.4; D=2 and D=4 therefore use 0.5 and 1/3.
     pub fn dynamic_sphere(handle: BodyHandle, position: Point<D>, radius: f64, mass: f64) -> Self {
         use symtropy_math::Sphere;
-        let inertia = 0.4 * mass * radius * radius;
+        let inertia = 2.0 * mass * radius * radius / (D as f64 + 2.0);
         Self::new(
             handle,
             BodyType::Dynamic,
@@ -237,5 +242,87 @@ impl<const D: usize> RigidBody<D> {
         let local_dir = self.transform.rotation.reverse().rotate_vector(direction);
         let local_support = self.collider.support(&local_dir);
         self.transform.transform_point(&Point(local_support)).0
+    }
+}
+
+
+#[cfg(test)]
+mod dimensioned_sphere_inertia_tests {
+    use super::*;
+
+    fn assert_isotropic_sphere_inertia<const D: usize>(
+        mass: f64,
+        radius: f64,
+        expected: f64,
+    ) {
+        let body = RigidBody::<D>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            radius,
+            mass,
+        );
+        for (axis, actual) in body.inertia.iter().enumerate() {
+            assert!(
+                (actual - expected).abs() < 1.0e-12,
+                "D={D}, plane {axis}: actual={actual}, expected={expected}"
+            );
+        }
+        for (axis, actual) in body.inv_inertia.iter().enumerate() {
+            assert!(
+                (actual - 1.0 / expected).abs() < 1.0e-12,
+                "D={D}, inverse plane {axis}: actual={actual}, expected={}",
+                1.0 / expected
+            );
+        }
+    }
+
+    #[test]
+    fn solid_ball_inertia_uses_dimension_correct_coefficient() {
+        let mass = 3.0;
+        let radius = 2.0;
+        // I_plane = 2*m*r²/(D+2): 6.0, 4.8, 4.0 for D=2,3,4.
+        assert_isotropic_sphere_inertia::<2>(mass, radius, 6.0);
+        assert_isotropic_sphere_inertia::<3>(mass, radius, 4.8);
+        assert_isotropic_sphere_inertia::<4>(mass, radius, 4.0);
+    }
+
+    #[test]
+    fn solid_ball_inertia_scales_linearly_with_mass_and_quadratically_with_radius() {
+        let body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            2.0,
+            3.0,
+        );
+        let doubled_mass = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(2),
+            Point::origin(),
+            2.0,
+            6.0,
+        );
+        let doubled_radius = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(3),
+            Point::origin(),
+            4.0,
+            3.0,
+        );
+        for axis in 0..3 {
+            assert!((doubled_mass.inertia[axis] - 2.0 * body.inertia[axis]).abs() < 1.0e-12);
+            assert!((doubled_radius.inertia[axis] - 4.0 * body.inertia[axis]).abs() < 1.0e-12);
+        }
+    }
+
+    #[test]
+    fn three_dimensional_sphere_preserves_legacy_solid_sphere_value() {
+        let body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            0.5,
+            2.0,
+        );
+        let expected = 0.4 * 2.0 * 0.5 * 0.5;
+        for actual in body.inertia.iter() {
+            assert!((actual - expected).abs() < 1.0e-12);
+        }
     }
 }
