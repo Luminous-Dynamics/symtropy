@@ -636,16 +636,12 @@ fn evaluate_case(case: &Case) -> CaseResult {
             .iter()
             .filter(|claim| claim.claim_type == *required_type)
         {
-            if !case
-                .edges
-                .iter()
-                .any(|edge| edge.from_claim_id == claim.claim_id && is_root_support_edge(edge, &case.root_claim_id))
-            {
+            if !claim.mandatory {
                 add_blocker(
                     &mut blockers,
                     "INCOMPLETE",
                     Some(&claim.claim_id),
-                    "required claim has no direct support edge to the review root",
+                    "required claim is not marked mandatory",
                 );
             }
         }
