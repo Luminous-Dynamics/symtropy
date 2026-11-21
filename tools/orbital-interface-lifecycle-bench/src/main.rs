@@ -1,4 +1,4 @@
-use orbital_interface_lifecycle_bench::{evaluate, is_valid_source_commit, sha256_hex, Corpus};
+use orbital_interface_lifecycle_bench::{Corpus, evaluate, is_valid_source_commit, sha256_hex};
 use serde_json::json;
 use std::env;
 use std::fs;
@@ -10,7 +10,9 @@ fn run() -> Result<ExitCode, String> {
         "usage: orbital-interface-lifecycle-bench <cases.json> --source-commit <40-hex-sha>"
             .to_owned()
     })?;
-    let flag = args.next().ok_or_else(|| "missing --source-commit".to_owned())?;
+    let flag = args
+        .next()
+        .ok_or_else(|| "missing --source-commit".to_owned())?;
     if flag != "--source-commit" {
         return Err("expected --source-commit".to_owned());
     }
