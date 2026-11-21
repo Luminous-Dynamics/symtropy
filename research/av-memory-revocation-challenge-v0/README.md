@@ -83,3 +83,39 @@ A v0 pass validates fixture and evaluator mechanics, not a production memory sys
 2. Implement deterministic direct/alias matching, probe-stage checks, dependency-DAG purge coverage and unrelated-control retention scoring.
 3. Keep noninterference and physical storage erasure as separate report dimensions.
 4. Expand from public synthetic mechanics to evaluator-generated hidden canaries and independently controlled probes after candidate freeze.
+
+## Candidate evaluator tranche (v1)
+
+Added:
+- schemas/submission-v1.schema.json: probe responses, confidence, cited source references, retrieved derived-memory references, candidate purge receipts and declared policy-ineligibility references.
+- schemas/scorecard-v1.schema.json: pre-revocation canary retrieval, post-revocation leakage, source/derived-reference reuse, unrelated-control retention, purge-receipt coverage and policy-ineligibility reporting.
+- fixtures/agent/reference-submission-v1.json: finite synthetic reference policy.
+- fixtures/expected/reference-scorecard-v1.json: known-answer totals.
+- tools/av-modality-necessity-evaluator/evaluate_revocation.py: deterministic normalized canary/alias evaluator.
+- tools/av-modality-necessity-evaluator/test_evaluate_revocation.py: adversarial tests for direct leakage, alias leakage, source/derived retrieval, missing purge receipts, missing pre-probe recall, overbroad deletion, false storage-erasure claims and malformed probe sets.
+
+Run:
+
+    python3 tools/av-modality-necessity-evaluator/evaluate_revocation.py \
+      --workload research/av-memory-revocation-challenge-v0/fixtures/agent/workload-v1.json \
+      --truth research/av-memory-revocation-challenge-v0/fixtures/evaluator-only/truth-v1.json \
+      --submission research/av-memory-revocation-challenge-v0/fixtures/agent/reference-submission-v1.json \
+      --output /tmp/av-memory-revocation-scorecard.json
+
+The eight-episode reference submission yields eight pre-revocation canary hits, zero post-revocation canary leaks across nine probes, zero source/derived-reference reuses, one retained unrelated control fact, ten in-scope purge receipts across ten in-scope derived objects and complete candidate-reported policy-ineligibility coverage. These numbers qualify the finite evaluator semantics only. The purge receipts are candidate self-reports, not independent storage witnesses.
+
+### Two separate scope axes
+
+A critical refinement in v1 distinguishes:
+- **Storage purge scope:** which derived objects the declared revocation profile requires to be physically purged or cryptographically erased.
+- **Policy-ineligibility scope:** every derived object that depends on the revoked source, regardless of whether its storage class is included in the purge profile.
+
+The second episode now contains an embedding outside the storage purge scope. It may remain persisted under that profile, but the candidate must still report it as policy-ineligible and must never retrieve it after revocation. The evaluator counts 11 total derived objects and 10 in-scope purge objects. It separately checks receipt coverage for the 10 in-scope objects and policy-ineligibility reporting for the source plus all 11 derivatives.
+
+This avoids treating "not physically purged by this storage profile" as "still allowed to answer from it". A storage receipt for an out-of-scope item is reported as a scope violation rather than inflating required purge coverage.
+
+### Exact interpretation boundary
+
+The evaluator uses normalized exact canary and alias matching. It does not establish semantic non-recall across arbitrary paraphrase, latent weights, unknown replicas or untested queries. It never reports physical storage erasure as verified, even when the candidate claims completion. Attestation labels in the candidate's receipt are statements to evaluate, not independently authenticated witnesses.
+
+The workflow validates the workload/submission/scorecard schemas, causal probe chronology, dependency order, exact candidate probe coverage, runs the adversarial suite, generates the reference scorecard and compares it with frozen expected totals. Exact-head GitHub Actions remains the CI authority.
