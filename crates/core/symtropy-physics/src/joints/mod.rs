@@ -15,7 +15,9 @@ pub mod prismatic;
 pub use ball::BallJoint;
 pub use fixed::FixedJoint;
 pub use hinge::HingeJoint;
-pub use prismatic::PrismaticJoint;
+pub use prismatic::{
+    PrismaticAngularLockOutcome, PrismaticAngularLockRejection, PrismaticJoint,
+};
 
 /// Motor drive for actuated joints (hinge + prismatic).
 ///
