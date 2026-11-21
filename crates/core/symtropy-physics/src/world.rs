@@ -137,8 +137,8 @@ pub struct ConstraintVelocityEvent {
 ///
 /// This is not a rollback mechanism, a physical-validity verdict, or an
 /// independent simulation certificate. The world has already integrated
-/// bodies and resolved contacts before velocity-level constraint outcomes are
-/// collected. Therefore a rejection can occur after prior world mutations.
+/// bodies and resolved contacts before positional and velocity-level constraint
+/// outcomes are collected. Therefore a rejection can occur after prior world mutations.
 /// Rejection reporting is observational and non-interrupting: the existing
 /// velocity-constraint iteration schedule continues, and no rollback is tried.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -523,7 +523,7 @@ impl<const D: usize> PhysicsWorld<D> {
         self.step_internal(dt, &mut noop, None);
     }
 
-    /// Step the world and return typed velocity-constraint execution outcomes.
+    /// Step the world and return typed positional and velocity-constraint outcomes.
     ///
     /// This is an additive diagnostics API. Legacy constraints remain
     /// source-compatible and appear as Unreported; no success is inferred
@@ -3062,6 +3062,55 @@ mod constraint_outcome_report_tests {
 
         assert!(report.constraint_position_events.is_empty());
         assert!(report.constraint_velocity_events.is_empty());
+    }
+
+
+    struct CountingLegacyPositionConstraint {
+        body_a: BodyHandle,
+        body_b: BodyHandle,
+        calls: Arc<std::sync::atomic::AtomicUsize>,
+    }
+
+    impl Constraint<3> for CountingLegacyPositionConstraint {
+        fn bodies(&self) -> (BodyHandle, BodyHandle) {
+            (self.body_a, self.body_b)
+        }
+
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
+        }
+
+        fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+            self
+        }
+
+        fn solve(&self, _body_a: &mut RigidBody<3>, _body_b: &mut RigidBody<3>, _dt: f64) {
+            self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        }
+    }
+
+    #[test]
+    fn legacy_positional_adapter_invokes_solve_exactly_once_per_iteration() {
+        use std::sync::atomic::AtomicUsize;
+
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let a = world.add_sphere(Point::origin(), 0.1, 1.0);
+        let b = world.add_sphere(Point::new([5.0, 0.0, 0.0]), 0.1, 1.0);
+        let calls = Arc::new(AtomicUsize::new(0));
+        world.add_constraint(Box::new(CountingLegacyPositionConstraint {
+            body_a: a,
+            body_b: b,
+            calls: Arc::clone(&calls),
+        }));
+        world.solver_iterations = 3;
+
+        let report = world.step_with_report(0.016);
+
+        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 3);
+        assert_eq!(report.constraint_position_events.len(), 3);
+        assert!(report.constraint_position_events.iter().all(|event| {
+            event.outcome == ConstraintSolveOutcome::Unreported
+        }));
     }
 
 }
